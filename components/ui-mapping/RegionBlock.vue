@@ -1,9 +1,9 @@
 <template>
   <div v-if="embedded && node.surfaceKind === 'list'" :class="[embeddedStack, 'w-full']">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
-        <span class="text-label">{{ regionLabel }}</span>
+        <span class="text-label min-w-0 truncate">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
       <div v-if="node.actions.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
@@ -15,7 +15,7 @@
           <InputText
             v-model="search"
             size="small"
-            class="max-w-48"
+            class="min-w-0 max-w-48 flex-1"
             :placeholder="$t('uiMapping.searchPlaceholder')"
             :aria-label="$t('uiMapping.searchPlaceholder')"
             @keydown.esc="searchOpen = false"
@@ -38,39 +38,13 @@
           :fields="builderFields"
           @update:model-value="value => (builderFilter = value)"
         />
-        <!-- Sort unfolds AT its button too: the select and order toggle
-             render beside it (card-grid projection; tables sort natively
-             by column). -->
-        <template v-if="sortOpen">
-          <InstanceSelect
-            v-model="sortName"
-            :options="sortOptions"
-            option-label="label"
-            option-value="value"
-            show-clear
-            size="small"
-            class="max-w-48"
-            :aria-label="$t('uiMapping.sortLabel')"
-          />
-          <Button
-            v-if="sortName"
-            :icon="sortOrder < 0 ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('uiMapping.sortOrderLabel')"
-            @click="sortOrder = -sortOrder"
-          />
-        </template>
-        <Button
+        <SortControl
           v-if="sortToggleAvailable"
-          icon="pi-sort"
-          text
-          rounded
-          size="small"
-          :severity="sortOpen || sortActive ? undefined : 'secondary'"
-          :aria-label="$t('uiMapping.sortLabel')"
-          @click="sortOpen = !sortOpen"
+          :options="sortOptions"
+          :model-value="sortName"
+          :order="sortOrder"
+          @update:model-value="value => (sortName = value)"
+          @update:order="value => (sortOrder = value)"
         />
         <ActionButton
           v-for="action in node.actions"
@@ -161,7 +135,7 @@
           <InputText
             v-model="search"
             size="small"
-            class="max-w-48"
+            class="min-w-0 max-w-48 flex-1"
             :placeholder="$t('uiMapping.searchPlaceholder')"
             :aria-label="$t('uiMapping.searchPlaceholder')"
             @keydown.esc="searchOpen = false"
@@ -184,39 +158,13 @@
           :fields="builderFields"
           @update:model-value="value => (builderFilter = value)"
         />
-        <!-- Sort unfolds AT its button too: the select and order toggle
-             render beside it (card-grid projection; tables sort natively
-             by column). -->
-        <template v-if="sortOpen">
-          <InstanceSelect
-            v-model="sortName"
-            :options="sortOptions"
-            option-label="label"
-            option-value="value"
-            show-clear
-            size="small"
-            class="max-w-48"
-            :aria-label="$t('uiMapping.sortLabel')"
-          />
-          <Button
-            v-if="sortName"
-            :icon="sortOrder < 0 ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('uiMapping.sortOrderLabel')"
-            @click="sortOrder = -sortOrder"
-          />
-        </template>
-        <Button
+        <SortControl
           v-if="sortToggleAvailable"
-          icon="pi-sort"
-          text
-          rounded
-          size="small"
-          :severity="sortOpen || sortActive ? undefined : 'secondary'"
-          :aria-label="$t('uiMapping.sortLabel')"
-          @click="sortOpen = !sortOpen"
+          :options="sortOptions"
+          :model-value="sortName"
+          :order="sortOrder"
+          @update:model-value="value => (sortName = value)"
+          @update:order="value => (sortOrder = value)"
         />
         <ActionButton
           v-for="action in node.actions"
@@ -431,6 +379,7 @@ import { builderFieldsForType } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
+import SortControl from './SortControl.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
 import CardGrid from './CardGrid.vue';
@@ -440,7 +389,6 @@ import StatGrid from './StatGrid.vue';
 import ActionButton from './ActionButton.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
 import InstanceMultiSelect from '../shared/InstanceMultiSelect.vue';
-import InstanceSelect from '../shared/InstanceSelect.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
@@ -582,7 +530,6 @@ const sortScope = computed(() => `card-grid:${props.node.typeId || ''}`);
 const preferredSort = loadSortPreference(sortScope.value);
 const sortName = ref(preferredSort?.name || props.node.listControls?.defaultSort || null);
 const sortOrder = ref(preferredSort?.order || 1);
-const sortOpen = ref(false);
 const sortOptions = computed(() => (props.node.listControls?.sortKeys || [])
   .map(key => ({ label: key.label, value: key.name })));
 const sortKeyResolved = computed(() => (props.node.listControls?.sortKeys || [])
@@ -604,7 +551,6 @@ const sortedInstances = computed(() => (sortKeyResolved.value
 watch(() => props.node.id, () => {
   search.value = '';
   searchOpen.value = false;
-  sortOpen.value = false;
 });
 const filteredInstances = computed(() => {
   if (props.node.surfaceKind !== 'list') return props.node.instances;

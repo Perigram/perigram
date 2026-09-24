@@ -12,7 +12,7 @@
     />
 
     <Popover ref="popover">
-      <div class="flex min-w-80 max-w-96 flex-col gap-2">
+      <div ref="panel" class="flex min-w-80 max-w-96 flex-col gap-2">
         <div v-if="rows.length > 1" class="flex flex-wrap items-center justify-between gap-2">
           <SelectButton
             :model-value="combinator"
@@ -47,6 +47,7 @@
             option-value="value"
             size="small"
             class="w-40 shrink-0"
+            :append-to="panel"
             :aria-label="fieldLabelFor(row.field)"
             @update:model-value="value => setField(index, value)"
           />
@@ -57,6 +58,7 @@
             option-value="value"
             size="small"
             class="w-32 shrink-0"
+            :append-to="panel"
             :aria-label="$t('common.filter')"
             @update:model-value="value => setRowOp(index, value)"
           />
@@ -81,6 +83,7 @@
             :model-value="toDate(row.value)"
             size="small"
             class="min-w-0 flex-1"
+            :append-to="panel"
             :aria-label="fieldLabelFor(row.field)"
             @update:model-value="value => setRowValue(index, value ? value.toISOString() : '')"
           />
@@ -90,6 +93,7 @@
             :options="booleanOptions"
             size="small"
             class="min-w-0 flex-1"
+            :append-to="panel"
             :placeholder="fieldLabelFor(row.field)"
             :aria-label="fieldLabelFor(row.field)"
             @update:model-value="value => setRowValue(index, value ?? '')"
@@ -102,6 +106,7 @@
             option-value="value"
             size="small"
             class="min-w-0 flex-1"
+            :append-to="panel"
             :placeholder="fieldLabelFor(row.field)"
             :aria-label="fieldLabelFor(row.field)"
             @update:model-value="value => setRowValue(index, value)"
@@ -115,6 +120,7 @@
             size="small"
             filter
             class="min-w-0 flex-1"
+            :append-to="panel"
             :placeholder="fieldLabelFor(row.field)"
             :aria-label="fieldLabelFor(row.field)"
             @update:model-value="value => setRowValue(index, value ?? '')"
@@ -196,6 +202,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const popover = ref();
+const panel = ref(null);
 const fieldsOpen = ref(false);
 const combinator = ref('and');
 const rows = ref([]);
