@@ -59,12 +59,12 @@
           />
         </nav>
 
-        <!-- Expanded navigation is one raw PanelMenu: the communication
-             panel first — Chats and Calls as flat sibling rows (Chats
-             opens the chats page; Calls toggles its suggestions flyout)
-             with active call rooms as further rows only while calls run —
-             then one panel per top-level explorer type. Default rows
-             carry the registry icons and title-resolver labels. -->
+        <!-- Expanded navigation is one raw PanelMenu: two communication
+             entries first — Chats opens the chats page; Calls toggles its
+             suggestions flyout and carries active call rooms as rows only
+             while calls run — then one panel per top-level explorer
+             type. Default rows carry the registry icons and
+             title-resolver labels. -->
         <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
@@ -74,8 +74,8 @@
             :aria-label="$t('nav.home')"
             :pt="menuPt"
           />
-          <!-- The Calls row toggles this popup flyout (ported to the body,
-               anchored at the row): every ringable conversation. -->
+          <!-- The Calls entry toggles this popup flyout (ported to the
+               body, anchored at the entry): every ringable conversation. -->
           <CommunicationMenu ref="callsFlyout" @start-call="startCallFromConversation" />
         </div>
 
@@ -235,10 +235,7 @@ function defaultLeaf(id) {
 
 const paneTree = ref(defaultLeaf('pane-1'));
 const sidebarCollapsed = ref(false);
-// The communication panel starts expanded so its rows (Chats, Calls, the
-// active rooms) are visible immediately; an explicit collapse stays
-// respected — the explorer auto-expand only ever adds type keys.
-const expandedKeys = ref({ communication: true });
+const expandedKeys = ref({});
 const callsFlyout = ref(null);
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
@@ -403,12 +400,12 @@ const visibleTypes = computed(() => {
 // panel: type nodes become panels (their registry icon is PanelMenu's
 // item icon), entity nodes become rows carrying the workspace item for
 // the #item slot.
-// The explorer model is the communication panel plus the pure type
-// hierarchy: type nodes become panels (their registry icon is PanelMenu's
-// item icon), entity nodes become rows carrying the workspace item for
-// the #item slot.
+// The explorer model is the two communication entries plus the pure
+// type hierarchy: type nodes become panels (their registry icon is
+// PanelMenu's item icon), entity nodes become rows carrying the
+// workspace item for the #item slot.
 const sidebarMenuModel = computed(() => [
-  communicationPanelModel(),
+  ...communicationPanelModels(),
   ...explorerNodes.value.map(node => typePanelItem(node))
 ]);
 
@@ -442,31 +439,31 @@ function entityPanelItem(node) {
 // present and toggles the CommunicationMenu flyout listing every
 // ringable conversation — and active call rooms render as further flat
 // rows, only while a room is active. Nothing is nested under anything.
-function communicationPanelModel() {
-  return {
-    key: 'communication',
-    label: t('nav.communication'),
-    icon: 'pi pi-comments',
-    items: [
-      {
-        key: 'communication:chats',
-        label: t('support.chatTitle'),
-        icon: 'pi pi-comments',
-        command: () => openChatsPage()
-      },
-      {
-        key: 'communication:calls',
-        label: t('call.calls'),
-        icon: 'pi pi-phone',
-        command: ({ originalEvent }) => callsFlyout.value?.toggle(originalEvent)
-      },
-      ...activeRoomItems()
-    ]
-  };
+// PanelMenu, two communication entries: Chats is a plain entry opening
+// the chats workspace page; Calls is always present, toggles the
+// CommunicationMenu flyout listing every ringable conversation, and
+// carries active rooms as its rows — only while rooms exist.
+function communicationPanelModels() {
+  const rooms = activeRoomItems();
+  return [
+    {
+      key: 'communication:chats',
+      label: t('support.chatTitle'),
+      icon: 'pi pi-comments',
+      command: () => openChatsPage()
+    },
+    {
+      key: 'communication:calls',
+      label: t('call.calls'),
+      icon: 'pi pi-phone',
+      command: ({ originalEvent }) => callsFlyout.value?.toggle(originalEvent),
+      ...(rooms.length ? { items: rooms } : {})
+    }
+  ];
 }
 
-// Ongoing rooms live as persistent flat rows in the communication panel;
-// only brand-new invites float (IncomingCalls).
+// Ongoing rooms live as persistent flat rows under the Calls entry; only
+// brand-new invites float (IncomingCalls).
 function activeRoomItems() {
   return callsStore.activeRooms.map(room => ({
     key: `call-room:${room.room}`,
@@ -622,6 +619,16 @@ watch(explorerNodes, value => {
   };
   expandTypes(value);
   expandedKeys.value = next;
+}, { immediate: true });
+
+// Active rooms must be visible the moment they exist: the Calls entry
+// carries them as rows, so it auto-expands on the empty-to-active
+// transition (initial load included); an explicit collapse while calls
+// run stays respected until the next call starts.
+watch(() => callsStore.activeRooms.length, (count, previous = 0) => {
+  if (count > 0 && previous === 0) {
+    expandedKeys.value = { ...expandedKeys.value, 'communication:calls': true };
+  }
 }, { immediate: true });
 
 watch(workspaceStorageKey, key => {

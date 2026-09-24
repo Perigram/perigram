@@ -241,20 +241,19 @@ Discord-style operational shell:
   wordmark returns on expand; the wrapped state persists with the
   workspace layout (`sidebarCollapsed` in the home workspace state). The
   Communication
-  is one panel — the first in that PanelMenu — holding Chats and Calls
-  as flat sibling rows: Chats opens the chats workspace page, and Calls
-  is always present, toggling the shared `CommunicationMenu` popup
-  flyout (see
+  is two entries in that PanelMenu: Chats is a plain entry opening the
+  chats workspace page, and Calls is always present — it toggles the
+  shared `CommunicationMenu` popup flyout (see
   [components/shared/README.md](../../components/shared/README.md))
-  that lists every direct/group conversation and rings it. Active
-  joinable call rooms render as further flat rows (icon, label,
-  participant count; clicking the row joins) sourced from the shared
-  `calls` store (`stores/calls.js`), which keeps the
-  `/api/livekit/active-rooms` snapshot fresh on `call.activity` events
-  and also drives the global `IncomingCalls` ring cards — only
-  brand-new invites float; ongoing calls stay in the panel and in
-  chats. With no active rooms the room rows render nothing; the panel
-  starts expanded so its rows are visible immediately.
+  that lists every direct/group conversation and rings it, and carries
+  active joinable call rooms as its rows (icon, label, participant
+  count; clicking the row joins), sourced from the shared `calls` store
+  (`stores/calls.js`), which keeps the `/api/livekit/active-rooms`
+  snapshot fresh on `call.activity` events and also drives the global
+  `IncomingCalls` ring cards — only brand-new invites float; ongoing
+  calls stay under Calls and in chats. With no active rooms the Calls
+  entry renders no rows and nothing expands; it expands automatically
+  when the first room appears.
 - Entity navigation is a raw default `PanelMenu` — no item slot, default
   rows, `multiple` panels open — one panel per top-level type from the
   same TYPE hierarchy the render contracts declare: registry containment
