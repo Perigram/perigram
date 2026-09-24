@@ -116,11 +116,10 @@ const tablePt = {
   headerCell: { class: 'bg-transparent text-muted' }
 };
 // Row paint comes from the preset (row.background = content surface);
-// the recipe adds the rounded hairline ring here. The ring is a Tailwind
-// ring (box-shadow, inset) — table-row borders never paint in
-// separated-border mode, and PrimeVue zeroes row outline-color, so the
-// box-shadow ring is the one channel that draws a rounded hairline.
-const rowSurfaceClass = () => 'rounded-ui ring-1 ring-inset ring-content-border';
+// the recipe adds the rounding here. Rows are rounded surfaces WITHOUT a
+// border or ring: the surface step over the canvas plus the hairline gap
+// is the whole separation.
+const rowSurfaceClass = () => 'rounded-ui';
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);

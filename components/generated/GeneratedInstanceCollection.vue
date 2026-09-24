@@ -162,7 +162,7 @@ const tablePt = {
   headerRow: { class: 'bg-transparent text-muted' },
   headerCell: { class: 'bg-transparent text-muted' }
 };
-const rowSurfaceClass = () => 'rounded-ui ring-1 ring-inset ring-content-border';
+const rowSurfaceClass = () => 'rounded-ui';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { instanceEditorActionFor, instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
