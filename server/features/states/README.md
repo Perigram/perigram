@@ -9,8 +9,12 @@ Each entity uses a standardized `status` block for its current state snapshot.
 
 ```javascript
 status: {
-  state: String,     // e.g., "DRAFT", "ACTIVE", "READY"
-  userId: String,    // User who triggered the state change
+  state: {
+    primary: String,             // main-axis active leaf path
+    active: { [axis]: String },  // one active leaf path per independent axis
+    regions: { [axis]: { state: String, path: [String] } }
+  },
+  userId: String,    // User or service who triggered the state change
   timestamp: Date,   // When the change occurred
   metadata: Object,  // Event-local transition context
   eventId: ObjectId, // Link to status_events record
@@ -21,6 +25,11 @@ status: {
   }
 }
 ```
+
+`state.active` stores canonical leaf paths. Nested state paths use dot-separated
+segments (for example `production.cut`); each axis is independent and a
+secondary-axis transition never rewrites `states.main`. The `regions` map is
+the runtime snapshot of those axes; it is not a second declaration store.
 
 `metadata` is for why/how the transition happened: notes, reason codes, source,
 and request/job ids. Durable current-state facts belong in `lifecycle` so they
