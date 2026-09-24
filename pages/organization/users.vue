@@ -224,7 +224,7 @@ const tablePt = {
   headerRow: { class: 'bg-transparent text-muted' },
   headerCell: { class: 'bg-transparent text-muted' }
 };
-const rowSurfaceClass = () => 'rounded-ui';
+const rowSurfaceClass = () => 'rounded-ui outline-1 -outline-offset-1 outline-content-border';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';

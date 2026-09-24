@@ -1,5 +1,5 @@
 <template>
-  <span v-if="outcome.component === 'ValueText'" :class="[densityScale.factValue, LAYOUT.cellText]">{{ displayValue }}</span>
+  <span v-if="outcome.component === 'ValueText'" :class="[densityScale.factValue, LAYOUT.cellText, numericValue ? 'text-technical tabular-nums' : '']">{{ displayValue }}</span>
   <p v-else-if="outcome.component === 'ProseText'" class="text-prose line-clamp-4 w-full break-words">{{ formatValue({ base: 'string' }, model) }}</p>
   <MeterGroup
     v-else-if="outcome.component === 'MeterGroup'"
@@ -19,8 +19,11 @@
     :stars="(descriptor.values || []).length"
     readonly
   />
-  <span v-else-if="outcome.component === 'QuantityText'" :class="densityScale.factValue">{{ quantityValue }}</span>
-  <span v-else-if="outcome.component === 'InstantText'" :class="densityScale.factValue">{{ instantValue }}</span>
+  <!-- Measured values carry the mono face: quantities, instants, and
+       numbers are read as values, not prose (the sanctioned `technical`
+       alias). Prose, labels, and identities stay in the UI face. -->
+  <span v-else-if="outcome.component === 'QuantityText'" :class="[densityScale.factValue, 'text-technical tabular-nums']">{{ quantityValue }}</span>
+  <span v-else-if="outcome.component === 'InstantText'" :class="[densityScale.factValue, 'text-technical tabular-nums']">{{ instantValue }}</span>
   <Tag
     v-else-if="outcome.component === 'BooleanIcon'"
     :value="model === true ? '✓' : model === false ? '—' : '·'"
@@ -206,6 +209,9 @@ const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
 const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant }));
 const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));
+// Plain number fields land on ValueText too: the numeric face applies to
+// them, string fields keep the UI face.
+const numericValue = computed(() => props.descriptor?.base === 'number');
 const quantityValue = computed(() => formatQuantity(props.modelValue));
 const instantValue = computed(() => (props.modelValue ? new Date(props.modelValue).toLocaleDateString() : fallback));
 const compactValue = value => formatValue({ base: 'json' }, value) === '—'

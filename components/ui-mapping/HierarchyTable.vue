@@ -69,9 +69,11 @@ const tablePt = {
   headerRow: { class: 'bg-transparent text-muted' },
   headerCell: { class: 'bg-transparent text-muted' }
 };
-// Row paint comes from the preset (treetable.row.background = content
-// surface); the recipe adds rounding here.
-const rowSurfaceClass = () => 'rounded-ui';
+// Row paint comes from the preset (row.background = content surface);
+// the recipe adds the rounded hairline ring here. The ring rides
+// outline+outline-offset — tr borders do not paint in separated-border
+// mode, while an inset outline follows the row's border-radius.
+const rowSurfaceClass = () => 'rounded-ui outline-1 -outline-offset-1 outline-content-border';
 
 const { te, t } = useI18n();
 
