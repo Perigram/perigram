@@ -181,16 +181,15 @@
     "deleteWarning": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
   },
   "marketing": {
-    "heroTitle": "From process to application",
-    "heroSubtitle": "You define the types, states, and rules your organization runs on. Perigram compiles that definition into the app itself — screens, workflows, and access — and recompiles it whenever the definition changes.",
+    "heroTitle": "Turn the way you work into an app",
+    "heroSubtitle": "Describe what your team works with — clients, orders, documents — and the steps each job goes through. Perigram turns that description into a working application: screens, task lists, and access rules. Change the description, and the app changes with it.",
     "primaryCta": "Get started",
-    "secondaryCta": "Sign in",
-    "valueDeclareTitle": "The model is data",
-    "valueDeclare": "Entity types, fields, states, and relations are authored in the designer and stored as declarations, not written into application code.",
-    "valueCompileTitle": "Screens are compiled",
-    "valueCompile": "Screens, navigation, workflows, and permissions are generated from the process definition on every apply.",
-    "valueRuntimeTitle": "Data follows the model",
-    "valueRuntime": "Applying a new definition migrates existing records through declared steps, so live data stays valid."
+    "valueDeclareTitle": "Your rules, not code",
+    "valueDeclare": "Records, workflow steps, and permissions are defined in the visual designer and stored as configuration — not written into application code.",
+    "valueCompileTitle": "A working app, generated",
+    "valueCompile": "Screens, navigation, and access control are generated from your description and regenerated automatically whenever it changes.",
+    "valueRuntimeTitle": "Change without breaking data",
+    "valueRuntime": "When the process evolves, existing records are carried through declared migration steps, so live data stays valid."
   },
   "nav": {
     "projects": "Projects",
