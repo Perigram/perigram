@@ -148,7 +148,7 @@ surface concerns:
   declared relation as budgeted chips. Rows are Notion-style surface
   cards — the preset paints every row as the content surface with
   transparent internal dividers, and the recipe clips the row corners
-  (`[clip-path:inset(0_round_var(--p-border-radius-md))]`, since a row's
+  (`[clip-path:inset(0_round_var(--p-border-radius-xl))]`, since a row's
   background is not clipped by its radius), adds a hairline
   separated-border gap (the layout-only scoped block) and a muted
   transparent header band — every instance row sits one step above the

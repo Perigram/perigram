@@ -707,7 +707,7 @@ transparent internal cell dividers (`bodyCell.borderColor`) — row
 stripes are gone, the row IS the card. A row's own background is NOT
 clipped by its `border-radius` (measured: corner pixels stay white), so
 the shared row-surface recipe rounds rows by clipping them —
-`[clip-path:inset(0_round_var(--p-border-radius-md))]` through the
+`[clip-path:inset(0_round_var(--p-border-radius-xl))]` through the
 official `rowClass` channel — beside the layout-only scoped
 `border-collapse: separate` block with a `0.25rem` row gap and a muted
 transparent header band: the generated collection tables
