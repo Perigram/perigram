@@ -24,7 +24,7 @@ const fixtures = vi.hoisted(() => ({
     version: 1,
     fields: { label: { base: 'string', identifier: true } },
     edges: { children: { panels: { types: ['panel'], onRemove: 'restrict' } } },
-    states: { main: { initial: 'new', values: ['new'] } }
+    states: { main: { initial: 'new', states: { new: {} } } }
   },
   panel: {
     id: 'panel',
@@ -33,7 +33,7 @@ const fixtures = vi.hoisted(() => ({
     scope: 'org',
     version: 1,
     fields: { serial: { base: 'string', identifier: true } },
-    states: { main: { initial: 'new', values: ['new'] } }
+    states: { main: { initial: 'new', states: { new: {} } } }
   }
 }));
 

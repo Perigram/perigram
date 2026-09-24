@@ -133,11 +133,10 @@ describe('useProcessDesignerGraphEditing: owned records die with their node', ()
     return { draft, nodes, edges, editing };
   }
 
-  it('deleting a construct removes its producer output and resets join selections', () => {
+  it('deleting a construct removes its producer output', () => {
     const { draft, editing } = setup();
     editing.deleteGraphSelection();
     expect(draft.value.data.processNodes.c1).toBeUndefined();
     expect(draft.value.data.producerOutputs['c1:result']).toBeUndefined();
-    expect(draft.value.data.processNodes.j1.selectedProducerOutputId).toBe('');
   });
 });

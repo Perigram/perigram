@@ -123,6 +123,22 @@
           <label>{{ $t('typeCanvas.stateName') }}</label>
           <InputText v-model="node.data.value" @update:model-value="$emit('sync')" />
         </div>
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.stateAxis') }}</label>
+          <InputText v-model="node.data.axis" :placeholder="$t('processDesigner.stateAxisPlaceholder')" @update:model-value="$emit('sync')" />
+        </div>
+        <div class="flex flex-wrap items-center gap-4">
+          <label class="flex items-center gap-2">
+            <Checkbox :model-value="node.data.initial === true" binary @update:model-value="value => { node.data.initial = value; $emit('sync'); }" />
+            <span>{{ $t('processDesigner.stateInitial') }}</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <Checkbox :model-value="node.data.terminal === true" binary @update:model-value="value => { node.data.terminal = value; $emit('sync'); }" />
+            <span>{{ $t('processDesigner.stateTerminal') }}</span>
+          </label>
+        </div>
+        <Message severity="secondary" size="small" :closable="false">{{ $t('processDesigner.stateParentHint') }}</Message>
+        <div class="text-supporting text-muted">parent state</div>
         <div class="flex items-center gap-2">
           <Select
             :model-value="node.data.severity || 'info'"

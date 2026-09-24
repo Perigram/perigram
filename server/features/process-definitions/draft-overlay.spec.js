@@ -41,11 +41,11 @@ function draftWithTypeClass() {
       },
       actions: {}, services: {}, sockets: {}, screens: {}, stateDefinitions: {}, valueInputs: {},
       processNodes: {
-        c1: { id: 'c1', kind: 'cts.construct', typeId, via: 'genericCreate', label: '', construction: { mode: 'genericCreate', inputs: [] }, status: null, matching: 'item', fields: [], inputs: [], outputs: [] }
+        c1: { id: 'c1', kind: 'cts.construct', typeId, via: 'genericCreate', label: '', producerOutputId: 'c1:result', construction: { mode: 'genericCreate', inputs: [] }, status: null, matching: 'item', fields: [], inputs: [], outputs: [] }
       },
       ctsTypes: {
         cls: { id: 'cls', kind: 'class', typeId, class: 'item', name: 'Widget' },
-        st1: { id: 'st1', kind: 'state', typeId, value: 'draft' }
+        st1: { id: 'st1', kind: 'state', typeId, value: 'draft', initial: true, terminal: false }
       }
     }
   };
@@ -59,20 +59,21 @@ describe('draft declaration overlay at acceptance', () => {
     expect(unknown).toEqual([]);
   });
 
-  it('accepts a transition node targeting a status only the transition node declares', () => {
-    // The revived authoring shape: the class tree carries the entry state
-    // only; the target status lives on the transition node's record. The
-    // overlay must know the target or acceptance refuses it as an
-    // undeclared state.
+  it('requires transition targets to be declared states', () => {
+    // Transitions reference declared transitions; they never author state.
+    // A target no tree state carries is a diagnostic, and declaring the
+    // state in the tree clears it.
     const { typeId, data } = draftWithTypeClass();
     data.processNodes.mv = {
       id: 'mv', kind: 'cts.transition', typeId, label: '',
-      state: { to: 'SHIPPED', severity: 'success', terminal: true },
+      state: { axis: 'main', from: 'draft', to: 'SHIPPED' },
       matching: 'item', fields: [], inputs: [], outputs: []
     };
-    const validation = validateActivatableProcess(data, rawDomain, {});
-    expect(
-      (validation.errors || []).filter(error => error.includes('target state SHIPPED is not declared'))
-    ).toEqual([]);
+    expect(() => validateActivatableProcess(structuredClone(data), rawDomain, {}))
+      .toThrow(/target state SHIPPED is not declared/);
+
+    data.ctsTypes.st2 = { id: 'st2', kind: 'state', typeId, value: 'SHIPPED', initial: false, terminal: true };
+    const accepted = validateActivatableProcess(data, rawDomain, {});
+    expect(accepted.errors || []).toEqual([]);
   });
 });

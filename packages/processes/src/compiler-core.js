@@ -1,3 +1,4 @@
+import { operationKindOf } from '../../cts/src/index.js';
 import { normalizeWorkflow } from '../../workflows/src/index.js';
 import {
   generatedScreenRoute,
@@ -20,6 +21,39 @@ import { normalizeHandle, lineageKeyForTypeId, lineageRelationsForParent, merged
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
+const MAPPED_MUTATION_KINDS = new Set([
+  'effect.createEntity',
+  'effect.updateEntity',
+  'effect.changeStatus',
+  'effect.archiveEntity',
+  'effect.deleteEntity',
+  'cts.construct',
+  'cts.mutate',
+  'cts.transition',
+  'cts.remove'
+]);
+const NATIVE_EFFECT_KINDS = new Set([
+  'cts.construct',
+  'cts.mutate',
+  'cts.transition',
+  'cts.remove',
+  'cts.command',
+  'cts.service',
+  'cts.conversion'
+]);
+
+function effectKindOf(record = {}) {
+  return operationKindOf(record);
+}
+
+function isMappedMutation(record = {}) {
+  return MAPPED_MUTATION_KINDS.has(record.kind) || MAPPED_MUTATION_KINDS.has(effectKindOf(record));
+}
+
+function isEffectRecord(record = {}) {
+  const kind = effectKindOf(record);
+  return NATIVE_EFFECT_KINDS.has(String(record.kind || '')) || kind.startsWith('effect.');
+}
 
 export {
   canvasToDefinition,
@@ -109,11 +143,26 @@ function withoutRemovedStatusEffectEdges(graph, processNodes) {
   ]));
   graph.edges = (graph.edges || []).filter(edge => {
     const record = recordByGraphId.get(String(edge.target));
-    if (!record || !['effect.changeStatus', 'effect.archiveEntity'].includes(record.kind)) return true;
+    const kind = effectKindOf(record || {});
+    if (!record || !['effect.changeStatus', 'effect.archiveEntity', 'cts.transition'].includes(kind)) return true;
     const handle = String(edge.targetHandle || '').replace(/^(input|data):/, '');
     return !REMOVED_STATUS_EFFECT_INPUTS.has(handle);
   });
   return graph;
+}
+
+const PRODUCER_ORIGIN_KINDS = new Set([
+  'effect.createEntity',
+  'effect.runProducer',
+  'effect.runCommand',
+  'cts.construct',
+  'cts.command',
+  'cts.service',
+  'cts.conversion'
+]);
+
+function ownsProducerOutput(record = {}) {
+  return PRODUCER_ORIGIN_KINDS.has(String(record.kind || '')) || PRODUCER_ORIGIN_KINDS.has(effectKindOf(record));
 }
 
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
@@ -125,11 +174,11 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     domain
   ), data.actions, data.screens);
   const producerOutputs = normalizeRecord(data.producerOutputs);
-  // Consumer effects own no producer outputs: prune stale records/identities
-  // (pre-protocol definitions minted them per node) so the workflow stays
-  // anchored at the origin of each entity path.
+  // Only actual entity origins own producer provenance. Reads, field
+  // projections, and consumer effects prune stale records/identities so a
+  // lifecycle is never synthesized merely because data was read.
   for (const [recordId, node] of Object.entries(processNodes)) {
-    if (!CONSUMER_EFFECT_KINDS.includes(node.kind)) continue;
+    if (ownsProducerOutput(node)) continue;
     delete node.producerOutputId;
     for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
       if (String(output?.nodeId) === String(node.id || recordId)) delete producerOutputs[producerOutputId];
@@ -167,7 +216,7 @@ function inferCurrentTypeIds(processNodes = {}, actions = {}, screens = {}) {
   if (contextTypes.size !== 1) return processNodes;
   const [typeId] = contextTypes;
   return Object.fromEntries(Object.entries(processNodes).map(([id, node]) => [id,
-    node?.kind === 'read.currentEntity' && !node.typeId
+    node?.kind === 'cts.read' && node.select === 'current' && !node.typeId
       ? { ...node, typeId, typeIdInferred: true }
       : node
   ]));
@@ -206,7 +255,7 @@ function normalizeProcessInputDefaults(processNodes = {}, domain = {}) {
     let ports = [];
     try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { ports = []; }
     const accessById = new Map(ports.map(port => [port.id, port.access || 'item']));
-    const mutationEffect = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'].includes(record.kind);
+    const mutationEffect = isMappedMutation(record);
     return [id, {
       ...record,
       inputDefaults: Object.fromEntries(Object.entries(record.inputDefaults).map(([socketId, value]) => {
@@ -273,31 +322,39 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
 function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}, producerOutputs = {}) {
   const derived = { ...(actions || {}) };
   for (const [nodeId, node] of Object.entries(processNodes)) {
-    if (!node.kind?.startsWith('effect.')) continue;
+    if (!isEffectRecord(node)) continue;
+    const classification = effectKindOf(node);
     const actionId = String(node.entryTriggerId || node.id || nodeId);
     const actionKind = ({
       'effect.createEntity': 'createEntity',
       'effect.runProducer': 'createEntity',
       'effect.updateEntity': 'updateEntity',
+      'effect.changeStatus': 'updateEntity',
       'effect.archiveEntity': 'archiveEntity',
       'effect.deleteEntity': 'deleteEntity',
       'effect.runCommand': 'runCommand',
       'effect.sendEntity': 'sendToOrganization',
       'effect.generateAttachment': 'runCommand'
-    })[node.kind];
+    })[classification];
     if (!actionKind) continue;
+
     const promptContract = effectPromptContract(nodeId, node, processNodes, graph, domain);
     const fields = promptContract.fields;
     const suppliedFields = new Set([
       ...Object.keys(promptContract.defaults),
       ...promptContract.wiredFields
     ]);
-    const stateTo = processDefaultValue(node.inputDefaults?.['states.main']) || node.state?.to || '';
-    // Consumer effects bind to the upstream producer of their entity input
-    // wire; a stale own-node binding from a persisted draft is ignored.
-    const producerOutputId = CONSUMER_EFFECT_KINDS.includes(node.kind)
-      ? upstreamProducerOutputId({ graph, processNodes, producerOutputs }, node) || ''
+    const stateTo = ['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity'].includes(classification)
+      ? (processDefaultValue(node.inputDefaults?.status)
+        || processDefaultValue(node.inputDefaults?.['states.main'])
+        || node.state?.to
+        || '')
+      : '';
+    const consumer = ['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'].includes(classification);
+    const producerOutputId = consumer
+      ? node.producerOutputId || ''
       : node.producerOutputId || derived[actionId]?.producerOutputId || '';
+
     derived[actionId] = {
       ...(derived[actionId] || {}),
       id: actionId,
@@ -307,7 +364,7 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       typeId: node.typeId || derived[actionId]?.typeId || '',
       commandId: node.commandId || derived[actionId]?.commandId || '',
       parentTypeId: promptContract.parentTypeId || derived[actionId]?.parentTypeId || '',
-      construction: node.kind === 'effect.createEntity'
+      construction: classification === 'effect.createEntity'
         ? node.construction?.mode === 'genericCreate' && isBlockComposedCreate(nodeId, node, graph)
           ? { mode: 'genericCreate', inputs: [], blockComposed: true }
           : {
@@ -336,7 +393,14 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       },
       access: node.access || derived[actionId]?.access || { level: 'write', grants: [] },
       trigger: node.trigger || derived[actionId]?.trigger || { mode: 'manual' },
-      state: { ...(derived[actionId]?.state || {}), ...(stateTo ? { to: stateTo } : {}) },
+      ...(stateTo || node.state?.from ? {
+        state: {
+          ...(derived[actionId]?.state || {}),
+          ...(node.state?.axis ? { axis: node.state.axis } : {}),
+          ...(node.state?.from ? { from: node.state.from } : {}),
+          ...(stateTo ? { to: stateTo } : {})
+        }
+      } : {}),
       stateRef: node.stateRef || derived[actionId]?.stateRef || '',
       inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
       outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : [],
@@ -432,9 +496,54 @@ function isBlockComposedCreate(nodeId, node, graph) {
   ));
 }
 
+function wiredHandlePaths(nodeId, graph, allowed = null) {
+  const graphNode = (graph?.nodes || []).find(item =>
+    String(item.data?.refId || item.id) === String(nodeId));
+  if (!graphNode) return [];
+  return (graph?.edges || [])
+    .filter(edge => String(edge.target) === String(graphNode.id))
+    .map(edge => normalizeHandle(edge.targetHandle))
+    .filter(path => path && path !== 'entity' && path !== 'in')
+    .filter(path => !allowed || allowed.has(path));
+}
+
 function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   const consumerFieldSchema = path => entityFieldSchema(domain, node.typeId, path)
     || structuralFieldSchema(domain, path);
+  const nativeKind = String(node.kind || '');
+  if (nativeKind === 'cts.construct') {
+    const construction = normalizeConstruction(node.construction, node.typeId, domain) || {};
+    const inputs = construction.inputs || [];
+    const fields = inputs.map(input => input.path || input.id).filter(Boolean);
+    return {
+      fields,
+      defaults: plainProcessDefaults(node.inputDefaults),
+      wiredFields: wiredHandlePaths(nodeId, graph, new Set(fields)),
+      schemas: inputs.map(input => ({
+        path: input.path || input.id,
+        type: input.type,
+        required: input.required === true
+      })),
+      parentTypeId: ''
+    };
+  }
+  if (nativeKind === 'cts.mutate') {
+    const defaults = plainProcessDefaults(node.inputDefaults);
+    const fields = [...new Set([
+      ...wiredHandlePaths(nodeId, graph),
+      ...Object.keys(defaults)
+    ])].filter(path => !['entity', 'note'].includes(path));
+    return {
+      fields,
+      defaults,
+      wiredFields: wiredHandlePaths(nodeId, graph, new Set(fields)),
+      schemas: fields.map(consumerFieldSchema).filter(Boolean),
+      parentTypeId: node.parentTypeId || ''
+    };
+  }
+  if (nativeKind === 'cts.transition' || nativeKind === 'cts.remove') {
+    return { fields: [], defaults: {}, wiredFields: [], schemas: [], parentTypeId: '' };
+  }
   if (Array.isArray(node.fields) && node.fields.length) {
     return {
       fields: node.fields,
@@ -474,7 +583,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     ...(record.fields || []),
     ...(record.entries || []).map(entry => `${record.block}.${entry.key}`).filter(path => !path.endsWith('.'))
   ]))];
-  const defaultIdentityFields = node.kind === 'effect.createEntity'
+  const defaultIdentityFields = effectKindOf(node) === 'effect.createEntity'
     && node.construction?.mode === 'genericCreate'
     && !composers.some(record => record.block === 'identity')
     ? ['identity.name']
@@ -660,7 +769,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
       || actionWindow?.input?.typeId
       || actionWindow?.outputs?.[0]?.typeId
       || null;
-    if (resolvedActionTypeId && !action.producerOutputId) {
+    if (resolvedActionTypeId && !action.producerOutputId && action.actionKind === 'createEntity') {
       errors.push(`Action ${actionId} on ${resolvedActionTypeId} requires producerOutputId`);
     } else if (action.producerOutputId) {
       const producerOutput = process.producerOutputs?.[action.producerOutputId];
@@ -1411,7 +1520,32 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     const kind = action.actionKind || 'createEntity';
     if (!['createEntity', 'updateEntity'].includes(kind)) continue;
     const typeId = actionTypeId(action) || actionWindows.get(actionId)?.outputs?.[0]?.typeId || actionWindows.get(actionId)?.input?.typeId;
-    if (!typeId || !action.producerOutputId) continue;
+    if (!typeId) continue;
+
+    if (!action.producerOutputId) {
+      const to = actionTargetState(action, process);
+      const access = normalizeActionAccess(action.access);
+      if (kind !== 'updateEntity' || !to) continue;
+      const outputs = Object.values(process.producerOutputs || {})
+        .filter(output => output.typeId === typeId);
+      for (const output of outputs) {
+        const workflowBuilder = builders.get(output.producerOutputId);
+        if (!workflowBuilder) continue;
+        const regionId = action.state?.axis || workflowBuilder.primaryRegion;
+        const region = workflowBuilder.regions[regionId] || primaryRegionBuilder(workflowBuilder);
+        const from = action.state?.from;
+        if (!from) continue;
+        addWorkflowState(region, from);
+        addWorkflowState(region, to);
+        upsertWorkflowTransition(region, {
+          from,
+          to,
+          processRoleIds: actionExposureRoleIdsForInput(action, access, null)
+        });
+      }
+      continue;
+    }
+
     const builder = primaryRegionBuilder(ensureWorkflowBuilder(builders, action.producerOutputId));
 
     if (kind === 'createEntity') {
@@ -1501,6 +1635,20 @@ function applyStatusDefinitionMetadata(builder, typeId, stateDefinitions = {}) {
       const parent = builder.states[parentStatusId];
       if (!parent) continue;
       parent.states ||= {};
+      const canonicalChild = `${parentStatusId}.${stateId}`;
+      const flattenedExisting = builder.states[canonicalChild];
+      const existing = parent.states[canonicalChild] || parent.states[stateId] || flattenedExisting;
+      if (existing) {
+        if (flattenedExisting) {
+          parent.states = { [stateId]: { ...flattenedExisting, ...decorated } };
+          if (!parent.initial) parent.initial = stateId;
+          delete builder.states[canonicalChild];
+        } else {
+          parent.states[canonicalChild] = { ...existing, ...decorated };
+          delete parent.states[stateId];
+        }
+        continue;
+      }
       parent.states[stateId] = { ...(parent.states[stateId] || {}), ...decorated };
       continue;
     }
@@ -3136,7 +3284,9 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
     const parentTypeId = effectiveActionParentTypeId(action, graphContext.parentIncomingByActionId.get(id), lineageBindings);
     const actionWindow = actionWindows.get(id);
     const resolvedTypeId = actionTypeId(action) || actionWindow?.input?.typeId || actionWindow?.outputs?.[0]?.typeId || null;
-    if (resolvedTypeId && !action.producerOutputId) throw new Error(`Action ${id} requires producerOutputId`);
+    if (resolvedTypeId && !action.producerOutputId && action.actionKind === 'createEntity') {
+      throw new Error(`Action ${id} requires producerOutputId`);
+    }
     const producerOutput = action.producerOutputId ? process.producerOutputs?.[action.producerOutputId] : null;
     if (action.producerOutputId && !producerOutput) throw new Error(`Action ${id} uses unknown producerOutputId ${action.producerOutputId}`);
     if (producerOutput && producerOutput.typeId !== resolvedTypeId) {
@@ -3532,9 +3682,6 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     errors.push(`Action ${actionId} uses unknown parent entity type ${action.parentTypeId}`);
   }
   const hasTargetStatus = Boolean(action.state?.to || (action.stateRef && stateDefinitions[action.stateRef]));
-  if (kind === 'createEntity' && !hasTargetStatus) {
-    errors.push(`Action ${actionId} must define target status`);
-  }
   if (kind === 'createEntity') {
     validateConstruction(actionId, action, domain, errors);
     validateParentRevision(actionId, action, domain, errors, process, lineageBindings);
@@ -3748,11 +3895,18 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     errors.push(`Process node ${nodeId} uses unknown node kind ${node.kind}`);
     return;
   }
+  const classification = effectKindOf(node);
   if (node.typeId && !entities.has(node.typeId)) {
     errors.push(`Process node ${nodeId} uses unknown typeId ${node.typeId}`);
   }
   if (processNodeRequiresTypeId(node.kind) && !node.typeId) {
     errors.push(`Process node ${nodeId} must select an entity type`);
+  }
+  if (node.kind === 'cts.field') {
+    if (!node.path) errors.push(`Process node ${nodeId} must select a field`);
+    if (node.path && node.typeId && !entityFieldSchema(domain, node.typeId, node.path)) {
+      errors.push(`Process node ${nodeId} uses undeclared field ${node.path}`);
+    }
   }
   if (['record.getField', 'record.fieldChange', 'predicate.field'].includes(node.kind)) {
     if (!node.path) errors.push(`Process node ${nodeId} must select a field`);
@@ -3821,12 +3975,12 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       }
     }
   }
-  if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
+  if (['effect.createEntity', 'effect.updateEntity'].includes(classification)) {
     const stateTarget = processDefaultValue(node.inputDefaults?.['states.main']) || node.state?.to || node.stateRef;
-    if (node.kind === 'effect.updateEntity' && !node.blocks?.length && !stateTarget) {
+    if (classification === 'effect.updateEntity' && node.kind !== 'cts.mutate' && !node.blocks?.length && !stateTarget) {
       errors.push(`Process node ${nodeId} must accept at least one writable block or status`);
     }
-    if (node.kind === 'effect.createEntity') {
+    if (classification === 'effect.createEntity') {
       const construction = normalizeConstruction(node.construction, node.typeId, domain);
       const contract = constructionContract(domain, node.typeId);
       if (!contract || !construction) {
@@ -3841,11 +3995,11 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       }
     }
     const allowedBlocks = new Set(entityFieldSchemas(domain, node.typeId)
-      .filter(field => node.kind === 'effect.createEntity'
+      .filter(field => classification === 'effect.createEntity'
         ? field.constructible !== false
         : field.writable !== false)
       .map(field => field.block));
-    if (node.kind === 'effect.createEntity') {
+    if (classification === 'effect.createEntity') {
       for (const block of entityBlocks(domain, node.typeId)) {
         if (domain.blockComposition?.[block] && !['origin', 'status', 'provenance', 'summary'].includes(block)) {
           allowedBlocks.add(block);
@@ -3858,7 +4012,7 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       }
     }
   }
-  if (node.kind === 'effect.runProducer') {
+  if (classification === 'effect.runProducer') {
     const construction = normalizeConstruction(node.construction, node.typeId, domain);
     const contract = constructionContract(domain, node.typeId);
     if (!(domain.producers || []).some(producer => producer.id === node.producerId)) {
@@ -3868,7 +4022,7 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       errors.push(`Process node ${nodeId} must use a declared service construction mode for ${node.typeId}`);
     }
   }
-  if (node.kind.startsWith('effect.') && !['manual', 'event'].includes(node.trigger?.mode || 'manual')) {
+  if (isEffectRecord(node) && !['manual', 'event'].includes(node.trigger?.mode || 'manual')) {
     errors.push(`Process node ${nodeId} uses unknown trigger mode ${node.trigger?.mode}`);
   }
   if (node.type) {
@@ -3878,11 +4032,11 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       errors.push(`Process node ${nodeId} has invalid type: ${error.message}`);
     }
   }
-  if (node.kind === 'read.related') {
+  if (node.kind === 'cts.read' && node.select === 'related') {
     const relation = (domain.relations || []).find(item => item.ownerType === node.typeId && item.key === (node.relationKey || node.relation));
     if (!relation) errors.push(`Process node ${nodeId} must select a declared relation for ${node.typeId}`);
   }
-  if (node.kind === 'effect.runCommand' && (!node.commandId || !domain.commands?.[node.commandId])) {
+  if (classification === 'effect.runCommand' && (!node.commandId || !domain.commands?.[node.commandId])) {
     errors.push(`Process node ${nodeId} must select a registered command`);
   }
   try {

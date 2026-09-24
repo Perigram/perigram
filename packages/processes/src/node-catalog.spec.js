@@ -18,7 +18,7 @@ describe('process v4 node catalog', () => {
   it('separates value logic, predicates, reads, effects, and control', () => {
     expect(getProcessNodeDefinition('value.logic')).toMatchObject({ family: 'values', level: 'data', pure: true });
     expect(getProcessNodeDefinition('predicate.logic')).toMatchObject({ family: 'predicates', level: 'data', pure: true });
-    expect(getProcessNodeDefinition('read.queryEntities')).toMatchObject({ family: 'reads', level: 'read', pure: false });
+    expect(getProcessNodeDefinition('cts.read')).toMatchObject({ family: 'reads', level: 'read', pure: false });
     expect(getProcessNodeDefinition('effect.updateEntity')).toMatchObject({ family: 'effects', level: 'effect', pure: false });
     expect(getProcessNodeDefinition('control.if')).toMatchObject({ family: 'control', level: 'control', pure: false });
   });
@@ -39,7 +39,7 @@ describe('process v4 node catalog', () => {
       'tree.cross',
       'record.fieldChange',
       'predicate.field',
-      'read.queryEntities',
+      'cts.read',
       'effect.changeStatus',
       'control.forEach',
       'control.stopSuccess'
@@ -197,12 +197,8 @@ describe('process v4 node catalog', () => {
         ]
       }
     }, context);
-    expect(speciesCreate.inputs.map(input => input.id)).toEqual([
-      'type',
-      'in',
-      'specs.width',
-      'states.main'
-    ]);
+    expect(speciesCreate.inputs.map(input => input.id)).toEqual(['type', 'specs.width']);
+    expect(speciesCreate.inputs.some(input => input.id === 'states.main')).toBe(false);
   });
 
   it('exposes writable row fields as leaf sockets on a bound cts.mutate', () => {
@@ -222,23 +218,18 @@ describe('process v4 node catalog', () => {
     expect(ids).not.toContain('data.locked');
     expect(ids).not.toContain('identity');
     expect(ids).not.toContain('data');
-    expect(ids.at(-1)).toBe('states.main');
+    expect(ids).not.toContain('states.main');
   });
 
-  it('renders a migrated mutate record with persisted block slots after the leaves', () => {
+  it('never renders block or status sockets on a mutate record', () => {
     const context = {
       fieldSchemas: [
         { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
         { path: 'data.width', block: 'data', type: { base: 'number', shape: 'item' }, writable: true }
       ]
     };
-    // a v4 updateEntity wired through blocks migrates with slots: the block
-    // sockets must survive so the legacy graph keeps working
     const migrated = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel', slots: ['identity'] }, context);
-    expect(migrated.inputs.map(input => input.id)).toEqual(['entity', 'data.width', 'identity', 'states.main']);
-    // a fresh mutate carries no slots: leaves only
-    const fresh = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
-    expect(fresh.inputs.map(input => input.id)).toEqual(['entity', 'data.width', 'states.main']);
+    expect(migrated.inputs.map(input => input.id)).toEqual(['entity', 'identity.name', 'data.width']);
   });
 
   it('splits the species binding contract: origins carry a typed pin, consumers adapt to their entity wire', () => {
@@ -263,7 +254,7 @@ describe('process v4 node catalog', () => {
       const ports = resolveCatalogNodePorts(record, context);
       expect(ports.inputs.map(input => input.id), record.kind).toEqual(['type']);
     }
-    const typedRead = resolveCatalogNodePorts({ kind: 'cts.read', select: 'byId', typeId: 'queue' }, context);
+    const typedRead = resolveCatalogNodePorts({ kind: 'cts.read', select: 'byRef', typeId: 'queue' }, context);
     expect(typedRead.inputs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', typeId: 'queue' } });
   });
 
@@ -294,8 +285,8 @@ describe('process v4 node catalog', () => {
     expect(unbound).toEqual({ inputs: [], outputs: [] });
   });
 
-  it('hides the runtime-only predicate input from the query read authoring card', () => {
-    const ports = resolveCatalogNodePorts({ kind: 'cts.read', select: 'query', typeId: 'sheet' }, { domain: {} });
+  it('exposes the unfiltered All read without a hidden predicate input', () => {
+    const ports = resolveCatalogNodePorts({ kind: 'cts.read', select: 'all', typeId: 'sheet' }, { domain: {} });
     expect(ports.inputs.map(input => input.id)).toEqual(['type']);
     expect(ports.outputs.every(output => output.type?.base === 'entity')).toBe(true);
   });

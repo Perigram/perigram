@@ -69,6 +69,34 @@ describe('process designer domain contract', () => {
     });
   });
 
+  it('does not create producer outputs for entity reads', () => {
+    const data = {
+      producerOutputs: {
+        'read:result': {
+          producerOutputId: 'read:result',
+          nodeId: 'read',
+          outputSocketId: 'result',
+          typeId: 'work_item'
+        }
+      }
+    };
+    const read = {
+      id: 'read',
+      kind: 'cts.read',
+      select: 'current',
+      typeId: 'work_item',
+      producerOutputId: 'read:result',
+      outputs: [{
+        id: 'result',
+        type: { base: 'entity', typeId: 'work_item', nullable: false }
+      }]
+    };
+
+    expect(syncProcessNodeProducerOutputs(data, read)).toEqual([]);
+    expect(data.producerOutputs).toEqual({});
+    expect(read.producerOutputId).toBeUndefined();
+  });
+
   it('projects a domain implementation through framework-owned designer contracts', () => {
     const contract = createProcessDesignerContract(domain);
 
@@ -231,6 +259,7 @@ describe('process designer domain contract', () => {
     expect(Object.keys(groups)).toEqual([
       'types',
       'operations',
+      'control',
       'instances',
       'values',
       'listTree'
@@ -242,24 +271,28 @@ describe('process designer domain contract', () => {
     expect(groups.types.map(item => item.type)).toEqual([
       'ctsClass', 'ctsField', 'ctsState', 'ctsType'
     ]);
-    // operations are the effect species over declarations plus the explicit
-    // producer join — no legacy "run service" against the command table:
-    // services are registered operators, offered by their own group
+    // operations are native entity-bound species only. Producer convergence
+    // is compiler behavior, not an author-facing node.
     expect(groups.operations.map(item => item.kind || item.type)).toEqual([
       'cts.construct',
       'cts.mutate',
       'cts.transition',
-      'cts.remove',
-      'cts.join'
+      'cts.remove'
     ]);
+    // The retained instance sources are current, typed-reference, and All<T>;
+    // declared-edge traversal remains separate from unfiltered collection
+    // reads.
     expect(groups.instances.map(item => item.preset.select)).toEqual([
-      'current', 'byId', 'byRef', 'parent', 'children', 'related', 'query', undefined
+      'current', 'byRef', 'all', 'parent', 'children', 'related', undefined
     ]);
-    // the field projection lives with the entity sources; block composition
-    // (cts.compose/cts.decompose) is catalog-only for migrated graphs
+    // The field projection lives with the entity sources; block composition
+    // (cts.compose/cts.decompose) is catalog-only for migrated graphs.
     expect(groups.instances.at(-1).kind).toBe('cts.field');
     expect(items.map(item => item.kind)).not.toContain('cts.compose');
     expect(items.map(item => item.kind)).not.toContain('cts.decompose');
+    expect(items.map(item => item.kind)).not.toContain('cts.join');
+    expect(items.map(item => item.preset?.select)).not.toContain('byId');
+    expect(items.map(item => item.preset?.select)).not.toContain('query');
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',
       'value.logic',
@@ -267,8 +300,15 @@ describe('process designer domain contract', () => {
       'value.math',
       'value.dateTime'
     ]);
+    // List construction is authored through concat/collection operations;
+    // the fixed-arity and persisted-array boundary nodes are not palette
+    // items.
+    expect(groups.listTree.map(item => item.kind)).not.toEqual(expect.arrayContaining([
+      'collection.makeList',
+      'collection.packArray',
+      'collection.unpackArray'
+    ]));
     expect(groups.listTree.map(item => item.kind)).not.toContain('tree.cross');
-    expect(groups.listTree[0]).toMatchObject({ id: 'makeList', kind: 'collection.makeList' });
     expect(groups.listTree.map(item => item.kind)).not.toEqual(expect.arrayContaining([
       'collection.reverse',
       'collection.shift',
@@ -281,14 +321,19 @@ describe('process designer domain contract', () => {
       'tree.clean',
       'tree.stats'
     ]));
+    expect(groups.control.map(item => item.kind)).toEqual([
+      'control.if',
+      'control.switch',
+      'control.fork',
+      'control.joinAll',
+      'control.joinAny',
+      'control.forEach',
+      'control.stopSuccess',
+      'control.stopFailure'
+    ]);
     expect(items.map(item => item.kind)).not.toContain('control.manualTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.entityChangedTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.domainEventTrigger');
-    expect(items.map(item => item.kind)).not.toContain('control.if');
-    expect(items.map(item => item.kind)).not.toContain('control.forEach');
-    expect(items.map(item => item.kind)).not.toContain('control.forEachEnd');
-    expect(items.map(item => item.kind)).not.toContain('control.waitUntil');
-    expect(items.map(item => item.kind)).not.toContain('control.waitDuration');
     expect(items.map(item => item.kind)).not.toContain('value.cast');
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
@@ -416,7 +461,7 @@ describe('tree declaration compilation', () => {
       fieldNode('widget', 'width', { base: 'quantity', unit: 'mm' }),
       stateNode('widget', 'raw'),
       stateNode('widget', 'done'),
-      stateNode('widget', 'archived'),
+      stateNode('widget', 'archived', { initial: true, terminal: true }),
       stateNode('gadget', 'new'),
       construct
     ];
@@ -441,9 +486,16 @@ describe('tree declaration compilation', () => {
       name: { base: 'string' },
       width: { base: 'quantity', unit: 'mm' }
     });
-    expect(compiled.widget.states.main).toEqual({ initial: 'raw', values: ['raw', 'done', 'done.archived'], terminal: ['raw', 'done', 'done.archived'] });
-    // transitions are declared by transition nodes only — none wired here
-    expect(compiled.widget.transitions).toEqual([]);
+    expect(compiled.widget.states.main).toEqual({
+      initial: 'raw',
+      states: {
+        raw: {},
+        done: { initial: 'archived', states: { archived: { terminal: true } } }
+      },
+      transitions: []
+    });
+    // No transition record exists: the axis carries the empty transition set.
+    expect(compiled.widget.transitions).toBeUndefined();
     expect(compiled.widget.edges).toEqual({ children: { parts: { types: ['gadget'], onRemove: 'cascade' } } });
     expect(compiled.gadget.states.main.initial).toBe('new');
   });
@@ -524,7 +576,6 @@ describe('tree declaration compilation', () => {
     const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
     const noEntry = compileTreeDeclarations(nodes, edges);
     expect(noEntry.diagnostics.some(message => message.includes('no initial state'))).toBe(true);
-    expect(noEntry.declarations[0].states).toBeUndefined();
 
     // two constructs wired to different states: the entries disagree
     const constructA = { id: 'ca', type: 'processNode', data: { refId: 'ca', typeId: 'widget' } };
@@ -535,7 +586,7 @@ describe('tree declaration compilation', () => {
         { id: 'e1', source: nodes[1].id, target: 'ca', role: 'type', label: 'entry' },
         { id: 'e2', source: nodes[2].id, target: 'cb', role: 'type', label: 'entry' }]
     );
-    expect(disagree.diagnostics.some(message => message.includes('entry states disagree'))).toBe(true);
+    expect(disagree.diagnostics.some(message => message.includes('multiple initial states'))).toBe(true);
   });
 
   it('a sole wired state is the initial state — there is no choice to make', () => {
@@ -543,32 +594,30 @@ describe('tree declaration compilation', () => {
     const nodes = [widget, stateNode('widget', 'raw')];
     const { declarations, diagnostics } = compileTreeDeclarations(nodes, [declares(nodes[1], widget, 'state')]);
     expect(diagnostics).toEqual([]);
-    // sole state, no transitions: it is the derived sink too
-    expect(declarations[0].states.main).toEqual({ initial: 'raw', values: ['raw'], terminal: ['raw'] });
+    expect(declarations[0].states.main).toEqual({
+      initial: 'raw',
+      states: { raw: {} },
+      transitions: []
+    });
   });
 
-  it('transition-node target statuses compile into the machine without state-to-state wires (SPEC §20)', () => {
-    // The user's case: GOO (entry) + CHANGED, no wires, a cts.transition
-    // node targeting CHANGED — a complete machine.
+  it('transition records reference declared states without synthesizing them', () => {
     const goo = classNode('t-uth93vgdab');
-    const construct = { id: 'mk', type: 'processNode', data: { refId: 'mk', typeId: 't-uth93vgdab' } };
     const nodes = [
       goo,
-      stateNode('t-uth93vgdab', 'GOO'),
-      stateNode('t-uth93vgdab', 'CHANGED'),
-      construct
+      stateNode('t-uth93vgdab', 'GOO', { initial: true }),
+      stateNode('t-uth93vgdab', 'CHANGED', { terminal: true })
     ];
     const edges = [
       declares(nodes[1], goo, 'state'),
-      declares(nodes[2], goo, 'state'),
-      { id: 'entry1', source: nodes[1].id, target: 'mk', role: 'type', label: 'entry' }
+      declares(nodes[2], goo, 'state')
     ];
     const records = {
       move: {
         id: 'move',
         kind: 'cts.transition',
         typeId: 't-uth93vgdab',
-        state: { to: 'CHANGED', label: 'Changed', severity: 'success', terminal: true }
+        state: { axis: 'main', from: 'GOO', to: 'CHANGED' }
       }
     };
     const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges, records);
@@ -576,64 +625,38 @@ describe('tree declaration compilation', () => {
     const compiled = declarations[0];
     expect(compiled.states.main).toEqual({
       initial: 'GOO',
-      values: ['GOO', 'CHANGED'],
-      terminal: ['CHANGED']
+      states: { GOO: {}, CHANGED: { terminal: true } },
+      transitions: [{ axis: 'main', from: 'GOO', to: 'CHANGED' }]
     });
-    expect(compiled.transitions).toEqual([{ from: 'GOO', to: 'CHANGED' }]);
-    // The transition node's policy composes onto the axis render.
-    expect(compiled.render.states.CHANGED).toEqual({ label: 'Changed', severity: 'success' });
+    expect(compiled.transitions).toEqual([{ axis: 'main', from: 'GOO', to: 'CHANGED' }]);
   });
 
-  it('a transition node may declare a status no tree state node carries', () => {
-    const widget = classNode('widget');
-    const nodes = [widget, stateNode('widget', 'raw')];
-    const edges = [
-      declares(nodes[1], widget, 'state'),
-      { id: 'e1', source: nodes[1].id, target: 'mk', role: 'type', label: 'entry' }
-    ];
-    const records = {
-      ship: { id: 'ship', kind: 'effect.changeStatus', typeId: 'widget', state: { to: 'SHIPPED', intent: 'ship' } }
-    };
-    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges, records);
-    expect(diagnostics).toEqual([]);
-    expect(declarations[0].states.main).toEqual({
-      initial: 'raw',
-      values: ['raw', 'SHIPPED'],
-      terminal: ['SHIPPED']
-    });
-    expect(declarations[0].transitions).toEqual([{ from: 'raw', to: 'SHIPPED', intent: 'ship' }]);
-  });
-
-  it('transition-node policy wins where a tree state declares the same value', () => {
-    const widget = classNode('widget');
-    const construct = { id: 'mk', type: 'processNode', data: { refId: 'mk', typeId: 'widget' } };
-    const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done', { severity: 'info', icon: 'pi pi-circle' }), construct];
-    const edges = [
-      declares(nodes[1], widget, 'state'),
-      declares(nodes[2], widget, 'state'),
-      { id: 'e1', source: nodes[1].id, target: 'mk', role: 'type', label: 'entry' }
-    ];
-    const records = {
-      move: { id: 'move', kind: 'cts.transition', typeId: 'widget', state: { to: 'done', severity: 'danger' } }
-    };
-    const { declarations } = compileTreeDeclarations(nodes, edges, records);
-    const render = declarations[0].render.states;
-    expect(render.done).toEqual({ severity: 'danger', icon: 'pi pi-circle' });
-    // Tree flags on untouched values survive.
-    expect(declarations[0].states.main.values).toEqual(['raw', 'done']);
-  });
-
-  it('unbound or target-less transition records contribute nothing', () => {
+  it('rejects a transition record that references an undeclared state', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw')];
     const edges = [declares(nodes[1], widget, 'state')];
     const records = {
-      orphan: { id: 'orphan', kind: 'cts.transition', state: { to: 'DONE' } },
-      unauthored: { id: 'unauthored', kind: 'cts.transition', typeId: 'widget' }
+      ship: {
+        id: 'ship',
+        kind: 'cts.transition',
+        typeId: 'widget',
+        state: { axis: 'main', from: 'raw', to: 'SHIPPED' }
+      }
     };
-    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges, records);
-    expect(diagnostics).toEqual([]);
-    expect(declarations[0].states.main).toEqual({ initial: 'raw', values: ['raw'], terminal: ['raw'] });
+    const { diagnostics } = compileTreeDeclarations(nodes, edges, records);
+    expect(diagnostics.some(message => message.includes('to SHIPPED not in states.main'))).toBe(true);
+  });
+
+  it('incomplete transition references are diagnostics', () => {
+    const widget = classNode('widget');
+    const nodes = [widget, stateNode('widget', 'raw')];
+    const edges = [declares(nodes[1], widget, 'state')];
+    const records = {
+      unauthored: { id: 'unauthored', kind: 'cts.transition', typeId: 'widget' },
+      orphan: { id: 'orphan', kind: 'cts.transition', state: { to: 'DONE' } }
+    };
+    const { diagnostics } = compileTreeDeclarations(nodes, edges, records);
+    expect(diagnostics.some(message => message.includes('must reference declared from and to states'))).toBe(true);
   });
 
   it('invalid field descriptors surface as diagnostics naming the type and field', () => {

@@ -15,6 +15,7 @@ import {
   transposeDataPacket,
   treeStats
 } from './data-tree.js';
+import { operationKindOf } from '../../cts/src/index.js';
 import { MAKE_LIST_INPUTS, entityBlocks } from './node-catalog.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';
 
@@ -30,6 +31,15 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     id,
     transformDataTree(packet, record.inputTransforms?.[id])
   ]));
+  if (kind === 'cts.field') {
+    const source = required(packets, 'entity', record);
+    return mapDataPacket(source, value => {
+      const fieldValue = readPath(value, String(record.path || ''));
+      if (isMissingField(fieldValue)) return missingFieldMarker(record.path);
+      return fieldValue;
+    });
+  }
+  if (kind === 'cts.read') return executeRead(record, packets, context);
   if (kind.startsWith('source.')) return executeSource(record, context);
   if (kind === 'value.cast' || kind === 'value.parse') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
@@ -205,7 +215,9 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     left: packetValue(required(packets, 'left', record)),
     ...(packets.right ? { right: packetValue(packets.right) } : {})
   });
-  if (kind.startsWith('read.')) return executeRead(record, packets, context);
+  if (kind.startsWith('read.')) {
+    throw new Error(`Read node ${record.id || kind} uses retired kind ${kind}; loads migrate it to cts.read before execution`);
+  }
   throw new Error(`Node ${record.id || kind} is not a data/read operation`);
 }
 
@@ -370,26 +382,32 @@ async function executeSource(record, context) {
   return createDataPacket(structuredClone(record.value), access);
 }
 
+// Native species reads only (SPEC §20): the persisted load boundary
+// migrates legacy `read.*` records to `cts.read` + select before anything
+// executes. A legacy kind reaching here means a caller skipped that
+// boundary — fail loudly instead of running a retired vocabulary beside
+// the native one.
 async function executeRead(record, packets, context) {
-  if (record.kind === 'read.currentEntity') return createDataPacket(await context.currentEntity?.(record.typeId));
-  if (record.kind === 'read.entityById') return createDataPacket(await context.entityById?.(record.typeId, packetValue(required(packets, 'id', record))));
-  if (record.kind === 'read.resolveEntityRef') return createDataPacket(await context.resolveEntityRef?.(packetValue(required(packets, 'value', record))));
-  // v5 species records name the stream input `entity` (the consumer
-  // convention); legacy v4 records keep `value`.
-  const readStream = record => packetValue(required(packets, packets.entity ? 'entity' : 'value', record));
-  if (record.kind === 'read.parent') return createDataPacket(await context.parentEntity?.(readStream(record), record.typeId));
-  if (record.kind === 'read.children') return createDataPacket(await context.childEntities?.(readStream(record), record.typeId) || [], 'list');
-  if (record.kind === 'read.related') return createDataPacket(await context.relatedEntities?.(readStream(record), record.relationKey || record.relation, record.typeId) || [], 'list');
-  if (record.kind === 'read.queryEntities') {
-    const predicate = packets.predicate ? packetValue(packets.predicate) : null;
-    return createDataPacket(await context.queryEntities?.(record.typeId, predicate) || [], 'list');
+  if (record.kind !== 'cts.read') {
+    throw new Error(`Read node ${record.id || '(unnamed)'} uses retired kind ${record.kind}; migrate the definition to cts.read`);
   }
-  if (record.kind === 'read.filterRecords') {
-    const entities = flattenDataPacket(required(packets, 'entities', record)).branches[0].items;
-    const predicate = packetValue(required(packets, 'predicate', record));
-    return createDataPacket(entities.filter(entity => evaluateEntityPredicate(predicate, entity)), 'list');
+  const entityStream = () => packetValue(required(packets, 'entity', record));
+  switch (record.select) {
+    case 'current':
+      return createDataPacket(await context.currentEntity?.(record.typeId));
+    case 'byRef':
+      return createDataPacket(await context.resolveEntityRef?.(packetValue(required(packets, 'value', record))));
+    case 'parent':
+      return createDataPacket(await context.parentEntity?.(entityStream(), record.typeId));
+    case 'children':
+      return createDataPacket(await context.childEntities?.(entityStream(), record.typeId) || [], 'list');
+    case 'related':
+      return createDataPacket(await context.relatedEntities?.(entityStream(), record.relationKey || record.relation, record.typeId) || [], 'list');
+    case 'all':
+      return createDataPacket(await context.queryEntities?.(record.typeId) || [], 'list');
+    default:
+      throw new Error(`Read node ${record.id || '(unnamed)'} has no declared select`);
   }
-  throw new Error(`Unsupported read node ${record.kind}`);
 }
 
 function executeString(record, packets) {

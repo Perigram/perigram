@@ -5,17 +5,18 @@
 // already V-honest.
 //
 // Direction:
-// - migrateV4Definition: the one-way persisted rewrite (v4 vocabulary ->
-//   v5). Syntactic: slot paths strip their data/specs block prefix unless
-//   managed; entity ids kebab-case; kinds map through the species table.
-// - resolveCtsDefinition: the compile-time lowering (v5 -> the executable
-//   working shapes). Row paths regain their slot prefix by lookup in the
-//   projected field schemas — the same single source the compiler reads.
-//   The lowered form is internal: never authored, never persisted.
+// - migrateV4Definition: the one-way persisted rewrite (retired vocabulary ->
+//   native CTS species). It strips legacy slot prefixes, normalizes ids,
+//   and maps old operation kinds to the species table. The result is the
+//   current authored protocol; it is never lowered back to a twin.
+// - resolveCtsDefinition: the v5 binding seam. It resolves declaration ids
+//   and normalizes current records while preserving species kinds, read
+//   discriminators, socket ids, ports, and graph edges.
 // - checkCtsGraphBindings: declaration-level binding validation (type
 //   exists, state declared, field in row) beside R1-R6.
 import { SPECIES_BY_EFFECT_KIND } from './process-grammar.js';
-import { mergeTransitionNodeStates } from '../states.js';
+import { classMayDeclareChildren } from '../classes.js';
+import { findState, mergeTransitionNodeStates } from '../states.js';
 
 const CTS_KIND = Object.freeze({
   construct: 'cts.construct',
@@ -33,15 +34,18 @@ const CTS_KIND = Object.freeze({
 
 const CTS_SERVICE_KIND = 'cts.service';
 
+// One-way persisted migration only: legacy read kinds (including the
+// retired hidden-predicate query) rewrite to the native species + select.
+// Reads never classify back — `operationKindOf` keeps `cts.read` — so no
+// shared behavior grows a second read vocabulary.
 const READ_SELECT_BY_KIND = Object.freeze({
   'read.currentEntity': 'current',
-  'read.entityById': 'byId',
   'read.resolveEntityRef': 'byRef',
   'read.parent': 'parent',
   'read.children': 'children',
   'read.related': 'related',
-  'read.queryEntities': 'query',
-  'read.filterRecords': 'filter'
+  'read.allEntities': 'all',
+  'read.queryEntities': 'all'
 });
 
 // v4 kind -> v5 mapping; flags disambiguate kinds that share a species.
@@ -64,9 +68,8 @@ const V5_MAPPING = Object.freeze({
   'record.deconstruct': { kind: CTS_KIND.decompose },
   'record.getBlock': { kind: CTS_KIND.decompose, one: true },
   'producer.join': { kind: CTS_KIND.join },
-  ...Object.fromEntries(Object.keys(READ_SELECT_BY_KIND).map(kind => [
-    kind, { kind: CTS_KIND.read, select: READ_SELECT_BY_KIND[kind] }
-  ]))
+  ...Object.fromEntries(Object.entries(READ_SELECT_BY_KIND)
+    .map(([kind, select]) => [kind, { kind: CTS_KIND.read, select }]))
 });
 
 const V4_KIND_BY_V5 = buildReverseMapping();
@@ -74,13 +77,13 @@ const V4_KIND_BY_V5 = buildReverseMapping();
 function buildReverseMapping() {
   const reverse = new Map();
   for (const [v4Kind, mapping] of Object.entries(V5_MAPPING)) {
+    // Reads never reverse: `cts.read` + select IS the classification.
+    // Reversing would resurrect a retired v4 read kind (the legacy query
+    // leaked `read.queryEntities` back through operationKindOf).
+    if (mapping.kind === CTS_KIND.read) continue;
     const flags = ['producer', 'archive', 'send', 'record', 'draft', 'one', 'mode'];
     const key = v5Key(mapping.kind, mapping, flags);
     if (!reverse.has(key)) reverse.set(key, v4Kind);
-  }
-  // reads: select -> v4 kind
-  for (const [v4Kind, select] of Object.entries(READ_SELECT_BY_KIND)) {
-    reverse.set(`cts.read|select=${select}`, v4Kind);
   }
   return reverse;
 }
@@ -121,16 +124,23 @@ export function operationKindOf(node = {}) {
   return v4KindFor(node) || kind;
 }
 
-// Single-record resolution: one cts record -> its working twin (operation
-// kind, storage entity id, slot paths). What resolveCtsDefinition does per
-// collection, exposed for callers that hold one record (the designer's
-// port/context resolution).
+// Single-record resolution is deliberately one-way and native. The
+// operation-kind table is classification metadata for shared behavior; it
+// is not a replacement record and is never used to manufacture ports.
 export function resolveCtsRecord(node = {}, domain = {}) {
-  return resolveNode(node, domain, typeIdResolver(domain), [], '');
+  return resolveNativeNode(node, domain, typeIdResolver(domain), [], '');
 }
 
 function kebab(value = '') {
   return String(value).replace(/_/g, '-');
+}
+
+function camelId(value = '') {
+  const segments = String(value).split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  if (!segments.length) return '';
+  const [first, ...rest] = segments;
+  return first.charAt(0).toLowerCase() + first.slice(1)
+    + rest.map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('');
 }
 
 function snake(value = '') {
@@ -283,16 +293,23 @@ export function migrateV4Definition(definition = {}, domain = {}) {
     const migrated = migrateNode(node, domain, diagnostics, `processNodes.${id}`);
     return [id, migrated];
   }));
-  const producerOutputs = mapRecords(data.producerOutputs, (output, id) => {
+  // The persisted graph migrates with its records (one-way, at the load
+  // boundary): retired sockets die here, composer-fed construct/mutate
+  // blocks expand to their field wires, and a v4 update that smuggled a
+  // status beside its field patch splits into mutate -> transition so no
+  // native record carries a retired port.
+  const graph = data.graph && typeof data.graph === 'object' ? { ...data.graph } : data.graph;
+  if (graph && Array.isArray(graph.edges)) {
+    migrateGraphEdges(graph, data, processNodes);
+  }
+  const producerOutputs = mapRecords(data.producerOutputs, (output) => {
     const migrated = { ...output };
     if (migrated.typeId) {
       migrated.typeId = kebab(migrated.typeId);
     }
-    if (migrated.fields) {
-      migrated.fields = Object.fromEntries(Object.entries(migrated.fields).map(([level, paths]) => [
-        level, (paths || []).map(path => toRowPath(path, output.typeId, domain) ?? path)
-      ]));
-    }
+    // Field-policy paths are the declared schema paths (data./specs./
+    // relations./identity.) — the bare-row-path convention is retired, so
+    // paths migrate verbatim.
     return migrated;
   });
   const actions = mapRecords(data.actions, action => {
@@ -332,6 +349,7 @@ export function migrateV4Definition(definition = {}, domain = {}) {
 
   const migrated = {
     ...data,
+    graph,
     processNodes,
     producerOutputs,
     actions,
@@ -342,6 +360,240 @@ export function migrateV4Definition(definition = {}, domain = {}) {
   };
   const result = wrapper?.data ? { ...wrapper, data: migrated } : migrated;
   return { definition: result, diagnostics };
+}
+
+// Handle migration tables for reads (SPEC §20): one kind, closed select,
+// entity-typed streams. `entity`/`entities` outputs become the single
+// `result`; the entity-derived selects read their stream from `entity`.
+const READ_OUTPUT_HANDLE_MIGRATION = Object.freeze({
+  current: { entity: 'result' },
+  byRef: { entity: 'result' },
+  parent: { entity: 'result' },
+  children: { entities: 'result' },
+  related: { entities: 'result' },
+  all: { entities: 'result' }
+});
+const READ_INPUT_HANDLE_MIGRATION = Object.freeze({
+  parent: { value: 'entity' },
+  children: { value: 'entity' },
+  related: { value: 'entity' }
+});
+
+function migrateGraphEdges(graph = {}, data = {}, processNodes = {}) {
+  const originalEdges = [...(graph.edges || [])];
+  const handleOf = value => String(value || '').replace(/^(input|data|control):/, '');
+  const dataHandle = handle => `data:${handle}`;
+  const recordIdByGraphNode = new Map((graph.nodes || [])
+    .map(node => [String(node.id), String(node?.data?.refId || node?.id)]));
+  const recordByGraphNode = new Map((graph.nodes || [])
+    .map(node => [String(node.id), processNodes[recordIdByGraphNode.get(String(node.id))]]));
+  const retiredQueryRecordIds = new Set(Object.entries(data.processNodes || {})
+    .filter(([, node]) => node?.kind === 'read.queryEntities')
+    .map(([id]) => String(id)));
+
+  const appended = [];
+  const expandedComposerNodeIds = new Set();
+  const defaultsByRecordId = new Map();
+  const statusSplitTargets = [];
+
+  const kept = [];
+  for (const edge of graph.edges || []) {
+    const sourceId = String(edge.source);
+    const targetId = String(edge.target);
+    const sourceRecordId = recordIdByGraphNode.get(sourceId);
+    const targetRecordId = recordIdByGraphNode.get(targetId);
+    const sourceRecord = recordByGraphNode.get(sourceId);
+    const targetRecord = recordByGraphNode.get(targetId);
+
+    // The retired hidden-predicate query dies with its predicate wires.
+    if (retiredQueryRecordIds.has(targetRecordId) && handleOf(edge.targetHandle) === 'predicate') continue;
+
+    // Retired lifecycle sockets: a construct's declaration owns its initial
+    // state; a mutate's smuggled status splits off below. Neither socket
+    // survives onto the native record.
+    if (targetRecord?.kind === 'cts.construct' && handleOf(edge.targetHandle) === 'states.main') continue;
+    if (targetRecord?.kind === 'cts.mutate' && handleOf(edge.targetHandle) === 'states.main') {
+      statusSplitTargets.push({ graphNodeId: targetId, recordId: targetRecordId });
+      continue;
+    }
+
+    // A transition's declared reference adopts a static state-definition
+    // wire; computed status wires and patch smuggling die with the socket.
+    if (targetRecord?.kind === 'cts.transition' && ['status', 'changes'].includes(handleOf(edge.targetHandle))) {
+      const definition = data.stateDefinitions?.[sourceRecordId];
+      if (handleOf(edge.targetHandle) === 'status' && definition?.stateId && targetRecordId) {
+        const record = processNodes[targetRecordId];
+        processNodes[targetRecordId] = {
+          ...record,
+          state: { ...(record.state || {}), axis: record.state?.axis || 'main', to: definition.stateId }
+        };
+      }
+      continue;
+    }
+
+    // A composer feeding a construct/mutate block expands to the field
+    // wires it carried: the block substrate never reaches a native
+    // consumer, and the composer's authored defaults move with the fields.
+    if (sourceRecord?.kind === 'cts.compose'
+      && ['cts.construct', 'cts.mutate'].includes(targetRecord?.kind)
+      && handleOf(edge.targetHandle) === String(sourceRecord.block || sourceRecord.slot || '')) {
+      for (const incoming of graph.edges || []) {
+        if (String(incoming.target) !== sourceId) continue;
+        const handle = handleOf(incoming.targetHandle);
+        const entry = handle.startsWith('entry:')
+          ? (sourceRecord.entries || []).find(candidate => `entry:${candidate.id}` === handle)
+          : null;
+        const path = entry ? `${sourceRecord.block}.${entry.key}` : handle;
+        if (!entry && !(sourceRecord.fields || []).includes(path)) continue;
+        appended.push({
+          ...incoming,
+          id: `${incoming.id}:${path}`,
+          target: targetId,
+          targetHandle: dataHandle(path)
+        });
+      }
+      if (targetRecordId) {
+        const defaults = {
+          ...(defaultsByRecordId.get(targetRecordId) || processNodes[targetRecordId]?.inputDefaults || {})
+        };
+        for (const [key, value] of Object.entries(sourceRecord.inputDefaults || {})) {
+          const entry = key.startsWith('entry:')
+            ? (sourceRecord.entries || []).find(candidate => `entry:${candidate.id}` === key)
+            : null;
+          defaults[entry ? `${sourceRecord.block}.${entry.key}` : key] = value;
+        }
+        defaultsByRecordId.set(targetRecordId, defaults);
+      }
+      expandedComposerNodeIds.add(sourceId);
+      // The consumer's block slots die with the substrate: its ports are
+      // the field sockets the expanded wires land on.
+      if (targetRecordId && processNodes[targetRecordId]?.slots) {
+        const { slots: _retiredSlots, ...consumer } = processNodes[targetRecordId];
+        processNodes[targetRecordId] = consumer;
+      }
+      continue;
+    }
+
+    const migrated = { ...edge };
+    if (sourceRecord?.kind === 'cts.read') {
+      const outputs = READ_OUTPUT_HANDLE_MIGRATION[sourceRecord.select || 'current'] || {};
+      const handle = handleOf(edge.sourceHandle);
+      if (handle && outputs[handle]) migrated.sourceHandle = dataHandle(outputs[handle]);
+    }
+    if (targetRecord?.kind === 'cts.read') {
+      const inputs = READ_INPUT_HANDLE_MIGRATION[targetRecord.select || 'current'] || {};
+      const handle = handleOf(edge.targetHandle);
+      if (handle && inputs[handle]) migrated.targetHandle = dataHandle(inputs[handle]);
+    }
+    if (targetRecord?.kind === 'cts.field' && handleOf(edge.targetHandle) === 'block') {
+      migrated.targetHandle = dataHandle('entity');
+    }
+    kept.push(migrated);
+  }
+
+  graph.edges = [...kept, ...appended];
+  for (const [recordId, defaults] of defaultsByRecordId) {
+    if (processNodes[recordId]) {
+      processNodes[recordId] = { ...processNodes[recordId], inputDefaults: defaults };
+    }
+  }
+
+  // Unwired authored defaults follow the same laws: a construct's initial
+  // state dies with the socket (the declaration owns it); a mutate's
+  // smuggled status joins the split queue.
+  for (const [recordId, record] of Object.entries(processNodes)) {
+    if (record?.kind === 'cts.construct' && record.inputDefaults?.['states.main'] !== undefined) {
+      const { ['states.main']: _initial, ...inputDefaults } = record.inputDefaults;
+      processNodes[recordId] = { ...record, inputDefaults };
+    }
+    if (record?.kind === 'cts.mutate' && record.inputDefaults?.['states.main'] !== undefined) {
+      const graphNodeId = (graph.nodes || []).find(node => recordIdByGraphNode.get(String(node.id)) === recordId)?.id;
+      if (graphNodeId && !statusSplitTargets.some(target => target.recordId === recordId)) {
+        statusSplitTargets.push({ graphNodeId: String(graphNodeId), recordId });
+      }
+    }
+  }
+
+  // The smuggled status becomes a chained cts.transition: the mutate keeps
+  // the field patch, the transition owns the declared target, and every
+  // downstream edge waits for the transitioned entity.
+  for (const { graphNodeId, recordId } of statusSplitTargets) {
+    const mutate = processNodes[recordId];
+    const targetState = mutate?.inputDefaults?.['states.main'];
+    if (!mutate || targetState == null) continue;
+    const transitionRecordId = `${recordId}:status`;
+    const { ['states.main']: _retired, ...inputDefaults } = mutate.inputDefaults || {};
+    processNodes[recordId] = { ...mutate, inputDefaults };
+    processNodes[transitionRecordId] = {
+      id: transitionRecordId,
+      kind: 'cts.transition',
+      typeId: mutate.typeId,
+      state: { axis: 'main', to: String(targetState) },
+      trigger: { mode: 'event' }
+    };
+    const transitionGraphNodeId = `${graphNodeId}:status`;
+    graph.nodes = [...(graph.nodes || []), {
+      id: transitionGraphNodeId,
+      type: 'processNode',
+      position: { x: 0, y: 0 },
+      data: { refId: transitionRecordId }
+    }];
+    graph.edges = [
+      ...graph.edges.map(edge => (String(edge.source) === graphNodeId
+        ? { ...edge, source: transitionGraphNodeId }
+        : edge)),
+      {
+        id: `${transitionRecordId}:flow`,
+        source: graphNodeId,
+        sourceHandle: 'control:completed',
+        target: transitionGraphNodeId,
+        targetHandle: 'control:in',
+        role: 'control'
+      },
+      {
+        id: `${transitionRecordId}:entity`,
+        source: graphNodeId,
+        sourceHandle: 'data:result',
+        target: transitionGraphNodeId,
+        targetHandle: 'data:entity',
+        role: 'data'
+      }
+    ];
+  }
+
+  // Expanded composers and the decomposes that fed nothing else leave with
+  // their retired block sockets — the persisted graph keeps only live
+  // native records.
+  const dead = new Set(expandedComposerNodeIds);
+  let changing = true;
+  while (changing) {
+    changing = false;
+    const liveEdges = (graph.edges || []).filter(edge => (
+      !dead.has(String(edge.source)) && !dead.has(String(edge.target))
+    ));
+    for (const node of graph.nodes || []) {
+      const id = String(node.id);
+      if (dead.has(id)) continue;
+      const record = recordByGraphNode.get(id);
+      if (record?.kind !== 'cts.decompose') continue;
+      const fedRetiredSubstrate = originalEdges.some(edge => (
+        String(edge.source) === id && dead.has(String(edge.target))
+      ));
+      if (fedRetiredSubstrate && !liveEdges.some(edge => String(edge.source) === id)) {
+        dead.add(id);
+        changing = true;
+      }
+    }
+  }
+  if (dead.size) {
+    graph.edges = (graph.edges || []).filter(edge => (
+      !dead.has(String(edge.source)) && !dead.has(String(edge.target))
+    ));
+    graph.nodes = (graph.nodes || []).filter(node => !dead.has(String(node.id)));
+    for (const [graphNodeId, recordId] of recordIdByGraphNode) {
+      if (dead.has(graphNodeId) && recordId) delete processNodes[recordId];
+    }
+  }
 }
 
 function mapRecords(records = {}, mapper) {
@@ -378,30 +630,31 @@ function migrateNode(node, domain, diagnostics, at) {
     delete migrated.block;
   }
   if (mapping.kind === CTS_KIND.construct && migrated.construction?.mode) {
-    migrated.via = migrated.construction.mode;
+    migrated.construction = { ...migrated.construction };
+    delete migrated.via;
   }
   if (mapping.kind === CTS_KIND.transition) {
+    const state = { ...(migrated.state || {}) };
     if (migrated.targetState !== undefined) {
-      migrated.target = migrated.targetState;
+      state.to = migrated.targetState;
       delete migrated.targetState;
     }
     if (migrated.status && migrated.status.to !== undefined) {
-      migrated.target = migrated.status.to;
-      migrated.status = { ...migrated.status };
+      state.to = migrated.status.to;
+      state.intent = state.intent || migrated.status.intent;
       delete migrated.status.to;
     }
+    if (state.to !== undefined) migrated.state = state;
+    delete migrated.target;
   }
-  if (migrated.path) migrated.path = toRowPath(migrated.path, node.typeId, domain) ?? migrated.path;
-  if (migrated.fieldPath) migrated.fieldPath = toRowPath(migrated.fieldPath, node.typeId, domain) ?? migrated.fieldPath;
   if (Array.isArray(migrated.entries)) {
     migrated.entries = migrated.entries.map(entry => ({
       ...rewriteDescriptorRecord(entry),
-      ...(entry?.typeId ? { target: kebab(entry.typeId) } : {})
+      ...(entry?.typeId ? { typeId: kebab(entry.typeId) } : {})
     }));
   }
-  if (Array.isArray(migrated.fields)) {
-    migrated.fields = migrated.fields.map(path => toRowPath(path, node.typeId, domain) ?? path);
-  }
+  // Authored paths (record.field projections, effect field lists) are the
+  // declared schema paths — they migrate verbatim; no slot stripping.
   return migrated;
 }
 
@@ -419,7 +672,7 @@ function rewriteDescriptorRecord(record = {}) {
   };
 }
 
-// -- resolution: v5 -> executable working shapes (internal, never persisted) --
+// -- resolution: v5 binding seam (native records stay native) --
 
 export function resolveCtsDefinition(definition = {}, domain = {}) {
   const wrapper = definition?.data ? { ...definition, data: { ...definition.data } } : { ...definition };
@@ -430,138 +683,132 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
   const diagnostics = [];
   const typeIdFor = typeIdResolver(domain);
 
-  const processNodes = Object.fromEntries(Object.entries(data.processNodes || {}).map(([id, node]) => {
-    const resolved = resolveNode(node, domain, typeIdFor, diagnostics, `processNodes.${id}`);
-    return [id, resolved];
-  }));
+  const processNodes = Object.fromEntries(Object.entries(data.processNodes || {}).map(([id, node]) => [
+    id,
+    resolveNativeNode(node, domain, typeIdFor, diagnostics, `processNodes.${id}`)
+  ]));
   const producerOutputs = mapRecords(data.producerOutputs, output => {
     const resolved = { ...output };
-    if (resolved.typeId) {
-      resolved.typeId = typeIdFor(resolved.typeId) ?? snake(resolved.typeId);
-    }
-    if (resolved.fields) {
-      resolved.fields = Object.fromEntries(Object.entries(resolved.fields).map(([level, paths]) => [
-        level, (paths || []).map(path => slotOrDefault(path, resolved.typeId, domain))
-      ]));
-    }
+    if (resolved.typeId) resolved.typeId = typeIdFor(resolved.typeId) || resolved.typeId;
+    // Producer field lists are current-v5 row-relative paths. Do not add a
+    // wire block prefix here: that would change the authored socket/field
+    // contract a second time after migration.
     return resolved;
   });
   const actions = mapRecords(data.actions, action => {
     const resolved = { ...action };
-    if (resolved.typeId) {
-      resolved.typeId = typeIdFor(resolved.typeId) ?? snake(resolved.typeId);
-    }
-    if (resolved.target !== undefined) {
-      resolved.status = { ...(resolved.status || {}), to: resolved.target };
+    if (resolved.typeId) resolved.typeId = typeIdFor(resolved.typeId) || resolved.typeId;
+    if (resolved.target !== undefined && resolved.state === undefined) {
+      resolved.state = { to: resolved.target };
       delete resolved.target;
     }
     return resolved;
   });
-  const sockets = mapRecords(data.sockets, socket => resolveDescriptorRecord(socket));
+  const sockets = mapRecords(data.sockets, socket => resolveNativeDescriptor(socket, typeIdFor));
   const screens = mapRecords(data.screens, screen => ({
     ...screen,
     ...(Array.isArray(screen?.sources)
-      ? { sources: screen.sources.map(source => ({ ...source, typeId: source.typeId || '' })) }
+      ? {
+          sources: screen.sources.map(source => ({
+            ...source,
+            ...(source.typeId ? { typeId: typeIdFor(source.typeId) || source.typeId } : {})
+          }))
+        }
       : {})
   }));
 
   const resolvedData = {
     ...data,
+    graphProtocol: 5,
     processNodes,
     producerOutputs,
     actions,
     sockets,
     screens
   };
-  delete resolvedData.graphProtocol;
   return {
     definition: wrapper?.data ? { ...wrapper, data: resolvedData } : resolvedData,
     diagnostics
   };
 }
 
-function slotOrDefault(path, typeId, domain) {
-  const slot = toSlotPath(path, typeId, domain);
-  return slot ?? path;
-}
-
-function resolveNode(node, domain, typeIdFor, diagnostics, at) {
+function resolveNativeNode(node, domain, typeIdFor, diagnostics, at) {
   if (!node || typeof node !== 'object') return node;
-  if (node.kind === CTS_SERVICE_KIND) {
-    // A service node binds a registered operator (SPEC §8 s species); the
-    // executable twin is the command with the operator's declared binding.
-    // Unbound nodes (bare catalog records) resolve to an unset command and
-    // surface empty ports — the author binds the operator explicitly.
-    const service = node.operator ? domain.serviceContracts?.[node.operator] : null;
-    if (node.operator && !service) {
-      diagnostics.push(`${at}: unknown service operator ${node.operator}`);
-      return { ...node };
-    }
-    return {
-      ...node,
-      kind: 'effect.runCommand',
-      commandId: service ? service.command : ''
-    };
-  }
   if (!String(node.kind || '').startsWith('cts.')) return { ...node };
-  const v4Kind = v4KindFor(node);
-  if (!v4Kind) {
-    diagnostics.push(`${at}: unknown cts node shape (kind ${node.kind})`);
-    return { ...node };
-  }
-  const resolved = { ...node, kind: v4Kind };
-  delete resolved.select;
-  for (const flag of ['producer', 'archive', 'send', 'record', 'draft', 'one', 'mode', 'via']) {
-    delete resolved[flag];
-  }
-  if (resolved.typeId) {
-    resolved.typeId = typeIdFor(resolved.typeId) ?? snake(resolved.typeId);
-  }
-  if (resolved.slots) {
-    resolved.blocks = [...resolved.slots];
-    delete resolved.slots;
-  }
-  if (resolved.slot) {
-    resolved.block = resolved.slot;
-    delete resolved.slot;
-  }
-  if (resolved.target !== undefined) {
-    resolved.status = { ...(resolved.status || {}), to: resolved.target };
-    delete resolved.target;
-  }
-  if (resolved.path) resolved.path = slotOrDefault(resolved.path, resolved.typeId, domain);
-  if (resolved.fieldPath) resolved.fieldPath = slotOrDefault(resolved.fieldPath, resolved.typeId, domain);
-  if (Array.isArray(resolved.entries)) {
-    resolved.entries = resolved.entries.map(entry => ({
-      ...resolveDescriptorRecord(entry),
-      ...(entry?.target && !entry.typeId ? { typeId: typeIdFor(entry.target) ?? snake(entry.target), target: undefined } : {})
-    }));
-  }
-  if (Array.isArray(resolved.fields)) {
-    resolved.fields = resolved.fields.map(path => slotOrDefault(path, resolved.typeId, domain));
-  }
-  if (resolved.construction?.mode === undefined && node.via) {
-    resolved.construction = { ...(resolved.construction || {}), mode: node.via };
+
+  const resolved = { ...node };
+  if (resolved.typeId) resolved.typeId = typeIdFor(resolved.typeId) || resolved.typeId;
+
+  // `via` is the retired spelling. Adopt it into the one current
+  // construction envelope and delete it without touching the species kind.
+  if (resolved.via !== undefined) {
+    if (!resolved.construction) resolved.construction = {};
+    if (resolved.construction.mode === undefined) resolved.construction.mode = resolved.via;
+    delete resolved.via;
   }
   // Contract migration (SPEC §20): persisted construction modes the type
-  // no longer declares re-bind silently to the type's current default —
-  // e.g. genericCreate on a payload type whose protocols now own
-  // construction (cassette/sketch create through their editors). Derived
-  // types have no contract, so their create nodes keep failing
-  // validation with the clear authoring message.
-  if (resolved.construction?.mode) {
+  // no longer declares re-bind to the declared default (e.g. genericCreate
+  // on a payload type whose protocols now own construction — cassette and
+  // sketch create through their editors). Derived types keep their stale
+  // mode: they have no contract to re-bind, and validation owns the error.
+  if (resolved.kind === CTS_KIND.construct && resolved.construction?.mode) {
     const contract = domain.construction?.[resolved.typeId] || null;
     if (contract?.modes?.length && contract.defaultMode && !contract.modes.includes(resolved.construction.mode)) {
       resolved.construction = { ...resolved.construction, mode: contract.defaultMode };
     }
   }
+  if (resolved.kind === CTS_KIND.transition && resolved.target !== undefined && resolved.state === undefined) {
+    resolved.state = { to: resolved.target };
+    delete resolved.target;
+  }
+  if (resolved.kind === CTS_KIND.read && !resolved.select) resolved.select = 'current';
+  if (resolved.kind === CTS_SERVICE_KIND) {
+    const service = resolved.operator ? domain.serviceContracts?.[resolved.operator] : null;
+    if (resolved.operator && !service) {
+      diagnostics.push(`${at}: unknown service operator ${resolved.operator}`);
+    } else if (service?.command) {
+      // The operator binding is an execution fact, not a kind replacement.
+      resolved.commandId = resolved.commandId || service.command;
+    }
+  }
+
+  // Descriptor entries are typed values, not operation records. Normalize
+  // only their type binding; retain entry ids, discriminators, and roles.
+  if (Array.isArray(resolved.entries)) {
+    resolved.entries = resolved.entries.map(entry => resolveNativeEntry(entry, typeIdFor));
+  }
+  if (resolved.inputs) resolved.inputs = resolved.inputs.map(input => resolveNativeDescriptor(input, typeIdFor));
+  if (resolved.outputs) resolved.outputs = resolved.outputs.map(output => resolveNativeDescriptor(output, typeIdFor));
   return resolved;
 }
 
+function resolveNativeEntry(entry = {}, typeIdFor) {
+  const resolved = resolveNativeDescriptor(entry, typeIdFor);
+  if (resolved.target && !resolved.typeId) {
+    resolved.typeId = typeIdFor(resolved.target) || resolved.target;
+    delete resolved.target;
+  }
+  return resolved;
+}
+
+function resolveNativeDescriptor(record = {}, typeIdFor = () => null) {
+  if (!record?.type || record.type.base !== 'entityRef') return record;
+  return {
+    ...record,
+    type: {
+      ...record.type,
+      ...(record.type.typeId ? { typeId: typeIdFor(record.type.typeId) || record.type.typeId } : {}),
+      ...(Array.isArray(record.type.accepts)
+        ? { accepts: record.type.accepts.map(typeId => typeIdFor(typeId) || typeId) }
+        : {})
+    }
+  };
+}
+
 function v4KindFor(node) {
-  // Bare catalog records (no discriminators) default: reads to `current`,
-  // compose to block composition. Authored records always carry their
-  // discriminators.
+  // This table is classification metadata only. It is intentionally kept
+  // separate from resolveNativeNode: no execution path may use it to replace
+  // a species record.
   if (node.kind === CTS_KIND.read) return V4_KIND_BY_V5.get(`cts.read|select=${node.select || 'current'}`) || null;
   if (node.kind === CTS_KIND.compose && !node.mode && !node.record) {
     return V4_KIND_BY_V5.get('cts.compose|mode=compose') || null;
@@ -599,12 +846,39 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
   const recordIdByGraphNode = new Map((graph?.nodes || [])
     .filter(node => node?.type === 'ctsState' && node.data?.refId)
     .map(node => [String(node.id), String(node.data.refId)]));
+  const classRecordIdByGraphNode = new Map((graph?.nodes || [])
+    .filter(node => node?.type === 'ctsClass' && node.data?.refId)
+    .map(node => [String(node.id), String(node.data.refId)]));
   const parentOf = new Map();
+  const childrenEdges = [];
+  const entryStateByType = new Map();
+  const processRecordIdByGraphNode = new Map((graph?.nodes || [])
+    .filter(node => node?.type === 'processNode' && node.data?.refId)
+    .map(node => [String(node.id), String(node.data.refId)]));
   for (const edge of graph?.edges || []) {
-    if (edge.role !== 'type' || edge.label !== 'nested') continue;
-    const child = recordIdByGraphNode.get(String(edge.source));
-    const parent = recordIdByGraphNode.get(String(edge.target));
-    if (child && parent) parentOf.set(child, parent);
+    if (edge.role !== 'type') continue;
+    if (edge.label === 'entry') {
+      const stateId = recordIdByGraphNode.get(String(edge.source));
+      const processRecordId = processRecordIdByGraphNode.get(String(edge.target));
+      const processRecord = processRecordId ? processNodes[processRecordId] : null;
+      const typeId = String(processRecord?.typeId || '');
+      if (stateId && typeId) entryStateByType.set(typeId, stateId);
+      continue;
+    }
+    if (edge.label === 'nested') {
+      const child = recordIdByGraphNode.get(String(edge.source));
+      const parent = recordIdByGraphNode.get(String(edge.target));
+      if (child && parent) parentOf.set(child, parent);
+      continue;
+    }
+    if (edge.label === 'children') {
+      const parent = classRecordIdByGraphNode.get(String(edge.source));
+      const child = classRecordIdByGraphNode.get(String(edge.target));
+      const parentDeclaration = byKind('class').find(candidate => candidate.id === parent);
+      if (parent && child && classMayDeclareChildren(parentDeclaration?.class || 'file')) {
+        childrenEdges.push({ edge, parent, child });
+      }
+    }
   }
 
   const declarations = [];
@@ -614,12 +888,19 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
       id: cls.typeId,
       class: cls.class || 'file',
       fields: {},
-      ...(cls.payload ? { payload: cls.payload } : {})
+      ...(cls.name ? { name: cls.name } : {}),
+      ...(cls.glyph ? { glyph: cls.glyph } : {}),
+      ...(cls.payload ? { payload: cls.payload } : {}),
+      ...(Array.isArray(cls.migrate) && cls.migrate.length ? { migrate: cls.migrate } : {})
     };
     for (const field of byKind('field')) {
-      if (field.typeId === cls.typeId && field.name) {
-        declaration.fields[field.name] = { ...(field.descriptor || { base: 'string' }) };
-      }
+      if (field.typeId !== cls.typeId || !field.name) continue;
+      const fieldId = camelId(field.name);
+      if (!fieldId) continue;
+      declaration.fields[fieldId] = {
+        ...(field.descriptor || { base: 'string' }),
+        ...(field.descriptor?.label || fieldId === field.name ? {} : { label: field.name })
+      };
     }
 
     const stateRecords = byKind('state')
@@ -663,14 +944,19 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
         if (children.length) node.states = build(children);
         return [state.value, node];
       }));
-      const initialRoot = roots.find(state => state.initial === true) || roots[0];
+      const entryRootId = entryStateByType.get(cls.typeId);
+      const initialRoot = roots.find(state => state.id === entryRootId)
+        || roots.find(state => state.initial === true)
+        || roots[0];
       if (!initialRoot) continue;
       declaration.states[axis] = {
         initial: initialRoot.value,
         states: build(roots)
       };
       const transitions = (transitionsByType.get(cls.typeId) || [])
-        .filter(transition => transition.axis === axis);
+        .filter(transition => transition.axis === axis
+          && findState(declaration.states[axis], transition.from)
+          && findState(declaration.states[axis], transition.to));
       const merged = mergeTransitionNodeStates({
         machine: declaration.states[axis],
         transitions
@@ -680,6 +966,18 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
     }
     if (!Object.keys(declaration.states).length) delete declaration.states;
     if (!declaration.transitions.length) delete declaration.transitions;
+
+    const children = new Map();
+    for (const { edge, parent, child } of childrenEdges) {
+      if (parent !== cls.id) continue;
+      const childDeclaration = byKind('class').find(candidate => candidate.id === child);
+      const childTypeId = childDeclaration?.typeId || child;
+      const key = String(edge.data?.key || `${childTypeId}s`).trim();
+      const entry = children.get(key) || { types: [], onRemove: edge.data?.onRemove || 'restrict' };
+      if (!entry.types.includes(childTypeId)) entry.types.push(childTypeId);
+      children.set(key, entry);
+    }
+    if (children.size) declaration.edges = { children: Object.fromEntries(children.entries()) };
 
     const operators = Array.isArray(cls.operators) ? cls.operators : [];
     if (operators.length) {
@@ -742,27 +1040,46 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
       continue;
     }
     if (node.kind === CTS_KIND.transition) {
-      // The target may be authored as the v5 `target` or inline on the
-      // record's `state` payload (the transition-node authoring surface) —
-      // both are binding-checked against the declared workflow, overlay
-      // included, so an authored-but-undeclared status fails validate
-      // instead of failing at runtime.
-      const target = node.target || node.state?.to || '';
+      const transition = node.transition || {};
+      const target = transition.to || node.state?.to || node.target || '';
+      const from = transition.from || node.state?.from || '';
       if (target) {
-        const workflow = domain.workflows?.[typeId];
+        const workflow = domain.workflows?.[resolvedTypeId || typeId];
         const states = workflow?.regions?.[workflow?.primaryRegion || 'main']?.states || {};
-        if (typeId && Object.keys(states).length && !(target in states)) {
-          errors.push(`processNodes.${id}: target state ${target} is not declared for ${typeId}`);
+        if (Object.keys(states).length && !Object.hasOwn(states, target)) {
+          errors.push(`processNodes.${id}: target state ${target} is not declared for ${resolvedTypeId || typeId}`);
+        }
+        const transitions = workflow?.regions?.[workflow?.primaryRegion || 'main']?.transitions || [];
+        if (from && transitions.length && !transitions.some(item => item.from === from && item.to === target)) {
+          errors.push(`processNodes.${id}: transition ${from}->${target} is not declared for ${resolvedTypeId || typeId}`);
         }
       }
     }
-    if ((node.kind === CTS_KIND.field || node.kind === CTS_KIND.compose) && node.path) {
-      if (toSlotPath(node.path, typeId, domain) === null && !managedPath(node.path)) {
-        errors.push(`processNodes.${id}: field ${node.path} is not in the ${typeId} row`);
+    if ([CTS_KIND.field, CTS_KIND.mutate, CTS_KIND.compose].includes(node.kind)) {
+      const paths = node.kind === CTS_KIND.mutate
+        ? [...(node.fields || []), ...Object.keys(node.inputDefaults || {})]
+        : [node.path].filter(Boolean);
+      for (const path of paths) {
+        if (!nativeFieldPathDeclared(path, resolvedTypeId || typeId, domain)) {
+          errors.push(`processNodes.${id}: field ${path} is not in the ${resolvedTypeId || typeId} row`);
+        }
       }
     }
   }
   return errors;
+}
+
+function nativeFieldPathDeclared(path = '', typeId = '', domain = {}) {
+  const clean = String(path || '');
+  const [block] = clean.split('.');
+  if (!ROW_BLOCKS.includes(block) && managedPath(clean)) return true;
+  const schemas = schemasFor(domain, typeId);
+  if (schemas.some(schema => schema.path === clean)) return true;
+  if (!ROW_BLOCKS.includes(block) && schemas.some(schema => schema.path === `data.${clean}` || schema.path === `specs.${clean}`)) return true;
+  const [slot, ...rest] = clean.split('.');
+  if (!ROW_BLOCKS.includes(slot) || !rest.length) return false;
+  const rowPath = rest.join('.');
+  return schemas.some(schema => schema.path === `${slot}.${rowPath}`);
 }
 
 function managedPath(path = '') {

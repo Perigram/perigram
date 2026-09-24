@@ -213,11 +213,20 @@ export function useProcessDesignerNodeSync({
   // type's declared top-level states (the domain lifecycle the compiler and
   // the status engine resolve against).
   function processStatusOptionsFor(node = {}) {
-    const region = primaryRegionOf(nodeTypeId(node));
-    if (!region) return [];
-    return Object.entries(region.states || {})
-      .filter(([key]) => !key.includes('.'))
-      .map(([key, state]) => ({ label: state.label || key, value: key }));
+    const workflow = designer.domain.workflows?.[nodeTypeId(node)];
+    if (!workflow) return [];
+    const options = [];
+    for (const [axis, region] of Object.entries(workflow.regions || {})) {
+      const walk = (states = {}, prefix = []) => {
+        for (const [name, state = {}] of Object.entries(states)) {
+          const path = [...prefix, name].join('.');
+          options.push({ label: state.label || path, value: path, axis });
+          if (state.states) walk(state.states, [...prefix, name]);
+        }
+      };
+      walk(region.states || {});
+    }
+    return options;
   }
 
   function processTypeIdOptions(node = {}) {
@@ -227,8 +236,8 @@ export function useProcessDesignerNodeSync({
     if (kind === 'effect.changeStatus') return designer.changeStatusOptions;
     if (kind === 'effect.archiveEntity') return designer.archivableEntityOptions;
     if (kind === 'effect.deleteEntity') return designer.deleteEntityOptions;
-    if (kind === 'read.queryEntities' || kind === 'read.children') return designer.listableEntityOptions;
-    if (kind.startsWith('read.')) return designer.readableEntityOptions;
+    if (node.kind === 'cts.field') return designer.readableEntityOptions;
+    if (node.kind === 'cts.read' && ['all', 'children'].includes(node.select)) return designer.listableEntityOptions;
     return designer.entityOptions;
   }
 
@@ -333,13 +342,26 @@ export function useProcessDesignerNodeSync({
   function normalizeProcessNodeDefaults(node = {}) {
     node.kind ||= 'source.literalItem';
     const op = opKind(node);
-    if (op === 'collection.sort') {
+    const nativeSpecies = String(node.kind || '').startsWith('cts.');
+    if (nativeSpecies) {
+      // The species is the operation. Do not persist the old executable
+      // twin's switch or transport adapters beside a native record.
+      delete node.operation;
+      delete node.matching;
+      delete node.inputTransforms;
+      delete node.selectedProducerOutputId;
+      delete node.value;
+      delete node.fields;
+      if (typeof node.type === 'string') delete node.type;
+    } else if (op === 'collection.sort') {
       node.direction = ['asc', 'desc'].includes(node.direction) ? node.direction : 'asc';
       delete node.operation;
     } else {
       node.operation ||= defaultProcessNodeOperation(node.kind);
     }
-    node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
+    if (!nativeSpecies) {
+      node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
+    }
     // Effect records carry grant objects in `access`; the Item/List/Tree
     // socket-access string belongs to the pure value algebra only. Writing
     // the string on an effect would spread it into `{"0":"i",…}` junk keys
@@ -347,8 +369,6 @@ export function useProcessDesignerNodeSync({
     if (!op.startsWith('effect.')) {
       node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
     }
-    node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
-    node.inputTransforms ||= {};
     node.icon = iconForProcessNode(node.kind);
     // Designer-owned junk keys, pruned on every pass (authored records
     // never carry them; drafts written by older factories did). `cases`
@@ -387,10 +407,12 @@ export function useProcessDesignerNodeSync({
     const op = opKind(node);
     if (['effect.createEntity', 'effect.runProducer'].includes(op)) {
       syncProcessNodeConstruction(node);
-      node.state ||= {};
-      node.state.to ||= initialStateForEntity(nodeTypeId(node));
+      // Lifecycle entry belongs to the CTS declaration. A construct keeps
+      // no status socket, state target, or block substrate in the authored
+      // species record.
+      if (String(node.kind || '').startsWith('cts.')) delete node.state;
     }
-    if (op === 'effect.createEntity') {
+    if (op === 'effect.createEntity' && !String(node.kind || '').startsWith('cts.')) {
       setNodeBlocks(node, constructibleEntityBlocks(nodeTypeId(node)));
       node.fields = [];
     }
@@ -398,12 +420,12 @@ export function useProcessDesignerNodeSync({
 
   function normalizeBindingDefaults(node = {}) {
     if (node.kind === 'cts.field') {
-      // The projection gate carries no Type pin of its own: its binding
-      // follows the entity input, so a stray stored binding is dropped.
-      delete node.typeId;
+      // cts.field is a consumer, but its derived typeId is still part of the
+      // record's resolved field contract. Keep it in sync with the entity
+      // input; only the transient field schema snapshot is derived data.
+      if (!node.typeId && node.type?.typeId) node.typeId = node.type.typeId;
       delete node.fieldSchemas;
-      // An unbound record offers only its entity input; a bound one
-      // defaults its path to the type's first readable field.
+      delete node.fieldSchema;
       const bound = nodeTypeId(node);
       const available = bound
         ? designer.fieldsForEntity(bound).filter(field => field.readable !== false)
@@ -411,9 +433,10 @@ export function useProcessDesignerNodeSync({
       if (!available.some(field => field.value === node.path)) node.path = available[0]?.value || '';
     } else {
       node.path = '';
+      delete node.fieldSchemas;
+      delete node.fieldSchema;
     }
-    delete node.fieldSchema;
-    if (isOpKind(node, 'read.related')) {
+    if (node.kind === 'cts.read' && node.select === 'related') {
       const relations = relationOptionsForEntity(nodeTypeId(node));
       if (!relations.some(relation => relation.value === node.relationKey)) node.relationKey = relations[0]?.value || '';
     }

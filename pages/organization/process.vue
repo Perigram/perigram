@@ -203,7 +203,8 @@
                   :command-options="commandOptions"
                   :command-service="selectedCommandService"
                   :service-principal-options="servicePrincipalOptions"
-                  :join-producer-options="joinProducerOptions"
+                  :transition-axis-options="transitionAxisOptions"
+                  :transition-path-options="transitionPathOptions"
                   :construction-modes="constructionModeOptions(nodeTypeId(selectedProcessNode))"
                   :artifact-kinds="artifactCreationKinds(selectedProcessNode)"
                   :artifact-kind-options="artifactUploadKindOptions"
@@ -224,11 +225,8 @@
                   @sync="syncNodeData"
                   @update-grant-roles="updateSelectedProcessNodeGrantRoles"
                   @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
-                  @update-join-entity="value => updateJoinTypeId(selectedProcessNode, value)"
-                  @update-join-producer="value => updateJoinSelectedProducer(selectedProcessNode, value)"
                   @update-construction-mode="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
                   @update-artifact-kinds="value => { updateArtifactCreationKinds(selectedProcessNode, value); syncNodeData(); }"
-                  @update-input-transform="({ inputId, transform, enabled }) => updateInputTransform(selectedProcessNode, inputId, transform, enabled)"
                   @run-preview="previewDataflow"
                   @create-command-service="createCommandServiceForSelectedNode"
                   @remove-command-service="removeSelectedCommandService"
@@ -1066,37 +1064,25 @@ const selectedScreenRecord = computed(() => selectedScreenId.value ? screens.val
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(principal => ({ label: principal.label || principal.id, value: principal.id })));
 const typeIdOptions = computed(() => designer.entityOptions);
-const joinProducerOptions = computed(() => {
-  const node = selectedProcessNode.value;
-  if (!isOpKind(node, 'producer.join')) return [];
-  const producerOutputs = draft.value?.data?.producerOutputs || {};
-  const options = [];
-  for (const edge of edges.value || []) {
-    if (String(edge.target) !== String(selectedNodeId.value)) continue;
-    const sourceNode = (nodes.value || []).find(item => String(item.id) === String(edge.source));
-    const record = draft.value?.data?.processNodes?.[String(sourceNode?.data?.refId || sourceNode?.id)];
-    if (!record) continue;
-    if (isOpKind(record, 'producer.join')) {
-      if (record.selectedProducerOutputId && producerOutputs[record.selectedProducerOutputId]) {
-        options.push(producerOutputs[record.selectedProducerOutputId]);
-      }
-      continue;
-    }
-    for (const output of Object.values(producerOutputs)) {
-      if (output.nodeId === record.id && sameTypeId(output.type || output.typeId, nodeTypeId(node))) options.push(output);
-    }
-  }
-  return [...new Map(options.filter(Boolean).map(output => [output.producerOutputId, output])).values()]
-    .map(output => ({ label: `${output.producerOutputId} (${output.typeId})`, value: output.producerOutputId }));
+const transitionAxisOptions = computed(() => {
+  const typeId = nodeTypeId(selectedProcessNode.value);
+  const workflow = typeId ? ctsProjectedDomain().workflows?.[typeId] : null;
+  return Object.keys(workflow?.regions || {}).map(axis => ({ label: axis, value: axis }));
 });
-function updateJoinTypeId(node, typeId) {
-  setNodeTypeId(node, typeId);
-  node.selectedProducerOutputId = '';
-  syncNodeData();
-}
-function updateJoinSelectedProducer(node, selectedProducerOutputId) {
-  node.selectedProducerOutputId = selectedProducerOutputId;
-  syncNodeData();
+function transitionPathOptions(axis = 'main') {
+  const typeId = nodeTypeId(selectedProcessNode.value);
+  const workflow = typeId ? ctsProjectedDomain().workflows?.[typeId] : null;
+  const region = workflow?.regions?.[axis];
+  const paths = [];
+  const walk = (states = {}, prefix = []) => {
+    for (const [name, node = {}] of Object.entries(states)) {
+      const path = [...prefix, name].join('.');
+      paths.push(path);
+      if (node.states) walk(node.states, [...prefix, name]);
+    }
+  };
+  walk(region?.states || {});
+  return paths.map(path => ({ label: path, value: path }));
 }
 const declarationTypeOptions = computed(() => [
   ...new Set([
@@ -1368,8 +1354,8 @@ function applyGraphInterpretation(mutations) {
     }
     const record = draft.value?.data?.processNodes?.[mutation.recordId];
     if (!record) continue;
-    if (mutation.key === 'status.to') {
-      record.state = { ...(record.state || {}), to: mutation.value };
+    if (mutation.key === 'state.to' || mutation.key === 'state.axis') {
+      record.state = { ...(record.state || {}), [mutation.key.slice('state.'.length)]: mutation.value };
       continue;
     }
     setNodeTypeId(record, mutation.value);
@@ -2046,13 +2032,6 @@ function validProcessEdges() {
   });
 }
 
-function updateInputTransform(node, inputId, transform, enabled) {
-  node.inputTransforms ||= {};
-  node.inputTransforms[inputId] = { ...(node.inputTransforms[inputId] || {}), [transform]: Boolean(enabled) };
-  if (!Object.values(node.inputTransforms[inputId]).some(Boolean)) delete node.inputTransforms[inputId];
-  syncNodeData();
-}
-
 function stripRuntimeNodeData(node) {
   const runtimeFreeNode = { ...node };
   delete runtimeFreeNode.selected;
@@ -2291,10 +2270,30 @@ function connectionCompatibility(connection = {}) {
           ? { ok: true }
           : { ok: false, reason: 'Both classes need a type id before declaring children' };
       }
-      if (legality === 'transition') {
-        return source.data?.typeId && source.data.typeId === target.data?.typeId
-          ? { ok: true }
-          : { ok: false, reason: 'Transitions connect states of one declared type' };
+      if (legality === 'nested') {
+        if (!source.data?.typeId || source.data.typeId !== target.data?.typeId) {
+          return { ok: false, reason: 'State nesting stays inside one declared type' };
+        }
+        if (source.data.axis && target.data.axis && source.data.axis !== target.data.axis) {
+          return { ok: false, reason: 'State nesting stays inside one lifecycle axis' };
+        }
+        if (source.id === target.id) {
+          return { ok: false, reason: 'A state cannot be its own parent state' };
+        }
+        const parentOf = new Map(edges.value
+          .filter(edge => edge.role === 'type' && edge.label === 'nested')
+          .map(edge => [edge.source, edge.target]));
+        parentOf.set(source.id, target.id);
+        const seen = new Set();
+        let cursor = source.id;
+        while (cursor && parentOf.has(cursor)) {
+          if (seen.has(cursor)) {
+            return { ok: false, reason: 'A state has one parent state; parent cycles are invalid' };
+          }
+          seen.add(cursor);
+          cursor = parentOf.get(cursor);
+        }
+        return { ok: true };
       }
       if (legality === 'entry') {
         // The state wire lands on a status-typed input of the target

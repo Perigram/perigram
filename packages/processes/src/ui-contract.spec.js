@@ -19,7 +19,7 @@ const ORGANIZATION_ID = 'org-ui-contract';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'ui-contract-spec' });
-  for (const declaration of [...frameworkTypes, ...cncTypePack]) registry.defineType(declaration);
+  for (const declaration of [...frameworkTypes, ...cncPackContent.types, ...cncTypePack]) registry.defineType(declaration);
   return {
     domain: projectDomainFromView(registry, ORGANIZATION_ID, cncDomain, { packServices: cncPackContent.services }),
     registry

@@ -131,14 +131,15 @@ describe('process node record shape', () => {
     expect(literal).not.toHaveProperty('construction');
     expect(literal).not.toHaveProperty('cases');
     expect(literal).not.toHaveProperty('status');
-    expect(literal.matching).toBe('longest');
+    expect(literal).not.toHaveProperty('matching');
+    expect(literal).not.toHaveProperty('inputTransforms');
   });
 
-  it('a construct record carries its construction envelope and state', () => {
+  it('a construct record carries construction and no lifecycle entry', () => {
     freshDraft();
     const construct = nodeRecords.createProcessNode('c', 'cts.construct');
     expect(construct.construction).toBeDefined();
-    expect(construct.state).toBeDefined();
+    expect(construct.state).toBeUndefined();
   });
 
   it('sync prunes designer-owned junk keys from legacy drafts', () => {
@@ -167,5 +168,26 @@ describe('process node record shape', () => {
     literal.value = { id: 'entity-1', type: 'stale-type' };
     sync.syncProcessNode(literal);
     expect(literal.value.type).toBe(literal.typeId);
+  });
+
+  it('keeps the derived entity type on a cts.field projection', () => {
+    freshDraft();
+    const field = nodeRecords.createProcessNode('field', 'cts.field');
+    field.typeId = 'sheet';
+    const readable = designer.fieldsForEntity('sheet').find(field => field.readable !== false);
+    field.path = readable?.value || '';
+    sync.syncProcessNode(field);
+    expect(field.typeId).toBe('sheet');
+    expect(field.path).toBe(readable?.value || '');
+  });
+
+  it('does not give a native consumer an operation or retired producer selector', () => {
+    freshDraft();
+    const read = nodeRecords.createProcessNode('read', 'cts.read');
+    Object.assign(read, { select: 'current', typeId: 'sheet' });
+    sync.syncProcessNode(read);
+    expect(read).not.toHaveProperty('operation');
+    expect(read).not.toHaveProperty('selectedProducerOutputId');
+    expect(read).not.toHaveProperty('producerOutputId');
   });
 });

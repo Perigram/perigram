@@ -1,9 +1,21 @@
+import { operationKindOf } from '../../cts/src/index.js';
 import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 import { resolveCatalogNodePorts } from './node-catalog.js';
 
 export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
 export const PROCESS_STEP_STATUSES = Object.freeze(['pending', 'running', 'waiting', 'succeeded', 'failed', 'skipped']);
+
+const NATIVE_EFFECT_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.command', 'cts.service', 'cts.conversion']);
+const NATIVE_MUTATION_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove']);
+
+function isNativeEffect(record = {}) {
+  return NATIVE_EFFECT_KINDS.has(String(record.kind || ''));
+}
+
+function isEffectRecord(record = {}) {
+  return isNativeEffect(record) || operationKindOf(record).startsWith('effect.');
+}
 
 export async function previewProcessDataflow(definition, sample = {}, environment = {}) {
   const process = processData(definition);
@@ -17,7 +29,7 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
     if (node.type !== 'processNode') continue;
     if (environment.targetNodeId && String(node.id) !== String(environment.targetNodeId)) continue;
     const record = process.processNodes?.[recordId(node)];
-    if (!record || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) continue;
+    if (!record || isEffectRecord(record) || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) continue;
     const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
     const outputs = {};
     let error = null;
@@ -184,10 +196,11 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     });
     return;
   }
-  if (record.kind.startsWith('effect.')) {
+  if (isEffectRecord(record)) {
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
-    const mutationKinds = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'];
-    const result = mutationKinds.includes(record.kind)
+    const mappedMutation = NATIVE_MUTATION_KINDS.has(String(record.kind))
+      || ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'].includes(record.kind);
+    const result = mappedMutation
       ? await executeProcessEffectNode(record, inputs, (mutationInputs, location) => environment.executeEffect({
           kind: record.kind,
           record,
@@ -316,7 +329,7 @@ async function effectOutputValues(nodeId, record, result, environment) {
   const values = {};
   for (const port of ports.outputs.filter(item => item.role === 'data')) {
     let value = result;
-    if (record.kind === 'effect.runCommand' && port.id !== 'result') {
+    if ((record.kind === 'effect.runCommand' || record.kind === 'cts.service' || record.kind === 'cts.command') && port.id !== 'result') {
       if (port.id.startsWith('attachment:')) {
         value = (result?.attachments || []).filter(item => item.kind === port.id.slice('attachment:'.length));
       } else {
@@ -417,7 +430,7 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     environment
   );
   if (contextualOutput) return contextualOutput;
-  if (record.kind.endsWith('Trigger') || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) {
+  if (record.kind.endsWith('Trigger') || isEffectRecord(record) || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) {
     const error = new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
     error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
     throw error;
@@ -450,7 +463,7 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   // Make List evaluates inputless on purpose: every item socket is optional,
   // so a fully unconnected constructor yields the empty list.
   const allowsInputlessEvaluation = record.kind.startsWith('source.')
-    || record.kind.startsWith('read.')
+    || record.kind === 'cts.read'
     || record.kind === 'collection.makeList';
   if (!Object.keys(inputs).length && (
     dataInputs.some(port => port.required)
@@ -508,7 +521,7 @@ function findTriggerNode(process, trigger) {
   const nodes = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[recordId(node)] || {};
     return record.kind?.endsWith('Trigger')
-      || (record.kind?.startsWith('effect.') && (record.trigger?.mode || 'manual') === 'manual');
+      || (isEffectRecord(record) && (record.trigger?.mode || 'manual') === 'manual');
   });
   const match = trigger.nodeId
     ? nodes.find(node => String(node.id) === String(trigger.nodeId))

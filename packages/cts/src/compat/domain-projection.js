@@ -272,10 +272,17 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     return (type.payload?.creation || ['upload']);
   }
 
+  function hasIdentifierRow(type = {}) {
+    return Object.values(type.fields || {})
+      .some(descriptor => descriptor?.identifier === true && descriptor?.base === 'string');
+  }
+
+  function nameInput() {
+    return { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true };
+  }
+
   function protocolModeInputs(type, protocol) {
-    const inputs = [
-      { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }
-    ];
+    const inputs = hasIdentifierRow(type) ? [] : [nameInput()];
     if (protocol === 'upload' || protocol === 'capture') {
       inputs.push({
         id: 'payload',
@@ -318,7 +325,10 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       modes: [...protocols, ...(!type.payload ? ['genericCreate'] : []), ...constructOperators.map(operator => operator.id)],
       defaultMode: type.payload ? protocols[0] : 'genericCreate',
       inputs: [
-        { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
+        // A type whose rows name themselves (an identifier-flagged string
+        // field) has no separate Name input — the row IS the name. Types
+        // without one keep the single required Name prompt.
+        ...(hasIdentifierRow(type) ? [] : [nameInput()]),
         // lineage and relation edges are construct-addressable: a child
         // type's parent key and declared relation keys arrive as typed
         // inputs where the entity begins. Labels are authored vocabulary

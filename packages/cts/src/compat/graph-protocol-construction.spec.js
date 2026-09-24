@@ -23,9 +23,9 @@ function constructNode(typeId, mode) {
 }
 
 function resolvedModes(definition) {
-  const { definition: lowered } = resolveCtsDefinition(definition, domain);
-  return Object.values(lowered.processNodes || {})
-    .filter(node => node.kind === 'effect.createEntity')
+  const { definition: resolved } = resolveCtsDefinition(definition, domain);
+  return Object.values(resolved.processNodes || {})
+    .filter(node => node.kind === 'cts.construct')
     .map(node => node.construction?.mode);
 }
 
@@ -99,6 +99,7 @@ describe('persisted genericCreate constructs validate against the real domain', 
     };
     const { definition: accepted, errors } = prepareAuthoredDefinition(definition, projected);
     expect(errors).toEqual([]);
+    expect(accepted.processNodes.n1.kind).toBe('cts.construct');
     const modes = Object.values(accepted.processNodes || {}).map(node => `${node.typeId}:${node.construction?.mode}`);
     expect(modes).toEqual(['cassette:editor']);
   });
