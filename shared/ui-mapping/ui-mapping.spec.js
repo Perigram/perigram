@@ -655,12 +655,23 @@ describe('toolbar visibility and matching', () => {
     expect(instanceMatchesToolbar(type, controls, rows(2)[0], 'g-1')).toBe(true);
   });
 
-  it('matches facets exactly and ignores empty selections', () => {
+  it('matches facet value sets (in within a facet) and ignores empty selections', () => {
     const instance = { id: 'g1', type: 'gear', fields: { grade: 'a' } };
-    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: 'a' })).toBe(true);
-    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: 'b' })).toBe(false);
-    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: '' })).toBe(true);
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: ['a', 'b'] })).toBe(true);
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: ['b', 'c'] })).toBe(false);
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: [] })).toBe(true);
     expect(instanceMatchesToolbar(type, {}, instance, '', { grade: null })).toBe(true);
+    // The facet-selection contract is value arrays; a scalar is dropped as
+    // a no-op — never a silent single-value fallback.
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: 'a' })).toBe(true);
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: 'b' })).toBe(true);
+  });
+
+  it('conjoins search with facet sets', () => {
+    const instance = { id: 'g1', type: 'gear', fields: { name: 'Gear 1', grade: 'a' } };
+    expect(instanceMatchesToolbar(type, { searchKeys: ['name'] }, instance, 'gear', { grade: ['a'] })).toBe(true);
+    expect(instanceMatchesToolbar(type, { searchKeys: ['name'] }, instance, 'gear', { grade: ['b'] })).toBe(false);
+    expect(instanceMatchesToolbar(type, { searchKeys: ['name'] }, instance, 'zzz', { grade: ['a'] })).toBe(false);
   });
 });
 

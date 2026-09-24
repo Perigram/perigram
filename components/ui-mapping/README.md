@@ -76,8 +76,9 @@ concerns:
   empty or loading state.
 - `CollectionToolbar.vue` — the one filtering surface for every list
   layout: it materializes the composed `listControls` contract above the
-  region (a search input over the resolved `searchKeys` plus one clearable
-  select per enum facet over the values actually present). It appears on
+  region (a search input over the resolved `searchKeys` plus one
+  multi-select per enum facet over the values actually present — a value
+  set within a facet, conjunction across facets). It appears on
   every large list past the `SEARCH_AT` budget — identity search always
   functions, so it is never gated on the descriptor vocabulary — and on
   small lists through multi-value enum facets. Its gaps come from the
