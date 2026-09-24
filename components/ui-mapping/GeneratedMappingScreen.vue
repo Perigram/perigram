@@ -185,6 +185,17 @@ async function executeTransition(payload = {}) {
   }
   await props.onTransition(payload);
 }
+const emit = defineEmits(['instance-mounted']);
+watch(() => {
+  const detail = (composed.value.regions || []).find(region => region.surfaceKind !== 'list');
+  const instance = detail?.instances?.[0];
+  return instance ? `${instance.type || props.screen?.typeId}|${String(instance._id || instance.id)}` : '';
+}, key => {
+  const detail = (composed.value.regions || []).find(region => region.surfaceKind !== 'list');
+  const instance = detail?.instances?.[0];
+  if (instance) emit('instance-mounted', instance);
+});
+
 const openInstance = instance => {
   if (openable.value) props.onOpen(instance);
 };

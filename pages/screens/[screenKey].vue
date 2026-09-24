@@ -20,6 +20,7 @@
         :on-transition="runRuntimeTransition"
         :on-transition-applied="applyTransitionSnapshot"
         :runtime-transitions="runtimeTransitions"
+        @instance-mounted="loadRuntimeTransitions"
         :on-open="openInstance"
       />
     </div>
@@ -165,25 +166,19 @@ function applyTransitionSnapshot(updated = {}) {
 // by the authored state policy.
 const runtimeTransitions = ref({});
 const stateController = useStateController();
-let runtimeTransitionsKey = '';
-watch(() => {
-  const typeId = screen.value?.typeId || '';
-  const scopeId = String(screen.value?.scope?.instanceId || '');
-  // The pool keys by the store's canonical type key (snake), while the
-  // screen and bundle speak the registry id (kebab) — translate before
-  // looking the opened instance up or the runtime transitions never load.
-  const poolRows = typeId ? instanceGroups.value[instances.canonicalTypeKey(typeId)] : null;
-  const instance = typeId && scopeId ? (poolRows || []).find(item => String(item._id) === scopeId) : null;
-  return instance ? `${typeId}|${scopeId}` : '';
-}, async key => {
-  if (!key || key === runtimeTransitionsKey) return;
-  runtimeTransitionsKey = key;
-  const [typeId, scopeId] = key.split('|');
+
+// The screen component reports the composed detail instance (its own
+// reactivity demonstrably tracks the pool); the fetch rides that event
+// instead of a page-level pool watcher.
+async function loadRuntimeTransitions(instance = {}) {
+  const typeId = instance.type || screen.value?.typeId || '';
+  const id = String(instance._id || instance.id || '');
+  if (!typeId || !id) { runtimeTransitions.value = {}; return; }
   const typeRecord = (authStore.processPayload?.bundle?.types || []).find(type => type.id === typeId);
   const declared = new Set((typeRecord?.states?.main?.values || []));
   if (!declared.size) { runtimeTransitions.value = {}; return; }
   try {
-    const actions = await stateController.fetchActions(typeId, scopeId);
+    const actions = await stateController.fetchActions(typeId, id);
     runtimeTransitions.value = {
       [typeId]: actions
         .filter(action => declared.has(action.to))
@@ -200,7 +195,7 @@ watch(() => {
   } catch {
     runtimeTransitions.value = {};
   }
-}, { immediate: true });
+}
 
 async function runRuntimeTransition(payload = {}) {
   const instance = payload.instance || {};
