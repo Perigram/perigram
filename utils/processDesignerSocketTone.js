@@ -23,17 +23,38 @@ function socketBase(port = {}) {
   return type.base || port.base || port.kind || '';
 }
 
+// The socket grammar (canonical contract: components/process-designer
+// README, "Node UI contract"). Shape encodes WHAT KIND of thing a socket
+// deals in; color encodes the payload family. The two are orthogonal and
+// access (Item/List/Tree) is deliberately neither — a socket accepts all
+// three and access stays a runtime/hover fact.
+export function processSocketKind(port = {}) {
+  if (port.plane === 'declaration') return 'declaration';
+  if ((port.role && port.role !== 'data') || port.type?.base === 'event') return 'event';
+  if (port.type?.base === 'status') return 'status';
+  return 'data';
+}
+
 export function processSocketTone(port = {}) {
-  if (port.role && port.role !== 'data') return 'effect';
-  if (port.projection || ['projection', 'patch'].includes(port.kind)) return 'projection';
   return TYPE_TONES[socketBase(port)] || 'data';
 }
 
 export function processSocketColor(port = {}) {
+  // Events carry no payload family — the primary accent is their channel.
+  if (processSocketKind(port) === 'event') return 'var(--p-primary-color)';
   return `var(--ck-signal-${processSocketTone(port)})`;
 }
 
 export function processSocketHandleStyle(port = {}) {
   const color = processSocketColor(port);
+  const kind = processSocketKind(port);
+  if (kind === 'declaration') {
+    // Hollow ring: the surface shows through, the tone draws the circle.
+    return { backgroundColor: 'var(--p-content-background)', borderColor: color };
+  }
+  if (kind === 'event') {
+    // Outline square in the primary accent.
+    return { backgroundColor: 'var(--p-content-background)', borderColor: color };
+  }
   return { backgroundColor: color, borderColor: color };
 }

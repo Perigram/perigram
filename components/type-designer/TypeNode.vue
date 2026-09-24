@@ -1,5 +1,5 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="md" stripe="bg-signal-structure">
+  <DesignerNodeCard :selected="selected" size="md" >
     <div class="flex items-center gap-1.5">
       <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle">
         <i :class="classIcon" aria-hidden="true" />

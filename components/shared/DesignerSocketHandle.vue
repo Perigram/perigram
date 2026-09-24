@@ -10,17 +10,21 @@
 </template>
 
 <script setup>
-// The one typed socket handle. Tone (transported base type) and shape
-// (Item/List/Tree access) come from the port spec through the shared
-// processDesignerSocketTone mapping, so a type has one semantic look on
-// every card it appears on — operation nodes and declaration nodes alike.
-// `handleId` overrides the minted process-plane id for the declaration
-// plane's persisted `input:`/`output:` spellings; `socket` may be absent
-// (a spec-less handle renders with the neutral data tone).
+// The one typed socket handle. SHAPE encodes what kind of thing the
+// socket deals in (canonical contract: components/process-designer
+// README, "Node UI contract"): filled circle = instance/value data,
+// hollow ring = declaration binding (type/field wires), outline square =
+// event, filled square = state/status. COLOR encodes the payload family
+// through the shared processDesignerSocketTone mapping. Access
+// (Item/List/Tree) is deliberately NOT a shape — one socket accepts all
+// three; access stays a runtime and hover fact. `handleId` overrides the
+// minted process-plane id for the declaration plane's persisted
+// `input:`/`output:` spellings; a spec-less handle degrades to the
+// neutral data tone (the type canvas renders read-only, no specs).
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import { mintProcessSocketHandle } from '~/packages/processes/src/index.js';
-import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
+import { processSocketHandleStyle, processSocketKind } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   socket: { type: Object, default: () => ({}) },
@@ -29,9 +33,12 @@ const props = defineProps({
   title: { type: String, default: '' }
 });
 
-const handleClass = computed(() => [
-  '!top-1/2 !h-3 !w-3 !-translate-y-1/2',
-  props.socket.access === 'tree' ? '!rounded-none' : props.socket.access === 'list' ? '!rounded-sm' : '!rounded-full',
-  props.side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
-]);
+const handleClass = computed(() => {
+  const kind = processSocketKind(props.socket);
+  return [
+    '!top-1/2 !h-3 !w-3 !-translate-y-1/2',
+    kind === 'data' || kind === 'declaration' ? '!rounded-full' : '!rounded-none',
+    props.side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
+  ];
+});
 </script>

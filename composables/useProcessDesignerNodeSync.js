@@ -356,10 +356,18 @@ export function useProcessDesignerNodeSync({
 
   function normalizeEffectEnvelope(node = {}) {
     if (!opKind(node).startsWith('effect.')) return;
-    node.trigger ||= { mode: 'manual' };
-    if (!['manual', 'event'].includes(node.trigger.mode)) node.trigger.mode = 'event';
     node.access = normalizeDesignerAccess(node.access);
     node.entryTriggerId = node.id;
+  }
+
+  // Trigger mode is derived, never authored: the event input is always
+  // present on effects, and an effect runs automatically iff that input
+  // is wired. The compiled `trigger.mode` spelling is written here from
+  // the graph, so persisted authored modes heal into derived ones.
+  function syncEffectTriggerMode(graphNode = {}, record = {}) {
+    if (!opKind(record).startsWith('effect.')) return;
+    const connected = connectedProcessInputIds(graphNode, record);
+    record.trigger = { mode: connected.includes('in') ? 'event' : 'manual' };
   }
 
   function normalizeCreateEnvelope(node = {}) {
@@ -457,6 +465,7 @@ export function useProcessDesignerNodeSync({
     processNodeDisplayLabel,
     processNodeDescription,
     connectedProcessInputIds,
+    syncEffectTriggerMode,
     applyInferredProcessNodeInputs,
     syncProcessNode
   };
