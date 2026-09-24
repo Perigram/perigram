@@ -705,16 +705,15 @@ every DataTable/TreeTable row as the content surface
 (`datatable`/`treetable` `row.background`) with structurally present but
 transparent internal cell dividers (`bodyCell.borderColor`) — row
 stripes are gone, the row IS the card. Surfaces that want Notion-style
-gaps and rounding apply the shared row-surface recipe (a layout-only
+gaps apply the shared row-surface recipe (a layout-only
 scoped `border-collapse: separate` block with a `0.25rem` row gap, plus
-`rounded-ui` with a hairline ring — `outline-1 -outline-offset-1
-outline-content-border`, because table-row borders do not paint in
-separated-border mode while an inset outline follows the row radius —
-through the official `rowClass` channel, and a muted
+`rounded-ui` through the official `rowClass` channel, and a muted
 transparent header band through `pt`): the generated collection tables
 (`CollectionTable`, `HierarchyTable`), the legacy
 `GeneratedInstanceCollection`, and the organization users tables
 register it. Row paint belongs to the preset — one owner per concern.
+Rows are rounded, never outlined or ringed: the surface step over the
+canvas plus the hairline gap is the whole separation.
 
 **Measured values** carry the mono face (`text-technical tabular-nums`,
 the sanctioned mono alias): quantities, instants, and numbers in

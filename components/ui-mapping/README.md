@@ -136,11 +136,9 @@ surface concerns:
   status, budgeted scalar descriptor columns, and the first
   declared relation as budgeted chips. Rows are Notion-style surface
   cards — the preset paints every row as the content surface with
-  transparent internal dividers; this table adds rounded rows with a
-  hairline ring (`outline-1 -outline-offset-1 outline-content-border` —
-  table-row borders do not paint in separated-border mode, the inset
-  outline follows the row radius) through the official `rowClass`
-  channel, a hairline separated-border
+  transparent internal dividers; this table adds rounded rows (no
+  border, no ring — the surface step and the gap are the separation)
+  through the official `rowClass` channel, a hairline separated-border
   gap (the layout-only scoped block), and a muted transparent header
   band — every instance row sits one step above the canvas while the
   table box stays unpainted. Columns come from the composed
@@ -156,7 +154,7 @@ surface concerns:
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns and the same row-surface treatment as
-  `CollectionTable` (rounded ringed content rows, hairline gaps, muted
+  `CollectionTable` (rounded content rows, hairline gaps, muted
   transparent header band). Row identities are link buttons under the
   same `onOpen` navigation contract.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
