@@ -249,8 +249,11 @@ Discord-style operational shell:
   `IncomingCalls` ring cards — only brand-new invites float; ongoing
   calls stay in the panel and in chats. With no active rooms the panel
   carries no rows and nothing expands — the entry is just the chats
-  shortcut. Ringing a conversation happens from the chats surfaces'
-  own call actions, never from sidebar rows.
+  shortcut — while the first active room auto-expands the panel so the
+  rows are visible immediately (initial load included; an explicit
+  collapse while calls run stays respected until the next call starts).
+  Ringing a conversation happens from the chats surfaces' own call
+  actions, never from sidebar rows.
 - Entity navigation is a raw default `PanelMenu` — no item slot, default
   rows, `multiple` panels open — one panel per top-level type from the
   same TYPE hierarchy the render contracts declare: registry containment

@@ -597,6 +597,16 @@ watch(explorerNodes, value => {
   expandedKeys.value = next;
 }, { immediate: true });
 
+// Active rooms must be visible the moment they exist: the communication
+// panel auto-expands on the empty-to-active transition (initial load
+// included). An explicit collapse while calls run stays respected until
+// the next call starts.
+watch(() => callsStore.activeRooms.length, (count, previous = 0) => {
+  if (count > 0 && previous === 0) {
+    expandedKeys.value = { ...expandedKeys.value, communication: true };
+  }
+}, { immediate: true });
+
 watch(workspaceStorageKey, key => {
   if (!key || typeof window === 'undefined') return;
   const state = loadHomeWorkspaceState(window.localStorage, key);
