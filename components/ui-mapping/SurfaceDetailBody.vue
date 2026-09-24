@@ -16,7 +16,7 @@
               :pool="pool"
               :bundle="bundle"
             />
-            <Inplace v-else closable>
+            <Inplace v-else-if="editable" closable>
               <template #display>
                 <div class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5 transition-colors hover:bg-subtle">
                   <FieldControl
@@ -57,6 +57,15 @@
                 </div>
               </template>
             </Inplace>
+            <div v-else class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5">
+              <FieldControl
+                :model-value="inlineValue(field)"
+                :descriptor="field.descriptor"
+                variant="row"
+                :pool="pool"
+                :bundle="bundle"
+              />
+            </div>
           </div>
         </div>
         <div v-if="hiddenFactCount(group) > 0" :class="d.specRow">
@@ -197,6 +206,7 @@ const props = defineProps({
   bundle: { type: Object, default: null },
   expanded: { type: Object, default: () => ({}) },
   coveredRelations: { type: Array, default: () => [] },
+  editable: { type: Boolean, default: false },
   editing: { type: Boolean, default: false },
   draft: { type: Object, default: null }
 });

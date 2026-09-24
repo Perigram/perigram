@@ -15,10 +15,12 @@
             :bundle="bundle"
             :openable="openable"
             :instance-actions="instanceActionsByType"
+            :patchable="patchable"
             embedded
             @run="openAction"
             @transition="executeTransition"
             @open="openInstance"
+            @patch="submitPatch"
           />
         </TabPanel>
       </TabPanels>
@@ -32,9 +34,11 @@
       :bundle="bundle"
       :openable="openable"
       :instance-actions="instanceActionsByType"
+      :patchable="patchable"
       @run="openAction"
       @transition="executeTransition"
       @open="openInstance"
+      @patch="submitPatch"
     />
 
     <Dialog
@@ -138,10 +142,15 @@ const props = defineProps({
   // quick action was launched from.
   onRun: { type: Function, default: null },
   // Instance navigation: `(instance) => any`. When provided, collection
-  // identities (cards, table rows, timeline entries) render as links and
+  // identities (cards, table rows, tree rows, timeline entries) render as links and
   // emit the instance here — routing stays with the app, not the
   // generator.
   onOpen: { type: Function, default: null },
+  // Detail patch executor: `async ({ instance, patch }) => any`. When
+  // provided, detail-surface edit affordances (the header Edit toggle and
+  // the per-field inline pencil) render and submit through it; without it
+  // neither renders.
+  onPatch: { type: Function, default: null },
   // Runtime state-transition executor: `async (payload) => any` — the
   // page owns dispatch so store refreshes and navigation stay app-side.
   onTransition: { type: Function, default: null },
@@ -198,6 +207,20 @@ watch(() => {
 
 const openInstance = instance => {
   if (openable.value) props.onOpen(instance);
+};
+
+const patchable = computed(() => typeof props.onPatch === 'function');
+const submitPatch = async ({ instance, patch } = {}) => {
+  if (!patchable.value || !instance) return;
+  submitting.value = true;
+  try {
+    await props.onPatch({ instance, patch });
+    toast.add({ severity: 'success', summary: t('common.save'), life: 2000 });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  } finally {
+    submitting.value = false;
+  }
 };
 
 const confirm = useConfirm();
@@ -277,6 +300,19 @@ const openAction = (action, context = {}) => {
   if (launch === 'dialog') {
     dialogAction.value = action;
     for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
+    // Parent-scoped creates: on a detail surface whose scope carries the
+    // opened instance, lineage rows accepting that type preselect it, so
+    // children created from the parent's region stamp their lineage
+    // instead of landing unparented.
+    const scopeTypeId = props.screen?.typeId;
+    const scopeInstanceId = props.screen?.scope?.instanceId;
+    if (scopeTypeId && scopeInstanceId) {
+      for (const row of dialogRows.value) {
+        if (row.lineage?.accepts?.includes(scopeTypeId)) {
+          dialogDraft[row.id] = { type: scopeTypeId, id: String(scopeInstanceId) };
+        }
+      }
+    }
     dialogVisible.value = true;
     return;
   }

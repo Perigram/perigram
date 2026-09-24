@@ -66,7 +66,7 @@ import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTab
 import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
-import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
+import { resolveGeneratedScreenOverload, resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
@@ -108,9 +108,14 @@ const activeKey = computed(() => (props.item.instanceId
   ? `screen:${props.item.screenKey}:${props.item.instanceId}`
   : (props.item.screenKey ? `screen:${props.item.screenKey}` : props.item.key)));
 // The routed page's overload rule: editor-backed detail types (and
-// project) keep the legacy renderer that owns their surfaces.
-const screenOverload = computed(() => Boolean(resolvedScreen.value
-  && resolveGeneratedScreenOverload(resolvedScreen.value)));
+// project) keep the legacy renderer that owns their surfaces — the pane
+// resolves both the screen-template overloads and the per-type editor
+// detail overloads for instance-bound tabs.
+const screenOverload = computed(() => Boolean(resolvedScreen.value && (
+  resolveGeneratedScreenOverload(resolvedScreen.value)
+  || (props.item.instanceId && resolvedScreen.value.template === 'instanceDetail'
+    && resolveGeneratedInstanceDetailOverload(resolvedScreen.value.typeId))
+)));
 // Screen records resolve after auth hydration; only a hydrated manifest
 // with no matching record is a not-found.
 const loading = computed(() => !authStore.userIsSet);
