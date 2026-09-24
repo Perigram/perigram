@@ -10,10 +10,11 @@ hand-written services.
 
 - Storage: per-class collections (`files`, `items`, `groups`, `processes`)
   with the type id as discriminator; documents carry the §3 stored shape —
-  `type`, `typeVersion`, `name`, flat `fields`, `states.main`, `lineage`
-  (pure tree edges), `relations`, the top-level `organizationId` tenancy
-  slot, `payload` (iff the type declares payload traits), and `provenance`
-  (set by the construct boundary, never patched).
+  `type`, `typeVersion`, `name`, flat `fields`, one canonical active leaf
+  path per declared state axis under `states`, `lineage` (pure tree edges),
+  `relations`, the top-level `organizationId` tenancy slot, `payload` (iff
+  the type declares payload traits), and `provenance` (set by the construct
+  boundary, never patched).
   `organizationId: null` marks a system instance (pack-seeded reference
   catalogs): read-admitted beside org rows in every organization's list,
   written only by seeding/admin paths. Tenancy never lives
@@ -27,13 +28,14 @@ hand-written services.
   [cts-types](../cts-types/README.md) lands a breaking redefinition.
   Contract: total scan (no limit) of the type's per-class collection in
   the org scope; every behind instance transforms through all steps in
-  one pass — `rename-enum-value` rewrites `states.main`, `rename-field`,
+  one pass — `rename-enum-value` rewrites the exact axis/path and descendant
+  prefixes, `rename-field`,
   `remove-field`, `add-default-field`, and `retype-field` (CEL expression
   over `{ value }`, step-budgeted) rewrite flat `fields` — then the doc
   takes the new `typeVersion` stamp, so re-running skips finished
   documents (idempotent resume) and each rewrite publishes the shared
   typed invalidation event with reason `type-migration`. The whole
-  `fields` object and `states.main` are written back per document; the
+  `fields` object and `states` axis map are written back per document; the
   summary (per-step counts, failures) returns to the caller for the
   declaration's `migrated` record.
 - Payload (SPEC §3/§4): create accepts a payload reference — §3-honest
@@ -104,8 +106,9 @@ hand-written services.
   grant — fail-closed.
 - Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the
   same wire patch blocks `processUpdate` writes (`identity.name`,
-  `data`/`specs` leaves, `states.main`, non-tenancy `lineage` edges,
-  `relations`) through the identical §3 mapping. It gates through the
+  `data`/`specs` leaves, declared non-main state axes are status-runtime
+  owned, non-tenancy `lineage` edges, `relations`) through the identical §3
+  mapping. It gates through the
   shared access engine exactly like the payload transport (write level
   on the class-collection feature, type-id filter — fail-closed). This
   is the generated detail surfaces' inline-edit persistence path; the
@@ -122,7 +125,8 @@ registry view; `ensureInstanceIndexes(view)` applies every definition
 idempotently (`createIndex`):
 
 - per class collection in use: `{ type, organizationId, createdAt }`
-  (list ordering) and `{ type, organizationId, 'states.main' }`;
+  (list ordering) and one `{ type, organizationId, 'states.<axis>' }` index
+  for every declared state axis;
 - per declared children edge, on each child type's class collection:
   `{ type, organizationId, 'lineage.<lineageKey>' }` — the edge's declared
   storage key (see `packages/cts/SPEC.md` §6), not the entry's map key;
