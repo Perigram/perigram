@@ -124,8 +124,9 @@ user topic and `call.activity` on the user/org topics, keeps the
 
 - the app shell mounts `IncomingCalls` for ring notifications;
 - the generated home sidebar lists ongoing rooms as persistent flat rows
-  under the sibling Calls entry (label, participant count, row click
-  joins), whose popup flyout lists ringable conversations;
+  in the communication panel (label, participant count, row click joins)
+  beside the Chats and Calls rows, the Calls popup flyout listing
+  ringable conversations;
 - `ChatSupport` shows an ongoing-call banner with a Join button for the
   open conversation, before joining and after leaving the call.
 

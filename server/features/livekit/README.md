@@ -31,10 +31,11 @@ caller may enter: the service calls the LiveKit server's
 as token minting. Rooms with zero connected participants are skipped:
 LiveKit keeps emptied rooms alive for the server empty_timeout (default
 300s) after the last participant leaves, and an emptied room must not
-appear as an active call while it waits to be reaped. The home workspace sidebar's sibling Calls entry
-lists ongoing rooms as persistent rows and toggles the popup flyout (see
-`components/shared/CommunicationMenu.vue`) that rings conversations
-through the invite endpoint, keeping the
+appear as an active call while it waits to be reaped. The home workspace sidebar's communication panel
+lists ongoing rooms as persistent rows beside the Chats and Calls rows,
+with the Calls popup flyout (see
+`components/shared/CommunicationMenu.vue`) ringing conversations
+through the invite endpoint, and keeps the
 snapshot live by debounced refetches on `call.activity` events arriving
 on the caller's own `user:` and `org:` topics (which match room
 admission, so events only ever mention joinable rooms). Calls open as

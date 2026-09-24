@@ -1,11 +1,10 @@
 import { test, expect } from './fixtures.js';
 
-// The home sidebar's communication contract: one PanelMenu whose first
-// entries are the sibling Chats and Calls — Chats a plain entry opening
-// the chats page, Calls always present, toggling a popup flyout that
-// lists every ringable conversation and carrying active call rooms as
-// flat rows (nothing when no room is active — the entry then has no
-// expandable affordance at all).
+// The home sidebar's communication contract: ONE PanelMenu panel holding
+// Chats and Calls as flat sibling rows — Chats opens the chats page,
+// Calls is always present and toggles a popup flyout listing every
+// ringable conversation — with active call rooms as further flat rows,
+// and nothing room-shaped when no room is active.
 const ROOM = { room: 'call:direct:e2e-user-a:e2e-user-b', kind: 'direct', participants: 2 };
 const CONVERSATIONS = {
   data: [
@@ -14,9 +13,9 @@ const CONVERSATIONS = {
   ]
 };
 
-function rootPanel(page, text) {
-  return page.locator('.p-panelmenu-root-list > .p-panelmenu-panel').filter({
-    has: page.locator('.p-panelmenu-header', { hasText: text })
+function communicationPanel(page) {
+  return page.locator('.p-panelmenu-panel').filter({
+    has: page.locator('.p-panelmenu-header', { hasText: 'Communication' })
   });
 }
 
@@ -30,43 +29,43 @@ async function bootHome(app, { rooms = [] } = {}) {
   await app.gotoClient(home.route);
 }
 
-test.describe('home sidebar communication entries', () => {
-  test('Chats and Calls are sibling root entries; active rooms are Calls rows', async ({ app }) => {
+test.describe('home sidebar communication panel', () => {
+  test('Chats and Calls are flat sibling rows in one panel, rooms below', async ({ app }) => {
     test.setTimeout(120_000);
     await bootHome(app, { rooms: [ROOM] });
 
-    const chats = rootPanel(app.page, 'Chats');
-    const calls = rootPanel(app.page, 'Calls');
-    await expect(chats.locator('.p-panelmenu-header')).toBeVisible();
-    await expect(chats.locator('.p-panelmenu-item')).toHaveCount(0);
-    await expect(calls.locator('.p-panelmenu-header')).toBeVisible();
-    // The first room auto-expands Calls: the row is visible without a click.
-    await expect(calls.locator('.p-panelmenu-header')).toHaveAttribute('aria-expanded', 'true');
-    const row = calls.locator('.p-panelmenu-item', { hasText: 'Ongoing call' });
+    const panel = communicationPanel(app.page);
+    await expect(panel.locator('.p-panelmenu-header')).toBeVisible();
+    // The panel starts expanded: all rows are visible without a click.
+    await expect(panel.locator('.p-panelmenu-header')).toHaveAttribute('aria-expanded', 'true');
+    await expect(panel.locator('.p-panelmenu-item', { hasText: 'Chats' })).toBeVisible();
+    await expect(panel.locator('.p-panelmenu-item', { hasText: 'Calls' })).toBeVisible();
+    const row = panel.locator('.p-panelmenu-item', { hasText: 'Ongoing call' });
     await expect(row).toBeVisible();
     await expect(row).toContainText('(2)');
   });
 
-  test('the Calls entry opens a flyout listing every ringable conversation', async ({ app }) => {
+  test('the Calls row opens a flyout listing every ringable conversation', async ({ app }) => {
     test.setTimeout(120_000);
     await bootHome(app, { rooms: [ROOM] });
 
-    await rootPanel(app.page, 'Calls').locator('.p-panelmenu-header').click();
+    await communicationPanel(app.page).locator('.p-panelmenu-item', { hasText: 'Calls' }).click();
     const flyout = app.page.locator('.p-tieredmenu-overlay')
       .filter({ has: app.page.locator('.p-tieredmenu-item-label', { hasText: 'E2E Peer' }) });
     await expect(flyout).toBeVisible();
     await expect(flyout.locator('.p-tieredmenu-item-label', { hasText: 'E2E Group' })).toBeVisible();
   });
 
-  test('no active rooms: Calls stays a plain flyout entry, nothing expands', async ({ app }) => {
+  test('no active rooms: no room rows; Chats and Calls stay', async ({ app }) => {
     test.setTimeout(120_000);
     await bootHome(app, { rooms: [] });
 
-    const calls = rootPanel(app.page, 'Calls');
-    await expect(calls.locator('.p-panelmenu-header')).toBeVisible();
-    await expect(calls.locator('.p-panelmenu-item')).toHaveCount(0);
-    await expect(calls.locator('.p-panelmenu-submenu-icon')).toHaveCount(0);
-    await calls.locator('.p-panelmenu-header').click();
+    const panel = communicationPanel(app.page);
+    await expect(panel.locator('.p-panelmenu-item', { hasText: 'Ongoing call' })).toHaveCount(0);
+    await expect(panel.locator('.p-panelmenu-item', { hasText: 'Chats' })).toBeVisible();
+    const calls = panel.locator('.p-panelmenu-item', { hasText: 'Calls' });
+    await expect(calls).toBeVisible();
+    await calls.click();
     await expect(app.page.locator('.p-tieredmenu-overlay')
       .filter({ has: app.page.locator('.p-tieredmenu-item-label', { hasText: 'E2E Peer' }) })).toBeVisible();
   });
