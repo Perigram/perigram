@@ -44,18 +44,11 @@ noise.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
-- `warehouse.spec.js`: warehouse hub opens without asking the status API for
-  nonexistent warehouse workflow actions.
 - `queue-workflow.spec.js`: project/queue creation opens the queue editor and
   `/api/queue/:id/nest` accepts `WAREHOUSE` material-pool command input before
   returning the expected business validation error for an empty queue. The
   nesting request supplies a readable tool profile because `solveNesting`
   validates required command entities before checking queue contents.
-- `entity-actions.spec.js`: verifies user clicks on entity action buttons send
-  the expected command/API requests, verifies a generic shared `InstanceState`
-  transition against a project workflow, sheet-design DXF action downloads the
-  generated artifact, cassette-template creation uses OCCS defaults, and the
-  seeded sheet/template/design DXF export routes return real DXF content.
 - `process-generated-screen.spec.js`: verifies the generic instance
   transport serves generated-screen collections (`/api/instances/cassette`;
   the removed `/api/queues` route stays dead) and drives the screen matrix
@@ -79,9 +72,12 @@ noise.
   embedded cassette designer in the same pane; verifies pane tabs, icon-only
   status, suppressed embedded entity header, tab close behavior, and restoration
   after reload.
-- `home-and-entity-ui.spec.js`: creates a real project/queue pair, verifies the
+- `home-and-instance-ui.spec.js`: creates a real project/queue pair, verifies the
   compiled Home and detail-context placement, parent-responsive entity chrome,
   and organization switching through the account menu.
+- `process-designer-boot.spec.js`: boots the process designer against a seeded
+  species process, verifies the canvas renders, and creates plus saves a new
+  draft from the dock (regression for the reported dead designer).
 - `artifact-and-designer-ui.spec.js`: uploads and replaces a real DXF artifact,
   verifies viewer dispatch and revision creation, and proves incompatible
   conversion requests fail at the HTTP boundary.
