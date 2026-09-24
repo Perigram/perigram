@@ -157,20 +157,6 @@ concerns:
   primary long-text (or first structural) field as the entry body,
   selected by type matcher (log entries). Past the shared page budget
   the entries page through a standalone Paginator over `pageSlice`.
-- `StateStrip.vue` — the lifecycle projection: the declared state axis as
-  a linear PrimeVue Stepper (numbered steps, active state from the
-  instance). The strip fits its container through a scoped CSS block:
-  steps take equal flex-basis-0 shares with min-width 0 down the chain
-  (PrimeVue sizes steps on content and scrolls the list, which
-  overflowed long labels), and long state labels crop with the built-in
-  title ellipsis (the
-  native title attribute carries the full name) — no horizontal
-  scrolling. A state with a runnable manual
-  transition action in the region action set is an enabled step that
-  emits the action through the screen `run` contract (optimistic
-  highlight, re-anchored from the instance on reload); event-triggered,
-  hidden, and current-state entries stay disabled, so without transition
-  actions the strip is a pure display.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
   and the instance pool's lineage, shown on group surfaces.
@@ -179,9 +165,15 @@ concerns:
   subtitle, placed actions, the Edit toggle (rendered only on patchable
   surfaces; see `onPatch` above — while editing it reads as Save and
   submits the draft), and exactly one status
-  surface — the lifecycle Stepper for stateful types, the status Tag for
-  stateless ones (the detail body renders neither; a second strip there
-  tripled the state display). The bar is its own layout container: the
+  surface. A state axis is a tree, never a line, so stateful types carry
+  no lifecycle strip: the header renders the current state as a Tag
+  colored by the declared render policy with a clock affordance opening
+  the shared `StateHistory` popover (the `status_events` audit trail over
+  `/api/state/history`), and every available runtime transition renders
+  as a dedicated transition button after the inline action budget,
+  dispatching through the `transition` channel (never the generic run
+  menu). Stateless types keep the status Tag beside the title; the
+  detail body renders neither. The bar is its own layout container: the
   identity/actions row engages from the header container width through
   the scoped CSS block (never the viewport — headers render inside panels
   and detail side columns): the identity block stays one
@@ -197,13 +189,14 @@ concerns:
   bare content column of a record page, `detail` → Card (same-role nesting
   flattens to a Divider), `row` / `inline` → dense flex row with budgeted
   fields and relation chips.
-- `SurfaceDetailBody.vue` — shared detail/full body: Stepper lifecycle
-  strip on stateful types, preview, a bounded scalar facts strip (`DETAIL_FACT_BUDGET`, labeled via `fieldLabel`:
+- `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
+  scalar facts strip (`DETAIL_FACT_BUDGET`, labeled via `fieldLabel`:
   descriptor label or start-case name), structural fields as an Accordion,
   budgeted relation chips with show-more toggles for relations not already
   covered by a child region, and the hierarchy tree for groups.
 - `PreviewBox.vue` — preview materialization keyed on the declared payload,
-  height-bounded. An instance payload reference with a renderable declared
+  in one fixed-height band (`h-28`) for every content kind. An instance
+  payload reference with a renderable declared
   mode (the pool's `instance.payload`, projected from the wire
   `attachments.primary`) renders through the shared viewer
   (via `ArtifactViewer` variant `card` — the non-interactive
@@ -211,8 +204,15 @@ concerns:
   border, because the host Card owns the chrome; images and sketch scenes
   fill the band at uniform scale while vector drawings (dxf/svg/occs)
   fit inside it, and dimension text renders big — the same contract as
-  generated detail previews, which keep the pane viewer);
-  payload-less instances keep the deterministic per-instance inline SVG
+  generated detail previews, which keep the pane viewer).
+  A type that declares a `previewSource` field (the authored pack
+  vocabulary adopted by the CTS registry, carried on the bundle type
+  record and read off the wire DTO by `dtoToScreenInstance` as
+  `instance.previewSource`) renders that value through `DrawingCanvas`
+  in the same band when no payload exists — the declared preview channel
+  (cassette geometry) never depends on an uploaded payload.
+  Payload-less instances without a declared preview keep the
+  deterministic per-instance inline SVG
   (seeded hue) built
   entirely from theme tokens — `--ck-subtle-background` bases with
   translucent hsl accents — so generated art adapts to light/dark and owns

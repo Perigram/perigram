@@ -264,6 +264,17 @@ Discord-style operational shell:
   PanelMenu item icon; no entity contracts), and a type's home-section
   instances hang beneath it as plain default rows carrying the type’s
   registry icon and the one title resolver label (`instanceLabelOf`).
+  Menu selection follows the active pane's selected tab (a type screen
+  selects its type panel; an entity/detail/page tab selects its entity
+  row plus the owning type panel; the chats page selects Chats): every
+  non-selected entry renders muted through PanelMenu's official per-item
+  `headerClass`/`class` channels, so default rendering stays untouched.
+  Header and nested-group clicks are split from collapse toggling by one
+  capture-phase handler: clicking the label opens the content without
+  toggling the panel, the submenu chevron toggles without running the
+  open command (the command guard suppresses exactly that click), and
+  leaf entries keep whole-click-as-command. Keyboard activation keeps
+  PrimeVue's default command-plus-toggle behavior.
   its compiled `typeList` screen as a pane tab (`GeneratedScreenPane`,
   below) and toggles the panel, never a separate route. The whole type
   hierarchy auto-expands on first sight; explicit collapses persist per

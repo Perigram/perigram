@@ -5,6 +5,13 @@
     :variant="'card'"
     class="h-28 w-full"
   />
+  <DrawingCanvas
+    v-else-if="hasDeclaredPreviewSource"
+    :source="{ data: { geometry: previewSource } }"
+    source-type="geometry-preview"
+    mode="card"
+    class="h-28 w-full"
+  />
   <div v-else-if="preview.component === 'ImagePreview'" class="w-full">
     <svg viewBox="0 0 240 96" width="100%" class="h-28 w-full" preserveAspectRatio="xMidYMid slice" role="img">
       <defs>
@@ -27,7 +34,7 @@
       <circle v-for="node in starNodes" :key="node.key" :cx="node.x" :cy="node.y" r="2" :fill="accent" />
     </svg>
   </div>
-  <div v-else-if="preview.component" :class="[LAYOUT.row, 'h-16 w-full rounded-ui bg-subtle text-supporting text-muted']">
+  <div v-else-if="preview.component" :class="[LAYOUT.row, 'h-28 w-full rounded-ui bg-subtle text-supporting text-muted']">
     <i class="pi pi-file" />
     <span>{{ sizeLabel }}</span>
   </div>
@@ -37,14 +44,22 @@
 import { computed } from 'vue';
 import { LAYOUT, RENDERABLE_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
+import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 
 const props = defineProps({
   type: { type: Object, default: null },
   payload: { type: Object, default: null },
+  // Declared preview value (the type's authored previewSource field, read
+  // off the wire DTO): renders when no payload exists, so declared
+  // previews (cassette geometry) never depend on an uploaded payload.
+  previewSource: { type: null, default: null },
   seed: { type: String, default: '' }
 });
 
 const preview = computed(() => resolvePreview(props.type || {}));
+const hasDeclaredPreviewSource = computed(() => Boolean(
+  props.type?.previewSource?.display === 'geometry' && props.previewSource
+));
 // Real payload preview (unified contract): an instance payload reference
 // with a renderable declared mode renders through the shared viewer; the
 // placeholder art stays for payload-less instances.

@@ -86,6 +86,15 @@ export function normalizeType(declaration = {}) {
   if (states.main && legacyRender.states && !states.main.render) {
     states = { ...states, main: { ...states.main, render: legacyRender.states } };
   }
+  // Authored preview declaration: the first `render.groups` row flagged
+  // `previewSource` (the pack authoring vocabulary for "this data field is
+  // the card/detail preview") adopts into the normalized record as
+  // `{ path, display }`, so generators can render declared previews even
+  // before a payload exists. Adopt-and-delete: the raw groups never ride
+  // the compiled record.
+  const previewSourceRow = (legacyRender.groups || [])
+    .flatMap(group => group.fields || [])
+    .find(field => field?.role === 'previewSource' && field?.path);
 
   const type = {
     id: declaration.id,
@@ -97,6 +106,7 @@ export function normalizeType(declaration = {}) {
     ...(glyph ? { glyph } : {}),
     fields: normalizeRow(fields),
     payload: normalizePayload(declaration.payload),
+    ...(previewSourceRow ? { previewSource: Object.freeze({ path: previewSourceRow.path, display: previewSourceRow.display || 'geometry' }) } : {}),
     // Derived types (SPEC §4): operator/service-produced — they enter
     // graphs as outputs, never as constructs.
     ...(declaration.derived === true ? { derived: true } : {}),

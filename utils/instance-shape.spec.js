@@ -62,4 +62,25 @@ describe('dtoToScreenInstance', () => {
     }, { id: 'legacy', class: 'group', fields: {} });
     expect(instance.fields.name).toBe('Legacy part');
   });
+
+  it('reads the declared previewSource path off the wire DTO', () => {
+    const geometry = { preview: { polygons: [[0, 0], [1, 1]] } };
+    const instance = dtoToScreenInstance({
+      _id: 'ent-4',
+      data: { geometry }
+    }, {
+      id: 'cassette',
+      class: 'file',
+      fields: { name: { base: 'string' } },
+      previewSource: { path: 'data.geometry.preview', display: 'geometry' }
+    });
+    expect(instance.previewSource).toEqual({ polygons: [[0, 0], [1, 1]] });
+    const payloadless = dtoToScreenInstance({ _id: 'ent-5', data: {} }, {
+      id: 'cassette',
+      class: 'file',
+      fields: { name: { base: 'string' } },
+      previewSource: { path: 'data.geometry.preview', display: 'geometry' }
+    });
+    expect(payloadless.previewSource).toBeNull();
+  });
 });
