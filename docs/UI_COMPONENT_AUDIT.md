@@ -219,7 +219,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
-| `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | replace:chrome (4) |
+| `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | centralize:layout (1) |
 | `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-instancemultiselect-vue` | `components/shared/InstanceMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instancepage-vue` | `components/shared/InstancePage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
