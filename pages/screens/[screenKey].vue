@@ -169,7 +169,11 @@ let runtimeTransitionsKey = '';
 watch(() => {
   const typeId = screen.value?.typeId || '';
   const scopeId = String(screen.value?.scope?.instanceId || '');
-  const instance = typeId && scopeId ? (instanceGroups.value[typeId] || []).find(item => String(item._id) === scopeId) : null;
+  // The pool keys by the store's canonical type key (snake), while the
+  // screen and bundle speak the registry id (kebab) — translate before
+  // looking the opened instance up or the runtime transitions never load.
+  const poolRows = typeId ? instanceGroups.value[instances.canonicalTypeKey(typeId)] : null;
+  const instance = typeId && scopeId ? (poolRows || []).find(item => String(item._id) === scopeId) : null;
   return instance ? `${typeId}|${scopeId}` : '';
 }, async key => {
   if (!key || key === runtimeTransitionsKey) return;

@@ -62,7 +62,7 @@
         <!-- Expanded navigation is a raw PanelMenu: the communication panel
              first, then one panel per top-level explorer type. Default rows
              carry the registry icons and title-resolver labels. -->
-        <div v-else class="min-h-0 flex-1 overflow-y-auto">
+        <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
             :model="sidebarMenuModel"
