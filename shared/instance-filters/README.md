@@ -100,6 +100,11 @@ existed.
   [shared/ui-mapping](../ui-mapping/README.md) composes an `or` of
   `contains` over the search keys plus the id, and `eq` conjunctions over
   facet selections, then evaluates the same matcher.
+- Legacy collection toolbar: `components/generated/GeneratedInstanceCollection.vue`
+  composes the same tree (search `or` of `contains` over name and id, a
+  status `in` value set from its multi-select) and evaluates it over
+  per-entity screen instances built with the shared DTO projection, with
+  legacy status shapes resolved onto the status axis.
 
 ## Validation
 
