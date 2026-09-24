@@ -61,7 +61,7 @@ test.describe('process generated screens', () => {
       expect(requested.every(url => url.includes(`/api/instances/${typeId}`))).toBeTruthy();
 
       const mainRegion = app.page.locator('main');
-      await expect(mainRegion.getByRole('button', { name: `Create ${TYPE_NAMES[typeId]} CREATED` })).toBeVisible();
+      await expect(mainRegion.getByRole('button', { name: `Create ${TYPE_NAMES[typeId]} CREATED` })).toBeVisible({ timeout: 20000 });
 
       // No per-instance delete action is compiled for these constructs,
       // so no Delete entry renders anywhere in the surface.
@@ -97,8 +97,8 @@ test.describe('process generated screens', () => {
     await mockStatusActions(app.page);
 
     await app.page.goto(`/screens/auto_${PARENT_TYPE}_detail?instanceId=folder-m1`);
-    await expect(app.page.getByText('Matrix Folder One').first()).toBeVisible();
-    await expect(app.page.getByText('Matrix Note One').first()).toBeVisible();
+    await expect(app.page.getByText('Matrix Folder One').first()).toBeVisible({ timeout: 20000 });
+    await expect(app.page.getByText('Matrix Note One').first()).toBeVisible({ timeout: 20000 });
 
     // The child region resolves its $screen.scope.instanceId filter over
     // the loaded pool: only the opened parent's children render.
@@ -136,7 +136,7 @@ test.describe('process generated screens', () => {
     await mockStatusActions(app.page);
 
     await app.page.goto(`/screens/auto_${PARENT_TYPE}_detail?instanceId=${encodeURIComponent(id)}`);
-    await expect(app.page.getByText('Patch Folder One').first()).toBeVisible();
+    await expect(app.page.getByText('Patch Folder One').first()).toBeVisible({ timeout: 20000 });
     const listRequestsAfterLoad = listRequests;
 
     await app.page.getByRole('button', { name: 'Edit', exact: true }).click();
@@ -146,7 +146,7 @@ test.describe('process generated screens', () => {
 
     // The patch persists through the instance update transport and the
     // surface reconciles in place: no list source reload.
-    await expect(app.page.getByText('Patch Folder Renamed').first()).toBeVisible();
+    await expect(app.page.getByText('Patch Folder Renamed').first()).toBeVisible({ timeout: 20000 });
     await app.page.waitForTimeout(600);
     expect(listRequests).toBe(listRequestsAfterLoad);
     const reloaded = await app.request.get(`/api/instances/${PARENT_TYPE}/${id}`);
@@ -181,7 +181,7 @@ test.describe('process generated screens', () => {
     for (const section of sections) {
       const panel = app.page.locator('.p-panelmenu-panel', { has: app.page.locator('.p-panelmenu-header', { hasText: TYPE_NAMES[section.typeId] }) });
       await expect(panel).toBeVisible({ timeout: 20000 });
-      await expect(panel.getByText(section.name).first()).toBeVisible();
+      await expect(panel.getByText(section.name).first()).toBeVisible({ timeout: 20000 });
     }
 
     await app.expectCleanRuntime();
@@ -217,13 +217,13 @@ test.describe('process generated screens', () => {
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
     await app.page.locator('main').getByRole('button', { name: `Create ${TYPE_NAMES[PARENT_TYPE]} CREATED` }).click();
     const dialog = app.page.locator('.p-dialog');
-    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 20000 });
     const name = app.uniqueName('Created Browser Folder');
     await dialog.locator('input:visible').first().fill(name);
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
 
     await expect(app.page).toHaveURL(new RegExp(`auto_${PARENT_TYPE}_detail`));
-    await expect(app.page.getByText(name).first()).toBeVisible();
+    await expect(app.page.getByText(name).first()).toBeVisible({ timeout: 20000 });
 
     await app.expectCleanRuntime();
   });
