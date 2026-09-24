@@ -11,7 +11,7 @@
       :key="child.id"
       :size="node.sizes?.[index] || 50"
       :min-size="15"
-      class="min-h-0 min-w-0 overflow-hidden p-1.5"
+      class="min-h-0 min-w-0 overflow-hidden"
     >
       <WorkspaceSplitNode
         :node="child"

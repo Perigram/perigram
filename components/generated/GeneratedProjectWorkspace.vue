@@ -79,7 +79,7 @@
             key="workspace-content"
             :size="100 - explorerSize"
             :min-size="30"
-            class="min-h-0 min-w-0 overflow-hidden !border-0"
+            class="min-h-0 min-w-0 overflow-hidden !border-0 p-1.5"
           >
             <WorkspaceSplitNode
               :node="paneTree"

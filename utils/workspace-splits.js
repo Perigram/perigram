@@ -1,4 +1,4 @@
-import { isEmptyTabKey } from './workspace-empty-tabs.js';
+import { emptyTabKey, isEmptyTabKey } from './workspace-empty-tabs.js';
 
 export function createWorkspaceLeaf(id, selectionKey = '') {
   return { kind: 'leaf', id, selectionKey, tabKeys: selectionKey ? [selectionKey] : [] };
@@ -55,6 +55,17 @@ export function workspaceLeaves(root) {
   if (!root) return [];
   if (root.kind === 'leaf') return [root];
   return root.children.flatMap(workspaceLeaves);
+}
+
+// Panes never exist without a tab: any tabless leaf — trees built without
+// a selection or persisted states that predate the default — resolves to
+// one default empty tab.
+export function ensureWorkspaceLeafTabs(root) {
+  if (!root) return root;
+  if (root.kind === 'leaf') {
+    return (root.tabKeys || []).length ? root : createWorkspaceLeaf(root.id, emptyTabKey());
+  }
+  return { ...root, children: root.children.map(ensureWorkspaceLeafTabs) };
 }
 
 // Tab creation is explicit: only callers that pass `newTab` (the tab strip's
