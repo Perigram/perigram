@@ -6,8 +6,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
   const pack = await import('~/packages/cts/src/pack/cnc.js');
+  const domainPack = await import('~/packages/domain-cnc/src/pack.js');
   const registry = cts.createTypeRegistry({ id: 'spec-cts' });
-  for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack]) {
+  for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.cncFileTypes]) {
     registry.defineType(declaration);
   }
   return { compileRegistryForOrganization: async () => registry };
@@ -90,12 +91,12 @@ describe('process runtime auth hydration', () => {
     });
 
     // Effective permissions key on the per-class collection feature
-    // (facade and project are group-class types: 'groups').
-    expect(auth.effectivePermissions.groups).toEqual(expect.arrayContaining([
+    // (cassette is a file-class type: 'files').
+    expect(auth.effectivePermissions.files).toEqual(expect.arrayContaining([
       expect.objectContaining({ level: 'write' })
     ]));
     expect(auth.screens).toEqual(expect.arrayContaining([
-      expect.objectContaining({ typeId: 'project' })
+      expect.objectContaining({ typeId: 'cassette' })
     ]));
     expect(auth.roleAssignments.roleIds).toEqual([PERSISTED_ACCEPTANCE_IDS.role]);
     // The generator payload rides with hydration: bundle types and projected
@@ -103,7 +104,7 @@ describe('process runtime auth hydration', () => {
     expect(Array.isArray(auth.process.bundle.types)).toBe(true);
     for (const action of Object.values(auth.process.actions || {})) {
       expect(action.typeId || action.actionKind).toBeTruthy();
-      expect(action.id).toBe(action.id);
+      expect(action.id).toBeTruthy();
     }
   });
 
