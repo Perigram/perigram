@@ -43,7 +43,14 @@
       @refresh="$emit('refresh')"
     />
     <slot />
-    <InstanceChatPanel :type="typeId" :id="instanceIdValue" :name="entityNameValue" />
+    <!-- The conversation is a SIDEBAR RAIL, not a section appended to the
+         main column: InstancePage already owns the two-track detail layout
+         (body + sidebar from 48rem), and a rail is what that slot is for. A
+         bottom disclosure buried the thread under the whole body, made it
+         undiscoverable, and broke the page's reading order. -->
+    <template #sidebar>
+      <InstanceChatPanel :type="typeId" :id="instanceIdValue" :name="entityNameValue" />
+    </template>
     <template v-if="editorActionComponent || headerActionIds.length" #actions>
       <component
         :is="editorActionComponent"

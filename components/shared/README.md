@@ -489,30 +489,31 @@ variants render it in the expansion popover action row. The entry routes
 through `utils/instance-chat.js`, so the surface the card lives on decides how
 the thread opens (desktop drawer, mobile `/chats` target).
 
-### `InstanceChatPanel.vue` (detail-page thread)
-The **abstract** instance detail page's own conversation section — the one
-place a thread renders in place instead of opening the shared popup. A PrimeVue
-text Button (Aura owns its focus/hover/press states; the icon is stable across
-states and `aria-expanded` carries the state) toggles a bounded `ChatSupport`
-in `embedded thread-only` mode pinned to `entity:<type>:<id>`, so the page gets
-the composed conversation without the inbox or back navigation. It rides
-`InstancePage`'s column, so `GeneratedInstanceDetail` mounts it in the
-`v-else-if` (abstract) branch only.
+### `InstanceChatPanel.vue` (detail-page conversation rail)
+The instance detail page's own conversation — the one place a thread renders
+in place instead of opening the shared popup. It occupies `InstancePage`'s
+**sidebar slot**, so it is a sticky rail beside the body from the two-track
+breakpoint up (visible, bounded, in the page's own reading order) and stacks
+below the body as a full-width section under that breakpoint. It is not a
+section appended to the main column: that buried the thread under the whole
+body, made it undiscoverable, and put it last in reading order.
 
-Bounded hosts must NOT mount it. The `flush` branch is an `h-full`, non-scrolling
-frame that an operational designer/editor owns completely; an in-flow section
-either collapses to nothing against the body or forces the pane to scroll,
-breaking that contract. Bounded hosts instead expose the same thread through
-the shared chat popup (`utils/instance-chat.js`) from their own chrome — the
-bounded file pane's action strip and `GeneratedProjectWorkspace`'s actions
-strip both do this, matching `InstanceCard` and `InstanceInlineRef`.
+A PrimeVue text Button (Aura owns its focus/hover/press states; the icon is
+stable across states and `aria-expanded` carries the state) toggles a bounded
+`ChatSupport` in `embedded thread-only` mode pinned to `entity:<type>:<id>`, so
+the page gets the composed conversation without the inbox or back navigation.
+It starts collapsed so detail pages stay quiet until the operator opens the
+thread; the expanded host is bounded by the `h-support-chat` dimension token
+(`supportChatHeight`), never a page-local height, and paints no container
+chrome — the thread's own surface is the surface.
 
-The disclosure is collapsed by default so detail pages stay chat-free until the
-operator opens the thread, and the expanded host is bounded by the
-`h-support-chat` dimension token (`supportChatHeight`), never a page-local
-height, so the embedded thread owns its own scrolling. The panel paints no
-container chrome: the detail column already owns section rhythm and the thread
-supplies its own, so a host box would frame the thread twice.
+`GeneratedInstanceDetail` mounts it in the `v-else-if` (abstract) branch only.
+Bounded hosts must NOT mount it: their `flush` frame is `h-full` and
+non-scrolling, so an in-flow rail has no track and collapses to nothing. Those
+hosts expose the same thread through the shared chat popup
+(`utils/instance-chat.js`) from their own chrome — the bounded file pane's
+action strip and `GeneratedProjectWorkspace`'s actions strip both do this,
+matching `InstanceCard` and `InstanceInlineRef`.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
