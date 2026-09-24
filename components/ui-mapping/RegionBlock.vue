@@ -12,6 +12,7 @@
           :key="action.id"
           :action="action"
           :render="node.type?.render"
+          :label="headerActionLabel(action)"
           @run="emitRun"
         />
       </div>
@@ -78,7 +79,7 @@
     </template>
   </div>
 
-  <Panel v-else-if="node.surfaceKind === 'list'" class="w-full" :pt="{ contentWrapper: { class: 'min-w-0' } }">
+  <Panel v-else-if="node.surfaceKind === 'list'" class="w-full !border-0" :pt="{ contentWrapper: { class: 'min-w-0' } }">
     <template #header>
       <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
@@ -93,6 +94,7 @@
           :key="action.id"
           :action="action"
           :render="node.type?.render"
+          :label="headerActionLabel(action)"
           @run="emitRun"
         />
       </div>
@@ -363,6 +365,15 @@ const toggleEditing = () => {
 };
 const inlineChange = ({ name, value } = {}) => emitPatch({ [name]: value });
 const emitRun = (action, context) => emit('run', action, context);
+// A region header already names its class, so a create action for that same
+// type collapses to the bare localized "New" — the caption never repeats the
+// header's class name or the initial state. Creates for other types (and
+// every other action kind) keep their full resolved label.
+const headerActionLabel = action => (
+  action.actionKind === 'createInstance' && action.typeId === props.node.typeId
+    ? t('uiMapping.new')
+    : null
+);
 const instanceActionsForType = computed(() => props.instanceActions?.[props.node.typeId] || []);
 // The detail header's action set: the composed node's manifest actions
 // PLUS the per-instance quick actions (runtime state transitions ride
