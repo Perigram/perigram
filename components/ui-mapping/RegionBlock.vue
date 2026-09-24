@@ -11,7 +11,9 @@
           v-if="searchOpen || filtersOpen"
           v-model:search="search"
           v-model:facets="facets"
+          v-model:filter="builderFilter"
           :node="node"
+          :builder-fields="builderFields"
           :search-open="searchOpen"
           :filters-open="filtersOpen"
         />
@@ -121,7 +123,9 @@
           v-if="searchOpen || filtersOpen"
           v-model:search="search"
           v-model:facets="facets"
+          v-model:filter="builderFilter"
           :node="node"
+          :builder-fields="builderFields"
           :search-open="searchOpen"
           :filters-open="filtersOpen"
         />
@@ -351,6 +355,8 @@ import {
   LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor,
   localizedLabel, typeLabelKey, instanceMatchesToolbar
 } from '#shared/ui-mapping/index.js';
+import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
+import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
@@ -473,10 +479,26 @@ const facets = reactive({});
 const searchOpen = ref(false);
 const filtersOpen = ref(false);
 const searchToggleAvailable = computed(() => toolbarVisibleFor(props.node));
-const facetsToggleAvailable = computed(() => (props.node.listControls?.facets || [])
-  .some(facet => facet.values.length > 1));
+// Builder fields are always present (the name axis at minimum), so every
+// list surface offers boolean composition — not only facet-rich ones.
+const builderFields = computed(() => [
+  ...(props.node.listControls?.facets || [])
+    .map(facet => ({ name: facet.name, label: facet.label, kind: 'enum', values: facet.values })),
+  { name: 'name', label: t('uiMapping.fieldName'), kind: 'text' }
+]);
+const facetsToggleAvailable = computed(() => builderFields.value.length > 0);
+// The builder's composed tree is persisted view state per type: it
+// survives navigation and reloads (presentation data, never a process
+// contract) and conjoins with the quick controls.
+const builderScope = computed(() => `collection:${props.node.typeId}`);
+const builderFilter = ref(loadFilterViewState(builderScope.value));
+watch(builderScope, scope => {
+  builderFilter.value = loadFilterViewState(scope);
+});
+watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter));
 const activeFacetCount = computed(() => Object.values(facets)
-  .filter(value => Array.isArray(value) && value.length).length);
+  .filter(value => Array.isArray(value) && value.length).length
+  + (builderFilter.value ? 1 : 0));
 watch(() => props.node.id, () => {
   search.value = '';
   searchOpen.value = false;
@@ -489,8 +511,9 @@ const filteredInstances = computed(() => {
   if (!controls) return props.node.instances;
   const query = search.value.trim().toLowerCase();
   const activeFacets = Object.entries(facets).filter(([, values]) => Array.isArray(values) && values.length);
-  if (!query && !activeFacets.length) return props.node.instances;
+  if (!query && !activeFacets.length && !builderFilter.value) return props.node.instances;
   return props.node.instances.filter(instance =>
-    instanceMatchesToolbar(props.node.type, controls, instance, query, Object.fromEntries(activeFacets)));
+    instanceMatchesToolbar(props.node.type, controls, instance, query, Object.fromEntries(activeFacets))
+    && instanceMatchesFilter(instance, builderFilter.value));
 });
 </script>

@@ -1853,7 +1853,19 @@
     "moreActions": "More actions",
     "new": "New",
     "stateHistory": "State history",
-    "filters": "Filters"
+    "filters": "Filters",
+    "matchAll": "Match all",
+    "matchAny": "Match any",
+    "addCondition": "Add condition",
+    "clearConditions": "Clear all",
+    "opIs": "is",
+    "opIsNot": "is not",
+    "opContains": "contains",
+    "opNotContains": "doesn't contain",
+    "opIn": "is any of",
+    "opNotIn": "is none of",
+    "fieldStatus": "Status",
+    "fieldName": "Name"
   },
   "uiConstructor": {
     "title": "UI Constructor Demo",
