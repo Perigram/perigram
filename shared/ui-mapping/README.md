@@ -161,7 +161,9 @@ canonical instance-filter tree
 ([shared/instance-filters](../instance-filters/README.md)): an `or` of
 case-insensitive substring matches over the search-key fields plus the
 instance id (ids stay private display vocabulary, but finding a row by id
-remains functional) and exact facet equality, evaluated by the one shared
+remains functional) and one `in` predicate per facet value set
+(multi-select within a facet, conjunction across facets), evaluated by
+the one shared
 matcher.
 
 ### Data states
