@@ -406,11 +406,15 @@ construction, not per-card styling.
 
 | Channel | Encodes | Values |
 |---|---|---|
-| Socket & wire color | transported payload family | entity/reference (entities, entity refs and lists), structure (blocks, type bindings), quantity (number/integer), decision (boolean/predicate/status), temporal (date/dateTime/duration), external (attachments), effect (tasks/events), projection, data (everything else) |
-| Socket shape | access — how the socket consumes/produces | circle = Item, rounded = List, square = Tree |
+| Socket & wire color | transported payload family | entity/reference (entities, entity refs and lists), structure (blocks, type bindings), quantity (number/integer), decision (boolean/predicate/status), temporal (date/dateTime/duration), external (attachments), effect (tasks), projection, data (everything else). Events carry no payload family and use the primary accent. |
+| Socket shape | what the socket deals in | filled circle = instance/value data; hollow ring = declaration binding (type/field wires, the Type pin); outline square (primary) = event; filled square = state/status |
 | Wire pattern | edge role — what kind of connection | solid = data flow; dashed = declaration binding (`role: 'type'`); dotted = control/event trigger |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
+
+Access (Item/List/Tree) is deliberately **not** a socket visual: one
+socket accepts all three, access is a property of what travels the wire,
+and it stays a runtime and hover fact.
 
 A wire takes its color from its source socket
 (`processDesignerSocketTone` is the one mapping — see
@@ -425,17 +429,20 @@ read structure-toned and dashed.
 
 | Channel | Encodes | Values |
 |---|---|---|
-| Stripe + icon tone | node concern — what the node does | structure = read/project; entity = record produce/consume; decision = logic/predicate; effect = side-effectful operations; external = control/outside; value = pure value algebra; **no stripe** = passive declaration leaf (field, state) |
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation |
 | Card surface & border | chrome only | neutral background; the selected border is the single card state |
 
+Card concern (what a node does) is carried by the icon and label only —
+the card body is deliberately colorless so sockets and wires own every
+hue on the canvas.
+
 ### Arrangement
 
-Top to bottom: the stripe; the header (concern-toned icon chip + label —
-no divider); inline configuration (only species that author values in
-place); the socket rail (labeled rows, inputs left / outputs right, every
-handle centered on the outer node rail); the event section (effects only:
-the trigger toggle, then event sockets). Sections separate by spacing
+Top to bottom: the header (neutral icon chip + label — no divider);
+inline configuration (only species that author values in place); the
+socket rail (labeled rows, inputs left / outputs right, every handle
+centered on the outer node rail); the event section (effects only: event
+sockets, no trigger chrome). Sections separate by spacing
 alone (`mt-2`/`mt-3`, row `py-1.5`) — there are deliberately **no
 dividers**: separator lines would form a third visual system competing
 with stripes and wires while encoding nothing.
@@ -622,13 +629,16 @@ with live instances is listed with its count and a target-state select
 every state is mapped. The side rails are always non-modal
 drawer overlays and the bottom dock stays icon-only on narrow layouts.
 
-Every effect has one bottom execution switch: Manual exposes the operation
-to authorized users, while Automatic exposes an incoming event socket.
-Event handles use the same left-to-right direction as data sockets instead
-of pointing out of the bottom of the card. Pure value, list/tree, read, and
-deconstruct nodes do not render event chrome. Effect failures fail the run;
-retry behavior is not hidden effect metadata and must be introduced later
-as explicit event/control dataflow.
+An effect's trigger mode is derived, never authored: every effect card
+always shows its incoming event socket, and the operation runs
+automatically iff that socket is wired (the derived `trigger.mode` lands
+on the compiled record at the sync pass; unwiring it makes the operation
+manual again). Event handles use the same left-to-right direction as
+data sockets instead of pointing out of the bottom of the card. Pure
+value, list/tree, read, and deconstruct nodes do not render event
+chrome. Effect failures fail the run; retry behavior is not hidden
+effect metadata and must be introduced later as explicit event/control
+dataflow.
 
 Canvas accents and Vue Flow handles use the global `signal-*` aliases, not
 raw Tailwind hues or inline theme variables. The aliases identify roles
