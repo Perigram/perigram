@@ -5,20 +5,15 @@
       :placeholder="$t('common.search')"
       class="min-w-40 flex-1"
     />
-    <MultiSelect
-      v-if="statusOptions.length > 1"
-      v-model="statusSelection"
-      :options="statusOptions"
-      option-label="label"
-      option-value="value"
-      class="min-w-32"
+    <Button
+      icon="pi pi-filter"
+      text
+      rounded
+      size="small"
+      :severity="filtersOpen || builderFilter ? undefined : 'secondary'"
+      :badge="conditionCount ? String(conditionCount) : null"
       :aria-label="$t('common.filter')"
-    />
-    <FilterBuilder
-      v-if="builderFields.length"
-      :model-value="builderFilter"
-      :fields="builderFields"
-      @update:model-value="setBuilderFilter"
+      @click="filtersOpen = !filtersOpen"
     />
     <Select
       v-model="sortBy"
@@ -36,6 +31,13 @@
         @execute="selectedAction => $emit('execute-action', selectedAction, null, actionContext)"
       />
     </div>
+  </div>
+  <div v-if="filtersOpen" class="flex flex-col gap-2 px-1 pb-2">
+    <FilterBuilder
+      :model-value="builderFilter"
+      :fields="builderFields"
+      @update:model-value="setBuilderFilter"
+    />
   </div>
   <TableFrame v-if="template === 'table'" class="ck-collection-rows">
     <DataTable :value="visibleItems" size="small" responsive-layout="scroll" :pt="tablePt" :row-class="rowSurfaceClass">
@@ -149,10 +151,11 @@ import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
-import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import FilterBuilder from '~/components/shared/FilterBuilder.vue';
 import { normalizeFilter, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
+import { builderFieldsForType } from '#shared/ui-mapping/index.js';
+import { useInstancesStore } from '~/stores/instances';
 import { useI18n } from 'vue-i18n';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
@@ -209,11 +212,7 @@ const registry = useRegistryStore();
 const entityIcon = computed(() => registry.iconFor(props.typeId));
 const { t } = useI18n();
 const searchQuery = ref('');
-// Status selection is a value set: the toolbar composes the canonical
-// instance-filter tree (#shared/instance-filters) and evaluates it over
-// per-entity screen instances, so this surface speaks the same filter
-// vocabulary as the generated-screen engine and the list transport.
-const statusSelection = ref([]);
+const filtersOpen = ref(false);
 // The last sort choice persists per type; the identity-ascending default
 // applies when no preference exists.
 const sortScope = computed(() => `collection:${props.typeId}`);
@@ -251,9 +250,8 @@ const tableFields = computed(() => resolveInstanceDisplayContract({
   surface: props.surface || 'table',
   typeRecord: typeById(props.typeId)
 }).fields.slice(0, 6));
-const statusOptions = computed(() => [...new Set(props.items.map(entityStatus).filter(Boolean))]
-  .sort((left, right) => left.localeCompare(right))
-  .map(value => ({ label: value, value })));
+const statusValues = computed(() => [...new Set(props.items.map(entityStatus).filter(Boolean))]
+  .sort((left, right) => left.localeCompare(right)));
 const sortOptions = computed(() => [
   { label: t('common.sortNameAsc'), value: 'name-asc' },
   { label: t('common.sortNameDesc'), value: 'name-desc' },
@@ -268,14 +266,29 @@ const builderFilter = ref(loadFilterViewState(viewScope.value));
 watch(viewScope, scope => {
   builderFilter.value = loadFilterViewState(scope);
 });
+// Filterable fields: every scalar field of the type plus relation,
+// parent, and children traversal axes over the registry's type view, with
+// the primary status over the states actually present.
 const builderFields = computed(() => [
-  ...([statusOptions.value.length ? { name: 'states.main', label: t('uiMapping.fieldStatus'), kind: 'enum', values: statusOptions.value.map(option => option.value) } : null]
-    .filter(Boolean)),
-  { name: 'name', label: t('uiMapping.fieldName'), kind: 'text' }
-]);
+  {
+    name: 'states.main',
+    label: t('uiMapping.fieldStatus'),
+    kind: 'enum',
+    values: statusValues.value
+  },
+  ...builderFieldsForType(typeRecord.value, { bundle: { types: registryTypes.value } })
+].filter(field => field.kind !== 'enum' || field.values.length));
+const conditionCount = computed(() => countPredicates(builderFilter.value));
 function setBuilderFilter(filter) {
   builderFilter.value = filter;
   storeFilterViewState(viewScope.value, filter);
+}
+function countPredicates(node) {
+  if (!node || typeof node !== 'object') return 0;
+  if (node.and) return node.and.reduce((sum, child) => sum + countPredicates(child), 0);
+  if (node.or) return node.or.reduce((sum, child) => sum + countPredicates(child), 0);
+  if (node.not) return countPredicates(node.not);
+  return 1;
 }
 // The §3 screen-instance projection the filter tree evaluates against:
 // dtoToScreenInstance when the registry knows the type, else the identity
@@ -283,6 +296,7 @@ function setBuilderFilter(filter) {
 // options derive from, so the status axis never depends on registry
 // presence.
 const typeRecord = computed(() => typeById(props.typeId));
+const registryTypes = computed(() => [...registry.typesById.values()]);
 const filterRows = computed(() => new Map(props.items.map(entity => {
   const projected = (typeRecord.value ? dtoToScreenInstance(entity, typeRecord.value) : null) || {
     id: String(entity?._id || entity?.id || entity?.identity?.uid || ''),
@@ -298,9 +312,6 @@ const activeFilter = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
   return normalizeFilter({
     and: [
-      statusSelection.value.length
-        ? { field: 'states.main', op: 'in', value: [...statusSelection.value] }
-        : null,
       query
         ? {
           or: [
@@ -313,16 +324,12 @@ const activeFilter = computed(() => {
     ].filter(Boolean)
   });
 });
+const instancesStore = useInstancesStore();
+const filterContext = computed(() => ({ pool: instancesStore.instancePool }));
 const visibleItems = computed(() => props.items
-  .filter(entity => instanceMatchesFilter(filterRows.value.get(entity), activeFilter.value))
+  .filter(entity => instanceMatchesFilter(filterRows.value.get(entity), activeFilter.value, filterContext.value))
   .slice()
   .sort(compareEntities));
-
-watch(() => props.items, () => {
-  if (!statusSelection.value.length) return;
-  const present = new Set(props.items.map(entityStatus).filter(Boolean));
-  statusSelection.value = statusSelection.value.filter(value => present.has(value));
-});
 
 function entityActionsFor(entity) {
   return resolvedActions.value.filter(action => (

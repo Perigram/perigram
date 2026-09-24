@@ -499,7 +499,73 @@ export function resolveListControls(typeRecord = {}, instances = []) {
   });
 }
 
-// The per-instance action kinds a collection surface may offer without a
+// builderFieldsForType(typeRecord, { bundle }): the filterable field list
+// for one type — every scalar field (strings, enums, booleans, numbers,
+// quantities, instants) plus one-hop traversal axes over the instance
+// pool's addressing grammar (#shared/instance-filters): relation targets
+// (`relations.<key>.<field>`), the lineage parent
+// (`lineage.<lineageKey>.<field>`, derived from the parents' children
+// edges — the child declaration carries no parent list), and children
+// (`children.<type>.<field>` from the type's own edges). Labels read the
+// authored vocabulary (relation key and type names start-cased, field
+// labels through fieldLabel); JSON/blob/record/list fields are not
+// filterable and never appear. Without a bundle only direct fields
+// derive. Pure over the type record and bundle.
+const BUILDER_FIELD_KINDS = Object.freeze({
+  string: 'text', enum: 'enum', boolean: 'boolean',
+  number: 'number', quantity: 'number', instant: 'instant'
+});
+
+function builderFieldOf(name, descriptor = {}, prefix = '', prefixLabel = '') {
+  const kind = BUILDER_FIELD_KINDS[descriptor.base];
+  if (!kind) return null;
+  const label = fieldLabel(name, descriptor);
+  return {
+    name: `${prefix}${name}`,
+    label: prefixLabel ? `${prefixLabel} → ${label}` : label,
+    kind,
+    ...(kind === 'enum' ? { values: Object.freeze([...(descriptor.values || [])]) } : {})
+  };
+}
+
+function builderFieldsOfRecord(typeRecord = {}, prefix = '', prefixLabel = '') {
+  return Object.entries(typeRecord.fields || {})
+    .map(([name, descriptor]) => builderFieldOf(name, descriptor, prefix, prefixLabel))
+    .filter(Boolean);
+}
+
+export function builderFieldsForType(typeRecord = {}, { bundle = null } = {}) {
+  const typesById = new Map((bundle?.types || []).map(type => [type.id, type]));
+  const target = typesById.get(typeRecord.id) || typeRecord;
+  const fields = [...builderFieldsOfRecord(target)];
+  for (const [key, edge] of Object.entries(target.edges?.relations || {})) {
+    const related = typesById.get((edge?.types || [])[0]);
+    if (!related) continue;
+    fields.push(...builderFieldsOfRecord(related, `relations.${key}.`, startCaseKey(key)));
+  }
+  for (const edge of Object.values(target.edges?.children || {})) {
+    for (const childId of edge?.types || []) {
+      const child = typesById.get(childId);
+      if (!child) continue;
+      fields.push(...builderFieldsOfRecord(child, `children.${childId}.`, child.name || startCaseKey(childId)));
+    }
+  }
+  for (const candidate of bundle?.types || []) {
+    for (const [mapKey, edge] of Object.entries(candidate?.edges?.children || {})) {
+      if (!(edge?.types || []).includes(target.id)) continue;
+      const key = String(edge?.lineageKey || mapKey || '').trim();
+      if (!key) continue;
+      fields.push(...builderFieldsOfRecord(candidate, `lineage.${key}.`, candidate.name || 'Parent'));
+    }
+  }
+  return Object.freeze(fields.map(field => Object.freeze(field)));
+}
+
+function startCaseKey(key = '') {
+  return String(key).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+}
+
+// The per-instance action kinds surface may offer without a
 // form context: status transitions (updateInstance with a declared
 // target), deletion, and instance-scoped commands. Plain updateInstance
 // (the edit form), creates, relation link/unlink (owner-scoped), and

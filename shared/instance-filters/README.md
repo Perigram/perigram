@@ -17,10 +17,12 @@ A filter node is one of:
 - `{ not: node }` — negation;
 - `{ field, op, value }` — one predicate over a field address.
 
-The closed operator set is `eq`, `in` (array value), and `contains`
-(case-insensitive substring). Operators exist because a consumer expresses
-them; the set grows only when a consumer needs a new one — not
-speculatively.
+The closed operator set is `eq`, `in` (array value), `contains`
+(case-insensitive substring), and the ordering operators `gt`, `gte`,
+`lt`, `lte` (numeric when both sides parse as numbers, else lexicographic —
+ISO instants compare correctly as strings). Operators exist because a
+consumer expresses them; the set grows only when a consumer needs a new
+one — not speculatively.
 
 ### Field addresses
 
@@ -33,6 +35,16 @@ Addresses read the CTS §3 instance shape (the screen instance projection of
 | `states.main` | the primary status |
 | `lineage.<key>` | the lineage ref's id (object ref or raw scalar) |
 | any other name | `fields.<name>`; quantity values compare by `.value` |
+| `relations.<key>.<field>` | any target of the relation whose field matches |
+| `lineage.<key>.<field>` | the ancestor stored under the lineage key |
+| `children.<type>.<field>` | any pool instance of the type whose lineage points back |
+
+Traversal addresses are one hop, existentially quantified (ANY related
+instance matching satisfies the predicate), and resolve through the
+caller's instance pool (`{ type -> { id -> instance } }`), passed as
+`instanceMatchesFilter(instance, node, { pool })`. Without a pool — or
+when the related instances are not loaded — the axis is unresolvable and
+the predicate is a no-op, never a failure.
 
 ### Normalization
 

@@ -32,23 +32,11 @@
           :aria-label="$t('uiMapping.searchPlaceholder')"
           @click="searchOpen = true"
         />
-        <!-- Facets unfold AT their button: the selects render directly
-             before the toggle, which stays as the collapse anchor. -->
+        <!-- The conditions panel unfolds AT its button: the filter tree
+             is the one filtering state — no parallel facet selects. -->
         <template v-if="filtersOpen">
-          <InstanceMultiSelect
-            v-for="facet in visibleFacets"
-            :key="facet.name"
-            :model-value="facets[facet.name] ?? []"
-            :options="facetOptions(facet)"
-            option-label="label"
-            option-value="value"
-            :placeholder="facet.label"
-            size="small"
-            class="max-w-44"
-            :aria-label="facet.label"
-            @update:model-value="value => setFacet(facet.name, value)"
-          />
           <FilterBuilder
+            class="basis-full"
             :model-value="builderFilter"
             :fields="builderFields"
             @update:model-value="value => (builderFilter = value)"
@@ -171,23 +159,11 @@
           :aria-label="$t('uiMapping.searchPlaceholder')"
           @click="searchOpen = true"
         />
-        <!-- Facets unfold AT their button: the selects render directly
-             before the toggle, which stays as the collapse anchor. -->
+        <!-- The conditions panel unfolds AT its button: the filter tree
+             is the one filtering state — no parallel facet selects. -->
         <template v-if="filtersOpen">
-          <InstanceMultiSelect
-            v-for="facet in visibleFacets"
-            :key="facet.name"
-            :model-value="facets[facet.name] ?? []"
-            :options="facetOptions(facet)"
-            option-label="label"
-            option-value="value"
-            :placeholder="facet.label"
-            size="small"
-            class="max-w-44"
-            :aria-label="facet.label"
-            @update:model-value="value => setFacet(facet.name, value)"
-          />
           <FilterBuilder
+            class="basis-full"
             :model-value="builderFilter"
             :fields="builderFields"
             @update:model-value="value => (builderFilter = value)"
@@ -412,6 +388,9 @@ import {
   LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor,
   localizedLabel, typeLabelKey, instanceMatchesToolbar
 } from '#shared/ui-mapping/index.js';
+import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
+import { builderFieldsForType } from '#shared/ui-mapping/index.js';
+import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
@@ -531,58 +510,52 @@ const coveredRelationKeys = computed(() => props.node.childRegions
 // the action cluster demand it); selections persist while toggled and
 // the filter toggle carries the active-selection count.
 const search = ref('');
-const facets = reactive({});
 const searchOpen = ref(false);
 const filtersOpen = ref(false);
 const searchToggleAvailable = computed(() => toolbarVisibleFor(props.node));
-// Builder fields are always present (the name axis at minimum), so every
-// list surface offers boolean composition — not only facet-rich ones.
+// Filterable fields: the type's scalar fields plus relation, parent, and
+// children traversal axes, with the primary status over the values
+// actually present. The name axis always exists, so every list surface
+// offers the conditions panel — not only facet-rich ones.
 const builderFields = computed(() => [
-  ...(props.node.listControls?.facets || [])
-    .map(facet => ({ name: facet.name, label: facet.label, kind: 'enum', values: facet.values })),
-  { name: 'name', label: t('uiMapping.fieldName'), kind: 'text' }
-]);
+  {
+    name: 'states.main',
+    label: t('uiMapping.fieldStatus'),
+    kind: 'enum',
+    values: [...new Set(props.node.instances.map(instance => instance?.states?.main).filter(Boolean))].sort()
+  },
+  ...builderFieldsForType(props.node.type, { bundle: props.bundle })
+].filter(field => field.kind !== 'enum' || field.values.length));
 const facetsToggleAvailable = computed(() => builderFields.value.length > 0);
-// The builder's composed tree is persisted view state per type: it
-// survives navigation and reloads (presentation data, never a process
-// contract) and conjoins with the quick controls.
+// The composed tree is persisted view state per type: it survives
+// navigation and reloads (presentation data, never a process contract).
 const builderScope = computed(() => `collection:${props.node.typeId}`);
 const builderFilter = ref(loadFilterViewState(builderScope.value));
 watch(builderScope, scope => {
   builderFilter.value = loadFilterViewState(scope);
 });
 watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter));
-const activeFacetCount = computed(() => Object.values(facets)
-  .filter(value => Array.isArray(value) && value.length).length
-  + (builderFilter.value ? 1 : 0));
-// The facet controls materialize the same list-controls contract the old
-// toolbar owned: multi-value enum facets over the values actually present,
-// start-case labels, value sets per facet.
-const visibleFacets = computed(() => (props.node.listControls?.facets || [])
-  .filter(facet => facet.values.length > 1));
-const facetOptions = facet => facet.values.map(value => ({
-  label: String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase()),
-  value
-}));
-function setFacet(name, value) {
-  if (!Array.isArray(value) || !value.length) delete facets[name];
-  else facets[name] = value;
-}
+const activeFacetCount = computed(() => countPredicates(builderFilter.value));
 watch(() => props.node.id, () => {
   search.value = '';
   searchOpen.value = false;
   filtersOpen.value = false;
-  Object.keys(facets).forEach(key => delete facets[key]);
 });
 const filteredInstances = computed(() => {
   if (props.node.surfaceKind !== 'list') return props.node.instances;
   const controls = props.node.listControls;
   if (!controls) return props.node.instances;
   const query = search.value.trim().toLowerCase();
-  const activeFacets = Object.entries(facets).filter(([, values]) => Array.isArray(values) && values.length);
-  if (!query && !activeFacets.length && !builderFilter.value) return props.node.instances;
+  if (!query && !builderFilter.value) return props.node.instances;
   return props.node.instances.filter(instance =>
-    instanceMatchesToolbar(props.node.type, controls, instance, query, Object.fromEntries(activeFacets))
-    && instanceMatchesFilter(instance, builderFilter.value));
+    instanceMatchesToolbar(props.node.type, controls, instance, query, {})
+    && instanceMatchesFilter(instance, builderFilter.value, { pool: props.pool }));
 });
+function countPredicates(node) {
+  if (!node || typeof node !== 'object') return 0;
+  if (node.and) return node.and.reduce((sum, child) => sum + countPredicates(child), 0);
+  if (node.or) return node.or.reduce((sum, child) => sum + countPredicates(child), 0);
+  if (node.not) return countPredicates(node.not);
+  return 1;
+}
 </script>

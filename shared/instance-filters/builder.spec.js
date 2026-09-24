@@ -74,3 +74,4 @@ describe('builderRowsFromFilter', () => {
     expect(builderRowsFromFilter({ or: [{ and: [{ field: 'name', op: 'eq', value: 'a' }] }] })).toBeNull();
   });
 });
+

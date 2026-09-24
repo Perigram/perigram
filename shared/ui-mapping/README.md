@@ -202,6 +202,21 @@ data, never guessed from MIME or extension. `RENDERABLE_PREVIEW_MODES`
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
 
+### Filterable fields
+
+`builderFieldsForType(type, { bundle })` derives the filterable field
+list one collection surface offers its conditions panel: every scalar
+field of the type (strings, enums, booleans, numbers, quantities,
+instants — never JSON/blob/record/list), plus the one-hop traversal axes
+of the canonical filter vocabulary
+([shared/instance-filters](../instance-filters/README.md)): relation
+targets (`relations.<key>.<field>`, declared by the type's own relation
+edges), the lineage parent (`lineage.<lineageKey>.<field>`, derived from
+the parents' children edges), and children (`children.<type>.<field>`,
+from the type's own children edges). Labels read the authored vocabulary
+(type names and start-cased keys prefix the field label). Without a
+bundle only direct fields derive. Pure over the type record and bundle.
+
 ### Actions
 
 `resolveActionButton(action, { type })` → `{ component, tone, icon,

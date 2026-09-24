@@ -81,16 +81,24 @@ describe('normalizeFilter', () => {
   });
 
   it('keeps the operator set closed', () => {
-    expect(FILTER_OPS).toEqual(['eq', 'in', 'contains']);
+    expect(FILTER_OPS).toEqual(['eq', 'in', 'contains', 'gt', 'gte', 'lt', 'lte']);
   });
 });
 
 describe('instanceMatchesFilter', () => {
   const instance = {
     id: 'w-9',
-    fields: { name: 'Mystery Part', size: { value: 12, unit: 'mm' }, grade: 'a' },
+    fields: { name: 'Mystery Part', size: { value: 12, unit: 'mm' }, grade: 'a', madeAt: '2026-01-01T10:00:00Z' },
     lineage: { madeById: { type: 'user', id: 'u-1' }, zoneId: 'z-2' },
+    relations: { pinned: [{ type: 'document', id: 'd-1' }, { type: 'document', id: 'd-2' }] },
     states: { main: 'available' }
+  };
+  const pool = {
+    user: { 'u-1': { id: 'u-1', fields: { name: 'Ada' }, states: {} } },
+    document: {
+      'd-1': { id: 'd-1', fields: { title: 'Sheet A' }, lineage: { madeById: { id: 'w-9' } }, states: {} },
+      'd-2': { id: 'd-2', fields: { title: 'Photo' }, lineage: {}, states: {} }
+    }
   };
 
   it('matches equality over fields, quantities by value, and coerces scalars', () => {
@@ -108,6 +116,16 @@ describe('instanceMatchesFilter', () => {
     expect(instanceMatchesFilter(instance, { field: 'lineage.madeById', op: 'eq', value: 'u-2' })).toBe(false);
     expect(instanceMatchesFilter(instance, { field: '_id', op: 'eq', value: 'w-9' })).toBe(true);
     expect(instanceMatchesFilter(instance, { field: 'id', op: 'eq', value: 'w-9' })).toBe(true);
+  });
+
+  it('compares quantities and dates through the ordering operators', () => {
+    expect(instanceMatchesFilter(instance, { field: 'size', op: 'gt', value: 10 })).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'size', op: 'gt', value: 12 })).toBe(false);
+    expect(instanceMatchesFilter(instance, { field: 'size', op: 'gte', value: 12 })).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'size', op: 'lt', value: '13' })).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'madeAt', op: 'lte', value: '2026-01-02' })).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'madeAt', op: 'gt', value: '2026-01-02' })).toBe(false);
+    expect(instanceMatchesFilter(instance, { field: 'size', op: 'gt', value: 'not-a-number' })).toBe(false);
   });
 
   it('matches membership and case-insensitive substrings', () => {
@@ -135,6 +153,23 @@ describe('instanceMatchesFilter', () => {
       ]
     };
     expect(instanceMatchesFilter(instance, refused)).toBe(false);
+  });
+
+
+  it('traverses relation targets, lineage parents, and children over the pool', () => {
+    const context = { pool };
+    // relations.<key>.<field>: exists a pinned document titled with Sheet
+    expect(instanceMatchesFilter(instance, { field: 'relations.pinned.title', op: 'contains', value: 'sheet' }, context)).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'relations.pinned.title', op: 'contains', value: 'zzz' }, context)).toBe(false);
+    // lineage.<key>.<field>: the maker's name (single or array refs)
+    expect(instanceMatchesFilter(instance, { field: 'lineage.madeById.name', op: 'eq', value: 'Ada' }, context)).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'lineage.madeById.name', op: 'eq', value: 'Bob' }, context)).toBe(false);
+    // children.<type>.<field>: exists a document child of w-9 (any lineage key)
+    expect(instanceMatchesFilter(instance, { field: 'children.document.title', op: 'contains', value: 'sheet' }, context)).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'children.document.title', op: 'eq', value: 'Photo' }, context)).toBe(false);
+    // unresolved targets are no-ops, and traversal without a pool never fails
+    expect(instanceMatchesFilter(instance, { field: 'relations.pinned.title', op: 'contains', value: 'sheet' })).toBe(true);
+    expect(instanceMatchesFilter({ ...instance, relations: { pinned: [{ type: 'document', id: 'nope' }] } }, { field: 'relations.pinned.title', op: 'contains', value: 'sheet' }, context)).toBe(true);
   });
 
   it('never throws on empty or malformed instances', () => {

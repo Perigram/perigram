@@ -75,27 +75,22 @@ surface concerns:
   indeterminate progress bar instead — no component invents its own
   empty or loading state.
 - The region header's in-place controls (the dissolved
-  `CollectionToolbar`): the search input and facet selects render only
-  while their RegionBlock header toggles are open (a search toggle when
-  the toolbar budget applies — every large list past `SEARCH_AT`,
-  identity search always functions — a filter toggle on every list
-  surface, because the builder's field list always carries at least the
-  name axis: one multi-select per facet over the values actually present
-  — a value set within a facet, conjunction across facets — plus the
-  shared `FilterBuilder` popover for boolean composition over the
-  canonical filter tree; the filter badge carries the active selection
-  count, builder included). Search expands IN PLACE — the icon button
-  becomes an icon field at its position (icon/Esc/empty-blur collapses)
-  — and the facets and builder unfold directly beside the filter
-  button, which stays as the collapse anchor. The controls own no
-  per-type logic — the region tree carries every decision. Search and
-  facet selections are region-owned models RegionBlock applies
-  client-side over the loaded instances; the builder's composed tree is
-  persisted view state per type (`utils/filter-view-state.js`) and
-  conjoins with the quick controls through `instanceMatchesFilter`.
-  Columns keep only their native sorting. The region header stays one
-  line (label, count, controls, actions), wrapping only when the opened
-  controls or the action cluster demand it.
+  `CollectionToolbar`): search expands IN PLACE — the icon button becomes
+  an icon field at its position (icon/Esc/empty-blur collapses) — and the
+  filter toggle unfolds the shared `FilterBuilder` conditions panel
+  directly beside the filter button, which stays as the collapse anchor.
+  Set conditions are the one filtering state — no parallel facet selects
+  speak the same axis. The panel's fields derive through
+  `builderFieldsForType` (see
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)): every scalar
+  field, the primary status over the values actually present, and the
+  relation, parent, and children traversal axes. Search stays a
+  region-owned model; the composed tree is persisted view state per type
+  (`utils/filter-view-state.js`) and is evaluated with the one matcher
+  (`instanceMatchesFilter`) against the region's pool. Columns keep only
+  their native sorting. The region header stays one line (label, count,
+  controls, actions), wrapping only when the opened controls or the
+  action cluster demand it.
 
 ## Components
 
