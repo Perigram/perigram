@@ -464,18 +464,20 @@ export const primeComponentTokens = {
             borderColor: 'transparent'
         },
         bodyCell: {
-            // Notion-style rows: the CELLS carry the instance surface
-            // (a row's own background is not clipped by its radius), the
-            // internal dividers stay structurally present (1px) but
-            // transparent, and the recipe rounds the edge cells.
-            background: 'var(--p-content-background)',
+            background: 'transparent',
+            // Notion-style rows: internal cell dividers stay structurally
+            // present (1px) but transparent — a row surface reads as one
+            // whole card, never as bordered strips.
             borderColor: 'transparent'
         },
         body: {
             background: 'transparent'
         },
         row: {
-            background: 'transparent'
+            // Every row paints as an instance surface (content
+            // background) — the row IS the card; the recipe clips its
+            // corners (a row's background is not clipped by its radius).
+            background: 'var(--p-content-background)'
         },
         footer: {
             background: 'transparent',
@@ -514,16 +516,19 @@ export const primeComponentTokens = {
             borderColor: 'transparent'
         },
         bodyCell: {
-            // Same row-surface contract as datatable: cells carry the
-            // surface, dividers stay transparent, edge cells round.
-            background: 'var(--p-content-background)',
+            background: 'transparent',
+            // Same row-surface contract as datatable: transparent internal
+            // dividers, rows painted as content surfaces.
             borderColor: 'transparent'
         },
         body: {
             background: 'transparent'
         },
         row: {
-            background: 'transparent'
+            // Every row paints as an instance surface (content
+            // background) — the row IS the card; the recipe clips its
+            // corners (a row's background is not clipped by its radius).
+            background: 'var(--p-content-background)'
         },
         footer: {
             background: 'transparent',

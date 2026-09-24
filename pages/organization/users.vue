@@ -7,7 +7,8 @@
     </template>
 
     <TableFrame class="ck-collection-rows">
-    <DataTable :value="users" :loading="loading" :pt="tablePt">
+    <DataTable :value="users" :loading="loading" :pt="tablePt"
+    :row-class="rowSurfaceClass">
       <Column field="identity.name" :header="$t('profile.name')" sortable />
       <Column field="data.email" :header="$t('profile.email')" sortable />
       <Column :header="$t('organization.processRoles')">
@@ -219,14 +220,15 @@ import DataTable from 'primevue/datatable';
 // from the preset) over a transparent table box with hairline separated
 // gaps and a muted transparent header band; row stripes are gone — the
 // row IS the surface.
+// The row surface is the preset's content background; its corners are
+// clipped here — a table row's own background is NOT clipped by its
+// radius (measured: the corner pixels stayed white), while clip-path
+// rounds them at the token radius.
+const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-md))]';
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },
-  headerCell: { class: 'bg-transparent text-muted' },
-  // The surface lives on the cells (the preset paints bodyCell); rounding
-  // the edge cells is what makes the row card's corners — a row's own
-  // background is not clipped by its radius.
-  bodyCell: { class: 'first:rounded-l-ui last:rounded-r-ui' }
+  headerCell: { class: 'bg-transparent text-muted' }
 };
 import Column from 'primevue/column';
 import Button from 'primevue/button';
