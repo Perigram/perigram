@@ -193,11 +193,11 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (2) |
 | `ui-components-permissionrulebuilder-vue` | `components/PermissionRuleBuilder.vue` | derived usage | replace:chrome (8) |
 | `ui-components-process-designer-applymigrationdialog-vue` | `components/process-designer/ApplyMigrationDialog.vue` | derived usage | replace:chrome (4) |
-| `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (8); remove:important-override (11) |
+| `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (4) |
 | `ui-components-process-designer-inspector-declarationedgeinspector-vue` | `components/process-designer/inspector/DeclarationEdgeInspector.vue` | derived usage | compliant |
 | `ui-components-process-designer-inspector-declarationinspector-vue` | `components/process-designer/inspector/DeclarationInspector.vue` | derived usage | compliant |
 | `ui-components-process-designer-inspector-processnodeinspector-vue` | `components/process-designer/inspector/ProcessNodeInspector.vue` | derived usage | centralize:layout (1); replace:chrome (8) |
-| `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | replace:chrome (23); remove:important-override (9); narrowly-allowlist:inline-data-driven (4) |
+| `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | replace:chrome (15) |
 | `ui-components-process-designer-typedvaluecontrol-vue` | `components/process-designer/TypedValueControl.vue` | derived usage | compliant |
 | `ui-components-process-designer-typemigrationstepsdialog-vue` | `components/process-designer/TypeMigrationStepsDialog.vue` | derived usage | replace:chrome (4) |
 | `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
@@ -208,7 +208,9 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-chatattachmentpicker-vue` | `components/shared/ChatAttachmentPicker.vue` | derived usage | compliant |
 | `ui-components-shared-chatsupportdialog-vue` | `components/shared/ChatSupportDialog.vue` | derived usage | centralize:layout (1); replace:inline-visual (1) |
 | `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | compliant |
+| `ui-components-shared-designernodecard-vue` | `components/shared/DesignerNodeCard.vue` | derived usage | replace:chrome (6) |
 | `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |
+| `ui-components-shared-designersockethandle-vue` | `components/shared/DesignerSocketHandle.vue` | derived usage | narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (5); replace:chrome (24); compliant:scoped-layout |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (10) |
@@ -252,9 +254,9 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-templatesmanager-vue` | `components/TemplatesManager.vue` | derived usage | compliant |
 | `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | compliant |
 | `ui-components-type-designer-descriptoreditor-vue` | `components/type-designer/DescriptorEditor.vue` | derived usage | compliant |
-| `ui-components-type-designer-fieldnode-vue` | `components/type-designer/FieldNode.vue` | derived usage | replace:chrome (7); remove:important-override (11) |
-| `ui-components-type-designer-statenode-vue` | `components/type-designer/StateNode.vue` | derived usage | replace:chrome (7); remove:important-override (11) |
-| `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (11); remove:important-override (11) |
+| `ui-components-type-designer-fieldnode-vue` | `components/type-designer/FieldNode.vue` | derived usage | compliant |
+| `ui-components-type-designer-statenode-vue` | `components/type-designer/StateNode.vue` | derived usage | compliant |
+| `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (4) |
 | `ui-components-ui-mapping-actionbutton-vue` | `components/ui-mapping/ActionButton.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-breadcrumbtrail-vue` | `components/ui-mapping/BreadcrumbTrail.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-cardgrid-vue` | `components/ui-mapping/CardGrid.vue` | derived usage | compliant |
