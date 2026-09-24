@@ -59,10 +59,9 @@
           />
         </nav>
 
-        <!-- Expanded navigation is a raw PanelMenu: the chats and calls
-             entries first, then one panel per top-level explorer type.
-             Default rows carry the registry icons and title-resolver
-             labels. -->
+        <!-- Expanded navigation is a raw PanelMenu: the communication panel
+             first, then one panel per top-level explorer type. Default rows
+             carry the registry icons and title-resolver labels. -->
         <div v-else class="min-h-0 flex-1 overflow-y-auto">
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
@@ -389,12 +388,12 @@ const visibleTypes = computed(() => {
   return visible;
 });
 
-// The PanelMenu model is the explorer tree plus the chats and calls
-// entries: type nodes become panels (their registry icon is PanelMenu's
+// The PanelMenu model is the explorer tree plus the communication
+// panel: type nodes become panels (their registry icon is PanelMenu's
 // item icon), entity nodes become rows carrying the workspace item for
 // the #item slot.
 const sidebarMenuModel = computed(() => [
-  ...communicationPanelModels(),
+  communicationPanelModel(),
   ...explorerNodes.value.map(node => typePanelItem(node))
 ]);
 
@@ -423,29 +422,24 @@ function entityPanelItem(node) {
   };
 }
 
-// Communication is two separate entries: Chats is a plain entry opening
-// the chats workspace page, and Calls is its own panel listing only
-// active joinable rooms — ringing a conversation belongs to the chats
-// surfaces' own call actions.
-function communicationPanelModels() {
-  return [
-    {
-      key: 'communication:chats',
-      label: t('support.chatTitle'),
-      icon: 'pi pi-comments',
-      command: () => openChatsPage()
-    },
-    {
-      key: 'communication:calls',
-      label: t('call.calls'),
-      icon: 'pi pi-phone',
-      items: activeRoomItems()
-    }
-  ];
+// One communication panel: the header opens the chats workspace page
+// (PanelMenu headers run their command and toggle), and active call
+// rooms live inside as flat rows. With no active rooms the panel has no
+// rows and nothing to expand — the entry is just the chats shortcut.
+// Ringing a conversation belongs to the chats surfaces' call actions.
+function communicationPanelModel() {
+  const rooms = activeRoomItems();
+  return {
+    key: 'communication',
+    label: t('support.chatTitle'),
+    icon: 'pi pi-comments',
+    command: () => openChatsPage(),
+    ...(rooms.length ? { items: rooms } : {})
+  };
 }
 
-// Ongoing rooms live as persistent rows in the Calls panel; only
-// brand-new invites float (IncomingCalls).
+// Ongoing rooms live as persistent flat rows in the communication
+// panel; only brand-new invites float (IncomingCalls).
 function activeRoomItems() {
   return callsStore.activeRooms.map(room => ({
     key: `call-room:${room.room}`,

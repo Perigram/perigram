@@ -31,10 +31,11 @@ caller may enter: the service calls the LiveKit server's
 as token minting. Rooms with zero connected participants are skipped:
 LiveKit keeps emptied rooms alive for the server empty_timeout (default
 300s) after the last participant leaves, and an emptied room must not
-appear as an active call while it waits to be reaped. The home workspace sidebar's Calls panel
-renders this snapshot — only active joinable rooms, never placeholders
-or ringable conversations (ringing happens through the invite endpoint
-from the chats surfaces' own call actions) — and keeps it
+appear as an active call while it waits to be reaped. The home workspace sidebar's communication panel
+renders this snapshot as flat rows — only active joinable rooms, never
+placeholders or ringable conversations (ringing happens through the
+invite endpoint from the chats surfaces' own call actions); with no
+active rooms the panel carries no rows. The panel stays
 live by debounced refetches on `call.activity` events arriving on the
 caller's own `user:` and `org:` topics (which match room admission, so
 events only ever mention joinable rooms). Calls open as ephemeral
