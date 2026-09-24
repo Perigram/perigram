@@ -56,23 +56,24 @@ noise.
   transition against a project workflow, sheet-design DXF action downloads the
   generated artifact, cassette-template creation uses OCCS defaults, and the
   seeded sheet/template/design DXF export routes return real DXF content.
-- `process-generated-screen.spec.js`: verifies generated process screens have a
-  live canonical queue collection endpoint at `/api/queue`, that the removed
-  `/api/queues` route is not treated as valid, and drives the generated-screen
-  template matrix over every screen variant the active compiled process
-  instantiates: all seven `entityList` endpoints (contracted source endpoint,
-  status filter, toolbar actions, denied delete), `entityDetail` with
-  single/filtered-child sources, `$screen.scope.*` bindings, and region-scoped
-  actions, `entityDetail` without contracted actions, and the `home` screen's
-  per-source sections. It also proves post-action refresh: a mapped relation
-  action patches the owning list source in place (no source refetch, no page
-  reload), and a generated create form posts prompt data and opens the created
-  entity detail. Entity and action execute/options endpoints are route-mocked
-  so every variant is hermetic; screen contract resolution stays live through
-  the real authenticated session. Coverage boundary: `workspaceLanes`, `table`,
-  and `formAction` templates are not covered because the seeded process
-  authors no screens with them — once such screens exist, extend this spec
-  with their variants.
+- `process-generated-screen.spec.js`: verifies the generic instance
+  transport serves generated-screen collections (`/api/instances/cassette`;
+  the removed `/api/queues` route stays dead) and drives the screen matrix
+  over a live-seeded species process (`seedSpeciesProcess`: pack file types
+  cassette/sketch/text-document/csv-table plus org-authored group/item
+  types declared through `declareType`): `typeList` endpoints per seeded
+  type with toolbar create actions and no uncompiled quick actions,
+  `entityDetail` with its `$screen.scope.instanceId` single source and the
+  lineage-scoped child region (only the opened parent's children render;
+  the child region owns its create action), inline detail edits patching
+  through `PATCH /api/instances/:type/:id` in place (no source reload),
+  the home screen's per-source sections, and a live generated create form
+  whose prompt data persists and opens the created entity detail. Pool
+  endpoints are route-mocked so list/detail variants stay hermetic; the
+  create and patch flows run live. Coverage boundary: `workspaceLanes`,
+  `table`, and `formAction` templates are not covered because the seeded
+  process authors no screens with them — once such screens exist, extend
+  this spec with their variants.
 - `project-workspace.spec.js`: uses the active compiled Project detail screen
   and verifies a cassette reached through its linked Library region opens the
   embedded cassette designer in the same pane; verifies pane tabs, icon-only
@@ -93,6 +94,17 @@ noise.
 The queue nesting regression intentionally stops before the worker-backed
 solve. Full nesting tests need explicit fixture cassette geometry and a running
 worker stack; keep those in a separate spec so smoke tests stay cheap.
+
+Known-stale specs (retired vocabulary, failing at seed time — the matrix spec
+above is the live-registry reference for their rewrite):
+`artifact-and-designer-ui.spec.js` and `instance-actions.spec.js` call removed
+fixture helpers (`createProject`) and seed retired types;
+`queue-workflow.spec.js` and `project-workspace.spec.js` still author
+project/queue/library entities the registry no longer declares;
+`home-and-instance-ui.spec.js`'s organization-switch case registers peers
+through the pre-split register contract (registration no longer creates
+organizations); `home-calls.spec.js` asserts the `[data-active-calls]`
+selector no component renders.
 
 ## Adding Workflows
 
