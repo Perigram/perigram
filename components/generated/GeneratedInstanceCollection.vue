@@ -5,9 +5,9 @@
       :placeholder="$t('common.search')"
       class="min-w-40 flex-1"
     />
-    <Select
+    <MultiSelect
       v-if="statusOptions.length > 1"
-      v-model="statusFilter"
+      v-model="statusSelection"
       :options="statusOptions"
       option-label="label"
       option-value="value"
@@ -143,6 +143,8 @@ import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
+import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
+import { normalizeFilter, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { useI18n } from 'vue-i18n';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
@@ -189,7 +191,11 @@ const registry = useRegistryStore();
 const entityIcon = computed(() => registry.iconFor(props.typeId));
 const { t } = useI18n();
 const searchQuery = ref('');
-const statusFilter = ref('');
+// Status selection is a value set: the toolbar composes the canonical
+// instance-filter tree (#shared/instance-filters) and evaluates it over
+// per-entity screen instances, so this surface speaks the same filter
+// vocabulary as the generated-screen engine and the list transport.
+const statusSelection = ref([]);
 // The last sort choice persists per type; the identity-ascending default
 // applies when no preference exists.
 const sortScope = computed(() => `collection:${props.typeId}`);
@@ -227,31 +233,59 @@ const tableFields = computed(() => resolveInstanceDisplayContract({
   surface: props.surface || 'table',
   typeRecord: typeById(props.typeId)
 }).fields.slice(0, 6));
-const statusOptions = computed(() => [
-  { label: t('common.allStatuses'), value: '' },
-  ...[...new Set(props.items.map(entityStatus).filter(Boolean))]
-    .sort((left, right) => left.localeCompare(right))
-    .map(value => ({ label: value, value }))
-]);
+const statusOptions = computed(() => [...new Set(props.items.map(entityStatus).filter(Boolean))]
+  .sort((left, right) => left.localeCompare(right))
+  .map(value => ({ label: value, value })));
 const sortOptions = computed(() => [
   { label: t('common.sortNameAsc'), value: 'name-asc' },
   { label: t('common.sortNameDesc'), value: 'name-desc' },
   { label: t('common.sortNewest'), value: 'date-desc' },
   { label: t('common.sortOldest'), value: 'date-asc' }
 ]);
-const visibleItems = computed(() => {
-  const query = searchQuery.value.trim().toLocaleLowerCase();
-  return props.items
-    .filter(entity => !statusFilter.value || entityStatus(entity) === statusFilter.value)
-    .filter(entity => !query || entitySearchText(entity).includes(query))
-    .slice()
-    .sort(compareEntities);
+// The §3 screen-instance projection the filter tree evaluates against:
+// dtoToScreenInstance when the registry knows the type, else the identity
+// shell. Legacy status shapes resolve through the same resolver the status
+// options derive from, so the status axis never depends on registry
+// presence.
+const typeRecord = computed(() => typeById(props.typeId));
+const filterRows = computed(() => new Map(props.items.map(entity => {
+  const projected = (typeRecord.value ? dtoToScreenInstance(entity, typeRecord.value) : null) || {
+    id: String(entity?._id || entity?.id || entity?.identity?.uid || ''),
+    fields: {},
+    lineage: {},
+    relations: {}
+  };
+  const status = entityStatus(entity);
+  if (status && !projected.states?.main) projected.states = { main: status };
+  return [entity, projected];
+})));
+const activeFilter = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  return normalizeFilter({
+    and: [
+      statusSelection.value.length
+        ? { field: 'states.main', op: 'in', value: [...statusSelection.value] }
+        : null,
+      query
+        ? {
+          or: [
+            { field: 'name', op: 'contains', value: query },
+            { field: 'id', op: 'contains', value: query }
+          ]
+        }
+        : null
+    ].filter(Boolean)
+  });
 });
+const visibleItems = computed(() => props.items
+  .filter(entity => instanceMatchesFilter(filterRows.value.get(entity), activeFilter.value))
+  .slice()
+  .sort(compareEntities));
 
 watch(() => props.items, () => {
-  if (statusFilter.value && !props.items.some(entity => entityStatus(entity) === statusFilter.value)) {
-    statusFilter.value = '';
-  }
+  if (!statusSelection.value.length) return;
+  const present = new Set(props.items.map(entityStatus).filter(Boolean));
+  statusSelection.value = statusSelection.value.filter(value => present.has(value));
 });
 
 function entityActionsFor(entity) {
@@ -323,13 +357,6 @@ function entityStatus(entity = {}) {
 
 function entityName(entity = {}) {
   return entity.identity?.name || entity.identity?.slug || entity.identity?.uid || entity._id || entity.id || '';
-}
-
-function entitySearchText(entity = {}) {
-  return [entityName(entity), entity.identity?.slug, entity.identity?.uid, entityStatus(entity)]
-    .filter(Boolean)
-    .join(' ')
-    .toLocaleLowerCase();
 }
 
 function compareEntities(left, right) {
