@@ -608,6 +608,14 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   render it for the avatar/profile buttons, and the generated home workspace
   sidebar renders the panel-style trigger. It only flips the `theme-mode`
   cookie; the app layout applies the theme class.
+- **`CommunicationMenu.vue`**: The shared sidebar communication control: a
+  PrimeVue `TieredMenu` whose items are Chats (unread badge, opens the chats
+  workspace page) and Calls (a submenu with every direct/group conversation
+  that can be rung). Ongoing rooms are not menu entries — the home sidebar
+  lists them as persistent rows from the shared calls store, and brand-new
+  invites float through `components/calls/IncomingCalls.vue`. Conversations
+  and unread counts come from the auth/support stores; actions are delegated
+  through `open-chats`/`start-call` events.
 - **`InstanceRefInput.vue`**: Typed entity reference selector used by
   `TypedSettingsForm` for `instanceId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options
