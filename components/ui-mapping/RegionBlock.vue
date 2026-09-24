@@ -32,26 +32,11 @@
           :aria-label="$t('uiMapping.searchPlaceholder')"
           @click="searchOpen = true"
         />
-        <!-- The conditions panel unfolds AT its button: the filter tree
-             is the one filtering state — no parallel facet selects. -->
-        <template v-if="filtersOpen">
-          <FilterBuilder
-            class="basis-full"
-            :model-value="builderFilter"
-            :fields="builderFields"
-            @update:model-value="value => (builderFilter = value)"
-          />
-        </template>
-        <Button
+        <FilterBuilder
           v-if="facetsToggleAvailable"
-          icon="pi pi-filter"
-          text
-          rounded
-          size="small"
-          :severity="filtersOpen || activeFacetCount ? undefined : 'secondary'"
-          :badge="activeFacetCount ? String(activeFacetCount) : null"
-          :aria-label="$t('uiMapping.filters')"
-          @click="filtersOpen = !filtersOpen"
+          :model-value="builderFilter"
+          :fields="builderFields"
+          @update:model-value="value => (builderFilter = value)"
         />
         <!-- Sort unfolds AT its button too: the select and order toggle
              render beside it (card-grid projection; tables sort natively
@@ -193,26 +178,11 @@
           :aria-label="$t('uiMapping.searchPlaceholder')"
           @click="searchOpen = true"
         />
-        <!-- The conditions panel unfolds AT its button: the filter tree
-             is the one filtering state — no parallel facet selects. -->
-        <template v-if="filtersOpen">
-          <FilterBuilder
-            class="basis-full"
-            :model-value="builderFilter"
-            :fields="builderFields"
-            @update:model-value="value => (builderFilter = value)"
-          />
-        </template>
-        <Button
+        <FilterBuilder
           v-if="facetsToggleAvailable"
-          icon="pi pi-filter"
-          text
-          rounded
-          size="small"
-          :severity="filtersOpen || activeFacetCount ? undefined : 'secondary'"
-          :badge="activeFacetCount ? String(activeFacetCount) : null"
-          :aria-label="$t('uiMapping.filters')"
-          @click="filtersOpen = !filtersOpen"
+          :model-value="builderFilter"
+          :fields="builderFields"
+          @update:model-value="value => (builderFilter = value)"
         />
         <!-- Sort unfolds AT its button too: the select and order toggle
              render beside it (card-grid projection; tables sort natively
@@ -581,7 +551,6 @@ const coveredRelationKeys = computed(() => props.node.childRegions
 // the filter toggle carries the active-selection count.
 const search = ref('');
 const searchOpen = ref(false);
-const filtersOpen = ref(false);
 const searchToggleAvailable = computed(() => toolbarVisibleFor(props.node));
 // Filterable fields: the type's scalar fields plus relation, parent, and
 // children traversal axes, with the primary status over the values
@@ -605,7 +574,6 @@ watch(builderScope, scope => {
   builderFilter.value = loadFilterViewState(scope);
 });
 watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter));
-const activeFacetCount = computed(() => countPredicates(builderFilter.value));
 // Card ordering: the sort bar moved into the header cluster — the same
 // sortKeys contract, shared comparator, and persisted preference (scope
 // kept) the DataView header owned. The sort control serves the card-grid
@@ -636,7 +604,6 @@ const sortedInstances = computed(() => (sortKeyResolved.value
 watch(() => props.node.id, () => {
   search.value = '';
   searchOpen.value = false;
-  filtersOpen.value = false;
   sortOpen.value = false;
 });
 const filteredInstances = computed(() => {
@@ -649,11 +616,4 @@ const filteredInstances = computed(() => {
     instanceMatchesToolbar(props.node.type, controls, instance, query, {})
     && instanceMatchesFilter(instance, builderFilter.value, { pool: props.pool }));
 });
-function countPredicates(node) {
-  if (!node || typeof node !== 'object') return 0;
-  if (node.and) return node.and.reduce((sum, child) => sum + countPredicates(child), 0);
-  if (node.or) return node.or.reduce((sum, child) => sum + countPredicates(child), 0);
-  if (node.not) return countPredicates(node.not);
-  return 1;
-}
 </script>
