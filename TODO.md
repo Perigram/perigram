@@ -11,11 +11,31 @@
   - [ ] And, need to REMOVE FUCKING BOWELS FROM UI! I don't want to ever see stuff like "Child: Field name Instant must be lowerCamelCase". Field name is public, for user plane, and field ID can be named as you want, any fucking case, but better short UUID. 
 - [ ] Migrations don't work currently. See many errors (Child: breaking change to Child (t-uth93vgdab) without a covering declared migration (retype-field anythin requires a retype-field step)), non-actionable popups, etc.
 
+  ### Agent Notes (2026-09-24)
+
+  Engine loop verified live against a throwaway org type: the breaking
+  retype is refused with the plan payload (`error.data.data.plan`,
+  `changes[].severity/kind`) the steps dialog consumes; declaring the
+  `migrate: [{ kind: 'retype-field', field, via: <CEL AST> }]` step on
+  the next declaration is accepted and the stored instance reads back
+  migrated. The designer dialog → declare → retry walk is still
+  unconfirmed in a browser session.
+
 ## CTS Type system
 
 - [ ] Types hierarchy isn't preserved correctly, either on compile or in contract generator. I don't
-  see actual correct types/instances nesting, I rather see a mess in an app. (instances don't seem
-  to accumulate child instances, or current UI doesn't respect it, idk)
+  see actual correct types/instances nesting, I rather see a mess in an app. (instances don't seem to
+  accumulate child instances, or current UI doesn't respect it, idk)
+
+  ### Agent Notes (2026-09-24)
+
+  Verified in the browser: a parent detail's child region lists only the
+  parent's children (client-side scope filter over the loaded pool), and
+  children created from the parent detail now preselect the parent in the
+  create dialog's lineage picker, so created children stamp their lineage
+  and accumulate in the region. Unparented children were the actual bug.
+  Child rows still read "Unnamed" when the child type declares no
+  identifier field — a declaration gap, not a nesting defect.
 
 ## Open questions from the crystallization conversations (2026-09-23)
 

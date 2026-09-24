@@ -132,6 +132,18 @@ internal container-only endpoint. `NUXT_DEV_HMR_CLIENT_PORT` defaults to
 `3000`, and `NUXT_DEV_HMR_PROTOCOL` defaults to `ws`.
 The E2E command assumes the app stack is already running and uses Playwright
 against the configured `E2E_BASE_URL`.
+Dev-stack filesystem runbook (compose mounts the repo at `/src`):
+
+- `node_modules` is an anonymous container volume (`/src/node_modules`):
+  host-side installs never reach the running container. To refresh
+  dependencies, reinstall inside the container
+  (`docker compose -f docker-compose.dev.yml run --rm app npm install`) or
+  recreate the stack so the volume rebuilds.
+- The container writes `.nuxt` as root. Host-side tooling that needs it
+  (the SSR smoke's `.nuxt/tsconfig.json`, `npx nuxi prepare` in agent
+  worktrees) fails on root-owned files — fix ownership once with
+  `sudo chown -R "$(id -u):$(id -g)" .nuxt` (fresh worktrees instead run
+  `npx nuxi prepare`, which regenerates their own).
 Agent session worktrees are nested under `.agent-worktrees/` in the project
 root; the Nuxt/Vite and Nitro dev watchers ignore that tree (`nuxt.config.js`
 watch ignores — a path predicate, because chokidar v4 leaks glob-ignored
