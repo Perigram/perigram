@@ -173,11 +173,14 @@ describe('generated screens page with projected vocabulary', () => {
 
     const html = await renderToString(app);
     // The generator owns the route (ui-mapping Panel chrome, not the legacy
-    // GeneratedScreen shell) and the class-level create action renders with
-    // the authored class label.
+    // GeneratedScreen shell); the region header names the class and the
+    // class-level create collapses its caption to the bare localized new
+    // (identity under the smoke's empty-locale i18n), never repeating the
+    // class name or the initial state.
     expect(html).toContain('Job Ticket');
     expect(html).toContain('p-panel');
-    expect(html).toContain('Create Job Ticket new');
+    expect(html).toContain('uiMapping.new');
+    expect(html).not.toContain('Create Job Ticket');
     expect(html).toContain('Ticket one');
     expect(html).toContain('Ticket one');
     expect(html).not.toContain('t-k3x9fj2mqa');
