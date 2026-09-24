@@ -587,7 +587,6 @@ import {
   declarationNodePorts,
   declarationWireLegality,
   definitionToCanvas,
-  isControlProcessSocketHandle,
   isProcessDataHandle,
   migrateProcessDefinition,
   parseProcessSocketHandleId,
@@ -746,6 +745,7 @@ const {
   processNodeDisplayLabel,
   processNodeDescription,
   connectedProcessInputIds,
+  syncEffectTriggerMode,
   syncProcessNode
 } = useProcessDesignerNodeSync({
   designer,
@@ -952,74 +952,6 @@ const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = u
   searchText: paletteSearchText,
   isCompatible: contextItemCompatible
 });
-const triggerModeOptions = computed(() => [
-  { label: t('processDesigner.manualTrigger'), value: 'manual' },
-  { label: t('processDesigner.automaticTrigger'), value: 'event' }
-]);
-const lifecycleModes = computed(() => [
-  { label: t('processDesigner.lifecycleModeDefaultCreated'), value: 'defaultCreated' },
-  { label: t('processDesigner.lifecycleModeDomainDefault'), value: 'domainDefault' },
-  { label: t('processDesigner.lifecycleModeCustom'), value: 'custom' }
-]);
-const socketDirections = [
-  { label: 'outbound', value: 'outbound' },
-  { label: 'inbound', value: 'inbound' }
-];
-const screenTemplateOptions = SCREEN_TEMPLATES
-  .filter(value => !['route', 'organizationOverview', 'organizationAccount'].includes(value))
-  .map(value => ({ label: value, value }));
-const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
-const screenSlotOptions = SCREEN_REGION_SLOTS.map(value => ({ label: value, value }));
-const screenSurfaceOptions = SCREEN_REGION_SURFACES.map(value => ({ label: value, value }));
-const screenLineageBindingFields = SCREEN_LINEAGE_BINDING_FIELDS;
-const screenScalarTypeOptions = ['string', 'number', 'boolean', 'assignment'].map(value => ({ label: t(`processDesigner.scalarTypes.${value}`), value }));
-const screenBindingTypeOptions = screenScalarTypeOptions;
-const screenPlacementOptions = [
-  { label: 'hub', value: 'hub' },
-  { label: 'detail', value: 'detail' },
-  { label: 'hidden', value: 'hidden' }
-];
-const accessLevelOptions = [
-  { label: t('processDesigner.accessRead'), value: 'read' },
-  { label: t('processDesigner.accessWrite'), value: 'write' },
-  { label: t('processDesigner.accessAdmin'), value: 'admin' }
-];
-const defaultEdgeOptions = { type: 'default' };
-
-const activeName = computed(() => draft.value?.identity?.name || '');
-const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
-const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
-const documentDockItems = computed(() => [
-  {
-    icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
-    label: t('common.open'),
-    onClick: event => processMenu.value?.toggle(event),
-    hasPopup: true
-  },
-
-  {
-    icon: () => h('i', { class: renamingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-pencil', 'aria-hidden': 'true' }),
-    label: t('common.rename'),
-    onClick: event => openRenamePopover(event),
-    disabled: !draft.value?._id || isActiveProcess.value,
-    hasPopup: true
-  },
-  { separator: true },
-  {
-    icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
-    label: t('common.save'),
-    onClick: saveDraftFromDock,
-    disabled: !draft.value || savingDraft.value || creatingDraft.value || applyingProcess.value,
-    attention: isDirty.value
-  },
-  {
-    icon: () => h('i', { class: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
-    label: t('processDesigner.apply'),
-    onClick: applyProcess,
-    disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value
-  }
-]);
-
 const canvasDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-search-minus', 'aria-hidden': 'true' }),
@@ -1824,7 +1756,6 @@ const DERIVED_NODE_DATA_KEYS = [
   'processOperationOptions',
   'processFieldOptions',
   'processStatusOptions',
-  'processTriggerModeOptions',
   'processConnectedInputIds',
   'kindLabel',
   'summary',
@@ -1836,7 +1767,10 @@ const DERIVED_NODE_DATA_KEYS = [
 function enrichNodeData(node) {
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
   const isProcessNode = node.type === 'processNode';
-  if (isProcessNode) syncProcessNode(record);
+  if (isProcessNode) {
+    syncEffectTriggerMode(node, record);
+    syncProcessNode(record);
+  }
   if (DECLARATION_NODE_TYPES.includes(node.type)) syncDeclarationRecord(record, node);
 
   const data = node.data || (node.data = {});
@@ -1852,7 +1786,6 @@ function enrichNodeData(node) {
     processOperationOptions: isProcessNode ? processNodeOperationOptions(record) : [],
     processFieldOptions: isProcessNode ? processNodeFieldOptions(record) : [],
     processStatusOptions: isProcessNode ? processStatusOptionsFor(record) : [],
-    processTriggerModeOptions: isProcessNode ? triggerModeOptions.value : [],
     processConnectedInputIds: isProcessNode ? connectedProcessInputIds(node, record) : [],
     kindLabel: isProcessNode ? processNodeDisplayLabel(record) : record.kind,
     summary: processNodeSummary(record),
@@ -2014,13 +1947,6 @@ function updateProcessNodeRecord(nodeId, updates = {}) {
   const { typeId, ...rest } = updates;
   Object.assign(node, rest);
   if (typeId !== undefined) setNodeTypeId(node, typeId);
-  if (updates.trigger?.mode === 'manual') {
-    const graphNodeId = nodes.value.find(item => item.type === 'processNode' && item.data?.refId === nodeId)?.id;
-    edges.value = edges.value.filter(edge => !(
-      edge.target === graphNodeId
-      && isControlProcessSocketHandle(edge.targetHandle)
-    ));
-  }
   syncProcessNode(node);
   pruneMissingProcessNodeInputEdges(nodeId, node);
   syncNodeData();

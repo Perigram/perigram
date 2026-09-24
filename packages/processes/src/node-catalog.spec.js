@@ -104,9 +104,9 @@ describe('process v4 node catalog', () => {
       blocks: ['identity', 'data']
     }, context);
 
-    expect(create.inputs.map(input => input.id)).toEqual(['identity', 'data', 'states.main']);
+    expect(create.inputs.map(input => input.id)).toEqual(['in', 'identity', 'data', 'states.main']);
     expect(create.inputs.find(input => input.id === 'identity')?.required).toBe(false);
-    expect(modify.inputs.map(input => input.id)).toEqual(['entity', 'identity', 'data', 'states.main']);
+    expect(modify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'data', 'states.main']);
     expect(create.outputs.map(output => output.id)).toEqual(['completed', 'result']);
     const typedCreate = resolveCatalogNodePorts({
       kind: 'effect.createEntity',
@@ -118,6 +118,7 @@ describe('process v4 node catalog', () => {
       }
     }, context);
     expect(typedCreate.inputs.map(input => input.id)).toEqual([
+      'in',
       'templateId',
       'identity',
       'relations',
@@ -166,6 +167,7 @@ describe('process v4 node catalog', () => {
       }
     }, context);
     expect(rowCreate.inputs.map(input => input.id)).toEqual([
+      'in',
       'name',
       'specs.width',
       'data.owner',
@@ -197,6 +199,7 @@ describe('process v4 node catalog', () => {
     }, context);
     expect(speciesCreate.inputs.map(input => input.id)).toEqual([
       'type',
+      'in',
       'specs.width',
       'states.main'
     ]);
@@ -312,7 +315,7 @@ describe('process v4 node catalog', () => {
     ]) {
       const ports = resolveCatalogNodePorts(record, context);
       expect(ports.inputs.length, kind).toBeGreaterThan(0);
-      expect(ports.inputs.every(input => input.access === 'list'), kind).toBe(true);
+      expect(ports.inputs.filter(input => input.role === 'data').every(input => input.access === 'list'), kind).toBe(true);
     }
     const typedCreate = resolveCatalogNodePorts({
       kind: 'effect.createEntity',
@@ -322,7 +325,7 @@ describe('process v4 node catalog', () => {
         inputs: [{ id: 'templateId', type: 'entity', typeId: 'cassette', required: true }]
       }
     }, context);
-    expect(typedCreate.inputs.every(input => input.access === 'list')).toBe(true);
+    expect(typedCreate.inputs.filter(input => input.role === 'data').every(input => input.access === 'list')).toBe(true);
   });
 
   it('accepts item, list, and tree sources on mapped mutation sockets', () => {
@@ -415,8 +418,8 @@ describe('process v4 node catalog', () => {
       }
     });
 
-    expect(producer.inputs.map(input => input.id)).toEqual(['name', 'templateId']);
-    expect(producer.inputs[1].type).toMatchObject({ base: 'entityRef', typeId: 'cassette' });
+    expect(producer.inputs.map(input => input.id)).toEqual(['in', 'name', 'templateId']);
+    expect(producer.inputs.find(input => input.id === 'templateId').type).toMatchObject({ base: 'entityRef', typeId: 'cassette' });
     expect(producer.outputs.map(output => output.id)).toEqual(['completed', 'result']);
   });
 
@@ -433,8 +436,8 @@ describe('process v4 node catalog', () => {
       }
     });
 
-    expect(create.inputs.map(input => input.id)).toEqual(['name', 'templateId', 'states.main']);
-    expect(create.inputs[1].type).toMatchObject({ base: 'entityRef', typeId: 'cassette' });
+    expect(create.inputs.map(input => input.id)).toEqual(['in', 'name', 'templateId', 'states.main']);
+    expect(create.inputs.find(input => input.id === 'templateId').type).toMatchObject({ base: 'entityRef', typeId: 'cassette' });
   });
 
   it('does not require a wire when a construction input declares its own default', () => {
@@ -447,7 +450,7 @@ describe('process v4 node catalog', () => {
       }
     });
 
-    expect(create.inputs[0]).toMatchObject({ id: 'quality', required: false });
+    expect(create.inputs.find(input => input.id === 'quality')).toMatchObject({ id: 'quality', required: false });
   });
 
   it('projects Run Service sockets from the selected command contract', () => {
@@ -470,6 +473,7 @@ describe('process v4 node catalog', () => {
     });
 
     expect(ports.inputs).toMatchObject([
+      { id: 'in' },
       { id: 'queue', required: true, type: { base: 'entityRef', typeId: 'queue' } },
       { id: 'machineId', required: true, type: { base: 'entityRef', typeId: 'machine' } },
       { id: 'materialMode', type: { base: 'enum' } }

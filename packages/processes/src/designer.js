@@ -551,9 +551,9 @@ export function applyFieldDisplayRole(nodes = [], fieldNodeId = '', flag = '', e
 export function declarationNodePorts(node = {}, types = []) {
   if (node.type === 'ctsClass') {
     return {
-      inputSpecs: [{ id: 'declare', label: 'fields · states', role: 'data', type: processType('json'), access: 'item' }],
+      inputSpecs: [{ id: 'declare', label: 'fields · states', role: 'data', type: processType('json'), access: 'item', plane: 'declaration' }],
       outputSpecs: node.data?.typeId
-        ? [{ id: 'type', label: node.data.typeId, role: 'data', type: processType('entityRef', { typeId: node.data.typeId }), access: 'item' }]
+        ? [{ id: 'type', label: node.data.typeId, role: 'data', type: processType('entityRef', { typeId: node.data.typeId }), access: 'item', plane: 'declaration' }]
         : []
     };
   }
@@ -583,7 +583,7 @@ export function declarationNodePorts(node = {}, types = []) {
     return {
       inputSpecs: [],
       outputSpecs: entry
-        ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { typeId: entry.id }), access: 'item' }]
+        ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { typeId: entry.id }), access: 'item', plane: 'declaration' }]
         : []
     };
   }

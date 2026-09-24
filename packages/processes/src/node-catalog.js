@@ -253,9 +253,9 @@ function cts(kind, label, family, level) {
       }
       const species = String(record.kind || '');
       if (carriesTypePin(record)) {
-        const pin = socket('type', processType('entityRef', typeIdOf(record)
+        const pin = { ...socket('type', processType('entityRef', typeIdOf(record)
           ? { typeId: typeIdOf(record) }
-          : undefined), DATA, false);
+          : undefined), DATA, false), plane: 'declaration' };
         if (!typeIdOf(record)) return { inputs: [pin], outputs: [] };
         const ports = catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
         // Bound constructs speak the declaration, not the block substrate:
@@ -661,10 +661,7 @@ function catalogPorts(record = {}, context = {}) {
     if (kind === 'effect.runCommand') {
       const command = context.command || {};
       return {
-        inputs: [
-          ...(record.trigger?.mode === 'event' ? controlInput : []),
-          ...commandInputSockets(command)
-        ],
+        inputs: [...controlInput, ...commandInputSockets(command)],
         outputs: [completed, ...commandOutputSockets(command)]
       };
     }
@@ -677,9 +674,8 @@ function catalogPorts(record = {}, context = {}) {
       constructionInputs: constructionInputs(record),
       constructionMode: record.construction?.mode || ''
     });
-    const eventInput = record.trigger?.mode === 'event' ? controlInput : [];
     return {
-      inputs: [...eventInput, ...specific],
+      inputs: [...controlInput, ...specific],
       outputs: [completed, socket('result', effectResultType(kind, record))]
     };
   }

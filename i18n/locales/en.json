@@ -2831,7 +2831,7 @@
       "success": "then",
       "failure": "if failed",
       "result": "result",
-      "entity": "entity",
+      "entity": "instances",
       "entities": "entities",
       "entityRef": "entity reference",
       "draft": "entity data",

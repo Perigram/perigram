@@ -1,7 +1,7 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="lg" :stripe="accent.stripe" :title="data.purpose || data.summary || ''">
+  <DesignerNodeCard :selected="selected" size="lg" :title="data.purpose || data.summary || ''">
     <div class="flex items-center gap-1.5">
-      <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-supporting', accent.icon]">
+      <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-supporting">
         <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
       </span>
       <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
@@ -98,18 +98,6 @@
     </div>
 
     <div v-if="eventSocketRows.length" class="-mx-2.5 mt-3">
-      <label
-        v-if="opKind.startsWith('effect.')"
-        class="nodrag nowheel mb-1.5 flex min-h-7 cursor-pointer items-center justify-between gap-2 px-2.5"
-        @mousedown.stop
-        @click.stop
-      >
-        <span class="text-supporting">{{ autoTriggerLabel }}</span>
-        <ToggleSwitch
-          :model-value="record.trigger?.mode === 'event'"
-          @update:model-value="value => updateEffectTriggerMode(value ? 'event' : 'manual')"
-        />
-      </label>
       <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
@@ -133,7 +121,6 @@ import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
-import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
 import { formatProcessType } from '~/packages/processes/src/index.js';
 import { nodeSpecSummary, socketSpecLine } from '~/composables/useNodeSpec.js';
@@ -201,17 +188,6 @@ const hasInlineConfiguration = computed(() => (
   || fieldOptions.value.length > 0
   || opKind.value.startsWith('source.literal')
 ));
-const accent = computed(() => {
-  if (opKind.value.startsWith('read.')) return { stripe: 'bg-signal-structure', icon: 'text-signal-structure' };
-  if (opKind.value.startsWith('record.')) return { stripe: 'bg-signal-entity', icon: 'text-signal-entity' };
-  if (opKind.value.startsWith('predicate.') || opKind.value.includes('compare') || opKind.value.includes('logic')) {
-    return { stripe: 'bg-signal-decision', icon: 'text-signal-decision' };
-  }
-  if (opKind.value.startsWith('effect.')) return { stripe: 'bg-signal-effect', icon: 'text-signal-effect' };
-  if (opKind.value.startsWith('control.')) return { stripe: 'bg-signal-external', icon: 'text-signal-external' };
-  return { stripe: 'bg-signal-value', icon: 'text-signal-value' };
-});
-
 function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
 }
@@ -225,15 +201,6 @@ const operationValue = computed(() => (
 function updateOperation(value) {
   update(opKind.value === 'collection.sort' ? { direction: value } : { operation: value });
 }
-
-function updateEffectTriggerMode(mode) {
-  if (!mode) return;
-  update({ trigger: { mode: mode === 'event' ? 'event' : 'manual' } });
-}
-
-const autoTriggerLabel = computed(() => (
-  (props.data.processTriggerModeOptions || []).find(option => option.value === 'event')?.label || 'Auto'
-));
 
 function updateValueType(base) {
   const updates = { type: { ...(record.value.type || {}), base } };
