@@ -215,7 +215,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (5); replace:chrome (24); compliant:scoped-layout |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (10) |
 | `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
-| `ui-components-shared-filterbuilder-vue` | `components/shared/FilterBuilder.vue` | derived usage | remove:important-override (2) |
+| `ui-components-shared-filterbuilder-vue` | `components/shared/FilterBuilder.vue` | derived usage | remove:important-override (3) |
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
