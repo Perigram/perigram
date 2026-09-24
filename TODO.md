@@ -48,6 +48,29 @@
   migrated. The designer dialog → declare → retry walk is still
   unconfirmed in a browser session.
 
+  ### Agent Notes (2026-09-24) — hard cut implemented on
+  `agent/process-designer-cts-refactor-20260924-190000`
+
+  Landed and validated (880 focused tests, architecture guard, docs
+  guard): recursive state declarations compile through the declaration
+  graph (nested state wires, per-axis machines, entry roots); persisted
+  declarations and v4 graphs migrate one-way — reads collapse to
+  `cts.read` + select with edge-handle rewrites (legacy query and its
+  predicate wires die), composer-fed construct/mutate blocks expand to
+  field wires with the dead substrate removed, and a v4 update that
+  smuggled a status splits into `cts.mutate -> cts.transition`; durable
+  dispatch classifies native species so `cts.transition` executes its
+  declared reference (target, axis, note) through the status runtime;
+  secondary lifecycle axes persist without rewriting `main`; cassette
+  declares its lifecycle on the pack type. Designer: recursive state
+  authoring UI (axis/initial/terminal/nesting), transition
+  reference pickers, retained palette pinned by tests. Not done:
+  browser E2E was authored (`e2e/process-designer-cts.spec.js`) but not
+  run (no app stack started), and the UI-convention/inline-editing items
+  above are untouched. `server/core/machines/service.spec.js` has 13
+  pre-existing failures around the retired legacy queue service — same
+  failures on the primary checkout, not introduced here.
+
 ## CTS Type system
 
 - [ ] Types hierarchy isn't preserved correctly, either on compile or in contract generator. I don't
