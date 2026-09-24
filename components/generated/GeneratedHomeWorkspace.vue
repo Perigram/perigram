@@ -489,14 +489,14 @@ function onMenuClickCapture(event) {
 }
 
 function typePanelItem(node) {
-  const selected = selectedMenuKeys.value.has(node.key);
   return {
     key: node.key,
     id: `home-type-${node.data.typeId}`,
     label: node.label,
-    icon: node.icon,
-    headerClass: selected ? '' : 'text-muted',
-    class: selected ? '' : 'text-muted',
+    // Class names carry no icon: the glyph is the instance signal, so a
+    // type panel never reads as one of its own rows. Headers also keep
+    // full color — muting marks non-selected entries (instances,
+    // communication), categories stay legible.
     typeId: node.data.typeId,
     command: menuCommand(node.key, () => openTypeScreen(node.data.screen)),
     items: (node.children || []).map(child => (
@@ -507,8 +507,9 @@ function typePanelItem(node) {
 
 function entityPanelItem(node) {
   const instanceIdValue = instanceId(node.data.item.entity);
-  const selected = selectedMenuKeys.value.has(`${node.data.item.type}:${instanceIdValue}`)
-    || selectedMenuKeys.value.has(typeMenuKey(node.data.item.type));
+  // Rows mute unless THEIR instance is open — opening the type screen
+  // never unmutes the whole list.
+  const selected = selectedMenuKeys.value.has(`${node.data.item.type}:${instanceIdValue}`);
   return {
     key: node.key,
     icon: instances.iconFor(node.data.item.type),

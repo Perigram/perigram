@@ -260,15 +260,17 @@ Discord-style operational shell:
   (declared children edges) nests types under their parents,
   manifest-backed types plus their ancestors render as panels (procedural
   labels only — the generated type key with a locale override over the
-  authored render label, plus the registry's render-policy icon as the
-  PanelMenu item icon; no entity contracts), and a type's home-section
+  authored render label; class names carry NO icon, so a type panel never
+  reads as one of its own rows — the glyph is the instance signal), and a
+  type's home-section
   instances hang beneath it as plain default rows carrying the type’s
   registry icon and the one title resolver label (`instanceLabelOf`).
-  Menu selection follows the active pane's selected tab (a type screen
-  selects its type panel; an entity/detail/page tab selects its entity
-  row plus the owning type panel; the chats page selects Chats): every
-  non-selected entry renders muted through PanelMenu's official per-item
-  `headerClass`/`class` channels, so default rendering stays untouched.
+  Menu selection follows the active pane's selected tab: opening an
+  instance un-mutes exactly its row (opening a type screen never unmutes
+  the list), the chats page un-mutes Chats; every other entry — instance
+  rows and communication — renders muted through PanelMenu's official
+  per-item `class` channel, while type headers keep full color
+  (categories stay legible), so default rendering stays untouched.
   Header and nested-group clicks are split from collapse toggling by one
   capture-phase handler: clicking the label opens the content without
   toggling the panel, the submenu chevron toggles without running the
