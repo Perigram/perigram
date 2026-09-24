@@ -387,9 +387,9 @@ describe('declaration wire legality', () => {
     expect(legality({ sourceType: 'ctsState', targetType: 'ctsField' })).toBeNull();
   });
 
-  it('class-to-class wires declare children; state-to-state wires are transitions', () => {
+  it('class-to-class wires declare children; state-to-state wires nest', () => {
     expect(legality({ sourceType: 'ctsClass', targetType: 'ctsClass' })).toBe('children');
-    expect(legality({ sourceType: 'ctsState', targetType: 'ctsState' })).toBe('transition');
+    expect(legality({ sourceType: 'ctsState', targetType: 'ctsState' })).toBe('nested');
   });
 });
 
@@ -416,6 +416,7 @@ describe('tree declaration compilation', () => {
       fieldNode('widget', 'width', { base: 'quantity', unit: 'mm' }),
       stateNode('widget', 'raw'),
       stateNode('widget', 'done'),
+      stateNode('widget', 'archived'),
       stateNode('gadget', 'new'),
       construct
     ];
@@ -424,10 +425,13 @@ describe('tree declaration compilation', () => {
       declares(nodes[3], widget, 'field'),
       declares(nodes[4], widget, 'state'),
       declares(nodes[5], widget, 'state'),
-      declares(nodes[6], gadget, 'state'),
+      declares(nodes[6], widget, 'state'),
+      declares(nodes[7], gadget, 'state'),
       // entry: the state wired into the construct IS the machine entry
       { id: 'entry1', source: nodes[4].id, target: 'mk', role: 'type', label: 'entry' },
-      { id: 't1', source: nodes[4].id, target: nodes[5].id, role: 'type', label: 'transition', data: { intent: 'finish' } },
+      // nesting: `archived` compiles under `done.archived` (nested
+      // machines); transitions come from transition nodes only
+      { id: 'n1', source: nodes[6].id, target: nodes[5].id, role: 'type', label: 'nested' },
       { id: 'c1', source: widget.id, target: gadget.id, role: 'type', label: 'children', data: { key: 'parts', onRemove: 'cascade' } }
     ];
     const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
@@ -437,8 +441,9 @@ describe('tree declaration compilation', () => {
       name: { base: 'string' },
       width: { base: 'quantity', unit: 'mm' }
     });
-    expect(compiled.widget.states.main).toEqual({ initial: 'raw', values: ['raw', 'done'], terminal: ['done'] });
-    expect(compiled.widget.transitions).toEqual([{ from: 'raw', to: 'done', intent: 'finish' }]);
+    expect(compiled.widget.states.main).toEqual({ initial: 'raw', values: ['raw', 'done', 'done.archived'], terminal: ['raw', 'done', 'done.archived'] });
+    // transitions are declared by transition nodes only — none wired here
+    expect(compiled.widget.transitions).toEqual([]);
     expect(compiled.widget.edges).toEqual({ children: { parts: { types: ['gadget'], onRemove: 'cascade' } } });
     expect(compiled.gadget.states.main.initial).toBe('new');
   });
@@ -692,12 +697,12 @@ describe('tree declaration compilation', () => {
     expect(ids.indexOf('t-child-1')).toBeLessThan(ids.indexOf('t-ref-parent-1'));
   });
 
-  it('transitions across types are diagnostics', () => {
+  it('nesting across types are diagnostics', () => {
     const a = stateNode('widget', 'raw');
     const b = stateNode('gadget', 'new');
     const { diagnostics } = compileTreeDeclarations(
       [classNode('widget'), classNode('gadget'), a, b],
-      [{ id: 't', source: a.id, target: b.id, role: 'type', label: 'transition', data: { intent: '' } }]
+      [{ id: 't', source: a.id, target: b.id, role: 'type', label: 'nested' }]
     );
     expect(diagnostics[0]).toContain('one declared type');
   });

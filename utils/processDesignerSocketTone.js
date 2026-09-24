@@ -1,5 +1,5 @@
 const TYPE_TONES = {
-  entity: 'entity',
+  entity: 'reference',
   entityRef: 'reference',
   entity_list: 'reference',
   block: 'structure',
@@ -45,16 +45,10 @@ export function processSocketColor(port = {}) {
   return `var(--ck-signal-${processSocketTone(port)})`;
 }
 
+// Every handle is FILLED — shape alone distinguishes kinds, no outline or
+// border tricks: data = filled circle, declaration = filled diamond,
+// event = filled rounded square (primary), status = filled rounded square.
 export function processSocketHandleStyle(port = {}) {
   const color = processSocketColor(port);
-  const kind = processSocketKind(port);
-  if (kind === 'declaration') {
-    // Hollow ring: the surface shows through, the tone draws the circle.
-    return { backgroundColor: 'var(--p-content-background)', borderColor: color };
-  }
-  if (kind === 'event') {
-    // Outline square in the primary accent.
-    return { backgroundColor: 'var(--p-content-background)', borderColor: color };
-  }
   return { backgroundColor: color, borderColor: color };
 }

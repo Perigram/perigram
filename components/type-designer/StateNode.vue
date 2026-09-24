@@ -18,8 +18,9 @@
 </template>
 
 <script setup>
-// State declaration node: wires into its type (declares); state-to-state
-// wires are transitions, intents ride the edge (SPEC §7).
+// State declaration node: wires into its type (declares); wired into
+// another state it nests under that parent status (`parent.child`,
+// nested machines). Transitions are declared by transition nodes only.
 import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';

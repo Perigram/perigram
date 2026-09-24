@@ -178,7 +178,10 @@ export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'cts
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
   if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
-  if (sourceType === 'ctsState' && targetType === 'ctsState') return 'transition';
+  // A state wired into a state declares its PARENT status (nested
+  // machines: the child compiles under `parent.child`). Transitions are
+  // defined by transition nodes only — never by declaration wires.
+  if (sourceType === 'ctsState' && targetType === 'ctsState') return 'nested';
   // A state wires into a status-bearing process node: it authors the
   // machine entry (on constructs) and the action's target state (on
   // status-mutating effects) — the wire IS the status value. The connect
@@ -205,8 +208,10 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
 
 // Tree declarations compile from the canvas vocabulary (SPEC §20/§21 one
 // tree): class nodes with wired field/state nodes become registry
-// declarations; state-to-state wires are transitions with intents;
-// class-to-class wires are children edges with onRemove. Pure over the
+// declarations; a state wired into a state nests under its parent
+// (`parent.child`, nested machines); class-to-class wires are children
+// edges with onRemove; transitions are declared by transition nodes
+// only. Pure over the
 // canvas arrays and the bound process-node records — the page supplies
 // nodes/edges/records, the server re-validates through the real registry.
 // Transition-node-declared target statuses merge into the class axis
@@ -257,13 +262,27 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
   const fieldsByType = new Map();
   const statesByType = new Map();
   const initialsByType = new Map();
-  const transitionsByType = new Map();
   const childrenByType = new Map();
+  const diagnostics = [];
+  // Nesting wires: a state wired into a state of the same type compiles
+  // under `parent.child` (nested machines). Transitions are declared by
+  // transition nodes only; declaration wires never carry them.
+  const parentValueOfStateNode = new Map();
+  for (const edge of edges) {
+    if (edge.role !== 'type') continue;
+    const source = nodeById.get(edge.source);
+    const target = nodeById.get(edge.target);
+    if (source?.type !== 'ctsState' || target?.type !== 'ctsState') continue;
+    if (source.data?.typeId && source.data.typeId !== target.data?.typeId) {
+      diagnostics.push(`nesting ${source.data?.value || '(state)'} under ${target.data?.value || '(state)'}: states of one declared type only`);
+      continue;
+    }
+    parentValueOfStateNode.set(source.id, String(target.data?.value || '').trim());
+  }
   // Transition-node target statuses per bound type (SPEC §20): the
   // records map is the draft's processNodes — the same vocabulary the
   // persisted twin (declarationsFromCtsRecords) reads.
   const targetsByType = transitionNodeStateTargets(records);
-  const diagnostics = [];
 
   for (const edge of edges) {
     if (edge.role !== 'type') continue;
@@ -304,32 +323,25 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
     if (source.type === 'ctsState' && target.type === 'ctsClass') {
       const map = statesByType.get(target.data.typeId) || new Map();
       const value = String(source.data.value || '').trim();
+      const parentValue = parentValueOfStateNode.get(source.id) || '';
       if (value) {
-        map.set(value, {
+        // A nested state compiles under `parent.child`; the machine
+        // entry is top-level, so nested states never carry `initial`.
+        const key = parentValue ? `${parentValue}.${value}` : value;
+        map.set(key, {
           severity: source.data.severity || null,
           icon: source.data.icon || null
         });
         // The state node's `initial` flag is the other entry spelling: a
         // marked state satisfies the machine entry without wiring a
         // state node into the create node's status socket.
-        if (source.data.initial === true) {
+        if (source.data.initial === true && !parentValue) {
           const initials = initialsByType.get(target.data.typeId) || [];
           if (!initials.includes(value)) initials.push(value);
           initialsByType.set(target.data.typeId, initials);
         }
       }
       statesByType.set(target.data.typeId, map);
-    }
-    if (source.type === 'ctsState' && target.type === 'ctsState') {
-      const typeId = source.data?.typeId;
-      if (!typeId || typeId !== target.data?.typeId) {
-        diagnostics.push(`transition ${source.data?.value || '(state)'} -> ${target.data?.value || '(state)'}: states of one declared type only`);
-        continue;
-      }
-      const list = transitionsByType.get(typeId) || [];
-      const intent = String(edge.data?.intent || '').trim();
-      list.push({ from: String(source.data.value || ''), to: String(target.data.value || ''), ...(intent ? { intent } : {}) });
-      transitionsByType.set(typeId, list);
     }
     if (source.type === 'ctsClass' && target.type === 'ctsClass' && source.id !== target.id) {
       const parentTypeId = source.data?.typeId;
@@ -423,7 +435,7 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
         // declared value — from-state resolves dynamically, SPEC §20).
         const merged = mergeTransitionNodeStates({
           values: [...states.keys()],
-          transitions: transitionsByType.get(typeId) || [],
+          transitions: [],
           targets
         });
         declaration.states = {
@@ -574,7 +586,7 @@ export function declarationNodePorts(node = {}, types = []) {
   }
   if (node.type === 'ctsState') {
     return {
-      inputSpecs: [{ id: 'in', label: 'transition from', role: 'data', type: processType('status'), access: 'item' }],
+      inputSpecs: [{ id: 'in', label: 'parent', role: 'data', type: processType('status'), access: 'item', plane: 'declaration' }],
       outputSpecs: [{ id: 'state', label: node.data?.value || 'state', role: 'data', type: processType('status'), access: 'item' }]
     };
   }
@@ -615,7 +627,7 @@ export function declarationNodePorts(node = {}, types = []) {
 // them (with intents). Pure over the canvas arrays — the class inspector
 // renders this and edits through the same nodes/edges, so panel authoring
 // and tree authoring are one data model.
-export function classLifecycleOf(nodes = [], edges = [], classNodeId = '') {
+export function classLifecycleOf(nodes = [], edges = [], classNodeId = '', records = {}) {
   const nodeById = new Map(nodes.map(node => [node.id, node]));
   const stateNodes = new Map();
   for (const edge of edges) {
@@ -624,21 +636,24 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '') {
     if (source?.type === 'ctsState') stateNodes.set(source.id, source);
   }
   const stateIds = new Set(stateNodes.keys());
-  const transitions = edges
+  // State-to-state wires declare nesting (parent status), not
+  // transitions — the machine's transitions come from transition nodes.
+  const nesting = edges
     .filter(edge => edge.role === 'type' && stateIds.has(edge.source) && stateIds.has(edge.target))
     .map(edge => ({
       edgeId: edge.id,
-      from: String(nodeById.get(edge.source)?.data?.value || ''),
-      to: String(nodeById.get(edge.target)?.data?.value || ''),
-      intent: String(edge.data?.intent || '')
+      child: String(nodeById.get(edge.source)?.data?.value || ''),
+      parent: String(nodeById.get(edge.target)?.data?.value || '')
     }));
-  // End states are derived: a state with no outgoing transition. The entry
-  // is authored by wiring a state into a construct of this class (an entry
+  // End states are derived: terminal is a property of the machine, and
+  // the machine's transitions come from transition nodes (their targets
+  // fan from every other declared value — SPEC §20). The entry is
+  // authored by wiring a state into a construct of this class (an entry
   // wire) — not by flagging the state.
-  const hasOutgoing = new Set(transitions.map(transition => transition.from));
-  const constructIds = new Set(edges
-    .filter(edge => edge.role === 'type' && edge.target === classNodeId && false)
-    .map(edge => edge.target));
+  const classTypeId = String(nodeById.get(classNodeId)?.data?.typeId || '');
+  const targets = (transitionNodeStateTargets(records).get(classTypeId) || [])
+    .map(target => String(target.value || ''));
+  const hasOutgoing = value => targets.some(target => target !== value);
   // constructs bound to this class: binds wires class -> processNode
   const boundConstructs = new Set(edges
     .filter(edge => edge.role === 'type' && (edge.label === 'type' || edge.label === 'binds') && edge.source === classNodeId)
@@ -652,9 +667,9 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '') {
     severity: node.data?.severity || null,
     icon: node.data?.icon || null,
     initial: entryNodeIds.has(node.id),
-    terminal: !hasOutgoing.has(node.id)
+    terminal: !hasOutgoing(String(node.data?.value || ''))
   }));
-  return { states, transitions };
+  return { states, nesting };
 }
 
 export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, previousBindings = {}, resolvers = {}, knownTypeIds = []) {

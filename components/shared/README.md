@@ -144,7 +144,7 @@ leaves, `md` type/class cards, `lg` operation cards), selection border,
 uniform padding. The card body is deliberately colorless chrome.
 `DesignerSocketHandle` is the one typed
 socket handle: shape encodes what the socket deals in (data circle,
-declaration ring, event square, status filled square) and color the
+declaration diamond, event rounded square, status rounded square) and color the
 payload family, both from the port spec through
 [`utils/processDesignerSocketTone.js`](../../utils/README.md), with the
 standard 12px handle geometry and the
