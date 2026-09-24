@@ -59,9 +59,10 @@
           />
         </nav>
 
-        <!-- Expanded navigation is a raw PanelMenu: the communication panel
-             first, then one panel per top-level explorer type. Default rows
-             carry the registry icons and title-resolver labels. -->
+        <!-- Expanded navigation is a raw PanelMenu: the chats and calls
+             entries first, then one panel per top-level explorer type.
+             Default rows carry the registry icons and title-resolver
+             labels. -->
         <div v-else class="min-h-0 flex-1 overflow-y-auto">
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
@@ -388,9 +389,10 @@ const visibleTypes = computed(() => {
   return visible;
 });
 
-// The PanelMenu model is the explorer tree plus the communication panel:
-// type nodes become panels (their registry icon is PanelMenu's item icon),
-// entity nodes become rows carrying the workspace item for the #item slot.
+// The PanelMenu model is the explorer tree plus the chats and calls
+// entries: type nodes become panels (their registry icon is PanelMenu's
+// item icon), entity nodes become rows carrying the workspace item for
+// the #item slot.
 const sidebarMenuModel = computed(() => [
   ...communicationPanelModels(),
   ...explorerNodes.value.map(node => typePanelItem(node))
