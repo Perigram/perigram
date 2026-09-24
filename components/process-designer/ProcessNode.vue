@@ -1,6 +1,6 @@
 <template>
   <DesignerNodeCard :selected="selected" size="lg" :stripe="accent.stripe" :title="data.purpose || data.summary || ''">
-    <div class="-mx-2.5 flex items-center gap-1.5 border-b border-content-border px-2.5 pb-1.5">
+    <div class="flex items-center gap-1.5">
       <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-supporting', accent.icon]">
         <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
       </span>
@@ -97,7 +97,7 @@
       </div>
     </div>
 
-    <div v-if="eventSocketRows.length" class="-mx-2.5 mt-2 border-t border-content-border pt-2">
+    <div v-if="eventSocketRows.length" class="-mx-2.5 mt-3">
       <label
         v-if="opKind.startsWith('effect.')"
         class="nodrag nowheel mb-1.5 flex min-h-7 cursor-pointer items-center justify-between gap-2 px-2.5"
@@ -341,7 +341,7 @@ function updateStatusInputDefault(id, value) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 border-b border-content-border py-1',
+    'relative min-w-0 py-1.5',
     side === 'left' ? 'pl-3' : 'pr-3 text-right'
   ];
 }
