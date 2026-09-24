@@ -59,19 +59,52 @@
           />
         </nav>
 
-        <!-- Expanded navigation is a raw PanelMenu: the communication panel
-             first, then one panel per top-level explorer type. Default rows
-             carry the registry icons and title-resolver labels. -->
-        <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
-          <PanelMenu
-            v-model:expanded-keys="expandedKeys"
-            :model="sidebarMenuModel"
-            multiple
-            class="w-full"
-            :aria-label="$t('nav.home')"
-            :pt="menuPt"
-          />
-        </div>
+        <!-- Communication is the original sidebar contract: the TieredMenu
+             (Chats with its unread badge; Calls opening a flyout with every
+             ringable conversation) and, below it, ongoing rooms as
+             persistent rows — nothing renders when no room is active. The
+             section layers above pane content: the Calls flyout submenu is
+             an absolutely positioned child that must overlay the pane
+             area. -->
+        <template v-else>
+          <nav
+            class="relative z-50 flex shrink-0 flex-col p-1.5"
+            :aria-label="$t('support.chatTitle')"
+          >
+            <CommunicationMenu @open-chats="openChatsPage" @start-call="startCallFromConversation" />
+            <div v-if="callsStore.activeRooms.length" class="mt-2 flex flex-col gap-1" data-active-calls>
+              <small class="px-2 text-muted text-supporting">{{ $t('call.activeRooms') }}</small>
+              <Button
+                v-for="room in callsStore.activeRooms"
+                :key="room.room"
+                text
+                severity="secondary"
+                size="small"
+                class="w-full !justify-start !gap-2"
+                :aria-label="$t('call.join')"
+                @click="openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
+              >
+                <i :class="callRoomIcon(room.kind)" class="shrink-0 text-primary" aria-hidden="true" />
+                <span class="min-w-0 flex-1 truncate text-label">{{ activeRoomLabel(room) }}</span>
+                <span class="shrink-0 text-muted text-supporting">{{ room.participants }}</span>
+              </Button>
+            </div>
+          </nav>
+
+          <!-- The explorer is a raw PanelMenu: one panel per top-level
+               explorer type. Default rows carry the registry icons and
+               title-resolver labels. -->
+          <div class="min-h-0 flex-1 overflow-y-auto p-1.5">
+            <PanelMenu
+              v-model:expanded-keys="expandedKeys"
+              :model="sidebarMenuModel"
+              multiple
+              class="w-full"
+              :aria-label="$t('nav.home')"
+              :pt="menuPt"
+            />
+          </div>
+        </template>
 
         <!-- Profile is its own bottom panel: the account trigger shows the
              user's actual name in the unwrapped state, the avatar alone in
@@ -162,6 +195,7 @@ import PanelMenu from 'primevue/panelmenu';
 import { useI18n } from 'vue-i18n';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
+import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
@@ -392,8 +426,12 @@ const visibleTypes = computed(() => {
 // panel: type nodes become panels (their registry icon is PanelMenu's
 // item icon), entity nodes become rows carrying the workspace item for
 // the #item slot.
+// The explorer model is pure type hierarchy: type nodes become panels
+// (their registry icon is PanelMenu's item icon), entity nodes become
+// rows carrying the workspace item for the #item slot. Communication
+// lives in its own sidebar section (the CommunicationMenu TieredMenu and
+// the ongoing-room rows), never as a panel here.
 const sidebarMenuModel = computed(() => [
-  communicationPanelModel(),
   ...explorerNodes.value.map(node => typePanelItem(node))
 ]);
 
@@ -420,33 +458,6 @@ function entityPanelItem(node) {
     command: () => openInstanceTab(node.data.item.type, instanceId(node.data.item.entity)),
     items: node.children?.length ? node.children.map(entityPanelItem) : undefined
   };
-}
-
-// One communication panel: the header opens the chats workspace page
-// (PanelMenu headers run their command and toggle), and active call
-// rooms live inside as flat rows. With no active rooms the panel has no
-// rows and nothing to expand — the entry is just the chats shortcut.
-// Ringing a conversation belongs to the chats surfaces' call actions.
-function communicationPanelModel() {
-  const rooms = activeRoomItems();
-  return {
-    key: 'communication',
-    label: t('support.chatTitle'),
-    icon: 'pi pi-comments',
-    command: () => openChatsPage(),
-    ...(rooms.length ? { items: rooms } : {})
-  };
-}
-
-// Ongoing rooms live as persistent flat rows in the communication
-// panel; only brand-new invites float (IncomingCalls).
-function activeRoomItems() {
-  return callsStore.activeRooms.map(room => ({
-    key: `call-room:${room.room}`,
-    icon: callRoomIcon(room.kind),
-    label: room.participants ? `${activeRoomLabel(room)} (${room.participants})` : activeRoomLabel(room),
-    command: () => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })
-  }));
 }
 
 const explorerNodes = computed(() => {
@@ -597,16 +608,6 @@ watch(explorerNodes, value => {
   expandedKeys.value = next;
 }, { immediate: true });
 
-// Active rooms must be visible the moment they exist: the communication
-// panel auto-expands on the empty-to-active transition (initial load
-// included). An explicit collapse while calls run stays respected until
-// the next call starts.
-watch(() => callsStore.activeRooms.length, (count, previous = 0) => {
-  if (count > 0 && previous === 0) {
-    expandedKeys.value = { ...expandedKeys.value, communication: true };
-  }
-}, { immediate: true });
-
 watch(workspaceStorageKey, key => {
   if (!key || typeof window === 'undefined') return;
   const state = loadHomeWorkspaceState(window.localStorage, key);
@@ -754,6 +755,29 @@ function openCallTab(room = '', meta = {}) {
   // Live call stages own their tab: navigating the workspace must not
   // unmount an active call, so calls always open as a new tab.
   selectPaneTab(activePane.value.id, room, { newTab: true });
+}
+
+// The CommunicationMenu's start-call action: ring the chosen
+// conversation and open the room as a call tab. Label comes from the
+// conversation summary the menu emitted; empty falls back to the call
+// page's own title in the tab strip.
+async function startCallFromConversation(conversation = {}) {
+  if (!conversation.conversationKey) return;
+  const label = conversation.conversationKind === 'group'
+    ? (conversation.groupName || '')
+    : (conversation?.participant?.identity?.name || '');
+  try {
+    const invite = await $fetch('/api/livekit/invite', {
+      method: 'POST',
+      body: { conversationKey: conversation.conversationKey }
+    });
+    openCallTab(invite.room, {
+      conversationKey: conversation.conversationKey,
+      label
+    });
+  } catch (error) {
+    console.error('Failed to start call:', error);
+  }
 }
 
 function openChatsPage() {
