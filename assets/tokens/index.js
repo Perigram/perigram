@@ -464,13 +464,21 @@ export const primeComponentTokens = {
             borderColor: 'transparent'
         },
         bodyCell: {
-            background: 'transparent'
+            background: 'transparent',
+            // Notion-style rows: internal cell dividers stay structurally
+            // present (1px) but transparent — a row surface reads as one
+            // whole card, never as bordered strips.
+            borderColor: 'transparent'
         },
         body: {
             background: 'transparent'
         },
         row: {
-            background: 'transparent'
+            // Every row paints as an instance surface (content
+            // background) — the row IS the card; surfaces that want gaps
+            // and rounding add them through the row-surface recipe
+            // (border-separated spacing + rounded rows).
+            background: 'var(--p-content-background)'
         },
         footer: {
             background: 'transparent',
@@ -509,13 +517,16 @@ export const primeComponentTokens = {
             borderColor: 'transparent'
         },
         bodyCell: {
-            background: 'transparent'
+            background: 'transparent',
+            // Same row-surface contract as datatable: transparent internal
+            // dividers, rows painted as content surfaces.
+            borderColor: 'transparent'
         },
         body: {
             background: 'transparent'
         },
         row: {
-            background: 'transparent'
+            background: 'var(--p-content-background)'
         },
         footer: {
             background: 'transparent',

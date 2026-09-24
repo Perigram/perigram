@@ -31,8 +31,8 @@
       />
     </div>
   </div>
-  <TableFrame v-if="template === 'table'">
-    <DataTable :value="visibleItems" size="small" responsive-layout="scroll">
+  <TableFrame v-if="template === 'table'" class="ck-collection-rows">
+    <DataTable :value="visibleItems" size="small" responsive-layout="scroll" :pt="tablePt" :row-class="rowSurfaceClass">
       <Column
         v-for="field in tableFields"
         :key="field.path"
@@ -145,6 +145,16 @@ import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import { normalizeFilter, instanceMatchesFilter } from '#shared/instance-filters/index.js';
+
+// The shared table row-surface recipe: rounded content rows (paint comes
+// from the preset) over a transparent table box with hairline separated
+// gaps and a muted transparent header band.
+const tablePt = {
+  root: { class: 'bg-transparent' },
+  headerRow: { class: 'bg-transparent text-muted' },
+  headerCell: { class: 'bg-transparent text-muted' }
+};
+const rowSurfaceClass = () => 'rounded-ui';
 import { useI18n } from 'vue-i18n';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
@@ -371,3 +381,12 @@ function entityTimestamp(entity = {}) {
   return Number.isNaN(value) ? 0 : value;
 }
 </script>
+
+<style scoped>
+/* Row-surface rhythm (layout-only declarations): the shared recipe —
+   separated cell borders leave a hairline gap between rounded rows. */
+.ck-collection-rows :deep(.p-datatable-table) {
+  border-collapse: separate;
+  border-spacing: 0 0.25rem;
+}
+</style>
