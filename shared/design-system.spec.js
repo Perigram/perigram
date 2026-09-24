@@ -314,9 +314,9 @@ describe('Design system manifest', () => {
           background: 'transparent', hoverBackground: 'transparent',
           selectedBackground: 'transparent', borderColor: 'transparent'
         },
-        bodyCell: { background: 'var(--p-content-background)', borderColor: 'transparent' },
+        bodyCell: { background: 'transparent', borderColor: 'transparent' },
         body: { background: 'transparent' },
-        row: { background: 'transparent' },
+        row: { background: 'var(--p-content-background)' },
         footer: { background: 'transparent', borderColor: 'transparent' },
         footerCell: { background: 'transparent', borderColor: 'transparent' },
         paginatorTop: { borderColor: 'transparent', borderWidth: '0 0 0 0' },
@@ -332,9 +332,9 @@ describe('Design system manifest', () => {
           background: 'transparent', hoverBackground: 'transparent',
           selectedBackground: 'transparent', borderColor: 'transparent'
         },
-        bodyCell: { background: 'var(--p-content-background)', borderColor: 'transparent' },
+        bodyCell: { background: 'transparent', borderColor: 'transparent' },
         body: { background: 'transparent' },
-        row: { background: 'transparent' },
+        row: { background: 'var(--p-content-background)' },
         footer: { background: 'transparent', borderColor: 'transparent' },
         footerCell: { background: 'transparent', borderColor: 'transparent' },
         paginatorTop: { borderColor: 'transparent', borderWidth: '0 0 0 0' },
@@ -729,7 +729,10 @@ describe('Design system manifest', () => {
 
     const offenders = [];
     for (const file of usedVueFiles()) {
-      const source = fs.readFileSync(file, 'utf8');
+      // Arbitrary values carry their own value, including CSS variable names
+      // that read like color utilities (`[clip-path:inset(0_round_var(--p-border-radius-md))]`
+      // is not a `border-radius` color). Strip bracket groups before the scan.
+      const source = fs.readFileSync(file, 'utf8').replace(/\[[^\]]*\]/g, '');
       for (const match of source.matchAll(/[\s"'`](text|bg|border|ring|outline|decoration|divide)-([a-z0-9][a-z0-9-]*)(?=[\s"'`/]|$)/g)) {
         const utility = match[1];
         const key = match[2];

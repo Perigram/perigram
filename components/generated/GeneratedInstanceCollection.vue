@@ -29,7 +29,8 @@
     </div>
   </div>
   <TableFrame v-if="template === 'table'" class="ck-collection-rows">
-    <DataTable :value="visibleItems" size="small" responsive-layout="scroll" :pt="tablePt">
+    <DataTable :value="visibleItems" size="small" responsive-layout="scroll" :pt="tablePt"
+    :row-class="rowSurfaceClass">
       <Column
         v-for="field in tableFields"
         :key="field.path"
@@ -157,14 +158,15 @@ import TableFrame from '~/components/shared/TableFrame.vue';
 // The shared table row-surface recipe: rounded content rows (paint comes
 // from the preset) over a transparent table box with hairline separated
 // gaps and a muted transparent header band.
+// The row surface is the preset's content background; its corners are
+// clipped here — a table row's own background is NOT clipped by its
+// radius (measured: the corner pixels stayed white), while clip-path
+// rounds them at the token radius.
+const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-md))]';
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },
-  headerCell: { class: 'bg-transparent text-muted' },
-  // The surface lives on the cells (the preset paints bodyCell); rounding
-  // the edge cells is what makes the row card's corners — a row's own
-  // background is not clipped by its radius.
-  bodyCell: { class: 'first:rounded-l-ui last:rounded-r-ui' }
+  headerCell: { class: 'bg-transparent text-muted' }
 };
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';

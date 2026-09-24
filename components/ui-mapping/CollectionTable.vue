@@ -14,6 +14,7 @@
     :sort-order="activeSortOrder"
     removable-sort
     :pt="tablePt"
+    :row-class="rowSurfaceClass"
     @sort-change="onSortChange"
   >
       <template #empty>
@@ -109,14 +110,15 @@ const { te, t } = useI18n();
 // the table box itself stays transparent. The header row recedes to a
 // muted transparent caption band. All classes ride PrimeVue's official
 // pt/rowClass channels with token-backed utilities; no scoped CSS.
+// The row surface is the preset's content background; its corners are
+// clipped here — a table row's own background is NOT clipped by its
+// radius (measured: the corner pixels stayed white), while clip-path
+// rounds them at the token radius.
+const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-md))]';
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },
-  headerCell: { class: 'bg-transparent text-muted' },
-  // The surface lives on the cells (the preset paints bodyCell); rounding
-  // the edge cells is what makes the row card's corners — a row's own
-  // background is not clipped by its radius.
-  bodyCell: { class: 'first:rounded-l-ui last:rounded-r-ui' }
+  headerCell: { class: 'bg-transparent text-muted' }
 };
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
