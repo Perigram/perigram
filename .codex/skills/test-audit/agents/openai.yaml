@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Audit"
+  short_description: "Test authoring gate and low-value test audit workflow"
+  default_prompt: "Use $test-audit when writing or reviewing tests, or to audit existing specs for low-value coverage."
