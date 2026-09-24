@@ -18,25 +18,17 @@ root-owned key files listed below.
 ## Workstation Access
 
 - SSH alias `zeus` (user `storage`) works over the LAN; no VPN needed.
-- The `forgejo` git remote uses a local SSH tunnel
-  (`127.0.0.1:13000` → `zeus:127.0.0.1:3000`); if pushes fail with
-  "Could not connect to server", the tunnel process died — re-establish it
-  before retrying. The `origin` remote uses the public HTTPS URL and stored
-  credentials instead.
+- The `origin` remote points at the Forgejo bare repo on zeus over SSH
+  (`r330:/srv/forgejo/git/repositories/sodalab/perigram.git`); pushes go
+  through the SSH alias, with no tunnel or stored HTTPS credentials.
 - Hosts without a LAN route (for example the staging host) are reached over
   the NetBird mesh; check `netbird status` for peer IPs.
-- Git credentials for Forgejo HTTPS live in `~/.git-credentials`
-  (`credential.helper store`); the GitHub remote authenticates through
-  `gh auth`.
 
 ## Git Remotes
 
 ```bash
 git remote -v
-# origin   https://forgejo.sodalab.pro/1suo/perigram.git   (public Forgejo)
-# forgejo  http://127.0.0.1:13000/sodalab/perigram.git     (SSH tunnel)
-# github   https://github.com/1suo/cutkit-demo.git         (mirror only)
-# lan      cutkit@192.168.0.106:...                        (legacy R240 bare repo)
+# origin   r330:/srv/forgejo/git/repositories/sodalab/perigram.git   (Forgejo on zeus)
 ```
 
 Deploy flow and secrets are documented in
@@ -55,13 +47,12 @@ files above. Do not put them in git, TODO notes, Obsidian, or chat transcripts.
 
 ## Legacy: R240 / WireGuard
 
-The previous topology ran everything on R240 (`192.168.0.106`, WireGuard
-endpoint `78.30.216.48:51820`, interface `cutkit-r330`, app on `:7100`,
-Forgejo on `:3002`, Swarm service `cutkit_app`, webhook autodeploy). None of
-it is part of the current deploy path; the machine is routinely powered off
-and only reachable over NetBird (`10.77.132.108`) when it is on. The
-`/etc/wireguard/cutkit-r330.conf` and R240 SSH material above belong to this
-retired path.
+The previous topology ran everything on R240 over a WireGuard VPN (app on
+`:7100`, Forgejo on `:3002`, Swarm service `cutkit_app`, webhook autodeploy).
+That VPN tunnel was retired and removed in 2026-09-18, and none of the old
+path is part of the current deploy. R240 is reachable over NetBird
+(`10.77.132.108`) when it is on. The legacy R240 SSH and WireGuard material
+listed above belongs to this retired path.
 
 ## MongoDB Note
 
