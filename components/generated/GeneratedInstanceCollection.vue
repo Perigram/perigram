@@ -37,8 +37,8 @@
       />
     </div>
   </div>
-  <TableFrame v-if="template === 'table'">
-    <DataTable :value="visibleItems" size="small" responsive-layout="scroll">
+  <TableFrame v-if="template === 'table'" class="ck-collection-rows">
+    <DataTable :value="visibleItems" size="small" responsive-layout="scroll" :pt="tablePt" :row-class="rowSurfaceClass">
       <Column
         v-for="field in tableFields"
         :key="field.path"
@@ -161,6 +161,16 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
+
+// The shared table row-surface recipe: rounded content rows (paint comes
+// from the preset) over a transparent table box with hairline separated
+// gaps and a muted transparent header band.
+const tablePt = {
+  root: { class: 'bg-transparent' },
+  headerRow: { class: 'bg-transparent text-muted' },
+  headerCell: { class: 'bg-transparent text-muted' }
+};
+const rowSurfaceClass = () => 'rounded-ui';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { instanceEditorActionFor, instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
@@ -397,3 +407,13 @@ function entityTimestamp(entity = {}) {
   return Number.isNaN(value) ? 0 : value;
 }
 </script>
+
+
+<style scoped>
+/* Row-surface rhythm (layout-only declarations): the shared recipe —
+   separated cell borders leave a hairline gap between rounded rows. */
+.ck-collection-rows :deep(.p-datatable-table) {
+  border-collapse: separate;
+  border-spacing: 0 0.25rem;
+}
+</style>

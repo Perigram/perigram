@@ -69,7 +69,9 @@ const tablePt = {
   headerRow: { class: 'bg-transparent text-muted' },
   headerCell: { class: 'bg-transparent text-muted' }
 };
-const rowSurfaceClass = () => 'bg-content rounded-ui';
+// Row paint comes from the preset (treetable.row.background = content
+// surface); the recipe adds rounding here.
+const rowSurfaceClass = () => 'rounded-ui';
 
 const { te, t } = useI18n();
 

@@ -115,7 +115,9 @@ const tablePt = {
   headerRow: { class: 'bg-transparent text-muted' },
   headerCell: { class: 'bg-transparent text-muted' }
 };
-const rowSurfaceClass = () => 'bg-content rounded-ui';
+// Row paint comes from the preset (datatable.row.background = content
+// surface); the recipe adds rounding here — one owner per concern.
+const rowSurfaceClass = () => 'rounded-ui';
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);
@@ -135,7 +137,7 @@ const sortByStatus = item => String(item.states?.main || '');
 // controls contract (fields no instance fills never become columns),
 // bounded by the richness-scaled column budget. Quantity values sort by
 // their numeric `value`. Filtering belongs to the region toolbar
-// (CollectionToolbar over the same contract), not the table.
+// (the region header's search/facet toggles over the same contract), not the table.
 const scalarFields = computed(() => resolvedControls.value.sortKeys
   .slice(0, tableColumnCount(props.type))
   .map(key => {

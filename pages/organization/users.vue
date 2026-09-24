@@ -6,8 +6,8 @@
         <Button :label="$t('common.create')" icon="pi pi-user-plus" :disabled="!roleOptions.length" @click="showCreateDialog = true" />
     </template>
 
-    <TableFrame>
-    <DataTable :value="users" :loading="loading" stripedRows>
+    <TableFrame class="ck-collection-rows">
+    <DataTable :value="users" :loading="loading" :pt="tablePt" :row-class="rowSurfaceClass">
       <Column field="identity.name" :header="$t('profile.name')" sortable />
       <Column field="data.email" :header="$t('profile.email')" sortable />
       <Column :header="$t('organization.processRoles')">
@@ -30,8 +30,8 @@
 
     <div v-if="invitations.length > 0" class="flex flex-col gap-4">
         <ActionToolbar :title="$t('auth.activeInvitations')" />
-        <TableFrame>
-        <DataTable :value="invitations">
+        <TableFrame class="ck-collection-rows">
+        <DataTable :value="invitations" :pt="tablePt" :row-class="rowSurfaceClass">
             <Column :header="$t('auth.invitationLink')">
                 <template #body="{ data }">
                     <div class="flex items-center gap-2">
@@ -72,8 +72,8 @@
     <!-- Pending Members Section -->
     <div v-if="pendingUsers.length > 0" class="flex flex-col gap-4">
         <ActionToolbar :title="$t('auth.joinRequests')" />
-        <TableFrame>
-        <DataTable :value="pendingUsers">
+        <TableFrame class="ck-collection-rows">
+        <DataTable :value="pendingUsers" :pt="tablePt" :row-class="rowSurfaceClass">
             <Column field="identity.name" :header="$t('profile.name')" sortable />
             <Column field="data.email" :header="$t('profile.email')" />
             <Column :header="$t('common.actions.title')" class="text-right">
@@ -214,6 +214,17 @@ import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import DataTable from 'primevue/datatable';
+
+// The shared table row-surface recipe: rounded content rows (paint comes
+// from the preset) over a transparent table box with hairline separated
+// gaps and a muted transparent header band; row stripes are gone — the
+// row IS the surface.
+const tablePt = {
+  root: { class: 'bg-transparent' },
+  headerRow: { class: 'bg-transparent text-muted' },
+  headerCell: { class: 'bg-transparent text-muted' }
+};
+const rowSurfaceClass = () => 'rounded-ui';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -527,3 +538,12 @@ onMounted(() => {
   loadUsers();
 });
 </script>
+
+<style scoped>
+/* Row-surface rhythm (layout-only declarations): the shared recipe —
+   separated cell borders leave a hairline gap between rounded rows. */
+.ck-collection-rows :deep(.p-datatable-table) {
+  border-collapse: separate;
+  border-spacing: 0 0.25rem;
+}
+</style>

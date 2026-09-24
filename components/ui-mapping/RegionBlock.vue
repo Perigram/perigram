@@ -7,26 +7,53 @@
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
       <div v-if="node.actions.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
-        <CollectionToolbar
-          v-if="searchOpen || filtersOpen"
-          v-model:search="search"
-          v-model:facets="facets"
-          v-model:filter="builderFilter"
-          :node="node"
-          :builder-fields="builderFields"
-          :search-open="searchOpen"
-          :filters-open="filtersOpen"
-        />
+        <!-- Search expands IN PLACE: the icon button becomes an icon field
+             at the same position; the icon or Esc collapses it back (an
+             empty blur collapses too). -->
+        <IconField v-if="searchOpen">
+          <InputIcon class="pi pi-search cursor-pointer" @click="searchOpen = false" />
+          <InputText
+            v-model="search"
+            size="small"
+            class="max-w-48"
+            :placeholder="$t('uiMapping.searchPlaceholder')"
+            :aria-label="$t('uiMapping.searchPlaceholder')"
+            @keydown.esc="searchOpen = false"
+            @blur="search || (searchOpen = false)"
+          />
+        </IconField>
         <Button
-          v-if="searchToggleAvailable"
+          v-else-if="searchToggleAvailable"
           icon="pi pi-search"
           text
           rounded
           size="small"
-          :severity="searchOpen ? undefined : 'secondary'"
+          severity="secondary"
           :aria-label="$t('uiMapping.searchPlaceholder')"
-          @click="searchOpen = !searchOpen"
+          @click="searchOpen = true"
         />
+        <!-- Facets unfold AT their button: the selects render directly
+             before the toggle, which stays as the collapse anchor. -->
+        <template v-if="filtersOpen">
+          <InstanceMultiSelect
+            v-for="facet in visibleFacets"
+            :key="facet.name"
+            :model-value="facets[facet.name] ?? []"
+            :options="facetOptions(facet)"
+            option-label="label"
+            option-value="value"
+            :placeholder="facet.label"
+            size="small"
+            class="max-w-44"
+            :aria-label="facet.label"
+            @update:model-value="value => setFacet(facet.name, value)"
+          />
+          <FilterBuilder
+            :model-value="builderFilter"
+            :fields="builderFields"
+            @update:model-value="value => (builderFilter = value)"
+          />
+        </template>
         <Button
           v-if="facetsToggleAvailable"
           icon="pi pi-filter"
@@ -119,26 +146,53 @@
     </template>
     <template v-if="node.actions.length || searchToggleAvailable || facetsToggleAvailable" #icons>
       <div class="flex min-w-0 flex-wrap items-center justify-end gap-2">
-        <CollectionToolbar
-          v-if="searchOpen || filtersOpen"
-          v-model:search="search"
-          v-model:facets="facets"
-          v-model:filter="builderFilter"
-          :node="node"
-          :builder-fields="builderFields"
-          :search-open="searchOpen"
-          :filters-open="filtersOpen"
-        />
+        <!-- Search expands IN PLACE: the icon button becomes an icon field
+             at the same position; the icon or Esc collapses it back (an
+             empty blur collapses too). -->
+        <IconField v-if="searchOpen">
+          <InputIcon class="pi pi-search cursor-pointer" @click="searchOpen = false" />
+          <InputText
+            v-model="search"
+            size="small"
+            class="max-w-48"
+            :placeholder="$t('uiMapping.searchPlaceholder')"
+            :aria-label="$t('uiMapping.searchPlaceholder')"
+            @keydown.esc="searchOpen = false"
+            @blur="search || (searchOpen = false)"
+          />
+        </IconField>
         <Button
-          v-if="searchToggleAvailable"
+          v-else-if="searchToggleAvailable"
           icon="pi pi-search"
           text
           rounded
           size="small"
-          :severity="searchOpen ? undefined : 'secondary'"
+          severity="secondary"
           :aria-label="$t('uiMapping.searchPlaceholder')"
-          @click="searchOpen = !searchOpen"
+          @click="searchOpen = true"
         />
+        <!-- Facets unfold AT their button: the selects render directly
+             before the toggle, which stays as the collapse anchor. -->
+        <template v-if="filtersOpen">
+          <InstanceMultiSelect
+            v-for="facet in visibleFacets"
+            :key="facet.name"
+            :model-value="facets[facet.name] ?? []"
+            :options="facetOptions(facet)"
+            option-label="label"
+            option-value="value"
+            :placeholder="facet.label"
+            size="small"
+            class="max-w-44"
+            :aria-label="facet.label"
+            @update:model-value="value => setFacet(facet.name, value)"
+          />
+          <FilterBuilder
+            :model-value="builderFilter"
+            :fields="builderFields"
+            @update:model-value="value => (builderFilter = value)"
+          />
+        </template>
         <Button
           v-if="facetsToggleAvailable"
           icon="pi pi-filter"
@@ -351,12 +405,13 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Button from 'primevue/button';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+import InputText from 'primevue/inputtext';
 import {
   LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor,
   localizedLabel, typeLabelKey, instanceMatchesToolbar
 } from '#shared/ui-mapping/index.js';
-import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
-import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
@@ -366,8 +421,9 @@ import TimelineCollection from './TimelineCollection.vue';
 import StatGrid from './StatGrid.vue';
 import ActionButton from './ActionButton.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
+import InstanceMultiSelect from '../shared/InstanceMultiSelect.vue';
+import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
-import CollectionToolbar from './CollectionToolbar.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 
 const props = defineProps({
@@ -499,6 +555,19 @@ watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter))
 const activeFacetCount = computed(() => Object.values(facets)
   .filter(value => Array.isArray(value) && value.length).length
   + (builderFilter.value ? 1 : 0));
+// The facet controls materialize the same list-controls contract the old
+// toolbar owned: multi-value enum facets over the values actually present,
+// start-case labels, value sets per facet.
+const visibleFacets = computed(() => (props.node.listControls?.facets || [])
+  .filter(facet => facet.values.length > 1));
+const facetOptions = facet => facet.values.map(value => ({
+  label: String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase()),
+  value
+}));
+function setFacet(name, value) {
+  if (!Array.isArray(value) || !value.length) delete facets[name];
+  else facets[name] = value;
+}
 watch(() => props.node.id, () => {
   search.value = '';
   searchOpen.value = false;
