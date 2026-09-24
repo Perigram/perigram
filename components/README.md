@@ -684,7 +684,23 @@ so a surface that needs its own flex direction to switch (for example the
 chats two-pane split) declares the container on an outer wrapper and keeps
 the direction rule on the inner layout node.
 
-Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. Muted text is the `text-muted` class backed by the `muted` color entry (`colors.muted` → `var(--p-text-muted-color)`); the entry must live at `colors.muted` because Tailwind parses `text-muted` as the `text-` utility plus the `muted` color path — a top-level `text-muted` key can never generate the class. PrimeVue documentation names like `text-muted-color`, `text-color`, or `bg-surface-ground` are token names, not classes in this app — they compile to no CSS, silently fall back to inherited color, and `shared/design-system.spec.js` rejects them. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Interactive rows and single-select lists use PrimeVue primitives — the chats inbox and feature pickers are `Listbox` with rich `#option` templates, link-style text actions are `Button` with the `link` variant — instead of hand-rolled `<button>` rows. App scrollbars are themed globally in `assets/css/main.css` from
+Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. Muted text is the `text-muted` class backed by the `muted` color entry (`colors.muted` → `var(--p-text-muted-color)`); the entry must live at `colors.muted` because Tailwind parses `text-muted` as the `text-` utility plus the `muted` color path — a top-level `text-muted` key can never generate the class. PrimeVue documentation names like `text-muted-color`, `text-color`, or `bg-surface-ground` are token names, not classes in this app — they compile to no CSS, silently fall back to inherited color, and `shared/design-system.spec.js` rejects them. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Interactive rows and single-select lists use PrimeVue primitives — the chats inbox and feature pickers are `Listbox` with rich `#option` templates, link-style text actions are `Button` with the `link` variant — instead of hand-rolled `<button>` rows.
+
+**Surface ladder** (`assets/tokens/index.js` owns the values; this is the
+contract): `canvas` (`--ck-page-background`, zinc one step below content)
+is the single page and app-shell ground; `subtle`
+(`--ck-subtle-background`, one step above canvas) is the inset level for
+wells, preview bands, and inline reference chips; `content`
+(`--p-content-background`, the lightest/darkest step) is the INSTANCE
+SURFACE — cards, generated table/tree rows, and record sheets always sit
+on it, one step above the canvas, so instance-bearing surfaces never
+blend into the page; overlays (dialogs, popovers) stay PrimeVue's
+highest level. Structure reads through borders and `subtle` insets,
+elevation through overlay shadows — never through painting the canvas.
+Flattening the page onto the content surface is a contract violation:
+instances lose their step and every card goes invisible.
+
+App scrollbars are themed globally in `assets/css/main.css` from
 `--ck-scrollbar-thumb` / `--ck-scrollbar-thumb-hover` (text-color mixes that
 follow each scheme): a floating rounded pill thumb over a fully transparent
 track with no arrow buttons; only the IDE tab strips hide them entirely.
