@@ -35,7 +35,7 @@ const displayEvents = computed(() => {
 });
 const fallbackEvents = computed(() => {
   const status = props.entity?.status || props.entity?.origin;
-  if (!states) return [];
+  if (!status) return [];
   return [{
     toState: getPrimaryState(status),
     timestamp: status.timestamp || status.createdAt || props.entity?.updatedAt || props.entity?.createdAt || new Date(),

@@ -108,6 +108,7 @@ export function compileClientBundle(registry, organizationId = null) {
           axisName, Object.freeze({ ...axis, render: policy.states[axisName] })
         ]))),
         payload: type.payload,
+        previewSource: type.previewSource || null,
         edges: type.edges,
         transitions: type.transitions,
         operators: type.operators,

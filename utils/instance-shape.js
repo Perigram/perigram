@@ -55,6 +55,14 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     lineage[key] = typeof value === 'object' ? value : { id: String(value) };
   }
   const primary = dto.states?.main;
+  // Declared preview field (type.previewSource — the authored
+  // previewSource group row): the value reads straight off the wire DTO,
+  // so generated previews render the declared channel (for example
+  // cassette geometry) even while the payload is absent.
+  const previewSourcePath = typeRecord.previewSource?.path;
+  const previewSourceValue = previewSourcePath
+    ? (readBlockPath(dto, previewSourcePath.split('.')) ?? null)
+    : null;
   return {
     id: String(dto._id || dto.identity?.uid || ''),
     type: typeRecord.id || '',
@@ -65,6 +73,7 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     states: primary ? { main: primary } : {},
     // File payload reference (wire `attachments.primary`): kept verbatim
     // so preview surfaces resolve the payload download URL.
-    payload: dto.attachments?.primary || null
+    payload: dto.attachments?.primary || null,
+    previewSource: previewSourceValue
   };
 }

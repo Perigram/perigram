@@ -8,9 +8,9 @@
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
           <span class="text-supporting text-muted truncate">{{ type?.name }} · {{ instance.id }}</span>
         </div>
-        <!-- One status surface per header: the lifecycle strip carries the
-             current state when the type declares a state axis; the badge
-             covers stateless types only. -->
+        <!-- Stateless types badge their status beside the title; stateful
+             types carry the state surface beneath the header row (current
+             state tag + audit popover), never a linear lifecycle strip. -->
         <Tag v-if="status && !type?.states?.main" :value="status.label" :severity="status.severity" />
       </div>
       <div :class="LAYOUT.row">
@@ -30,6 +30,17 @@
           :render="type?.render"
           @run="$emit('run', action)"
         />
+        <!-- Available state-machine transitions render as header actions:
+             the state axis is a tree, never a linear strip, so the machine
+             surface IS its runnable edges. Runtime transitions dispatch
+             through the dedicated transition channel. -->
+        <ActionButton
+          v-for="action in transitionActions"
+          :key="action.id || action.status?.to"
+          :action="action"
+          :render="type?.render"
+          @run="$emit('transition', { to: action.status.to, intent: action.intent || null, region: action.region || null })"
+        />
         <Button
           v-if="overflowActions.length"
           icon="pi pi-ellipsis-v"
@@ -42,14 +53,24 @@
         <Menu ref="overflowMenu" :model="overflowMenuItems" popup />
       </div>
     </div>
-    <StateStrip
-      v-if="type?.states?.main"
-      :type="type"
-      :instance="instance"
-      :actions="actions"
-      @run="$emit('run', $event)"
-      @transition="$emit('transition', $event)"
-    />
+    <!-- One status surface per header: stateful types carry the current
+         state tag with its history popover (status_events audit trail);
+         stateless types keep the status tag only. -->
+    <div v-if="type?.states?.main" :class="[LAYOUT.row, 'mt-1']">
+      <Tag :value="status?.label" :severity="status?.severity" />
+      <Button
+        icon="pi pi-clock"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('uiMapping.stateHistory')"
+        @click="event => historyPopover?.toggle(event)"
+      />
+      <Popover ref="historyPopover">
+        <StateHistory :entity="instance" :type-id="type.id" :target-id="instance.id" compact />
+      </Popover>
+    </div>
   </div>
 </template>
 
@@ -60,13 +81,14 @@ import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
+import Popover from 'primevue/popover';
 import {
   LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, HEADER_ACTIONS_INLINE, titleFor, iconFor,
   resolveActionButton, actionLabelKey, localizedLabel
 } from '#shared/ui-mapping/index.js';
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
-import StateStrip from './StateStrip.vue';
+import StateHistory from '../shared/state/StateHistory.vue';
 
 const spacing = inject('uiMappingSpacing', null);
 const { te, t } = useI18n();
@@ -105,12 +127,18 @@ const trail = computed(() => {
 // buttons render beside the title; the rest join one popup overflow menu
 // (an ellipsis that reserves no layout space for its items) with the
 // same localized labels and resolved icons ActionButton renders.
-const inlineActions = computed(() => props.actions
-  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
-  .slice(0, HEADER_ACTIONS_INLINE));
-const overflowActions = computed(() => props.actions
-  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
+// Runtime state transitions never join the overflow menu: they render as
+// dedicated transition buttons after the inline budget (they dispatch
+// through the transition channel, which the generic run menu items do
+// not carry).
+const manualActions = computed(() => props.actions
+  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime));
+const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS_INLINE));
+const overflowActions = computed(() => manualActions.value
   .filter(action => !inlineActions.value.includes(action)));
+const transitionActions = computed(() => props.actions
+  .filter(action => action?.__runtime && action?.status?.to));
+const historyPopover = ref(null);
 const overflowMenu = ref(null);
 const overflowMenuItems = computed(() => overflowActions.value.map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render });
@@ -120,6 +148,10 @@ const overflowMenuItems = computed(() => overflowActions.value.map(action => {
     command: () => emit('run', action)
   };
 }));
+// One status surface: the current state as a tag colored by the declared
+// render policy — stateless types render theirs beside the title,
+// stateful types beneath it with the audit-trail clock; the tag and the
+// severity come from one computed pair.
 const status = computed(() => {
   const value = props.instance.states?.main;
   if (!value || !props.type?.states?.main) return null;

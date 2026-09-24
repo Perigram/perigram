@@ -4,7 +4,7 @@
       <div class="h-full px-2 pb-2">
         <Card v-if="slotProps.data" :class="[LAYOUT.clip, 'h-full w-full']">
           <template #header>
-            <PreviewBox :type="type" :payload="slotProps.data.payload" :seed="slotProps.data.id" />
+            <PreviewBox :type="type" :payload="slotProps.data.payload" :preview-source="slotProps.data.previewSource" :seed="slotProps.data.id" />
           </template>
           <template #subtitle>
             <span :class="LAYOUT.nameClamp">{{ identityOf(slotProps.data) }}</span>

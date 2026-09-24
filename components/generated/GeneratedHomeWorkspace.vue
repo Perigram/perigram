@@ -64,7 +64,8 @@
              suggestions flyout and carries active call rooms as rows only
              while calls run — then one panel per top-level explorer
              type. Default rows carry the registry icons and
-             title-resolver labels. -->
+             title-resolver labels. The capture click handler splits header
+             and row clicks from collapse toggling (chevron-only). -->
         <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
@@ -73,6 +74,7 @@
             class="w-full"
             :aria-label="$t('nav.home')"
             :pt="menuPt"
+            @click.capture="onMenuClickCapture"
           />
           <!-- The Calls entry toggles this popup flyout (ported to the
                body, anchored at the entry): every ringable conversation. -->
@@ -409,14 +411,94 @@ const sidebarMenuModel = computed(() => [
   ...explorerNodes.value.map(node => typePanelItem(node))
 ]);
 
+// Menu selection follows the active pane's selected tab: a type screen
+// selects its type panel, an instance/detail/page tab selects its entity
+// row plus the owning type panel, and the chats page selects Chats. Every
+// other entry renders muted (per-item classes through PanelMenu's official
+// `headerClass`/`class` item channels — default rendering untouched).
+const selectedMenuKeys = computed(() => {
+  const item = workspaceItems.value.find(candidate => candidate.key === activePane.value?.selectionKey)
+    || null;
+  if (!item) return new Set();
+  const keys = new Set();
+  const typeId = item.typeId || item.type || null;
+  if (item.kind === 'screen' && !item.instanceId && typeId) {
+    keys.add(typeMenuKey(typeId));
+  } else if (item.kind === 'page' && item.pageId === 'chats') {
+    keys.add('communication:chats');
+  } else if (typeId) {
+    const instanceIdValue = item.instanceId || instanceId(item.entity);
+    if (instanceIdValue) keys.add(`${typeId}:${instanceIdValue}`);
+    keys.add(typeMenuKey(typeId));
+  }
+  return keys;
+});
+
+// Click/collapse split: a header or nested-group row click opens its
+// content WITHOUT toggling the panel; the submenu chevron toggles WITHOUT
+// running the open command. Leaf rows keep the default behavior (their
+// whole click is the command). The split rides one capture-phase handler
+// plus a command guard — PrimeVue's onHeaderClick runs command and toggle
+// together, so non-chevron clicks stop propagation here and invoke the
+// open command directly, while chevron clicks let the default handler run
+// with the command suppressed once.
+const menuOpenTargets = new Map();
+const suppressNextMenuCommand = ref(false);
+
+function menuCommand(key, open) {
+  menuOpenTargets.set(key, open);
+  return (...args) => {
+    if (suppressNextMenuCommand.value) {
+      suppressNextMenuCommand.value = false;
+      return;
+    }
+    open(...args);
+  };
+}
+
+function menuKeyForElement(element) {
+  // Root headers key by model index (`${rootId}_${index}_header`); submenu
+  // rows key by the item key suffix (`${panelId}_${key}`). Key suffixes
+  // carry colons, so they cannot collide with the numeric id segments.
+  if (element.classList.contains('p-panelmenu-header')) {
+    const panels = [...element.closest('.p-panelmenu')?.querySelectorAll(':scope > .p-panelmenu-panel') || []];
+    const index = panels.indexOf(element.closest('.p-panelmenu-panel'));
+    return index >= 0 ? (sidebarMenuModel.value[index]?.key || null) : null;
+  }
+  const id = element.id || '';
+  return [...menuOpenTargets.keys()].find(key => id.endsWith(`_${key}`)) || null;
+}
+
+function onMenuClickCapture(event) {
+  const onChevron = Boolean(event.target.closest('.p-submenu-icon'));
+  const header = event.target.closest('.p-panelmenu-header');
+  const row = event.target.closest('.p-panelmenu-item');
+  const element = header || row;
+  if (!element) return;
+  const key = menuKeyForElement(element);
+  if (!key) return;
+  const hasChildren = Boolean(element.querySelector('.p-submenu-icon'));
+  if (!hasChildren) return; // leaf entry: the whole click is the command
+  if (onChevron) {
+    suppressNextMenuCommand.value = true;
+    setTimeout(() => { suppressNextMenuCommand.value = false; }, 0);
+    return;
+  }
+  event.stopPropagation();
+  menuOpenTargets.get(key)?.({ originalEvent: event });
+}
+
 function typePanelItem(node) {
+  const selected = selectedMenuKeys.value.has(node.key);
   return {
     key: node.key,
     id: `home-type-${node.data.typeId}`,
     label: node.label,
     icon: node.icon,
+    headerClass: selected ? '' : 'text-muted',
+    class: selected ? '' : 'text-muted',
     typeId: node.data.typeId,
-    command: () => openTypeScreen(node.data.screen),
+    command: menuCommand(node.key, () => openTypeScreen(node.data.screen)),
     items: (node.children || []).map(child => (
       child.data?.typeId ? typePanelItem(child) : entityPanelItem(child)
     ))
@@ -424,12 +506,16 @@ function typePanelItem(node) {
 }
 
 function entityPanelItem(node) {
+  const instanceIdValue = instanceId(node.data.item.entity);
+  const selected = selectedMenuKeys.value.has(`${node.data.item.type}:${instanceIdValue}`)
+    || selectedMenuKeys.value.has(typeMenuKey(node.data.item.type));
   return {
     key: node.key,
     icon: instances.iconFor(node.data.item.type),
-    label: instanceLabelOf(node.data.item.type, instanceId(node.data.item.entity)),
+    label: instanceLabelOf(node.data.item.type, instanceIdValue),
+    class: selected ? '' : 'text-muted',
     workspaceItem: node.data.item,
-    command: () => openInstanceTab(node.data.item.type, instanceId(node.data.item.entity)),
+    command: menuCommand(node.key, () => openInstanceTab(node.data.item.type, instanceIdValue)),
     items: node.children?.length ? node.children.map(entityPanelItem) : undefined
   };
 }
@@ -445,18 +531,21 @@ function entityPanelItem(node) {
 // carries active rooms as its rows — only while rooms exist.
 function communicationPanelModels() {
   const rooms = activeRoomItems();
+  const chatsSelected = selectedMenuKeys.value.has('communication:chats');
   return [
     {
       key: 'communication:chats',
       label: t('support.chatTitle'),
       icon: 'pi pi-comments',
-      command: () => openChatsPage()
+      headerClass: chatsSelected ? '' : 'text-muted',
+      command: menuCommand('communication:chats', () => openChatsPage())
     },
     {
       key: 'communication:calls',
       label: t('call.calls'),
       icon: 'pi pi-phone',
-      command: ({ originalEvent }) => callsFlyout.value?.toggle(originalEvent),
+      headerClass: 'text-muted',
+      command: menuCommand('communication:calls', ({ originalEvent }) => callsFlyout.value?.toggle(originalEvent)),
       ...(rooms.length ? { items: rooms } : {})
     }
   ];

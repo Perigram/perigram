@@ -30,7 +30,7 @@
       <ResponsiveGrid variant="dense" responsive-context="container">
         <Card v-for="instance in slotProps.items" :key="instance.id" :class="[LAYOUT.clip, 'w-full']">
           <template #header>
-            <PreviewBox :type="type" :payload="instance.payload" :seed="instance.id" />
+            <PreviewBox :type="type" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
           </template>
           <template #title>
             <div :class="LAYOUT.rowBetween">
