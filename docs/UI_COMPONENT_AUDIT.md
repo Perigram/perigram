@@ -274,7 +274,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-objecteditor-vue` | `components/ui-mapping/ObjectEditor.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-previewbox-vue` | `components/ui-mapping/PreviewBox.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-quantityinput-vue` | `components/ui-mapping/QuantityInput.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | remove:important-override (1) |
 | `ui-components-ui-mapping-regiondatastate-vue` | `components/ui-mapping/RegionDataState.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statestrip-vue` | `components/ui-mapping/StateStrip.vue` | derived usage | remove:important-override (1); compliant:scoped-layout |
 | `ui-components-ui-mapping-statgrid-vue` | `components/ui-mapping/StatGrid.vue` | derived usage | compliant |
