@@ -119,52 +119,26 @@ export function useProcessDesignerNodeRecords({
     return designer.entityOptions[0]?.value || '';
   }
 
-  function createService(id) {
-    return {
-      id,
-      label: id,
-      serviceType: '',
-      commandId: '',
-      inputs: [],
-      outputs: [],
-      access: { runPrincipals: [], viewPrincipals: [] },
-      billing: { mode: 'none', tokenCost: 0, meterKey: '' }
-    };
-  }
-
-  function createSocket(id, direction = 'outbound') {
-    return {
-      id,
-      label: id,
-      direction,
-      typeId: '',
-      projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
-      receiverLifecycle: { mode: 'defaultCreated', workflow: null },
-      access: { sendRoles: [], receiveRoles: [] }
-    };
-  }
-
-  // Graph protocol v5: palette items create cts.* records. Defaults derive  // from the operation-kind twin (one seam); the record stores the authored
-  // vocabulary — `type`/`via` for species kinds.
+  // Graph protocol v5: palette items create cts.* records. Defaults derive
+  // from the operation-kind twin (one seam); the record stores the authored
+  // vocabulary. The factory seeds only keys every record genuinely carries —
+  // kind-specific envelopes (construction, state) land in their own branches
+  // and are filled by the sync pass, not the factory.
   function createProcessNode(id, kind = 'source.literalItem') {
-    const v5 = kind.startsWith('cts.');
     const op = operationKindOf({ kind });
+    const createLike = ['effect.createEntity', 'effect.runProducer'].includes(op);
     const node = {
       id,
       kind,
-      label: '',
-      ...(v5 ? { typeId: '' } : { typeId: '' }),
-      construction: { mode: 'genericCreate', inputs: [] },
-      status: null,
-      matching: 'item',
+      typeId: '',
       operation: defaultProcessNodeOperation(op),
       value: op === 'source.literalList' ? [] : op === 'source.literalTree' ? { branches: [] } : null,
       fields: [],
-      cases: [],
       icon: iconForProcessNode(kind),
       inputs: [],
       outputs: []
     };
+    if (createLike) node.construction = { mode: 'genericCreate', inputs: [] };
     // No default bindings: nodes are unbound until the author binds them
     // (wire a type node, or pick explicitly). A seeded domain type here is
     // an invisible authoring decision the user never made.
@@ -173,7 +147,7 @@ export function useProcessDesignerNodeRecords({
     }
     // initial status derives post-preset in syncProcessNode (the palette
     // preset may bind a different type than the default).
-    if (['effect.createEntity', 'effect.runProducer'].includes(op)) node.state = {};
+    if (createLike) node.state = {};
     syncProcessNode(node);
     return node;
   }
@@ -181,8 +155,6 @@ export function useProcessDesignerNodeRecords({
   return {
     processNodeOperations,
     processNodeOperationLabels,
-    createService,
-    createSocket,
     createProcessNode,
     defaultTypeId
   };

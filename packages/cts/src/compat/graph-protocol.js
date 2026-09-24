@@ -107,8 +107,7 @@ export function typeIdOf(record = {}) {
 
 export function setTypeBinding(record = {}, typeId = '') {
   if (!record) return;
-  if (String(record.kind || '').startsWith('cts.')) record.typeId = typeId;
-  else record.typeId = typeId;
+  record.typeId = typeId;
 }
 
 // The operation kind of any record: v4 kinds are themselves; cts records map

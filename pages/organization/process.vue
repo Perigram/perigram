@@ -587,7 +587,10 @@ import {
   declarationNodePorts,
   declarationWireLegality,
   definitionToCanvas,
+  isControlProcessSocketHandle,
+  isProcessDataHandle,
   migrateProcessDefinition,
+  parseProcessSocketHandleId,
   prepareAuthoredDefinition,
   processSocketsCompatible,
   PROCESS_DATAFLOW_VERSION
@@ -608,7 +611,9 @@ import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
-import { generateTypeId } from '~/utils/processDesignerIdentity.js';
+import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
+import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
+import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
 import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
 import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
@@ -731,8 +736,6 @@ const {
   constructionModeOptions,
   artifactCreationKinds,
   updateArtifactCreationKinds,
-  commandInputs,
-  commandOutputs,
   processNodeInputs,
   processNodeOutputs,
   processNodeOperationOptions,
@@ -783,8 +786,6 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
 const {
   processNodeOperations,
   processNodeOperationLabels,
-  createService,
-  createSocket,
   createProcessNode,
   defaultTypeId
 } = nodeRecords;
@@ -1180,7 +1181,7 @@ const selectedCommandService = computed(() => {
 function createCommandServiceForSelectedNode() {
   const node = selectedProcessNode.value;
   if (!isOpKind(node, 'effect.runCommand') || !node.commandId) return;
-  const id = `service_${Date.now()}`;
+  const id = mintId('service');
   const record = createService(id);
   record.commandId = node.commandId;
   const command = commandForId(node.commandId);
@@ -1199,7 +1200,7 @@ function removeSelectedCommandService() {
   syncNodeData();
 }
 function addSocket() {
-  const id = `socket_${Date.now()}`;
+  const id = mintId('socket');
   draft.value.data.sockets ||= {};
   draft.value.data.sockets[id] = createSocket(id);
   selectedSocketId.value = id;
@@ -1613,7 +1614,7 @@ function renameDeclarationNode(props, value) {
 function addNode(item, position = nextNodePosition()) {
   const type = typeof item === 'string' ? item : item.type;
   const processNodeKind = typeof item === 'object' ? item.kind : null;
-  const id = `${type}_${Date.now()}`;
+  const id = mintId(type);
   const refId = id;
   const node = {
     id,
@@ -1787,6 +1788,36 @@ function syncNodeData() {
 // labels, port specs, and option lists. Both initial projection
 // (setDraft/addNode) and every live sync go through here, so a node's
 // rendered state has exactly one derivation.
+//
+// DERIVED_NODE_DATA_KEYS is the single list this function and
+// stripRuntimeNodeData work from: enrich may only write derived values
+// under these keys, and strip removes exactly these keys (minus the
+// declaration-authored carve-out inside strip) so derived state never
+// persists. Add a derived key here and to the list in the same change.
+const DERIVED_NODE_DATA_KEYS = [
+  'label',
+  'typeId',
+  'commandId',
+  'type',
+  'version',
+  'scope',
+  'fields',
+  'states',
+  'processNodeRecord',
+  'onProcessNodeUpdate',
+  'processTypeIdOptions',
+  'processOperationOptions',
+  'processFieldOptions',
+  'processStatusOptions',
+  'processTriggerModeOptions',
+  'processConnectedInputIds',
+  'kindLabel',
+  'summary',
+  'purpose',
+  'inputSpecs',
+  'outputSpecs'
+];
+
 function enrichNodeData(node) {
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
   const isProcessNode = node.type === 'processNode';
@@ -1972,7 +2003,7 @@ function updateProcessNodeRecord(nodeId, updates = {}) {
     const graphNodeId = nodes.value.find(item => item.type === 'processNode' && item.data?.refId === nodeId)?.id;
     edges.value = edges.value.filter(edge => !(
       edge.target === graphNodeId
-      && String(edge.targetHandle || '').startsWith('control:')
+      && isControlProcessSocketHandle(edge.targetHandle)
     ));
   }
   syncProcessNode(node);
@@ -1995,8 +2026,8 @@ function pruneMissingProcessNodeInputEdges(nodeId, node = {}) {
   const inputIds = new Set(processNodeInputs(node).map(input => input.id));
   edges.value = edges.value.filter(edge => (
     edge.target !== graphNodeId
-    || !/^(?:input|data):/.test(String(edge.targetHandle || ''))
-    || inputIds.has(String(edge.targetHandle).replace(/^(?:input|data):/, ''))
+    || !isProcessDataHandle(edge.targetHandle)
+    || inputIds.has(parseProcessSocketHandleId(edge.targetHandle))
   ));
 }
 
@@ -2006,9 +2037,8 @@ function validProcessEdges() {
     .map(node => [node.id, draft.value?.data?.processNodes?.[node.data.refId]]));
   return edges.value.filter(edge => {
     const node = processNodesByGraphId.get(edge.target);
-    if (!node || !/^(?:input|data):/.test(String(edge.targetHandle || ''))) return true;
-    const inputId = String(edge.targetHandle).replace(/^(?:input|data):/, '');
-    return processNodeInputs(node).some(input => input.id === inputId);
+    if (!node || !isProcessDataHandle(edge.targetHandle)) return true;
+    return processNodeInputs(node).some(input => input.id === parseProcessSocketHandleId(edge.targetHandle));
   });
 }
 
@@ -2019,39 +2049,13 @@ function updateInputTransform(node, inputId, transform, enabled) {
   syncNodeData();
 }
 
-// Keys enrichNodeData derives each pass: transient view state, never
-// persisted with the draft.
-const RUNTIME_NODE_DATA_KEYS = [
-  'label',
-  'typeId',
-  'commandId',
-  'type',
-  'version',
-  'scope',
-  'fields',
-  'states',
-  'processNodeRecord',
-  'onProcessNodeUpdate',
-  'processTypeIdOptions',
-  'processOperationOptions',
-  'processFieldOptions',
-  'processStatusOptions',
-  'processTriggerModeOptions',
-  'processConnectedInputIds',
-  'kindLabel',
-  'summary',
-  'purpose',
-  'inputSpecs',
-  'outputSpecs'
-];
-
 function stripRuntimeNodeData(node) {
   const runtimeFreeNode = { ...node };
   delete runtimeFreeNode.selected;
   delete runtimeFreeNode.dragging;
   delete runtimeFreeNode.resizing;
   const data = { ...(node.data || {}) };
-  // Declaration nodes carry authored state in keys the runtime list also
+  // Declaration nodes carry authored state in keys the derived list also
   // uses for process nodes (typeId/version/scope/fields/states). Stripping
   // them here erased the class/type binding at save: canvasToDefinition
   // rebuilt the ctsTypes records from the stripped node data, nulled the
@@ -2061,7 +2065,7 @@ function stripRuntimeNodeData(node) {
   const authoredDeclarationKeys = DECLARATION_NODE_TYPES.includes(node.type)
     ? new Set(['typeId', 'version', 'scope', 'fields', 'states'])
     : null;
-  for (const key of RUNTIME_NODE_DATA_KEYS) {
+  for (const key of DERIVED_NODE_DATA_KEYS) {
     if (authoredDeclarationKeys?.has(key)) continue;
     delete data[key];
   }
@@ -2196,12 +2200,12 @@ function onConnect(connection) {
       declarationEdge.data = { key: `${targetNode.data.typeId}s`, onRemove: 'restrict' };
     }
     if (legality === 'transition') {
-      declarationEdge.id = `transition:${sourceNode.id}-${targetNode.id}-${Date.now()}`;
+      declarationEdge.id = mintId('transition');
       declarationEdge.data = { intent: '' };
     }
-    if (legality === 'binds') declarationEdge.id = `${sourceNode.id}-type-${targetNode.id}-${Date.now()}`;
-    if (legality === 'entry') declarationEdge.id = `entry:${sourceNode.id}-${targetNode.id}-${Date.now()}`;
-    if (legality === 'targets') declarationEdge.id = `ref-target:${sourceNode.id}-${targetNode.id}-${Date.now()}`;
+    if (legality === 'binds') declarationEdge.id = mintId('bind');
+    if (legality === 'entry') declarationEdge.id = mintId('entry');
+    if (legality === 'targets') declarationEdge.id = mintId('ref-target');
     // Deterministic declares/children ids: the same declaration wire twice
     // is a no-op, not a duplicate edge.
     if (edges.value.some(edge => edge.id === declarationEdge.id)) return;
@@ -2214,7 +2218,7 @@ function onConnect(connection) {
   selectedEdgeId.value = null;
   edges.value.push(decorateEdge({
     ...connection,
-    id: `${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}-${Date.now()}`,
+    id: mintId('edge'),
     type: 'default',
     role: compatibility.source?.role === 'data' ? 'data' : 'control',
     data: { kind: compatibility.source?.role || 'data' }

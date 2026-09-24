@@ -3,6 +3,7 @@ import { operationKindOf, typeIdOf, setTypeBinding } from '~/packages/cts/src/in
 import {
   formatProcessType,
   getProcessNodeDefinition,
+  parseProcessSocketHandleId,
   processSocketsCompatible,
   processType,
   resolveCatalogNodePorts,
@@ -76,11 +77,16 @@ export function useProcessDesignerNodeSync({
       }));
   }
 
-  function initialStateForEntity(typeId) {
+  // The domain workflow's primary region (falling back to its first): the
+  // single resolution for initial states and status fallback choices.
+  function primaryRegionOf(typeId) {
     const workflow = designer.domain.workflows?.[typeId];
-    if (!workflow) return '';
-    const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
-    return region?.initial || '';
+    if (!workflow) return null;
+    return workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0] || null;
+  }
+
+  function initialStateForEntity(typeId) {
+    return primaryRegionOf(typeId)?.initial || '';
   }
 
   function constructionContractForEntity(typeId) {
@@ -159,9 +165,9 @@ export function useProcessDesignerNodeSync({
     return edges.value
       .filter(edge => edge.target === graphNode.id)
       .map(edge => {
-        const handle = String(edge.targetHandle || '');
-        if ((!handle || handle === 'input') && inputs.length === 1) return inputs[0].id;
-        return handle.replace(/^(input|data|control):/, '');
+        const clean = parseProcessSocketHandleId(edge.targetHandle);
+        if ((!clean || clean === 'input') && inputs.length === 1) return inputs[0].id;
+        return clean;
       })
       .filter(Boolean);
   }
@@ -194,10 +200,7 @@ export function useProcessDesignerNodeSync({
   // type's declared top-level states (the domain lifecycle the compiler and
   // the status engine resolve against).
   function processStatusOptionsFor(node = {}) {
-    const typeId = nodeTypeId(node);
-    if (!typeId) return [];
-    const workflow = designer.domain.workflows?.[typeId];
-    const region = workflow?.regions?.[workflow.primaryRegion] || Object.values(workflow?.regions || {})[0];
+    const region = primaryRegionOf(nodeTypeId(node));
     if (!region) return [];
     return Object.entries(region.states || {})
       .filter(([key]) => !key.includes('.'))
@@ -230,11 +233,13 @@ export function useProcessDesignerNodeSync({
   }
 
   function processNodeDisplayLabel(node = {}) {
-    if (node.label && node.label !== node.kind) return node.label;
+    // `record.label` is the kind sentinel (syncProcessNode keeps
+    // `label === kind`), not authored display data — the palette item and
+    // the node definition are the only label sources.
     // The bound type decides the catalog item: a bare species record must
     // not borrow the first catalog entry's label (the type catalog leads
     // the palette, so items[0] is always a pre-bound variant).
-    const boundType = node.typeId || node.typeId || '';
+    const boundType = nodeTypeId(node);
     const items = designer.paletteGroups.flatMap(group => group.items)
       .filter(candidate => candidate.kind === node.kind)
       .filter(candidate => !candidate.preset?.typeId || candidate.preset.typeId === boundType);
@@ -246,9 +251,8 @@ export function useProcessDesignerNodeSync({
   }
 
   function processNodeDescription(node = {}) {
-    const items = designer.paletteGroups.flatMap(group => group.items);
-    const item = items.find(candidate => paletteLabel(candidate) === node.label)
-      || items.find(candidate => candidate.kind === node.kind);
+    const item = designer.paletteGroups.flatMap(group => group.items)
+      .find(candidate => candidate.kind === node.kind);
     return item ? paletteDescription(item) : '';
   }
 
@@ -298,14 +302,24 @@ export function useProcessDesignerNodeSync({
       .map(input => ({ ...input }));
   }
 
+  // The one sync entry point for a process-node record. The steps run in a
+  // fixed order and later steps read what earlier ones normalized — the
+  // Item/List/Tree access string must land before effect grant
+  // normalization rewrites `access`, construction before the initial state,
+  // blocks/fields before port resolution — and every step is idempotent, so
+  // repeated passes converge instead of oscillating.
   function syncProcessNode(node = {}) {
+    normalizeProcessNodeDefaults(node);
+    seedLiteralEntityBinding(node);
+    normalizeEffectEnvelope(node);
+    normalizeCreateEnvelope(node);
+    normalizeBindingDefaults(node);
+    resolveProcessNodePorts(node);
+  }
+
+  function normalizeProcessNodeDefaults(node = {}) {
     node.kind ||= 'source.literalItem';
     const op = opKind(node);
-    if (node.kind === 'cts.field') {
-      delete node.typeId;
-      delete node.fieldSchema;
-      delete node.fieldSchemas;
-    }
     if (op === 'collection.sort') {
       node.direction = ['asc', 'desc'].includes(node.direction) ? node.direction : 'asc';
       delete node.operation;
@@ -315,34 +329,60 @@ export function useProcessDesignerNodeSync({
     node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
     // Effect records carry grant objects in `access`; the Item/List/Tree
     // socket-access string belongs to the pure value algebra only. Writing
-    // the string here first would spread it into `{"0":"i",…}` junk keys
-    // when normalizeDesignerAccess runs below.
+    // the string on an effect would spread it into `{"0":"i",…}` junk keys
+    // when normalizeDesignerAccess runs in the effect envelope below.
     if (!op.startsWith('effect.')) {
       node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
     }
     node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
     node.inputTransforms ||= {};
     node.icon = iconForProcessNode(node.kind);
-    if (op === 'source.literalItem' && node.type?.base === 'entityRef') {
-      node.typeId ||= defaultTypeId();
-      node.type.typeId = node.typeId;
-      if (node.value?.id) node.value = { ...node.value, type: node.typeId };
-    }
+    // Designer-owned junk keys, pruned on every pass (authored records
+    // never carry them; drafts written by older factories did). `cases`
+    // is NOT junk — the shared control-node contract reads it.
     delete node.retry;
-    if (op.startsWith('effect.')) {
-      node.trigger ||= { mode: 'manual' };
-      if (!['manual', 'event'].includes(node.trigger.mode)) node.trigger.mode = 'event';
-      node.access = normalizeDesignerAccess(node.access);
-      node.entryTriggerId = node.id;
-    }
+    delete node.status;
+  }
+
+  // An entityRef literal needs a concrete entity type to be authorable:
+  // seed the first type when none is bound and keep the value's type
+  // aligned with the record binding.
+  function seedLiteralEntityBinding(node = {}) {
+    if (opKind(node) !== 'source.literalItem' || node.type?.base !== 'entityRef') return;
+    node.typeId ||= defaultTypeId();
+    node.type.typeId = node.typeId;
+    if (node.value?.id) node.value = { ...node.value, type: node.typeId };
+  }
+
+  function normalizeEffectEnvelope(node = {}) {
+    if (!opKind(node).startsWith('effect.')) return;
+    node.trigger ||= { mode: 'manual' };
+    if (!['manual', 'event'].includes(node.trigger.mode)) node.trigger.mode = 'event';
+    node.access = normalizeDesignerAccess(node.access);
+    node.entryTriggerId = node.id;
+  }
+
+  function normalizeCreateEnvelope(node = {}) {
+    const op = opKind(node);
     if (['effect.createEntity', 'effect.runProducer'].includes(op)) {
       syncProcessNodeConstruction(node);
       node.state ||= {};
       node.state.to ||= initialStateForEntity(nodeTypeId(node));
     }
+    if (op === 'effect.createEntity') {
+      setNodeBlocks(node, constructibleEntityBlocks(nodeTypeId(node)));
+      node.fields = [];
+    }
+  }
+
+  function normalizeBindingDefaults(node = {}) {
     if (node.kind === 'cts.field') {
-      // The projection gate: an unbound record offers only its entity input;
-      // a bound one defaults its path to the type's first readable field.
+      // The projection gate carries no Type pin of its own: its binding
+      // follows the entity input, so a stray stored binding is dropped.
+      delete node.typeId;
+      delete node.fieldSchemas;
+      // An unbound record offers only its entity input; a bound one
+      // defaults its path to the type's first readable field.
       const bound = nodeTypeId(node);
       const available = bound
         ? designer.fieldsForEntity(bound).filter(field => field.readable !== false)
@@ -356,10 +396,11 @@ export function useProcessDesignerNodeSync({
       const relations = relationOptionsForEntity(nodeTypeId(node));
       if (!relations.some(relation => relation.value === node.relationKey)) node.relationKey = relations[0]?.value || '';
     }
-    if (op === 'effect.createEntity') {
-      setNodeBlocks(node, constructibleEntityBlocks(nodeTypeId(node)));
-      node.fields = [];
-    }
+  }
+
+  function resolveProcessNodePorts(node = {}) {
+    // `label` is the kind sentinel (display labels derive from the palette
+    // item / node definition, never from an authored record label).
     node.label = node.kind;
     node.inputs = processNodeInputs(node);
     node.outputs = processNodeOutputs(node);
@@ -375,74 +416,9 @@ export function useProcessDesignerNodeSync({
     if (record?.kind) syncProcessNode(record);
   }
 
-  // Command service IO projection for the runCommand inspector panel.
-  function commandInputs(command = {}) {
-    const abstractInputs = command?.input?.abstractEntities || [];
-    const acceptedTypes = new Set(abstractInputs.flatMap(input => input.accepts || []));
-    const abstractPorts = abstractInputs.map(input => ({
-      id: input.name || input.type || input.capability,
-      label: input.label,
-      typeId: input.type,
-      capability: input.capability,
-      accepts: input.accepts || [],
-      required: Boolean(input.required),
-      multiple: Boolean(input.multiple),
-      abstract: Boolean(input.capability || input.accepts?.length),
-      prompt: false
-    }));
-    const entityPorts = (command?.input?.entities || [])
-      .filter(input => !acceptedTypes.has(input.type))
-      .map(input => ({
-        id: input.name || input.type,
-        label: input.label || input.name || input.type,
-        typeId: input.type,
-        kind: 'entity',
-        required: Boolean(input.required),
-        prompt: true,
-        path: `entities.${input.name || input.type}`
-      }));
-    const parameterPorts = (command?.input?.parameters || []).map(input => ({
-      id: input.name,
-      label: input.label || input.name,
-      kind: input.type === 'object' ? 'json' : input.type || 'data',
-      type: input.type || 'string',
-      options: input.options || [],
-      default: input.default ?? null,
-      required: Boolean(input.required),
-      prompt: input.display !== 'hidden',
-      path: `parameters.${input.name}`,
-      dataPath: `parameters.${input.name}`,
-      typeId: input.typeId || '',
-      editor: input.editor || '',
-      templateFieldId: input.templateFieldId || ''
-    }));
-    return [...abstractPorts, ...entityPorts, ...parameterPorts];
-  }
-
-  function commandOutputs(command = {}) {
-    return [
-      ...(command?.output?.entities || []).map(typeId => ({
-        id: typeId,
-        typeId,
-        multiple: true
-      })),
-      ...(command?.output?.attachments || []).map(kind => ({
-        id: `attachment:${kind}`,
-        label: kind,
-        kind: 'attachment',
-        multiple: true
-      })),
-      ...(command?.output?.tasks || []).map(task => ({
-        id: `task:${task}`,
-        label: task,
-        kind: 'task'
-      }))
-    ];
-  }
-
   // Pure port lookup shared by every consumer of handle-shaped ports.
   function portForHandle(ports, handle, direction) {
-    const clean = String(handle || '').replace(/^(input|output|data|control|success|failure):/, '');
+    const clean = parseProcessSocketHandleId(handle);
     if ((!clean || clean === direction) && ports.length === 1) return ports[0];
     return ports.find(port => port.id === clean) || null;
   }
@@ -471,8 +447,6 @@ export function useProcessDesignerNodeSync({
     constructionModeOptions,
     artifactCreationKinds,
     updateArtifactCreationKinds,
-    commandInputs,
-    commandOutputs,
     processNodeInputs,
     processNodeOutputs,
     processNodeOperationOptions,

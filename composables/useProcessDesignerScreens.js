@@ -1,3 +1,5 @@
+import { mintId } from '~/utils/processDesignerIdentity.js';
+
 export function useProcessDesignerScreens({
   draft,
   selectedScreenId,
@@ -13,7 +15,7 @@ export function useProcessDesignerScreens({
   // refuses it until the author actually deviates.
   function customize(station) {
     if (!station) return null;
-    const id = `screen_${Date.now()}`;
+    const id = mintId('screen');
     const record = withoutKeys(JSON.parse(JSON.stringify(station)), ['id', 'labelKey', 'route', 'sourceRoute']);
     record.sources = (record.sources || []).map(source => withoutKeys(source, ['lineageBindings']));
     draft.value ||= { data: {} };
