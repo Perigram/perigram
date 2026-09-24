@@ -256,6 +256,7 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
   }
   const fieldsByType = new Map();
   const statesByType = new Map();
+  const initialsByType = new Map();
   const transitionsByType = new Map();
   const childrenByType = new Map();
   // Transition-node target statuses per bound type (SPEC §20): the
@@ -308,6 +309,14 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
           severity: source.data.severity || null,
           icon: source.data.icon || null
         });
+        // The state node's `initial` flag is the other entry spelling: a
+        // marked state satisfies the machine entry without wiring a
+        // state node into the create node's status socket.
+        if (source.data.initial === true) {
+          const initials = initialsByType.get(target.data.typeId) || [];
+          if (!initials.includes(value)) initials.push(value);
+          initialsByType.set(target.data.typeId, initials);
+        }
       }
       statesByType.set(target.data.typeId, map);
     }
@@ -396,14 +405,18 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
     };
     if (states.size) {
       // The entry comes from entry wires (a state wired into a construct
-      // of this type). A sole wired state is necessarily the entry. Among
-      // several states with no entry wire, the diagnostic names the fix;
-      // disagreeing entries are a named ambiguity — never a default.
+      // of this type) or the state node's `initial` flag. A sole wired
+      // state is necessarily the entry; a sole flagged state likewise.
+      // Ambiguity (disagreeing wires, multiple flagged states, or states
+      // with neither signal) is a named diagnostic — never a default.
       const wiredEntries = (entryStatesByType.get(typeId) || []).filter(value => states.has(value));
+      const flaggedInitials = (initialsByType.get(typeId) || []).filter(value => states.has(value));
       if (wiredEntries.length > 1) {
         diagnostics.push(`class ${classLabelOf(classNode)}: entry states disagree — ${wiredEntries.join(', ')}; wire exactly one entry state into the create node`);
-      } else if (states.size > 1 && wiredEntries.length === 0) {
-        diagnostics.push(`class ${classLabelOf(classNode)}: no entry state — wire a state into the create node to set where instances start`);
+      } else if (flaggedInitials.length > 1) {
+        diagnostics.push(`class ${classLabelOf(classNode)}: multiple initial states — ${flaggedInitials.join(', ')}; mark exactly one as initial`);
+      } else if (states.size > 1 && wiredEntries.length === 0 && flaggedInitials.length === 0) {
+        diagnostics.push(`class ${classLabelOf(classNode)}: no initial state — mark one state initial or wire it into the create node`);
       } else {
         // The merged axis: tree values ∪ transition-node targets, wire
         // transitions ∪ the nodes' fan-out edges (from every other
@@ -415,7 +428,7 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
         });
         declaration.states = {
           main: {
-            initial: wiredEntries[0] || [...states.keys()][0],
+            initial: wiredEntries[0] || flaggedInitials[0] || [...states.keys()][0],
             values: merged.values
           }
         };

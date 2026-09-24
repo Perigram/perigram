@@ -17,6 +17,7 @@
             :instance-actions="instanceActionsByType"
             embedded
             @run="openAction"
+            @transition="executeTransition"
             @open="openInstance"
           />
         </TabPanel>
@@ -32,6 +33,7 @@
       :openable="openable"
       :instance-actions="instanceActionsByType"
       @run="openAction"
+      @transition="executeTransition"
       @open="openInstance"
     />
 
@@ -101,7 +103,7 @@
 </template>
 
 <script setup>
-import { computed, provide, reactive, ref } from 'vue';
+import { computed, provide, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Dialog from 'primevue/dialog';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -140,6 +142,15 @@ const props = defineProps({
   // emit the instance here — routing stays with the app, not the
   // generator.
   onOpen: { type: Function, default: null },
+  // Runtime state-transition executor: `async (payload) => any` — the
+  // page owns dispatch so store refreshes and navigation stay app-side.
+  onTransition: { type: Function, default: null },
+  onTransitionApplied: { type: Function, default: null },
+  // Runtime state-service transitions by type (the declaration machine):
+  // `{ [typeId]: [{ __runtime, status: { to }, intent, region, label }] }`.
+  // The app fetches per opened instance and owns dispatch; the generator
+  // only renders them as clickable strip steps.
+  runtimeTransitions: { type: Object, default: null },
   spacingScale: { type: Number, default: 1 }
 });
 
@@ -155,9 +166,25 @@ const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.t
 const openable = computed(() => typeof props.onOpen === 'function');
 // Per-instance quick actions by type (resolveInstanceActions contract):
 // status transitions, deletion, and instance-scoped commands a collection
-// surface may run against one loaded instance without a form context.
+// surface may run against one loaded instance without a form context —
+// merged with the RUNTIME state-service transitions for the opened
+// detail instance (the declaration-derived machine serves transitions
+// org types author on their declarations and transition nodes; the
+// compiled manifest alone only knows graph-authored action records).
 const instanceActionsByType = computed(() => Object.fromEntries((props.bundle.types || [])
-  .map(type => [type.id, resolveInstanceActions(props.contract?.actions || {}, type.id)])));
+  .map(type => [type.id, [
+    ...resolveInstanceActions(props.contract?.actions || {}, type.id),
+    ...((props.runtimeTransitions || {})[type.id] || [])
+  ]])));
+// Runtime state transitions dispatch through the page's executor
+// (`onTransition`); without one they are display-only.
+async function executeTransition(payload = {}) {
+  if (typeof props.onTransition === 'function') {
+    await props.onTransition(payload);
+    return;
+  }
+  await props.onTransition(payload);
+}
 const openInstance = instance => {
   if (openable.value) props.onOpen(instance);
 };

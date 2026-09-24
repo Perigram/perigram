@@ -17,6 +17,9 @@
         :instances="instanceGroups"
         :source-states="poolStates"
         :on-run="runGeneratedAction"
+        :on-transition="runRuntimeTransition"
+        :on-transition-applied="applyTransitionSnapshot"
+        :runtime-transitions="runtimeTransitions"
         :on-open="openInstance"
       />
     </div>
@@ -27,7 +30,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -36,11 +39,11 @@ import Message from 'primevue/message';
 import Tag from 'primevue/tag';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
+import { useStateController } from '~/composables/useStateController.js';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
 import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
@@ -145,8 +148,83 @@ watch([screen, processBundle], () => reload(), { immediate: true });
 // through the instances store (the offline outbox boundary). An
 // instance-scoped quick action (card menu) carries its row instance so
 // the run targets that entity instead of the screen scope.
-async function runGeneratedAction(action, data = {}, context = {}) {
-  const scope = screen.value?.scope || {};
+// Runtime state transitions (declaration machines) land their updated
+// entity straight into the shared instance cache: the open screen's
+// sources reconcile through the same store event every other mutation
+// uses, so the chip and strip re-anchor without a full reload.
+function applyTransitionSnapshot(updated = {}) {
+  const typeKey = instances.canonicalTypeKey(updated.type || screen.value?.typeId || '');
+  const id = String(updated._id || updated.id || '');
+  if (!typeKey || !id) return;
+  instances.upsertRecord?.(typeKey, updated);
+}
+
+// The declaration machine's live transitions for the opened detail
+// instance: fetched through the state service (the same endpoint the
+// strip's steps dispatch through), filtered to declared states, labeled
+// by the authored state policy.
+const runtimeTransitions = ref({});
+const stateController = useStateController();
+let runtimeTransitionsKey = '';
+watch(() => {
+  const typeId = screen.value?.typeId || '';
+  const scopeId = String(screen.value?.scope?.instanceId || '');
+  const instance = typeId && scopeId ? (instanceGroups.value[typeId] || []).find(item => String(item._id) === scopeId) : null;
+  return instance ? `${typeId}|${scopeId}` : '';
+}, async key => {
+  if (!key || key === runtimeTransitionsKey) return;
+  runtimeTransitionsKey = key;
+  const [typeId, scopeId] = key.split('|');
+  const typeRecord = (authStore.processPayload?.bundle?.types || []).find(type => type.id === typeId);
+  const declared = new Set((typeRecord?.states?.main?.values || []));
+  if (!declared.size) { runtimeTransitions.value = {}; return; }
+  try {
+    const actions = await stateController.fetchActions(typeId, scopeId);
+    runtimeTransitions.value = {
+      [typeId]: actions
+        .filter(action => declared.has(action.to))
+        .map(action => ({
+          __runtime: true,
+          actionKind: 'updateInstance',
+          trigger: { mode: 'manual' },
+          status: { to: action.to },
+          intent: action.intent || null,
+          region: action.region || null,
+          label: typeRecord?.states?.main?.render?.[action.to]?.label || null
+        }))
+    };
+  } catch {
+    runtimeTransitions.value = {};
+  }
+}, { immediate: true });
+
+async function runRuntimeTransition(payload = {}) {
+  const instance = payload.instance || {};
+  const typeId = instance.type || screen.value?.typeId;
+  const id = String(instance._id || instance.id || screen.value?.scope?.instanceId || '');
+  if (!typeId || !id || !payload.to) return;
+  try {
+    const result = await stateController.transition(typeId, id, payload.to, {
+      ...(payload.intent ? { intent: payload.intent } : {}),
+      ...(payload.region ? { region: payload.region } : {})
+    });
+    applyTransitionSnapshot(result?.entity || result);
+    toast.add({ severity: 'success', summary: labelForState(typeId, payload.to), detail: t('generatedScreen.actionCompleted'), life: 2000 });
+  } catch (error) {
+    if (isOfflineQueuedError(error)) {
+      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      return;
+    }
+    toast.add({ severity: 'error', summary: labelForState(typeId, payload.to), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
+
+function labelForState(typeId = '', value = '') {
+  const typeRecord = (authStore.processPayload?.bundle?.types || []).find(type => type.id === typeId);
+  return typeRecord?.states?.main?.render?.[value]?.label || value;
+}
+
+async function runGeneratedAction(action, data = {}, context = {}) {  const scope = screen.value?.scope || {};
   const instanceId = context.instance?.id || scope.instanceId || scope.instanceId || null;
   try {
     const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });

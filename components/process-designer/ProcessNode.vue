@@ -125,8 +125,10 @@
               :options="data.processStatusOptions || []"
               option-label="label"
               option-value="value"
+              editable
               size="small"
               class="w-full min-w-0"
+              :placeholder="$t('processDesigner.transitionStatusValue')"
               @update:model-value="value => updateStatusInputDefault(row.input.id, value)"
             />
             <DatePicker

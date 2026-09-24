@@ -518,7 +518,7 @@ describe('tree declaration compilation', () => {
     const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];
     const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
     const noEntry = compileTreeDeclarations(nodes, edges);
-    expect(noEntry.diagnostics.some(message => message.includes('no entry state'))).toBe(true);
+    expect(noEntry.diagnostics.some(message => message.includes('no initial state'))).toBe(true);
     expect(noEntry.declarations[0].states).toBeUndefined();
 
     // two constructs wired to different states: the entries disagree

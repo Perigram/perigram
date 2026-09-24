@@ -161,8 +161,8 @@ describe('file surface registry', () => {
     expect(instancePayloadFileUrl(null)).toBe('');
   });
 
-  it('resolves file previews from the type render policy', () => {
-    const sketchType = { id: 'sketch', payload: { mime: ['application/json'] }, render: { preview: 'sketch' } };
+  it('resolves file previews from the payload traits', () => {
+    const sketchType = { id: 'sketch', payload: { mime: ['application/json'], preview: 'sketch' } };
     const entity = { attachments: { primary: { fileId: 'f-1', mime: 'application/json' } } };
     expect(resolveFilePreview(entity, sketchType)).toMatchObject({
       mode: 'sketch',
@@ -186,7 +186,7 @@ describe('file surface registry', () => {
     const type = { id: 'sheet-design', render: {} };
     expect(resolveFilePreview({}, type).mode).toBe('none');
     expect(resolveFilePreview({}, null).mode).toBe('none');
-    const payloadType = { id: 'sketch', payload: {}, render: { preview: 'sketch' } };
+    const payloadType = { id: 'sketch', payload: { preview: 'sketch' } };
     expect(resolveFilePreview({}, payloadType)).toMatchObject({ mode: 'sketch', hasPayload: false, fileUrl: '', renderable: true });
   });
 });

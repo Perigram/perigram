@@ -1217,7 +1217,11 @@ const selectedProcessNodeAccessDetail = computed(() => {
   const from = incoming.status || '';
   const to = node.state?.to || '';
   if (!from && !to) return '';
-  return [from || '?', to || '?'].join(' -> ');
+  // Target-only transitions resolve the from-state at runtime (SPEC §20:
+  // lossless) — an unknown from renders as a bare arrow, never a '?'
+  // placeholder reading like an error.
+  if (from && to) return `${from} → ${to}`;
+  return to ? `→ ${to}` : from;
 });
 const selectedProcessNodeEffectiveAccess = computed(() => {
   const node = selectedProcessNode.value;
