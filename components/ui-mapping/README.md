@@ -87,7 +87,11 @@ surface concerns:
   count, builder included). Search expands IN PLACE — the icon button
   becomes an icon field at its position (icon/Esc/empty-blur collapses)
   — and the facets and builder unfold directly beside the filter
-  button, which stays as the collapse anchor. The controls own no
+  button, which stays as the collapse anchor. The card-grid projection
+  adds an in-place sort control (select + order toggle unfolding beside
+  the sort button; the persisted per-type sort preference survives the
+  move; table projections keep native column sorting, so the control
+  renders only for card grids). The controls own no
   per-type logic — the region tree carries every decision. Search and
   facet selections are region-owned models RegionBlock applies
   client-side over the loaded instances; the builder's composed tree is
@@ -163,10 +167,10 @@ surface concerns:
   queries and bounded item tokens (viewport breakpoints lie inside panels),
   each Card clipped (`overflow-hidden`) on the stock anatomy — preview as
   `#header`, identity + status in `#title`, type label in `#subtitle`,
-  labeled budgeted facts in `#content`. The DataView header carries the
-  composed sort contract: a select over the resolved `sortKeys` with the
-  declared default preselected plus an order toggle, ordered through the
-  shared `sortControlRows` comparator. The card identity is a link button
+  labeled budgeted facts in `#content`. Card ORDERING lives in the
+  region header's in-place sort control (RegionBlock applies the
+  `sortKeys` contract through the shared comparator before the grid
+  mounts; the DataView itself renders no header). The card identity is a link button
   when the screen has an `onOpen` handler, and the type's per-instance
   quick actions (resolveInstanceActions: transitions, deletion,
   instance-scoped commands) render as one shared ellipsis menu per card
