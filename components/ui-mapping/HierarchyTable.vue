@@ -73,7 +73,7 @@ const tablePt = {
 // the recipe adds the rounded hairline ring here. The ring rides
 // outline+outline-offset — tr borders do not paint in separated-border
 // mode, while an inset outline follows the row's border-radius.
-const rowSurfaceClass = () => 'rounded-ui outline-1 -outline-offset-1 outline-content-border';
+const rowSurfaceClass = () => 'rounded-ui ring-1 ring-inset ring-content-border';
 
 const { te, t } = useI18n();
 

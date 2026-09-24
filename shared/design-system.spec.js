@@ -715,6 +715,10 @@ describe('Design system manifest', () => {
     const typographyUtilities = new Set(Object.keys(designTokens.typography.roles)
       .map(role => `text-${role}`));
     const builtin = new Set(['transparent', 'current', 'inherit', 'none']);
+    // Boolean non-color utilities that share a color-utility prefix:
+    // `ring-inset` draws the ring inside the element (it is not a color
+    // key), and `outline-none`/`outline-hidden` only reset the style.
+    const booleanUtilities = new Set(['ring-inset', 'outline-none', 'outline-hidden', 'divide-none']);
     // Border width/side/style utilities, box-sizing, transition-property
     // words that share names with utilities (for example `border-color`
     // inside a transition string), and the stock Tailwind palette names are
@@ -734,6 +738,7 @@ describe('Design system manifest', () => {
         const utility = match[1];
         const key = match[2];
         if (typographyUtilities.has(`${utility}-${key}`)) continue;
+        if (booleanUtilities.has(`${utility}-${key}`)) continue;
         // Arbitrary values like text-[var(--x)] carry their own value; the
         // regex cannot match them because of the bracket, but values bound
         // through :class strings are excluded by the boundary above.

@@ -263,7 +263,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-cardgrid-vue` | `components/ui-mapping/CardGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-carouselgrid-vue` | `components/ui-mapping/CarouselGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-chipsinput-vue` | `components/ui-mapping/ChipsInput.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-collectiontable-vue` | `components/ui-mapping/CollectionTable.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
+| `ui-components-ui-mapping-collectiontable-vue` | `components/ui-mapping/CollectionTable.vue` | derived usage | replace:chrome (3); compliant:scoped-layout |
 | `ui-components-ui-mapping-enumselect-vue` | `components/ui-mapping/EnumSelect.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fieldcontrol-vue` | `components/ui-mapping/FieldControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fileuploadcontrol-vue` | `components/ui-mapping/FileUploadControl.vue` | derived usage | compliant |
