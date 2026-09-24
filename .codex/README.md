@@ -11,6 +11,7 @@ duplicating the canonical project documentation.
 | [perigram-backend-v24](./skills/perigram-backend-v24/SKILL.md) | Backend Golden Path workflow for `server/features`, API routes, runtime registration, services, repositories, commands, tasks, and hooks. |
 | [perigram-vue-design-system](./skills/perigram-vue-design-system/SKILL.md) | Perigram Vue v24 design-system workflow for entity cards, shared primitives, tokens, i18n, UI lab, and frontend docs. |
 | [occs-compliance](./skills/occs-compliance/SKILL.md) | OCCS spec and runtime workflow for cassette documents, semantic layers, previews, baking, nesting inputs, and validation. |
+| [test-audit](./skills/test-audit/SKILL.md) | Test authoring gate and audit workflow for low-value, implementation-coupled, or duplicative vitest/SSR/E2E specs and their test-only production seams. |
 
 ## Conventions
 
