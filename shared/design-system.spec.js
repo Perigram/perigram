@@ -314,9 +314,9 @@ describe('Design system manifest', () => {
           background: 'transparent', hoverBackground: 'transparent',
           selectedBackground: 'transparent', borderColor: 'transparent'
         },
-        bodyCell: { background: 'transparent', borderColor: 'transparent' },
+        bodyCell: { background: 'var(--p-content-background)', borderColor: 'transparent' },
         body: { background: 'transparent' },
-        row: { background: 'var(--p-content-background)' },
+        row: { background: 'transparent' },
         footer: { background: 'transparent', borderColor: 'transparent' },
         footerCell: { background: 'transparent', borderColor: 'transparent' },
         paginatorTop: { borderColor: 'transparent', borderWidth: '0 0 0 0' },
@@ -332,9 +332,9 @@ describe('Design system manifest', () => {
           background: 'transparent', hoverBackground: 'transparent',
           selectedBackground: 'transparent', borderColor: 'transparent'
         },
-        bodyCell: { background: 'transparent', borderColor: 'transparent' },
+        bodyCell: { background: 'var(--p-content-background)', borderColor: 'transparent' },
         body: { background: 'transparent' },
-        row: { background: 'var(--p-content-background)' },
+        row: { background: 'transparent' },
         footer: { background: 'transparent', borderColor: 'transparent' },
         footerCell: { background: 'transparent', borderColor: 'transparent' },
         paginatorTop: { borderColor: 'transparent', borderWidth: '0 0 0 0' },

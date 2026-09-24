@@ -38,6 +38,8 @@
 
 <script setup>
 import { ref } from 'vue';
+import Button from 'primevue/button';
+import Popover from 'primevue/popover';
 
 // The collection sort control: a self-contained popover over the shared
 // list-controls `sortKeys` contract. The list of keys renders INLINE

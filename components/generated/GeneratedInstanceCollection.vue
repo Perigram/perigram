@@ -29,7 +29,7 @@
     </div>
   </div>
   <TableFrame v-if="template === 'table'" class="ck-collection-rows">
-    <DataTable :value="visibleItems" size="small" responsive-layout="scroll" :pt="tablePt" :row-class="rowSurfaceClass">
+    <DataTable :value="visibleItems" size="small" responsive-layout="scroll" :pt="tablePt">
       <Column
         v-for="field in tableFields"
         :key="field.path"
@@ -160,9 +160,12 @@ import TableFrame from '~/components/shared/TableFrame.vue';
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },
-  headerCell: { class: 'bg-transparent text-muted' }
+  headerCell: { class: 'bg-transparent text-muted' },
+  // The surface lives on the cells (the preset paints bodyCell); rounding
+  // the edge cells is what makes the row card's corners — a row's own
+  // background is not clipped by its radius.
+  bodyCell: { class: 'first:rounded-l-ui last:rounded-r-ui' }
 };
-const rowSurfaceClass = () => 'rounded-ui';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { instanceEditorActionFor, instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';

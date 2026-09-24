@@ -464,21 +464,18 @@ export const primeComponentTokens = {
             borderColor: 'transparent'
         },
         bodyCell: {
-            background: 'transparent',
-            // Notion-style rows: internal cell dividers stay structurally
-            // present (1px) but transparent — a row surface reads as one
-            // whole card, never as bordered strips.
+            // Notion-style rows: the CELLS carry the instance surface
+            // (a row's own background is not clipped by its radius), the
+            // internal dividers stay structurally present (1px) but
+            // transparent, and the recipe rounds the edge cells.
+            background: 'var(--p-content-background)',
             borderColor: 'transparent'
         },
         body: {
             background: 'transparent'
         },
         row: {
-            // Every row paints as an instance surface (content
-            // background) — the row IS the card; surfaces that want gaps
-            // and rounding add them through the row-surface recipe
-            // (border-separated spacing + rounded rows).
-            background: 'var(--p-content-background)'
+            background: 'transparent'
         },
         footer: {
             background: 'transparent',
@@ -517,16 +514,16 @@ export const primeComponentTokens = {
             borderColor: 'transparent'
         },
         bodyCell: {
-            background: 'transparent',
-            // Same row-surface contract as datatable: transparent internal
-            // dividers, rows painted as content surfaces.
+            // Same row-surface contract as datatable: cells carry the
+            // surface, dividers stay transparent, edge cells round.
+            background: 'var(--p-content-background)',
             borderColor: 'transparent'
         },
         body: {
             background: 'transparent'
         },
         row: {
-            background: 'var(--p-content-background)'
+            background: 'transparent'
         },
         footer: {
             background: 'transparent',

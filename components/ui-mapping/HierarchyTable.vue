@@ -1,6 +1,6 @@
 <template>
   <div :class="[LAYOUT.scrollX, 'ck-collection-rows']">
-    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10" :pt="tablePt" :row-class="rowSurfaceClass">
+    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10" :pt="tablePt">
     <Column>
       <template #body="{ node }">
         <div class="flex items-center gap-2">
@@ -67,13 +67,16 @@ defineEmits(['open']);
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },
-  headerCell: { class: 'bg-transparent text-muted' }
+  headerCell: { class: 'bg-transparent text-muted' },
+  // The surface lives on the cells (the preset paints bodyCell); rounding
+  // the edge cells is what makes the row card's corners — a row's own
+  // background is not clipped by its radius.
+  bodyCell: { class: 'first:rounded-l-ui last:rounded-r-ui' }
 };
 // Row paint comes from the preset (row.background = content surface);
 // the recipe adds the rounded hairline ring here. The ring rides
 // outline+outline-offset — tr borders do not paint in separated-border
 // mode, while an inset outline follows the row's border-radius.
-const rowSurfaceClass = () => 'rounded-ui';
 
 const { te, t } = useI18n();
 
