@@ -489,6 +489,26 @@ variants render it in the expansion popover action row. The entry routes
 through `utils/instance-chat.js`, so the surface the card lives on decides how
 the thread opens (desktop drawer, mobile `/chats` target).
 
+### `InstanceChatPanel.vue` (detail-page thread)
+The instance detail page's own conversation section — the one place a thread
+renders in place instead of opening the shared popup. It is a **section
+disclosure**, not a container: a header row (chat glyph, localized label,
+chevron) toggles a bounded `ChatSupport` in `embedded thread-only` mode pinned
+to `entity:<type>:<id>`, so the page gets the composed conversation without the
+inbox or back navigation. It rides `InstancePage`'s own column through
+`GeneratedInstanceDetail`, and therefore covers both detail branches —
+abstract generated pages and the bounded `flush` overloads (workspace editors,
+file modes) — instead of being mounted beside the designer body, where a
+sibling panel collapses to zero height under an `h-full` body.
+
+The disclosure is collapsed by default so detail pages stay chat-free until the
+operator opens the thread, and the expanded host is bounded by the
+`h-support-chat` dimension token (`supportChatHeight`), never a page-local
+height, so the embedded thread owns its own scrolling and never the detail
+page height. The panel paints no container chrome: it is a header row plus the
+thread, and the surrounding section owns the surface. The thread itself is
+`ChatSupport`'s chrome (see the Chat section below); this component adds none.
+
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
 `{{entity:type:id}}` tokens render as inline `InstanceInlineRef` chips. The

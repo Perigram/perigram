@@ -1,10 +1,13 @@
 <template>
   <!-- Flush mode: a bounded operational overload (designer/editor) owns the
        whole file body, so the canonical InstancePage chrome is bypassed and the
-       body fills the pane directly instead of scrolling inside it. -->
+       body fills the pane directly instead of scrolling inside it. The
+       overflow boundary owns the scroll so the thread section below the body
+       stays reachable — the body alone must not claim the full height, or the
+       thread collapses to nothing. -->
   <div
     v-if="entity && flush"
-    class="flex h-full min-h-0 w-full flex-col"
+    class="flex h-full min-h-0 w-full flex-col overflow-y-auto"
   >
     <GeneratedInstanceDetailBody
       :entity="entity"
@@ -14,11 +17,12 @@
       :actions="resolvedBodyActions"
       :suppress-child-summaries="suppressChildSummaries"
       mode="file"
+      class="shrink-0"
       @refresh="$emit('refresh')"
     />
-    <!-- Composed entity chat rides the canonical detail chrome so every
-         surface that renders an entity detail body — abstract pages and
-         bounded implementation panes alike — carries the thread. -->
+    <!-- The instance conversation rides the detail column in BOTH branches, so
+         abstract detail pages and bounded overloads (workspace editors, file
+         modes) carry the same thread. -->
     <InstanceChatPanel :type="typeId" :id="instanceIdValue" :name="entityNameValue" />
     <slot />
   </div>
