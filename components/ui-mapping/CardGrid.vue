@@ -1,5 +1,5 @@
 <template>
-  <DataView :value="instances" data-key="id" layout="grid" :paginator="sortedInstances.length > 8" :rows="8">
+  <DataView :value="instances" data-key="id" layout="grid" :paginator="instances.length > 8" :rows="8">
     <template #grid="slotProps">
       <ResponsiveGrid variant="dense" responsive-context="container">
         <Card v-for="instance in slotProps.items" :key="instance.id" :class="[LAYOUT.clip, 'w-full']">
