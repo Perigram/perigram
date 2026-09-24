@@ -25,6 +25,19 @@
   - [ ] And, need to REMOVE FUCKING BOWELS FROM UI! I don't want to ever see stuff like "Child: Field name Instant must be lowerCamelCase". Field name is public, for user plane, and field ID can be named as you want, any fucking case, but better short UUID. 
 - [ ] Migrations don't work currently. See many errors (Child: breaking change to Child (t-uth93vgdab) without a covering declared migration (retype-field anythin requires a retype-field step)), non-actionable popups, etc.
 
+  ### Agent Notes (2026-09-24) — CTS/Process Designer hard cut
+
+  Accepted architectural direction: declaration and process graphs are
+  separate semantic planes; state nodes declare recursive parent/child state
+  machines and transition nodes declare explicit from/to transitions; native
+  CTS species records remain executable through resolution, validation,
+  compilation, orchestration, and server adapters; instance sources are
+  context/reference/all plus declared field access; raw ids, producer joins,
+  fixed list arity, packet controls, and hidden predicate paths leave the
+  primary palette. Producer identity is origin provenance only, never a
+  lifecycle requirement for existing-instance consumers. Add a repeatable
+  palette and nested-state E2E artifact before closing this task.
+
   ### Agent Notes (2026-09-24)
 
   Engine loop verified live against a throwaway org type: the breaking

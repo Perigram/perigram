@@ -1,30 +1,43 @@
 # COMPONENT: Process Designer
 
-The organization process designer authors the `@perigram/processes`
-`dataflowVersion: 4` contract in the graph-protocol v5 species vocabulary.
-There is no legacy authoring surface: every executable canvas record is a
-`processNode` (a `cts.*` species or a pure value-algebra kind), plus
-inline-editable declaration nodes. Producer outputs, services, sockets,
-value inputs, screens, role grants, and service principals are
-definition-plane records: they are never projected as canvas nodes, survive
-the canvas round trip untouched, and are edited in focused surfaces — the
-producer workflow inspector opens on the entity-producing process node,
-while sockets are edited in a collapsible panel of the Roles tab. Role
-identities are organization data, and the Roles panel performs immediate
-organization CRUD independently of process Save/Apply. Assignments belong
-to Team Management. Statuses are authored as state declaration nodes on
-their class (the Types palette) and enter effects through their typed
-status sockets; no status-definition canvas records exist. Beside the
-tree, a `cts.transition` node may declare its target status inline in the
-inspector (value, label, severity, icon, terminal — persisted on the
-record's `state` payload): transition-node statuses compile into the
-class's declaration machine at save-overlay and APPLY
-(`compileTreeDeclarations`; see
-[packages/processes](../../../packages/processes/README.md)), composing
-with tree-declared states — the transition node wins where both declare
-the same value. Status
-fallback choices for an effect's typed status input derive from the bound
-type's declared lifecycle states.
+The normative graph/state contracts live in
+[CTS SPEC §7 and §20](../../packages/cts/SPEC.md) and the executable package
+contract in [packages/processes](../../packages/processes/README.md). This
+README owns only the authoring UX and projection rules.
+
+The designer shell separates declaration authoring from executable process
+composition. Declaration nodes own CTS classes, fields, edges, recursive state
+machines, transitions, and operator signatures. Process nodes reference those
+declarations and retain native species kinds and typed ports through
+save/load/apply/run. A declaration edge is never executable dataflow, and a
+process node never becomes the lifecycle declaration by carrying a target
+string.
+
+A state connected to a class is a root state. A state connected to another
+state declares its single parent; transition declarations separately connect
+`from` and `to` states. Initial and terminal state facts belong to state
+nodes. Construction has no lifecycle-entry socket, and transition operations
+reference declared transitions rather than inventing target states.
+
+The primary process palette contains CTS semantics only. It does not expose
+raw-id lookup, producer-path joins, packet matching, or transport adapters.
+Parent/children/related operations are generated from exact declared edges and
+expose their target types. Entity identity crosses the graph as a typed
+`Ref<T>` or a loaded instance, never as an author-typed storage id.
+
+The organization process designer authors the current species process
+contract and the current CTS declaration graph. Every executable canvas
+record is a native `cts.*` species or a pure value-algebra kind. Producer
+outputs, actions, services, sockets, value inputs, screens, role grants, and
+service principals remain semantic/definition-plane records and are never
+duplicated as canvas effects. Role identities and assignments remain
+organization data.
+
+Status state and transition facts are authored only in the declaration view.
+The process view selects declared states/transitions through typed references;
+it does not compile inline state text into the registry. Status fallback
+choices and transition availability derive from the bound type's projected
+recursive lifecycle.
 
 The route is a composition surface, not the owner of every editor concern.
 Focused composables own process selection, draft persistence, graph
@@ -88,65 +101,37 @@ record access, roles, screens, and dock/panel state:
   factories — definition-plane records, kept out of the node-record
   factories) are the shared pure helpers.
 
-Per-kind inspector sections live in
-[`inspector/`](./inspector/): `ProcessNodeInspector.vue` (authorization
-rows, producer-output panel, data matching, output preview,
-service/join/construction sections, and the transition-node target-status
-panel — value, label, severity, icon, terminal writing the record's
-`state` payload), `DeclarationInspector.vue` (class,
-field, state, and type-reference authoring — the field descriptor reuses
-the shared `type-designer/DescriptorEditor`, and both carry the SPEC §4
-display tokens), and
-`DeclarationEdgeInspector.vue` (children edges). They
-are pure presentation: every mutation is an event back to the page's
-update/sync entry points. The Roles and Screens tabs remain page-owned
-until the compile-to-apps rework replaces the screens surface.
+Per-kind inspector sections live in [`inspector/`](./inspector/).
+`ProcessNodeInspector.vue` owns effect authorization, construction, declared
+edge selection, transition reference, and pure output inspection. It does not
+expose packet matching or transport transforms. `DeclarationInspector.vue`
+authors class, field, state (including initial/terminal), transition, operator,
+and type-reference records. `DeclarationEdgeInspector.vue` authors typed edge
+integrity. They are pure presentation: every mutation is an event back to the
+page's update/sync entry points.
 
 Node cards and the inspector read exactly one derivation: `enrichNodeData`
 is the single node-data enrichment pass (record sync, derived labels, port
-specs, option lists), run by initial projection and by every live sync —
+specs, option lists), run by initial projection and every live sync.
 `stripRuntimeNodeData` lists the keys it owns, and nothing else persists
 derived node data.
-The palette is grouped by authoring concern, and every group draws from one
-source of truth. **Types** opens with declaration authoring (class, field,
-state, type reference) and continues with the registry catalog — one bound
-construct per constructible type plus one variant per declared construct
-operator, refreshed live from the organization's type view. **Operations**
-holds the effect species, labeled by what they do (Create, Set fields, Set
-state, Delete, Join paths). **Instances** holds the entity sources (from
-context, by id, by reference, parent, children, related, query) and **Get
-field** — the projection gate (SPEC §8 p): entity in, one field's value out
-at the authored path, one node, no intermediate block step; its binding
-adapts to the entity stream like every consumer. The query read never shows
-its runtime predicate input — no authoring node produces a predicate;
-filtering a queried list is the list-plus-`collection.filter` mask path.
-There is no block substrate on any authoring surface: no block selectors,
-no block-relative field lists, no open-entry editors. **Values** and
-**Lists and trees** hold the pure value algebra. **Services** is derived
-from the projected domain's `serviceContracts` — the registered operator
-surface: dropping a service item binds its operator, whose declared command
-is the executable twin. A service node's ports derive from the operator's
-declared V -> V signature (the registration is the contract — not the
-legacy command table, which may carry no entry for a registered operator);
-an unknown operator shows empty ports and fails compilation with a named
-diagnostic. **No node ever drops pre-bound** (except the type catalog's
-constructs, whose binding IS the item you chose): records are unbound until
-the author binds them.
 
-Binding is composition, split by species semantics (`carriesTypePin`
-is the seam). Origin species — constructs and the reads that start from
-nothing but a declaration (context, by id, by reference, query) — carry
-a persistent **Type pin** (typed by the binding once bound), wired from
-a class node or a **Type reference** item's `ctsType` node. Consumers —
-mutate/transition/remove, the entity-derived reads (parent, children,
-related), and the field projection — carry no pin and never receive a
-declaration wire: their `entity` input accepts instance streams only
-(the reads present it under the consumer name, not the v4 twin's
-generic `value`). Their binding follows the entity input's source type
-live, falling back to the stored preset. Every kind-matching consumer
-routes through `operationKindOf` — the authored vocabulary is the type
-system's, and the twin mapping is the single seam to the executable
-operation catalog.
+The palette is grouped by authoring concern. **Declarations** owns class,
+field, state, transition, operator, and type-reference nodes. The registry
+catalog contributes one bound construct per constructible type/mode.
+**Operations** owns construct, mutate, transition, remove, command, and
+registered service species. **Instances** owns context, all, typed-reference
+resolution, exact declared-edge traversal, and field projection. **Values**,
+**Collections**, and **Flow** own explicit value/list/branch semantics.
+There is no raw-id source, producer join, fixed-arity list constructor, block
+substrate, or hidden predicate input. Unknown service operators fail with a
+named diagnostic.
+
+Origin species carry a persistent Type pin. Consumer species carry no pin;
+their entity input determines the bound type. Type-changing reads also carry
+the declared target type. All consumers use their native `entity` socket
+through validation and execution. `operationKindOf` may classify a record for
+shared behavior, but no UI or runtime path changes its kind or ports.
 
 Declaration authoring validates live: the class inspector enforces the
 registry's kebab-case type id (an invalid id is why a class silently
@@ -162,24 +147,16 @@ runtime (`mintId` — graph nodes, edges, services, sockets, stations):
 time + counter + random, so same-millisecond drops cannot collide.
 Renaming is always a pure label change; persisted instances, posted org
 types, producer outputs, and relation references keep resolving.
-The class inspector owns NO lifecycle editor: a class is a name, a
-class preset, and declaration diagnostics. States are first-class
-palette canvas nodes authored in their own inspector (name, severity,
-free-form icon — no hardcoded icon lists); they declare on a class by
-wire, author the machine entry by wiring into a Create node's status
-input, and target transitions by wiring into status-mutating effects.
-The machine comes from the process graph; end states derive (states
-with no outgoing transition). A `cts.transition` node is the second
-authoring path for statuses: its inspector declares the target status
-inline (value, label, severity, icon, terminal), the value compiles into
-the class's declared values without a tree node, and the transition node
-fans a declared edge into the machine from every other declared value
-(SPEC §20: from-state resolves dynamically, so target-only is lossless)
-— a class with GOO (entry) and a transition node targeting CHANGED is a
-complete machine with no state-to-state wires. Declared severities/icons compile into
-`render.states`, which `renderPolicyFor` consumes for state chips and
-action tones; on a value declared by both a tree node and a transition
-node, the transition node's policy wins.
+The class inspector owns no inline lifecycle editor. States and transitions
+are first-class declaration nodes. A state connects to its class (root) or to
+one parent state (nested); its inspector owns the name, local initial flag,
+terminal flag, and display policy. A transition declaration connects explicit
+from/to state references and owns intent, guard, effects, and transition
+policy. The compiler recursively emits one state machine per axis and rejects
+cycles, missing nested initials, duplicate sibling names, unknown paths, and
+unreachable terminal states. Process transition operations select one of
+these declarations; they do not add states or terminal facts.
+
 Class card labels derive from the authored name. The declaration inspector
 authors the display tokens (the SPEC §4 naming vocabulary, canonical grammar
 in [`packages/cts/SPEC.md`](../../packages/cts/SPEC.md) §4). Beside the
@@ -235,85 +212,37 @@ the target's registry id verbatim (kebab), so ref field inputs typecheck
 against real entity outputs.
 
 Declaration-plane wires (`declarationWireLegality` in
-`packages/processes/src/designer.js`, SPEC §20/§21 one tree) are legal only
-between declaration partners: field/state nodes declare on a class node;
-class/type-reference nodes target a ref field's inputs;
-class/reference nodes bind an origin species record's `Type` pin
-(consumers carry none — their entity input is a value socket);
-operator-bound and structure species carry no type to bind;
-state→state wires declare NESTING: the source state compiles under the
-target's parent status (`parent.child`, nested machines) — transitions
-are never declared by wires, only by transition nodes;
-class→class wires declare children edges (key + `onRemove`) — gated by
-`classMayDeclareChildren` (SPEC §5): a wire from a file-class parent is
-rejected at the connect gate and diagnosable in the tree with the class
-NAMED, because file identity is content and never carries containment;
-state→state
-wires declare nesting (the parent status). Their typed port specs
-(`declarationNodePorts`, the single home for every declaration handle —
-including the state node's parent input) exist for those wires
-only — a declaration node is never a value source, and nothing from the
-data plane feeds a class declare input — so declaration endpoints never
-pass through the generic socket-compatibility path. Declaration wires
-persist as `role: 'type'` edges whose labels (field/state/children and
-transition intents) round-trip through save/reload — declaration matching
-is by node types, the label is semantics-carrying display; `compileTreeDeclarations` compiles exactly those edges into
-registry declarations (invalid descriptors and cross-type transitions are
-named diagnostics). Tree diagnostics and apply failures NAME classes —
-the authored class name first, registry id in parentheses — never a bare
-`t-…` id: `compileTreeDeclarations` prefixes with the class name, and the
-apply path (`useProcessDesignerTypes`) rewrites type ids inside server
-compile messages through the tree-class/org-view label map. Persistence follows the draft contract: declaration
-nodes own `ctsTypes` records in the process definition, so SAVE keeps the
-whole tree exactly as authored (no registry side effects), and APPLY
-compiles the app — declarations land in the registry first, then
-validation and activation run with the graph's types present. A sole
-wired state is necessarily the initial one; among several, the author
-marks exactly one (R4).
+`packages/processes/src/designer.js`) are legal only between declaration
+partners: field/state/transition/operator nodes declare on a class or its
+state machine; class/type-reference nodes target a ref field's accepted
+targets; class/reference nodes bind an origin species Type pin; state→state
+wires declare one parent relationship; and transition nodes connect declared
+from/to states. Class→class children wires retain their typed key and
+`onRemove` policy. File-class parent containment is refused at the connect
+gate. Declaration edges persist as `role: 'type'` records and round-trip
+without being treated as dataflow. `compileTreeDeclarations` is the one
+declaration compiler; diagnostics name the authored class before its opaque
+id. SAVE keeps declaration records in the draft; APPLY posts the same
+compiled declarations before compiling the process graph.
 
-The composer-less construct: projected construction contracts carry the
-type's declared row fields as generic-creation inputs, and a
-`cts.construct` at `genericCreate` exposes them as typed List sockets —
-the `Type` pin, Name, the declared fields, and the status input; a field
-can be wired or prompted directly and a compose node never existed to
-begin with. Declared construct operators project as additional `via`
-modes with signature-derived `modeInputs`. The `Type` binding pin is a
-persistent input on origin species (`cts.construct`, `cts.read`) — bound
-or not, typed once bound — so a binding wire never dangles and re-binding
-by dropping a new wire is always possible; an unbound origin offers the
-pin and nothing else, and every other socket derives from the bound type.
-Species cards carry no type-id dropdown and no operation switch: the
-binding channel owns the type, the species owns the operation.
+The composer-less construct exposes the Type pin and declared
+construction inputs. Generic creation derives those inputs from the target
+type's constructible row; declared operators project as typed modes. It has
+no status socket: the type declaration owns initial state. Lineage and
+relation construction inputs derive from declared edges and remain distinct
+from row mutation.
 
-A bound `cts.mutate` patches leaves: writable `data`/`specs` row fields
-**and declared relation keys** (`relations.<key>`, typed by the edge's
-target) arrive as field sockets keyed by schema path (beside the entity
-input and the status input), and the effect boundary persists each
-wired or prompted leaf as a direct field write. Lineage is
-construct-only: the parent key is set where the entity begins (a declared
-children edge projects `lineage.<key>` as a construction input);
-re-parenting is a structural move, not a field patch. Constructs
-therefore receive Name, their parent key, declared relation keys, row
-fields, and the status input. An unbound mutate offers only its entity
-input: wiring a typed entity stream in adapts it to that type and
-surfaces the leaves.
+A bound `cts.mutate` exposes the entity input and writable declared
+row/relation field ports only. It has no status or arbitrary patch port.
+Lineage remains construct-only or an explicit structural move. The native
+species record and these field ports survive resolution, validation, and
+execution unchanged.
 
-The type catalog completes the Types group: `typeCatalogPaletteGroups`
-projects the registry view into construct items — one bound construct
-per constructible type, plus one variant per declared construct
-operator — so types and their operators are draggable composables,
-refreshed from the registry with the designer contract. A dropped
-variant seeds the record's `construction.mode` directly (the one
-authored spelling; the v4 executable contract derives its `via` at the
-lowering seam, and legacy draft records that still carry `via` adopt
-it as `construction.mode` and drop the stale key on the first sync).
-
-The Types palette ends with **Join producer paths** (`cts.join`), the
-one legal convergence point for same-type producer paths: activation
-rejects implicitly converging wires elsewhere on the graph. Its inspector
-authors the entity type and the resulting producer output (offered from
-the join's connected sources); selecting an entity type resets the
-selection, and the join never becomes a workflow anchor of its own.
+The type catalog projects one construct item per constructible type/mode and
+declared construct operator. Species cards have no operation switch: the
+binding channel owns the type, the species owns the operation. There is no
+`Join producer paths` palette item; same-type stream combination is ordinary
+typed collection composition.
 
 Validation and Apply focus the responsible graph element: failed validation
 and activation responses carry structured diagnostics (`nodeId`, `edgeId`,
@@ -321,38 +250,15 @@ and activation responses carry structured diagnostics (`nodeId`, `edgeId`,
 selects its edge or node on the canvas — framing that element into view —
 before the error message is shown.
 
-Effect-node authorization is authored as roles only, because the node is the
-complete access context: entity type, producer path, workflow, and transition
-are already fixed by the node and its wiring, and the compiler derives the
-action access window (`feature`, `statusFrom`, `statusTo`, scope) from them.
-The inspector separates the two authorization axes explicitly, operation
-first: **"Action roles"** (one roles multiselect per effect node, levels
-default write / deletion admin) — the action *belongs to* those roles: they
-receive the action in their compiled action list and a status-scoped data
-grant for the node's resulting state, matching the original `grantFromAction`
-semantics; it is not an execution-permission check. Authored action roles
-are the primary exposure source: the compiled action list and the workflow
-transition's `processRoleIds` come from them first, and executability
-derived from the input window's write access only fills in when the action
-declares no roles of its own. Inside the producer
-workflow panel, **"Entity data access"** ("Can view / edit / manage
-entities") governs the entities the producer emits. Neither offers an
-entity/feature picker or a per-grant condition dialog; the grant-conditions
-dialog is reserved for surfaces that genuinely own a feature dimension
-(screen required access, process base grants). The producer workflow panel
-appears only on origin nodes — Create, Run Producer, Run Service — because
-only origins own a producer output. Consumer nodes (Update, Change Status,
-Archive, Delete) show no workflow section: they transform entities from
-their input wire and bind to the upstream producer, so the machine is edited
-exactly once, where the entity path begins. A status-change node's target
-status is authored by wiring a status definition socket (or the node's
-inline status control), never a duplicate inspector select; the source state
-is derived at compile time from the incoming entity flow.
-The panel shows the entity type's display label and icon with a "Producer
-output" tag, the stable `nodeId:outputSocketId` identity as a muted code
-line, the producer's declared relation keys, and a hint that statuses and
-transitions come from the domain lifecycle, wired status definitions, and
-action nodes.
+Effect authorization has two independent facts. The effect's action roles
+determine who sees and may run the process action. A transition also resolves
+against the declared transition's policy; the action's process roles are
+carried to the status runtime for that execution and never become a second
+lifecycle declaration. Producer outputs own only entity-origin field/lineage
+policy. Consumer effects have no producer or workflow editor. Their type comes
+from the entity input, and their transition operation selects one declared
+transition. Screen/required-access grants remain process policy, not lifecycle
+structure.
 `useProcessDesignerScreens` owns station customization, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations.
 There is no create-a-screen-from-nothing verb: the Screens tab's compiled
@@ -409,8 +315,8 @@ construction, not per-card styling.
 
 | Channel | Encodes | Values |
 |---|---|---|
-| Socket & wire color | transported payload family | reference (every instance stream: entities, entity refs and lists — one tone for the whole family), structure (blocks, type bindings), quantity (number/integer), decision (boolean/predicate/status), temporal (date/dateTime/duration), external (attachments), effect (tasks), projection, data (everything else). Events carry no payload family and use the primary accent. |
-| Socket shape | what the socket deals in | filled circle = instance/value data; filled diamond = declaration binding (type/field wires, the Type pin); filled rounded square in the primary accent = event; filled rounded square = state/status |
+| Socket & wire color | transported payload family | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
+| Socket shape | what the socket deals in | filled circle = value/instance data; filled diamond = declaration binding; filled rounded square in the primary accent = event; filled rounded square = state/status |
 | Wire pattern | edge role — what kind of connection | solid = data flow; dashed = declaration binding (`role: 'type'`); dotted = control/event trigger |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
@@ -480,39 +386,23 @@ and invalid authored contracts — single-value sockets (inputs without
 socket named in the notice.
 
 Fallback/default policy is omission-first. A connected value wins; otherwise
-an explicit authored `inputDefaults` value is used. If neither exists, the
-input is omitted. Defaults declared by a construction mode or command are
-applied only by that owning domain/runtime contract — generic authoring does
-not guess them. Generated identity uid, Mongo `_id`, origin, status history,
-and other service-owned fields have no authoring fallback and cannot be
-composed or modified. Initial status is the separate lifecycle input.
+an explicit authored fallback is used. Defaults declared by a construction
+mode, command, or operator are applied only by that owning contract. Service-
+owned identity, storage ids, origin, status history, and other runtime fields
+have no authoring fallback. Lifecycle entry is declaration-owned and is not
+a construct input.
 
-Entity bindings are explicit where no wire supplies them. Query Entities
-chooses its entity type; EntityRef literals keep their type picker (that is
-value algebra). Filtering is Query → Get field → Logic → Filter: read the
-field over the list, evaluate the Boolean mask, feed mask plus original list.
-Several references become one stored collection only through Collect Array.
+Entity bindings are explicit where no wire supplies them. All<T> chooses its
+entity type; EntityRef literals keep their type picker. Filtering is All<T> →
+Get field → Logic → Filter. Several references become one declared list
+through the collection value contract, not a raw array transport toggle.
 
-Only configuration that defines the operation or its ports stays on the node:
-value/type, entity, field, operation, trigger identity/mode, and socket
-fallback. Access grants and other secondary record policy live in the
-contextual inspector. Entity producer nodes display their stable
-`nodeId:outputSocketId` reference beside the schema-only entity type.
-Inspector record access uses that reference, so same-type producers edit and
-persist separate workflow records. Designer synchronization resolves records
-only through the authored producer-output protocol: canvas entity-node
-connections and relation choices read `producerOutputs` (never detached
-profiles), role-access summaries read the producer output's authored
-`allowedRoles`, and a new Create node seeds its entry status from the
-domain-declared workflow initial for the entity type — the same
-deterministic `domainDefault` resolution the compiler performs — instead of
-copying a status from a persisted same-type record. Entity types without a
-domain workflow seed no status and fail activation with the missing entry
-state. When an operational node's resolved outputs change, the designer
-synchronizes its producer-output records and writes the sole entity output
-identity onto the derived effect action; activation therefore receives the
-same persisted identity shown by the node instead of inferring a workflow
-from the entity type. Resolved input/output contracts are shown by the
+Only configuration that defines the operation or its ports stays on the
+node: value/type, entity, declared edge, field, operator, and socket fallback.
+Access grants live in the contextual inspector. Entity producer nodes display
+their stable `nodeId:outputSocketId` reference for provenance/field policy;
+reads do not display or create producer identity. Resolved input/output
+contracts are shown by socket rails and hover/focus metadata. Resolved input/output contracts are shown by the
 node's labelled socket rails and hover/focus metadata; the inspector does not
 repeat a socket-specification table. Pure and read nodes expose an on-demand
 Output data inspector. It evaluates only the selected node and its upstream
@@ -533,39 +423,25 @@ creates and connects it immediately.
 
 ## Status model at runtime
 
-Lifecycle declarations compile to workflow machines, and the runtime
-status is stored in two places by design: the entity carries ONE
-immutable status snapshot (`status.state` with the primary and nested
-axes, `userId`, `timestamp`, `metadata.note` from Change Status, and
-lifecycle evidence — `server/core/blocks/Status.js`), while the full
-transition history is an append-only `status_events` collection queried
-through the status service (`server/features/states/`). The snapshot
-IS the "last" state for read efficiency; "first" is the earliest event —
-no embedded history arrays on entities.
+Lifecycle declarations compile to recursive workflow state trees, and the
+runtime status is stored in two places by design: the entity carries one
+immutable status snapshot with the active leaf path for each independent axis,
+actor/timestamp/evidence metadata, while the full transition history is an
+append-only `status_events` collection queried through the status service.
+The snapshot is the current state for read efficiency; the event log is the
+transition history. There are no embedded history arrays.
 
 ## Types and connections
 
 Types are structured `{ base, nullable, ...qualifiers }` element contracts.
-Every data value travels in a path-addressed tree. Socket `access`
-independently declares whether a node consumes an Item, each branch as a
-List, or the entire Tree. Collection-valued fields use the `array` base with
-an `itemType`. Exact entity types, enums, units, capabilities, and
-attachment/event kinds are preserved on sockets. Collect Array converts a
-branch into one array-valued item; Expand Array does the reverse. This
-boundary keeps composing a collection field from accidentally producing one
-block per list element.
+The process graph preserves exact type and collection contracts through resolution and execution. Parent, child, and relation reads select a declared edge and expose its target type. `cts.field` reads the declared field from the incoming instance. All<T> is an unfiltered typed source; filtering remains ordinary field → logic → filter dataflow. Packet topology and transport adapters are not author-facing node settings.
 
-The designer checks element compatibility before persisting a wire. The
-runtime solver obtains topology from actual source trees. Item access maps
-over matched items; List access executes independently for every branch;
-Tree access receives the complete structure. Per-input Simplify, Flatten,
-and Graft run before the node's Longest, Shortest, or Cross matching rule.
-
-Get field (`cts.field`) reads one field of the incoming entity at the
-authored path; its path choices are the bound type's readable fields, and
-an unbound node offers only its entity input. Field extraction and Logic
-map over the source topology so Boolean masks stay aligned with the
-original entities for `collection.filter`.
+Get field (`cts.field`) reads the declared field from the incoming instance;
+its path choices are the bound type's readable fields, and an unbound node
+offers only its entity input. Field extraction and Logic map over the source
+topology so Boolean masks stay aligned with the original entities for
+`collection.filter`. Packet matching and input transforms are internal
+adapters, not inspector settings.
 
 ## Canvas behavior and diagnostics
 

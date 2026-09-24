@@ -110,7 +110,7 @@ entity := {
   provenance:     { op, sources: [Ref], effective: Record }
                                    -- causal edges; `effective` records params
                                    -- AND input versions (§8 purity)
-  states:         { axis -> enum value }  -- may be empty
+  states:         { axis -> active leaf path }  -- may be empty
   payload:        Blob | none       -- iff T declares payload
   history:        [revision]        -- iff T declares a revision scope
 }
@@ -144,8 +144,8 @@ type T : Class {
   fields:      { name: FieldType, ... }        -- closed row
   payload:     mime | none
   edges:       edge declarations (§6)
-  states:      { axis: Enum, ... }             -- may be absent
-  transitions: { from -> to, axis, intent?, guard?, effects? }[]
+  states:      { axis: StateMachine, ... }      -- may be absent
+  transitions: { fromPath -> toPath, axis, intent?, guard?, effects? }[]
   operators:   signatures attached to T (§8)
   revisions:   scope | none
   aggregates:  per-edge declarations (§9)
@@ -290,33 +290,50 @@ fields without a carrier `Ref` are the same error.
 ## 7. States
 
 ```
-states: { main: draft | nesting | ready | error | closed,   -- axes are
-          quality: unchecked | passed }                     -- independent
+StateMachine ::= {
+  initial: localStateName,
+  states: { localStateName: StateNode, ... },
+  render?: { statePath: { label?, icon?, severity? }, ... }
+}
+StateNode ::= {
+  terminal?: true,
+  initial?: localStateName,       -- required iff this node has children
+  states?: { localStateName: StateNode, ... },
+  policy?: { label?, icon?, severity? }
 }
 ```
 
-- One axis moves per transition; guards are predicates over V plus actor
-  identity and grants; effects are declared side-effect lists executed by the
-  operator runtime after the state snapshot is written.
-- Intents (`requestNesting`, `nestingSolveCompleted`, ...) are declared by
-  the operator that fires them, on its output contract. There is no second
-  place where lifecycle information lives — no `workflows.js`, no
-  `workflow_overrides`, no status-label mirror. Status v2 `regions` are the
-  axes, restated.
-- Labels, icons, severity are per-state display policy authored on the
-  axis — `states.<axis>.render = { <value>: { label?, icon?, severity? } }`
-  — and resolved at compile (label defaults to the start-cased value:
-  state VALUES are authored vocabulary; severity defaults `secondary` on
-  terminal values, else `info`; icons default to none). They project to
-  UI, they are not checked.
-- A status may also be declared at a transition node (SPEC §20): the
-  node's target (`to`) plus its inline policy (`label`, `severity`,
-  `icon`, terminal flag) compile into the declaration's axis before the
-  registry sees it — target values join `values`, the node contributes a
-  declared edge from every other value (from-state resolves dynamically),
-  and its policy composes over the axis render with the transition node
-  winning per value. The tree remains the structural home: `initial` is
-  authored only there, and R4 keeps judging the merged declaration.
+A state axis owns a recursive state machine, not a flat enum and not a
+workflow region. Workflow regions remain the runtime representation of
+independent axes; nested machines are the `states` tree inside one region.
+The canonical path of a nested state is its parent paths joined with `.`; the
+runtime stores the active leaf path and derives its configuration from the
+declared tree.
+
+- Every machine has exactly one initial state. Every state with children has
+  exactly one initial child; entering that state without naming a descendant
+  enters its initial child. A leaf may be terminal, but terminality is never
+  inferred from missing outgoing transitions: an unfinished graph is not a
+  lifecycle assertion.
+- A transition names a source path and target path. It may fire when the
+  active leaf equals the source or descends from it; the most-specific active
+  ancestor transition wins. Targeting a child enters its ancestors. Targeting
+  a state with children enters that state's initial child. Exiting a parent
+  exits the complete active child configuration.
+- One axis moves per transition. Guards are predicates over V plus actor
+  identity and grants. Effects are declared side-effect lists executed after
+  the state snapshot is written.
+- Intents belong to transition declarations. One intent has one target, so an
+  intent invoked on the current active leaf resolves deterministically.
+- State display policy is authored by canonical state path. The axis render
+  map is a presentation projection; state-local policy is its declaration
+  source. A missing label derives from the local state name, terminal severity
+  defaults to `secondary`, other severity defaults to `info`, and icon defaults
+  to none.
+- State declarations and transition declarations are the only lifecycle
+  authoring surface. A process operation may reference a declared transition;
+  it never invents a state or an unconstrained transition merely by carrying a
+  target string.
 
 ## 8. Operators — six species
 
@@ -354,13 +371,13 @@ input). The current `machineSnapshot`/`toolSnapshot`/algorithm-revision field
 habit on sheets becomes provenance semantics instead of per-entity cargo.
 
 Composition (audit correction): process graphs are the composition
-calculus, owned by `@perigram/processes` — its node catalog (90+ kinds),
-socket roles, and packet shapes stay authoritative. The six species are a
-CLASSIFICATION of the graph's effect layer (`effect.createEntity/
-updateEntity/changeStatus/runCommand` are c/m/d plus command wrapping), not
-a parallel calculus. CTS supplies the declaration-layer types those nodes
-reference and constrains them (R1 rows, R2 targets, R5 service purity); it
-does not re-implement dataflow typing.
+calculus, owned by `@perigram/processes` — its node catalog, socket roles,
+and packet shapes stay authoritative. The six species are the canonical
+kinds of the graph's effect layer (`cts.construct`, `cts.mutate`,
+`cts.transition`, `cts.remove`, `cts.command`, and `cts.service`, with
+conversion where declared), not a parallel calculus. CTS supplies the
+declaration-layer types those nodes reference and constrains them (R1 rows,
+R2 targets, R5 service purity); it does not re-implement dataflow typing.
 
 An editor is `p(T) -> ui` plus `construct(T)` or `mutate(Ref(T))`, bound to a
 surface. "An editor that produces other files" is a `k` from the editor's
@@ -413,7 +430,7 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 | R1 | closed rows: every field path used by any predicate/patch/record node is in the target type's row | field-access duplication |
 | R2 | typed edges: every Ref assignment checks the edge's target set and `onRemove` | bare `data.*Id` drift |
 | R3 | unit discipline on `Quantity` | suffix strings, unit qualifiers |
-| R4 | state totality: transitions within axis enum; one initial; reachable terminal; one intent has one target state | workflow validators |
+| R4 | state totality: acyclic single-parent state trees; one initial per machine; transitions use declared paths; reachable terminal states; one intent has one target | workflow validators |
 | R5 | dataflow: process graph sockets typecheck; `s` consumes only V (entities reach services solely via `p`) | missing-field/reachability diagnostics |
 | R6 | class obligations of §5 checked at type-compile | `meta` flag vs master/system drift |
 | R7 | version/migration completeness per §11 | ad-hoc migrate scripts |
@@ -452,22 +469,29 @@ and at process activation.
 
 Authoring loop:
 
-1. **Types pane**: list of type records (grouped by class). Type editor shows
-   one section per facet: fields row editor (with V types and units), edges
-   (children/relations + `onRemove`), states graph (axes, transitions,
-   guards, effects), operators (signatures, which may bind an editor or a
-   command), aggregates, policy, migrations.
-2. **Save = compile.** R1–R7 run inline; errors surface where they bite
-   (a predicate node referencing a removed field names the node; a unit
-   mismatch names the socket).
-3. **Breaking change = migration prompt.** The diff phase names what broke;
-   the designer offers the declarative step editor; deploying the version
-   queues the migration task.
-4. **Process graphs typecheck live** against operator signatures: sockets
-   carry V types; invalid wiring is visible at authoring time, not at run.
-5. **Engineers work the same loop in code** for framework/starter packs:
+1. **Declaration view**: a declaration graph edits CTS facts — class, fields,
+   children/relation/provenance edges, recursive state machines, transition
+   declarations, and operator signatures/triggers. A state connects to its
+   class and optionally to one parent state. A transition connects explicit
+   `from` and `to` states; state-to-state containment never means transition.
+2. **Process view**: an executable graph composes the declared types and
+   operators. It may appear in the same application shell, but its nodes and
+   edges are a separate semantic graph: it references declarations and never
+   mutates them. Construction does not choose lifecycle entry; transition
+   operations reference a declared transition.
+3. **Save = validate each graph at its own boundary, then compile the process
+   against the declaration view.** R1–R7 run inline; errors name the
+   declaration node or process edge that caused them.
+4. **Breaking change = migration prompt.** The diff phase names what broke;
+   the designer offers the declared migration step editor; deploying the
+   version queues the migration task.
+5. **Process graphs typecheck live** against operator signatures and declared
+   edges. Type-changing traversal has an exact declared target type; raw
+   instance ids, producer identities, packet matching, and compiler transport
+   adapters are not palette operations.
+6. **Engineers work the same loop in code** for framework/starter packs:
    a type pack is a seed module compiled by the same validator; org-authored
-   types in `types` are the same documents. No second format.
+   types are the same documents. No second format.
 
 ## 15. Existing constructs -> CTS
 
@@ -680,24 +704,29 @@ literals) is already V-honest and is untouched.
 
 ### Node kinds
 
-Effect nodes take the species names of §8 (the canonical table is
-`SPECIES_BY_EFFECT_KIND`); reads collapse to one projection kind with a
-`select` discriminator; the records family becomes field/edge structure:
+The stored executable record uses the species names of §8. Reads use one
+kind with a closed `select` discriminator. These records are the compiler and
+runtime contract; they are not rewritten to an older entity vocabulary before
+execution:
 
-| v4 kind | v5 kind | binding |
+| retired executable kind | current kind | binding |
 |---|---|---|
-| `effect.createEntity` / `effect.runProducer` | `cts.construct` | `type`, `via` (constructor) |
-| `effect.updateEntity` | `cts.mutate` | `type`, field refs |
-| `effect.changeStatus` / `effect.archiveEntity` | `cts.transition` | `type`, `target` state (+ optional `intent`) |
-| `effect.deleteEntity` | `cts.remove` | `type` |
-| `effect.runCommand` / `effect.sendEntity` | `cts.command` | `command` |
-| `effect.generateAttachment` | `cts.conversion` | `kind` + attachment contract |
-| `read.*` (7 selects + filter) | `cts.read` | `select`, `type` |
-| `record.getField` | `cts.field` | field ref |
-| `record.composeBlock` / `modifyBlock` | `cts.compose` | field/edge refs |
-| `record.deconstruct` / `getBlock` | `cts.decompose` | `type` |
-| `record.construct` / `entityDraft` | `cts.compose` | `record: type` |
-| `producer.join` | `cts.join` | `type` |
+| `effect.createEntity` / `effect.runProducer` | `cts.construct` | `typeId`, `construction.mode` |
+| `effect.updateEntity` | `cts.mutate` | inferred entity stream, writable field ports |
+| `effect.changeStatus` / `effect.archiveEntity` | `cts.transition` | entity stream, declared transition reference |
+| `effect.deleteEntity` | `cts.remove` | inferred entity stream |
+| `effect.runCommand` / `effect.sendEntity` | `cts.command` | `commandId` |
+| registered V→V operator | `cts.service` | `operator` |
+| `effect.generateAttachment` | `cts.conversion` | operator + declared signature |
+| ambient/current, by-reference, all, edge traversal | `cts.read` | closed `select` + exact input/output types |
+| field projection | `cts.field` | inferred entity stream + declared field |
+| producer-path convergence | internal compiler behavior | no author-facing node |
+
+`cts.mutate` writes only declared row/relation fields. `cts.transition` moves
+one declared transition axis and cannot smuggle an arbitrary field patch.
+`cts.construct` has no lifecycle-entry socket: the target type's declaration
+owns initial state. Type-changing reads select a declared edge and expose its
+exact target type.
 
 ### References
 
@@ -712,81 +741,78 @@ Effect nodes take the species names of §8 (the canonical table is
   (`identity.*`, `states.main`, `lineage.<key>`, `relations.*`,
   `provenance.*`, `data.value` the reserved generic slot) until the
   stored-shape migration (§3) re-homes them.
-- **States**: status strings become declaration-owned state values;
-  `cts.transition` carries `target` plus optional `intent` (intent-first
-  authoring arrives with the designer slice; the runtime resolves from-state
-  dynamically, so target-only is lossless). The transition node may also
-  AUTHOR its target status inline (`state` payload: `to` with `label`,
-  `severity`, `icon`, `terminal`): those values compile into the bound
-  type's declaration machine per §7 — target-only authoring on the node is
-  the complete lifecycle gesture, wiring state nodes stays the structural
-  complement.
+- **States**: the process stores canonical state paths and transition
+  references, never declaration mirrors. A `cts.transition` record names an
+  existing declared `from`/`to` pair (or an intent whose target is unique) and
+  may carry execution-only access/note policy. It cannot create a state,
+  terminal marker, parent, or transition that is absent from the declaration
+  view. Legacy target-only transition records migrate with explicit
+  `fromAny: true`; that flag expands to transitions from every declared leaf
+  and is visible as such rather than inferred silently at runtime.
 - **Constructors**: `construction.mode` becomes `via`; typed constructor
   inputs and service signatures become declared operators (§8) — command and
   producer code registers as operators, unchanged.
 
 ### Resolution and migration
 
-- `resolveCtsDefinition(definition, view)` lowers v5 records to the
-  executable working shapes (types back to storage ids, row paths back to
-  slot paths, species kinds back to operation kinds). It runs inside
-  `prepareAuthoredDefinition` (`@perigram/processes`) — the single seam every
-  validate/compile/activate path flows through; no consumer outside that
-  package resolves or lowers the vocabulary. The lowered form is internal:
-  never authored, never persisted. Persisted construction modes the type
-  no longer declares re-bind silently to the type's current default mode
-  (contract migration, the `slotOrDefault` pattern) — a create node on a
-  derived type keeps failing validation; the author re-authors it.
-- `migrateV4Definition(definition)` is the one-way persisted rewrite
-  (same pattern as the process package's v4 identity migration). It runs at
-  the server boundary on load, so stored graphs become v5 within one deploy;
-  `dataflowVersion` stays `4` (the wire protocol of the value algebra is
-  unchanged — v5 changes record vocabulary, not dataflow semantics).
-- `checkCtsGraphBindings(definition, view)` validates bindings (type exists,
-  state declared, field in row) beside R1–R6.
-- Equivalence is the acceptance gate: for any definition,
-  `compile(v4)` and `compile(resolve(migrate(v4)))` produce the same
-  contract.
+- `resolveCtsDefinition(definition, view)` is the single binding-resolution
+  seam. It resolves declaration ids and declared row paths but preserves the
+  current species kind, read discriminator, socket ids, and graph edges. The
+  canonical records returned by this seam are what validation, compilation,
+  orchestration, execution, and persistence all consume.
+- `operationKindOf` is presentation/classification only. It may answer
+  "construct", "mutate", "transition", "read", or "service" for shared code;
+  it never changes a record kind or replaces its authored ports.
+- `migrateV4Definition(definition)` is the one-way persisted rewrite for
+  graphs saved before this protocol. It runs before resolution and rewrites
+  old records and handles into current species records. The retired
+  executable kinds have no runtime fallback after migration.
+- `checkCtsGraphBindings(definition, view)` validates type, field, state,
+  transition, operator, and declared-edge bindings beside R1–R6.
+- Acceptance requires semantic round-trip equivalence: every authored native
+  record has the same kind and typed ports before and after
+  migration → resolution → compilation. A twin operation kind merely existing
+  is not acceptance.
 
 ### Type nodes and binding wires
 
-The palette is operations, never a domain catalog. No node drops pre-bound:
-a seeded domain type is an invisible authoring decision the user never
-made — records are unbound until the author binds them (the palette's
-type-catalog constructs are the one exception, where the chosen item IS
-the binding: one variant per declared construction mode — creation
-protocols surface as `· mode` variants, the artifact-era protocol
-picker — plus one per declared construct operator). Type reference nodes persist on the canvas as `ctsType`
-nodes (they own no records). Binding semantics split by species (`carriesTypePin`): origin
-species (constructs; reads that start from a declaration — current,
-byId, byRef, query) carry a persistent Type pin wired from a type node
-or class; consumers (mutate, transition, remove; the entity-derived
-reads parent/children/related; the field projection) carry no pin and
-never receive declaration wires — their entity input accepts instance
-streams only; the binding follows the entity input's source type, else
-the stored preset. Binding wires are `role: 'type'` canvas edges — live
-binding channels, interpreted on every graph change (renaming the
-source re-binds every wired descendant; removing the channel unbinds
-what it carried). Normalization drops them before validation because
-the interpreted binding itself is persisted in the record.
+The palette is operations, never an implementation-mechanism catalog. A
+construct may be dropped pre-bound when the chosen type/mode is itself the
+authoring intent. Otherwise origin operations carry a persistent Type pin
+wired from a type node or class. Consumers (mutate, transition, remove and
+field projection) carry no Type pin: their entity input determines the bound
+type. Entity-derived reads additionally select a declared edge; their output
+type comes from that edge, not from the input type.
 
-### Residue (explicit)
+A typed reference (`Ref<T>`) is the only author-facing identity value for an
+existing instance. Raw storage-id lookup is not a process operation. Query
+means an unfiltered `All<T>` source; predicates are ordinary field/logic/list
+dataflow. Type-changing traversal is generated from a children, parent, or
+relation edge and exposes the edge's exact target type.
 
-The designer authors v5: the palette speaks species kinds (`cts.*`), node
-creation writes `typeId`/`via`/`slots`, stored v4 graphs migrate on load,
-and `operationKindOf` is the single seam every kind-matching consumer
-routes through (client and catalog; no duplicated vocabulary). Producer
-outputs synced by the designer keep storage entity ids — load-time
-migration normalizes them on the next cycle. The composer-less construct
-landed (2026-09-18): declared row fields project as generic-construction
-inputs and surface as typed construct sockets (no block sockets on the
-species record; blocks are the v4 twin's substrate), declared construct
-operators project as `via` modes with signature-derived mode inputs, and
-`cts.mutate` patches leaves (writable row fields as field sockets; blocks
-stay on the v4 twin). Remaining residue: field pickers list slot paths,
-which resolution passes through unchanged. `stateDefinitions` remain
-definition-plane records authoring state metadata; per §7 they compile
-into declarations, never alongside.
+Binding wires are `role: 'type'` declaration edges, interpreted on every
+declaration-graph change. They are live authoring channels but never dataflow
+edges. The interpreted binding is persisted; executable validation sees one
+canonical type contract, not a declaration wire and a duplicate record field.
+
+### Canonical records and adapter internals
+
+The designer, compiler, and runtime all store and execute the current species
+records. `cts.mutate` keeps writable field ports through every boundary;
+`cts.read` and `cts.field` keep `entity` inputs; `cts.transition` keeps its
+declared target and note/access policy. No execution adapter may substitute
+block, generic-value, or retired operation ports.
+
+Producer outputs are provenance and field-policy records for actual entity
+origins (construct or entity-producing operator). Reads and consumer effects
+do not create producer outputs and do not own lifecycle machines. Workflow
+identity comes from the bound CTS type declaration; a process operation may
+overlay process-role authorization for one declared transition.
+
+Packet matching, topology adapters, and stream/list representation conversion
+are compiler concerns. They may be explicit advanced primitives, but they are
+not hidden per-node authoring requirements. The primary palette contains
+only semantics a process author intentionally composes.
 
 ## 21. Packs
 
@@ -842,13 +868,15 @@ of entity-keyed overload tables. Sheet design binds the editing
 `sheet-design-editor` surface (create/edit), receiving the caller's write
 grant — view-only when the grant is absent.
 
-**Declaration authoring in nodes (§20/§7, landed):** the types surface is a
-node canvas — type/field/state nodes, declares wires, state-to-state
-transition wires carrying intents, type-to-type children wires. Saving
-compiles the canvas into declarations (fields from field nodes, states and
-transitions from state nodes and wires, edges from type wires); system
-types render read-only. The state machine is declared flat, in the same
-plane as everything else.
+**Declaration authoring in nodes (§20/§7):** the declaration view is a
+node graph — type/field/state/transition/operator nodes, class declarations,
+typed children/relation/provenance edges, and state-parent edges. A state
+connected to another state declares nesting under that parent; transition
+nodes connect explicit `from` and `to` state references. Saving compiles this
+graph into the recursive state/edge/operator declarations consumed by the
+registry. The process view is a separate semantic graph in the same designer
+shell and may reference those declarations but cannot rewrite them through a
+process edge.
 
 **Generic instance services (§13, landed; §3 stored shape):** every type
 without an explicit feature service resolves through the registry's service
