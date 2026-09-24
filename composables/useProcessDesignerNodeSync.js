@@ -157,6 +157,19 @@ export function useProcessDesignerNodeSync({
     const field = designer.fieldsForEntity(nodeTypeId(node)).find(candidate => candidate.value === port.id);
     if (field) return field.i18n ? t(field.i18n) : field.label;
     if (port.role === 'data' && port.id === 'start') return t('processDesigner.socketLabels.startPosition');
+    // The produce/consume chain is named after what it transports: an
+    // entity-bearing result carries its bound type's name — "result" is
+    // a socket role, not a type, and never a label. Unbound, it reads
+    // like every untyped entity stream ("instances").
+    if (port.id === 'result' && port.type?.base === 'entity') {
+      const bound = nodeTypeId(node);
+      const options = processTypeIdOptions(node);
+      const option = bound && Array.isArray(options)
+        ? options.find(candidate => candidate.value === bound)
+        : null;
+      if (option?.label) return option.label;
+      return processSocketLabel('entity');
+    }
     return processSocketLabel(port.label || port.id);
   }
 

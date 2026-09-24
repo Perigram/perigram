@@ -1,11 +1,11 @@
 // Declaration-wire round trip: the edge label is the wire's declaration
-// semantics (field/state/transition/children/ref-target; transition
+// semantics (field/state/nesting/children/ref-target; nesting
 // intents). compileTreeDeclarations matches partners BY LABEL, so a label
 // lost in canvasToDefinition hollows out the declaration tree after reload
 // — constructs lose their row-field sockets and their wires get filtered
 // as missing inputs at the next save. This pins the full loop:
 // canvas -> definition -> canvas preserves labels, and the compiled tree
-// still declares the wired fields/states/transitions/children after it.
+// still declares the wired fields/states/nesting/children after it.
 import { describe, expect, it } from 'vitest';
 import { canvasToDefinition, definitionToCanvas } from './transpiler.js';
 import { compileTreeDeclarations } from './designer.js';
@@ -31,7 +31,7 @@ function declarationCanvas() {
       { id: 'declares:ready-state-widget-class', source: 'ready-state', target: 'widget-class', targetHandle: 'input:declare', sourceHandle: 'output:state', type: 'default', role: 'type', label: 'state' },
       { id: 'declares:done-state-widget-class', source: 'done-state', target: 'widget-class', targetHandle: 'input:declare', sourceHandle: 'output:state', type: 'default', role: 'type', label: 'state' },
       { id: 'entry:ready-state-make-widget-1', source: 'ready-state', target: 'make-widget', type: 'default', role: 'type', label: 'entry' },
-      { id: 'transition:ready-state-done-state-1', source: 'ready-state', target: 'done-state', type: 'default', role: 'type', label: 'finish', data: { intent: 'finish' } },
+      { id: 'nested:done-state-ready-state-1', source: 'done-state', target: 'ready-state', type: 'default', role: 'type', label: 'nested' },
       { id: 'children:widget-class-gadget-class', source: 'widget-class', target: 'gadget-class', type: 'default', role: 'type', label: 'children', data: { key: 'gadgets', onRemove: 'restrict' } }
     ],
     viewport: { x: 0, y: 0, zoom: 1 }
@@ -49,7 +49,7 @@ describe('declaration wire labels round-trip', () => {
     expect(labels.get('declares:ready-state-widget-class')).toBe('state');
     expect(labels.get('declares:done-state-widget-class')).toBe('state');
     expect(labels.get('entry:ready-state-make-widget-1')).toBe('entry');
-    expect(labels.get('transition:ready-state-done-state-1')).toBe('finish');
+    expect(labels.get('nested:done-state-ready-state-1')).toBe('nested');
     expect(labels.get('children:widget-class-gadget-class')).toBe('children');
     expect(reloaded.edges.find(edge => edge.id === 'children:widget-class-gadget-class')?.data).toMatchObject({ key: 'gadgets', onRemove: 'restrict' });
   });
@@ -62,9 +62,10 @@ describe('declaration wire labels round-trip', () => {
     expect(diagnostics).toEqual([]);
     const widget = declarations.find(declaration => declaration.id === 'widget');
     expect(widget.fields).toMatchObject({ name: { base: 'string' } });
-    expect(widget.states.main.values).toContain('ready');
-    expect(widget.states.main.terminal).toEqual(['done']); // derived: 'done' has no outgoing transition
-    expect(widget.transitions).toEqual([{ from: 'ready', to: 'done', intent: 'finish' }]);
+    expect(widget.states.main.values).toEqual(['ready', 'ready.done']);
+    // terminal derives from the transition-node machine; none declared
+    expect(widget.states.main.terminal).toEqual(['ready', 'ready.done']);
+    expect(widget.transitions).toEqual([]);
     expect(widget.edges.children.gadgets).toMatchObject({ types: ['gadget'], onRemove: 'restrict' });
   });
 });

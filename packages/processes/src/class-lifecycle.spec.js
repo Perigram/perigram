@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { classLifecycleOf } from './designer.js';
 
 const classNode = { id: 'cls', type: 'ctsClass', data: { refId: 'cls', typeId: 'widget', class: 'item' } };
+const edge = (id, source, target, extra = {}) => ({ id, source, target, role: 'type', ...extra });
 const state = (id, value, extra = {}) => ({ id, type: 'ctsState', data: { refId: id, typeId: null, value, initial: false, terminal: false, ...extra } });
 
 describe('classLifecycleOf', () => {
@@ -26,25 +27,22 @@ describe('classLifecycleOf', () => {
       { nodeId: 's1', value: 'draft', severity: 'info', icon: null, initial: true, terminal: true },
       { nodeId: 's2', value: 'done', severity: 'success', icon: 'pi pi-check-circle', initial: false, terminal: true }
     ]);
-    expect(lifecycle.transitions).toEqual([]);
+    expect(lifecycle.nesting).toEqual([]);
   });
 
-  it('collects transitions between the class states with intents', () => {
+  it('collects nesting parents from state-to-state wires', () => {
     const nodes = [classNode, state('s1', 'draft'), state('s2', 'done')];
     const edges = [
-      { id: 'd1', source: 's1', target: 'cls', role: 'type', label: 'state' },
-      { id: 'd2', source: 's2', target: 'cls', role: 'type', label: 'state' },
-      { id: 't1', source: 's1', target: 's2', role: 'type', label: 'finish', data: { intent: 'finish' } },
-      { id: 't2', source: 's2', target: 's2', role: 'type' } // loop: done -> done
+      edge('d1', 's1', 'cls'), edge('d2', 's2', 'cls'),
+      edge('t1', 's1', 's2')
     ];
     const lifecycle = classLifecycleOf(nodes, edges, 'cls');
-    expect(lifecycle.transitions).toEqual([
-      { edgeId: 't1', from: 'draft', to: 'done', intent: 'finish' },
-      { edgeId: 't2', from: 'done', to: 'done', intent: '' }
+    expect(lifecycle.nesting).toEqual([
+      { edgeId: 't1', child: 'draft', parent: 'done' }
     ]);
   });
 
   it('is empty for a class without states', () => {
-    expect(classLifecycleOf([classNode], [], 'cls')).toEqual({ states: [], transitions: [] });
+    expect(classLifecycleOf([classNode], [], 'cls')).toEqual({ states: [], nesting: [] });
   });
 });

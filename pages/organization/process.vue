@@ -2140,10 +2140,7 @@ function onConnect(connection) {
       declarationEdge.id = `children:${sourceNode.id}-${targetNode.id}`;
       declarationEdge.data = { key: `${targetNode.data.typeId}s`, onRemove: 'restrict' };
     }
-    if (legality === 'transition') {
-      declarationEdge.id = mintId('transition');
-      declarationEdge.data = { intent: '' };
-    }
+    if (legality === 'nested') declarationEdge.id = mintId('nested');
     if (legality === 'binds') declarationEdge.id = mintId('bind');
     if (legality === 'entry') declarationEdge.id = mintId('entry');
     if (legality === 'targets') declarationEdge.id = mintId('ref-target');
