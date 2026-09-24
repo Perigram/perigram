@@ -381,8 +381,13 @@ binds `sheet-design-editor` (create/edit), facade design binds
 `facade-designer` (create/edit), and the facade pattern graph binds
 `facade-pattern-designer` (edit) — the pattern designer keeps its
 pack-internal feature route for persistence, the cassette pattern; the
-`facade-pattern` file type itself (`name`, `graph`) serves the registry
-and generated-surface layer, and legacy `facade_patterns` records are
+`facade-pattern` file type itself (`name`, `motif`, `graph`) serves the
+registry and generated-surface layer — `motif` is the enum over the
+designer's node vocabulary (`grid`, `stagger`, `mesh`, `placements`) that
+generated list surfaces facet on, populated for every organization by the
+§3 system-catalog seed
+([scripts/README.md](../../scripts/README.md)) — and legacy
+`facade_patterns` records are
 abandoned data (SPEC §19). The editing surface receives the instance
 plus the caller's resolved write grant, exactly like the legacy
 sheet-design detail overload did. The bindings are served with the

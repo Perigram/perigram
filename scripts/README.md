@@ -126,7 +126,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `seed-*.js`: Local seed helpers for layer standards, tool profiles, and
   the tech-drawing palette colors (§3 system instances in the `files`
   collection; `seed-palette-colors.js` upserts by code, `--apply` to
-  persist).
+  persist). `seed-facade-patterns.js` (canonical script under
+  `server/scripts/`) upserts the facade-pattern system catalog rows,
+  cycling the declared `motif` enum so generated list surfaces carry a
+  multi-value facet and a volume-past-`SEARCH_AT` toolbar in every
+  organization; dry run by default, `--apply` persists.
 - `server/scripts/sweep-redundant-screens.js`: One-time Phase 4 broom.
   Finds authored screens in stored process definitions that are
   projection-equal to the station inference would emit for the same
