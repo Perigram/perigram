@@ -189,6 +189,7 @@
           :pool="pool"
           :bundle="bundle"
           @run="emitRun"
+          @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
           @toggle-edit="toggleEditing"
         />
         <SurfaceBody
@@ -316,7 +317,7 @@ const props = defineProps({
   instanceActions: { type: Object, default: null }
 });
 
-const emit = defineEmits(['run', 'open']);
+const emit = defineEmits(['run', 'transition', 'open']);
 const emitOpen = instance => emit('open', instance);
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);

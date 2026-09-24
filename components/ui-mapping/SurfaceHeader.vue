@@ -48,6 +48,7 @@
       :instance="instance"
       :actions="actions"
       @run="$emit('run', $event)"
+      @transition="$emit('transition', $event)"
     />
   </div>
 </template>
@@ -81,7 +82,7 @@ const props = defineProps({
   bundle: { type: Object, default: null }
 });
 
-const emit = defineEmits(['run', 'toggle-edit']);
+const emit = defineEmits(['run', 'transition', 'toggle-edit']);
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));

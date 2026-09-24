@@ -18,10 +18,10 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
 import Stepper from 'primevue/stepper';
 import StepList from 'primevue/steplist';
 import Step from 'primevue/step';
+import { computed, ref, watch } from 'vue';
 import { resolveActionButton } from '#shared/ui-mapping/index.js';
 
 // The lifecycle strip: the declared state axis as a linear PrimeVue
@@ -45,25 +45,37 @@ const props = defineProps({
   actions: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['run']);
+const emit = defineEmits(['run', 'transition']);
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const stateValues = computed(() => props.type.states?.main?.values || []);
-const labelFor = value => props.type.render?.states?.[value]?.label || startCase(value);
+// Per-state display policy lives on the states facet (the bundle serves
+// states.main.render with authored labels resolved).
+const labelFor = value => props.type.states?.main?.render?.[value]?.label || startCase(value);
 const currentValue = computed(() => props.instance.states?.main);
 const activeStep = computed(() => String(Math.max(1, stateValues.value.indexOf(currentValue.value) + 1)));
 const displayStep = ref(activeStep.value);
 watch([activeStep, () => props.instance], () => { displayStep.value = activeStep.value; });
 function stepAction(value) {
   if (!value || value === currentValue.value) return null;
+  // Runtime transitions (the state service's declaration-derived machine)
+  // are clickable exactly like manifest actions; they dispatch through
+  // the dedicated `transition` channel, not the manifest action runner.
+  const runtime = props.actions.find(action => action?.__runtime && action?.status?.to === value);
+  if (runtime) return runtime;
   return props.actions.find(action => action?.status?.to === value
     && action?.trigger?.mode === 'manual'
     && !resolveActionButton(action, { render: props.type?.render }).hidden) || null;
 }
-const stepLabel = value => (stepAction(value) ? `${labelFor(value)}: ${stepAction(value).label}` : labelFor(value));
+const stepLabel = value => {
+  const action = stepAction(value);
+  return action && action.label ? `${labelFor(value)}: ${action.label}` : labelFor(value);
+};
 function onStep(value) {
   const action = stepAction(value);
-  if (action) emit('run', action);
+  if (!action) return;
+  if (action.__runtime) emit('transition', { to: action.status.to, intent: action.intent || null, region: action.region || null });
+  else emit('run', action);
 }
 </script>
 
