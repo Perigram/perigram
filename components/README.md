@@ -701,19 +701,21 @@ Flattening the page onto the content surface is a contract violation:
 instances lose their step and every card goes invisible.
 
 **Table row surfaces** ride the same ladder: the PrimeVue preset paints
-every DataTable/TreeTable row as the content surface
-(`datatable`/`treetable` `row.background`) with structurally present but
-transparent internal cell dividers (`bodyCell.borderColor`) — row
-stripes are gone, the row IS the card. Surfaces that want Notion-style
-gaps apply the shared row-surface recipe (a layout-only
-scoped `border-collapse: separate` block with a `0.25rem` row gap, plus
-`rounded-ui` through the official `rowClass` channel, and a muted
-transparent header band through `pt`): the generated collection tables
-(`CollectionTable`, `HierarchyTable`), the legacy
+DataTable/TreeTable rows as an instance
+surface through their CELLS (`datatable`/`treetable` `bodyCell.background`
+= content background; `row.background` stays transparent) with
+structurally present but transparent internal cell dividers
+(`bodyCell.borderColor`) — row stripes are gone, the row IS the card.
+A row's own background is NOT clipped by its border-radius, so rounding
+belongs to the edge cells: the shared row-surface recipe applies a
+layout-only scoped `border-collapse: separate` block with a `0.25rem`
+row gap, `first:rounded-l-ui last:rounded-r-ui` on the body cells through
+the `pt` channel, and a muted transparent header band: the generated
+collection tables (`CollectionTable`, `HierarchyTable`), the legacy
 `GeneratedInstanceCollection`, and the organization users tables
-register it. Row paint belongs to the preset — one owner per concern.
-Rows are rounded, never outlined or ringed: the surface step over the
-canvas plus the hairline gap is the whole separation.
+register it. Surface paint belongs to the preset — one owner per
+concern. Rows are rounded, never outlined or ringed: the surface step
+over the canvas plus the hairline gap is the whole separation.
 
 **Measured values** carry the mono face (`text-technical tabular-nums`,
 the sanctioned mono alias): quantities, instants, and numbers in

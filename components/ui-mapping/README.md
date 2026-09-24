@@ -146,12 +146,12 @@ surface concerns:
   identity (a link button when the screen has an `onOpen` handler),
   status, budgeted scalar descriptor columns, and the first
   declared relation as budgeted chips. Rows are Notion-style surface
-  cards — the preset paints every row as the content surface with
-  transparent internal dividers; this table adds rounded rows (no
-  border, no ring — the surface step and the gap are the separation)
-  through the official `rowClass` channel, a hairline separated-border
-  gap (the layout-only scoped block), and a muted transparent header
-  band — every instance row sits one step above the canvas while the
+  cards — the preset paints the body CELLS as the content surface with
+  transparent internal dividers, and the recipe rounds the edge cells
+  through the `pt` channel (a row's own background is not clipped by
+  its radius), adds a hairline separated-border gap (the layout-only
+  scoped block) and a muted transparent header band — every instance row
+  sits one step above the canvas, with no border and no ring, while the
   table box stays unpainted. Columns come from the composed
   `listControls` contract (filled short scalars bounded by the richness
   budget — a field no loaded instance fills never becomes a column),
@@ -165,9 +165,9 @@ surface concerns:
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns and the same row-surface treatment as
-  `CollectionTable` (rounded content rows, hairline gaps, muted
-  transparent header band). Row identities are link buttons under the
-  same `onOpen` navigation contract.
+  `CollectionTable` (cell-painted rounded content rows, hairline gaps,
+  muted transparent header band). Row identities are link buttons under
+  the same `onOpen` navigation contract.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
   cards lay out in the shared `ResponsiveGrid` primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside panels),

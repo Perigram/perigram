@@ -14,7 +14,6 @@
     :sort-order="activeSortOrder"
     removable-sort
     :pt="tablePt"
-    :row-class="rowSurfaceClass"
     @sort-change="onSortChange"
   >
       <template #empty>
@@ -113,13 +112,12 @@ const { te, t } = useI18n();
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },
-  headerCell: { class: 'bg-transparent text-muted' }
+  headerCell: { class: 'bg-transparent text-muted' },
+  // The surface lives on the cells (the preset paints bodyCell); rounding
+  // the edge cells is what makes the row card's corners — a row's own
+  // background is not clipped by its radius.
+  bodyCell: { class: 'first:rounded-l-ui last:rounded-r-ui' }
 };
-// Row paint comes from the preset (row.background = content surface);
-// the recipe adds the rounding here. Rows are rounded surfaces WITHOUT a
-// border or ring: the surface step over the canvas plus the hairline gap
-// is the whole separation.
-const rowSurfaceClass = () => 'rounded-ui';
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);

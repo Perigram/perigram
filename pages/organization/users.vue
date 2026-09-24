@@ -7,7 +7,7 @@
     </template>
 
     <TableFrame class="ck-collection-rows">
-    <DataTable :value="users" :loading="loading" :pt="tablePt" :row-class="rowSurfaceClass">
+    <DataTable :value="users" :loading="loading" :pt="tablePt">
       <Column field="identity.name" :header="$t('profile.name')" sortable />
       <Column field="data.email" :header="$t('profile.email')" sortable />
       <Column :header="$t('organization.processRoles')">
@@ -31,7 +31,7 @@
     <div v-if="invitations.length > 0" class="flex flex-col gap-4">
         <ActionToolbar :title="$t('auth.activeInvitations')" />
         <TableFrame class="ck-collection-rows">
-        <DataTable :value="invitations" :pt="tablePt" :row-class="rowSurfaceClass">
+        <DataTable :value="invitations" :pt="tablePt">
             <Column :header="$t('auth.invitationLink')">
                 <template #body="{ data }">
                     <div class="flex items-center gap-2">
@@ -73,7 +73,7 @@
     <div v-if="pendingUsers.length > 0" class="flex flex-col gap-4">
         <ActionToolbar :title="$t('auth.joinRequests')" />
         <TableFrame class="ck-collection-rows">
-        <DataTable :value="pendingUsers" :pt="tablePt" :row-class="rowSurfaceClass">
+        <DataTable :value="pendingUsers" :pt="tablePt">
             <Column field="identity.name" :header="$t('profile.name')" sortable />
             <Column field="data.email" :header="$t('profile.email')" />
             <Column :header="$t('common.actions.title')" class="text-right">
@@ -222,9 +222,12 @@ import DataTable from 'primevue/datatable';
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },
-  headerCell: { class: 'bg-transparent text-muted' }
+  headerCell: { class: 'bg-transparent text-muted' },
+  // The surface lives on the cells (the preset paints bodyCell); rounding
+  // the edge cells is what makes the row card's corners — a row's own
+  // background is not clipped by its radius.
+  bodyCell: { class: 'first:rounded-l-ui last:rounded-r-ui' }
 };
-const rowSurfaceClass = () => 'rounded-ui';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
