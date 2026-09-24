@@ -5,15 +5,11 @@
       :placeholder="$t('common.search')"
       class="min-w-40 flex-1"
     />
-    <Button
-      icon="pi pi-filter"
-      text
-      rounded
-      size="small"
-      :severity="filtersOpen || builderFilter ? undefined : 'secondary'"
-      :badge="conditionCount ? String(conditionCount) : null"
-      :aria-label="$t('common.filter')"
-      @click="filtersOpen = !filtersOpen"
+    <FilterBuilder
+      v-if="builderFields.length"
+      :model-value="builderFilter"
+      :fields="builderFields"
+      @update:model-value="setBuilderFilter"
     />
     <Select
       v-model="sortBy"
@@ -31,13 +27,6 @@
         @execute="selectedAction => $emit('execute-action', selectedAction, null, actionContext)"
       />
     </div>
-  </div>
-  <div v-if="filtersOpen" class="flex flex-col gap-2 px-1 pb-2">
-    <FilterBuilder
-      :model-value="builderFilter"
-      :fields="builderFields"
-      @update:model-value="setBuilderFilter"
-    />
   </div>
   <TableFrame v-if="template === 'table'" class="ck-collection-rows">
     <DataTable :value="visibleItems" size="small" responsive-layout="scroll" :pt="tablePt" :row-class="rowSurfaceClass">
@@ -212,7 +201,6 @@ const registry = useRegistryStore();
 const entityIcon = computed(() => registry.iconFor(props.typeId));
 const { t } = useI18n();
 const searchQuery = ref('');
-const filtersOpen = ref(false);
 // The last sort choice persists per type; the identity-ascending default
 // applies when no preference exists.
 const sortScope = computed(() => `collection:${props.typeId}`);
@@ -278,17 +266,9 @@ const builderFields = computed(() => [
   },
   ...builderFieldsForType(typeRecord.value, { bundle: { types: registryTypes.value } })
 ].filter(field => field.kind !== 'enum' || field.values.length));
-const conditionCount = computed(() => countPredicates(builderFilter.value));
 function setBuilderFilter(filter) {
   builderFilter.value = filter;
   storeFilterViewState(viewScope.value, filter);
-}
-function countPredicates(node) {
-  if (!node || typeof node !== 'object') return 0;
-  if (node.and) return node.and.reduce((sum, child) => sum + countPredicates(child), 0);
-  if (node.or) return node.or.reduce((sum, child) => sum + countPredicates(child), 0);
-  if (node.not) return countPredicates(node.not);
-  return 1;
 }
 // The §3 screen-instance projection the filter tree evaluates against:
 // dtoToScreenInstance when the registry knows the type, else the identity

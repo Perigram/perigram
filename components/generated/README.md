@@ -487,9 +487,10 @@ Generated list regions render one collection toolbar above their table or card
 surface. The toolbar composes the canonical instance-filter tree
 ([shared/instance-filters](../../shared/instance-filters/README.md)):
 search is an `or` of `contains` over the entity name and id, and the
-filter toggle opens the shared `FilterBuilder` conditions panel (match
-all / match any, negated operators, per-kind value controls) whose
-fields derive through `builderFieldsForType` — every scalar field of the
+shared `FilterBuilder` popover (own funnel trigger, condition-count
+badge; match all / match any, negated operators, per-kind value
+controls) renders in the toolbar row, its fields deriving through
+`builderFieldsForType` — every scalar field of the
 registry's type view plus relation, parent, and children traversal axes,
 with the primary status over the states actually present. The composed
 tree persists per type as view state

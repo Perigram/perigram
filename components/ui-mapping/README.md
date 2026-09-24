@@ -77,10 +77,9 @@ surface concerns:
 - The region header's in-place controls (the dissolved
   `CollectionToolbar`): search expands IN PLACE — the icon button becomes
   an icon field at its position (icon/Esc/empty-blur collapses) — and the
-  filter toggle unfolds the shared `FilterBuilder` conditions panel
-  directly beside the filter button, which stays as the collapse anchor.
-  Set conditions are the one filtering state — no parallel facet selects
-  speak the same axis. The panel's fields derive through
+  shared `FilterBuilder` popover (own funnel trigger, condition-count
+  badge) renders in the header cluster. Set conditions are the one
+  filtering state — no parallel facet selects speak the same axis. The panel's fields derive through
   `builderFieldsForType` (see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)): every scalar
   field, the primary status over the values actually present, and the
