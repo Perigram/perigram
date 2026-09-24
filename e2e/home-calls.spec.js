@@ -3,7 +3,9 @@ import { test, expect } from './fixtures.js';
 // The home sidebar's original communication contract, restored: the
 // CommunicationMenu TieredMenu (Chats; Calls opening a flyout listing every
 // ringable conversation) always present, plus ongoing rooms as persistent
-// rows beneath it — and nothing room-shaped when no room is active.
+// rows beneath it — and nothing room-shaped when no room is active. The
+// flyout opens on click: PrimeVue TieredMenu opens submenus on hover only
+// after the menu is dirty, so click is the real interaction.
 const ROOM = { room: 'call:direct:e2e-user-a:e2e-user-b', kind: 'direct', participants: 2 };
 const CONVERSATIONS = {
   data: [
@@ -44,7 +46,7 @@ test.describe('home sidebar communication menu', () => {
     await bootHome(app, { rooms: [ROOM] });
 
     const item = callsItem(app.page);
-    await item.hover();
+    await item.click();
     const flyout = app.page.locator('.p-tieredmenu-submenu')
       .filter({ has: app.page.locator('.p-tieredmenu-item-label', { hasText: 'E2E Peer' }) });
     await expect(flyout).toBeVisible();
@@ -58,7 +60,7 @@ test.describe('home sidebar communication menu', () => {
     await expect(app.page.locator('[data-active-calls]')).toHaveCount(0);
     const item = callsItem(app.page);
     await expect(item).toBeVisible();
-    await item.hover();
+    await item.click();
     await expect(app.page.locator('.p-tieredmenu-submenu')
       .filter({ has: app.page.locator('.p-tieredmenu-item-label', { hasText: 'E2E Peer' }) })).toBeVisible();
   });
