@@ -12,7 +12,7 @@
     />
 
     <Popover ref="popover">
-      <div ref="panel" class="flex min-w-80 max-w-96 flex-col gap-2">
+      <div class="flex min-w-80 max-w-96 flex-col gap-2">
         <div v-if="rows.length > 1" class="flex flex-wrap items-center justify-between gap-2">
           <SelectButton
             :model-value="combinator"
@@ -38,27 +38,23 @@
         <div
           v-for="(row, index) in rows"
           :key="index"
-          class="flex min-w-0 items-center gap-2"
+          class="flex min-w-0 flex-wrap items-center gap-2"
         >
-          <Select
-            :model-value="row.field"
-            :options="fieldOptions"
-            option-label="label"
-            option-value="value"
+          <Button
+            :label="fieldLabelFor(row.field)"
+            text
             size="small"
-            class="w-40 shrink-0"
-            :append-to="panel"
+            class="w-36 shrink-0 justify-start"
             :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setField(index, value)"
+            @click="openFieldPicker({ mode: 'row', index })"
           />
-          <Select
+          <SelectButton
             :model-value="rowKey(row)"
             :options="opOptionsFor(row.field)"
             option-label="label"
             option-value="value"
             size="small"
-            class="w-32 shrink-0"
-            :append-to="panel"
+            :allow-empty="false"
             :aria-label="$t('common.filter')"
             @update:model-value="value => setRowOp(index, value)"
           />
@@ -78,53 +74,40 @@
             :aria-label="fieldLabelFor(row.field)"
             @update:model-value="value => setRowValue(index, typeof value === 'number' ? value : '')"
           />
-          <DatePicker
+          <InputText
             v-else-if="fieldKind(row.field) === 'instant'"
-            :model-value="toDate(row.value)"
+            :model-value="row.value"
+            type="date"
             size="small"
             class="min-w-0 flex-1"
-            :append-to="panel"
             :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value ? value.toISOString() : '')"
+            @update:model-value="value => setRowValue(index, value || '')"
           />
-          <Select
+          <SelectButton
             v-else-if="fieldKind(row.field) === 'boolean'"
             :model-value="row.value"
             :options="booleanOptions"
-            size="small"
-            class="min-w-0 flex-1"
-            :append-to="panel"
-            :placeholder="fieldLabelFor(row.field)"
-            :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value ?? '')"
-          />
-          <MultiSelect
-            v-else-if="rowOp(row) === 'in'"
-            :model-value="Array.isArray(row.value) ? row.value : []"
-            :options="valueOptionsFor(row.field)"
             option-label="label"
             option-value="value"
             size="small"
-            class="min-w-0 flex-1"
-            :append-to="panel"
-            :placeholder="fieldLabelFor(row.field)"
+            :allow-empty="false"
             :aria-label="fieldLabelFor(row.field)"
             @update:model-value="value => setRowValue(index, value)"
           />
-          <Select
+          <div
             v-else
-            :model-value="row.value"
-            :options="valueOptionsFor(row.field)"
-            option-label="label"
-            option-value="value"
-            size="small"
-            filter
-            class="min-w-0 flex-1"
-            :append-to="panel"
-            :placeholder="fieldLabelFor(row.field)"
-            :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value ?? '')"
-          />
+            class="flex min-w-0 flex-1 flex-wrap items-center gap-1"
+          >
+            <Button
+              v-for="value in valueOptionsFor(row.field)"
+              :key="value.value"
+              :label="value.label"
+              size="small"
+              :outlined="!isValueSelected(row, value.value)"
+              :severity="isValueSelected(row, value.value) ? undefined : 'secondary'"
+              @click="toggleValue(index, value.value)"
+            />
+          </div>
           <Button
             icon="pi pi-times"
             text
@@ -136,16 +119,7 @@
           />
         </div>
 
-        <Button
-          icon="pi pi-plus"
-          :label="$t('uiMapping.addCondition')"
-          text
-          size="small"
-          class="self-start"
-          :aria-label="$t('uiMapping.addCondition')"
-          @click="toggleFieldList"
-        />
-        <div v-if="fieldsOpen" class="flex max-h-56 flex-col gap-0.5 overflow-y-auto pt-1">
+        <div v-if="picker" class="flex max-h-56 flex-col gap-0.5 overflow-y-auto pt-1">
           <Button
             v-for="field in fields"
             :key="field.name"
@@ -153,9 +127,19 @@
             text
             size="small"
             class="justify-start"
-            @click="addRowFor(field.name)"
+            @click="pickField(field.name)"
           />
         </div>
+        <Button
+          v-else
+          icon="pi pi-plus"
+          :label="$t('uiMapping.addCondition')"
+          text
+          size="small"
+          class="self-start"
+          :aria-label="$t('uiMapping.addCondition')"
+          @click="openFieldPicker({ mode: 'add' })"
+        />
       </div>
     </Popover>
   </span>
@@ -167,25 +151,30 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
-import DatePicker from 'primevue/datepicker';
 import Popover from 'primevue/popover';
 import SelectButton from 'primevue/selectbutton';
-import Select from '~/components/shared/InstanceSelect.vue';
-import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import { filterFromBuilderRows, builderRowsFromFilter } from '#shared/instance-filters/builder.js';
 
 // The filter builder: a popover for boolean composition over the canonical
 // instance-filter tree, triggered by its own funnel button (badge carries
-// the active condition count). Set conditions render as compact
-// single-line rows; the "Add condition" button toggles an inline field
-// list whose buttons append rows. The list lives INSIDE the popover
-// deliberately: a nested overlay (menu) would sit outside the popover's
-// DOM subtree, where the popover's outside-click handling closes the
-// builder the moment a field is picked. One combinator (match all /
-// match any) applies once more than one row exists; negated operator
-// twins compose `not`. It owns no matching logic — every edit composes
-// through #shared/instance-filters and the host evaluates with the one
-// matcher.
+// the active condition count). Set conditions render as single-line rows:
+// a field button, a segmented operator, and a value control.
+//
+// Every control inside the popover is INLINE by construction — segmented
+// buttons, text/number/native-date inputs, enum value chips, and an
+// inline field list. This is load-bearing, not stylistic: a popover
+// dismisses on document clicks outside its own subtree, so any child
+// overlay appended to `body` (Select, MultiSelect, DatePicker) closed the
+// builder on every pick; appending those overlays INTO the panel instead
+// fixed closing but displaced them far from their trigger (PrimeVue
+// positions overlays document-absolute, so a positioned append target
+// double-offsets the coordinates). With no child overlays, neither
+// failure mode exists.
+//
+// One combinator (match all / match any) applies once more than one row
+// exists; negated operator twins compose `not`. The builder owns no
+// matching logic — every edit composes through #shared/instance-filters
+// and the host evaluates with the one matcher.
 //
 // Fields are supplied by the host: `{ name, label, kind: 'text' | 'enum'
 // | 'boolean' | 'number' | 'instant', values? }` — enum fields carry
@@ -202,21 +191,20 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const popover = ref();
-const panel = ref(null);
-const fieldsOpen = ref(false);
+const picker = ref(null);
 const combinator = ref('and');
 const rows = ref([]);
+let lastPublished = null;
 
 const combinatorOptions = computed(() => [
   { label: t('uiMapping.matchAll'), value: 'and' },
   { label: t('uiMapping.matchAny'), value: 'or' }
 ]);
-const fieldOptions = computed(() => props.fields.map(field => ({ label: field.label, value: field.name })));
 const fieldByName = computed(() => new Map(props.fields.map(field => [field.name, field])));
-const booleanOptions = [
-  { label: 'true', value: true },
-  { label: 'false', value: false }
-];
+const booleanOptions = computed(() => [
+  { label: t('common.yes'), value: true },
+  { label: t('common.no'), value: false }
+]);
 const conditionCount = computed(() => countPredicates(props.modelValue));
 
 function fieldKind(name) {
@@ -228,79 +216,43 @@ function fieldLabelFor(name) {
 function valueOptionsFor(name) {
   return (fieldByName.value.get(name)?.values || []).map(value => ({ label: String(value), value }));
 }
-function toDate(value) {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
 function toggle(event) {
   syncFromModel();
-  fieldsOpen.value = false;
+  picker.value = null;
   popover.value?.toggle(event);
 }
-function toggleFieldList() {
-  fieldsOpen.value = !fieldsOpen.value;
-}
 
+// Per-kind operators. Numbers and dates use language-neutral symbols (a
+// six-option segmented control does not fit the row in words); text and
+// enum use the localized words.
 const KIND_OPS = {
-  text: [
-    { op: 'contains', negate: false },
-    { op: 'contains', negate: true },
-    { op: 'eq', negate: false },
-    { op: 'eq', negate: true }
-  ],
-  enum: [
-    { op: 'in', negate: false },
-    { op: 'in', negate: true },
-    { op: 'eq', negate: false },
-    { op: 'eq', negate: true }
-  ],
-  boolean: [
-    { op: 'eq', negate: false },
-    { op: 'eq', negate: true }
-  ],
-  number: [
-    { op: 'gt', negate: false },
-    { op: 'gte', negate: false },
-    { op: 'lt', negate: false },
-    { op: 'lte', negate: false },
-    { op: 'eq', negate: false },
-    { op: 'eq', negate: true }
-  ],
-  instant: [
-    { op: 'gt', negate: false },
-    { op: 'gte', negate: false },
-    { op: 'lt', negate: false },
-    { op: 'lte', negate: false },
-    { op: 'eq', negate: false },
-    { op: 'eq', negate: true }
-  ]
+  text: ['contains', 'eq', '!eq'],
+  enum: ['in', '!in', 'eq', '!eq'],
+  boolean: ['eq', '!eq'],
+  number: ['gte', 'gt', 'lte', 'lt', 'eq', '!eq'],
+  instant: ['gte', 'gt', 'lte', 'lt', 'eq', '!eq']
+};
+const OP_LABELS = {
+  contains: () => t('uiMapping.opContains'),
+  eq: () => t('uiMapping.opIs'),
+  '!eq': () => t('uiMapping.opIsNot'),
+  in: () => t('uiMapping.opIn'),
+  '!in': () => t('uiMapping.opNotIn'),
+  gt: () => '>',
+  gte: () => '≥',
+  lt: () => '<',
+  lte: () => '≤'
 };
 function opOptionsFor(name) {
-  const labels = {
-    'contains': t('uiMapping.opContains'),
-    '!contains': t('uiMapping.opNotContains'),
-    'eq': t('uiMapping.opIs'),
-    '!eq': t('uiMapping.opIsNot'),
-    'in': t('uiMapping.opIn'),
-    '!in': t('uiMapping.opNotIn'),
-    'gt': t('uiMapping.opGt'),
-    'gte': t('uiMapping.opGte'),
-    'lt': t('uiMapping.opLt'),
-    'lte': t('uiMapping.opLte')
-  };
   return (KIND_OPS[fieldKind(name)] || KIND_OPS.text)
-    .map(({ op, negate }) => ({ label: labels[`${negate ? '!' : ''}${op}`], value: `${negate ? '!' : ''}${op}` }));
+    .map(op => ({ value: op, label: OP_LABELS[op] ? OP_LABELS[op]() : op }));
 }
 function rowKey(row) {
-  return `${row.negate ? '!' : ''}${row.op}`;
-}
-function rowOp(row) {
-  return row?.op;
+  return row.negate ? `!${row.op}` : row.op;
 }
 
 function defaultOpFor(kind) {
-  return kind === 'enum' ? 'in' : kind === 'number' || kind === 'instant' ? 'gt' : 'contains';
+  return kind === 'enum' ? 'in' : kind === 'number' || kind === 'instant' ? 'gte' : 'contains';
 }
 
 function syncFromModel() {
@@ -315,19 +267,31 @@ function publish() {
   lastPublished = filterFromBuilderRows(rows.value, combinator.value);
   emit('update:modelValue', lastPublished);
 }
-let lastPublished = null;
 function setCombinator(value) {
   combinator.value = value === 'or' ? 'or' : 'and';
   publish();
 }
-function setField(index, name) {
-  const row = rows.value[index];
-  if (!row || !fieldByName.value.has(name)) return;
-  row.field = name;
-  const kind = fieldKind(name);
-  row.op = defaultOpFor(kind);
-  row.negate = false;
-  row.value = kind === 'enum' ? [] : '';
+function openFieldPicker(target) {
+  picker.value = picker.value && picker.value.mode === target.mode && picker.value.index === target.index
+    ? null
+    : target;
+}
+function pickField(name) {
+  const target = picker.value;
+  const field = fieldByName.value.get(name);
+  if (!target || !field) return;
+  if (target.mode === 'add') {
+    rows.value.push({ field: name, op: defaultOpFor(field.kind), value: field.kind === 'enum' ? [] : '', negate: false });
+  } else {
+    const row = rows.value[target.index];
+    if (row) {
+      row.field = name;
+      row.op = defaultOpFor(field.kind);
+      row.negate = false;
+      row.value = field.kind === 'enum' ? [] : '';
+    }
+  }
+  picker.value = null;
   publish();
 }
 function setRowOp(index, key) {
@@ -345,6 +309,22 @@ function setRowValue(index, value) {
   row.value = value;
   publish();
 }
+function isValueSelected(row, value) {
+  return Array.isArray(row?.value) ? row.value.includes(value) : row?.value === value;
+}
+function toggleValue(index, value) {
+  const row = rows.value[index];
+  if (!row) return;
+  if (row.op === 'in') {
+    const current = Array.isArray(row.value) ? row.value : [];
+    row.value = current.includes(value)
+      ? current.filter(entry => entry !== value)
+      : [...current, value];
+  } else {
+    row.value = row.value === value ? '' : value;
+  }
+  publish();
+}
 function removeRow(index) {
   rows.value.splice(index, 1);
   publish();
@@ -352,17 +332,6 @@ function removeRow(index) {
 function clearAll() {
   rows.value = [];
   publish();
-}
-function addRowFor(name) {
-  const field = fieldByName.value.get(name);
-  if (!field) return;
-  fieldsOpen.value = false;
-  rows.value.push({
-    field: name,
-    op: defaultOpFor(field.kind),
-    value: field.kind === 'enum' ? [] : '',
-    negate: false
-  });
 }
 function countPredicates(node) {
   if (!node || typeof node !== 'object') return 0;
@@ -373,7 +342,7 @@ function countPredicates(node) {
 }
 watch(() => props.modelValue, value => {
   if (value === lastPublished) return;
-  // External swaps (scope changes) refresh local state; the popover
+  // External swaps (scope changes) drop local state; the popover
   // re-syncs from the model on open.
   rows.value = [];
   lastPublished = null;
