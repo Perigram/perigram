@@ -331,13 +331,15 @@ export function toolbarVisibleFor(node = {}) {
 }
 
 // instanceMatchesToolbar(type, controls, instance, query, facetSelections):
-// title-plus-fields substring match combined with exact facet matches.
+// title-plus-fields substring match combined with facet value sets.
 // Empty queries and empty selections are no-ops, so an untouched toolbar
 // never filters anything out. The selection composes into the canonical
 // instance-filter tree (see #shared/instance-filters) — an `or` of
 // `contains` over the search keys plus the instance id (finding a row by
-// its id stays functional even when the title never carries it) and `eq`
-// conjunctions over the facet selections — evaluated by the one matcher.
+// its id stays functional even when the title never carries it) and one
+// `in` predicate per facet (multi-select within a facet, conjunction
+// across facets) — evaluated by the one matcher. Facet selections are
+// value arrays; anything else drops as a no-op.
 export function instanceMatchesToolbar(type = {}, controls = {}, instance = {}, query = '', facetSelections = {}) {
   const normalized = String(query || '').trim().toLowerCase();
   const search = normalized
@@ -350,8 +352,8 @@ export function instanceMatchesToolbar(type = {}, controls = {}, instance = {}, 
     : null;
   const facets = normalizeFilter({
     and: Object.entries(facetSelections || {})
-      .filter(([, value]) => value !== null && value !== undefined && value !== '')
-      .map(([name, value]) => ({ field: name, op: 'eq', value }))
+      .filter(([, values]) => Array.isArray(values) && values.length)
+      .map(([name, values]) => ({ field: name, op: 'in', value: values }))
   });
   const filter = normalizeFilter({ and: [search, facets].filter(Boolean) });
   return instanceMatchesFilter(instance, filter);

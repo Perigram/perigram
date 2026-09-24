@@ -7,15 +7,14 @@
       class="max-w-56"
       :aria-label="$t('uiMapping.searchPlaceholder')"
     />
-    <AppSelect
+    <AppMultiSelect
       v-for="facet in visibleFacets"
       :key="facet.name"
-      :model-value="facetsModel[facet.name] ?? null"
+      :model-value="facetsModel[facet.name] ?? []"
       :options="facetOptions(facet)"
       option-label="label"
       option-value="value"
       :placeholder="facet.label"
-      show-clear
       :size="editorSize"
       class="max-w-44"
       :aria-label="facet.label"
@@ -28,7 +27,7 @@
 import { computed, inject } from 'vue';
 import InputText from 'primevue/inputtext';
 import { LAYOUT, toolbarVisibleFor } from '#shared/ui-mapping/index.js';
-import AppSelect from '~/components/shared/InstanceSelect.vue';
+import AppMultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 
 // The collection toolbar: materializes the composed list-controls
 // contract (searchKeys, facets over values actually present) above a
@@ -36,9 +35,10 @@ import AppSelect from '~/components/shared/InstanceSelect.vue';
 // earns the bar; small collections earn it through multi-value facets.
 // It owns no per-type logic — the region tree carries every decision.
 // Search and facet selections are region-owned models applied
-// client-side by RegionBlock over the loaded instances. Rhythm (gaps)
-// and control size follow the system spacing scale through the injected
-// mapping spacing, never hardcoded row classes.
+// client-side by RegionBlock over the loaded instances: a facet holds a
+// value set (multi-select within one facet, conjunction across facets).
+// Rhythm (gaps) and control size follow the system spacing scale through
+// the injected mapping spacing, never hardcoded row classes.
 const props = defineProps({
   node: { type: Object, required: true }
 });
@@ -56,7 +56,7 @@ const visibleFacets = computed(() => (controls.value?.facets || []).filter(facet
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const facetOptions = facet => facet.values.map(value => ({ label: startCase(value), value }));
 function setFacet(name, value) {
-  if (value === null || value === undefined) delete facetsModel.value[name];
+  if (!Array.isArray(value) || !value.length) delete facetsModel.value[name];
   else facetsModel.value[name] = value;
 }
 </script>

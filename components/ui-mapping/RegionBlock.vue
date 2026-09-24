@@ -406,7 +406,8 @@ const coveredRelationKeys = computed(() => props.node.childRegions
   .filter(Boolean));
 
 // Region-local search/facet state over the composed list-controls
-// contract; filters apply client-side over the loaded instances.
+// contract; filters apply client-side over the loaded instances. Facet
+// selections are value sets — an empty set is no selection at all.
 const search = ref('');
 const facets = reactive({});
 watch(() => props.node.id, () => {
@@ -418,7 +419,7 @@ const filteredInstances = computed(() => {
   const controls = props.node.listControls;
   if (!controls) return props.node.instances;
   const query = search.value.trim().toLowerCase();
-  const activeFacets = Object.entries(facets).filter(([, value]) => value);
+  const activeFacets = Object.entries(facets).filter(([, values]) => Array.isArray(values) && values.length);
   if (!query && !activeFacets.length) return props.node.instances;
   return props.node.instances.filter(instance =>
     instanceMatchesToolbar(props.node.type, controls, instance, query, Object.fromEntries(activeFacets)));
