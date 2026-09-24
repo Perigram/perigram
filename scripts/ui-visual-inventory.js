@@ -14,6 +14,8 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/shared/InstanceSurfaceContent.vue': 'layout',
   'components/shared/InstanceWorkspace.vue': 'layout',
   'components/shared/ResponsiveGrid.vue': 'layout',
+  'components/ui-mapping/CollectionTable.vue': 'layout',
+  'components/ui-mapping/HierarchyTable.vue': 'layout',
   'components/ui-mapping/SurfaceHeader.vue': 'layout',
   'components/shared/blocks/DataBlock.vue': 'layout'
 });
@@ -21,6 +23,8 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
 export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'align-items',
   'align-self',
+  'border-collapse',
+  'border-spacing',
   'justify-self',
   'container-type',
   'display',

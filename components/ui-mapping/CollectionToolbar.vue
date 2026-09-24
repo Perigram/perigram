@@ -1,46 +1,52 @@
 <template>
-  <div v-if="visible" :class="toolbarClasses">
+  <div v-if="searchOpen || filtersOpen" :class="toolbarClasses">
     <InputText
+      v-if="searchOpen"
       v-model="searchModel"
       :size="editorSize"
       :placeholder="$t('uiMapping.searchPlaceholder')"
       class="max-w-56"
       :aria-label="$t('uiMapping.searchPlaceholder')"
     />
-    <AppMultiSelect
-      v-for="facet in visibleFacets"
-      :key="facet.name"
-      :model-value="facetsModel[facet.name] ?? []"
-      :options="facetOptions(facet)"
-      option-label="label"
-      option-value="value"
-      :placeholder="facet.label"
-      :size="editorSize"
-      class="max-w-44"
-      :aria-label="facet.label"
-      @update:model-value="value => setFacet(facet.name, value)"
-    />
+    <template v-if="filtersOpen">
+      <AppMultiSelect
+        v-for="facet in visibleFacets"
+        :key="facet.name"
+        :model-value="facetsModel[facet.name] ?? []"
+        :options="facetOptions(facet)"
+        option-label="label"
+        option-value="value"
+        :placeholder="facet.label"
+        :size="editorSize"
+        class="max-w-44"
+        :aria-label="facet.label"
+        @update:model-value="value => setFacet(facet.name, value)"
+      />
+    </template>
   </div>
 </template>
 
 <script setup>
 import { computed, inject } from 'vue';
 import InputText from 'primevue/inputtext';
-import { LAYOUT, toolbarVisibleFor } from '#shared/ui-mapping/index.js';
+import { LAYOUT } from '#shared/ui-mapping/index.js';
 import AppMultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 
-// The collection toolbar: materializes the composed list-controls
-// contract (searchKeys, facets over values actually present) above a
-// list region. Identity search always functions, so every large list
-// earns the bar; small collections earn it through multi-value facets.
-// It owns no per-type logic — the region tree carries every decision.
-// Search and facet selections are region-owned models applied
-// client-side by RegionBlock over the loaded instances: a facet holds a
-// value set (multi-select within one facet, conjunction across facets).
-// Rhythm (gaps) and control size follow the system spacing scale through
-// the injected mapping spacing, never hardcoded row classes.
+// The collection toolbar's controls: the search input and facet selects
+// render only while their header toggles are open (RegionBlock owns the
+// toggle buttons and the one-line header contract). It materializes the
+// composed list-controls contract (searchKeys, facets over values
+// actually present) and owns no per-type logic — the region tree carries
+// every decision. Search and facet selections are region-owned models
+// applied client-side by RegionBlock over the loaded instances: a facet
+// holds a value set (multi-select within one facet, conjunction across
+// facets). Rhythm (gaps) and control size follow the system spacing
+// scale through the injected mapping spacing, never hardcoded row
+// classes.
 const props = defineProps({
-  node: { type: Object, required: true }
+  node: { type: Object, required: true },
+  searchOpen: { type: Boolean, default: false },
+  filtersOpen: { type: Boolean, default: false }
 });
 
 const searchModel = defineModel('search', { type: String, default: '' });
@@ -50,7 +56,6 @@ const toolbarClasses = computed(() => (spacing ? spacing.toolbar : LAYOUT.row));
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
 const controls = computed(() => props.node.listControls || null);
-const visible = computed(() => toolbarVisibleFor(props.node));
 const visibleFacets = computed(() => (controls.value?.facets || []).filter(facet => facet.values.length > 1));
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());

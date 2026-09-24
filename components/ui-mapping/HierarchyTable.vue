@@ -1,6 +1,6 @@
 <template>
-  <div :class="LAYOUT.scrollX">
-    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10">
+  <div :class="[LAYOUT.scrollX, 'ck-collection-rows']">
+    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10" :pt="tablePt" :row-class="rowSurfaceClass">
     <Column>
       <template #body="{ node }">
         <div class="flex items-center gap-2">
@@ -57,10 +57,19 @@ const props = defineProps({
   // Row identities render as links when an open handler exists upstream.
   openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }
-});
+  bundle: { type: Object, default: null }});
 
 defineEmits(['open']);
+
+// Same Notion-style row surfaces as CollectionTable: rounded content rows
+// over the transparent table box, muted transparent header band — through
+// TreeTable's official pt/rowClass channels.
+const tablePt = {
+  root: { class: 'bg-transparent' },
+  headerRow: { class: 'bg-transparent text-muted' },
+  headerCell: { class: 'bg-transparent text-muted' }
+};
+const rowSurfaceClass = () => 'bg-content rounded-ui';
 
 const { te, t } = useI18n();
 
@@ -110,3 +119,12 @@ const nodes = computed(() => props.instances.map(instance => buildNode(instance)
 const collectKeys = node => [node.key, ...node.children.flatMap(collectKeys)];
 const expandedKeys = computed(() => Object.fromEntries(nodes.value.flatMap(collectKeys).map(key => [key, true])));
 </script>
+
+<style scoped>
+/* Row-surface rhythm (layout-only declarations): the same separated-cell
+   gap as CollectionTable, so tree rows read as rounded surface cards. */
+.ck-collection-rows :deep(.p-treetable-table) {
+  border-collapse: separate;
+  border-spacing: 0 0.25rem;
+}
+</style>

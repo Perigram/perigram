@@ -1852,7 +1852,8 @@
     "sortOrderLabel": "Toggle sort order",
     "moreActions": "More actions",
     "new": "New",
-    "stateHistory": "State history"
+    "stateHistory": "State history",
+    "filters": "Filters"
   },
   "uiConstructor": {
     "title": "UI Constructor Demo",

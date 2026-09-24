@@ -1,5 +1,5 @@
 <template>
-  <Chip v-if="label" :label="label" :icon="icon" class="max-w-48 [&_.p-chip-label]:truncate" />
+  <Chip v-if="label" :label="label" :icon="icon" class="max-w-48 bg-subtle [&_.p-chip-label]:truncate" />
   <span v-else class="text-muted">{{ fallback }}</span>
 </template>
 

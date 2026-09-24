@@ -6,7 +6,36 @@
         <span class="text-label">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
-      <div v-if="node.actions.length" class="flex flex-wrap items-center gap-2">
+      <div v-if="node.actions.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <CollectionToolbar
+          v-if="searchOpen || filtersOpen"
+          v-model:search="search"
+          v-model:facets="facets"
+          :node="node"
+          :search-open="searchOpen"
+          :filters-open="filtersOpen"
+        />
+        <Button
+          v-if="searchToggleAvailable"
+          icon="pi pi-search"
+          text
+          rounded
+          size="small"
+          :severity="searchOpen ? undefined : 'secondary'"
+          :aria-label="$t('uiMapping.searchPlaceholder')"
+          @click="searchOpen = !searchOpen"
+        />
+        <Button
+          v-if="facetsToggleAvailable"
+          icon="pi pi-filter"
+          text
+          rounded
+          size="small"
+          :severity="filtersOpen || activeFacetCount ? undefined : 'secondary'"
+          :badge="activeFacetCount ? String(activeFacetCount) : null"
+          :aria-label="$t('uiMapping.filters')"
+          @click="filtersOpen = !filtersOpen"
+        />
         <ActionButton
           v-for="action in node.actions"
           :key="action.id"
@@ -20,7 +49,6 @@
     <RegionDataState v-if="showState" :node="node" />
     <template v-if="showSurfaces">
       <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
-      <CollectionToolbar v-model:search="search" v-model:facets="facets" :node="node" />
       <CollectionTable
         v-if="listLayout === 'table'"
         :instances="filteredInstances"
@@ -81,14 +109,43 @@
 
   <Panel v-else-if="node.surfaceKind === 'list'" class="w-full !border-0" :pt="{ contentWrapper: { class: 'min-w-0' } }">
     <template #header>
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
         <span class="text-section-heading">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
     </template>
-    <template v-if="node.actions.length" #icons>
-      <div class="flex flex-wrap items-center gap-2">
+    <template v-if="node.actions.length || searchToggleAvailable || facetsToggleAvailable" #icons>
+      <div class="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <CollectionToolbar
+          v-if="searchOpen || filtersOpen"
+          v-model:search="search"
+          v-model:facets="facets"
+          :node="node"
+          :search-open="searchOpen"
+          :filters-open="filtersOpen"
+        />
+        <Button
+          v-if="searchToggleAvailable"
+          icon="pi pi-search"
+          text
+          rounded
+          size="small"
+          :severity="searchOpen ? undefined : 'secondary'"
+          :aria-label="$t('uiMapping.searchPlaceholder')"
+          @click="searchOpen = !searchOpen"
+        />
+        <Button
+          v-if="facetsToggleAvailable"
+          icon="pi pi-filter"
+          text
+          rounded
+          size="small"
+          :severity="filtersOpen || activeFacetCount ? undefined : 'secondary'"
+          :badge="activeFacetCount ? String(activeFacetCount) : null"
+          :aria-label="$t('uiMapping.filters')"
+          @click="filtersOpen = !filtersOpen"
+        />
         <ActionButton
           v-for="action in node.actions"
           :key="action.id"
@@ -100,12 +157,10 @@
       </div>
     </template>
     <RegionDataState v-if="showState" :node="node" />
-    <!-- Panel content has no strip-to-content gap of its own: the toolbar,
-         progress, and collection surface stack on the system rhythm so the
-         search bar never sticks to the content below it. -->
+    <!-- Panel content has no strip-to-content gap of its own: the progress
+         and collection surface stack on the system rhythm. -->
     <div v-if="showSurfaces" :class="embeddedStack">
       <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
-      <CollectionToolbar v-model:search="search" v-model:facets="facets" :node="node" />
       <CollectionTable
         v-if="listLayout === 'table'"
         :instances="filteredInstances"
@@ -291,8 +346,9 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
+import Button from 'primevue/button';
 import {
-  LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout,
+  LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor,
   localizedLabel, typeLabelKey, instanceMatchesToolbar
 } from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
@@ -407,11 +463,24 @@ const coveredRelationKeys = computed(() => props.node.childRegions
 
 // Region-local search/facet state over the composed list-controls
 // contract; filters apply client-side over the loaded instances. Facet
-// selections are value sets — an empty set is no selection at all.
+// selections are value sets — an empty set is no selection at all. The
+// controls stay closed until their header toggle opens them, so the
+// header reads as one line (wrapping only when the opened controls or
+// the action cluster demand it); selections persist while toggled and
+// the filter toggle carries the active-selection count.
 const search = ref('');
 const facets = reactive({});
+const searchOpen = ref(false);
+const filtersOpen = ref(false);
+const searchToggleAvailable = computed(() => toolbarVisibleFor(props.node));
+const facetsToggleAvailable = computed(() => (props.node.listControls?.facets || [])
+  .some(facet => facet.values.length > 1));
+const activeFacetCount = computed(() => Object.values(facets)
+  .filter(value => Array.isArray(value) && value.length).length);
 watch(() => props.node.id, () => {
   search.value = '';
+  searchOpen.value = false;
+  filtersOpen.value = false;
   Object.keys(facets).forEach(key => delete facets[key]);
 });
 const filteredInstances = computed(() => {
