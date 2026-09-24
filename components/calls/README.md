@@ -123,9 +123,8 @@ user topic and `call.activity` on the user/org topics, keeps the
 (30s TTL). Consumers:
 
 - the app shell mounts `IncomingCalls` for ring notifications;
-- the generated home sidebar lists ongoing rooms as persistent rows
-  (label, participant count, row click joins) directly under the
-  communication menu — not inside the Calls popup submenu;
+- the generated home sidebar lists ongoing rooms as persistent rows in
+  its dedicated Calls panel (label, participant count, row click joins);
 - `ChatSupport` shows an ongoing-call banner with a Join button for the
   open conversation, before joining and after leaving the call.
 

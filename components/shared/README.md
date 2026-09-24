@@ -559,9 +559,12 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   an active-pane marker. The pane Panel draws the default Panel hairline
   border as the visible pane box: the preset strips panel borders globally
   for the zero canvas, so the pane pt re-points `--p-panel-border-color`
-  at the preset content border. Split cells carry the inter-pane gap; the
-  6px gutters are invisible but draggable — the division works without
-  being drawn. Split-tree mutation remains pure state owned by the caller.
+  at the preset content border. Split cells carry no padding — the 6px
+  gutters are the only inter-pane gap, the hosting surface owns the
+  workspace-edge inset, and nested splits therefore never compound
+  spacing; gutters are invisible but draggable — the division works
+  without being drawn. Split-tree mutation remains pure state owned by
+  the caller.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in, not the default:
   `InstancePage` action slots and full `InstanceCard` footers render their
