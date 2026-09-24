@@ -21,9 +21,13 @@ redirect gate for authenticated users.
   `/organization` are still not process entry candidates.
   Authenticated users without an active process use
   the static projects workspace.
-- The landing presents the platform core: authored process declarations
-  compiled into a running application. Anonymous visitors stay on the
-  landing page, which links to login and registration.
+- The landing presents the platform core in plain language — an authored
+  process description turned into a running application — with copy under the
+  `marketing.*` locale keys (see [i18n](../i18n/README.md)). Anonymous visitors
+  stay on the landing page. Entry actions are placed once, by destination: the
+  header carries the sign-in link for returning users, and the hero carries the
+  single registration call to action; duplicated button pairs for the same
+  destinations are a defect.
 - Authenticated users without any organization membership land on `/profile`,
   where organization creation lives; the landing is not a dead end for
   orgless accounts.

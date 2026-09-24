@@ -7,10 +7,7 @@
           <img src="/logo-light.svg" alt="Perigram" class="h-7 w-auto dark:hidden" />
           <img src="/logo-dark.svg" alt="Perigram" class="hidden h-7 w-auto dark:block" />
         </NuxtLink>
-        <div class="flex items-center gap-2">
-          <Button :label="$t('auth.login')" text @click="navigateTo('/auth/login')" />
-          <Button :label="$t('auth.signup')" icon="pi pi-arrow-right" @click="navigateTo('/auth/register')" />
-        </div>
+        <Button :label="$t('auth.login')" text @click="navigateTo('/auth/login')" />
       </header>
 
       <div class="relative z-10 mx-auto flex min-h-[calc(88vh-5rem)] max-w-[var(--ck-page-max-width)] items-center px-4 pb-16 pt-8 md:px-8">
@@ -21,10 +18,7 @@
           <p class="max-w-2xl text-muted text-body">
             {{ $t('marketing.heroSubtitle') }}
           </p>
-          <div class="mt-8 flex flex-wrap gap-3">
-            <Button :label="$t('marketing.primaryCta')" icon="pi pi-arrow-right" @click="navigateTo('/auth/register')" />
-            <Button :label="$t('marketing.secondaryCta')" icon="pi pi-sign-in" severity="secondary" outlined @click="navigateTo('/auth/login')" />
-          </div>
+          <Button class="mt-8" :label="$t('marketing.primaryCta')" icon="pi pi-arrow-right" @click="navigateTo('/auth/register')" />
         </div>
       </div>
     </section>
@@ -54,17 +48,17 @@ const { t } = useI18n();
 
 const valueProps = computed(() => [
   {
-    icon: 'pi pi-code',
+    icon: 'pi pi-pencil',
     title: t('marketing.valueDeclareTitle'),
     description: t('marketing.valueDeclare')
   },
   {
-    icon: 'pi pi-cpu',
+    icon: 'pi pi-th-large',
     title: t('marketing.valueCompileTitle'),
     description: t('marketing.valueCompile')
   },
   {
-    icon: 'pi pi-bolt',
+    icon: 'pi pi-database',
     title: t('marketing.valueRuntimeTitle'),
     description: t('marketing.valueRuntime')
   }
