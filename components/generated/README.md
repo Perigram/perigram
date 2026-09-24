@@ -240,16 +240,16 @@ Discord-style operational shell:
   (brand mark, one icon per top-level panel, chats, avatar) and the
   wordmark returns on expand; the wrapped state persists with the
   workspace layout (`sidebarCollapsed` in the home workspace state). The
-  first panel is communication: its header opens the chats workspace
-  page and expands, and chats and calls live inside as flat sibling
-  rows — joinable call rooms (icon, label, participant count; clicking
-  the row joins) sourced from the shared `calls` store
-  (`stores/calls.js`), which keeps the `/api/livekit/active-rooms`
-  snapshot fresh on `call.activity` events and also drives the global
-  `IncomingCalls` ring cards — only brand-new invites float; ongoing
-  calls stay in the sidebar and in chats — plus every direct/group
-  conversation from the chats store as a row that rings the room through
-  `/api/livekit/invite` when chosen.
+  Communication
+  is two separate entries: Chats is a plain entry that opens the chats
+  workspace page, and Calls is its own panel listing only active
+  joinable call rooms (icon, label, participant count; clicking the row
+  joins) sourced from the shared `calls` store (`stores/calls.js`),
+  which keeps the `/api/livekit/active-rooms` snapshot fresh on
+  `call.activity` events and also drives the global `IncomingCalls`
+  ring cards — only brand-new invites float; ongoing calls stay in the
+  Calls panel and in chats. Ringing a conversation happens from the
+  chats surfaces' own call actions, never from sidebar rows.
 - Entity navigation is a raw default `PanelMenu` — no item slot, default
   rows, `multiple` panels open — one panel per top-level type from the
   same TYPE hierarchy the render contracts declare: registry containment
@@ -300,9 +300,15 @@ Discord-style operational shell:
   project workspace, with every leaf wrapped in a PrimeVue `Panel` on the
   zero canvas — transparent background, the default Panel hairline border
   as the pane box, no content padding (the hosted surface owns its own
-  chrome) — and split cells padded into gaps. The
-  Splitter gutters between the panels are 6px but never drawn: the
-  division stays draggable without a visible divider: IDE-style file tabs, wheel-scrollable tab strips, split
+  chrome). Split cells carry no padding: the 6px gutters between the
+  panels are the only inter-pane gap and the pane-area host owns the
+  workspace-edge inset, so nested splits never compound spacing; gutters
+  are never drawn — the division stays draggable without a visible
+  divider. Every pane exists with at least one tab: fresh panes (initial
+  and split) start on a default empty tab, persisted tabless leaves are
+  normalized to one at load, and closing a pane's last tab closes the
+  pane — except the workspace's last pane, which resets to a fresh empty
+  tab: IDE-style file tabs, wheel-scrollable tab strips, split
   right/down, pane-local close, registered workspace pages (for example the
   cassette designer), and screen panes (`GeneratedScreenPane`): type
   screens through the shared type host, instance-bound detail screens

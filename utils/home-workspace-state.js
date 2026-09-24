@@ -1,3 +1,4 @@
+import { ensureWorkspaceLeafTabs } from './workspace-splits.js';
 import { normalizeProjectWorkspaceState } from './project-workspace-state.js';
 
 // Version 3: instance surfaces are compiled screen tabs (instance-bound
@@ -34,12 +35,14 @@ export function saveHomeWorkspaceState(storage, key, state) {
 
 // The pane tree, tab references, and page references share the project
 // workspace normalization contract; explorer fields are not part of the
-// home shell and are dropped here. `sidebarCollapsed` is a v3-compatible
-// addition: stored states without it default to the expanded sidebar.
+// home shell and are dropped here. Home panes additionally never exist
+// without a tab, so tabless leaves normalize to a default empty tab.
+// `sidebarCollapsed` is a v3-compatible addition: stored states without
+// it default to the expanded sidebar.
 function paneState(value) {
   const state = normalizeProjectWorkspaceState(value);
   return {
-    paneTree: state.paneTree,
+    paneTree: ensureWorkspaceLeafTabs(state.paneTree),
     activePaneId: state.activePaneId,
     paneSequence: state.paneSequence,
     openedEntityRefs: state.openedEntityRefs,

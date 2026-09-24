@@ -59,9 +59,10 @@
           />
         </nav>
 
-        <!-- Expanded navigation is a raw PanelMenu: the communication panel
-             first, then one panel per top-level explorer type. Default rows
-             carry the registry icons and title-resolver labels. -->
+        <!-- Expanded navigation is a raw PanelMenu: the chats and calls
+             entries first, then one panel per top-level explorer type.
+             Default rows carry the registry icons and title-resolver
+             labels. -->
         <div v-else class="min-h-0 flex-1 overflow-y-auto">
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
@@ -217,7 +218,16 @@ const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
-const paneTree = ref(createWorkspaceLeaf('pane-1'));
+
+// Panes never exist without a tab: fresh panes start on a default empty
+// tab, persisted tabless leaves normalize to one at load, and closing
+// the last tab closes the pane (the workspace's final pane resets
+// instead).
+function defaultLeaf(id) {
+  return createWorkspaceLeaf(id, emptyTabKey());
+}
+
+const paneTree = ref(defaultLeaf('pane-1'));
 const sidebarCollapsed = ref(false);
 const expandedKeys = ref({});
 const openedEntityRefs = ref([]);
@@ -379,11 +389,12 @@ const visibleTypes = computed(() => {
   return visible;
 });
 
-// The PanelMenu model is the explorer tree plus the communication panel:
-// type nodes become panels (their registry icon is PanelMenu's item icon),
-// entity nodes become rows carrying the workspace item for the #item slot.
+// The PanelMenu model is the explorer tree plus the chats and calls
+// entries: type nodes become panels (their registry icon is PanelMenu's
+// item icon), entity nodes become rows carrying the workspace item for
+// the #item slot.
 const sidebarMenuModel = computed(() => [
-  communicationPanelModel(),
+  ...communicationPanelModels(),
   ...explorerNodes.value.map(node => typePanelItem(node))
 ]);
 
@@ -412,33 +423,28 @@ function entityPanelItem(node) {
   };
 }
 
-// One communication panel: the header opens the chats tab (PanelMenu
-// headers run their command and toggle), and chats and calls live inside
-// as flat sibling rows - joinable rooms plus every ringable conversation.
-function communicationPanelModel() {
-  const conversations = supportChatStore.conversations
-    .filter(conversation => conversation.conversationKind === 'direct' || conversation.conversationKind === 'group');
-  const callItems = conversations.length
-    ? conversations.map(conversation => ({
-      key: `call-invite:${conversation.conversationKey}`,
-      icon: conversation.conversationKind === 'group' ? 'pi pi-users' : 'pi pi-user',
-      label: conversationLabel(conversation),
-      command: () => startCallFromConversation(conversation)
-    }))
-    : [{ key: 'call-invite:none', label: t('support.noConversations'), disabled: true }];
-  return {
-    key: 'communication',
-    label: t('support.chatTitle'),
-    icon: 'pi pi-comments',
-    command: () => openChatsPage(),
-    items: [
-      ...activeRoomItems(),
-      ...callItems
-    ]
-  };
+// Communication is two separate entries: Chats is a plain entry opening
+// the chats workspace page, and Calls is its own panel listing only
+// active joinable rooms — ringing a conversation belongs to the chats
+// surfaces' own call actions.
+function communicationPanelModels() {
+  return [
+    {
+      key: 'communication:chats',
+      label: t('support.chatTitle'),
+      icon: 'pi pi-comments',
+      command: () => openChatsPage()
+    },
+    {
+      key: 'communication:calls',
+      label: t('call.calls'),
+      icon: 'pi pi-phone',
+      items: activeRoomItems()
+    }
+  ];
 }
 
-// Ongoing rooms live as persistent rows inside the chats panel; only
+// Ongoing rooms live as persistent rows in the Calls panel; only
 // brand-new invites float (IncomingCalls).
 function activeRoomItems() {
   return callsStore.activeRooms.map(room => ({
@@ -447,15 +453,6 @@ function activeRoomItems() {
     label: room.participants ? `${activeRoomLabel(room)} (${room.participants})` : activeRoomLabel(room),
     command: () => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })
   }));
-}
-
-function conversationLabel(conversation = {}) {
-  if (conversation.conversationKind === 'group') {
-    return conversation.groupName || t('support.sectionGroups');
-  }
-  return conversation?.participant?.identity?.name
-    || conversation?.participant?.name
-    || t('common.user');
 }
 
 const explorerNodes = computed(() => {
@@ -755,27 +752,6 @@ function openCallTab(room = '', meta = {}) {
   selectPaneTab(activePane.value.id, room, { newTab: true });
 }
 
-async function startCallFromConversation(conversation = {}) {
-  if (!conversation.conversationKey) return;
-  // Label comes from the conversation summary the menu emitted; empty falls
-  // back to the call page's own title in the tab strip.
-  const label = conversation.conversationKind === 'group'
-    ? (conversation.groupName || '')
-    : (conversation?.participant?.identity?.name || '');
-  try {
-    const invite = await $fetch('/api/livekit/invite', {
-      method: 'POST',
-      body: { conversationKey: conversation.conversationKey }
-    });
-    openCallTab(invite.room, {
-      conversationKey: conversation.conversationKey,
-      label
-    });
-  } catch (error) {
-    console.error('Failed to start call:', error);
-  }
-}
-
 function openChatsPage() {
   if (activePane.value) selectPaneTab(activePane.value.id, 'page:chats');
 }
@@ -923,24 +899,45 @@ function closePaneTab(paneId, key) {
   const closingIndex = currentKeys.indexOf(key);
   if (closingIndex < 0) return;
   const tabKeys = currentKeys.filter(tabKey => tabKey !== key);
+
+  // No pane exists without a tab: closing the last tab closes the pane,
+  // except the workspace's last pane, which resets to a fresh empty tab.
+  if (!tabKeys.length) {
+    if (paneCount.value <= 1) {
+      const freshKey = emptyTabKey();
+      paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey: freshKey, tabKeys: [freshKey] });
+      forgetClosedTabRefs(key);
+      activePaneId.value = paneId;
+      return;
+    }
+    closePane(paneId);
+    forgetClosedTabRefs(key);
+    return;
+  }
+
   const selectionKey = pane.selectionKey === key
     ? (tabKeys[Math.max(0, closingIndex - 1)] || '')
     : pane.selectionKey;
-  const nextTree = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey, tabKeys });
-  paneTree.value = nextTree;
-  const remainingTabKeys = new Set(workspaceLeaves(nextTree).flatMap(leaf => leaf.tabKeys || []));
+  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey, tabKeys });
+  forgetClosedTabRefs(key);
+  activePaneId.value = paneId;
+}
+
+// Tab references (pages, screens, call stages) die with their last tab:
+// once no leaf carries the closed key, its refs are forgotten.
+function forgetClosedTabRefs(key) {
+  const remainingTabKeys = new Set(workspaceLeaves(paneTree.value).flatMap(leaf => leaf.tabKeys || []));
   if (!remainingTabKeys.has(key)) {
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
     openedScreenRefs.value = openedScreenRefs.value.filter(reference => reference.key !== key);
     callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
   }
-  activePaneId.value = paneId;
 }
 
 function splitPane(paneId, orientation) {
   const source = panes.value.find(pane => pane.id === paneId);
   if (!source) return;
-  const nextPane = createWorkspaceLeaf(`pane-${++paneSequence.value}`);
+  const nextPane = defaultLeaf(`pane-${++paneSequence.value}`);
   paneTree.value = splitWorkspaceLeaf(paneTree.value, paneId, orientation, nextPane);
   activePaneId.value = nextPane.id;
 }
