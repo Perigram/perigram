@@ -78,14 +78,19 @@ concerns:
   the search input and facet selects render only while their RegionBlock
   header toggles are open (a search toggle when the toolbar budget
   applies — every large list past `SEARCH_AT`, identity search always
-  functions — a filter toggle when multi-value enum facets exist, one
-  multi-select per facet over the values actually present: a value set
-  within a facet, conjunction across facets; the filter badge carries
-  the active selection count). Its gaps come from the system spacing
+  functions — a filter toggle on every list surface, because the filter
+  builder's field list always carries at least the name axis: one
+  multi-select per facet over the values actually present — a value set
+  within a facet, conjunction across facets — plus the shared
+  `FilterBuilder` popover for boolean composition; the filter badge
+  carries the active selection count). Its gaps come from the system spacing
   scale (`spacing.toolbar`) and its control sizes from `editorSize`, and
   it owns no per-type logic — the region tree carries every decision.
   Search and facet selections are region-owned models RegionBlock
-  applies client-side over the loaded instances; columns keep only their
+  applies client-side over the loaded instances; the builder's composed
+  tree is persisted view state per type
+  (`utils/filter-view-state.js`) and conjoins with the quick controls
+  through the canonical filter tree. Columns keep only their
   native sorting. The region header stays one line (label, count, opened
   controls, toggle buttons, actions), wrapping only when the opened
   controls or the action cluster demand it.

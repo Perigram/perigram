@@ -488,11 +488,14 @@ surface. The toolbar composes the canonical instance-filter tree
 ([shared/instance-filters](../../shared/instance-filters/README.md)):
 search is an `or` of `contains` over the entity name and id, and the status
 filter is a multi-select value set (`in` on the primary status) over the
-states actually present in the loaded source — evaluated by the one shared
-matcher over per-entity screen instances (legacy status shapes resolve
-through the same resolver the status options derive from, so the status axis
-never depends on registry presence). Sort offers stable identity/date
-orders. Region-compiled collection actions share
+states actually present in the loaded source — and the shared
+`FilterBuilder` popover composes boolean structure (match all / match any,
+negated operators) over the status and name axes, persisted per type as
+view state (`utils/filter-view-state.js`). Evaluation runs through the one
+shared matcher over per-entity screen instances (legacy status shapes
+resolve through the same resolver the status options derive from, so the
+status axis never depends on registry presence). Sort offers stable
+identity/date orders. Region-compiled collection actions share
 that toolbar; the renderer does not discover or synthesize additional actions.
 Collection cards omit child-count and child-preview summary fields because the
 collection itself is the authoritative child surface. An entity detail with one

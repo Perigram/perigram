@@ -1853,7 +1853,19 @@
     "moreActions": "Ещё действия",
     "new": "Создать",
     "stateHistory": "История состояний",
-    "filters": "Фильтры"
+    "filters": "Фильтры",
+    "matchAll": "Все условия",
+    "matchAny": "Любое условие",
+    "addCondition": "Добавить условие",
+    "clearConditions": "Очистить всё",
+    "opIs": "равно",
+    "opIsNot": "не равно",
+    "opContains": "содержит",
+    "opNotContains": "не содержит",
+    "opIn": "одно из",
+    "opNotIn": "ни одно из",
+    "fieldStatus": "Статус",
+    "fieldName": "Название"
   },
   "uiConstructor": {
     "title": "Демо UI-конструктора",

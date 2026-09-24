@@ -22,6 +22,11 @@
         :aria-label="facet.label"
         @update:model-value="value => setFacet(facet.name, value)"
       />
+      <FilterBuilder
+        :model-value="filterModel"
+        :fields="builderFields"
+        @update:model-value="value => (filterModel = value)"
+      />
     </template>
   </div>
 </template>
@@ -31,6 +36,7 @@ import { computed, inject } from 'vue';
 import InputText from 'primevue/inputtext';
 import { LAYOUT } from '#shared/ui-mapping/index.js';
 import AppMultiSelect from '~/components/shared/InstanceMultiSelect.vue';
+import FilterBuilder from '~/components/shared/FilterBuilder.vue';
 
 // The collection toolbar's controls: the search input and facet selects
 // render only while their header toggles are open (RegionBlock owns the
@@ -45,12 +51,14 @@ import AppMultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 // classes.
 const props = defineProps({
   node: { type: Object, required: true },
+  builderFields: { type: Array, default: () => [] },
   searchOpen: { type: Boolean, default: false },
   filtersOpen: { type: Boolean, default: false }
 });
 
 const searchModel = defineModel('search', { type: String, default: '' });
 const facetsModel = defineModel('facets', { type: Object, default: () => ({}) });
+const filterModel = defineModel('filter', { type: Object, default: null });
 const spacing = inject('uiMappingSpacing', null);
 const toolbarClasses = computed(() => (spacing ? spacing.toolbar : LAYOUT.row));
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));

@@ -14,6 +14,12 @@
       class="min-w-32"
       :aria-label="$t('common.filter')"
     />
+    <FilterBuilder
+      v-if="builderFields.length"
+      :model-value="builderFilter"
+      :fields="builderFields"
+      @update:model-value="setBuilderFilter"
+    />
     <Select
       v-model="sortBy"
       :options="sortOptions"
@@ -144,7 +150,9 @@ import DataTable from 'primevue/datatable';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
+import FilterBuilder from '~/components/shared/FilterBuilder.vue';
 import { normalizeFilter, instanceMatchesFilter } from '#shared/instance-filters/index.js';
+import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
 import { useI18n } from 'vue-i18n';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
@@ -242,6 +250,23 @@ const sortOptions = computed(() => [
   { label: t('common.sortNewest'), value: 'date-desc' },
   { label: t('common.sortOldest'), value: 'date-asc' }
 ]);
+// Builder view state: the user's composed filter tree for this
+// collection, persisted per scope as presentation data (never a process
+// contract). It conjoins with the quick controls above.
+const viewScope = computed(() => `collection:${props.typeId}`);
+const builderFilter = ref(loadFilterViewState(viewScope.value));
+watch(viewScope, scope => {
+  builderFilter.value = loadFilterViewState(scope);
+});
+const builderFields = computed(() => [
+  ...([statusOptions.value.length ? { name: 'states.main', label: t('uiMapping.fieldStatus'), kind: 'enum', values: statusOptions.value.map(option => option.value) } : null]
+    .filter(Boolean)),
+  { name: 'name', label: t('uiMapping.fieldName'), kind: 'text' }
+]);
+function setBuilderFilter(filter) {
+  builderFilter.value = filter;
+  storeFilterViewState(viewScope.value, filter);
+}
 // The §3 screen-instance projection the filter tree evaluates against:
 // dtoToScreenInstance when the registry knows the type, else the identity
 // shell. Legacy status shapes resolve through the same resolver the status
@@ -273,7 +298,8 @@ const activeFilter = computed(() => {
             { field: 'id', op: 'contains', value: query }
           ]
         }
-        : null
+        : null,
+      builderFilter.value
     ].filter(Boolean)
   });
 });
