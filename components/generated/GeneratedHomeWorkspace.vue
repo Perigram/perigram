@@ -59,52 +59,24 @@
           />
         </nav>
 
-        <!-- Communication is the original sidebar contract: the TieredMenu
-             (Chats with its unread badge; Calls opening a flyout with every
-             ringable conversation) and, below it, ongoing rooms as
-             persistent rows — nothing renders when no room is active. The
-             section layers above pane content: the Calls flyout submenu is
-             an absolutely positioned child that must overlay the pane
-             area. -->
-        <template v-else>
-          <nav
-            class="relative z-50 flex shrink-0 flex-col p-1.5"
-            :aria-label="$t('support.chatTitle')"
-          >
-            <CommunicationMenu @open-chats="openChatsPage" @start-call="startCallFromConversation" />
-            <div v-if="callsStore.activeRooms.length" class="mt-2 flex flex-col gap-1" data-active-calls>
-              <small class="px-2 text-muted text-supporting">{{ $t('call.activeRooms') }}</small>
-              <Button
-                v-for="room in callsStore.activeRooms"
-                :key="room.room"
-                text
-                severity="secondary"
-                size="small"
-                class="w-full !justify-start !gap-2"
-                :aria-label="$t('call.join')"
-                @click="openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
-              >
-                <i :class="callRoomIcon(room.kind)" class="shrink-0 text-primary" aria-hidden="true" />
-                <span class="min-w-0 flex-1 truncate text-label">{{ activeRoomLabel(room) }}</span>
-                <span class="shrink-0 text-muted text-supporting">{{ room.participants }}</span>
-              </Button>
-            </div>
-          </nav>
-
-          <!-- The explorer is a raw PanelMenu: one panel per top-level
-               explorer type. Default rows carry the registry icons and
-               title-resolver labels. -->
-          <div class="min-h-0 flex-1 overflow-y-auto p-1.5">
-            <PanelMenu
-              v-model:expanded-keys="expandedKeys"
-              :model="sidebarMenuModel"
-              multiple
-              class="w-full"
-              :aria-label="$t('nav.home')"
-              :pt="menuPt"
-            />
-          </div>
-        </template>
+        <!-- Expanded navigation is one raw PanelMenu: the communication
+             panel first (Chats header; active call rooms and the
+             always-present Calls row with its suggestions flyout as flat
+             rows), then one panel per top-level explorer type. Default
+             rows carry the registry icons and title-resolver labels. -->
+        <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
+          <PanelMenu
+            v-model:expanded-keys="expandedKeys"
+            :model="sidebarMenuModel"
+            multiple
+            class="w-full"
+            :aria-label="$t('nav.home')"
+            :pt="menuPt"
+          />
+          <!-- The Calls row toggles this popup flyout (ported to the body,
+               anchored at the row): every ringable conversation. -->
+          <CommunicationMenu ref="callsFlyout" @start-call="startCallFromConversation" />
+        </div>
 
         <!-- Profile is its own bottom panel: the account trigger shows the
              user's actual name in the unwrapped state, the avatar alone in
@@ -262,7 +234,11 @@ function defaultLeaf(id) {
 
 const paneTree = ref(defaultLeaf('pane-1'));
 const sidebarCollapsed = ref(false);
-const expandedKeys = ref({});
+// The communication panel starts expanded so its rows (active rooms, the
+// Calls flyout row) are visible immediately; an explicit collapse stays
+// respected — the explorer auto-expand only ever adds type keys.
+const expandedKeys = ref({ communication: true });
+const callsFlyout = ref(null);
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const openedScreenRefs = ref([]);
@@ -426,12 +402,12 @@ const visibleTypes = computed(() => {
 // panel: type nodes become panels (their registry icon is PanelMenu's
 // item icon), entity nodes become rows carrying the workspace item for
 // the #item slot.
-// The explorer model is pure type hierarchy: type nodes become panels
-// (their registry icon is PanelMenu's item icon), entity nodes become
-// rows carrying the workspace item for the #item slot. Communication
-// lives in its own sidebar section (the CommunicationMenu TieredMenu and
-// the ongoing-room rows), never as a panel here.
+// The explorer model is the communication panel plus the pure type
+// hierarchy: type nodes become panels (their registry icon is PanelMenu's
+// item icon), entity nodes become rows carrying the workspace item for
+// the #item slot.
 const sidebarMenuModel = computed(() => [
+  communicationPanelModel(),
   ...explorerNodes.value.map(node => typePanelItem(node))
 ]);
 
@@ -458,6 +434,39 @@ function entityPanelItem(node) {
     command: () => openInstanceTab(node.data.item.type, instanceId(node.data.item.entity)),
     items: node.children?.length ? node.children.map(entityPanelItem) : undefined
   };
+}
+
+// Communication is the first PanelMenu panel: the Chats header opens the
+// chats workspace page, active rooms render as flat rows (nothing when no
+// room is active), and the Calls row is always present — it toggles the
+// CommunicationMenu flyout listing every ringable conversation.
+function communicationPanelModel() {
+  return {
+    key: 'communication',
+    label: t('support.chatTitle'),
+    icon: 'pi pi-comments',
+    command: () => openChatsPage(),
+    items: [
+      ...activeRoomItems(),
+      {
+        key: 'communication:calls',
+        label: t('call.calls'),
+        icon: 'pi pi-phone',
+        command: ({ originalEvent }) => callsFlyout.value?.toggle(originalEvent)
+      }
+    ]
+  };
+}
+
+// Ongoing rooms live as persistent flat rows in the communication panel;
+// only brand-new invites float (IncomingCalls).
+function activeRoomItems() {
+  return callsStore.activeRooms.map(room => ({
+    key: `call-room:${room.room}`,
+    icon: callRoomIcon(room.kind),
+    label: room.participants ? `${activeRoomLabel(room)} (${room.participants})` : activeRoomLabel(room),
+    command: () => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })
+  }));
 }
 
 const explorerNodes = computed(() => {
