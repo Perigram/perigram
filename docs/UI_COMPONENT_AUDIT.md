@@ -264,7 +264,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-enumselect-vue` | `components/ui-mapping/EnumSelect.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fieldcontrol-vue` | `components/ui-mapping/FieldControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fileuploadcontrol-vue` | `components/ui-mapping/FileUploadControl.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | remove:important-override (3) |
+| `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | remove:important-override (4) |
 | `ui-components-ui-mapping-hierarchytable-vue` | `components/ui-mapping/HierarchyTable.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-hierarchytree-vue` | `components/ui-mapping/HierarchyTree.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-instancechip-vue` | `components/ui-mapping/InstanceChip.vue` | derived usage | compliant |
@@ -280,7 +280,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-statestrip-vue` | `components/ui-mapping/StateStrip.vue` | derived usage | remove:important-override (1); compliant:scoped-layout |
 | `ui-components-ui-mapping-statgrid-vue` | `components/ui-mapping/StatGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacebody-vue` | `components/ui-mapping/SurfaceBody.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | replace:chrome (1); remove:state (1) |
+| `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | replace:chrome (2); remove:state (1) |
 | `ui-components-ui-mapping-surfaceheader-vue` | `components/ui-mapping/SurfaceHeader.vue` | derived usage | compliant:scoped-layout |
 | `ui-components-ui-mapping-timelinecollection-vue` | `components/ui-mapping/TimelineCollection.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-varianteditor-vue` | `components/ui-mapping/VariantEditor.vue` | derived usage | compliant |
