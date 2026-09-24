@@ -241,20 +241,20 @@ Discord-style operational shell:
   wordmark returns on expand; the wrapped state persists with the
   workspace layout (`sidebarCollapsed` in the home workspace state). The
   Communication
-  is its own sidebar section above the explorer: the shared
-  `CommunicationMenu` TieredMenu (Chats with its unread badge; Calls
-  opening a flyout listing every direct/group conversation that can be
-  rung — see
-  [components/shared/README.md](../../components/shared/README.md)) plus
-  ongoing rooms as persistent rows (icon, label, participant count;
-  clicking the row joins) sourced from the shared `calls` store
-  (`stores/calls.js`), which keeps the `/api/livekit/active-rooms`
-  snapshot fresh on `call.activity` events and also drives the global
-  `IncomingCalls` ring cards — only brand-new invites float; ongoing
-  calls stay in the sidebar and in chats. With no active rooms the rows
-  render nothing; the menu itself is always present. Ringing a
-  conversation happens from the Calls flyout and the chats surfaces'
-  own call actions.
+  is the first panel inside that PanelMenu: the Chats header opens the
+  chats workspace page, active joinable call rooms render as flat rows
+  (icon, label, participant count; clicking the row joins) sourced from
+  the shared `calls` store (`stores/calls.js`), which keeps the
+  `/api/livekit/active-rooms` snapshot fresh on `call.activity` events
+  and also drives the global `IncomingCalls` ring cards — only
+  brand-new invites float; ongoing calls stay in the panel and in chats
+  — and the Calls row is always present, toggling the shared
+  `CommunicationMenu` popup flyout (see
+  [components/shared/README.md](../../components/shared/README.md))
+  that lists every direct/group conversation and rings it. With no
+  active rooms the room rows render nothing; the Calls row never
+  disappears. The panel starts expanded so its rows are visible
+  immediately.
 - Entity navigation is a raw default `PanelMenu` — no item slot, default
   rows, `multiple` panels open — one panel per top-level type from the
   same TYPE hierarchy the render contracts declare: registry containment
