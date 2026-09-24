@@ -100,6 +100,15 @@ hand-written services.
   feature `resolveEntityFeature` compiles grants against) with the type
   id as the type-id filter, so a write requires a compiled process
   grant — fail-closed.
+- Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the
+  same wire patch blocks `processUpdate` writes (`identity.name`,
+  `data`/`specs` leaves, `states.main`, non-tenancy `lineage` edges,
+  `relations`) through the identical §3 mapping. It gates through the
+  shared access engine exactly like the payload transport (write level
+  on the class-collection feature, type-id filter — fail-closed). This
+  is the generated detail surfaces' inline-edit persistence path; the
+  process effect boundary keeps its own `processUpdate` with execution
+  auth.
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 

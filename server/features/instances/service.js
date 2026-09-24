@@ -392,6 +392,25 @@ function instanceService(typeId) {
       return toDto(updated, declaration);
     },
 
+    // HTTP update transport: the same wire patch processUpdate writes,
+    // gated through the shared access engine on the class-collection
+    // feature (a write requires a compiled grant — fail-closed), exactly
+    // like the payload replacement transport.
+    async patch(id, patch = {}, { auth = null, organizationId = null } = {}) {
+      const declaration = await requireDeclaration(typeId, organizationId);
+      const collection = repository.collectionForClass(declaration.class);
+      const doc = await repository.findInstance(collection, id, typeId);
+      if (!doc) {
+        throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+      }
+      const current = toDto(doc, declaration);
+      const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
+      if (!hasInstanceAccess({ entity: current, typeId, feature, level: 'write', auth })) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+      }
+      return await this.processUpdate(id, patch);
+    },
+
     async remove(id) {
       const declaration = await declarationFor(typeId, null);
       const collection = repository.collectionForClass(declaration?.class);

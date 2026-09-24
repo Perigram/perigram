@@ -9,10 +9,12 @@
       :bundle="bundle"
       :expanded="expanded"
       :covered-relations="coveredRelations"
+      :editable="editable"
       :editing="editing"
       :draft="draft"
       @toggle="toggleRelation"
       @run="$emit('run', $event)"
+      @inline-change="$emit('inline-change', $event)"
     />
   </div>
 
@@ -59,10 +61,12 @@
         :bundle="bundle"
         :expanded="expanded"
         :covered-relations="coveredRelations"
+        :editable="editable"
         :editing="editing"
         :draft="draft"
         @toggle="toggleRelation"
         @run="$emit('run', $event)"
+        @inline-change="$emit('inline-change', $event)"
       />
   </div>
 
@@ -104,13 +108,14 @@ const props = defineProps({
   actions: { type: Array, default: () => [] },
   chrome: { type: Object, default: null },
   coveredRelations: { type: Array, default: () => [] },
+  editable: { type: Boolean, default: false },
   editing: { type: Boolean, default: false },
   draft: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
 
-defineEmits(['run']);
+defineEmits(['run', 'inline-change']);
 
 const expanded = ref({});
 const flattened = computed(() => (props.chrome ? props.chrome.flattened : props.parentRole === 'card' && props.variant === 'detail'));

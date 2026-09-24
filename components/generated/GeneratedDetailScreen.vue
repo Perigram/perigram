@@ -7,6 +7,7 @@
     :source-states="poolStates"
     :on-run="runAction"
     :on-open="openInstance"
+    :on-patch="runPatch"
   />
 </template>
 
@@ -109,5 +110,12 @@ async function runAction(action, data = {}, context = {}) {
 
 function openInstance(instance) {
   if (instance?.type && instance?.id) emit('open-instance', instance);
+}
+
+// Detail edit patches persist through the generic instance update
+// transport; the store's shared entity event reconciles the pool.
+async function runPatch({ instance, patch } = {}) {
+  if (!instance?.type || !instance?.id) return;
+  await instances.updateInstance(instance.type, instance.id, patch);
 }
 </script>

@@ -35,7 +35,12 @@ descriptor, the identity `name` renders as a plain string control, and
 whose children edges declare that key (reverse containment over the
 bundle). The draft keys are the compiled input ids, so the payload lands
 exactly on the construction paths; pickers model `{ type, id }` and are
-reduced to the bare instance id at submit. `link`
+reduced to the bare instance id at submit. When the dialog opens on a
+detail surface whose scope carries the opened instance
+(`screen.scope.instanceId` + `screen.typeId`), every lineage row whose
+accepted parent types include that type is preselected to the opened
+instance — parent-scoped creates stamp their lineage instead of landing
+unparented. `link`
 actions prompt for the relation target through `InstancePicker` over the
 pool before dispatch (`onRun` receives `{ relations: { key: ref } }`).
 The screen accepts a `sourceStates` prop (per-source
@@ -50,6 +55,15 @@ go — and without it identities stay plain text. `onRun` receives a
 third `context` argument: `{ instance }` when an instance-scoped quick
 action (the per-card ellipsis menu) launched the run, so executors
 target that entity instead of the screen scope.
+
+Detail editing follows the same rule: an `onPatch({ instance, patch })`
+prop enables the record-page edit affordances — the header Edit toggle
+(submit diffs the draft against the instance fields) and the per-field
+inline pencil (confirm patches that one field). RegionBlock maps
+changed field names onto the wire patch blocks (`name` →
+`identity.name`, everything else → `data.<field>`, the same mapping
+`processUpdate` writes) and re-emits both affordances as one `patch`
+event; without `onPatch` neither affordance renders.
 
 Region data states and the collection toolbar are shared surface
 concerns:
@@ -155,7 +169,9 @@ concerns:
   and the instance pool's lineage, shown on group surfaces.
 - `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
   (when nested), Avatar identity with title and a `type · id` muted
-  subtitle, placed actions, the Edit toggle, and exactly one status
+  subtitle, placed actions, the Edit toggle (rendered only on patchable
+  surfaces; see `onPatch` above — while editing it reads as Save and
+  submits the draft), and exactly one status
   surface — the lifecycle Stepper for stateful types, the status Tag for
   stateless ones (the detail body renders neither; a second strip there
   tripled the state display). The bar is its own layout container: the

@@ -184,7 +184,7 @@
           :instance="node.instances[0]"
           :actions="headerActions"
           :level="node.level"
-          editable
+          :editable="patchable"
           :editing="editing"
           :pool="pool"
           :bundle="bundle"
@@ -199,11 +199,13 @@
           :actions="node.actions"
           :chrome="node.chrome"
           :covered-relations="coveredRelationKeys"
+          :editable="patchable"
           :editing="editing"
           :draft="draft"
           :pool="pool"
           :bundle="bundle"
           @run="emitRun"
+          @inline-change="inlineChange"
         />
       </div>
       <div v-if="node.childRegions.length" :class="[LAYOUT.sideCol, 'min-w-0 flex flex-col gap-4']">
@@ -314,23 +316,52 @@ const props = defineProps({
   // exists upstream (GeneratedMappingScreen onOpen).
   openable: { type: Boolean, default: false },
   // Per-instance quick actions by type id (resolveInstanceActions map).
-  instanceActions: { type: Object, default: null }
+  instanceActions: { type: Object, default: null },
+  // Whether the detail affordances may persist edits (the engine binds
+  // this to the presence of an onPatch executor).
+  patchable: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['run', 'transition', 'open']);
+const emit = defineEmits(['run', 'transition', 'open', 'patch']);
 const emitOpen = instance => emit('open', instance);
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
 const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
 const editing = ref(false);
 const draft = reactive({});
+// Field-name changes map onto the wire patch blocks: `name` writes the
+// identity block, every other field lands under `data` — the same
+// mapping the instance update transport writes server-side.
+const wirePatchFor = changes => {
+  const patch = { data: {} };
+  for (const [name, value] of Object.entries(changes)) {
+    if (name === 'name') patch.identity = { name: value };
+    else patch.data[name] = value;
+  }
+  return Object.keys(patch.data).length || patch.identity ? patch : null;
+};
+const emitPatch = changes => {
+  const instance = props.node.instances[0];
+  const patch = wirePatchFor(changes);
+  if (instance && patch) emit('patch', { instance, patch });
+};
 const toggleEditing = () => {
+  const instance = props.node.instances[0];
   if (!editing.value) {
     Object.keys(draft).forEach(key => delete draft[key]);
-    Object.assign(draft, JSON.parse(JSON.stringify(props.node.instances[0]?.fields || {})));
+    Object.assign(draft, JSON.parse(JSON.stringify(instance?.fields || {})));
+    editing.value = true;
+    return;
   }
-  editing.value = !editing.value;
+  editing.value = false;
+  if (!instance) return;
+  const changes = {};
+  for (const [name, value] of Object.entries(draft)) {
+    if (JSON.stringify(value ?? null) !== JSON.stringify(instance.fields?.[name] ?? null)) changes[name] = value;
+  }
+  emitPatch(changes);
 };
+const inlineChange = ({ name, value } = {}) => emitPatch({ [name]: value });
 const emitRun = (action, context) => emit('run', action, context);
 const instanceActionsForType = computed(() => props.instanceActions?.[props.node.typeId] || []);
 // The detail header's action set: the composed node's manifest actions

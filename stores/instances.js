@@ -259,8 +259,9 @@ export const useInstancesStore = defineStore('instances', () => {
     });
   }
 
-  // Framework/party types and editor feature endpoints that still own
-  // direct REST mutations (create/update/delete on feature routes).
+  // Framework/party types, editor feature endpoints, and the generic
+  // instance update transport (PATCH /api/instances/:type/:id) that
+  // persists generated detail-surface edits.
   async function mutateDirect(typeKey = '', method = 'PATCH', { id = null, body = null, meta = {} } = {}) {
     const outbox = useOutboxStore();
     const endpoints = endpointsFor(typeKey);

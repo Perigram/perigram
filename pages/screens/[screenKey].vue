@@ -22,6 +22,7 @@
         :runtime-transitions="runtimeTransitions"
         @instance-mounted="loadRuntimeTransitions"
         :on-open="openInstance"
+        :on-patch="runGeneratedPatch"
       />
     </div>
   </StandardPage>
@@ -247,10 +248,17 @@ async function runGeneratedAction(action, data = {}, context = {}) {  const scop
   } catch (error) {
     if (isOfflineQueuedError(error)) {
       toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
-      return;
-    }
+      return;    }
     toast.add({ severity: 'error', summary: action.label || action.id, detail: error?.data?.message || error?.message || '', life: 5000 });
   }
+}
+
+// Detail edit patches persist through the generic instance update
+// transport; the store emits the shared entity event, so every open
+// surface reconciles without a page-owned reload.
+async function runGeneratedPatch({ instance, patch } = {}) {
+  if (!instance?.type || !instance?.id) return;
+  await instances.updateInstance(instance.type, instance.id, patch);
 }
 
 // Collection identity navigation: opens the compiler-paired detail

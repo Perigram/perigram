@@ -177,7 +177,7 @@ import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
 import { resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
-import { resolveFileSurface, packEditorBindings } from '~/components/generated/file-surfaces.js';
+import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
@@ -559,7 +559,7 @@ function instanceLabelOf(typeId = '', id = '') {
   const typeRecord = registryStore.typeRecord(typeId);
   const entity = instances.records?.[instances.canonicalTypeKey(typeId)]?.[String(id)];
   if (typeRecord && entity) {
-    return titleFor(dtoToScreenInstance(entity, typeRecord), typeRecord, { unnamedLabel: t('common.unnamed') });
+    return titleFor(dtoToScreenInstance(entity.dto, typeRecord), typeRecord, { unnamedLabel: t('common.unnamed') });
   }
   return typeLabelOf(typeId || id) || '';
 }
@@ -587,7 +587,9 @@ function openInstanceTab(typeId = '', instanceIdValue = '') {
     selectPaneTab(activePane.value.id, key);
     return;
   }
-  const surface = resolveFileSurface(packEditorBindings, typeId);
+  // Served editor list by default (undefined editors → the documented
+  // binding default), exactly like the other editor-surface consumers.
+  const surface = resolveFileSurface(undefined, typeId);
   if (surface?.workspacePage) {
     openWorkspacePage({ pageId: surface.surface, typeId, entity: { _id: instanceIdValue } });
   }
