@@ -80,17 +80,11 @@
         @refresh="load"
         @execute-action="executeAction"
       />
-      <!-- Entity-linked chat: every generated detail page exposes the
-           composed conversation for its main entity. It rides INSIDE this
-           branch (not as a separate v-if sibling): a standalone chain here
-           would detach the regions fallback below from the shared
-           v-if/v-else-if chain and render it under overloads like the home
-           workspace. -->
-      <InstanceChatPanel
-        v-if="detailEntity"
-        :type="detailTypeId"
-        :id="detailEntityId"
-      />
+      <!-- The instance conversation is NOT mounted here: GeneratedRegion
+           renders GeneratedInstanceDetail, which owns the thread inside the
+           detail column (both the abstract and bounded flush branches). A
+           second mount here would either duplicate the thread or — as the
+           dead `detailEntity` guard proved — never render at all. -->
     </GeneratedRegion>
     <div v-else class="flex flex-col gap-4">
       <GeneratedRegion
