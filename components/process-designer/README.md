@@ -389,28 +389,68 @@ the one resolvers (`titleFor`/`fieldLabel`/`iconFor` in
 identifier field, editing a display label, or picking a glyph is visible in
 the preview rows immediately.
 
-## Node cards and sockets
+## Node UI contract
 
-Every canvas card — the operation card and the declaration family alike —
+This section is the canonical canvas vocabulary: what every visual channel
+means and how a card is arranged. One channel encodes exactly one fact;
+anything not listed as a channel is chrome and carries no meaning by
+design. Every card — the operation card and the declaration family alike —
 composes the shared frame and handle primitives
 ([`components/shared`](../../components/shared/README.md):
-`DesignerNodeCard` for the card frame and size ladder, and
-`DesignerSocketHandle` for typed handles), so card chrome, proportions,
-and the socket vocabulary are one contract across species.
+`DesignerNodeCard`, `DesignerSocketHandle`), so the contract is enforced by
+construction, not per-card styling.
+
+### Channels
+
+**Sockets and wires**
+
+| Channel | Encodes | Values |
+|---|---|---|
+| Socket & wire color | transported payload family | entity/reference (entities, entity refs and lists), structure (blocks, type bindings), quantity (number/integer), decision (boolean/predicate/status), temporal (date/dateTime/duration), external (attachments), effect (tasks/events), projection, data (everything else) |
+| Socket shape | access — how the socket consumes/produces | circle = Item, rounded = List, square = Tree |
+| Wire pattern | edge role — what kind of connection | solid = data flow; dashed = declaration binding (`role: 'type'`); dotted = control/event trigger |
+| Handle position | direction | left = input/target, right = output/source |
+| Wire selection | selection | primary color, 3px |
+
+A wire takes its color from its source socket
+(`processDesignerSocketTone` is the one mapping — see
+[utils](../../utils/README.md)), so one contract reads one tone end-to-end:
+a class card's `type` output, a state card's status sockets, and a field
+card's typed output carry the same tones they carry on operation nodes.
+Color never encodes role and pattern never encodes type — the two channels
+are orthogonal. Declaration bindings transport a TYPE, not data, so they
+read structure-toned and dashed.
+
+**Cards**
+
+| Channel | Encodes | Values |
+|---|---|---|
+| Stripe + icon tone | node concern — what the node does | structure = read/project; entity = record produce/consume; decision = logic/predicate; effect = side-effectful operations; external = control/outside; value = pure value algebra; **no stripe** = passive declaration leaf (field, state) |
+| Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation |
+| Card surface & border | chrome only | neutral background; the selected border is the single card state |
+
+### Arrangement
+
+Top to bottom: the stripe; the header (concern-toned icon chip + label —
+no divider); inline configuration (only species that author values in
+place); the socket rail (labeled rows, inputs left / outputs right, every
+handle centered on the outer node rail); the event section (effects only:
+the trigger toggle, then event sockets). Sections separate by spacing
+alone (`mt-2`/`mt-3`, row `py-1.5`) — there are deliberately **no
+dividers**: separator lines would form a third visual system competing
+with stripes and wires while encoding nothing.
+
+Deliberately meaningless: card background, handle size (fixed 12px),
+typography — chrome, never data.
+
+### Card behavior details
+
 `ProcessNode.vue` renders the catalog's resolved ports, not stored UI guesses.
 Inputs and outputs share explicit rows, and every handle is centered on the
 outer node rail rather than inheriting a position from variable-height content.
 Socket labels stay concise; the exact element type, access, qualifier, and
 description are available on hover and to assistive technology instead of
-being repeated beside every socket. Color communicates transported base type
-(one `processDesignerSocketTone` mapping drives a source handle and its wire,
-so a contract has one semantic tone throughout the canvas — declaration cards
-included: a class card's `type` output, a state card's status sockets, and a
-field card's typed output carry the same tones they carry on operation
-nodes), handle shape
-communicates Item/List/Tree access, and the thin node stripe communicates
-operation concern (or, on type/class reference cards, the structure
-signal) through the same `signal-*` aliases — no raw theme colors.
+being repeated beside every socket.
 When selected, an unconnected primitive input reveals a compact inline typed
 fallback editor; this keeps inactive nodes quiet while preserving immediate
 authoring without a separate constant node. A typed status input's fallback

@@ -193,11 +193,11 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (2) |
 | `ui-components-permissionrulebuilder-vue` | `components/PermissionRuleBuilder.vue` | derived usage | replace:chrome (8) |
 | `ui-components-process-designer-applymigrationdialog-vue` | `components/process-designer/ApplyMigrationDialog.vue` | derived usage | replace:chrome (4) |
-| `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (4) |
+| `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (1) |
 | `ui-components-process-designer-inspector-declarationedgeinspector-vue` | `components/process-designer/inspector/DeclarationEdgeInspector.vue` | derived usage | compliant |
 | `ui-components-process-designer-inspector-declarationinspector-vue` | `components/process-designer/inspector/DeclarationInspector.vue` | derived usage | compliant |
 | `ui-components-process-designer-inspector-processnodeinspector-vue` | `components/process-designer/inspector/ProcessNodeInspector.vue` | derived usage | centralize:layout (1); replace:chrome (8) |
-| `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | replace:chrome (15) |
+| `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | replace:chrome (6) |
 | `ui-components-process-designer-typedvaluecontrol-vue` | `components/process-designer/TypedValueControl.vue` | derived usage | compliant |
 | `ui-components-process-designer-typemigrationstepsdialog-vue` | `components/process-designer/TypeMigrationStepsDialog.vue` | derived usage | replace:chrome (4) |
 | `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
@@ -256,7 +256,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-type-designer-descriptoreditor-vue` | `components/type-designer/DescriptorEditor.vue` | derived usage | compliant |
 | `ui-components-type-designer-fieldnode-vue` | `components/type-designer/FieldNode.vue` | derived usage | compliant |
 | `ui-components-type-designer-statenode-vue` | `components/type-designer/StateNode.vue` | derived usage | compliant |
-| `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (4) |
+| `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (1) |
 | `ui-components-ui-mapping-actionbutton-vue` | `components/ui-mapping/ActionButton.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-breadcrumbtrail-vue` | `components/ui-mapping/BreadcrumbTrail.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-cardgrid-vue` | `components/ui-mapping/CardGrid.vue` | derived usage | compliant |
@@ -267,7 +267,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-enumselect-vue` | `components/ui-mapping/EnumSelect.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fieldcontrol-vue` | `components/ui-mapping/FieldControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fileuploadcontrol-vue` | `components/ui-mapping/FileUploadControl.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | remove:important-override (4) |
+| `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-hierarchytable-vue` | `components/ui-mapping/HierarchyTable.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-hierarchytree-vue` | `components/ui-mapping/HierarchyTree.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-instancechip-vue` | `components/ui-mapping/InstanceChip.vue` | derived usage | compliant |
@@ -297,7 +297,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | replace:chrome (3) |
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
-| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (12); replace:inline-visual (1) |
+| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (4); replace:inline-visual (1) |
 | `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | compliant |
 | `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (4) |
