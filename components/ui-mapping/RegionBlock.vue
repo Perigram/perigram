@@ -182,7 +182,7 @@
         <SurfaceHeader
           :type="node.type"
           :instance="node.instances[0]"
-          :actions="node.actions"
+          :actions="headerActions"
           :level="node.level"
           editable
           :editing="editing"
@@ -333,6 +333,13 @@ const toggleEditing = () => {
 };
 const emitRun = (action, context) => emit('run', action, context);
 const instanceActionsForType = computed(() => props.instanceActions?.[props.node.typeId] || []);
+// The detail header's action set: the composed node's manifest actions
+// PLUS the per-instance quick actions (runtime state transitions ride
+// here) — the strip's steps draw from this combined list.
+const headerActions = computed(() => [
+  ...(props.node.actions || []),
+  ...instanceActionsForType.value.filter(action => action?.__runtime)
+]);
 // Surface visibility derives from the composed dataState: ready regions
 // render; a loading region with already-loaded instances keeps its stale
 // surfaces under an indeterminate progress bar; every other state shows

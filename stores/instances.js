@@ -73,6 +73,12 @@ export const useInstancesStore = defineStore('instances', () => {
     const raw = String(key || '');
     if (!raw) return '';
     if (registry.typesById.has(raw)) return raw;
+    // Kebab registry ids (`t-uth93vgdab`, `text-document`) ARE the
+    // canonical server form — snake-ifying them poisons the record cache
+    // against later registry-aware lookups (empty-registry first loads
+    // vs loaded-registry reads keyed the same type two ways). Only the
+    // legacy camel surface keys convert.
+    if (raw.includes('-')) return raw;
     const snake = surfaceToSnake(raw.replace(/-/g, '_'));
     if (registry.typesById.has(snake)) return snake;
     return snake;

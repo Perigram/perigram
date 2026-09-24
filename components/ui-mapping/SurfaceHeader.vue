@@ -106,10 +106,10 @@ const trail = computed(() => {
 // (an ellipsis that reserves no layout space for its items) with the
 // same localized labels and resolved icons ActionButton renders.
 const inlineActions = computed(() => props.actions
-  .filter(action => action?.trigger?.mode !== 'event')
+  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
   .slice(0, HEADER_ACTIONS_INLINE));
 const overflowActions = computed(() => props.actions
-  .filter(action => action?.trigger?.mode !== 'event')
+  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
   .filter(action => !inlineActions.value.includes(action)));
 const overflowMenu = ref(null);
 const overflowMenuItems = computed(() => overflowActions.value.map(action => {
