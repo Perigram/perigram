@@ -31,7 +31,10 @@ describe('instances store type keys and endpoints', () => {
   it('canonicalizes registry ids, kebab graph ids, and legacy surface keys', () => {
     const instances = useInstancesStore();
     expect(instances.canonicalTypeKey('queue')).toBe('queue');
-    expect(instances.canonicalTypeKey('cut-plan')).toBe('cut_plan');
+    // Kebab registry ids stay kebab — deterministically, registry loaded
+    // or not — so pool records keyed at first load (empty registry) never
+    // drift from registry-aware lookups.
+    expect(instances.canonicalTypeKey('cut-plan')).toBe('cut-plan');
     expect(instances.canonicalTypeKey('cassetteDesign')).toBe('cassette_design');
   });
 
