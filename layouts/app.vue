@@ -135,12 +135,16 @@
                 </UserAccountMenu>
             </div>
         </nav>
-        <!-- Tailwind display utilities must not sit on PrimeVue components:
-             PrimeVue injects .p-button { display: inline-flex } after Tailwind
-             and wins the cascade, which made this desktop launcher render as a
-             floating chats bubble on mobile. The plain wrapper owns the
-             responsive visibility instead. -->
-        <div v-if="!supportDialog && !isChatsRoute && !isGeneratedHomeRoute" class="hidden md:block">
+        <!-- Every floating launcher utility lives on the plain wrapper, never
+             on the PrimeVue component: PrimeVue injects .p-button rules
+             (display: inline-flex, position: relative, icon-only sizing) after
+             Tailwind and wins the cascade at equal specificity. The button
+             therefore ignored `fixed` (it computed to relative and drifted to
+             the flow at x=-32) and ignored h-14/w-14 as well. The wrapper owns
+             the viewport anchoring, the responsive visibility, and the stacking
+             step, matching the call/offline surfaces; the button keeps only
+             its own chrome. -->
+        <div v-if="!supportDialog && !isChatsRoute && !isGeneratedHomeRoute" class="fixed bottom-8 right-8 z-[999] hidden md:block">
             <Button
                 data-testid="desktop-chat-launcher"
                 icon="pi pi-comment"
@@ -149,7 +153,7 @@
                 size="large"
                 :aria-label="$t('support.openChat')"
                 @click="openDesktopChatDrawer"
-                class="fixed bottom-8 right-8 z-[999] h-14 w-14 shadow-overlay"
+                class="shadow-overlay"
             />
         </div>
         <IncomingCalls v-if="authStore.userIsSet" />
