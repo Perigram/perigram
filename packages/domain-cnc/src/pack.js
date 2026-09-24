@@ -121,10 +121,6 @@ export const cncFileTypes = [
     version: 1,
     fields: {
       name: { base: 'string' },
-      // The designer's node vocabulary (FACADE_PATTERN_NODE_TYPES families)
-      // as a filterable catalog axis: generated list surfaces derive a
-      // multi-select facet over the values live rows carry.
-      motif: { base: 'enum', values: ['grid', 'stagger', 'mesh', 'placements'], nullable: true },
       graph: { base: 'json', nullable: true }
     },
     render: {
