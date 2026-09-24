@@ -380,7 +380,10 @@ window, so granting create rights on the type's producer surfaces the
 class-level create action even when the action record itself was never
 granted explicitly. Compiled manifest action labels resolve the target
 entity's authored render label through the domain projection — raw type ids
-never reach button captions. For status-mutating updates, run availability is
+never reach button captions. Create captions stop at the class name
+(`Create <Class>`): the initial state is never part of a create caption,
+because the state is process machinery the surface reveals after creation.
+For status-mutating updates, run availability is
 derived from the incoming entity window: roles with write/admin access to the
 current state can execute the transition, while the action's grant rows define
 access after the target state is reached. The compiled workflow transition uses those same

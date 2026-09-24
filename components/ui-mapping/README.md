@@ -105,6 +105,13 @@ concerns:
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
   `card-grid` | `timeline`, matched by class, hierarchy, or type override).
+  The standalone list region renders as a borderless Panel — regions paint
+  no box; the higher record surface (`SurfaceHeader`'s `headerBar`) keeps
+  the hairline border, and pane boxes own their own frames. A create
+  action for the region's own type collapses its caption to the bare
+  localized `uiMapping.new` ("New") through ActionButton's context label:
+  the header already names the class, so the caption never repeats it
+  (creates for other types and every other action keep the full label).
   Top-level detail regions compose a record page: `SurfaceHeader` plus the
   main content in a 7-column lane with child regions in a 5-column lane
   (`detailSplit`, collapsing to stacked below xl); nested detail regions
@@ -248,7 +255,10 @@ concerns:
   (`actionLabelKey`/`fieldLabelKey`/`typeLabelKey` + `localizedLabel`),
   falling back to the resolver-derived label, so locale files may
   override any generated label; ActionButton carries the label as its
-  accessible name.
+  accessible name. A host surface may pass a context-supplied label prop
+  (still under locale-override precedence) to shorten a caption its own
+  chrome already describes — RegionBlock's "New" beside the region header
+  is the one current use.
 
 Select/MultiSelect only ever come through the shared entity wrappers
 (`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which own
