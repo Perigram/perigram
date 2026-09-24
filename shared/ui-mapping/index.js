@@ -1,6 +1,7 @@
 // UI mapping contract (see README.md): one matcher table + one resolver per
 // concern, total and deterministic. Pure functions over CTS descriptors,
 // client-bundle type records, and compiled action records.
+import { normalizeFilter, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import {
   FIELD_EDIT_ENTRIES,
   FIELD_DISPLAY_ENTRIES,
@@ -332,27 +333,28 @@ export function toolbarVisibleFor(node = {}) {
 // instanceMatchesToolbar(type, controls, instance, query, facetSelections):
 // title-plus-fields substring match combined with exact facet matches.
 // Empty queries and empty selections are no-ops, so an untouched toolbar
-// never filters anything out.
+// never filters anything out. The selection composes into the canonical
+// instance-filter tree (see #shared/instance-filters) — an `or` of
+// `contains` over the search keys plus the instance id (finding a row by
+// its id stays functional even when the title never carries it) and `eq`
+// conjunctions over the facet selections — evaluated by the one matcher.
 export function instanceMatchesToolbar(type = {}, controls = {}, instance = {}, query = '', facetSelections = {}) {
   const normalized = String(query || '').trim().toLowerCase();
-  if (normalized) {
-    // Search matches the record title AND the instance id: the title
-    // never carries the raw id (it is private display vocabulary), but
-    // finding a row by its id stays functional.
-    const haystack = [
-      ...((controls.searchKeys || [])
-        .map(key => instance.fields?.[key])
-        .filter(value => typeof value === 'string')),
-      titleFor(instance, type),
-      instance.id || ''
-    ].join(' ').toLowerCase();
-    if (!haystack.includes(normalized)) return false;
-  }
-  for (const [name, expected] of Object.entries(facetSelections || {})) {
-    if (expected === null || expected === undefined || expected === '') continue;
-    if (String(instance.fields?.[name] ?? '') !== String(expected)) return false;
-  }
-  return true;
+  const search = normalized
+    ? normalizeFilter({
+      or: [
+        ...((controls.searchKeys || []).map(key => ({ field: key, op: 'contains', value: normalized }))),
+        { field: 'id', op: 'contains', value: normalized }
+      ]
+    })
+    : null;
+  const facets = normalizeFilter({
+    and: Object.entries(facetSelections || {})
+      .filter(([, value]) => value !== null && value !== undefined && value !== '')
+      .map(([name, value]) => ({ field: name, op: 'eq', value }))
+  });
+  const filter = normalizeFilter({ and: [search, facets].filter(Boolean) });
+  return instanceMatchesFilter(instance, filter);
 }
 
 // sortControlRows(rows, key, order): client-side ordering over the

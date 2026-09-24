@@ -2,6 +2,7 @@
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
 import { resolveSurface, resolveChrome, childrenModeFor, estimateRegionWeight, screenDensityFor, resolveListControls } from './index.js';
+import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 
 // Region data state: the data layer may report per-source states
 // ('loading' | 'ready' | 'empty' | 'denied' | 'error'); otherwise the
@@ -51,10 +52,15 @@ function resolveList(source, screen, pool, sourcesById) {
   if (source.filters) {
     // The compiler-emitted child-region shape: flat scalar filters whose
     // `$screen.*` placeholders resolve against the routed screen scope.
-    // Bare keys are declared lineage keys (children edges, SPEC §6) — the
-    // pool stores them as lineage refs; status windows read states.main.
+    // The flat map is the transport projection of the canonical filter
+    // tree (#shared/instance-filters): bare keys are lineage keys — no
+    // declared-vocabulary gate client-side, the total default generated
+    // screens were pinned against — and matching runs through the one
+    // in-memory matcher, mirroring the server transport's semantics.
     const filters = resolveFilterPlaceholders(source.filters, screen);
-    return Object.values(byId).filter(instance => instanceMatchesSourceFilters(instance, filters));
+    const filter = filterFromFlatFilters(filters);
+    if (!filter) return Object.values(byId);
+    return Object.values(byId).filter(instance => instanceMatchesFilter(instance, filter));
   }
   return Object.values(byId);
 }
@@ -70,20 +76,6 @@ function resolveFilterPlaceholders(filters = {}, screen = {}) {
 
 function screenPath(screen = {}, path = '') {
   return String(path).split('.').filter(Boolean).reduce((value, key) => (value == null ? undefined : value[key]), screen);
-}
-
-// Mirrors the server transport's filter semantics (skip unresolved values,
-// match declared lineage keys by their ref id, status windows on main).
-function instanceMatchesSourceFilters(instance = {}, filters = {}) {
-  return Object.entries(filters || {}).every(([path, expected]) => {
-    if (expected === undefined || expected === null || expected === '') return true;
-    if (path === 'primaryState') return instance.states?.main === expected;
-    if (path === 'primaryStates') return String(expected).split(',').includes(instance.states?.main);
-    const ref = path.startsWith('lineage.')
-      ? screenPath(instance, path)
-      : instance.lineage?.[path];
-    return String(ref?.id ?? ref ?? '') === String(expected);
-  });
 }
 
 function surfaceKindOf(region, source) {

@@ -14,6 +14,7 @@ import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent } from '~/packag
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
+import { listQueryFilter } from './filters.js';
 import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { hasInstanceAccess } from '../../core/access/service.js';
@@ -211,51 +212,12 @@ function provenanceFromWire(draft = {}) {
   return { ...(op ? { op } : {}), sources, effective };
 }
 
-// The compiled screen-source filter vocabulary (the same transport
-// contract the feature routes speak, cassettes' libraryId): a bare
-// DECLARED lineage key scopes the read by parent, primaryState(s) by the
-// status window, and _id resolves reference lookups. Keys the type never
-// declared are transport noise the service ignores — never a Mongo path.
-function listQueryFilter(filters = {}, declaredLineageKeys = new Set()) {
-  const filter = {};
-  for (const [key, rawValue] of Object.entries(filters || {})) {
-    const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
-    if (value === undefined || value === null || value === '') continue;
-    if (key === 'limit' || key === 'skip') continue;
-    if (key === '_id') {
-      filter._id = toFlexibleId(value);
-      continue;
-    }
-    if (key === 'primaryState') {
-      filter['states.main'] = String(value);
-      continue;
-    }
-    if (key === 'primaryStates') {
-      const states = String(value).split(',').map(item => item.trim()).filter(Boolean);
-      if (states.length) filter['states.main'] = { $in: states };
-      continue;
-    }
-    if (declaredLineageKeys.has(key)) {
-      filter[`lineage.${key}`] = lineageMatchValues(value);
-      continue;
-    }
-    // Dotted form (`?lineage.<key>=…`) is the same filter: accept both
-    // spellings so no caller convention can silently disable scoping and
-    // return the whole collection.
-    if (key.startsWith('lineage.') && declaredLineageKeys.has(key.slice('lineage.'.length))) {
-      filter[key] = lineageMatchValues(value);
-    }
-  }
-  return filter;
-}
-
-// Stored lineage values keep whatever shape their writer persisted
-// (string ids from dialogs and the effect boundary, ObjectIds from
-// flexible-id writes), so an id-shaped filter matches both forms.
-function lineageMatchValues(value) {
-  const flexible = toFlexibleId(value);
-  return flexible === value ? value : { $in: [value, flexible] };
-}
+// The compiled screen-source filter vocabulary normalizes through the
+// canonical instance-filter tree (#shared/instance-filters) and projects
+// to Mongo in `filters.js`: a bare DECLARED lineage key scopes the read by
+// parent, primaryState(s) by the status window, and _id resolves reference
+// lookups. Keys the type never declared are transport noise the service
+// ignores — never a Mongo path.
 
 async function requireDeclaration(typeId, organizationId) {
   const declaration = await declarationFor(typeId, organizationId);
