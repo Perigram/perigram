@@ -5,6 +5,20 @@
 - [ ] Nodes in node editor follow several completely different UI conventions. Need to unify (aligned with latted cts
   type, keep socket visual contract)
 - [ ] Inline editing looks awful as today. 
+
+  ### Agent Notes (2026-09-24)
+
+  First slice landed on `agent/node-grammar-2-20260924`: entityRef
+  authoring no longer types raw ids. An EntityRef literal's value and an
+  unconnected entityRef socket's inline fallback are instance pickers
+  (shared `InstanceSelect` contract): options load silently from the
+  generic instance transport for the socket's exact type, and the
+  authored reference resolves through the readable-reference seam so the
+  value renders as an instance card. `TypedValueControl` owns the
+  wrapping (`{ type, id }` in and out); `instanceIdFallback` ("X ID or
+  connect a wire") is gone. Remaining awfulness not yet addressed:
+  literalList/literalTree authoring is still a raw JSON textarea; the
+  always-visible stacked selects on literal cards were not touched.
 - [ ] Need some sugar or UX-level adoption, and some fixes, actually:
   - [ ] Probably "instant" should be recorded when it's instance's field is initiated? 
   - [ ] And, need a literal that bears current time, to display things like "5 days left"? 

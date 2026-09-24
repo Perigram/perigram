@@ -97,7 +97,7 @@ panel — value, label, severity, icon, terminal writing the record's
 field, state, and type-reference authoring — the field descriptor reuses
 the shared `type-designer/DescriptorEditor`, and both carry the SPEC §4
 display tokens), and
-`DeclarationEdgeInspector.vue` (transition intents, children edges). They
+`DeclarationEdgeInspector.vue` (children edges). They
 are pure presentation: every mutation is an event back to the page's
 update/sync entry points. The Roles and Screens tabs remain page-owned
 until the compile-to-apps rework replaces the screens surface.
@@ -464,12 +464,15 @@ being repeated beside every socket.
 When selected, an unconnected primitive input reveals a compact inline typed
 fallback editor; this keeps inactive nodes quiet while preserving immediate
 authoring without a separate constant node. A typed status input's fallback
-offers the bound type's declared states. Create/Modify/Status effect sockets
+offers the bound type's declared states. An `entityRef` input's fallback is
+an instance picker (see the entity-selector contract below), never a
+hand-typed id. Create/Modify/Status effect sockets
 declare List access for the shared effect mapper, and they keep the same
 inline fallback: an authored scalar there is stored as one broadcast item,
 exactly as the mapper consumes it. Literal value authoring offers the plain
 value bases; a `status` literal base does not exist — statuses are type-scoped
-and enter graphs only through state declaration sockets. A connected wire
+and enter graphs only through state declaration sockets. An EntityRef literal
+pairs its type picker with the same instance picker for the value. A connected wire
 always wins. An open socket is a composition affordance, not an error.
 Process sockets are always optional; validation only rejects invalid wires
 and invalid authored contracts — single-value sockets (inputs without
@@ -615,7 +618,12 @@ its capability.
 
 Entity selectors use the shared `InstanceSelect`/`InstanceMultiSelect`
 contract: selected entity cards render outside the input and the compact
-change chevron remains a separate trigger. Process-node field/type
+change chevron remains a separate trigger. Node-card `entityRef` authoring
+(an EntityRef literal's value and an unconnected entityRef socket's inline
+fallback) uses the same `InstanceSelect` contract: options load silently
+from the generic instance transport for the socket's exact type, and the
+authored reference resolves through the readable-reference seam so the
+value renders as the instance card, never a raw id. Process-node field/type
 selectors use ordinary PrimeVue controls because their values are schemas,
 not entities.
 

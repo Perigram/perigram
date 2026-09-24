@@ -51,16 +51,10 @@
         filter
         @update:model-value="value => update({ path: value })"
       />
-      <InputText
-        v-if="opKind === 'source.literalItem' && record.type?.base === 'entityRef'"
-        :model-value="record.value?.id || ''"
-        size="small"
-        :placeholder="$t('common.id')"
-        @update:model-value="value => update({ value: value ? { type: record.type?.typeId || record.typeId || '', id: value } : null })"
-      />
       <TypedValueControl
-        v-if="opKind === 'source.literalItem' && record.type?.base !== 'entityRef'"
+        v-if="opKind === 'source.literalItem'"
         :base="record.type?.base || 'json'"
+        :type-id="record.type?.typeId || record.typeId || ''"
         :model-value="record.value"
         @update:model-value="value => update({ value })"
       />
@@ -81,6 +75,7 @@
           <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
             <TypedValueControl
               :base="row.input.base"
+              :type-id="row.input.type?.typeId || ''"
               :model-value="inputDefault(row.input.id)"
               :status-options="data.processStatusOptions || []"
               :placeholder="inputPlaceholder(row.input)"
@@ -208,7 +203,8 @@ function updateValueType(base) {
     updates.value = base === 'boolean' ? false
       : ['number', 'integer'].includes(base) ? 0
         : base === 'json' ? {}
-          : '';
+          : base === 'entityRef' ? null
+            : '';
     if (base === 'entityRef') {
       updates.typeId = record.value.type?.typeId || record.value.typeId || '';
       updates.type.typeId = updates.typeId;
@@ -271,21 +267,16 @@ function inputDefault(id) {
 }
 
 // The fallback editor's value landing: typed values arrive parsed from
-// TypedValueControl; an entityRef id string wraps into { type, id } here
-// because the entity type is this socket's contract, not the control's.
+// TypedValueControl; an entityRef arrives as the authored reference
+// { type, id } — the control owns the instance picking, and the socket's
+// type is the typeId it was handed.
 function onFallbackValue(input, value) {
   if (input.base === 'status') return updateStatusInputDefault(input.id, value);
-  const wrapped = input.base === 'entityRef' && value
-    ? { type: input.type?.typeId || '', id: value }
-    : value;
-  return updateInputDefault(input.id, wrapped);
+  return updateInputDefault(input.id, value);
 }
 
 function inputPlaceholder(input) {
   if (input.base === 'status') return t('processDesigner.transitionStatusValue');
-  if (input.base === 'entityRef') {
-    return t('processDesigner.instanceIdFallback', { entity: input.type?.typeId || t('processDesigner.entity') });
-  }
   return t('processDesigner.inlineValue');
 }
 
