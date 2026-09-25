@@ -15,6 +15,7 @@ import {
   executeProcessDataNode,
   executeProcessEffectNode,
   normalizeProcessDefinition,
+  resolveRoleAssignmentAccess,
   validateProcessDefinition
 } from './index.js';
 import { createDataPacket } from './data-tree.js';
@@ -30,6 +31,31 @@ function nativeDomain() {
     fields: {
       name: { base: 'string' },
       note: { base: 'string', nullable: true }
+    },
+    states: {
+      main: {
+        initial: 'draft',
+        states: {
+          draft: {},
+          active: {},
+          archived: { terminal: true }
+        }
+      }
+    },
+    transitions: [
+      { axis: 'main', from: 'draft', to: 'active', intent: 'activate' },
+      { axis: 'main', from: 'active', to: 'archived', intent: 'archive' }
+    ]
+  });
+  registry.defineType({
+    id: 'rack',
+    class: 'group',
+    name: 'Rack',
+    fields: {
+      name: { base: 'string' }
+    },
+    edges: {
+      children: { panels: { types: ['panel'], onRemove: 'restrict' } }
     },
     states: {
       main: {
@@ -120,7 +146,7 @@ describe('native CTS process execution contract', () => {
     const read = portsFor({ kind: 'cts.read', select: 'parent', typeId: 'panel' }, domain);
     const field = portsFor({ kind: 'cts.field', typeId: 'panel', path: 'data.name' }, domain);
 
-    expect(construct.inputs.map(port => port.id)).toEqual(['in', 'type', 'data.name', 'data.note', 'state']);
+    expect(construct.inputs.map(port => port.id)).toEqual(['in', 'type', 'lineage.rackId', 'data.name', 'data.note', 'state']);
     expect(construct.inputs.some(port => port.id === 'states.main')).toBe(false);
     expect(mutate.inputs.map(port => port.id)).toEqual(['in', 'entity', 'data.name', 'data.note']);
     expect(mutate.inputs.some(port => port.id === 'states.main')).toBe(false);
@@ -219,8 +245,88 @@ describe('native CTS process execution contract', () => {
       .toEqual(expect.arrayContaining([expect.objectContaining({ from: 'draft', to: 'active', processRoleIds: ['role_admin'] })]));
   });
 
-  it('does not mint producer outputs for entity-bearing reads', async () => {
+  it('compiles graph-authored lineage from native construct lineage sockets and places the hierarchy', () => {
     const domain = nativeDomain();
+    const roles = { role_admin: { id: 'role_admin', label: 'Admin' } };
+    const construct = (id, typeId) => ({
+      id,
+      kind: 'cts.construct',
+      typeId,
+      producerOutputId: `${id}:result`,
+      construction: { mode: 'genericCreate', inputs: [{ id: 'name', path: 'name', type: 'string', required: true, prompt: true }] },
+      trigger: { mode: 'manual' },
+      access: { level: 'admin', roleIds: ['role_admin'], grants: [{ roleId: 'role_admin', level: 'admin' }] }
+    });
+    const createRack = construct('create_rack', 'rack');
+    const createPanel = {
+      ...construct('create_panel', 'panel'),
+      construction: {
+        mode: 'genericCreate',
+        inputs: [
+          { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+          { id: 'lineage.rackId', label: 'Rack', path: 'lineage.rackId', type: 'entity', typeId: 'rack', required: false, prompt: true }
+        ]
+      }
+    };
+    const definition = graph([createRack, createPanel], [{
+      id: 'rack-to-panel',
+      source: 'create_rack',
+      sourceHandle: 'data:result',
+      target: 'create_panel',
+      targetHandle: 'data:lineage.rackId',
+      role: 'data'
+    }]);
+    definition.producerOutputs = {
+      'create_rack:result': {
+        producerOutputId: 'create_rack:result', nodeId: 'create_rack', outputSocketId: 'result',
+        typeId: 'rack', lifecycle: { mode: 'defaultCreated' }, fields: { read: [], write: [], private: [] }
+      },
+      'create_panel:result': {
+        producerOutputId: 'create_panel:result', nodeId: 'create_panel', outputSocketId: 'result',
+        typeId: 'panel', lifecycle: { mode: 'defaultCreated' }, fields: { read: [], write: [], private: [] }
+      }
+    };
+
+    const compiled = compileProcessDefinition(definition, domain, { roles });
+
+    expect(compiled.lineageBindings).toEqual([{
+      childTypeId: 'panel',
+      parentTypeId: 'rack',
+      lineageKey: 'rackId',
+      producerOutputId: 'create_panel:result',
+      sourceProducerOutputId: 'create_rack:result',
+      sourceNode: 'create_rack',
+      sourceSocket: 'data:result',
+      consumingNode: 'create_panel',
+      consumingSocket: 'data:lineage.rackId'
+    }]);
+    expect(compiled.producerOutputs['create_panel:result'].lineageBindings.map(binding => binding.lineageKey))
+      .toEqual(['rackId']);
+
+    // The compiled binding places the hierarchy beyond what the declared
+    // children edge covers: the home source carries the compiled bindings
+    // (the client's graph-pair suppression channel) and the child create
+    // action resolves its contextual parent scope from the binding alone.
+    const access = resolveRoleAssignmentAccess({
+      compiled,
+      assignment: { userId: 'user-1', roleIds: ['role_admin'], bindings: {} },
+      domain
+    });
+    const home = access.screens.find(screen => screen.template === 'home');
+    expect(home.sources.map(source => source.typeId)).toEqual(['rack']);
+    expect(home.sources[0].lineageBindings.map(binding => (
+      `${binding.childTypeId}<-${binding.parentTypeId}:${binding.lineageKey}`
+    ))).toEqual(['panel<-rack:rackId']);
+    const createPanelAction = Object.values(access.actions || {})
+      .find(action => action.typeId === 'panel' && (action.actionKind || action.kind) === 'createInstance');
+    expect(createPanelAction.parentTypeId).toBe('rack');
+    const rackDetail = access.screens.find(screen => screen.template === 'instanceDetail' && screen.typeId === 'rack');
+    expect(rackDetail.sources.some(source => (
+      source.typeId === 'panel' && source.mode === 'list' && source.filters.rackId === '$screen.scope.instanceId'
+    ))).toBe(true);
+  });
+
+  it('does not mint producer outputs for entity-bearing reads', async () => {    const domain = nativeDomain();
     const read = { id: 'read', kind: 'cts.read', select: 'parent', typeId: 'panel' };
     const definition = graph([read]);
     const normalized = normalizeProcessDefinition({

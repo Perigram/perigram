@@ -101,6 +101,66 @@ function lineageFixture() {
   };
 }
 
+// The native species wiring for the same hierarchy: a typed
+// `lineage.<lineageKey>` data socket on the consuming construct, fed by
+// the producer's entity output — no compose-block node participates.
+function nativeLineageFixture() {
+  const output = (nodeId, typeId) => ({
+    producerOutputId: `${nodeId}:result`,
+    nodeId,
+    outputSocketId: 'result',
+    typeId,
+    lifecycle: { mode: 'defaultCreated' },
+    fields: { read: [], write: [], private: [] }
+  });
+  return {
+    dataflowVersion: 4,
+    roles: { operator: { id: 'operator', label: 'Operator' } },
+    producerOutputs: {
+      'project_source:result': output('project_source', 'project'),
+      'create_queue:result': output('create_queue', 'queue')
+    },
+    processNodes: {
+      project_source: {
+        id: 'project_source',
+        kind: 'cts.construct',
+        typeId: 'project',
+        producerOutputId: 'project_source:result',
+        label: 'Create project',
+        trigger: { mode: 'manual' },
+        access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] }
+      },
+      create_queue: {
+        id: 'create_queue',
+        kind: 'cts.construct',
+        typeId: 'queue',
+        producerOutputId: 'create_queue:result',
+        label: 'Create queue',
+        trigger: { mode: 'manual' },
+        access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+        construction: {
+          mode: 'genericCreate',
+          inputs: [{ id: 'lineage.projectId', label: 'Project', path: 'lineage.projectId', type: 'entity', typeId: 'project', required: false, prompt: true }]
+        }
+      }
+    },
+    graph: {
+      nodes: ['project_source', 'create_queue']
+        .map(id => ({ id, type: 'processNode', data: { refId: id } })),
+      edges: [
+        {
+          id: 'project-to-queue',
+          source: 'project_source',
+          sourceHandle: 'data:result',
+          target: 'create_queue',
+          targetHandle: 'data:lineage.projectId',
+          role: 'data'
+        }
+      ]
+    }
+  };
+}
+
 describe('producer-scoped binding diagnostics', () => {
   it('reports no diagnostics for a resolvable lineage graph', () => {
     expect(validateLineageBindingResolution(lineageFixture(), domain)).toEqual([]);
@@ -179,6 +239,96 @@ describe('producer-scoped binding diagnostics', () => {
     ));
     expect(binding).toBeDefined();
     expect(binding.sourceProducerOutputId).toBe('project_source:entity');
+  });
+
+  it('compiles lineage bindings from a native producer-to-construct lineage socket', () => {
+    const bindings = compileLineageBindings(nativeLineageFixture(), domain);
+
+    expect(bindings).toEqual([{
+      childTypeId: 'queue',
+      parentTypeId: 'project',
+      lineageKey: 'projectId',
+      producerOutputId: 'create_queue:result',
+      sourceProducerOutputId: 'project_source:result',
+      sourceNode: 'project_source',
+      sourceSocket: 'data:result',
+      consumingNode: 'create_queue',
+      consumingSocket: 'data:lineage.projectId'
+    }]);
+  });
+
+  it('keeps separate native bindings per producer source of the same pair', () => {
+    const definition = nativeLineageFixture();
+    definition.processNodes.project_source_b = {
+      ...definition.processNodes.project_source,
+      id: 'project_source_b',
+      producerOutputId: 'project_source_b:result'
+    };
+    definition.producerOutputs['project_source_b:result'] = {
+      ...definition.producerOutputs['project_source:result'],
+      producerOutputId: 'project_source_b:result',
+      nodeId: 'project_source_b'
+    };
+    definition.graph.nodes.push({ id: 'project_source_b', type: 'processNode', data: { refId: 'project_source_b' } });
+    definition.graph.edges.push({
+      id: 'project-b-to-queue',
+      source: 'project_source_b',
+      sourceHandle: 'data:result',
+      target: 'create_queue',
+      targetHandle: 'data:lineage.projectId',
+      role: 'data'
+    });
+
+    const bindings = compileLineageBindings(definition, domain);
+    expect(bindings.map(binding => binding.sourceNode).sort()).toEqual(['project_source', 'project_source_b']);
+    expect(new Set(bindings.map(binding => binding.sourceProducerOutputId))).toEqual(
+      new Set(['project_source:result', 'project_source_b:result'])
+    );
+  });
+
+  it('reports no diagnostics for a resolvable native lineage wiring', () => {
+    expect(validateLineageBindingResolution(nativeLineageFixture(), domain)).toEqual([]);
+  });
+
+  it('names the edge and socket when a native lineage source node has no record', () => {
+    const definition = nativeLineageFixture();
+    delete definition.processNodes.project_source;
+
+    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('Edge project-to-queue cannot resolve lineage source node project_source for socket lineage.projectId on create_queue');
+  });
+
+  it('rejects organization as a native lineage ancestor', () => {
+    const definition = nativeLineageFixture();
+    definition.processNodes.project_source.typeId = 'organization';
+    definition.producerOutputs['project_source:result'].typeId = 'organization';
+
+    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('Edge project-to-queue lineage socket lineage.projectId on create_queue cannot use organization as an ancestor');
+  });
+
+  it('reports a native lineage source socket without a resolvable producer output record', () => {
+    const definition = nativeLineageFixture();
+    delete definition.producerOutputs['project_source:result'];
+    definition.producerOutputs['project_source_b:result'] = {
+      ...definition.producerOutputs['create_queue:result'],
+      producerOutputId: 'project_source_b:result',
+      nodeId: 'project_source_b',
+      typeId: 'project'
+    };
+    definition.producerOutputs['project_source_c:result'] = {
+      ...definition.producerOutputs['create_queue:result'],
+      producerOutputId: 'project_source_c:result',
+      nodeId: 'project_source_c',
+      typeId: 'project'
+    };
+
+    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('Edge project-to-queue lineage source socket project_source:result');
+    expect(errors[0]).toContain('emits entity type project but has no resolvable producer output record');
   });
 
   it('names the producer output when a required effect input has no source', () => {
