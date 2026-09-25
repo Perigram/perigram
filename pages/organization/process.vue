@@ -2312,6 +2312,18 @@ function connectionCompatibility(connection = {}) {
         }
         return { ok: true };
       }
+      if (legality === 'field') {
+        // The field wire lands on the getField's field input (SPEC §20
+        // socket algebra); any other target handle is refused.
+        const targetRecord2 = draft.value?.data?.processNodes?.[target.data?.refId];
+        if (!targetRecord2) return { ok: false, reason: 'Field wires land on process nodes' };
+        const inputs = catalogPorts(targetRecord2).inputs;
+        const input = portForHandle(inputs, connection.targetHandle, 'input') || inputs.find(port => port.id === 'field');
+        if (!input || input.id !== 'field') {
+          return { ok: false, reason: 'Field wires land on the field input' };
+        }
+        return { ok: true };
+      }
       if (legality === 'targets') {
         // ref fields receive their accepted target types as wired inputs
         if (target.data?.descriptor?.base !== 'ref') {

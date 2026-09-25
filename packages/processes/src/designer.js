@@ -1,6 +1,6 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { PRODUCER_ORIGIN_EFFECT_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
-import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords } from '../../cts/src/index.js';
+import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, slotFor } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
@@ -189,6 +189,13 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
   if (sourceType === 'ctsState' && targetType === 'processNode'
     && ['cts.construct', 'cts.transition'].includes(targetRecord?.kind || targetRecordKind)) {
     return 'entry';
+  }
+  // A field node wired into a getField's field socket supplies the field
+  // (SPEC §20 socket algebra: instance + field = field value). The wire
+  // is the field; an authored socket default is equivalent.
+  if (sourceType === 'ctsField' && targetType === 'processNode'
+    && (targetRecord?.kind || targetRecordKind) === 'cts.field') {
+    return 'field';
   }
   // A ref field receives its accepted target types as inputs: wiring a
   // class (or type reference) into the field's targets socket derives the
@@ -585,6 +592,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   const bindEdges = [];
   const refTargetsByField = new Map();
   const stateEntryEdges = [];
+  const fieldEntryEdges = [];
 
   for (const edge of edges) {
     if (edge.role !== 'type') continue;
@@ -595,15 +603,36 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       declaredBy.set(source.id, target.id);
       if (source.type === 'ctsField') fieldCounts.set(target.id, (fieldCounts.get(target.id) || 0) + 1);
       else stateCounts.set(target.id, (stateCounts.get(target.id) || 0) + 1);
-    } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'processNode') {
-      bindEdges.push([source, target]);
+    } else if (source.type === 'ctsClass' || source.type === 'ctsType') {
+      if (target.type === 'processNode') {
+        bindEdges.push([source, target]);
+      } else if (target.type === 'ctsField') {
+        const targets = refTargetsByField.get(target.id) || [];
+        const typeId = source.data?.typeId;
+        if (typeId && !targets.includes(typeId)) targets.push(typeId);
+        refTargetsByField.set(target.id, targets);
+      }
     } else if (source.type === 'ctsState' && target.type === 'processNode') {
       stateEntryEdges.push([source, target]);
-    } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'ctsField') {
-      const targets = refTargetsByField.get(target.id) || [];
-      const typeId = source.data?.typeId;
-      if (typeId && !targets.includes(typeId)) targets.push(typeId);
-      refTargetsByField.set(target.id, targets);
+    } else if (source.type === 'ctsField' && target.type === 'processNode') {
+      fieldEntryEdges.push([source, target]);
+    }
+  }
+
+  // The wire is the field (SPEC §20): a field node wired into a getField's
+  // field socket authors that node's field path — the slot-qualified row
+  // path the projection derives (slot from the declaring class, id from
+  // the authored name).
+  for (const [fieldNode, targetNode] of fieldEntryEdges) {
+    const record = records[targetNode.data?.refId];
+    if (record?.kind !== 'cts.field') continue;
+    const name = String(fieldNode.data?.name || '').trim();
+    if (!name) continue;
+    const classNode = declaredBy.has(fieldNode.id) ? nodeById.get(declaredBy.get(fieldNode.id)) : null;
+    const slot = slotFor(fieldNode.data?.descriptor || {}, classNode?.data?.class || 'file');
+    const path = `${slot}.${camelCaseId(name)}`;
+    if (record.inputDefaults?.field !== path) {
+      mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'inputDefaults.field', value: path });
     }
   }
 
