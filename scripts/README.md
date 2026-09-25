@@ -56,6 +56,14 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the inventory. Component
   ownership is derived from the domain primitive registry: exact registered
   paths are shared/domain primitives and every other Vue file is derived usage.
+- `server/scripts/migrate-flat-state-vocabulary.js`: One-shot
+  flat-state migration (SPEC §7). Strips `states`/`transitions` from
+  stored type declarations, rewrites persisted transition-record state
+  payloads into `inputDefaults.state` socket defaults, removes
+  axis/parentStateId/initial fluff from stored ctsState records, and
+  flattens instance documents' `states: {main}` into one `state` string.
+  Append-only `status_events` history is untouched. Idempotent,
+  dry-run by default; `--apply` persists.
 - `server/scripts/migrate-cts-state-trees.js`: one-way CTS declaration
   migration from flat state axes to recursive state machines. It preserves
   axes, transitions, and dotted leaf paths, moves terminal/render policy onto
