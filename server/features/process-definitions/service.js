@@ -466,7 +466,12 @@ function catalogContextFromDefinition(processData) {
       fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.typeId, record.path),
       fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.typeId),
       blockComposition: cncDomain.blockComposition?.[record.block] || null,
-      command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
+      command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null,
+      // The projected domain carries the registered serviceContracts: a
+      // cts.service record resolves its signature-derived sockets from it
+      // at run time exactly as the designer does — without it the service
+      // resolves empty ports and its parameters never reach the handler.
+      domain: getDomain()
     };
   };
 }

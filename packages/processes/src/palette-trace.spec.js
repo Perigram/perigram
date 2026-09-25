@@ -28,7 +28,15 @@ function projectedDomain() {
       species: 'service',
       command: 'solveNestingValue',
       signature: {
-        input: { base: 'record', fields: { polygons: { base: 'list', itemType: { base: 'json' } } } },
+        input: { base: 'record', fields: {
+          items: { base: 'list', itemType: { base: 'json' } },
+          params: { base: 'record', fields: {
+            width: { base: 'quantity', unit: 'mm' },
+            height: { base: 'quantity', unit: 'mm' },
+            space: { base: 'quantity', unit: 'mm' },
+            sheetCount: { base: 'number' }
+          } }
+        } },
         output: { base: 'json' }
       },
       render: { label: 'Nesting solver', icon: 'pi pi-compass' }

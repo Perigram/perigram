@@ -162,10 +162,30 @@ export const cncEditors = [
 ];
 
 // Registered services (SPEC §8 s species) are executable registrations,
-// not aspirations. The legacy nesting solver's command handler was deleted
-// with the queue-flow legacy cut; the service stays out of the palette
-// until a real V -> V handler is registered again.
-export const cncServices = [];
+// not aspirations. The nesting solver is the V -> V boundary: job geometry
+// and sheet parameters in, layouts and a summary out — the signature
+// matches the handler's contract (`solveNestingValue` reads exactly these
+// parameter sockets), and the pack binds the command handler beside it.
+export const cncServices = [
+  {
+    id: 'nesting.solve',
+    species: 'service',
+    command: 'solveNestingValue',
+    signature: {
+      input: { base: 'record', fields: {
+        items: { base: 'list', itemType: { base: 'json' } },
+        params: { base: 'record', fields: {
+          width: { base: 'quantity', unit: 'mm' },
+          height: { base: 'quantity', unit: 'mm' },
+          space: { base: 'quantity', unit: 'mm' },
+          sheetCount: { base: 'number' }
+        } }
+      } },
+      output: { base: 'json' }
+    },
+    render: { label: 'Nesting solver', icon: 'pi pi-compass' }
+  }
+];
 
 // Payload upload kinds for the pack's file types.
 export const cncAttachmentKinds = {

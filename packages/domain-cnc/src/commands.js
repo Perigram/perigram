@@ -106,6 +106,27 @@ export const cncCommands = {
       ]
     }
   },
+  // The V -> V service boundary's command definition (SPEC §8/§21): the
+  // pack's `nesting.solve` service binds `command: 'solveNestingValue'`,
+  // and a graph-driven cts.service effect reaches the handler through this
+  // definition — its parameter sockets are the declared signature fields.
+  // No entity inputs, no output entities: values in, values out; the
+  // process action's own grants are the authorization boundary.
+  solveNestingValue: {
+    id: 'solveNestingValue',
+    service: 'nesting',
+    action: 'solveValue',
+    label: 'Solve nesting',
+    input: {
+      parameters: [
+        { name: 'items', label: 'Job geometry', type: 'array', required: true },
+        { name: 'params', label: 'Sheet parameters', type: 'object', required: true }
+      ]
+    },
+    triggers: [],
+    output: {},
+    access: {}
+  },
   generateAttachment: {
     id: 'generateAttachment',
     service: 'artifacts',
