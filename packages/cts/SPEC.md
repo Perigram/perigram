@@ -291,9 +291,12 @@ create and transition operations.
 StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severity? } }
 ```
 
-- A state is a flat string value. There are no axes, no canonical paths,
-  no nesting, and no parents: no `main`, no parent wiring, no derived
-  path configuration.
+- A state is a flat string value. There are no axis names, no parent
+  markers, and no derived path configuration: no `main`, no `parent` key,
+  no labeled nesting edges.
+- Nesting is declared by wiring: a state node's `state` input accepts
+  another state node, and that wire nests the source inside the target.
+  The wired node's own value is what operations receive.
 - The initial state of a created instance is authored at the create
   operation: the construct node's `state` input socket carries the value
   (wired from a state node, or an authored default). No declaration owns
@@ -409,7 +412,7 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 | R1 | closed rows: every field path used by any predicate/patch/record node is in the target type's row | field-access duplication |
 | R2 | typed edges: every Ref assignment checks the edge's target set and `onRemove` | bare `data.*Id` drift |
 | R3 | unit discipline on `Quantity` | suffix strings, unit qualifiers |
-| R4 | state authoring: state values are flat strings authored as state nodes wired into create/transition sockets; no nesting, no axes (§7) | process-graph validators |
+| R4 | state authoring: flat values on state nodes wired into create/transition sockets; nesting is wiring a state into a state input; no axis names, no parent markers (§7) | process-graph validators |
 | R5 | dataflow: process graph sockets typecheck; `s` consumes only V (entities reach services solely via `p`) | missing-field/reachability diagnostics |
 | R6 | class obligations of §5 checked at type-compile | `meta` flag vs master/system drift |
 | R7 | version/migration completeness per §11 | ad-hoc migrate scripts |
