@@ -240,6 +240,12 @@ function completedSocket() {
   return socket('completed', processType('event'), CONTROL);
 }
 
+// Effect species carry the event contract symmetrically: a `control:in`
+// socket (multiple) receives completion events from upstream operations,
+// `completed` emits this operation's own. Pure reads and projections are
+// lazy data sources and carry neither.
+const nativeControlInput = () => [{ ...socket('in', processType('event'), CONTROL, true), multiple: true }];
+
 function nativeConstructionPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   if (!typeId) return { inputs: [declarationTypePin(record)], outputs: [] };
@@ -255,6 +261,7 @@ function nativeConstructionPorts(record = {}, context = {}) {
     : (!hasDomainContract && Array.isArray(record.construction?.inputs) ? record.construction.inputs : []);
   return {
     inputs: [
+      ...nativeControlInput(),
       declarationTypePin(record),
       ...constructionInputs.map(input => ({
         ...socket(input.path || input.id || 'value', mapDomainInputType(input.type, input), DATA, input.required === true && input.default === undefined, 'list'),
@@ -289,6 +296,7 @@ function nativeMutatePorts(record = {}, context = {}) {
     .map(field => socket(field.path, field.type, DATA, false, 'list'));
   return {
     inputs: [
+      ...nativeControlInput(),
       socket('entity', processType('entityRef', { typeId }), DATA, true, 'list'),
       ...leaves
     ],
@@ -306,6 +314,7 @@ function nativeTransitionPorts(record = {}) {
   }
   return {
     inputs: [
+      ...nativeControlInput(),
       socket('entity', processType('entityRef', { typeId }), DATA, true, 'list'),
       socket('note', processType('string'), DATA, false, 'list'),
       // The target state arrives by wire (SPEC §7): a state node wired

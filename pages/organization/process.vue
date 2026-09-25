@@ -2279,14 +2279,11 @@ function connectionCompatibility(connection = {}) {
           : { ok: false, reason: 'Both classes need a type id before declaring children' };
       }
       if (legality === 'nested') {
-        if (!source.data?.typeId || source.data.typeId !== target.data?.typeId) {
-          return { ok: false, reason: 'State nesting stays inside one declared type' };
-        }
-        if (source.data.axis && target.data.axis && source.data.axis !== target.data.axis) {
-          return { ok: false, reason: 'State nesting stays inside one lifecycle axis' };
-        }
+        // Nesting is wiring (SPEC §7): a state into a state input. The
+        // type scope is authored data that may arrive later (declare
+        // wire, inspector) — it is never a precondition for nesting.
         if (source.id === target.id) {
-          return { ok: false, reason: 'A state cannot be its own parent state' };
+          return { ok: false, reason: 'A state cannot nest inside itself' };
         }
         const parentOf = new Map(edges.value
           .filter(edge => edge.role === 'type' && edge.label === 'nested')

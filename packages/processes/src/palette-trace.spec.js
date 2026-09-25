@@ -97,7 +97,7 @@ describe('palette trace', () => {
       { ...construct, typeId: 'sheet', construction: domain.construction.sheet },
       { domain, fieldSchemas: domain.fieldSchemas.sheet }
     );
-    expect(bound.inputs[0].id).toBe('type');
+    expect(bound.inputs.find(port => port.id === 'type')).toBeTruthy();
     expect(bound.inputs.some(port => port.id === 'data.serial')).toBe(true);
     expect(bound.outputs.some(port => port.type?.base === 'entity')).toBe(true);
   });
@@ -119,14 +119,14 @@ describe('palette trace', () => {
       { id: 't', kind: 'cts.mutate', typeId: 'sheet' },
       { domain, fieldSchemas: domain.fieldSchemas.sheet }
     );
-    expect(adapted.inputs[0]).toMatchObject({ id: 'entity', type: { typeId: 'sheet' } });
+    expect(adapted.inputs.find(port => port.id === 'entity')).toMatchObject({ id: 'entity', type: { typeId: 'sheet' } });
     expect(adapted.inputs.some(port => port.id === 'data.serial')).toBe(true);
   });
 
   it('origin reads keep the pin; entity-derived reads never carry one', () => {
     for (const select of ['current', 'all']) {
       const ports = resolveCatalogNodePorts({ id: 't', kind: 'cts.read', select, typeId: 'sheet' }, { domain });
-      expect(ports.inputs[0]?.id, select).toBe('type');
+      expect(ports.inputs.find(port => port.id === 'type'), select).toBeTruthy();
     }
     for (const select of ['parent', 'children', 'related']) {
       const ports = resolveCatalogNodePorts({ id: 't', kind: 'cts.read', select, typeId: 'sheet' }, { domain });

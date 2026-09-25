@@ -197,7 +197,7 @@ describe('process v4 node catalog', () => {
         ]
       }
     }, context);
-    expect(speciesCreate.inputs.map(input => input.id)).toEqual(['type', 'specs.width', 'state']);
+    expect(speciesCreate.inputs.map(input => input.id)).toEqual(['in', 'type', 'specs.width', 'state']);
     expect(speciesCreate.inputs.some(input => input.id === 'states.main')).toBe(false);
   });
 
@@ -213,7 +213,7 @@ describe('process v4 node catalog', () => {
     };
     const ports = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
     const ids = ports.inputs.map(input => input.id);
-    expect(ids[0]).toBe('entity');
+    expect(ids[0]).toBe('in');
     expect(ids).toEqual(expect.arrayContaining(['data.width', 'specs.thickness']));
     expect(ids).not.toContain('data.locked');
     expect(ids).not.toContain('identity');
@@ -229,7 +229,7 @@ describe('process v4 node catalog', () => {
       ]
     };
     const migrated = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel', slots: ['identity'] }, context);
-    expect(migrated.inputs.map(input => input.id)).toEqual(['entity', 'identity.name', 'data.width']);
+    expect(migrated.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity.name', 'data.width']);
   });
 
   it('splits the species binding contract: origins carry a typed pin, consumers adapt to their entity wire', () => {
