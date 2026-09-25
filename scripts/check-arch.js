@@ -13,9 +13,11 @@ import { cncWorkflows } from '../packages/domain-cnc/src/workflows.js';
 
 const FEATURES_DIR = './server/features';
 const API_DIR = './server/api';
-const ENTITY_FEATURES = cncEntities.map(entity => entity.feature || entityTypeToFeature(entity.type));
+// instanceService entities resolve through the generic instance feature
+// (server/features/instances) and declare no feature directory of their own.
+const ENTITY_FEATURES = cncEntities.filter(entity => !entity.instanceService).map(entity => entity.feature || entityTypeToFeature(entity.type));
 const featureToEntityTypeMap = new Map(
-  cncEntities.map(entity => [entity.feature || entityTypeToFeature(entity.type), entity.type])
+  cncEntities.filter(entity => !entity.instanceService).map(entity => [entity.feature || entityTypeToFeature(entity.type), entity.type])
 );
 function featureToEntityType(feature) {
   return featureToEntityTypeMap.get(feature) || null;
