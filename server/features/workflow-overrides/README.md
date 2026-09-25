@@ -8,26 +8,17 @@ Organization-scoped lifecycle override storage for entity status machines.
 - Validates submitted definitions with `@perigram/workflows` normalization before
   activation.
 - Enforces organization-scoped admin access for the target entity domain.
-- Resolves the active organization override for the status engine, falling back
-  to the domain workflow when no override exists.
-- The type declaration is itself a machine source: when neither an override
-  nor a process workflow exists and the registered domain carries no
-  workflow for the type, resolution derives a normalized v2 machine from
-  the type's registry declaration (`states.main` + declared transitions)
-  through `@perigram/cts` `declarationWorkflow`. Organization context
-  resolves the declaration through the instances feature's cached
-  per-organization lookup (tenancy: system view first, the org's stored
-  declarations overlay); without an organization the synchronous fallback
-  serves static pack/framework declarations only. A type with no
-  declaration and no domain workflow still resolves to no machine.
-- When an active process supplies a workflow, runtime resolution merges
-  domain-owned system intent transitions into that process workflow. Process
-  statuses remain user-authored, but hidden service intents such as
-  `nestingSolveCompleted` cannot disappear from entities that are produced by
-  commands/tasks.
-- Process workflow lookup is entered only with an explicit `producerOutputId`.
-  Status callers without producer context use the organization override or
-  domain workflow; they never select a process producer by entity type.
+- Resolves the active machine for the status engine. Machines are
+  graph-derived (SPEC §7): the active compiled process is the lifecycle
+  source, an explicit organization override is the escape hatch for types
+  the process does not govern, and the registered domain's hand-authored
+  workflows keep serving the legacy pack types. Resolution order for an
+  organization: the producer output the caller names (`producerOutputId`),
+  then the first producer of the type in the active compiled process (the
+  plain transition channel carries no producer context — without the
+  by-type lookup, org-authored stateful types would resolve no machine at
+  all), then the organization override, then the domain workflow. A type
+  none of these covers resolves to no machine.
 
 ## Data Contract
 
