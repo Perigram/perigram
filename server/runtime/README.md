@@ -43,11 +43,8 @@ should call `getAppRegistry()`.
   framework's `generateAttachment`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.
 - Workflow transition hook handlers: the framework core handlers plus any
-  `hookHandlers` a pack mounts (the cnc pack mounts the nesting-run
-  accept/apply hooks; without registration those transitions succeed while
-  their side effects silently never run).
-- Task executors: `nesting.solve`, which bridges queued task runs to the
-  FastAPI nesting worker. Polling workers claim other task definitions such
+  `hookHandlers` a pack mounts.
+- Polling workers claim task definitions such
   as `vision.extractGeometry` through the worker protocol.
 - Effect policies and hook-returned effects are executed through the core
   effect runtime after the registry resolves the relevant services.

@@ -9,8 +9,11 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
 - `workflows.js` - entity lifecycle machines and transition hooks.
 - `effects.js` - effect policy declarations consumed by the runtimes.
 - `commands.js` - business intent contracts: `saveCassetteTemplate`,
-  `solveNesting`, `generateAttachment`, `generateConfigBotDraft`,
-  `reindexConfigBotKnowledge`.
+  `solveNestingValue` (the nesting solver's V→V boundary — parameter
+  sockets mirror the `nesting.solve` service signature exactly, values in
+  and values out with no entity inputs or outputs),
+  `generateAttachment`, `generateConfigBotDraft`,
+  `reindexConfigBotKnowledge`, and the retired queue-era `solveNesting`.
 - `tasks.js` - async task contracts: DXF parsing, cassette baking, nesting
   solve, attachment generation, and geometry capture extraction.
 - `attachment-kinds.js` - file/blob kinds, buckets, MIME types, preview modes.
@@ -364,7 +367,10 @@ templates remain responsible for placing those management surfaces.
 This package is the CNC plug-in. Its type-system content is
 `src/pack.js`: the cassette (OCCS payload with preview mode `occs`,
 cassette-designer editor), sheet design, and facade design file types,
-the nesting solver service registration, and the OCCS attachment kind —
+the nesting solver service registration (`cncServices`: `nesting.solve`,
+whose declared signature is the honest contract of its bound command
+handler — the parameter names match one-to-one), and the OCCS attachment
+kind —
 browser-safe data mounted by `server/packs/cnc`. Generated surfaces
 serve cassettes through the generic instance transport: the OCCS
 document is the instance payload (previewed and edited through the

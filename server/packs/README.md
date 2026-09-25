@@ -20,10 +20,9 @@ service bindings stay in the mount modules.
   system-catalog instances ride the generic instance machinery.
   Declaration data lives in `packages/tech-drawing/src/index.js`.
 - `cnc/` — the CNC pack: cassette (OCCS file + cassette-designer editor),
-  sheet design, facade design file types, the nesting solver service, the
-  nesting-run transition hooks, and the transitional legacy `queue` entity
-  service (the queue production flow's hook effects resolve it from the
-  registry; deleted with that flow). Declaration data lives in
+  sheet design, facade design file types, and the nesting solver service
+  (`nesting.solve` → the `solveNestingValue` command handler, the V→V
+  boundary in `server/features/nesting/`). Declaration data lives in
   `packages/domain-cnc/src/pack.js`; the pack requires `tech-drawing`
   (pen/layer references resolve through the composed view, never by
   importing it).
