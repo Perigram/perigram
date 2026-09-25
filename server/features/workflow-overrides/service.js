@@ -3,7 +3,7 @@ import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
-import { resolveProcessWorkflow } from '~/server/features/process-definitions/runtime.js';
+import { resolveProcessWorkflow, getActiveCompiledProcess } from '~/server/features/process-definitions/runtime.js';
 import * as repository from './repository.js';
 
 export async function getByEntity(typeId, auth) {
@@ -50,10 +50,20 @@ export async function resolveActiveWorkflow({ typeId, organizationId, producerOu
   }) : null;
   if (processWorkflow) return normalizeWorkflowPayload(processWorkflow);
 
+  // Machines are graph-derived (SPEC §7): the active compiled process is
+  // the lifecycle source. A specific producer output wins when the caller
+  // names one; otherwise the first producer emitting the type serves its
+  // machine — the plain transition channel carries no producer context,
+  // and without this lookup org-authored stateful types would resolve no
+  // machine at all. The explicit org override stays the escape hatch for
+  // types the active process does not govern.
+  const compiled = await getActiveCompiledProcess(organizationId);
+  const byType = Object.values(compiled?.producerOutputs || {})
+    .find(output => output?.typeId === normalizedTypeId && output?.workflow);
+  if (byType) return normalizeWorkflowPayload(byType.workflow);
+
   const override = await repository.findActiveByEntity({ organizationId, typeId: normalizedTypeId });
   if (override?.workflow) return normalizeWorkflowPayload(override.workflow);
-  // Machines are graph-derived (SPEC §7): the compiled process contract is
-  // the only lifecycle source beside an explicit org override.
   return getDefaultWorkflow(normalizedTypeId) || null;
 }
 
