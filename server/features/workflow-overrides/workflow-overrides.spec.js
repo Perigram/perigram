@@ -131,7 +131,7 @@ describe('workflow overrides service', () => {
     expect(workflow.initial).toBe('PROCESS');
   });
 
-  it('keeps process states while making hidden system intents executable', async () => {
+  it('serves the compiled process workflow verbatim', async () => {
     resolveProcessWorkflow.mockResolvedValueOnce({
       initial: 'NEW',
       states: { NEW: {} },
@@ -144,12 +144,9 @@ describe('workflow overrides service', () => {
       producerOutputId: 'generate_artifact:result'
     });
 
+    // The compiled process contract is the machine source (SPEC §7): no
+    // system-transition merging, no declaration fallbacks.
     expect(workflow.initial).toBe('NEW');
-    expect(workflow.transitions).toContainEqual(expect.objectContaining({
-      from: 'NEW',
-      to: 'NEW',
-      intent: 'artifactFileStored',
-      access: { system: true }
-    }));
+    expect(workflow.transitions).toEqual([]);
   });
 });
