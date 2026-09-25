@@ -4028,7 +4028,9 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     }
   }
   if (['effect.createEntity', 'effect.updateEntity'].includes(classification)) {
-    const stateTarget = processDefaultValue(node.inputDefaults?.['states.main']) || node.state?.to || node.stateRef;
+    const stateTarget = processDefaultValue(node.inputDefaults?.state)
+      || processDefaultValue(node.inputDefaults?.['states.main'])
+      || node.state?.to || node.stateRef;
     if (classification === 'effect.updateEntity' && node.kind !== 'cts.mutate' && !node.blocks?.length && !stateTarget) {
       errors.push(`Process node ${nodeId} must accept at least one writable block or status`);
     }

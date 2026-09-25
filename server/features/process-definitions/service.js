@@ -21,7 +21,8 @@ import {
   previewProcessDataflow,
   resumeProcessRun,
   serializeProcessResult,
-  validateRoundTrip
+  validateRoundTrip,
+  authoredSocketDefault
 } from '~/packages/processes/src/index.js';
 import {
   cncDomain,
@@ -1451,7 +1452,10 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const executionAuth = createActionExecutionAuth(auth, record);
     blockDraft = await normalizeProcessMutation(typeId, blockDraft, relationContracts, executionAuth);
-    const targetState = inputs['states.main'] || record.state?.to;
+    const targetState = inputs.state ?? inputs['states.main']
+      ?? (Object.hasOwn(record.inputDefaults || {}, 'state') ? String(authoredSocketDefault(record.inputDefaults.state)) : undefined)
+      ?? (Object.hasOwn(record.inputDefaults || {}, 'states.main') ? processDefaultValue(record.inputDefaults['states.main']) : undefined)
+      ?? record.state?.to;
     const draft = {
       ...blockDraft,
       ...constructionDraft,
@@ -1511,7 +1515,11 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       .fieldSchemas?.[typeId];
     const schemas = projectedFieldSchemas || getEntityFieldSchemas(record.typeId);
     const persistedChanges = processBlockInputChanges(record, inputs, schemas);
-    const statusValue = inputs['states.main'];
+    // The status socket is `state` on the native species, `states.main` on
+    // the legacy effect records — both stay live until the v4 vocabulary
+    // data is gone.
+    const statusValue = inputs.state ?? inputs['states.main']
+      ?? (Object.hasOwn(record.inputDefaults || {}, 'state') ? String(authoredSocketDefault(record.inputDefaults.state)) : null);
     const statusChange = statusValue == null ? null : {
       path: 'states.main',
       operation: 'set',
