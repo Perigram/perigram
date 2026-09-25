@@ -214,12 +214,17 @@ test.describe('process generated screens', () => {
     await app.page.goto(`/screens/auto_${PARENT_TYPE}`);
     // Gate on the settled data state (loaded rows or the empty message):
     // the create button remounts when the source lands, and a click
-    // during that remount is swallowed.
+    // during that remount is swallowed — so the click retries until the
+    // construction dialog actually opens.
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
-    await app.page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
     const dialog = app.page.locator('.p-dialog');
-    await expect(dialog).toBeVisible({ timeout: 20000 });
+    for (let attempt = 0; attempt < 4 && !(await dialog.isVisible()); attempt += 1) {
+      await newButton.click();
+      await expect(dialog).toBeVisible({ timeout: 5000 }).catch(() => {});
+    }
+    await expect(dialog).toBeVisible({ timeout: 10000 });
     const name = app.uniqueName('Created Browser Folder');
     await dialog.locator('input:visible').first().fill(name);
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
