@@ -61,7 +61,7 @@ test.describe('process generated screens', () => {
       expect(requested.every(url => url.includes(`/api/instances/${typeId}`))).toBeTruthy();
 
       const mainRegion = app.page.locator('main');
-      await expect(mainRegion.getByRole('button', { name: `Create ${TYPE_NAMES[typeId]} CREATED` })).toBeVisible({ timeout: 20000 });
+      await expect(mainRegion.getByRole('button', { name: 'New', exact: true })).toBeVisible({ timeout: 20000 });
 
       // No per-instance delete action is compiled for these constructs,
       // so no Delete entry renders anywhere in the surface.
@@ -107,8 +107,10 @@ test.describe('process generated screens', () => {
     // Region action scoping: the child region owns the child create
     // action, and actions from unrelated screens never leak in.
     const mainRegion = app.page.locator('main');
-    await expect(mainRegion.getByRole('button', { name: `Create ${TYPE_NAMES[CHILD_TYPE]} CREATED` })).toHaveCount(1);
-    await expect(mainRegion.getByRole('button', { name: `Create ${TYPE_NAMES.cassette} CREATED` })).toHaveCount(0);
+    // Both creates collapse to the localized "New"; the child region
+    // owns the only one on this surface (no unrelated type's create
+    // leaks in).
+    await expect(mainRegion.getByRole('button', { name: 'New', exact: true })).toHaveCount(1);
 
     await app.expectCleanRuntime();
   });
@@ -215,7 +217,7 @@ test.describe('process generated screens', () => {
     // during that remount is swallowed.
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
-    await app.page.locator('main').getByRole('button', { name: `Create ${TYPE_NAMES[PARENT_TYPE]} CREATED` }).click();
+    await app.page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
     const dialog = app.page.locator('.p-dialog');
     await expect(dialog).toBeVisible({ timeout: 20000 });
     const name = app.uniqueName('Created Browser Folder');
