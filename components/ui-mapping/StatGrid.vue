@@ -27,13 +27,15 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, analyzeTypeShape, titleFor, iconFor, formatQuantity, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
+import { LAYOUT, analyzeTypeShape, titleFor, iconFor, formatQuantity, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }
+  bundle: { type: Object, default: null },
+  // Per-type state policy map from the compiled process contract.
+  statePolicy: { type: Object, default: null }
 });
 
 const shape = computed(() => analyzeTypeShape(props.type));
@@ -49,9 +51,7 @@ const metricOf = (instance) => {
   return value && typeof value === 'object' ? formatQuantity(value) : (value ?? '—');
 };
 const statusOf = instance => {
-  const value = instance.states?.main;
-  if (!value || !props.type?.states?.main) return null;
-  const render = props.type.states?.main?.render?.[value];
-  return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
+  const display = stateDisplayFor(props.statePolicy, instance?.state);
+  return display ? { label: display.label, severity: display.severity } : null;
 };
 </script>

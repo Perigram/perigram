@@ -1,13 +1,21 @@
 <script setup>
 /**
  * Unified Status History Component - v24 Standardized
- * Fetches and displays the audit log (status_events) for an entity.
+ * Fetches and displays the audit log (status_events) for an entity as a
+ * vertical stepper trail: each event is one step, ordered oldest →
+ * newest, with the newest step's evidence panel open by default —
+ * clicking a step header expands that event's note, attachments, and
+ * snapshots (one panel open at a time, the stepper's own accordion).
  */
+import Stepper from 'primevue/stepper';
+import StepItem from 'primevue/stepitem';
+import Step from 'primevue/step';
+import StepPanel from 'primevue/steppanel';
 import ProgressSpinner from 'primevue/progressspinner';
 import Button from 'primevue/button';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStateHistory } from '~/composables/useStateHistory';
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState';
@@ -145,6 +153,19 @@ const openActorChat = (event) => {
 };
 
 const eventKey = (event, index) => event._id || `${eventState(event)}-${event.timestamp}-${index}`;
+
+// The stepper reads oldest → newest (a trail, not a feed); the API serves
+// newest-first. The newest step opens with its evidence panel expanded.
+const orderedEvents = computed(() => [...displayEvents.value].reverse());
+const activeStep = computed(() => (orderedEvents.value.length
+  ? eventKey(orderedEvents.value[orderedEvents.value.length - 1], 0)
+  : null));
+const stepKey = (event, index) => eventKey(event, orderedEvents.value.length - 1 - index);
+// Step index bubbles would count the audit trail; the state badge is the
+// marker, so the number stays hidden.
+const stepPt = { number: { class: 'hidden' } };
+const activeStepRef = ref(null);
+watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true });
 </script>
 
 <template>
@@ -153,19 +174,14 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
       <ProgressSpinner />
     </div>
 
-    <ol v-else-if="displayEvents.length" class="m-0 flex min-w-0 list-none flex-col p-0" :class="compact ? 'gap-2' : 'gap-3'">
-      <li
-        v-for="(event, index) in displayEvents"
-        :key="eventKey(event, index)"
-        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2"
-      >
-        <div class="flex flex-col items-center pt-1">
-          <span class="h-2.5 w-2.5 rounded-full bg-primary"></span>
-          <span v-if="index < displayEvents.length - 1" class="mt-1 min-h-6 w-px flex-1 bg-content-border"></span>
-        </div>
-
-        <div class="min-w-0 pb-2">
-          <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+    <Stepper
+      v-else-if="orderedEvents.length"
+      v-model:value="activeStepRef"
+      class="min-w-72"
+    >
+      <StepItem v-for="(event, index) in orderedEvents" :key="stepKey(event, index)" :value="stepKey(event, index)">
+        <Step :pt="stepPt">
+          <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1 text-left">
             <StatusBadge :state="eventState(event)" :type-id="typeId" :display="eventDisplay(event)" />
             <span v-if="actorUserId(event)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
               <InstanceInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
@@ -175,7 +191,7 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
                 rounded
                 size="small"
                 :aria-label="$t('support.openChat')"
-                @click="openActorChat(event)"
+                @click.stop="openActorChat(event)"
               />
             </span>
             <small v-else-if="actorName(event)" class="min-w-0 truncate text-muted" :title="actorTitle(event)">
@@ -189,37 +205,40 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
               {{ formatTime(event.timestamp) }}
             </time>
           </div>
+        </Step>
+        <StepPanel :value="stepKey(event, index)">
+          <div v-if="eventNote(event) || eventAttachments(event).length || eventSnapshots(event).length" class="min-w-0 pb-3 pl-1">
+            <p v-if="eventNote(event)" class="m-0 min-w-0 break-words italic text-body">
+              {{ eventNote(event) }}
+            </p>
 
-          <p v-if="eventNote(event)" class="m-0 mt-2 min-w-0 break-words italic text-body">
-            {{ eventNote(event) }}
-          </p>
+            <div v-if="eventAttachments(event).length" class="mt-2 flex min-w-0 flex-wrap gap-2">
+              <a
+                v-for="attachment in eventAttachments(event)"
+                :key="`${stepKey(event, index)}-${attachment.slot}-${attachment.label}`"
+                :href="attachment.url"
+                target="_blank"
+                rel="noopener"
+                class="inline-flex min-w-0 items-center gap-1 text-[var(--ck-primary-ink)] no-underline text-body"
+              >
+                <i class="pi pi-paperclip shrink-0"></i>
+                <span class="truncate">{{ attachment.label }}</span>
+              </a>
+            </div>
 
-          <div v-if="eventAttachments(event).length" class="mt-2 flex min-w-0 flex-wrap gap-2">
-            <a
-              v-for="attachment in eventAttachments(event)"
-              :key="`${eventKey(event, index)}-${attachment.slot}-${attachment.label}`"
-              :href="attachment.url"
-              target="_blank"
-              rel="noopener"
-              class="inline-flex min-w-0 items-center gap-1 text-[var(--ck-primary-ink)] no-underline text-body"
-            >
-              <i class="pi pi-paperclip shrink-0"></i>
-              <span class="truncate">{{ attachment.label }}</span>
-            </a>
+            <div v-if="eventSnapshots(event).length" class="mt-2 flex min-w-0 flex-wrap gap-2">
+              <small
+                v-for="snapshot in eventSnapshots(event)"
+                :key="`${stepKey(event, index)}-${snapshot.key}`"
+                class="inline-flex min-w-0 items-center gap-1 text-muted"
+              >
+                <i class="pi pi-camera shrink-0"></i>
+                <span class="truncate">{{ snapshot.label }}: {{ snapshot.count }}</span>
+              </small>
+            </div>
           </div>
-
-          <div v-if="eventSnapshots(event).length" class="mt-2 flex min-w-0 flex-wrap gap-2">
-            <small
-              v-for="snapshot in eventSnapshots(event)"
-              :key="`${eventKey(event, index)}-${snapshot.key}`"
-              class="inline-flex min-w-0 items-center gap-1 text-muted"
-            >
-              <i class="pi pi-camera shrink-0"></i>
-              <span class="truncate">{{ snapshot.label }}: {{ snapshot.count }}</span>
-            </small>
-          </div>
-        </div>
-      </li>
-    </ol>
+        </StepPanel>
+      </StepItem>
+    </Stepper>
   </div>
 </template>

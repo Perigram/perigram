@@ -12,7 +12,7 @@
       </div>
       <GeneratedMappingScreen
         :screen="screen"
-        :contract="{ actions: processActions }"
+        :contract="{ actions: processActions, statePolicy }"
         :bundle="processBundle"
         :instances="instanceGroups"
         :source-states="poolStates"
@@ -49,6 +49,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
 import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
+import { statePolicyByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 definePageMeta({
   layout: 'app',
@@ -100,6 +101,11 @@ const screen = computed(() => {
 });
 const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const processActions = computed(() => authStore.processPayload?.actions || {});
+// The flat state vocabulary's display policy (SPEC §7): derived from the
+// compiled producer workflows the hydration payload already carries —
+// types declare nothing about states, so this is the one client-side
+// source for state labels/severities/icons on generated surfaces.
+const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
 
 const instances = useInstancesStore();
 // The generator's data layer stands in the instance pool projection of the
@@ -168,9 +174,10 @@ function applyTransitionSnapshot(updated = {}) {
 
 // The declaration machine's live transitions for the opened detail
 // instance: fetched through the state service (the same endpoint the
-// strip's steps dispatch through). The served actions are already
-// machine-legal (the compiled contract owns the vocabulary), so they map
-// straight into the strip's action shape.
+// header's transition buttons dispatch through). The served actions are
+// already machine-legal (the compiled contract owns the vocabulary), so
+// they map straight into the generator's action shape — `state.to`, the
+// one transition-target channel resolveActionButton speaks.
 const runtimeTransitions = ref({});
 const stateController = useStateController();
 
@@ -190,10 +197,10 @@ async function loadRuntimeTransitions(instance = {}) {
           __runtime: true,
           actionKind: 'updateInstance',
           trigger: { mode: 'manual' },
-          status: { to: action.to },
+          state: { to: action.to },
           intent: action.intent || null,
           region: action.region || null,
-          label: action.display?.label || null
+          label: action.label || null
         }))
     };
   } catch {
@@ -223,8 +230,8 @@ async function runRuntimeTransition(payload = {}) {
 }
 
 function labelForState(typeId = '', value = '') {
-  const typeRecord = (authStore.processPayload?.bundle?.types || []).find(type => type.id === typeId);
-  return typeRecord?.states?.main?.render?.[value]?.label || value;
+  const display = stateDisplayFor(statePolicy.value[typeId] || null, value);
+  return display?.label || value;
 }
 
 async function runGeneratedAction(action, data = {}, context = {}) {  const scope = screen.value?.scope || {};

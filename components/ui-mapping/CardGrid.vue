@@ -73,9 +73,9 @@ import Message from 'primevue/message';
 import Menu from 'primevue/menu';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import {
-  LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, titleFor, iconFor,
+  LAYOUT, SCALAR_BASES, cardFactCount, titleFor, iconFor,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
-  resolveActionButton, actionLabelKey
+  resolveActionButton, actionLabelKey, stateDisplayFor
 } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -96,7 +96,10 @@ const props = defineProps({
   // Collection identities render as links when an open handler exists.
   openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }
+  bundle: { type: Object, default: null },
+  // Per-type state policy map from the compiled process contract: the
+  // card status badge renders exactly when the vocabulary exists.
+  statePolicy: { type: Object, default: null }
 });
 
 const emit = defineEmits(['open', 'run']);
@@ -105,12 +108,10 @@ const { te, t } = useI18n();
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 
-const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const statusOf = instance => {
-  const value = instance.state ?? instance.states?.main;
-  if (!value) return null;
-  return { label: startCase(value), severity: 'secondary' };
+  const display = stateDisplayFor(props.statePolicy, instance?.state);
+  return display ? { label: display.label, severity: display.severity } : null;
 };
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
@@ -132,7 +133,7 @@ function openCardMenu(event, instance) {
   cardMenu.value?.toggle(event);
 }
 const cardMenuItems = computed(() => props.actions.map(action => {
-  const resolved = resolveActionButton(action, { render: props.type?.render });
+  const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
   return {
     label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),
     icon: resolved.icon || undefined,

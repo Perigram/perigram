@@ -45,7 +45,14 @@ sheets in both directions, folders pin documents (group-to-file); and the
 bulk of the data is a stream of fourteen small stateful watch jobs, so the
 home screen is a heavy table stream plus a document grid. No timeline type
 exists. The UI generation layer renders any hydration without domain
-knowledge.
+knowledge. Instances carry the wire's one flat `state` string (SPEC §7 —
+type records carry no state vocabulary); the compiled contract carries the
+per-type state display policy (`statePolicy`) exactly as
+`statePolicyByType` derives it from compiled producer workflows, so the
+fixtures exercise the same state-surface channel live hydration serves.
+The random world (`ui-mapping-random.js`) follows the same split: state
+vocabularies are generated beside the types and served through the
+contract.
 
 ## Usage
 

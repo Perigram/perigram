@@ -170,9 +170,10 @@ export function createUiMapping(overrides = {}) {
     });
   }
 
-  // resolveActionButton(action, { type }) -> { component, tone, icon, confirm, hidden }
-  // State-toned buttons read the target state's resolved display policy from
-  // the bundle type record in the transition's own axis/region.
+  // resolveActionButton(action, { render, statePolicy }) -> { component, tone, icon, confirm, hidden }
+  // State-toned buttons read the target state's resolved display policy
+  // from the per-type state policy map (the compiled process contract's
+  // flat vocabulary — SPEC §7).
   function resolveActionButton(action = {}, options = {}) {
     const stateTarget = action.state?.to ? true : null;
     const entry = pickEntry(actionEntries, {
@@ -193,11 +194,12 @@ export function createUiMapping(overrides = {}) {
       hidden: false
     };
     if (outcome.tone === 'state' && stateTarget) {
-      const axis = action.state.axis || action.state.region || 'main';
-      const stateRender = options.type?.states?.[axis]?.render?.[action.state.to];
-      outcome.severity = SEVERITY_MAP[stateRender?.severity] || 'secondary';
-      outcome.icon = stateRender?.icon || outcome.icon;
-      outcome.label = stateRender?.label || null;
+      const display = stateDisplayFor(options.statePolicy || null, action.state.to);
+      if (display) {
+        outcome.severity = display.severity;
+        outcome.icon = display.icon || outcome.icon;
+        outcome.label = display.label;
+      }
     }
     return Object.freeze(outcome);
   }
@@ -215,7 +217,10 @@ export function createUiMapping(overrides = {}) {
     const longTexts = fields.filter(isLongText);
     const percents = scalars.filter(descriptor => descriptor.base === 'quantity' && descriptor.unit === 'percent');
     const quantities = scalars.filter(descriptor => descriptor.base === 'quantity' || descriptor.base === 'number');
-    const chronologySignal = typeRecord.states?.main ? 0 : 1;
+    // The retired declaration-era states signal folded into the constant:
+    // type records carry no state vocabulary (SPEC §7), so shape analysis
+    // no longer tightens the prose bound by statefulness.
+    const chronologySignal = 1;
     return Object.freeze({
       fieldCount: fields.length,
       scalarCount: scalars.length,
@@ -566,6 +571,75 @@ function startCaseKey(key = '') {
   return String(key).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 }
 
+// --- State display policy (flat vocabulary, SPEC §7) ----------------------------
+// Types declare nothing about states; the compiled producer workflows the
+// hydration payload already carries own the vocabulary with the authored
+// per-value policy (label/severity/icon/terminal). These three pure
+// helpers are the one client-side derivation of that channel.
+
+// stateSegmentsOf(value): the display path of one flat state value. Values
+// are single segments by contract, but persisted data may carry dotted
+// paths from the declaration-era tree migration (and the machine runtime
+// keys nested states by dotted paths) — the split renders those as a
+// segmented path instead of one opaque token.
+export function stateSegmentsOf(value = '') {
+  return String(value ?? '').split('.').filter(Boolean);
+}
+
+// statePolicyByType(producerOutputs): { [typeId]: { [value]: { label,
+// severity, icon, terminal } } } from the compiled workflows. The first
+// authored entry for a value wins when several producers emit one type.
+export function statePolicyByType(producerOutputs = {}) {
+  const byType = {};
+  for (const output of Object.values(producerOutputs || {})) {
+    const typeId = output?.typeId;
+    if (!typeId || !output?.workflow) continue;
+    const policies = byType[typeId] || (byType[typeId] = {});
+    for (const region of Object.values(output.workflow.regions || {})) {
+      for (const [value, definition = {}] of Object.entries(region.states || {})) {
+        if (!value || policies[value]) continue;
+        policies[value] = Object.freeze({
+          label: definition.label || null,
+          severity: definition.severity || null,
+          icon: definition.icon || null,
+          terminal: definition.isTerminal === true
+        });
+      }
+    }
+  }
+  return byType;
+}
+
+// stateDisplayFor(policyByValue, value): the resolved display of one state
+// value against a type's policy map — the single resolver every state
+// surface (tags, table cells, transition buttons) reads. Lookup is exact
+// first, then the leaf segment (authored policy rides the wired state
+// node's own value). SPEC §7 defaults apply: the label derives from the
+// leaf segment, terminal severity defaults to secondary, other severity
+// to info. A value outside the served vocabulary still displays (stale
+// data degrades to a neutral raw chip, known: false); a type without a
+// vocabulary (null/empty map) renders no state surface at all.
+export function stateDisplayFor(policyByValue = null, value = '') {
+  const segments = stateSegmentsOf(value);
+  if (!segments.length || !policyByValue || !Object.keys(policyByValue).length) return null;
+  const leaf = segments[segments.length - 1];
+  const policy = policyByValue[String(value)] || policyByValue[leaf] || null;
+  if (!policy) {
+    return { segments, label: startCaseKey(leaf), severity: 'secondary', icon: null, terminal: false, known: false };
+  }
+  // Entries arrive normalized (statePolicyByType: `terminal`) or straight
+  // from a compiled machine's state definition (`isTerminal`).
+  const terminal = policy.terminal === true || policy.isTerminal === true;
+  return {
+    segments,
+    label: policy.label || startCaseKey(leaf),
+    severity: SEVERITY_MAP[policy.severity] || (terminal ? 'secondary' : 'info'),
+    icon: policy.icon || null,
+    terminal,
+    known: true
+  };
+}
+
 // The per-instance action kinds surface may offer without a
 // form context: status transitions (updateInstance with a declared
 // target), deletion, and instance-scoped commands. Plain updateInstance
@@ -581,7 +655,7 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
   return Object.values(actions).filter(action => action?.typeId === typeId
     && INSTANCE_ACTION_KINDS.includes(action?.actionKind)
     && action?.trigger?.mode === 'manual'
-    && (action?.actionKind !== 'updateInstance' || action?.state?.to || action?.status?.to));
+    && (action?.actionKind !== 'updateInstance' || action?.state?.to));
 }
 
 // planActionLaunch(action): how a screen launches one manual action —

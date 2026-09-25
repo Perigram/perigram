@@ -23,11 +23,18 @@ Parent: [shared/README.md](../README.md).
   `control` pins the edit-variant control.
 - **Type records** — entries of the CTS client bundle
   (`compileClientBundle()`), carrying `class`, `payload`, `name`, `glyph`,
-  `identifier`, `depiction`, and the derived display policy: `sections`
-  (total field assignment by base) and per-state display resolved on the
-  state axes (`states.<axis>.render`). There is no `render` facet.
+  `identifier`, `depiction`, and the derived display policy `sections`
+  (total field assignment by base). Type records carry no state
+  vocabulary (SPEC §7) and no `render` facet.
+- **State policy maps** — `{ [typeId]: { [value]: { label, severity,
+  icon, terminal } } }`, derived client-side by `statePolicyByType` from
+  the compiled producer workflows the hydration payload carries
+  (`producerOutputs[*].workflow.regions[*].states` — the authored
+  label/severity/icon/terminal per state value). The contract hands the
+  map to `composeScreen` as `statePolicy`; every region node carries its
+  type's map (`null` when the process authored no states for the type).
 - **Action records** — compiled process actions (`actionKind`, `trigger`,
-  `status.to`, relation operation), per
+  `state.to`, relation operation), per
   [packages/processes/README.md](../../packages/processes/README.md).
 - **Render context** — `variant` and parent chrome role, supplied by the
   renderer, never authored.
@@ -166,6 +173,34 @@ remains functional) and one `in` predicate per facet value set
 the one shared
 matcher.
 
+### State display (flat vocabulary, SPEC §7)
+
+Instances carry one flat `state` string (the wire DTO projects it
+verbatim through `dtoToScreenInstance`; nothing synthesizes one). Three
+pure helpers own every state-presentation decision:
+
+- `statePolicyByType(producerOutputs)` — `{ [typeId]: { [value]:
+  { label, severity, icon, terminal } } }` from the compiled producer
+  workflows; the first authored entry wins when several producers emit
+  one type. This is the only client-side derivation of the state
+  vocabulary — types declare nothing about states.
+- `stateSegmentsOf(value)` — the display path of one value: single
+  segments stay whole; dotted values (declaration-era tree paths that
+  persist flat, nested machine state keys) split on `.`, because a
+  compound state renders as a path, not one opaque token.
+- `stateDisplayFor(policyByValue, value)` — the one resolver every state
+  surface (tags, table cells, card badges, transition buttons) reads.
+  Lookup is exact first, then the leaf segment (authored policy rides
+  the wired state node's own value). SPEC §7 defaults apply: the label
+  derives from the leaf segment, terminal severity defaults to
+  `secondary`, other severity to `info`. A value outside the served
+  vocabulary still displays (stale data degrades to a neutral raw chip,
+  `known: false`); a type without a vocabulary resolves `null` and its
+  bulk surfaces render no state chrome at all — the detail header is the
+  one surface that shows the data's state regardless (the neutral
+  stop-line), because the header reports the record, not the
+  vocabulary.
+
 ### Data states
 
 `composeScreen` accepts `options.sourceStates`, a map of source id to
@@ -219,12 +254,14 @@ bundle only direct fields derive. Pure over the type record and bundle.
 
 ### Actions
 
-`resolveActionButton(action, { type })` → `{ component, tone, icon,
+`resolveActionButton(action, { statePolicy })` → `{ component, tone, icon,
 confirm, hidden }` from a fixed table: `createInstance` → primary,
 `deleteInstance` → danger + confirmation, relation link/unlink → text/icon
 presentations, event-triggered actions → hidden. Status-transition actions
-carry the target state's resolved display severity as their tone (read
-from the bundle type record's `states.main.render`).
+(`state.to`) carry the target state's resolved display as their
+presentation — severity as tone, plus the authored icon and label (the
+label derives from the target value when the policy authors none, so a
+transition button is never anonymous).
 
 `planActionLaunch(action)` is the launch contract the screen engine
 consumes: `'link'` for relation link (its picker dialog), `'dialog'` when
@@ -341,7 +378,8 @@ regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
 action records, the per-region `dataState` (see Data states), the
 `listControls` contract for list regions (see Instance shape and list
-controls), and nested child regions. `buildInstancePool(instances)`
+controls), the per-type `statePolicy` map off the contract (see State
+display), and nested child regions. `buildInstancePool(instances)`
 normalizes instance groups into the `{ type -> { id -> instance } }` pool
 the data layer stands in with. The region tree is frozen, pure, and what
 [components/ui-mapping](../../components/ui-mapping/README.md)

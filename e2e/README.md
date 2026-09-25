@@ -73,11 +73,16 @@ noise.
   operation, then writes a machine-readable acceptance artifact. Retired
   raw-id lookup, producer joins, fixed-arity list constructors, packet
   controls, and generic hierarchy traversal must not be present.
-- `hierarchical-state-flow.spec.js`: authors a recursive state declaration,
-  applies it, creates an instance at the declared initial leaf, executes a
-  nested transition through the generated action, and verifies the active
-  leaf path, action path, status history, and reload persistence. The
-  attached JSON and screenshots are the durable acceptance artifact.
+- `generated-state-surface.spec.js`: authors an org type with
+  process-authored state records (authored display policy + terminal
+  flag), a construct seeding the initial state, and a transition record
+  wiring the machine edge; activates the process and verifies the flat
+  state surface end to end — the detail header's segmented state tag
+  with the authored label, the policy-labeled transition button, the
+  transition round-trip through the state API with the tag re-anchoring
+  on the updated entity, and the vertical-stepper history popover growing
+  the audit step. The attached screenshots and history JSON are the
+  durable acceptance artifact.
 - `project-workspace.spec.js`: uses the active compiled Project detail screen
   and verifies a cassette reached through its linked Library region opens the
   embedded cassette designer in the same pane; verifies pane tabs, icon-only

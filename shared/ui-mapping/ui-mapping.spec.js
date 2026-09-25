@@ -39,7 +39,10 @@ import {
   localizedLabel,
   resolveCreateDialogInputs,
   planActionLaunch,
-  childrenOfParent
+  childrenOfParent,
+  statePolicyByType,
+  stateDisplayFor,
+  stateSegmentsOf
 } from './index.js';
 
 describe('field control resolution', () => {
@@ -116,13 +119,13 @@ describe('field control resolution', () => {
 
   it('resolves list layouts from type shape, size, and overrides', () => {
     const prose = { class: 'file', fields: { body: { base: 'string', max: 400 } } };
-    const numeric = { class: 'item', states: { main: { values: ['a'] } }, fields: {
+    const numeric = { class: 'item', fields: {
       load: { base: 'quantity', unit: 'percent' },
       speed: { base: 'quantity', unit: 'count' },
       label: { base: 'string' }
     } };
     const media = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
-    const plain = { class: 'item', states: { main: { values: ['a'] } }, fields: {
+    const plain = { class: 'item', fields: {
       name: { base: 'string' }, size: { base: 'number' }, mass: { base: 'quantity', unit: 'count' }, note: { base: 'string' }
     } };
     expect(resolveListLayout(prose)).toBe('timeline');
@@ -133,7 +136,7 @@ describe('field control resolution', () => {
     const mapping = createUiMapping({
       listLayouts: [{ match: { type: 'probe' }, layout: 'timeline' }]
     });
-    expect(mapping.resolveListLayout({ id: 'probe', class: 'item', fields: plain.fields, states: plain.states })).toBe('timeline');
+    expect(mapping.resolveListLayout({ id: 'probe', class: 'item', fields: plain.fields })).toBe('timeline');
   });
 
   it('resolves prose, meters, sliders, and carousels from shape', () => {
@@ -261,12 +264,82 @@ describe('action button resolution', () => {
   });
 
   it('tones status transitions from the target state display policy', () => {
-    const type = { states: { main: { render: { FAILED: { label: 'Failed', severity: 'danger' }, DONE: { severity: 'success' } } } } };
-    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'FAILED' } }, { type }))
-      .toMatchObject({ tone: 'state', severity: 'danger' });
-    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'DONE' } }, { type }))
+    const statePolicy = { FAILED: { label: 'Failed', severity: 'danger' }, DONE: { severity: 'success', terminal: true } };
+    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'FAILED' } }, { statePolicy }))
+      .toMatchObject({ tone: 'state', severity: 'danger', label: 'Failed' });
+    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'DONE' } }, { statePolicy }))
       .toMatchObject({ severity: 'success' });
-    expect(resolveActionButton({ actionKind: 'updateInstance' }, { type }).tone).toBe('secondary');
+    expect(resolveActionButton({ actionKind: 'updateInstance' }, { statePolicy }).tone).toBe('secondary');
+  });
+
+  it('derives a transition button label from the target value when the policy has none', () => {
+    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'in_review' } }, { statePolicy: { in_review: {} } }))
+      .toMatchObject({ tone: 'state', label: 'In Review', severity: 'info' });
+  });
+});
+
+describe('state display policy (flat vocabulary)', () => {
+  it('derives per-type policy maps from compiled producer workflows', () => {
+    const producerOutputs = {
+      job_a: {
+        typeId: 'watch_job',
+        workflow: {
+          primaryRegion: 'main',
+          regions: {
+            main: {
+              initial: 'queued',
+              states: {
+                queued: {},
+                running: { label: 'Running', severity: 'info', icon: 'pi pi-spinner' },
+                done: { isTerminal: true, label: 'Done', severity: 'success' }
+              },
+              transitions: []
+            }
+          }
+        }
+      },
+      job_b: { typeId: 'watch_job' },
+      empty: { workflow: { regions: { main: { states: {} } } } }
+    };
+
+    expect(statePolicyByType(producerOutputs)).toEqual({
+      watch_job: {
+        queued: { label: null, severity: null, icon: null, terminal: false },
+        running: { label: 'Running', severity: 'info', icon: 'pi pi-spinner', terminal: false },
+        done: { label: 'Done', severity: 'success', icon: null, terminal: true }
+      }
+    });
+  });
+
+  it('keeps the first authored entry when several producers emit one type', () => {
+    const policy = statePolicyByType({
+      first: { typeId: 'widget', workflow: { regions: { main: { states: { ready: { label: 'Ready' } } } } } },
+      second: { typeId: 'widget', workflow: { regions: { main: { states: { ready: { label: 'Overridden' }, idle: {} } } } } }
+    });
+    expect(policy.widget.ready.label).toBe('Ready');
+    expect(policy.widget.idle).toBeTruthy();
+  });
+
+  it('applies SPEC defaults and resolves labels from the leaf segment', () => {
+    expect(stateDisplayFor({ queued: {} }, 'queued')).toMatchObject({ label: 'Queued', severity: 'info', terminal: false });
+    expect(stateDisplayFor({ archived: { terminal: true } }, 'archived')).toMatchObject({ severity: 'secondary' });
+    expect(stateDisplayFor({ cutting: { label: 'Cutting' } }, 'PRODUCTION.cutting'))
+      .toMatchObject({ label: 'Cutting', segments: ['PRODUCTION', 'cutting'] });
+  });
+
+  it('renders unknown values as the neutral stop-line and no vocabulary as nothing', () => {
+    // A value outside the served vocabulary still displays (stale data
+    // degrades to a raw chip), but a type without a vocabulary renders no
+    // state surface at all.
+    expect(stateDisplayFor({ queued: {} }, 'mystery')).toMatchObject({ known: false, label: 'Mystery', severity: 'secondary' });
+    expect(stateDisplayFor(null, 'queued')).toBeNull();
+    expect(stateDisplayFor({}, 'queued')).toBeNull();
+  });
+
+  it('splits dotted values into path segments for the segmented tag', () => {
+    expect(stateSegmentsOf('PRODUCTION.queued')).toEqual(['PRODUCTION', 'queued']);
+    expect(stateSegmentsOf('done')).toEqual(['done']);
+    expect(stateSegmentsOf('')).toEqual([]);
   });
 });
 

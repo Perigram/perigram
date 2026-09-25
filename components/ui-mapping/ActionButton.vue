@@ -24,13 +24,16 @@ const props = defineProps({
   // Context-supplied caption: a host surface that already names the action's
   // target may shorten the button ("New" beside a region header that carries
   // the class name). Locale overrides for the action key still win.
-  label: { type: String, default: null }
+  label: { type: String, default: null },
+  // The region's per-type state policy map: state-toned transition buttons
+  // resolve their label/severity/icon from the compiled flat vocabulary.
+  statePolicy: { type: Object, default: null }
 });
 
 defineEmits(['run']);
 
 const { te, t } = useI18n();
-const resolved = computed(() => resolveActionButton(props.action, { render: props.render }));
+const resolved = computed(() => resolveActionButton(props.action, { render: props.render, statePolicy: props.statePolicy }));
 const label = computed(() => localizedLabel(
   { te, t },
   actionLabelKey(props.action.id),

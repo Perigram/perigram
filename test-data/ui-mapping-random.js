@@ -167,6 +167,12 @@ export function generateUiMappingWorld(seed = 7) {
   }
   if (!kinds.includes('item')) kinds[typeCount - 1] = 'item';
 
+  // Flat state vocabularies (SPEC §7): authored in the process, not the
+  // type — the world keeps them beside the types and serves their display
+  // policy through the contract.
+  const stateVocabularies = {};
+  const terminalStates = {};
+
   const groupTypeIds = ids.filter((_, index) => kinds[index] === 'group');
   const types = ids.map((id, index) => {
     const kind = kinds[index];
@@ -185,8 +191,7 @@ export function generateUiMappingWorld(seed = 7) {
       name: rnd.word().replace(/^./, character => character.toUpperCase()),
       glyph: `pi pi-${rnd.pick(['circle', 'bolt', 'bookmark', 'box', 'tag', 'star', 'cog', 'send'])}`,
       fields,
-      edges: {},
-      transitions: []
+      edges: {}
     };
     if (kind === 'file') {
       const preview = rnd.pick(PREVIEWS);
@@ -195,8 +200,8 @@ export function generateUiMappingWorld(seed = 7) {
     if (kind === 'item' || kind === 'process') {
       const stateCount = rnd.rand(2, 5);
       const values = Array.from({ length: stateCount }, (_, stateIndex) => `${pick2(rnd)}-${stateIndex + 1}`);
-      type.states = { main: { initial: values[0], values, terminal: rnd.chance(0.5) ? [values[values.length - 1]] : [] } };
-      type.transitions = values.slice(1).map((value, stateIndex) => ({ from: values[stateIndex], to: value }));
+      stateVocabularies[type.id] = values;
+      terminalStates[type.id] = rnd.chance(0.5) ? [values[values.length - 1]] : [];
     }
     const stringField = Object.entries(fields).find(([, descriptor]) => descriptor.base === 'string');
     // The identifier flag (the record's name source) lands on a short
@@ -308,7 +313,7 @@ export function generateUiMappingWorld(seed = 7) {
         if (edge.cardinality === 'single') return [key, rnd.chance(0.6) ? rnd.pick(options) : null];
         return [key, Array.from({ length: rnd.rand(0, 10) }, () => rnd.pick(options))];
       }));
-      instance.states = type.states?.main ? { main: rnd.pick(type.states.main.values) } : {};
+      instance.state = stateVocabularies[type.id] ? rnd.pick(stateVocabularies[type.id]) : null;
       instance.payload = type.payload
         ? { fileId: `gridfs-${instance.id}`, mime: type.payload.mime[0], size: rnd.rand(1, 8000) * 1000 }
         : null;
@@ -346,17 +351,18 @@ export function generateUiMappingWorld(seed = 7) {
       trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
       construction: { mode: 'generic', inputs: inputNames }
     });
-    if (type.states?.main) {
+    const vocabulary = stateVocabularies[type.id];
+    if (vocabulary) {
       addAction(`a_shift_${type.id}`, {
         id: `a_shift_${type.id}`, label: 'Shift', actionKind: 'updateInstance', typeId: type.id,
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
-        state: { to: type.states.main.values[type.states.main.values.length - 1] }
+        state: { to: vocabulary[vocabulary.length - 1] }
       });
-      if (type.states.main.values.length > 2) {
+      if (vocabulary.length > 2) {
         addAction(`a_stage_${type.id}`, {
           id: `a_stage_${type.id}`, label: 'Stage', actionKind: 'updateInstance', typeId: type.id,
           trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
-          state: { to: type.states.main.values[1] }
+          state: { to: vocabulary[1] }
         });
       }
     }
@@ -516,7 +522,26 @@ export function generateUiMappingWorld(seed = 7) {
   return {
     seed,
     bundle: { ok: true, errors: [], organizationId: `org-seed-${seed}`, types: bundleTypes },
-    contract: { processId: `proc_seed_${seed}`, dataflowVersion: 4, roles: { operator: { id: 'operator', label: 'Operator', grants: [] } }, screens, actions, navigation: [] },
+    contract: {
+      processId: `proc_seed_${seed}`,
+      dataflowVersion: 4,
+      roles: { operator: { id: 'operator', label: 'Operator', grants: [] } },
+      screens,
+      actions,
+      navigation: [],
+      // The compiled state display policy for the world's flat
+      // vocabularies (severity derived per SPEC §7: terminal secondary,
+      // others info).
+      statePolicy: Object.fromEntries(Object.entries(stateVocabularies).map(([typeId, values]) => [
+        typeId,
+        Object.fromEntries(values.map(value => [value, {
+          label: null,
+          severity: null,
+          icon: null,
+          terminal: (terminalStates[typeId] || []).includes(value)
+        }]))
+      ]))
+    },
     instances,
     sourceStatesMatrix: stateMatrix
   };

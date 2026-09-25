@@ -156,9 +156,9 @@ const props = defineProps({
   onTransition: { type: Function, default: null },
   onTransitionApplied: { type: Function, default: null },
   // Runtime state-service transitions by type (the declaration machine):
-  // `{ [typeId]: [{ __runtime, status: { to }, intent, region, label }] }`.
+  // `{ [typeId]: [{ __runtime, state: { to }, intent, region, label }] }`.
   // The app fetches per opened instance and owns dispatch; the generator
-  // only renders them as clickable strip steps.
+  // only renders them as header transition buttons.
   runtimeTransitions: { type: Object, default: null },
   spacingScale: { type: Number, default: 1 }
 });
@@ -199,10 +199,13 @@ const emit = defineEmits(['instance-mounted']);
 // the shared pool (navigated from a workspace that loaded the same
 // source) never changes the watched key, so without the immediate pass
 // the page would never fetch the declaration machine's transitions.
+// The key includes the flat state: a transition mutates the pool record
+// in place (same id), and the machine's legal transitions depend on the
+// current state — the header buttons must refetch after every hop.
 watch(() => {
   const detail = (composed.value.regions || []).find(region => region.surfaceKind !== 'list');
   const instance = detail?.instances?.[0];
-  return instance ? `${instance.type || props.screen?.typeId}|${String(instance._id || instance.id)}` : '';
+  return instance ? `${instance.type || props.screen?.typeId}|${String(instance._id || instance.id)}|${instance.state || ''}` : '';
 }, () => {
   const detail = (composed.value.regions || []).find(region => region.surfaceKind !== 'list');
   const instance = detail?.instances?.[0];

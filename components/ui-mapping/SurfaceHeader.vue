@@ -2,16 +2,12 @@
   <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', LAYOUT.headerBar, 'surface-header']">
     <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" />
     <div :class="LAYOUT.headerRow" class="header-row">
-      <div :class="[LAYOUT.row, LAYOUT.headerIdentity]" class="header-identity">
+      <div :class="LAYOUT.headerIdentity" class="header-identity">
         <Avatar :icon="glyph" shape="circle" size="large" />
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
           <span class="text-supporting text-muted truncate">{{ type?.name }} · {{ instance.id }}</span>
         </div>
-        <!-- Stateless types badge their status beside the title; stateful
-             types carry the state surface beneath the header row (current
-             state tag + audit popover), never a linear lifecycle strip. -->
-        <Tag v-if="status && !type?.states?.main" :value="status.label" :severity="status.severity" />
       </div>
       <div :class="LAYOUT.row">
         <Button
@@ -28,6 +24,7 @@
           :key="action.id"
           :action="action"
           :render="type?.render"
+          :state-policy="statePolicy"
           @run="$emit('run', action)"
         />
         <!-- Available state-machine transitions render as header actions:
@@ -36,10 +33,11 @@
              through the dedicated transition channel. -->
         <ActionButton
           v-for="action in transitionActions"
-          :key="action.id || action.status?.to"
+          :key="action.id || action.state?.to"
           :action="action"
           :render="type?.render"
-          @run="$emit('transition', { to: action.status.to, intent: action.intent || null, region: action.region || null })"
+          :state-policy="statePolicy"
+          @run="$emit('transition', { to: action.state.to, intent: action.intent || null, region: action.region || null })"
         />
         <Button
           v-if="overflowActions.length"
@@ -53,11 +51,13 @@
         <Menu ref="overflowMenu" :model="overflowMenuItems" popup />
       </div>
     </div>
-    <!-- One status surface per header: stateful types carry the current
-         state tag with its history popover (status_events audit trail);
-         stateless types keep the status tag only. -->
-    <div v-if="type?.states?.main" :class="[LAYOUT.row, 'mt-1']">
-      <Tag :value="status?.label" :severity="status?.severity" />
+    <!-- One status surface per header: an instance carrying a flat state
+         renders the segmented current-state tag with its history popover
+         (the status_events audit trail); instances without a state render
+         nothing — no state is itself information (SPEC §7: nothing
+         synthesizes one). -->
+    <div v-if="currentState" :class="[LAYOUT.row, 'mt-1']">
+      <StateTag :value="currentState" :policy="statePolicy" />
       <Button
         icon="pi pi-clock"
         text
@@ -78,16 +78,16 @@
 import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Avatar from 'primevue/avatar';
-import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import Popover from 'primevue/popover';
 import {
-  LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, HEADER_ACTIONS_INLINE, titleFor, iconFor,
+  LAYOUT, TYPE_BY_LEVEL, HEADER_ACTIONS_INLINE, titleFor, iconFor,
   resolveActionButton, actionLabelKey, localizedLabel
 } from '#shared/ui-mapping/index.js';
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
+import StateTag from './StateTag.vue';
 import StateHistory from '../shared/state/StateHistory.vue';
 
 const spacing = inject('uiMappingSpacing', null);
@@ -101,12 +101,12 @@ const props = defineProps({
   editable: { type: Boolean, default: false },
   editing: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }
+  bundle: { type: Object, default: null },
+  // The region's per-type state policy map (contract.statePolicy[typeId]).
+  statePolicy: { type: Object, default: null }
 });
 
 const emit = defineEmits(['run', 'transition', 'toggle-edit']);
-
-const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 const glyph = computed(() => iconFor(props.type, props.instance));
 const trail = computed(() => {
@@ -137,27 +137,20 @@ const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS
 const overflowActions = computed(() => manualActions.value
   .filter(action => !inlineActions.value.includes(action)));
 const transitionActions = computed(() => props.actions
-  .filter(action => action?.__runtime && action?.status?.to));
+  .filter(action => action?.__runtime && action?.state?.to));
 const historyPopover = ref(null);
 const overflowMenu = ref(null);
 const overflowMenuItems = computed(() => overflowActions.value.map(action => {
-  const resolved = resolveActionButton(action, { render: props.type?.render });
+  const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
   return {
     label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),
     icon: resolved.icon || undefined,
     command: () => emit('run', action)
   };
 }));
-// One status surface: the current state as a tag colored by the declared
-// render policy — stateless types render theirs beside the title,
-// stateful types beneath it with the audit-trail clock; the tag and the
-// severity come from one computed pair.
-const status = computed(() => {
-  const value = props.instance.states?.main;
-  if (!value || !props.type?.states?.main) return null;
-  const render = props.type.states?.main?.render?.[value];
-  return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
-});
+// The flat instance state (SPEC §7): one string, rendered by the
+// segmented tag against the compiled per-type policy.
+const currentState = computed(() => props.instance?.state || null);
 </script>
 
 <style scoped>

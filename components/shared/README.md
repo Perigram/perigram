@@ -288,10 +288,15 @@ schema, not from page-local loaded data.
 Fetches and displays the audit log (`status_events`) for any entity.
 
 Props: `:entity`, `type-id`, `target-id`, `mock-events`, `compact`.
-Events render as a single-column audit list so the component fits cards,
-popovers, sidebars, and other narrow surfaces. The event header contains the
-status badge, actor display name, and timestamp in a wrapping row; timestamps
-must not be rendered in a separate fixed-width side column.
+Events render as a vertical PrimeVue Stepper trail so the component fits
+cards, popovers, sidebars, and other narrow surfaces: each event is one
+`StepItem`, ordered oldest → newest, whose `Step` header contains the
+status badge, actor display name, and timestamp in a wrapping row (the
+stepper's number bubble stays hidden — the badge is the marker); the
+newest event's `StepPanel` opens by default and clicking a step header
+expands that event's evidence (note, attachments, snapshots) — one panel
+open at a time, the stepper's own accordion. Timestamps must not be
+rendered in a separate fixed-width side column.
 When the persisted audit log is not available yet, it renders the entity's
 current `status`/`origin` as the first timeline event instead of displaying an
 empty-history placeholder. Last-update timestamps belong in this timeline, not
@@ -312,7 +317,7 @@ When an event snapshot carries process-authored display metadata under
 historical badges retain the authored label, severity/color, and icon. The
 event's raw `toStatePrimary` remains the state identifier, not the display
 contract.
-History rows render lifecycle proof attachment refs as download links and
+History panels render lifecycle proof attachment refs as download links and
 snapshot entries as compact count chips from the persisted event snapshot.
 
 ### `StateLocation.vue`

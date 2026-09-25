@@ -1,8 +1,8 @@
 // Instance-pool mapping contract: canonical entity DTOs project onto the
 // generator instance shape through the row-slot convention (data/specs
 // blocks, item quantities in specs), with lineage normalized to `{ id }`
-// references, relations passed through as typed refs, and the primary
-// status landing on the main state axis.
+// references, relations passed through as typed refs, and the wire's one
+// flat state string (SPEC §3/§7) carried verbatim.
 import { describe, expect, it } from 'vitest';
 import { dtoToScreenInstance } from './instance-shape.js';
 
@@ -45,13 +45,24 @@ describe('dtoToScreenInstance', () => {
     const instance = dtoToScreenInstance({
       _id: 'ent-2',
       lineage: { projectId: 'p-9', queueId: null },
-      relations: { linkedSheets: [{ type: 'sheet', id: 's-1' }], pinned: { type: 'sheet', id: 's-2' } },
-      states: { main: 'READY', quality: 'PASSED' }
+      relations: { linkedSheets: [{ type: 'sheet', id: 's-1' }], pinned: { type: 'sheet', id: 's-2' } }
     }, typeRecord);
 
     expect(instance.lineage).toEqual({ projectId: { id: 'p-9' } });
     expect(instance.relations.linkedSheets).toEqual([{ type: 'sheet', id: 's-1' }]);
-    expect(instance.states).toEqual({ main: 'READY', quality: 'PASSED' });
+  });
+
+  it('carries the wire state flat and drops the retired states axis map entirely', () => {
+    const instance = dtoToScreenInstance({
+      _id: 'ent-2b',
+      state: 'PRODUCTION.queued'
+    }, typeRecord);
+
+    expect(instance.state).toBe('PRODUCTION.queued');
+    expect(instance.states).toBeUndefined();
+    // A DTO without a state projects a stateless instance — nothing
+    // synthesizes one (SPEC §7: no declaration owns an initial).
+    expect(dtoToScreenInstance({ _id: 'ent-2c', data: {} }, typeRecord).state).toBeNull();
   });
 
   it('falls back to identity core fields for labels when rows carry none', () => {

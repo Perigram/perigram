@@ -44,12 +44,23 @@ contract vocabulary (`typeList`/`instanceDetail`/`home` plus `typeId`) and
 render through the UI generator (`composeScreen` +
 [components/ui-mapping](../components/ui-mapping/README.md)) with the client
 bundle and projected action contract carried by auth hydration; the
+contract also carries the per-type state display policy
+(`statePolicyByType` over the hydration payload's compiled producer
+workflows — the flat state vocabulary's one client-side source, see
+[shared/ui-mapping](../shared/ui-mapping/README.md)). The
 instances store (`stores/instances.js`) loads the referenced collections
 (row-slot mapping, lineage/reference normalization, per-source data states
 loading/ready/empty/denied/error that `composeScreen` folds into the region
 tree), and action runs dispatch to the process run API through the same
-store. The page is the shape boundary between the store's keyed pool
-(`{ type -> { id -> instance }}`) and the generator's grouped-array
+store. Runtime state transitions are the page's other dispatch channel:
+the opened detail instance's machine-legal transitions arrive from
+`/api/state/actions` as `{ __runtime, state: { to }, intent, region }`
+records (refetched whenever the detail instance or its flat state
+changes — the machine's legal edges depend on the current state), render
+as the header's transition buttons, and dispatch through the state
+transition API with the updated entity landing straight in the shared
+instance cache. The page is the shape boundary between the store's keyed
+pool (`{ type -> { id -> instance }}`) and the generator's grouped-array
 instances prop (`buildInstancePool` re-keys it). Collection identities are
 link buttons: `onOpen` routes to the
 compiler-paired detail screen (`auto_<type>_detail`) with the instance id

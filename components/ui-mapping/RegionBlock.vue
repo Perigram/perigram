@@ -51,6 +51,7 @@
           :key="action.id"
           :action="action"
           :render="node.type?.render"
+          :state-policy="node.statePolicy"
           :label="headerActionLabel(action)"
           @run="emitRun"
         />
@@ -67,6 +68,7 @@
         :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        :state-policy="node.statePolicy"
         @open="emitOpen"
       />
       <HierarchyTable
@@ -76,6 +78,7 @@
         :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        :state-policy="node.statePolicy"
         @open="emitOpen"
       />
       <CardGrid
@@ -87,6 +90,7 @@
         :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        :state-policy="node.statePolicy"
         @open="emitOpen"
         @run="emitRun"
       />
@@ -101,7 +105,7 @@
         :bundle="bundle"
         @open="emitOpen"
       />
-      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" :state-policy="node.statePolicy" />
       <div v-else :class="LAYOUT.stackTight">
         <SurfaceBody
           v-for="instance in filteredInstances"
@@ -171,6 +175,7 @@
           :key="action.id"
           :action="action"
           :render="node.type?.render"
+          :state-policy="node.statePolicy"
           :label="headerActionLabel(action)"
           @run="emitRun"
         />
@@ -189,6 +194,7 @@
         :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        :state-policy="node.statePolicy"
         @open="emitOpen"
       />
       <HierarchyTable
@@ -198,6 +204,7 @@
         :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        :state-policy="node.statePolicy"
         @open="emitOpen"
       />
       <CardGrid
@@ -209,6 +216,7 @@
         :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        :state-policy="node.statePolicy"
         @open="emitOpen"
         @run="emitRun"
       />
@@ -223,7 +231,7 @@
         :bundle="bundle"
         @open="emitOpen"
       />
-      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" :state-policy="node.statePolicy" />
       <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
         <SurfaceBody
           v-for="instance in filteredInstances"
@@ -265,6 +273,7 @@
           :editing="editing"
           :pool="pool"
           :bundle="bundle"
+          :state-policy="node.statePolicy"
           @run="emitRun"
           @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
           @toggle-edit="toggleEditing"
@@ -281,6 +290,7 @@
           :draft="draft"
           :pool="pool"
           :bundle="bundle"
+          :state-policy="node.statePolicy"
           @run="emitRun"
           @inline-change="inlineChange"
         />
@@ -325,6 +335,7 @@
         :covered-relations="coveredRelationKeys"
         :pool="pool"
         :bundle="bundle"
+        :state-policy="node.statePolicy"
         @run="emitRun"
       />
       <Tabs v-if="node.childrenMode === 'tabs'" :value="node.childRegions[0].id" class="w-full">

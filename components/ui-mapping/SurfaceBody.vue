@@ -95,7 +95,7 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, SEVERITY_MAP, titleFor, iconFor } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
@@ -112,7 +112,9 @@ const props = defineProps({
   editing: { type: Boolean, default: false },
   draft: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }
+  bundle: { type: Object, default: null },
+  // Per-type state policy map from the compiled process contract.
+  statePolicy: { type: Object, default: null }
 });
 
 defineEmits(['run', 'inline-change']);
@@ -128,14 +130,16 @@ const { t } = useI18n();
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const instanceLabel = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 const glyph = computed(() => iconFor(props.type, props.instance));
-const statusValue = computed(() => props.instance.states?.main);
+const statusValue = computed(() => props.instance?.state || null);
 const statusTag = computed(() => {
   if (!statusValue.value) return null;
-  const render = props.type.states?.main?.render?.[statusValue.value];
-  return {
-    label: render?.label || startCase(statusValue.value),
-    severity: SEVERITY_MAP[render?.severity] || 'secondary'
-  };
+  const display = stateDisplayFor(props.statePolicy, statusValue.value);
+  if (display) return { label: display.label, severity: display.severity };
+  // Detail surfaces show the data's state even when the served vocabulary
+  // has none for it (the neutral stop-line); list rows render nothing —
+  // bulk surfaces speak only the declared vocabulary.
+  if (props.variant === 'row' || props.variant === 'inline') return null;
+  return { label: startCase(statusValue.value), severity: 'secondary' };
 });
 
 const fieldEntries = computed(() => Object.entries(props.type.fields || {}).map(([name, descriptor]) => ({ name, descriptor })));
