@@ -138,7 +138,7 @@
           </label>
         </div>
         <Message severity="secondary" size="small" :closable="false">{{ $t('processDesigner.stateParentHint') }}</Message>
-        <div class="text-supporting text-muted">parent state</div>
+        <div class="text-supporting text-muted">{{ $t('processDesigner.parentState') }}</div>
         <div class="flex items-center gap-2">
           <Select
             :model-value="node.data.severity || 'info'"

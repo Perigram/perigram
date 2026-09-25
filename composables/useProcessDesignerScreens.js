@@ -195,6 +195,10 @@ export function useProcessDesignerScreens({
   };
 }
 
+export function withoutKeys(record = {}, keys = []) {
+  return Object.fromEntries(Object.entries(record).filter(([key]) => !keys.includes(key)));
+}
+
 function createSource(screen, id, typeId, mode) {
   return {
     id,
@@ -217,10 +221,6 @@ function createRegion(screen, id, sourceId) {
     surface: screen.template === 'instanceDetail' ? 'detail' : 'card',
     actions: []
   };
-}
-
-function withoutKeys(record = {}, keys = []) {
-  return Object.fromEntries(Object.entries(record).filter(([key]) => !keys.includes(key)));
 }
 
 function uniqueId(prefix, records) {

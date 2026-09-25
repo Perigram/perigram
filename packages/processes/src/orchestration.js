@@ -352,13 +352,13 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
   for (const port of dataInputs) {
     const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
     if (runValue !== undefined) {
-      inputs[port.id] = runContextPacket(runValue, port.access);
+      inputs[port.id] = socketPacket(runValue, port.access);
       continue;
     }
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
       if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
-        inputs[port.id] = runContextPacket(record.inputDefaults[port.id], port.access);
+        inputs[port.id] = socketPacket(record.inputDefaults[port.id], port.access);
         continue;
       }
       continue;
@@ -373,10 +373,11 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
   return inputs;
 }
 
-// Run-context values and authored defaults for a List-declared socket arrive
-// as either an array (one packet item per entry) or a single value, which the
-// mapped mutation contract broadcasts as one item rather than rejecting.
-function runContextPacket(value, access = 'item') {
+// The broadcast rule for socket-shaped values (run-context inputs and
+// authored inputDefaults alike): a List-declared socket accepts either an
+// array (one packet item per entry) or a single value — the scalar wraps as
+// one broadcast item rather than being rejected as a list arity error.
+function socketPacket(value, access = 'item') {
   const shape = access === 'list' && !Array.isArray(value) && !isDataTree(value) ? 'item' : access;
   return createDataPacket(structuredClone(value), shape || 'item');
 }
@@ -442,12 +443,12 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
       if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
-        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.access || 'item');
+        inputs[port.id] = socketPacket(record.inputDefaults[port.id], port.access);
         continue;
       }
       const runValue = processRunInput(run.context?.inputs || {}, record, port.id);
       if (runValue !== undefined) {
-        inputs[port.id] = createDataPacket(structuredClone(runValue), port.access || 'item');
+        inputs[port.id] = socketPacket(runValue, port.access);
         continue;
       }
       continue;
@@ -476,6 +477,7 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   const packet = await executeProcessDataNode(record, inputs, {
     ...(environment.data || {}),
     domain: environment.domain,
+    fieldSchemas: environment.catalogContext?.(record)?.fieldSchemas,
     inputs: run.context?.inputs,
     trigger: run.trigger,
     now: environment.now,

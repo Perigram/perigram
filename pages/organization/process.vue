@@ -618,7 +618,7 @@ import { useProcessDesignerPanels } from '~/composables/useProcessDesignerPanels
 import { useProcessDesignerConnectionInference } from '~/composables/useProcessDesignerConnectionInference.js';
 import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerPersistence.js';
 import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.js';
-import { useProcessDesignerScreens } from '~/composables/useProcessDesignerScreens.js';
+import { useProcessDesignerScreens, withoutKeys } from '~/composables/useProcessDesignerScreens.js';
 import { useProcessDesignerPalette } from '~/composables/useProcessDesignerPalette.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
 import { useProcessDesignerNodeRecords } from '~/composables/useProcessDesignerNodeRecords.js';
@@ -722,7 +722,6 @@ const {
   isOpKind,
   nodeTypeId,
   setNodeTypeId,
-  sameTypeId,
   catalogPorts,
   catalogContext,
   portForHandle,
@@ -735,8 +734,7 @@ const {
   processNodeInputs,
   processNodeOutputs,
   processNodeOperationOptions,
-  processNodeFieldOptions,
-  processStatusOptionsFor,
+  processWorkflowPaths,
   processTypeIdOptions,
   processNodeSummary,
   processNodeDisplayLabel,
@@ -955,8 +953,8 @@ const lifecycleModes = computed(() => [
   { label: t('processDesigner.lifecycleModeCustom'), value: 'custom' }
 ]);
 const socketDirections = [
-  { label: 'outbound', value: 'outbound' },
-  { label: 'inbound', value: 'inbound' }
+  { label: t('processDesigner.socketDirection.outbound'), value: 'outbound' },
+  { label: t('processDesigner.socketDirection.inbound'), value: 'inbound' }
 ];
 const screenTemplateOptions = SCREEN_TEMPLATES
   .filter(value => !['route', 'organizationOverview', 'organizationAccount'].includes(value))
@@ -968,9 +966,9 @@ const screenLineageBindingFields = SCREEN_LINEAGE_BINDING_FIELDS;
 const screenScalarTypeOptions = ['string', 'number', 'boolean', 'assignment'].map(value => ({ label: t(`processDesigner.scalarTypes.${value}`), value }));
 const screenBindingTypeOptions = screenScalarTypeOptions;
 const screenPlacementOptions = [
-  { label: 'hub', value: 'hub' },
-  { label: 'detail', value: 'detail' },
-  { label: 'hidden', value: 'hidden' }
+  { label: t('processDesigner.screenPlacements.hub'), value: 'hub' },
+  { label: t('processDesigner.screenPlacements.detail'), value: 'detail' },
+  { label: t('processDesigner.screenPlacements.hidden'), value: 'hidden' }
 ];
 const accessLevelOptions = [
   { label: t('processDesigner.accessRead'), value: 'read' },
@@ -1069,19 +1067,8 @@ const transitionAxisOptions = computed(() => {
   return Object.keys(workflow?.regions || {}).map(axis => ({ label: axis, value: axis }));
 });
 function transitionPathOptions(axis = 'main') {
-  const typeId = nodeTypeId(selectedProcessNode.value);
-  const workflow = typeId ? ctsProjectedDomain().workflows?.[typeId] : null;
-  const region = workflow?.regions?.[axis];
-  const paths = [];
-  const walk = (states = {}, prefix = []) => {
-    for (const [name, node = {}] of Object.entries(states)) {
-      const path = [...prefix, name].join('.');
-      paths.push(path);
-      if (node.states) walk(node.states, [...prefix, name]);
-    }
-  };
-  walk(region?.states || {});
-  return paths.map(path => ({ label: path, value: path }));
+  return processWorkflowPaths(selectedProcessNode.value, axis)
+    .map(({ label, value }) => ({ label, value }));
 }
 const declarationTypeOptions = computed(() => [
   ...new Set([
@@ -1119,7 +1106,7 @@ const typeAnchorOptions = computed(() => ctsTypeView().map(entry => ({
   label: `${entry.label} · ${entry.class}`,
   value: entry.id
 })));
-const optionalTypeIdOptions = computed(() => [{ label: 'None', value: '' }, ...typeIdOptions.value]);
+const optionalTypeIdOptions = computed(() => [{ label: t('processDesigner.noneOption'), value: '' }, ...typeIdOptions.value]);
 const commandOptions = computed(() => designer.commandOptions);
 const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
   label: action.label || action.id,
@@ -1191,10 +1178,12 @@ function removeSelectedSocket() {
   selectedSocketId.value = '';
 }
 const ACCESS_LEVEL_ORDER = { read: 0, write: 1, admin: 2 };
+// The access-detail window reads the same incoming-entity contract the
+// live-graph binding resolves through.
 const selectedProcessNodeAccessDetail = computed(() => {
   const node = selectedProcessNode.value;
   if (!node?.kind || !['effect.changeStatus', 'effect.archiveEntity', 'effect.updateEntity'].includes(opKind(node))) return '';
-  const incoming = node.id ? inferIncomingEntityContract(node.id) : {};
+  const incoming = node.id ? incomingEntityContract(node.id) : {};
   const from = incoming.status || '';
   const to = node.state?.to || '';
   if (!from && !to) return '';
@@ -1319,29 +1308,44 @@ const liveGraph = useProcessDesignerLiveGraph({
 });
 const { evaluateNow } = liveGraph;
 
-// The entity-input source type of one record: the entity-bearing output
+// The incoming entity window of one record — the entity-bearing output
 // port of whatever feeds its `entity` input, resolved through the same
-// catalog the sockets render from.
-function resolveEntityInputType(recordId) {
+// catalog ports the node cards render (never by sniffing stored record
+// shapes). One resolver feeds both consumers: the live-graph entity
+// binding (type only) and the inspector's access-detail window (type,
+// status, access).
+function incomingEntityContract(recordId) {
   const graphNode = nodes.value.find(node => node.type === 'processNode' && node.data?.refId === recordId);
-  if (!graphNode) return '';
+  if (!graphNode) return {};
   const edge = edges.value.find(item => (
     item.target === graphNode.id
     && String(item.targetHandle || '').replace(/^(?:input|data):/, '') === 'entity'
   ));
-  if (!edge) return '';
+  if (!edge) return {};
   const source = nodes.value.find(node => node.id === edge.source);
-  if (!source) return '';
+  if (!source) return {};
   const sourceRecord = source.data?.refId
     ? draft.value?.data?.processNodes?.[source.data.refId]
     : null;
-  if (sourceRecord) {
-    const port = portForHandle(catalogPorts(sourceRecord).outputs, edge.sourceHandle, 'output');
-    const typeId = port?.type?.typeId || port?.type?.itemType?.typeId;
-    if (typeId) return typeId;
-    return nodeTypeId(sourceRecord) || '';
-  }
-  return source.data?.typeId || '';
+  const sourcePorts = sourceRecord ? catalogPorts(sourceRecord).outputs : [];
+  const port = sourceRecord
+    ? (portForHandle(sourcePorts, edge.sourceHandle, 'output')
+      || sourcePorts.find(candidate => candidate.type?.typeId || candidate.type?.itemType?.typeId)
+      || null)
+    : null;
+  const typeId = port?.type?.typeId || port?.type?.itemType?.typeId
+    || (sourceRecord ? nodeTypeId(sourceRecord) : '')
+    || source.data?.typeId
+    || '';
+  return {
+    typeId,
+    status: typeof port?.status === 'string' ? port.status : (sourceRecord?.state?.to || sourceRecord?.status?.to || ''),
+    access: sourceRecord?.access ? normalizeDesignerAccess(sourceRecord.access) : null
+  };
+}
+
+function resolveEntityInputType(recordId) {
+  return incomingEntityContract(recordId).typeId || '';
 }
 
 function applyGraphInterpretation(mutations) {
@@ -1798,6 +1802,8 @@ function syncNodeData() {
 // under these keys, and strip removes exactly these keys (minus the
 // declaration-authored carve-out inside strip) so derived state never
 // persists. Add a derived key here and to the list in the same change.
+// Retired derivations (e.g. `processFieldOptions`) stay listed so copies
+// persisted by older drafts are still stripped at save.
 const DERIVED_NODE_DATA_KEYS = [
   'label',
   'typeId',
@@ -1841,8 +1847,7 @@ function enrichNodeData(node) {
     onProcessNodeUpdate: isProcessNode ? updates => updateProcessNodeRecord(record.id || data.refId, updates) : null,
     processTypeIdOptions: isProcessNode ? processTypeIdOptions(record) : [],
     processOperationOptions: isProcessNode ? processNodeOperationOptions(record) : [],
-    processFieldOptions: isProcessNode ? processNodeFieldOptions(record) : [],
-    processStatusOptions: isProcessNode ? processStatusOptionsFor(record) : [],
+    processStatusOptions: isProcessNode ? processWorkflowPaths(record) : [],
     processConnectedInputIds: isProcessNode ? connectedProcessInputIds(node, record) : [],
     kindLabel: isProcessNode ? processNodeDisplayLabel(record) : record.kind,
     summary: processNodeSummary(record),
@@ -2098,10 +2103,6 @@ function permissionGrants(permissions = {}) {
   });
 }
 
-function withoutKeys(value = {}, keys = []) {
-  return Object.fromEntries(Object.entries(value || {}).filter(([key]) => !keys.includes(key)));
-}
-
 // One wire per single-value socket: a second connection into an input
 // that does not declare `multiple` is rejected on the gesture, not at save
 // time — the canvas never shows a wire the serializer would have to drop.
@@ -2236,7 +2237,7 @@ function connectionCompatibility(connection = {}) {
         const sourcePort = (source.data?.outputSpecs || [])[0];
         const targetPort = (target.data?.inputSpecs || [])[0];
         if (!sourcePort || !targetPort) {
-          return { ok: false, reason: 'Declarations wire Field/State nodes into a Class declare input' };
+          return { ok: false, reason: t('processDesigner.connectReasons.declareSocket') };
         }
         return {
           ...processSocketsCompatible(sourcePort, targetPort),
@@ -2247,7 +2248,7 @@ function connectionCompatibility(connection = {}) {
       if (legality === 'binds') {
         const sourcePort = (source.data?.outputSpecs || [])[0];
         if (!sourcePort) {
-          return { ok: false, reason: source.type === 'ctsClass' ? 'Name the class before binding its type' : 'The type node has no selected type' };
+          return { ok: false, reason: source.type === 'ctsClass' ? t('processDesigner.connectReasons.nameClassBeforeBinding') : t('processDesigner.connectReasons.typeNodeNoType') };
         }
         // The binding wire lands on the persistent Type pin (origin
         // species: construct/read). It typechecks against the source
@@ -2255,7 +2256,7 @@ function connectionCompatibility(connection = {}) {
         const inputs = catalogPorts(targetRecord).inputs;
         const pin = portForHandle(inputs, connection.targetHandle, 'input') || inputs.find(port => port.id === 'type');
         if (!pin || pin.id !== 'type') {
-          return { ok: false, reason: 'Type bindings wire into the Type pin' };
+          return { ok: false, reason: t('processDesigner.connectReasons.typePinOnly') };
         }
         return {
           ...processSocketsCompatible(sourcePort, pin),
@@ -2268,22 +2269,22 @@ function connectionCompatibility(connection = {}) {
         // lineage children. The reason names the authored class so the
         // rejection is traceable on the canvas.
         if (!classMayDeclareChildren(source.data?.class)) {
-          const className = String(source.data?.name || source.data?.typeId || '').trim() || 'The parent class';
+          const className = String(source.data?.name || source.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass');
           return {
             ok: false,
-            reason: `${className} is a ${source.data.class} class — ${source.data.class} classes may not declare lineage children (containment belongs to item, group, or process classes)`
+            reason: t('processDesigner.connectReasons.childrenContainment', { name: className, kind: source.data.class })
           };
         }
         return source.data?.typeId && target.data?.typeId
           ? { ok: true }
-          : { ok: false, reason: 'Both classes need a type id before declaring children' };
+          : { ok: false, reason: t('processDesigner.connectReasons.childrenNeedTypeIds') };
       }
       if (legality === 'nested') {
         // Nesting is wiring (SPEC §7): a state into a state input. The
         // type scope is authored data that may arrive later (declare
         // wire, inspector) — it is never a precondition for nesting.
         if (source.id === target.id) {
-          return { ok: false, reason: 'A state cannot nest inside itself' };
+          return { ok: false, reason: t('processDesigner.connectReasons.stateNestSelf') };
         }
         const parentOf = new Map(edges.value
           .filter(edge => edge.role === 'type' && edge.label === 'nested')
@@ -2293,7 +2294,7 @@ function connectionCompatibility(connection = {}) {
         let cursor = source.id;
         while (cursor && parentOf.has(cursor)) {
           if (seen.has(cursor)) {
-            return { ok: false, reason: 'A state has one parent state; parent cycles are invalid' };
+            return { ok: false, reason: t('processDesigner.connectReasons.stateParentCycle') };
           }
           seen.add(cursor);
           cursor = parentOf.get(cursor);
@@ -2304,11 +2305,11 @@ function connectionCompatibility(connection = {}) {
         // The state wire lands on a status-typed input of the target
         // record (construct creation state, transition target).
         const targetRecord2 = draft.value?.data?.processNodes?.[target.data?.refId];
-        if (!targetRecord2) return { ok: false, reason: 'State wires land on process nodes' };
+        if (!targetRecord2) return { ok: false, reason: t('processDesigner.connectReasons.stateWiresLandOnProcessNodes') };
         const inputs = catalogPorts(targetRecord2).inputs;
         const input = portForHandle(inputs, connection.targetHandle, 'input') || inputs.find(port => port.type?.base === 'status');
         if (!input || input.type?.base !== 'status') {
-          return { ok: false, reason: 'State wires land on status inputs' };
+          return { ok: false, reason: t('processDesigner.connectReasons.stateWiresLandOnStatusInputs') };
         }
         return { ok: true };
       }
@@ -2316,31 +2317,31 @@ function connectionCompatibility(connection = {}) {
         // The field wire lands on the getField's field input (SPEC §20
         // socket algebra); any other target handle is refused.
         const targetRecord2 = draft.value?.data?.processNodes?.[target.data?.refId];
-        if (!targetRecord2) return { ok: false, reason: 'Field wires land on process nodes' };
+        if (!targetRecord2) return { ok: false, reason: t('processDesigner.connectReasons.fieldWiresLandOnProcessNodes') };
         const inputs = catalogPorts(targetRecord2).inputs;
         const input = portForHandle(inputs, connection.targetHandle, 'input') || inputs.find(port => port.id === 'field');
         if (!input || input.id !== 'field') {
-          return { ok: false, reason: 'Field wires land on the field input' };
+          return { ok: false, reason: t('processDesigner.connectReasons.fieldWiresLandOnFieldInput') };
         }
         return { ok: true };
       }
       if (legality === 'targets') {
         // ref fields receive their accepted target types as wired inputs
         if (target.data?.descriptor?.base !== 'ref') {
-          return { ok: false, reason: 'Set the field type to ref before wiring targets' };
+          return { ok: false, reason: t('processDesigner.connectReasons.refBaseRequired') };
         }
         return source.data?.typeId
           ? { ok: true }
-          : { ok: false, reason: 'Name the class before wiring it as a ref target' };
+          : { ok: false, reason: t('processDesigner.connectReasons.nameClassBeforeRefTarget') };
       }
       return {
         ok: false,
         reason: (source.type === 'ctsClass' || source.type === 'ctsType') && targetRecord
-          ? 'Only construct and read carry a Type pin — mutates adapt to their entity stream'
-          : 'Only current operation nodes can be connected'
+          ? t('processDesigner.connectReasons.typePinOriginOnly')
+          : t('processDesigner.connectReasons.onlyCurrentNodes')
       };
     }
-    return { ok: false, reason: 'Only current operation nodes can be connected' };
+    return { ok: false, reason: t('processDesigner.connectReasons.onlyCurrentNodes') };
   }
   const sourcePort = portForHandle(catalogPorts(sourceRecord).outputs, connection.sourceHandle, 'output');
   const targetPort = portForHandle(catalogPorts(targetRecord).inputs, connection.targetHandle, 'input');
@@ -2352,28 +2353,6 @@ function connectionCompatibility(connection = {}) {
   };
 }
 
-// The incoming entity window of one record, resolved through the catalog
-// (the same ports the node cards render), not by sniffing stored record
-// shapes.
-function inferIncomingEntityContract(nodeId) {
-  const graphNode = nodes.value.find(node => node.type === 'processNode' && node.data?.refId === nodeId);
-  if (!graphNode) return {};
-  const edge = edges.value.find(item => item.target === graphNode.id && String(item.targetHandle || '').startsWith('input'));
-  if (!edge) return {};
-  const source = nodes.value.find(item => item.id === edge.source);
-  const sourceRecord = source?.data?.refId ? draft.value?.data?.processNodes?.[source.data.refId] : null;
-  if (!sourceRecord) return {};
-  const sourcePorts = catalogPorts(sourceRecord).outputs;
-  const port = portForHandle(sourcePorts, edge.sourceHandle, 'output')
-    || sourcePorts.find(candidate => candidate.type?.typeId || candidate.type?.itemType?.typeId)
-    || null;
-  const typeId = port?.type?.typeId || port?.type?.itemType?.typeId || nodeTypeId(sourceRecord) || '';
-  return {
-    typeId,
-    status: typeof port?.status === 'string' ? port.status : (sourceRecord.state?.to || sourceRecord.status?.to || ''),
-    access: sourceRecord.access ? normalizeDesignerAccess(sourceRecord.access) : null
-  };
-}
 
 </script>
 

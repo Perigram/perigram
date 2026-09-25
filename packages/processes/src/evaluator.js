@@ -16,7 +16,7 @@ import {
   treeStats
 } from './data-tree.js';
 import { operationKindOf } from '../../cts/src/index.js';
-import { MAKE_LIST_INPUTS, entityBlocks } from './node-catalog.js';
+import { MAKE_LIST_INPUTS, dynamicBlocks, entityBlocks } from './node-catalog.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
@@ -45,6 +45,28 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     });
   }
   if (kind === 'cts.read') return executeRead(record, packets, context);
+  // Structure species (SPEC §20): compose/decompose/join stay species
+  // records end to end, but their data semantics are the open-entry block
+  // composition, block projection, and same-type concatenation their
+  // catalog ports declare — identical to the legacy v4 twins below.
+  if (kind === 'cts.compose') return executeCompose(record, packets);
+  if (kind === 'cts.decompose') {
+    const blocks = dynamicBlocks(record, context);
+    for (const block of blocks) assertDeclaredBlock(context.domain, record, block);
+    if (context.outputId) {
+      if (!blocks.includes(context.outputId)) {
+        throw new Error(`Node ${record.id || kind} does not expose block ${context.outputId}`);
+      }
+      return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[context.outputId]));
+    }
+    return mapDataPacket(required(packets, 'entity', record), value => (
+      Object.fromEntries(blocks.map(block => [block, structuredClone(value?.[block])]))
+    ));
+  }
+  if (kind === 'cts.join') return solveDataTrees([
+    { tree: required(packets, 'primary', record), access: 'list' },
+    { tree: required(packets, 'secondary', record), access: 'list' }
+  ], ([primary, secondary]) => [...primary, ...secondary], { outputAccess: 'list', matching: record.matching });
   if (kind.startsWith('source.')) return executeSource(record, context);
   if (kind === 'value.cast' || kind === 'value.parse') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
@@ -160,16 +182,16 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'record.applyChanges') return combineDataPackets([required(packets, 'record', record), required(packets, 'changes', record)], ([value, patch]) => applyPatch(value, patch));
   if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
     if (record.compositionMode && Array.isArray(record.entries)) {
+      if (kind === 'record.composeBlock') return executeCompose(record, packets);
       const entries = record.entries.filter(entry => packets[`entry:${entry.id}`]);
       const inputIds = [
-        ...(kind === 'record.modifyBlock' ? ['block'] : []),
+        'block',
         ...entries.map(entry => `entry:${entry.id}`)
       ];
       return combineDataPackets(inputIds.map(id => required(packets, id, record)), values => {
-        const initial = kind === 'record.modifyBlock' ? structuredClone(values[0] || {}) : {};
-        const offset = kind === 'record.modifyBlock' ? 1 : 0;
+        const initial = structuredClone(values[0] || {});
         entries.forEach((entry, index) => {
-          writeOpenBlockEntry(initial, record.compositionMode, entry, values[index + offset]);
+          writeOpenBlockEntry(initial, record.compositionMode, entry, values[index + 1]);
         });
         return initial;
       });
@@ -329,6 +351,21 @@ function serializeMutationError(error) {
     ...(error?.code ? { code: error.code } : {}),
     ...(error?.statusCode ? { statusCode: error.statusCode } : {})
   };
+}
+
+// Open-entry block composition shared by the species kind (cts.compose)
+// and the legacy v4 compose branch: one block object per aligned tuple of
+// connected entries. Without a declared composition the species compose
+// has no entry sockets (see nativeStructurePorts) and composes {}.
+function executeCompose(record = {}, packets = {}) {
+  const mode = record.compositionMode;
+  if (!(mode && Array.isArray(record.entries))) return createDataPacket({});
+  const entries = record.entries.filter(entry => packets[`entry:${entry.id}`]);
+  return combineDataPackets(entries.map(entry => required(packets, `entry:${entry.id}`, record)), values => {
+    const block = {};
+    entries.forEach((entry, index) => writeOpenBlockEntry(block, mode, entry, values[index]));
+    return block;
+  });
 }
 
 function writeOpenBlockEntry(block, mode, entry, value) {
@@ -672,7 +709,7 @@ function distinctByKey(pairs) {
   const seen = new Set();
   const result = [];
   for (const [item, key] of pairs) {
-    const serialized = JSON.stringify(key);
+    const serialized = stableKey(key);
     if (seen.has(serialized)) continue;
     seen.add(serialized);
     result.push(item);
@@ -681,10 +718,11 @@ function distinctByKey(pairs) {
 }
 
 function distinctByValue(values) {
-  const seen = [];
+  const seen = new Set();
   return values.filter(value => {
-    if (seen.some(previous => same(previous, value))) return false;
-    seen.push(value);
+    const serialized = stableKey(value);
+    if (seen.has(serialized)) return false;
+    seen.add(serialized);
     return true;
   });
 }
@@ -774,7 +812,7 @@ function groupByPackets(itemsPacket, keysPacket) {
   for (const branch of alignSelectorPackets(itemsPacket, keysPacket, 'Group By')) {
     const groups = new Map();
     for (const [item, key] of branch.pairs) {
-      const serialized = JSON.stringify(key);
+      const serialized = stableKey(key);
       if (!groups.has(serialized)) groups.set(serialized, []);
       groups.get(serialized).push(item);
     }
@@ -856,6 +894,18 @@ function unsetPath(target, path) {
   if (parent) delete parent[parts.at(-1)];
 }
 
+// Structural equality and grouping keys serialize with sorted object keys,
+// so two structurally equal values match regardless of key insertion order
+// (a bare JSON.stringify comparison is key-order-sensitive and would split
+// equal objects across distinct/group buckets).
+function stableKey(value) {
+  if (value === undefined) return 'undefined';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
+  if (Array.isArray(value)) return `[${value.map(stableKey).join(',')}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map(key => `${JSON.stringify(key)}:${stableKey(value[key])}`).join(',')}}`;
+}
+
 function same(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return stableKey(left) === stableKey(right);
 }

@@ -56,7 +56,6 @@ export function useProcessDesignerNodeSync({
   function setNodeTypeId(node, typeId) {
     setTypeBinding(node, typeId);
   }
-  const sameTypeId = (a, b) => String(a || '').replace(/_/g, '-') === String(b || '').replace(/_/g, '-');
 
   function v5Record(node = {}) {
     if (String(node?.kind || '').startsWith('cts.')) return true;
@@ -75,18 +74,6 @@ export function useProcessDesignerNodeSync({
         label: `${relation.key} · ${relation.targetType} · ${relation.cardinality}`,
         value: relation.key
       }));
-  }
-
-  // The domain workflow's primary region (falling back to its first): the
-  // single resolution for initial states and status fallback choices.
-  function primaryRegionOf(typeId) {
-    const workflow = designer.domain.workflows?.[typeId];
-    if (!workflow) return null;
-    return workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0] || null;
-  }
-
-  function initialStateForEntity(typeId) {
-    return primaryRegionOf(typeId)?.initial || '';
   }
 
   function constructionContractForEntity(typeId) {
@@ -197,22 +184,20 @@ export function useProcessDesignerNodeSync({
 
   // The field projection's field arrives by wire or authored default
   // (SPEC §20 socket algebra): no pre-defined per-type list, no dropdown.
-  function processNodeFieldOptions(node = {}) {
-    return [];
-  }
 
-  // Status fallback choices for an effect's typed status input: the bound
-  // type's declared top-level states (the domain lifecycle the compiler and
-  // the status engine resolve against).
-  function processStatusOptionsFor(node = {}) {
+  // The one recursive walk over the bound type's projected lifecycle: every
+  // declared state path (nested paths dotted) with its region axis. It backs
+  // the status fallback choices and the transition from/to path options —
+  // one derivation, optionally narrowed to a single axis.
+  function processWorkflowPaths(node = {}, axis = null) {
     const workflow = designer.domain.workflows?.[nodeTypeId(node)];
-    if (!workflow) return [];
     const options = [];
-    for (const [axis, region] of Object.entries(workflow.regions || {})) {
+    for (const [regionAxis, region] of Object.entries(workflow?.regions || {})) {
+      if (axis && regionAxis !== axis) continue;
       const walk = (states = {}, prefix = []) => {
         for (const [name, state = {}] of Object.entries(states)) {
           const path = [...prefix, name].join('.');
-          options.push({ label: state.label || path, value: path, axis });
+          options.push({ label: state.label || path, value: path, axis: regionAxis });
           if (state.states) walk(state.states, [...prefix, name]);
         }
       };
@@ -448,10 +433,6 @@ export function useProcessDesignerNodeSync({
     }
   }
 
-  function applyInferredProcessNodeInputs(record = {}) {
-    if (record?.kind) syncProcessNode(record);
-  }
-
   // Pure port lookup shared by every consumer of handle-shaped ports.
   function portForHandle(ports, handle, direction) {
     const clean = parseProcessSocketHandleId(handle);
@@ -470,31 +451,24 @@ export function useProcessDesignerNodeSync({
     isOpKind,
     nodeTypeId,
     setNodeTypeId,
-    sameTypeId,
-    v5Record,
     catalogPorts,
     catalogContext,
     portForHandle,
     socketPairCompatible,
     relationOptionsForEntity,
-    initialStateForEntity,
-    constructionContractForEntity,
-    constructionInputsForMode,
     constructionModeOptions,
     artifactCreationKinds,
     updateArtifactCreationKinds,
     processNodeInputs,
     processNodeOutputs,
     processNodeOperationOptions,
-    processNodeFieldOptions,
-    processStatusOptionsFor,
+    processWorkflowPaths,
     processTypeIdOptions,
     processNodeSummary,
     processNodeDisplayLabel,
     processNodeDescription,
     connectedProcessInputIds,
     syncEffectTriggerMode,
-    applyInferredProcessNodeInputs,
     syncProcessNode
   };
 }

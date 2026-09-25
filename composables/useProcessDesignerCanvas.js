@@ -1,6 +1,10 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useVueFlow } from '@vue-flow/core';
 
+// The designer side drawers' widths (px) — the placement and context-palette
+// math both offset by the same chrome, so the numbers live in one place.
+export const DESIGNER_DRAWER_WIDTHS = Object.freeze({ palette: 304, inspector: 432 });
+
 // Canvas viewport and interaction: zoom/frame controls, ctrl-wheel zoom at
 // the pointer, keyboard shortcuts (select-all, delete, frame, escape), and
 // coarse-pointer pan defaults. Node placement owns the nearest-unoccupied
@@ -141,8 +145,8 @@ export function useProcessDesignerCanvas({
     const rect = canvasFrame.value?.getBoundingClientRect?.();
     const width = rect?.width || 1200;
     const height = rect?.height || 720;
-    const visibleLeft = 304;
-    const visibleRight = 432;
+    const visibleLeft = DESIGNER_DRAWER_WIDTHS.palette;
+    const visibleRight = DESIGNER_DRAWER_WIDTHS.inspector;
     const visibleCenter = visibleLeft + Math.max(0, width - visibleLeft - visibleRight) / 2;
     return {
       x: Math.round((visibleCenter - Number(viewport.x || 0)) / zoom - 128),

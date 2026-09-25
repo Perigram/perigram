@@ -835,6 +835,16 @@ describe('durable process orchestration', () => {
     expect(isMissingField(missing)).toBe(true);
   });
 
+  it('broadcasts a scalar authored default on a List socket instead of rejecting it', async () => {
+    const definition = process([
+      { id: 'concat', kind: 'collection.concat', inputDefaults: { left: 'a', right: 'b' } }
+    ], ['concat'], []);
+    const result = await previewProcessDataflow(definition, {}, { catalogContext });
+
+    expect(result.nodes.concat.error).toBeUndefined();
+    expect(result.nodes.concat.outputs.value.branches[0].items).toEqual(['a', 'b']);
+  });
+
   it('reports branch paths, item counts, and truncation under a preview limit', async () => {
     const definition = process([
       {

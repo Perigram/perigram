@@ -1167,3 +1167,95 @@ describe('process v4 data execution', () => {
     expect(first.branches[0].items).toEqual([entities[1]]);
   });
 });
+
+describe('native structure species execution', () => {
+  it('concatenates same-type streams through cts.join', async () => {
+    const joined = await executeProcessDataNode(
+      { id: 'join', kind: 'cts.join', typeId: 'project' },
+      {
+        primary: createDataPacket([{ id: 'a' }, { id: 'b' }], 'list'),
+        secondary: createDataPacket([{ id: 'c' }], 'list')
+      }
+    );
+
+    expect(joined).toEqual({ branches: [{ path: [0], items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] }] });
+  });
+
+  it('composes open entries into one block through cts.compose', async () => {
+    const composed = await executeProcessDataNode(
+      { id: 'compose', kind: 'cts.compose', block: 'data', compositionMode: 'entries', entries: [{ id: 'e1', key: 'name' }, { id: 'e2', key: 'count' }] },
+      { 'entry:e1': createDataPacket('One'), 'entry:e2': createDataPacket(2) }
+    );
+
+    expect(composed).toEqual({ branches: [{ path: [], items: [{ name: 'One', count: 2 }] }] });
+  });
+
+  it('composes the empty block when cts.compose declares no entries', async () => {
+    const composed = await executeProcessDataNode({ id: 'compose', kind: 'cts.compose', block: 'data' }, {});
+
+    expect(composed).toEqual({ branches: [{ path: [], items: [{}] }] });
+  });
+
+  it('projects declared blocks from the entity through cts.decompose', async () => {
+    const entity = createDataPacket({ identity: { name: 'One' }, data: { note: 'x' } });
+    const blocks = await executeProcessDataNode(
+      { id: 'decompose', kind: 'cts.decompose', typeId: 'project', blocks: ['identity', 'data'] },
+      { entity }
+    );
+
+    expect(blocks).toEqual({ branches: [{ path: [], items: [{ identity: { name: 'One' }, data: { note: 'x' } }] }] });
+  });
+
+  it('returns the selected block when cts.decompose is pulled from one output', async () => {
+    const one = await executeProcessDataNode(
+      { id: 'decompose', kind: 'cts.decompose', typeId: 'project', blocks: ['identity', 'data'] },
+      { entity: createDataPacket({ identity: { name: 'One' }, data: { note: 'x' } }) },
+      { outputId: 'data' }
+    );
+
+    expect(one).toEqual({ branches: [{ path: [], items: [{ note: 'x' }] }] });
+  });
+
+  it('derives cts.decompose blocks from the field schemas like its ports do', async () => {
+    const one = await executeProcessDataNode(
+      { id: 'decompose', kind: 'cts.decompose', typeId: 'project' },
+      { entity: createDataPacket({ data: { note: 'x' } }) },
+      { outputId: 'data', fieldSchemas: [{ path: 'data.note', block: 'data', type: { base: 'string' }, writable: true }] }
+    );
+
+    expect(one).toEqual({ branches: [{ path: [], items: [{ note: 'x' }] }] });
+  });
+});
+
+describe('stable structural equality', () => {
+  it('compares eq across differing key order', async () => {
+    const result = await executeProcessDataNode(
+      { kind: 'value.logic', operation: 'eq' },
+      { left: createDataPacket({ a: 1, b: 2 }), right: createDataPacket({ b: 2, a: 1 }) }
+    );
+
+    expect(result.branches[0].items).toEqual([true]);
+  });
+
+  it('deduplicates key-order-differing duplicates without keys', async () => {
+    const unique = await executeProcessDataNode(
+      { kind: 'collection.distinct' },
+      { items: createDataPacket([{ a: 1, b: 2 }, { b: 2, a: 1 }, { a: 1, b: 2 }], 'list') }
+    );
+
+    expect(unique.branches[0].items).toEqual([{ a: 1, b: 2 }]);
+  });
+
+  it('groups key-order-differing keys into one group', async () => {
+    const grouped = await executeProcessDataNode(
+      { kind: 'collection.groupBy' },
+      {
+        items: createDataPacket(['x', 'y'], 'list'),
+        keys: createDataPacket([{ group: 1, n: 2 }, { n: 2, group: 1 }], 'list')
+      }
+    );
+
+    expect(grouped.branches).toHaveLength(1);
+    expect(grouped.branches[0].items).toEqual(['x', 'y']);
+  });
+});

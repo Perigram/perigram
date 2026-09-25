@@ -951,7 +951,7 @@ export function entityBlocks(domain = {}, typeId = '') {
   return [...new Set([...(entity?.blocks || []), ...policyBlocks])];
 }
 
-function dynamicBlocks(record, context) {
+export function dynamicBlocks(record, context) {
   const selected = Array.isArray(record.blocks) ? record.blocks : [];
   if (selected.length) return selected;
   return [...new Set([

@@ -3063,6 +3063,35 @@
     "target": "Target",
     "incompatiblePorts": "Connection not allowed",
     "incompatiblePortsDetail": "Cannot connect {source} to {target}.",
+    "connectReasons": {
+      "onlyCurrentNodes": "Only current operation nodes can be connected",
+      "declareSocket": "Declarations wire Field/State nodes into a Class declare input",
+      "nameClassBeforeBinding": "Name the class before binding its type",
+      "typeNodeNoType": "The type node has no selected type",
+      "typePinOnly": "Type bindings wire into the Type pin",
+      "childrenContainment": "{name} is a {kind} class — {kind} classes may not declare lineage children (containment belongs to item, group, or process classes)",
+      "childrenNeedTypeIds": "Both classes need a type id before declaring children",
+      "stateNestSelf": "A state cannot nest inside itself",
+      "stateParentCycle": "A state has one parent state; parent cycles are invalid",
+      "stateWiresLandOnProcessNodes": "State wires land on process nodes",
+      "stateWiresLandOnStatusInputs": "State wires land on status inputs",
+      "fieldWiresLandOnProcessNodes": "Field wires land on process nodes",
+      "fieldWiresLandOnFieldInput": "Field wires land on the field input",
+      "refBaseRequired": "Set the field type to ref before wiring targets",
+      "nameClassBeforeRefTarget": "Name the class before wiring it as a ref target",
+      "typePinOriginOnly": "Only construct and read carry a Type pin — mutates adapt to their entity stream",
+      "theClass": "The parent class"
+    },
+    "socketDirection": {
+      "outbound": "Outbound",
+      "inbound": "Inbound"
+    },
+    "screenPlacements": {
+      "hub": "Hub",
+      "detail": "Detail",
+      "hidden": "Hidden"
+    },
+    "noneOption": "None",
     "filters": "Filters",
     "identifier": "Identifier",
     "userId": "User ID",

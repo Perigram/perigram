@@ -15,7 +15,11 @@ describe('node spec tooltip', () => {
 
   it('v4 records resolve to species descriptions through the operation-kind seam', () => {
     expect(nodeSpecSummary({ kind: 'effect.changeStatus', typeId: 'queue' }, formatProcessType)).toMatch(/state machine/i);
-    expect(nodeSpecSummary({ kind: 'read.currentEntity' }, formatProcessType)).toMatch(/context/i);
+    expect(nodeSpecSummary({ kind: 'record.getField' }, formatProcessType)).toMatch(/pure value/);
+    // v4 read spellings never render: every load migrates them to
+    // `cts.read` + select (reads never reverse), so no species spec
+    // resolves for a retired read kind.
+    expect(nodeSpecSummary({ kind: 'read.currentEntity' }, formatProcessType)).toBe('');
   });
 
   it('socket lines carry type, access, and optionality', () => {

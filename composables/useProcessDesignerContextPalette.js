@@ -1,4 +1,5 @@
 import { nextTick, ref } from 'vue';
+import { DESIGNER_DRAWER_WIDTHS } from './useProcessDesignerCanvas.js';
 
 // The socket-filtered context palette: right-click on empty canvas opens the
 // full palette at that graph position; dropping a wire on empty canvas opens
@@ -57,7 +58,7 @@ export function useProcessDesignerContextPalette({
   function openContextPalette(event, socket) {
     const rect = canvasFrame.value?.getBoundingClientRect?.();
     const point = clientPoint(event);
-    const x = Math.max(8, Math.min((rect?.width || 1200) - 304, point.x - (rect?.left || 0)));
+    const x = Math.max(8, Math.min((rect?.width || 1200) - DESIGNER_DRAWER_WIDTHS.palette, point.x - (rect?.left || 0)));
     const y = Math.max(8, Math.min((rect?.height || 720) - 336, point.y - (rect?.top || 0)));
     contextPalette.value = {
       open: true,

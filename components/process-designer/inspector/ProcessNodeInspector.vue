@@ -207,10 +207,12 @@
 </template>
 
 <script setup>
-// The processNode inspector: authorization rows, the producer-output panel,
-// data matching, output preview, service/join/construction sections. Pure
-// presentation over the selected record — every mutation is an event back
-// to the page's single update/sync entry point.
+// The processNode inspector: effect authorization rows (grants plus the
+// inherited entity-access window), the transition reference, the
+// producer-output panel, output preview, the command-service panel, and
+// the per-kind configuration selects (construction mode, artifact kinds,
+// events, relations). Pure presentation over the selected record — every
+// mutation is an event back to the page's single update/sync entry point.
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
 import { cncUiSurfaces } from '@perigram/domain-cnc';
