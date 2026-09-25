@@ -423,16 +423,42 @@ function nativeFieldPorts(record = {}, context = {}) {
   };
 }
 
+// Native species own their ports directly (SPEC §20): no species resolves
+// by impersonating a retired kind. The legacy record.*/effect.* branches
+// below serve persisted v4 drafts only.
 function nativeCommandPorts(record = {}, context = {}) {
-  return catalogPorts({ ...record, kind: 'effect.runCommand' }, context);
+  const command = context.command || {};
+  return {
+    inputs: [...nativeControlInput(), ...commandInputSockets(command)],
+    outputs: [completedSocket(), ...commandOutputSockets(command)]
+  };
 }
 
 function nativeStructurePorts(record = {}, context = {}) {
-  const classification = ({
-    'cts.compose': 'record.composeBlock',
-    'cts.decompose': 'record.deconstruct'
-  })[record.kind];
-  return catalogPorts({ ...record, kind: classification }, context);
+  if (record.kind === 'cts.decompose') {
+    const blocks = dynamicBlocks(record, context);
+    return {
+      inputs: [socket('entity', processType('entity', { typeId: typeIdOf(record) }), DATA, true)],
+      outputs: blocks.map(block => socket(block, processType('block', { block })))
+    };
+  }
+  // cts.compose: the block substrate, composed of its open entries.
+  const composition = blockComposition({ ...record, kind: 'record.composeBlock' }, context);
+  const entries = openBlockEntries(record, composition);
+  if (composition) {
+    const block = processType('block', { block: record.block || record.slot });
+    return {
+      inputs: entries.map(entry => ({
+        ...socket(`entry:${entry.id}`, openBlockEntryType(entry, composition), DATA, true),
+        label: entryLabel(entry, composition)
+      })),
+      outputs: [socket('block', block)]
+    };
+  }
+  return {
+    inputs: [],
+    outputs: [socket('block', processType('block', { block: record.block || record.slot }))]
+  };
 }
 
 function cts(kind, label, family, level) {
