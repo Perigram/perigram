@@ -136,7 +136,10 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
       // token (SPEC §7): no axis, no parent, no initial flag.
       ...(kind === 'state' ? {
         value: data.value || '',
-        terminal: data.terminal === true
+        terminal: data.terminal === true,
+        ...(data.label ? { label: data.label } : {}),
+        ...(data.severity ? { severity: data.severity } : {}),
+        ...(data.icon ? { icon: data.icon } : {})
       } : {})
     };
   }

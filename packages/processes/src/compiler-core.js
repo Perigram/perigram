@@ -1545,7 +1545,10 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     for (const record of records) {
       region.states[record.value] ||= {
         canUpdateMeta: true,
-        ...(record.terminal === true ? { isTerminal: true } : {})
+        ...(record.terminal === true ? { isTerminal: true } : {}),
+        ...(record.label ? { label: record.label } : {}),
+        ...((record.severity || record.color) ? { severity: record.severity || record.color } : {}),
+        ...(record.icon ? { icon: record.icon } : {})
       };
     }
   }
