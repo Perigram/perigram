@@ -12,7 +12,7 @@ export const DECLARABLE_CLASSES = Object.freeze(CLASSES.filter(className => clas
 // legitimate identity law the extraction surfaced.
 export function checkClassObligations(type = {}, context = {}) {
   const errors = [];
-  const { class: className, payload, fields = {}, edges = {}, states = {} } = type;
+  const { class: className, payload, fields = {}, edges = {} } = type;
   if (!CLASSES.includes(className)) {
     return [`type ${type.id}: unknown class ${className}`];
   }
@@ -26,7 +26,6 @@ export function checkClassObligations(type = {}, context = {}) {
       if (edges?.children) errors.push(`type ${type.id}: file may not declare lineage children`);
       break;
     case 'item':
-      if (!states.main) errors.push(`type ${type.id}: item requires states`);
       if (payload) errors.push(`type ${type.id}: item may not declare payload`);
       break;
     case 'group':
@@ -35,7 +34,6 @@ export function checkClassObligations(type = {}, context = {}) {
       }
       break;
     case 'process':
-      if (!states.main) errors.push(`type ${type.id}: process requires states`);
       if (payload) errors.push(`type ${type.id}: process may not declare payload`);
       break;
     default: break;

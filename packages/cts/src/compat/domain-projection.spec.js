@@ -24,14 +24,7 @@ const orgPanel = {
     serial: { base: 'string' },
     width: { base: 'quantity', unit: 'mm' }
   },
-  edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } },
-  states: {
-    main: {
-      initial: 'available',
-      states: { available: {}, installed: { terminal: true } }
-    }
-  },
-  transitions: [{ axis: 'main', from: 'available', to: 'installed', intent: 'installPanel' }]
+  edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } }
 };
 
 const orgBin = {
@@ -113,17 +106,9 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(projected.commands).toEqual({ doThing: { id: 'doThing' } });
   });
 
-  it('derives workflows from declared states with render policy', () => {
+  it('projects no workflows — machines are graph-derived (SPEC §7)', () => {
     const projected = projectDomainFromView(orgRegistry(), 'org-1');
-    const workflow = projected.workflows.panel;
-    expect(workflow.schemaVersion).toBe(2);
-    expect(workflow.regions.main.initial).toBe('available');
-    expect(Object.keys(workflow.regions.main.states)).toEqual(['available', 'installed']);
-    expect(workflow.regions.main.states.installed.isTerminal).toBe(true);
-    expect(workflow.regions.main.transitions).toEqual([
-      { from: 'available', to: 'installed', intent: 'installPanel' }
-    ]);
-    expect(projected.workflows.cassette).toBeUndefined();
+    expect(projected.workflows).toEqual({});
   });
 
   it('synthesizes field schemas with row fields and lineage from children edges', () => {

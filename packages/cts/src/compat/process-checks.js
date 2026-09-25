@@ -3,7 +3,9 @@
 // availability, lineage); this phase checks the DECLARATIONS the graph
 // touches against a CTS registry view:
 //   - every referenced typeId exists in the org view
-//   - status transitions target declared states of that type
+//   - authored state values target the draft's own state nodes (SPEC §7:
+//     types declare no vocabularies; the draft's state records are the
+//     only source)
 //   - data/specs field paths land inside real rows (slot-aware: node paths
 //     are block paths, row names are slot-stripped). Managed blocks
 //     (identity/origin/status/lineage/relations/provenance/summary/
@@ -14,7 +16,6 @@
 // bindings are positional (typeId/typeId/species-kind `type`), so
 // process-vocabulary descriptor strings are never misread as references.
 import { slotFor } from './field-schema-rows.js';
-import { collectStateEntries } from '../states.js';
 
 const RESERVED_GENERIC_SLOT = 'data.value';
 
@@ -24,14 +25,18 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
   const statesByType = new Map();
   const rowRootsByType = new Map();
   for (const type of view.values()) {
-    statesByType.set(type.id, new Map(Object.entries(type.states || {}).map(([axisName, axis]) => [
-      axisName,
-      new Set(collectStateEntries(axis).map(entry => entry.path))
-    ])));
     rowRootsByType.set(type.id, allowedFieldRoots(type));
   }
-
   const data = processDefinition?.data || processDefinition || {};
+  // The state vocabulary is draft authoring (SPEC §7): ctsState records
+  // carry it, scoped by typeId. Nothing outside the draft supplies or
+  // constrains state values.
+  for (const record of Object.values(data.ctsTypes || {})) {
+    if (record?.kind !== 'state' || !record.typeId || !record.value) continue;
+    const values = statesByType.get(record.typeId) || new Set();
+    values.add(String(record.value));
+    statesByType.set(record.typeId, values);
+  }
   // The canvas graph is presentation (Vue Flow node/edge types, positions,
   // viewport) — declaration checks read semantic records only. Walking it
   // would misread card kinds such as `ctsField` as referenced type ids.
@@ -64,18 +69,17 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
     if (typeId && !view.has(typeId) && !path.startsWith('producerOutputs') && !path.startsWith('sockets')) {
       errors.push(`${path} references unknown type ${typeId}`);
     }
-    if (!typeId || !statesByType.has(typeId)) return;
-    const axes = statesByType.get(typeId);
-    const axisName = node.axis || node.state?.axis || 'main';
-    const states = axes.get(axisName);
-    if (states) {
+    if (typeId) {
       const targets = [
-        ...['status', 'targetState', 'stateTo', 'toState', 'to'].map(key => node[key]),
-        node.state?.to
+        node.state?.to,
+        node.inputDefaults?.state
       ].filter(value => typeof value === 'string' && value);
-      for (const value of targets) {
-        if (!states.has(value)) {
-          errors.push(`${path} moves ${typeId}.${axisName} to undeclared state ${value}`);
+      if (targets.length) {
+        const states = statesByType.get(typeId) || new Set();
+        for (const value of targets) {
+          if (!states.has(value)) {
+            errors.push(`${path} moves ${typeId} to undeclared state ${value}`);
+          }
         }
       }
     }

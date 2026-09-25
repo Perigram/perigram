@@ -1,9 +1,9 @@
 // Display-policy derivation (SPEC §4/§7): naming is authored vocabulary
-// (name/glyph/field labels on declarations), grouping and state display
-// derive at compile time, and machine ids never reach the user plane
-// (this is where hand-mirrored status tables die).
+// (name/glyph/field labels on declarations), grouping derives at compile
+// time, and machine ids never reach the user plane (this is where
+// hand-mirrored status tables die). State display resolves from flat
+// vocabularies carried by compiled process contracts (§7).
 import { schemaFor } from './registry.js';
-import { collectStateEntries } from './states.js';
 
 const ICON_BY_CLASS = Object.freeze({
   party: 'pi pi-users', file: 'pi pi-file', item: 'pi pi-box',
@@ -47,27 +47,25 @@ export function deriveSections(fields = {}) {
   );
 }
 
-// Per-state display policy resolved onto every canonical path (SPEC §7):
-// the local name supplies the default label, while terminal severity is
-// explicit state policy rather than inferred from missing transitions.
-function resolvedStateDisplay(states = {}) {
-  return Object.freeze(Object.fromEntries(Object.entries(states).map(([axisName, axis]) => [
-    axisName,
-    Object.freeze(Object.fromEntries(collectStateEntries(axis).map(({ path, node }) => {
-      const localName = path.split('.').at(-1);
-      const policy = { ...(axis.render?.[path] || {}), ...(node.policy || {}) };
-      return [path, Object.freeze({
-        label: policy.label || startCase(localName),
-        icon: policy.icon || null,
-        severity: policy.severity || (node.terminal === true ? 'secondary' : 'info')
-      })];
-    })))
-  ])));
+// Per-state display policy resolved from a flat vocabulary (SPEC §7): the
+// value supplies the default label, terminal severity is explicit state
+// policy rather than inferred from missing transitions. Types declare no
+// vocabularies; this resolves the vocabulary a compiled contract carries.
+export function resolvedStateDisplay(vocabulary = {}) {
+  return Object.freeze(Object.fromEntries(Object.entries(vocabulary).map(([value, declaration = {}]) => {
+    const policy = declaration.policy || {};
+    return [value, Object.freeze({
+      label: policy.label || startCase(value),
+      icon: policy.icon || null,
+      severity: policy.severity || (declaration.terminal === true ? 'secondary' : 'info')
+    })];
+  })));
 }
 
 // Derivation-only display policy: the pieces the client bundle attaches
 // beyond the declaration's own record. `name` passes through verbatim
-// (null → consumers render "Unnamed").
+// (null → consumers render "Unnamed"). State display is not type-derived:
+// it rides compiled process contracts from the draft's state nodes (§7).
 export function renderPolicyFor(type = {}) {
   const glyph = type.glyph || ICON_BY_CLASS[type.class] || 'pi pi-circle';
   const flagged = flag => Object.keys(type.fields || {}).find(name => type.fields[name][flag] === true) || null;
@@ -76,8 +74,7 @@ export function renderPolicyFor(type = {}) {
     glyph,
     identifier: flagged('identifier'),
     depiction: Object.freeze({ glyph, thumb: flagged('depiction') }),
-    sections: deriveSections(type.fields || {}),
-    states: resolvedStateDisplay(type.states || {})
+    sections: deriveSections(type.fields || {})
   });
 }
 
@@ -85,7 +82,7 @@ export function renderPolicyFor(type = {}) {
 // view with schemas and derived display policy attached. The frontend
 // never reads domain package code — it reads this. There is no `render`
 // key: `name`/`glyph`/`identifier`/`depiction`/`sections` are the display
-// vocabulary, per-state display rides the state axes.
+// vocabulary.
 export function compileClientBundle(registry, organizationId = null) {
   const compiled = registry.compile(organizationId);
   return Object.freeze({
@@ -105,13 +102,9 @@ export function compileClientBundle(registry, organizationId = null) {
         depiction: policy.depiction,
         fields: type.fields,
         sections: policy.sections,
-        states: Object.freeze(Object.fromEntries(Object.entries(type.states || {}).map(([axisName, axis]) => [
-          axisName, Object.freeze({ ...axis, render: policy.states[axisName] })
-        ]))),
         payload: type.payload,
         previewSource: type.previewSource || null,
         edges: type.edges,
-        transitions: type.transitions,
         operators: type.operators,
         revisions: type.revisions,
         schema: schemaFor(type)

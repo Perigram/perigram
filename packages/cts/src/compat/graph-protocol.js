@@ -12,7 +12,6 @@
 //   exists, state declared, field in row) beside R1-R6.
 import { SPECIES_BY_EFFECT_KIND } from './process-grammar.js';
 import { classMayDeclareChildren } from '../classes.js';
-import { findState, mergeTransitionNodeStates } from '../states.js';
 
 const CTS_KIND = Object.freeze({
   construct: 'cts.construct',
@@ -391,43 +390,18 @@ function v4KindFor(node) {
 // and land in the registry at APPLY. This projects them back into
 // declaration objects — the same shape compileTreeDeclarations emits — so
 // acceptance gates can validate a draft against its own declarations
-// before they are posted. State-to-state transitions are canvas wires and
-// are not part of the persisted record set, but transition NODES are
-// persisted process records: their inline target statuses (SPEC §20 —
-// `state` payload: to/label/severity/icon/terminal/intent) merge into the
-// projected axis through the same shared core the canvas compile uses.
-// `type`-kind records are registry references, not declarations.
+// before they are posted. State records declare no type facet (SPEC §7):
+// their values are draft vocabulary consumed by validation and the
+// compiled process contract. `type`-kind records are registry references,
+// not declarations.
 export function declarationsFromCtsRecords(records = {}, processNodes = {}, graph = {}) {
   const byKind = kind => Object.values(records || {}).filter(record => record?.kind === kind);
-  const transitionsByType = transitionNodeStateTargets(processNodes);
-  const recordIdByGraphNode = new Map((graph?.nodes || [])
-    .filter(node => node?.type === 'ctsState' && node.data?.refId)
-    .map(node => [String(node.id), String(node.data.refId)]));
   const classRecordIdByGraphNode = new Map((graph?.nodes || [])
     .filter(node => node?.type === 'ctsClass' && node.data?.refId)
     .map(node => [String(node.id), String(node.data.refId)]));
-  const parentOf = new Map();
   const childrenEdges = [];
-  const entryStateByType = new Map();
-  const processRecordIdByGraphNode = new Map((graph?.nodes || [])
-    .filter(node => node?.type === 'processNode' && node.data?.refId)
-    .map(node => [String(node.id), String(node.data.refId)]));
   for (const edge of graph?.edges || []) {
     if (edge.role !== 'type') continue;
-    if (edge.label === 'entry') {
-      const stateId = recordIdByGraphNode.get(String(edge.source));
-      const processRecordId = processRecordIdByGraphNode.get(String(edge.target));
-      const processRecord = processRecordId ? processNodes[processRecordId] : null;
-      const typeId = String(processRecord?.typeId || '');
-      if (stateId && typeId) entryStateByType.set(typeId, stateId);
-      continue;
-    }
-    if (edge.label === 'nested') {
-      const child = recordIdByGraphNode.get(String(edge.source));
-      const parent = recordIdByGraphNode.get(String(edge.target));
-      if (child && parent) parentOf.set(child, parent);
-      continue;
-    }
     if (edge.label === 'children') {
       const parent = classRecordIdByGraphNode.get(String(edge.source));
       const child = classRecordIdByGraphNode.get(String(edge.target));
@@ -459,70 +433,9 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
         ...(field.descriptor?.label || fieldId === field.name ? {} : { label: field.name })
       };
     }
-
-    const stateRecords = byKind('state')
-      .filter(state => state.typeId === cls.typeId && state.value)
-      .map(state => ({ ...state, id: String(state.id || state.refId || state.value) }));
-    const recordById = new Map(stateRecords.map(state => [state.id, state]));
-    for (const state of stateRecords) {
-      if (state.parentStateId && recordById.has(String(state.parentStateId))) {
-        parentOf.set(state.id, String(state.parentStateId));
-      }
-    }
-
-    const byAxis = new Map();
-    for (const state of stateRecords) {
-      const axis = String(state.axis || 'main');
-      byAxis.set(axis, [...(byAxis.get(axis) || []), state]);
-    }
-    declaration.states = {};
-    declaration.transitions = [];
-    for (const [axis, states] of byAxis) {
-      const childrenOf = new Map(states.map(state => [state.id, []]));
-      const roots = [];
-      for (const state of states) {
-        const parentId = parentOf.get(state.id);
-        if (parentId && childrenOf.has(parentId)) childrenOf.get(parentId).push(state);
-        else roots.push(state);
-      }
-      const build = statesFor => Object.fromEntries(statesFor.map(state => {
-        const children = childrenOf.get(state.id) || [];
-        const selectedChild = children.find(child => child.initial === true) || children[0];
-        const policy = {
-          ...(state.label ? { label: state.label } : {}),
-          ...(state.severity ? { severity: state.severity } : {}),
-          ...(state.icon ? { icon: state.icon } : {})
-        };
-        const node = {
-          ...(state.terminal === true ? { terminal: true } : {}),
-          ...(children.length ? { initial: selectedChild.value } : {}),
-          ...(Object.keys(policy).length ? { policy } : {})
-        };
-        if (children.length) node.states = build(children);
-        return [state.value, node];
-      }));
-      const entryRootId = entryStateByType.get(cls.typeId);
-      const initialRoot = roots.find(state => state.id === entryRootId)
-        || roots.find(state => state.initial === true)
-        || roots[0];
-      if (!initialRoot) continue;
-      declaration.states[axis] = {
-        initial: initialRoot.value,
-        states: build(roots)
-      };
-      const transitions = (transitionsByType.get(cls.typeId) || [])
-        .filter(transition => transition.axis === axis
-          && findState(declaration.states[axis], transition.from)
-          && findState(declaration.states[axis], transition.to));
-      const merged = mergeTransitionNodeStates({
-        machine: declaration.states[axis],
-        transitions
-      });
-      declaration.states[axis] = merged;
-      declaration.transitions.push(...merged.transitions);
-    }
-    if (!Object.keys(declaration.states).length) delete declaration.states;
-    if (!declaration.transitions.length) delete declaration.transitions;
+    // State records declare no type facet (SPEC §7): the vocabulary is
+    // draft authoring consumed by validation and the compiled process
+    // contract; the posted declaration carries fields and edges only.
 
     const children = new Map();
     for (const { edge, parent, child } of childrenEdges) {
@@ -556,9 +469,9 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
 }
 
 // Transition-node target statuses (SPEC §20): a bound, non-archive
-// transition record authors its target status inline on its `state`
-// payload (the persisted v5 `target` key reads identically). Extracted
-// per bound type — the vocabulary seam both declaration compiles share.
+// A transition node's authored target (SPEC §7): the `state.to` payload or
+// the state socket's authored default. Extracted per bound type as the set
+// of target values — the vocabulary seam the compiled contract consumes.
 // A record without a binding or target contributes nothing (unfinished
 // authoring, like an unnamed field).
 export function transitionNodeStateTargets(processNodes = {}) {
@@ -566,17 +479,11 @@ export function transitionNodeStateTargets(processNodes = {}) {
   for (const record of Object.values(processNodes || {})) {
     if (operationKindOf(record || {}) !== 'effect.changeStatus') continue;
     const typeId = String(record.typeId || '');
-    const axis = String(record.state?.axis || 'main');
-    const from = String(record.state?.from || '').trim();
-    const to = String(record.state?.to || record.target || '').trim();
-    if (!typeId || !from || !to) continue;
-    const transition = { axis, from, to };
-    if (record.state?.intent) transition.intent = record.state.intent;
-    const list = byType.get(typeId) || [];
-    if (!list.some(existing => existing.axis === axis && existing.from === from && existing.to === to)) {
-      list.push(transition);
-    }
-    byType.set(typeId, list);
+    const to = String(record.state?.to || record.inputDefaults?.state || record.target || '').trim();
+    if (!typeId || !to) continue;
+    const values = byType.get(typeId) || new Set();
+    values.add(to);
+    byType.set(typeId, values);
   }
   return byType;
 }

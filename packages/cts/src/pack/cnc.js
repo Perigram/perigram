@@ -1,20 +1,8 @@
 // CNC starter type pack (SPEC §16): the acceptance fixture. Every family of
 // the collapse table (§15) appears: file, item, group, process, edges,
-// operators, triggers, payload traits.
+// operators, triggers, payload traits. State vocabularies are process-graph
+// authoring (SPEC §7) and never ride pack declarations.
 import { quantity } from '../units.js';
-
-function simpleMachine({ initial, values, terminal = [] }) {
-  const terminalStates = new Set(terminal);
-  return {
-    main: {
-      initial,
-      states: Object.fromEntries(values.map(value => [
-        value,
-        terminalStates.has(value) ? { terminal: true } : {}
-      ]))
-    }
-  };
-}
 
 export const partyTypes = [
   { id: 'organization', class: 'party', name: 'Organization', fields: { name: { base: 'string' }, email: { base: 'string', nullable: true } } },
@@ -88,26 +76,7 @@ export const cncTypePack = [
         area: { base: 'quantity', unit: 'm2' } } },
       material: { base: 'ref', accepts: ['material'] },
       placed: { base: 'list', itemType: { base: 'ref', accepts: ['part'] } }
-    },
-    states: {
-      main: {
-        initial: 'available',
-        states: {
-          available: {
-            initial: 'queued',
-            states: { queued: {}, cutting: {} }
-          },
-          milled: {},
-          scrap: { terminal: true }
-        }
-      }
-    },
-    transitions: [
-      { axis: 'main', from: 'available.queued', to: 'available.cutting' },
-      { axis: 'main', from: 'available.cutting', to: 'milled', intent: 'completeMilling' },
-      { axis: 'main', from: 'available', to: 'scrap' },
-      { axis: 'main', from: 'available.cutting', to: 'scrap' }
-    ]
+    }
   },
   {
     id: 'part',
@@ -119,17 +88,7 @@ export const cncTypePack = [
       design: { base: 'ref', accepts: ['cut-plan'] },
       placedOn: { base: 'ref', accepts: ['sheet'], nullable: true }
     },
-    edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } },
-    states: {
-      main: {
-        initial: 'cut',
-        states: { cut: {}, milled: {}, installed: { terminal: true } }
-      }
-    },
-    transitions: [
-      { axis: 'main', from: 'cut', to: 'milled', intent: 'millPart' },
-      { axis: 'main', from: 'milled', to: 'installed', intent: 'installPart' }
-    ]
+    edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } }
   },
   {
     id: 'project',
@@ -137,12 +96,7 @@ export const cncTypePack = [
     class: 'group',
     version: 1,
     fields: { name: { base: 'string' } },
-    edges: { children: { members: { types: ['queue', 'facade'], onRemove: 'restrict' } } },
-    states: simpleMachine({ initial: 'draft', values: ['draft', 'active', 'archived'], terminal: ['archived'] }),
-    transitions: [
-      { axis: 'main', from: 'draft', to: 'active', intent: 'activateProject' },
-      { axis: 'main', from: 'active', to: 'archived', intent: 'archiveProject' }
-    ]
+    edges: { children: { members: { types: ['queue', 'facade'], onRemove: 'restrict' } } }
   },
   {
     id: 'facade',
@@ -153,9 +107,7 @@ export const cncTypePack = [
       name: { base: 'string' },
       patterns: { base: 'list', itemType: { base: 'ref', accepts: ['photo'] } }
     },
-    edges: { children: { parts: { types: ['part'], onRemove: 'restrict' } } },
-    states: simpleMachine({ initial: 'draft', values: ['draft', 'active', 'archived'], terminal: ['archived'] }),
-    transitions: [{ axis: 'main', from: 'draft', to: 'active' }, { axis: 'main', from: 'active', to: 'archived' }]
+    edges: { children: { parts: { types: ['part'], onRemove: 'restrict' } } }
   },
   {
     id: 'queue',
@@ -173,14 +125,6 @@ export const cncTypePack = [
     edges: {
       children: { runs: { types: ['solve-run'], onRemove: 'cascade' } }
     },
-    states: simpleMachine({ initial: 'draft', values: ['draft', 'nesting', 'ready', 'error', 'closed'], terminal: ['closed'] }),
-    transitions: [
-      { axis: 'main', from: 'draft', to: 'nesting', intent: 'requestNesting' },
-      { axis: 'main', from: 'nesting', to: 'ready', intent: 'completeNestingProduction' },
-      { axis: 'main', from: 'nesting', to: 'error', intent: 'nestingSolveFailed' },
-      { axis: 'main', from: 'ready', to: 'closed', intent: 'closeQueue' },
-      { axis: 'main', from: 'error', to: 'draft', intent: 'resetQueue' }
-    ],
     operators: {
       solve: { id: 'solve', species: 'conversion',
         input: { base: 'ref', accepts: ['queue'] },
@@ -197,14 +141,7 @@ export const cncTypePack = [
       title: { base: 'string', identifier: true, label: 'Title', nullable: true },
       outputs: { base: 'list', itemType: { base: 'ref', accepts: ['cut-plan', 'sheet'] }, nullable: true }
     },
-    edges: { provenance: { solved: { types: ['queue'], onRemove: 'restrict' } } },
-    states: simpleMachine({ initial: 'nesting', values: ['nesting', 'complete', 'failed', 'chosen'], terminal: ['chosen'] }),
-    transitions: [
-      { axis: 'main', from: 'nesting', to: 'complete', intent: 'nestingSolveCompleted' },
-      { axis: 'main', from: 'nesting', to: 'failed', intent: 'nestingSolveFailed' },
-      { axis: 'main', from: 'complete', to: 'chosen', intent: 'acceptNestingRun' },
-      { axis: 'main', from: 'failed', to: 'failed' }
-    ]
+    edges: { provenance: { solved: { types: ['queue'], onRemove: 'restrict' } } }
   }
 ];
 
@@ -243,7 +180,7 @@ export const packFixtures = {
       material: { type: 'material', id: 'mat-1' },
       placed: []
     },
-    states: { main: 'available.queued' }
+    state: 'queued'
   },
   queueInstance: {
     type: 'queue',
@@ -252,6 +189,6 @@ export const packFixtures = {
       job: [{ item: { type: 'occs', id: 'occ-1' }, qty: 4, params: { t: quantity(19, 'mm') } }],
       materialPool: null
     },
-    states: { main: 'draft' }
+    state: 'draft'
   }
 };

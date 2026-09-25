@@ -4,15 +4,6 @@
 // covering every breaking change; the server boundary executes covered
 // steps against instances. Rename intent is never inferred from the diff —
 // it is declared step territory.
-import { collectStateEntries } from './states.js';
-
-function statePathsByAxis(states = {}) {
-  return Object.fromEntries(Object.entries(states).map(([axisName, axis]) => [
-    axisName,
-    collectStateEntries(axis).map(entry => entry.path)
-  ]));
-}
-
 export function diffTypes(previous = {}, next = {}) {
   const changes = [];
   const previousRow = previous.fields || {};
@@ -40,27 +31,6 @@ export function diffTypes(previous = {}, next = {}) {
     }
   }
 
-  const previousStates = statePathsByAxis(previous.states || {});
-  const nextStates = statePathsByAxis(next.states || {});
-  for (const [axisName, previousPaths] of Object.entries(previousStates)) {
-    const nextPaths = nextStates[axisName] || [];
-    for (const statePath of previousPaths) {
-      if (!nextPaths.includes(statePath)) {
-        changes.push({ severity: 'breaking', kind: 'remove-state', axis: axisName, state: statePath });
-      }
-    }
-  }
-  // Additive canonical paths are minor: a new node/axis extends the machine
-  // without invalidating stored leaf paths. A rename is never inferred from
-  // the remove/add pair; it is declared migration intent.
-  for (const [axisName, nextPaths] of Object.entries(nextStates)) {
-    const previousPaths = previousStates[axisName] || [];
-    for (const statePath of nextPaths) {
-      if (!previousPaths.includes(statePath)) {
-        changes.push({ severity: 'minor', kind: 'add-state', axis: axisName, state: statePath });
-      }
-    }
-  }
   const previousChildren = Object.keys(previous.edges?.children || {});
   const nextChildren = Object.keys(next.edges?.children || {});
   for (const key of previousChildren) {
@@ -90,7 +60,7 @@ export function requireCompatible(previous, next) {
   return plan.diff;
 }
 
-const STEP_KINDS = ['rename-enum-value', 'rename-field', 'add-default-field', 'remove-field', 'retype-field'];
+const STEP_KINDS = ['rename-field', 'add-default-field', 'remove-field', 'retype-field'];
 
 function nonEmpty(value) {
   return typeof value === 'string' && value.length > 0 ? value : null;
@@ -102,14 +72,6 @@ export function normalizeMigrateSteps(steps) {
   return steps.map(step => {
     const kind = nonEmpty(step?.kind);
     if (!STEP_KINDS.includes(kind)) throw new Error(`unknown migration step kind ${step?.kind}`);
-    if (kind === 'rename-enum-value') {
-      const from = nonEmpty(step.from);
-      const to = nonEmpty(step.to);
-      const axis = nonEmpty(step.axis);
-      if (!from || !to) throw new Error('rename-enum-value requires from and to');
-      if (!axis) throw new Error('rename-enum-value requires axis');
-      return { kind, axis, from, to };
-    }
     if (kind === 'rename-field') {
       const from = nonEmpty(step.from);
       const to = nonEmpty(step.to);
@@ -137,13 +99,11 @@ export function normalizeMigrateSteps(steps) {
 }
 
 function labelOf(step) {
-  if (step.kind === 'rename-enum-value') return `${step.kind} ${step.axis}.${step.from} -> ${step.to}`;
   if (step.kind === 'rename-field') return `${step.kind} ${step.from} -> ${step.to}`;
   return `${step.kind} ${step.field}`;
 }
 
 function changeLabel(change) {
-  if (change.kind === 'remove-state') return `remove-state ${change.axis}.${change.state}`;
   if (change.kind === 'remove-edge') return `remove-edge ${change.edge}`;
   return `${change.kind} ${change.field}`;
 }
@@ -151,9 +111,8 @@ function changeLabel(change) {
 // The one planner: diff + normalized steps + coverage verdict. Every
 // breaking change needs one covering step; every declared step must match
 // a breaking change (stale steps fail the gate instead of rotting on the
-// declaration); rename-enum-value targets must exist in the next enum.
-// remove-edge is coverable by nothing (SPEC §11 names no edge step) and
-// stays a refusal.
+// declaration). remove-edge is coverable by nothing (SPEC §11 names no
+// edge step) and stays a refusal.
 export function planTypeMigration(previous = {}, next = {}) {
   const diff = diffTypes(previous, next);
   let steps;
@@ -164,29 +123,10 @@ export function planTypeMigration(previous = {}, next = {}) {
   }
   const breaking = diff.changes.filter(change => change.severity === 'breaking');
   const errors = [];
-  const nextStates = statePathsByAxis(next.states || {});
   const used = new Array(steps.length).fill(false);
   const renameAddsCovered = new Set();
 
-  for (const step of steps) {
-    if (step.kind === 'rename-enum-value' && !(nextStates[step.axis] || []).includes(step.to)) {
-      errors.push(`rename-enum-value target ${step.axis}.${step.to} is not a state of the next declaration`);
-    }
-  }
-
   for (const change of breaking) {
-    if (change.kind === 'remove-state') {
-      const index = steps.findIndex((step, i) => !used[i]
-        && step.kind === 'rename-enum-value'
-        && step.axis === change.axis
-        && step.from === change.state);
-      if (index === -1) {
-        errors.push(`${changeLabel(change)} requires a rename-enum-value step`);
-      } else {
-        used[index] = true;
-      }
-      continue;
-    }
     if (change.kind === 'remove-field') {
       const index = steps.findIndex((step, i) => !used[i]
         && (step.kind === 'remove-field' && step.field === change.field

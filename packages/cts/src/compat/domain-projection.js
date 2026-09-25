@@ -1,18 +1,18 @@
 // Domain projection (SPEC §13/§15/§19, after the legacy cut): projects a
 // CTS registry view onto the compiler-consumable domain shape — synthesis
-// only. Every type in the view derives its entities entry, workflow,
-// field schemas, field access, containment, construction, relations, and
-// attachment kinds from its declaration. Nothing passes through from the
-// base domain: legacy entity tables are not read. The base contributes
-// operator contracts (commands/tasks/hooks), the framework canonical
-// block vocabulary, UI metadata, and pack service registrations only.
+// only. Every type in the view derives its entities entry, field
+// schemas, field access, containment, construction, relations, and
+// attachment kinds from its declaration. Workflows are graph-derived and
+// never projected (SPEC §7). Nothing passes through from the base domain:
+// legacy entity tables are not read. The base contributes operator
+// contracts (commands/tasks/hooks), the framework canonical block
+// vocabulary, UI metadata, and pack service registrations only.
 //
 // This is the single translator between the declaration layer and the
 // process grammar — the designer and the compiler consume only this.
 import { rowToFieldSchemas, slotFor } from './field-schema-rows.js';
 import { lineageKeyForParent } from '../edges.js';
 import { renderPolicyFor } from '../render.js';
-import { initialStatePath } from '../states.js';
 
 // Per-class instance collections (SPEC §13): the single home of the
 // storage mapping; the server instance repository imports this map.
@@ -100,50 +100,10 @@ function withAccessFlags(schema, policy) {
   };
 }
 
-// The declaration→machine seam (SPEC §7/§13): one home for deriving a
-// normalized v2 workflow from a compiled type declaration. The domain
-// projection's `workflows` and the server's status-engine fallback
-// (workflow-overrides) both read this — authored declarations execute as
-// machines wherever a machine is needed, in exactly one shape. Returns
-// null for types without a declared axis (no synthesized lifecycle).
-export function declarationWorkflow(type = {}) {
-  const axes = Object.entries(type.states || {});
-  if (!axes.length) return null;
-  const display = renderPolicyFor(type).states || {};
-  const regions = Object.fromEntries(axes.map(([axisName, axis]) => {
-    const projectNode = (states = {}, prefix = []) => Object.fromEntries(
-      Object.entries(states).map(([name, node = {}]) => {
-        const path = [...prefix, name].join('.');
-        const policy = display[axisName]?.[path] || {};
-        return [name, {
-          ...(node.terminal === true ? { isTerminal: true } : {}),
-          canUpdateMeta: node.terminal !== true,
-          ...(node.states ? { initial: node.initial, states: projectNode(node.states, [...prefix, name]) } : {}),
-          ...(policy.label ? { label: policy.label } : {}),
-          ...(policy.icon ? { icon: policy.icon } : {}),
-          ...(policy.severity ? { severity: policy.severity } : {})
-        }];
-      })
-    );
-    return [axisName, {
-      label: axisName === 'main' ? 'Lifecycle' : axisName,
-      initial: initialStatePath(axis),
-      states: projectNode(axis.states),
-      transitions: (type.transitions || [])
-        .filter(transition => transition.axis === axisName)
-        .map(transition => ({
-          from: transition.from,
-          to: transition.to,
-          ...(transition.intent ? { intent: transition.intent } : {})
-        }))
-    }];
-  }));
-  return {
-    schemaVersion: 2,
-    primaryRegion: regions.main ? 'main' : axes[0][0],
-    regions
-  };
-}
+// Workflows are graph-derived, never type-projected (SPEC §7): state
+// vocabularies live in process definitions as state nodes feeding create
+// and transition sockets. The domain projection carries no workflows; the
+// compiled process contract owns machines wherever a machine is needed.
 
 export function projectDomainFromView(registry, organizationId = null, baseDomain = {}, { packServices = null } = {}) {
   const view = registry.resolveView ? registry.resolveView(organizationId) : new Map();
@@ -217,22 +177,17 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     }
     fieldSchemas[type.id] = [
       ...CORE_BLOCK_FIELDS.filter(field => blocks.has(field.block) || field.path === '_id'),
-      ...Object.keys(type.states || {}).map(axisName => coreField(`states.${axisName}`, 'status', 'status', { constructible: false })),
+      coreField('state', 'status', 'status', { constructible: false }),
       ...lineageFields,
       ...relationFields,
       ...rowEntries
     ].map(schema => withAccessFlags(schema, fieldAccess[type.id]));
   }
 
-  // workflows: declared states/transitions with display policy (SPEC §7) —
-  // derived by the exported declarationWorkflow seam below, shared with
-  // the server's status-engine machine resolution so a declared lifecycle
-  // compiles to exactly one machine shape everywhere.
+  // workflows: graph-derived, never projected (SPEC §7) — state
+  // vocabularies live in process definitions; the compiled contract owns
+  // machines.
   const workflows = {};
-  for (const type of types) {
-    const workflow = declarationWorkflow(type);
-    if (workflow) workflows[type.id] = workflow;
-  }
 
   // containment: children edges rebuild the lineage contract; org edges
   // default to the camel-case key convention.

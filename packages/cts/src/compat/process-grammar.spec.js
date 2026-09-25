@@ -15,16 +15,17 @@ function registryWithOrgType() {
   }
   registry.defineType({
     id: 'widget', class: 'file', scope: 'org', organizationId: 'org-1',
-    fields: { name: { base: 'string' }, stage: { base: 'enum', values: ['raw', 'done'] } },
-    states: {
-      main: {
-        initial: 'raw',
-        states: { raw: {}, done: { terminal: true } }
-      }
-    },
-    transitions: [{ axis: 'main', from: 'raw', to: 'done', intent: 'finish' }]
+    fields: { name: { base: 'string' }, stage: { base: 'enum', values: ['raw', 'done'] } }
   });
   return registry;
+}
+
+// The draft's own state records are the state vocabulary (SPEC §7).
+function draftStateRecords() {
+  return {
+    s1: { id: 's1', kind: 'state', typeId: 'widget', value: 'raw' },
+    s2: { id: 's2', kind: 'state', typeId: 'widget', value: 'done', terminal: true }
+  };
 }
 
 describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
@@ -54,12 +55,12 @@ describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
     expect(ctsFieldToProcessType({ base: 'variant', tags: ['a'] }).lossy).toBeTruthy();
   });
 
-  it('derives a shared enum registry for states and enum fields', () => {
+  it('derives the shared enum registry for enum fields only', () => {
     const registry = registryWithOrgType();
     const enums = enumRegistryForView(registry.listTypes('org-1'));
-    expect(enums['widget#main']).toEqual(['raw', 'done']);
     expect(enums['widget#stage']).toEqual(['raw', 'done']);
-    expect(enums['queue#main']).toEqual(expect.arrayContaining(['draft', 'nesting']));
+    // State vocabularies never project (SPEC §7): no typeId#axis ids.
+    expect(Object.keys(enums).some(id => id.endsWith('#main'))).toBe(false);
   });
 
   it('classifies the effect node family into CTS species', () => {
@@ -93,16 +94,16 @@ describe('declaration-check phase', () => {
     expect(errors).toContain('Socket s1 references unknown type ghost');
   });
 
-  it('rejects transitions to undeclared states and fields outside real rows', () => {
+  it('rejects state values outside the draft state records and fields outside real rows', () => {
     const registry = registryWithOrgType();
     const errors = checkDeclarationsAgainstCts({
       data: {
+        ctsTypes: draftStateRecords(),
         producerOutputs: { w: { typeId: 'widget' }, q: { typeId: 'queue' } },
-        actions: {
-          bad: { actionKind: 'changeStatus', typeId: 'widget', targetState: 'FLYING' },
-          good: { actionKind: 'changeStatus', typeId: 'widget', targetState: 'done' }
-        },
         processNodes: {
+          bad: { kind: 'cts.transition', typeId: 'widget', state: { to: 'FLYING' } },
+          good: { kind: 'cts.transition', typeId: 'widget', state: { to: 'done' } },
+          defaulted: { kind: 'cts.construct', typeId: 'widget', inputDefaults: { state: 'raw' } },
           n1: { kind: 'record.getField', typeId: 'widget', field: 'data.name' },
           n2: { kind: 'record.getField', typeId: 'widget', field: 'data.rogue' },
           n3: { kind: 'record.getField', typeId: 'queue', field: 'data.job' },
@@ -111,7 +112,9 @@ describe('declaration-check phase', () => {
         }
       }
     }, registry, 'org-1');
-    expect(errors).toContainEqual(expect.stringMatching(/moves widget\.main to undeclared state FLYING/));
+    expect(errors).toContainEqual(expect.stringMatching(/moves widget to undeclared state FLYING/));
+    expect(errors).not.toContainEqual(expect.stringMatching(/moves widget to undeclared state done/));
+    expect(errors).not.toContainEqual(expect.stringMatching(/moves widget to undeclared state raw/));
     expect(errors).toContainEqual(expect.stringMatching(/uses field data.rogue outside the widget row/));
     // queue rows are declared: the job root resolves, unknown roots fail,
     // managed blocks (identity) are policy facets, not rows

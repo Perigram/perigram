@@ -10,7 +10,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS, initialStatePath, lineageKeyForParent } from '~/packages/cts/src/index.js';
+import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
@@ -105,7 +105,7 @@ export function staticTypeDeclaration(typeId) {
 }
 
 // Stored shape (SPEC §3): { _id, type, typeVersion, organizationId, name,
-// fields, states, lineage, relations, createdAt, updatedAt }. Tenancy is
+// fields, state, lineage, relations, createdAt, updatedAt }. Tenancy is
 // the top-level `organizationId` slot; `lineage` holds pure tree edges —
 // the wire DTO's `lineage.organizationId` is a boundary projection owned
 // here (create maps it to the slot, toDto re-projects it for the legacy
@@ -121,13 +121,12 @@ function wireFieldsSplit(fields = {}, declaration = {}) {
   return { data, specs };
 }
 
-function initialStatesFor(declaration = {}, supplied = {}) {
-  const axes = Object.entries(declaration.states || {});
-  if (!axes.length) return { main: supplied.main || 'CREATED' };
-  return Object.fromEntries(axes.map(([axis, machine]) => {
-    const requested = supplied[axis] || machine.initial;
-    return [axis, initialStatePath(machine, requested) || requested || 'CREATED'];
-  }));
+// One flat state string (SPEC §7): the initial value arrives from the
+// creating process's construct socket or the caller; no declaration owns
+// an initial and nothing synthesizes one.
+function initialStateFor(supplied = {}) {
+  const value = supplied.state;
+  return typeof value === 'string' && value ? value : null;
 }
 
 function toDto(doc, declaration = {}) {
@@ -141,7 +140,7 @@ function toDto(doc, declaration = {}) {
     type: doc.type,
     typeVersion: doc.typeVersion,
     identity: { uid: doc._id.toString(), ...(doc.name != null ? { name: doc.name } : {}) },
-    states: initialStatesFor(declaration, doc.states || {}),
+    state: typeof doc.state === 'string' && doc.state ? doc.state : null,
     lineage,
     relations: doc.relations || {},
     // §3 payload slot projects onto the legacy wire attachments block.
@@ -274,7 +273,7 @@ function instanceService(typeId) {
       name: draft.identity?.name ?? null,
       // §3: the row is one flat fields map (data/specs split is wire-only)
       fields: { ...(draft.data || {}), ...(draft.specs || {}) },
-      states: initialStatesFor(declaration, draft.states || {}),
+      state: initialStateFor(draft),
       lineage: wireLineage,
       ...(draft.relations ? { relations: draft.relations } : {}),
       ...(payload ? { payload } : {}),
@@ -335,9 +334,9 @@ function instanceService(typeId) {
       const declaration = await requireDeclaration(typeId, organizationId);
       const collection = repository.collectionForClass(declaration.class);
       // Wire patches (block paths from the effect boundary) map to §3
-      // writes. Lifecycle axes are deliberately absent: transitions and
+      // writes. Lifecycle is deliberately absent: transitions and
       // initial-state writes belong to the status runtime.
-      if (patch.states && Object.keys(patch.states).length) {
+      if (patch.state !== undefined) {
         throw createError({
           statusCode: 400,
           message: `Type ${typeId} lifecycle transitions must run through the status runtime`

@@ -55,21 +55,6 @@ export const frameworkTypes = [
     id: 'process-definition', framework: true, class: 'process', scope: 'system', version: 1,
     name: 'Process definition',
     glyph: 'pi pi-sitemap',
-    fields: { name: { base: 'string', identifier: true } },
-    states: {
-      main: {
-        initial: 'DRAFT',
-        states: {
-          DRAFT: {},
-          ACTIVE: {},
-          ARCHIVED: { terminal: true }
-        }
-      }
-    },
-    transitions: [
-      { axis: 'main', from: 'DRAFT', to: 'ACTIVE' },
-      { axis: 'main', from: 'ACTIVE', to: 'ARCHIVED' },
-      { axis: 'main', from: 'DRAFT', to: 'ARCHIVED' }
-    ]
+    fields: { name: { base: 'string', identifier: true } }
   }
 ];

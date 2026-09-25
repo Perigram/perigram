@@ -14,9 +14,8 @@ export {
   EDGE_KINDS, ON_REMOVE, normalizeEdges, checkLineageAcyclic, lineageKeyForParent
 } from './edges.js';
 export {
-  normalizeStates, normalizeTransitions, checkStateTotality,
-  collectStateEntries, findState, initialStatePath, isLeafState,
-  mergeTransitionNodeStates
+  normalizeStateVocabulary, normalizeStatePolicy,
+  stateValues, statePolicy, isTerminalState
 } from './states.js';
 export {
   OPERATOR_SPECIES, normalizeOperator
@@ -50,4 +49,4 @@ export {
   enumRegistryForType, enumRegistryForView, SPECIES_BY_EFFECT_KIND
 } from './compat/process-grammar.js';
 export { checkDeclarationsAgainstCts } from './compat/process-checks.js';
-export { projectDomainFromView, declarationWorkflow, CLASS_COLLECTIONS } from './compat/domain-projection.js';
+export { projectDomainFromView, CLASS_COLLECTIONS } from './compat/domain-projection.js';

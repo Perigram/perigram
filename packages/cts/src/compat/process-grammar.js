@@ -6,7 +6,6 @@
 // counterpart by design — the adapter reports them as unmappable instead of
 // guessing. Enum values live inline in CTS but behind registry ids in the
 // process grammar; `enumRegistryForType` derives the ids both sides share.
-import { collectStateEntries } from '../states.js';
 
 const PROCESS_ONLY_BASES = Object.freeze([
   'entity', 'revisionRef', 'block', 'status', 'predicate', 'patch', 'event',
@@ -81,14 +80,11 @@ export function isProcessOnlyBase(base = '') {
   return PROCESS_ONLY_BASES.includes(base);
 }
 
-// Enum registry derivation: every CTS state axis and inline enum field gets
-// a process-grammar id (`typeId#axis` / `typeId#field`). State entries are
-// exact canonical paths; no nested local-name aliases are emitted.
+// Enum registry derivation: inline enum fields get a process-grammar id
+// (`typeId#field`). State vocabularies are draft authoring (SPEC §7) and
+// never project here.
 export function enumRegistryForType(type = {}) {
   const registry = {};
-  for (const [axisName, axis] of Object.entries(type.states || {})) {
-    registry[`${type.id}#${axisName}`] = collectStateEntries(axis).map(entry => entry.path);
-  }
   for (const [fieldName, descriptor] of Object.entries(type.fields || {})) {
     if (descriptor.base === 'enum') registry[`${type.id}#${fieldName}`] = [...(descriptor.values || [])];
   }
