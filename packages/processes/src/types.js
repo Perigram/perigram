@@ -163,8 +163,17 @@ export function processTypesCompatible(sourceType, targetType) {
   if (source.base === 'integer' && target.base === 'number') {
     return { ok: true, implicit: true, source, target, coercion: 'integerToNumber' };
   }
-  if (source.base === 'entity' && target.base === 'entityRef' && sameTypeId(source, target)) {
-    return { ok: true, implicit: true, source, target, coercion: 'entityToReference' };
+  // An instance is an instance (SPEC §20 socket algebra): entity and
+  // entityRef are one object at the wire level — references resolve where
+  // consumed, so both directions connect under the same type-scope rule.
+  if (['entity', 'entityRef'].includes(source.base) && ['entity', 'entityRef'].includes(target.base) && sameTypeId(source, target)) {
+    return {
+      ok: true,
+      implicit: true,
+      source,
+      target,
+      ...(source.base !== target.base ? { coercion: 'entityToReference' } : {})
+    };
   }
   if (source.base === 'date' && target.base === 'dateTime') {
     return { ok: true, implicit: true, source, target, coercion: 'dateToDateTime' };
