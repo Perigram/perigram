@@ -9,13 +9,7 @@ const bundle = {
       glyph: 'pi pi-box',
       identifier: 'name',
       fields: { name: { base: 'string', identifier: true }, size: { base: 'quantity', unit: 'mm' } },
-      sections: [{ id: 'summary', label: null, fields: ['name'] }, { id: 'dimensions', label: null, fields: ['size'] }],
-      states: {
-        main: {
-          initial: 'draft', values: ['draft', 'done'], terminal: ['done'],
-          render: { draft: { label: 'Draft', icon: null, severity: 'info' }, done: { label: 'Done', icon: null, severity: 'secondary' } }
-        }
-      }
+      sections: [{ id: 'summary', label: null, fields: ['name'] }, { id: 'dimensions', label: null, fields: ['size'] }]
     },
     {
       id: 'sheet_file', class: 'file',
@@ -24,19 +18,18 @@ const bundle = {
       identifier: 'title',
       payload: { mime: ['image/png'], preview: 'image' },
       fields: { title: { base: 'string', identifier: true } },
-      sections: [{ id: 'summary', label: null, fields: ['title'] }],
-      states: {}
+      sections: [{ id: 'summary', label: null, fields: ['title'] }]
     }
   ]
 };
 
 const instances = {
   widgets: [
-    { id: 'w1', type: 'widget', fields: { name: 'A', size: { value: 1, unit: 'mm' } }, relations: { sheets: [{ type: 'sheet_file', id: 's1' }] }, lineage: {}, states: { main: 'draft' } },
-    { id: 'w2', type: 'widget', fields: { name: 'B', size: { value: 2, unit: 'mm' } }, relations: { sheets: [] }, lineage: { madeBy: { type: 'widget', id: 'w1' } }, states: { main: 'done' } }
+    { id: 'w1', type: 'widget', fields: { name: 'A', size: { value: 1, unit: 'mm' } }, relations: { sheets: [{ type: 'sheet_file', id: 's1' }] }, lineage: {}, state: 'draft' },
+    { id: 'w2', type: 'widget', fields: { name: 'B', size: { value: 2, unit: 'mm' } }, relations: { sheets: [] }, lineage: { madeBy: { type: 'widget', id: 'w1' } }, state: 'done' }
   ],
   sheets: [
-    { id: 's1', type: 'sheet_file', fields: { title: 'S1' }, relations: {}, lineage: {}, states: {}, payload: { fileId: 'f1', mime: 'image/png', size: 1 } }
+    { id: 's1', type: 'sheet_file', fields: { title: 'S1' }, relations: {}, lineage: {}, state: null, payload: { fileId: 'f1', mime: 'image/png', size: 1 } }
   ]
 };
 const pool = buildInstancePool(instances);
@@ -158,6 +151,26 @@ describe('screen composition', () => {
     expect(region.actions.map(action => action.id)).toEqual(['widget_create', 'widget_auto']);
     expect(region.surface.component).toBe('ItemRow');
     expect(region.surface.archetype).toBe('record-row');
+  });
+
+  it('carries the contract state policy per region keyed by source type', () => {
+    // Types carry no state vocabulary (SPEC §7): the compiled process
+    // contract's per-type state display policy rides the region tree, and
+    // regions for types without a policy carry null (no state surface).
+    const withPolicy = composeScreen(
+      { screenKey: 'sp1', template: 'typeList', label: 'SP',
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'list' },
+          { id: 'sheets', typeId: 'sheet_file', mode: 'list' }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'list' },
+          { id: 'sheets', slot: 'main', sourceId: 'sheets', surface: 'list' }
+        ] },
+      { ...contract, statePolicy: { widget: { draft: { label: 'Draft' } } } }, bundle, pool
+    );
+    expect(withPolicy.regions[0].statePolicy).toEqual({ draft: { label: 'Draft' } });
+    expect(withPolicy.regions[1].statePolicy).toBeNull();
   });
 
   it('is pure across repeated composition', () => {

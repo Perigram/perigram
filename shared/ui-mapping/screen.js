@@ -112,6 +112,10 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     type,
     variant,
     surface: type ? resolveSurface(type, { variant }) : null,
+    // The compiled process contract's flat state vocabulary for this
+    // region's type (SPEC §7 — types carry none); null means the type has
+    // no authored states and its surfaces render no state chrome.
+    statePolicy: contract.statePolicy?.[source.typeId] || null,
     listControls: surfaceKind === 'list' && type ? resolveListControls(type, instances) : null,
     instances: Object.freeze(instances),
     actions: Object.freeze((region.actions || []).map(actionId => contract.actions?.[actionId]).filter(Boolean)),

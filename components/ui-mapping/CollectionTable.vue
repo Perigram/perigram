@@ -82,7 +82,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
-  SEVERITY_MAP, titleFor, resolveListControls,
+  titleFor, resolveListControls, stateDisplayFor,
   localizedLabel, fieldLabelKey
 } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
@@ -98,7 +98,10 @@ const props = defineProps({
   // Identity cells render as links when an open handler exists upstream.
   openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }
+  bundle: { type: Object, default: null },
+  // Per-type state policy map: the status column exists exactly when the
+  // compiled process authored a state vocabulary for the type.
+  statePolicy: { type: Object, default: null }
 });
 
 defineEmits(['open']);
@@ -126,15 +129,13 @@ const pagination = computed(() => resolvedControls.value.pagination);
 const virtual = computed(() => props.instances.length > pagination.value.virtualizeAt);
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
-const hasStatus = computed(() => Boolean(props.type?.states?.main));
+const hasStatus = computed(() => Boolean(props.statePolicy));
 const statusOf = instance => {
-  const value = instance.states?.main;
-  if (!value) return null;
-  const render = props.type.states?.main?.render?.[value];
-  return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
+  const display = stateDisplayFor(props.statePolicy, instance?.state);
+  return display ? { label: display.label, severity: display.severity } : null;
 };
 const sortByIdentity = item => identityOf(item).toLowerCase();
-const sortByStatus = item => String(item.states?.main || '');
+const sortByStatus = item => String(item?.state || '');
 // Value-aware sortable columns: the filled short-scalar fields from the
 // controls contract (fields no instance fills never become columns),
 // bounded by the richness-scaled column budget. Quantity values sort by

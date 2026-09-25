@@ -54,8 +54,9 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     if (value == null) continue;
     lineage[key] = typeof value === 'object' ? value : { id: String(value) };
   }
-  const states = Object.fromEntries(Object.entries(dto.states || {})
-    .filter(([axis, value]) => axis && typeof value === 'string' && value));
+  // One flat state string rides verbatim from the wire (SPEC §3/§7); no
+  // axis map is projected and nothing synthesizes a value.
+  const state = typeof dto.state === 'string' && dto.state ? dto.state : null;
   // Declared preview field (type.previewSource — the authored
   // previewSource group row): the value reads straight off the wire DTO,
   // so generated previews render the declared channel (for example
@@ -71,7 +72,7 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     fields,
     lineage,
     relations: dto.relations || {},
-    states,
+    state,
     // File payload reference (wire `attachments.primary`): kept verbatim
     // so preview surfaces resolve the payload download URL.
     payload: dto.attachments?.primary || null,

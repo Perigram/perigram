@@ -48,7 +48,7 @@ import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, titleFor, iconFor, childrenOfParent } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, titleFor, iconFor, childrenOfParent, stateDisplayFor } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -57,7 +57,11 @@ const props = defineProps({
   // Row identities render as links when an open handler exists upstream.
   openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }});
+  bundle: { type: Object, default: null },
+  // Per-type state policy map: the status column exists exactly when the
+  // compiled process authored a state vocabulary for the type.
+  statePolicy: { type: Object, default: null }
+});
 
 defineEmits(['open']);
 
@@ -76,13 +80,10 @@ const tablePt = {
 const { te, t } = useI18n();
 
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
-const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identityOf = instance => titleFor(instance, typesById.value[instance.type], { unnamedLabel: t('common.unnamed') });
 const statusOf = (instance, type) => {
-  const value = instance.states?.main;
-  if (!value || !type?.states?.main) return null;
-  const render = type.states?.main?.render?.[value];
-  return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
+  const display = stateDisplayFor(props.statePolicy, instance?.state);
+  return display ? { label: display.label, severity: display.severity } : null;
 };
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
@@ -93,7 +94,7 @@ const scalarFields = computed(() => Object.entries(props.type?.fields || {})
     descriptor,
     label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, name), fieldLabel(name, descriptor))
   })));
-const hasStatus = computed(() => Boolean(props.type?.states?.main));
+const hasStatus = computed(() => Boolean(props.statePolicy));
 
 const buildNode = (instance, seen = new Set()) => {
   if (seen.has(instance.id)) return null;

@@ -29,8 +29,6 @@ function typeRecord(declaration) {
     fields: declaration.fields || {},
     payload: declaration.payload || null,
     edges: declaration.edges || {},
-    states: declaration.states || {},
-    transitions: declaration.transitions || [],
     operators: declaration.operators || {},
     revisions: declaration.revisions || null
   };
@@ -42,9 +40,6 @@ function typeRecord(declaration) {
     identifier: policy.identifier,
     depiction: policy.depiction,
     sections: policy.sections,
-    states: Object.fromEntries(Object.entries(record.states).map(([axisName, axis]) => [
-      axisName, { ...axis, render: policy.states[axisName] }
-    ])),
     schema: null
   };
 }
@@ -139,15 +134,7 @@ export function createUiMappingClientBundle() {
         fields: {
           serial: { base: 'string', identifier: true, label: 'Serial' },
           load: { base: 'quantity', unit: 'percent', label: 'Load' }
-        },
-        states: {
-          main: { initial: 'available', values: ['available', 'busy', 'away'], terminal: [], render: { busy: { severity: 'info' } } }
-        },
-        transitions: [
-          { from: 'available', to: 'busy' },
-          { from: 'busy', to: 'available' },
-          { from: 'busy', to: 'away' }
-        ]
+        }
       }),
       typeRecord({
         id: 'watch_job',
@@ -169,20 +156,7 @@ export function createUiMappingClientBundle() {
             targets: { types: ['document'], onRemove: 'detach' },
             watcher: { types: ['keeper'], onRemove: 'detach' }
           }
-        },
-        states: {
-          main: {
-            initial: 'queued', values: ['queued', 'running', 'review', 'done', 'aborted'], terminal: ['done', 'aborted'],
-            render: { running: { severity: 'info' }, review: { severity: 'warning' }, done: { severity: 'success' }, aborted: { severity: 'danger' } }
-          }
-        },
-        transitions: [
-          { from: 'queued', to: 'running', intent: 'startJob' },
-          { from: 'running', to: 'review' },
-          { from: 'review', to: 'done', intent: 'finishJob' },
-          { from: 'running', to: 'aborted' },
-          { from: 'review', to: 'aborted' }
-        ]
+        }
       })
     ]
   };
@@ -267,6 +241,23 @@ export function createUiMappingCompiledContract() {
   return {
     processId: 'proc_fixture_v4',
     dataflowVersion: 4,
+    // The flat state vocabulary's display policy (SPEC §7): what a
+    // compiled producer workflow would carry for the authored state
+    // nodes — derived per type by statePolicyByType in real hydration.
+    statePolicy: {
+      keeper: {
+        available: { label: null, severity: null, icon: null, terminal: false },
+        busy: { label: null, severity: 'info', icon: null, terminal: false },
+        away: { label: null, severity: null, icon: null, terminal: false }
+      },
+      watch_job: {
+        queued: { label: null, severity: null, icon: null, terminal: false },
+        running: { label: null, severity: 'info', icon: null, terminal: false },
+        review: { label: null, severity: 'warning', icon: null, terminal: false },
+        done: { label: null, severity: 'success', icon: null, terminal: true },
+        aborted: { label: null, severity: 'danger', icon: null, terminal: true }
+      }
+    },
     roles: {
       operator: { id: 'operator', label: 'Operator', grants: [{ feature: 'documents', level: 'write' }] }
     },
@@ -469,7 +460,7 @@ export function createDocumentInstance(overrides = {}) {
     },
     lineage: { documents: { type: 'folder', id: 'folder-a1ai' } },
     relations: { linkedSheets: [] },
-    states: {},
+    state: null,
     payload: { fileId: 'gridfs-doc-1', mime: 'image/png', size: 3_100_000 },
     ...overrides
   };
@@ -491,7 +482,7 @@ export function createSheetInstance(overrides = {}) {
     },
     lineage: {},
     relations: { sources: [] },
-    states: {},
+    state: null,
     payload: { fileId: 'gridfs-sheet-1', mime: 'application/x-sheet', size: 210_000 },
     ...overrides
   };
@@ -505,7 +496,7 @@ export function createKeeperInstance(overrides = {}) {
     fields: { serial: 'KPR-01', load: { value: 30, unit: 'percent' } },
     lineage: {},
     relations: {},
-    states: { main: 'busy' },
+    state: 'busy',
     payload: null,
     ...overrides
   };
@@ -524,7 +515,7 @@ export function createWatchJobInstance(overrides = {}) {
     },
     lineage: {},
     relations: { targets: [], watcher: { type: 'keeper', id: 'keeper-2' } },
-    states: { main: 'queued' },
+    state: 'queued',
     payload: null,
     ...overrides
   };
@@ -610,7 +601,7 @@ export function createUiMappingInstances() {
       targets: documents.slice(index % 4, (index % 4) + 1 + (index % 3)).map(document => ({ type: 'document', id: document.id })),
       watcher: { type: 'keeper', id: index % 2 === 0 ? 'keeper-2' : 'keeper-1' }
     },
-    states: { main: state }
+    state
   }));
 
   return {
@@ -619,8 +610,8 @@ export function createUiMappingInstances() {
     sheets,
     keepers: [
       createKeeperInstance(),
-      createKeeperInstance({ id: 'keeper-2', fields: { serial: 'KPR-02', load: { value: 82, unit: 'percent' } }, states: { main: 'available' } }),
-      createKeeperInstance({ id: 'keeper-3', fields: { serial: 'KPR-03', load: { value: 12, unit: 'percent' } }, states: { main: 'away' } })
+      createKeeperInstance({ id: 'keeper-2', fields: { serial: 'KPR-02', load: { value: 82, unit: 'percent' } }, state: 'available' }),
+      createKeeperInstance({ id: 'keeper-3', fields: { serial: 'KPR-03', load: { value: 12, unit: 'percent' } }, state: 'away' })
     ],
     jobs
   };
