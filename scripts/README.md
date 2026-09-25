@@ -23,7 +23,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   in generic modules, duplicate object keys in domain registries, concrete
   entity-name branches in `@perigram/processes`, runtime legacy-process bridges,
   cross-feature repository imports, and source-assertion test practices. Every
-  finding is blocking; there is no non-blocking migration inventory.
+  finding is blocking; there is no non-blocking migration inventory. Entity
+  registry entries marked `instanceService: true` resolve through the generic
+  instance feature (`server/features/instances`) and declare no feature
+  directory of their own; the guard skips their feature-directory checks.
 - `check-agent-scope.js`: Diff guard for top-layer composition agents. It
   compares committed, staged, unstaged, and untracked files against
   `.agents/app-layer.allowlist` and fails if an agent touched core/runtime/shared
