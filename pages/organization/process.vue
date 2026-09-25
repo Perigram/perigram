@@ -1353,11 +1353,21 @@ function applyGraphInterpretation(mutations) {
     }
     const record = draft.value?.data?.processNodes?.[mutation.recordId];
     if (!record) continue;
-    if (mutation.key === 'state.to' || mutation.key === 'state.axis') {
-      record.state = { ...(record.state || {}), [mutation.key.slice('state.'.length)]: mutation.value };
+    if (mutation.key === 'typeId') {
+      setNodeTypeId(record, mutation.value);
       continue;
     }
-    setNodeTypeId(record, mutation.value);
+    if (mutation.key.startsWith('inputDefaults.')) {
+      const inputId = mutation.key.slice('inputDefaults.'.length);
+      record.inputDefaults = { ...(record.inputDefaults || {}), [inputId]: mutation.value };
+      continue;
+    }
+    if (mutation.key.startsWith('state.')) {
+      record.state = { ...(record.state || {}), [mutation.key.slice('state.'.length)]: mutation.value };
+    }
+    // Unknown record keys are ignored: interpretation is the only mutation
+    // source, and a silent fallback reinterpreting them as typeId writes
+    // corrupted records (the recursive-update loop).
   }
   syncNodeData();
   // No live edge pruning here: sockets legitimately vanish and return
