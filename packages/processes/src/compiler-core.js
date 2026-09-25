@@ -868,6 +868,8 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
 // Pure/read subgraphs stay valid on purpose; this reports the nodes whose
 // values can never reach a persistence effect or any other operational sink,
 // so an inspect-only island is surfaced as non-operational instead of failing.
+// The sink set reads the catalog's family table — any species of the effects
+// family is itself a persistence sink, native or legacy twin alike.
 function unreachableNodeDiagnostics(process = {}) {
   const nodes = (process.graph?.nodes || []).filter(node => node.type === 'processNode');
   const recordsByGraphId = new Map(nodes.map(node => [
@@ -881,7 +883,7 @@ function unreachableNodeDiagnostics(process = {}) {
   }
   const operational = [];
   for (const [nodeId, record] of recordsByGraphId) {
-    if (record?.kind?.startsWith('effect.')) operational.push(nodeId);
+    if (getProcessNodeDefinition(String(record?.kind || ''))?.family === 'effects') operational.push(nodeId);
   }
   const reachingOperational = new Set(operational);
   const queue = [...operational];
@@ -904,7 +906,7 @@ function unreachableNodeDiagnostics(process = {}) {
 // Inputs whose value is resolvable from the manual run context even without a
 // wire, fallback, or prompt: the current entity, the change-status target, and
 // the initial create status.
-const CONTEXT_RESOLVABLE_PORTS = new Set(['entity', 'parent', 'status', 'states.main']);
+const CONTEXT_RESOLVABLE_PORTS = new Set(['entity', 'parent', 'status', 'states.main', 'state']);
 
 function edgeHandle(handle = '') {
   return String(handle || '').replace(/^(input|output|data|control|success|failure):/, '');
