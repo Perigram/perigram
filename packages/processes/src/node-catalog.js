@@ -1,4 +1,5 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
+import { authoredSocketDefault } from './data-tree.js';
 import { typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 
 const DATA = 'data';
@@ -408,24 +409,12 @@ function acceptedEntityType(candidates = []) {
 // record config), value out. Ports never vanish with binding state; the
 // output is typed from the authored default when one exists, dynamic
 // otherwise.
-function authoredFieldPath(record = {}) {
-  const raw = record.inputDefaults?.field;
-  if (raw == null) return '';
-  // Normalized definitions wrap defaults in data trees; authored drafts
-  // carry the plain value. Both are the same fact.
-  if (raw && typeof raw === 'object' && Array.isArray(raw.branches)) {
-    const items = raw.branches.flatMap(branch => branch.items || []);
-    return items.length ? String(items[0]) : '';
-  }
-  return String(raw);
-}
-
 function nativeFieldPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   const entityIn = typeId
     ? processType('entity', { typeId })
     : processType('entity');
-  const fieldPath = authoredFieldPath(record);
+  const fieldPath = String(authoredSocketDefault(record.inputDefaults?.field) || '');
   const field = fieldPath
     ? ((context.fieldSchemas || []).find(candidate => candidate.path === fieldPath) || null)
     : null;

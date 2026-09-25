@@ -12,7 +12,6 @@
 //   exists, state declared, field in row) beside R1-R6.
 import { SPECIES_BY_EFFECT_KIND } from './process-grammar.js';
 import { classMayDeclareChildren } from '../classes.js';
-
 const CTS_KIND = Object.freeze({
   construct: 'cts.construct',
   mutate: 'cts.mutate',
@@ -519,13 +518,11 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
       }
     }
     if ([CTS_KIND.field, CTS_KIND.mutate, CTS_KIND.compose].includes(node.kind)) {
-      const rawField = node.kind === CTS_KIND.field ? node.inputDefaults?.field : null;
-      const authoredField = rawField && typeof rawField === 'object' && Array.isArray(rawField.branches)
-        ? String((rawField.branches.flatMap(branch => branch.items || [])[0]) ?? '')
-        : rawField;
+      // Authored definitions carry plain socket defaults (the data-tree
+      // wrap is a processes normalization concern, downstream of here).
       const paths = node.kind === CTS_KIND.mutate
         ? [...(node.fields || []), ...Object.keys(node.inputDefaults || {})]
-        : [authoredField, node.field, node.path].filter(Boolean);
+        : [node.inputDefaults?.field, node.field, node.path].filter(Boolean);
       for (const path of paths) {
         if (!nativeFieldPathDeclared(path, resolvedTypeId || typeId, domain)) {
           errors.push(`processNodes.${id}: field ${path} is not in the ${resolvedTypeId || typeId} row`);

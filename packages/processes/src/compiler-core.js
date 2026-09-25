@@ -16,7 +16,7 @@ import {
 import { CONSUMER_EFFECT_KINDS, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
-import { createDataTree, isDataTree } from './data-tree.js';
+import { createDataTree, isDataTree, authoredSocketDefault } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, lineageRelationsForParent, mergedHierarchyBindings } from './hierarchy-utils.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
@@ -3954,10 +3954,7 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     errors.push(`Process node ${nodeId} must select an entity type`);
   }
   if (node.kind === 'cts.field') {
-    const raw = node.inputDefaults?.field;
-    const fieldPath = raw && typeof raw === 'object' && Array.isArray(raw.branches)
-      ? String((raw.branches.flatMap(branch => branch.items || [])[0]) ?? '')
-      : String(raw || '');
+    const fieldPath = String(authoredSocketDefault(node.inputDefaults?.field) || '');
     if (!fieldPath) errors.push(`Process node ${nodeId} must select a field`);
     if (fieldPath && node.typeId && !entityFieldSchema(domain, node.typeId, fieldPath)) {
       errors.push(`Process node ${nodeId} uses undeclared field ${fieldPath}`);

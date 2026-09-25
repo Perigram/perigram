@@ -28,6 +28,18 @@ export function isDataTree(value) {
   return Boolean(value && typeof value === 'object' && Array.isArray(value.branches));
 }
 
+// The single unwrap home for authored socket defaults (SPEC §20): a draft
+// carries the plain value; a normalized definition wraps it in a data
+// tree. Both are the same fact — every reader goes through here.
+export function authoredSocketDefault(value) {
+  if (value == null) return '';
+  if (isDataTree(value)) {
+    const items = value.branches.flatMap(branch => branch.items || []);
+    return items.length ? items[0] : '';
+  }
+  return value;
+}
+
 export function packetValue(tree, access = 'item') {
   const normalized = normalizeDataTree(tree);
   if (access === 'tree') return structuredClone(normalized);
