@@ -403,20 +403,22 @@ function acceptedEntityType(candidates = []) {
   return processType('entity', { nullable: true });
 }
 
-// The field projection is socket algebra (SPEC §20): an entity input and
-// a field input — the field NAME arrives by wire, so nothing pre-defines a
-// per-type field list. The output is dynamically typed.
+// The field projection is socket algebra (SPEC §20): entity in, field in
+// (the path arrives by wire or authored default — one channel, no static
+// record config), value out. Ports never vanish with binding state; the
+// output is typed from the authored default when one exists, dynamic
+// otherwise.
 function nativeFieldPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
-  if (!typeId) {
-    return { inputs: [socket('entity', processType('entityRef'), DATA, true)], outputs: [] };
-  }
-  const field = record.field
-    ? ((context.fieldSchemas || []).find(candidate => candidate.path === record.field) || null)
+  const entityIn = typeId
+    ? processType('entity', { typeId })
+    : processType('entity');
+  const field = record.inputDefaults?.field
+    ? ((context.fieldSchemas || []).find(candidate => candidate.path === record.inputDefaults.field) || null)
     : null;
   return {
     inputs: [
-      socket('entity', processType('entity', { typeId }), DATA, true),
+      socket('entity', entityIn, DATA, true),
       socket('field', processType('string'), DATA, false)
     ],
     outputs: [socket('value', field?.type || processType('json', { nullable: true }))]

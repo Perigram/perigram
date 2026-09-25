@@ -51,7 +51,7 @@ const representative = {
   'cts.command': { commandId: 'solveNestingValue', typeId: 'panel' },
   'cts.service': { operator: 'nesting.solve' },
   'cts.read': { typeId: 'panel', select: 'current' },
-  'cts.field': { typeId: 'panel', field: 'specs.width' },
+  'cts.field': { typeId: 'panel', inputDefaults: { field: 'specs.width' } },
   'cts.compose': { typeId: 'panel', slot: 'data' },
   'cts.decompose': { typeId: 'panel' },
   'control.if': {},

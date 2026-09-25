@@ -289,9 +289,18 @@ describe('native CTS process execution contract', () => {
 
   it('keeps native reads and field projections executable as data nodes', async () => {
     const result = await executeProcessDataNode(
-      { id: 'field', kind: 'cts.field', typeId: 'panel', path: 'data.name' },
+      { id: 'field', kind: 'cts.field', typeId: 'panel', inputDefaults: { field: 'data.name' } },
       { entity: createDataPacket({ type: 'panel', id: 'p1', data: { name: 'Panel' } }) }
     );
     expect(result.branches[0].items).toEqual(['Panel']);
+    // The field socket is the channel: a wired path wins over the default.
+    const wired = await executeProcessDataNode(
+      { id: 'field', kind: 'cts.field', typeId: 'panel', inputDefaults: { field: 'data.name' } },
+      {
+        entity: createDataPacket({ type: 'panel', id: 'p1', data: { name: 'Panel' } }),
+        field: createDataPacket('data.name')
+      }
+    );
+    expect(wired.branches[0].items).toEqual(['Panel']);
   });
 });

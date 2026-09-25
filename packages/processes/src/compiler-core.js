@@ -3954,9 +3954,10 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     errors.push(`Process node ${nodeId} must select an entity type`);
   }
   if (node.kind === 'cts.field') {
-    if (!node.path) errors.push(`Process node ${nodeId} must select a field`);
-    if (node.path && node.typeId && !entityFieldSchema(domain, node.typeId, node.path)) {
-      errors.push(`Process node ${nodeId} uses undeclared field ${node.path}`);
+    const fieldPath = node.inputDefaults?.field || '';
+    if (!fieldPath) errors.push(`Process node ${nodeId} must select a field`);
+    if (fieldPath && node.typeId && !entityFieldSchema(domain, node.typeId, fieldPath)) {
+      errors.push(`Process node ${nodeId} uses undeclared field ${fieldPath}`);
     }
   }
   if (['record.getField', 'record.fieldChange', 'predicate.field'].includes(node.kind)) {

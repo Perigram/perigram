@@ -33,9 +33,12 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   ]));
   if (kind === 'cts.field') {
     const source = required(packets, 'entity', record);
+    // One channel: the field path arrives on the field socket (wire or
+    // authored default) — never a parallel static record config.
+    const path = String(packets.field ? packetValue(packets.field) : (record.inputDefaults?.field || ''));
     return mapDataPacket(source, value => {
-      const fieldValue = readPath(value, String(record.path || ''));
-      if (isMissingField(fieldValue)) return missingFieldMarker(record.path);
+      const fieldValue = readPath(value, path);
+      if (isMissingField(fieldValue)) return missingFieldMarker(path);
       return fieldValue;
     });
   }

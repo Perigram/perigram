@@ -108,13 +108,17 @@ describe('palette trace', () => {
       { id: 't', kind: 'cts.transition', typeId: '' },
       { id: 't', kind: 'cts.remove', typeId: '' },
       { id: 't', kind: 'cts.read', select: 'parent', typeId: '' },
-      { id: 't', kind: 'cts.read', select: 'children', typeId: '' },
-      { id: 't', kind: 'cts.field', typeId: '' }
+      { id: 't', kind: 'cts.read', select: 'children', typeId: '' }
     ]) {
       const ports = resolveCatalogNodePorts(record, { domain });
       expect(ports.inputs.map(port => port.id), record.kind + ':' + record.select).toEqual(['entity']);
       expect(ports.inputs[0].required).toBe(true);
     }
+    // The field projection keeps both sockets unbound: entity in, field in
+    // (socket algebra — no vanishing ports with binding state).
+    const unboundField = resolveCatalogNodePorts({ id: 't', kind: 'cts.field', typeId: '' }, { domain });
+    expect(unboundField.inputs.map(port => port.id)).toEqual(['entity', 'field']);
+    expect(unboundField.outputs.map(port => port.id)).toEqual(['value']);
     const adapted = resolveCatalogNodePorts(
       { id: 't', kind: 'cts.mutate', typeId: 'sheet' },
       { domain, fieldSchemas: domain.fieldSchemas.sheet }
