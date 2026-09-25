@@ -130,14 +130,12 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
       } : {}),
       ...(kind === 'field' ? { name: data.name || '', descriptor: { ...(data.descriptor || { base: 'string' }) } } : {}),
       // State authoring keys round-trip symmetrically with the projection
-      // in projectDeclarationRecords: initial/terminal are explicit
-      // booleans on authored records (a false must not become an absent
-      // key, or compareSemanticRecords rejects activation).
+      // in projectDeclarationRecords: terminal is an explicit boolean on
+      // authored records (a false must not become an absent key, or
+      // compareSemanticRecords rejects activation). A state is a value
+      // token (SPEC §7): no axis, no parent, no initial flag.
       ...(kind === 'state' ? {
         value: data.value || '',
-        axis: data.axis || 'main',
-        parentStateId: data.parentStateId || null,
-        initial: data.initial === true,
         terminal: data.terminal === true
       } : {})
     };
@@ -255,13 +253,10 @@ function projectDeclarationRecords(records = {}, x) {
         ...(record.kind === 'state' ? {
           typeId: record.typeId || null,
           value: record.value || '',
-          axis: record.axis || 'main',
-          parentStateId: record.parentStateId || null,
           severity: record.severity || null,
           icon: record.icon || null,
           // Authored booleans project so the rebuild (which writes them
           // explicitly from node data) reproduces the record exactly.
-          initial: record.initial === true,
           terminal: record.terminal === true
         } : {}),
         ...(record.kind === 'type' ? { typeId: record.typeId || null } : {})

@@ -60,9 +60,9 @@ describe('draft declaration overlay at acceptance', () => {
   });
 
   it('requires transition targets to be declared states', () => {
-    // Transitions reference declared transitions; they never author state.
-    // A target no tree state carries is a diagnostic, and declaring the
-    // state in the tree clears it.
+    // A transition's target comes from its state socket (SPEC §7); a
+    // value no draft state record carries is a diagnostic, and declaring
+    // the state record clears it.
     const { typeId, data } = draftWithTypeClass();
     data.processNodes.mv = {
       id: 'mv', kind: 'cts.transition', typeId, label: '',
@@ -70,7 +70,7 @@ describe('draft declaration overlay at acceptance', () => {
       matching: 'item', fields: [], inputs: [], outputs: []
     };
     expect(() => validateActivatableProcess(structuredClone(data), rawDomain, {}))
-      .toThrow(/target state SHIPPED is not declared/);
+      .toThrow(/state SHIPPED is not declared for/);
 
     data.ctsTypes.st2 = { id: 'st2', kind: 'state', typeId, value: 'SHIPPED', initial: false, terminal: true };
     const accepted = validateActivatableProcess(data, rawDomain, {});

@@ -26,13 +26,16 @@ export function createPersistedAcceptanceFixture() {
     schemaVersion: 1,
     dataflowVersion: PROCESS_DATAFLOW_VERSION,
     graphProtocol: 5,
+    ctsTypes: {
+      st_active: { id: 'st_active', kind: 'state', typeId: 'cassette', value: 'ACTIVE', terminal: false },
+      st_archived: { id: 'st_archived', kind: 'state', typeId: 'cassette', value: 'ARCHIVED', terminal: true }
+    },
     graph: {
-      nodes: ['create_cassette'].map((id, index) => ({
-        id,
-        type: 'processNode',
-        position: { x: index * 240, y: 120 },
-        data: { refId: id }
-      })),
+      nodes: [
+        { id: 'st_active', type: 'ctsState', position: { x: 0, y: 0 }, data: { refId: 'st_active', typeId: 'cassette', value: 'ACTIVE', terminal: false } },
+        { id: 'st_archived', type: 'ctsState', position: { x: 240, y: 0 }, data: { refId: 'st_archived', typeId: 'cassette', value: 'ARCHIVED', terminal: true } },
+        { id: 'create_cassette', type: 'processNode', position: { x: 480, y: 120 }, data: { refId: 'create_cassette' } }
+      ],
       edges: [],
       viewport: { x: 0, y: 0, zoom: 1 }
     },
@@ -63,6 +66,7 @@ export function createPersistedAcceptanceFixture() {
         producerOutputId: 'create_cassette:result',
         label: 'Create cassette',
         construction: { mode: 'editor', inputs: [{ id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }] },
+        inputDefaults: { state: 'ACTIVE' },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] }
       }

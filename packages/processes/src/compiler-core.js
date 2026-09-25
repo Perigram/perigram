@@ -200,6 +200,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     sockets: normalizeRecord(data.sockets),
     stateDefinitions: normalizeRecord(data.stateDefinitions),
     valueInputs: normalizeRecord(data.valueInputs),
+    ctsTypes: normalizeRecord(data.ctsTypes),
     processNodes,
     screens: normalizeRecord(data.screens),
     compiled: data.compiled || null
@@ -345,11 +346,14 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       ...promptContract.wiredFields
     ]);
     const stateTo = ['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity'].includes(classification)
-      ? (processDefaultValue(node.inputDefaults?.status)
+      ? (processDefaultValue(node.inputDefaults?.state)
+        || processDefaultValue(node.inputDefaults?.status)
         || processDefaultValue(node.inputDefaults?.['states.main'])
         || node.state?.to
         || '')
-      : '';
+      : (classification === 'effect.createEntity'
+        ? (processDefaultValue(node.inputDefaults?.state) || '')
+        : '');
     const consumer = ['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'].includes(classification);
     const producerOutputId = consumer
       ? node.producerOutputId || ''
@@ -1516,6 +1520,36 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     workflowBuilderFromWorkflow(workflow)
   ]));
 
+  // Graph-derived vocabulary (SPEC §7): the draft's state records seed the
+  // machine for every producer of their type — terminal flags ride the
+  // records; nothing else supplies states.
+  const stateRecordsByType = new Map();
+  for (const record of Object.values(process.ctsTypes || {})) {
+    if (record?.kind !== 'state' || !record.typeId || !record.value) continue;
+    const list = stateRecordsByType.get(record.typeId) || [];
+    list.push(record);
+    stateRecordsByType.set(record.typeId, list);
+  }
+  for (const output of Object.values(process.producerOutputs || {})) {
+    // A custom-authored lifecycle is the contract as written: vocabulary
+    // seeding never replaces it.
+    if (output.lifecycle?.mode === 'custom') continue;
+    const records = stateRecordsByType.get(output.typeId);
+    if (!records?.length) continue;
+    // A declared vocabulary replaces the fallback machine entirely: no
+    // synthesized CREATED — the draft's records are the whole vocabulary
+    // and the construct's state default is the initial.
+    const builder = workflowBuilderFromWorkflow();
+    builders.set(output.producerOutputId, builder);
+    const region = primaryRegionBuilder(builder);
+    for (const record of records) {
+      region.states[record.value] ||= {
+        canUpdateMeta: true,
+        ...(record.terminal === true ? { isTerminal: true } : {})
+      };
+    }
+  }
+
   for (const [actionId, action] of Object.entries(process.actions || {})) {
     const kind = action.actionKind || 'createEntity';
     if (!['createEntity', 'updateEntity'].includes(kind)) continue;
@@ -1550,7 +1584,12 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
 
     if (kind === 'createEntity') {
       const targetState = actionTargetState(action, process);
-      if (targetState) addWorkflowState(builder, targetState);
+      if (targetState) {
+        addWorkflowState(builder, targetState);
+        // The construct's state default is the machine's initial (SPEC §7):
+        // no declaration owns an initial.
+        if (!builder.initial || builder.initial === 'CREATED') builder.initial = targetState;
+      }
       continue;
     }
 

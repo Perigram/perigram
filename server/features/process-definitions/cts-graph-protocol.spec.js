@@ -171,16 +171,15 @@ describe('graph protocol v5 (SPEC §20)', () => {
     unknownType.processNodes.update.typeId = 'ghost-panel';
     expect(checkCtsGraphBindings(unknownType, domain))
       .toContainEqual(expect.stringMatching(/unknown type ghost-panel/));
-
     const badState = structuredClone(base);
     badState.processNodes.update.kind = 'cts.transition';
     badState.processNodes.update.typeId = 'facade';
     badState.processNodes.update.state = { axis: 'main', to: 'FLYING' };
     expect(checkCtsGraphBindings(badState, domain))
-      .toContainEqual(expect.stringMatching(/target state FLYING is not declared/));
+      .toContainEqual(expect.stringMatching(/state FLYING is not declared for facade/));
 
     const badField = structuredClone(base);
-    badField.processNodes.present = { id: 'present', kind: 'cts.field', typeId: 'material', path: 'rogue' };
+    badField.processNodes.present = { id: 'present', kind: 'cts.field', typeId: 'material', field: 'rogue' };
     expect(checkCtsGraphBindings(badField, domain))
       .toContainEqual(expect.stringMatching(/field rogue is not in the material row/));
   });

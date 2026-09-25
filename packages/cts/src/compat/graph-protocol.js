@@ -504,25 +504,21 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
       continue;
     }
     if (node.kind === CTS_KIND.transition) {
-      const transition = node.transition || {};
-      const target = transition.to || node.state?.to || node.target || '';
-      const from = transition.from || node.state?.from || '';
+      const target = node.state?.to || node.inputDefaults?.state || node.target || '';
       if (target) {
-        const workflow = domain.workflows?.[resolvedTypeId || typeId];
-        const states = workflow?.regions?.[workflow?.primaryRegion || 'main']?.states || {};
-        if (Object.keys(states).length && !Object.hasOwn(states, target)) {
-          errors.push(`processNodes.${id}: target state ${target} is not declared for ${resolvedTypeId || typeId}`);
-        }
-        const transitions = workflow?.regions?.[workflow?.primaryRegion || 'main']?.transitions || [];
-        if (from && transitions.length && !transitions.some(item => item.from === from && item.to === target)) {
-          errors.push(`processNodes.${id}: transition ${from}->${target} is not declared for ${resolvedTypeId || typeId}`);
+        // The vocabulary is the draft's own state records (SPEC §7) —
+        // nothing outside the draft supplies or constrains targets.
+        const declared = Object.values(data.ctsTypes || {})
+          .some(record => record?.kind === 'state' && record.typeId === (resolvedTypeId || typeId) && record.value === target);
+        if (!declared) {
+          errors.push(`processNodes.${id}: state ${target} is not declared for ${resolvedTypeId || typeId}`);
         }
       }
     }
     if ([CTS_KIND.field, CTS_KIND.mutate, CTS_KIND.compose].includes(node.kind)) {
       const paths = node.kind === CTS_KIND.mutate
         ? [...(node.fields || []), ...Object.keys(node.inputDefaults || {})]
-        : [node.path].filter(Boolean);
+        : [node.field, node.path].filter(Boolean);
       for (const path of paths) {
         if (!nativeFieldPathDeclared(path, resolvedTypeId || typeId, domain)) {
           errors.push(`processNodes.${id}: field ${path} is not in the ${resolvedTypeId || typeId} row`);

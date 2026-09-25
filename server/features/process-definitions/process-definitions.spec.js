@@ -546,8 +546,14 @@ describe('current process-definition service contract', () => {
     const result = await activate('process-draft', adminAuth());
 
     expect(result.states.main).toBe('ACTIVE');
-    expect(result.data.compiled.producerOutputs['create_cassette:result'].workflow.regions.main.transitions)
-      .toEqual(expect.arrayContaining([expect.objectContaining({ from: 'ACTIVE', to: 'ARCHIVED' })]));
+    // The compiled machine is graph-derived (SPEC §7): the fixture's state
+    // records seed the vocabulary, the construct's state default is the
+    // initial, and transitions come from transition nodes (none here).
+    const region = result.data.compiled.producerOutputs['create_cassette:result'].workflow.regions.main;
+    expect(region.initial).toBe('ACTIVE');
+    expect(Object.keys(region.states).sort()).toEqual(['ACTIVE', 'ARCHIVED']);
+    expect(region.states.ARCHIVED.isTerminal).toBe(true);
+    expect(region.transitions).toEqual([]);
     expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
   });
 
@@ -641,6 +647,10 @@ describe('current process-definition service contract', () => {
       schemaVersion: 1,
       dataflowVersion: PROCESS_DATAFLOW_VERSION,
       graphProtocol: 5,
+      ctsTypes: {
+        s1: { id: 's1', kind: 'state', typeId: 'machine', value: 'ACTIVE' },
+        s2: { id: 's2', kind: 'state', typeId: 'machine', value: 'MAINTENANCE', terminal: true }
+      },
       graph: {
         nodes: ['update', 'transition'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
