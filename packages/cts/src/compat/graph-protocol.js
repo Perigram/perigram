@@ -519,9 +519,13 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
       }
     }
     if ([CTS_KIND.field, CTS_KIND.mutate, CTS_KIND.compose].includes(node.kind)) {
+      const rawField = node.kind === CTS_KIND.field ? node.inputDefaults?.field : null;
+      const authoredField = rawField && typeof rawField === 'object' && Array.isArray(rawField.branches)
+        ? String((rawField.branches.flatMap(branch => branch.items || [])[0]) ?? '')
+        : rawField;
       const paths = node.kind === CTS_KIND.mutate
         ? [...(node.fields || []), ...Object.keys(node.inputDefaults || {})]
-        : [node.field, node.path].filter(Boolean);
+        : [authoredField, node.field, node.path].filter(Boolean);
       for (const path of paths) {
         if (!nativeFieldPathDeclared(path, resolvedTypeId || typeId, domain)) {
           errors.push(`processNodes.${id}: field ${path} is not in the ${resolvedTypeId || typeId} row`);

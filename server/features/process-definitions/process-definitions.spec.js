@@ -209,7 +209,7 @@ describe('current process-definition service contract', () => {
       actions: {}, services: {}, sockets: {}, screens: {},
       processNodes: {
         f1: {
-          id: 'f1', kind: 'cts.field', typeId: 'facade', path: 'rogue',
+          id: 'f1', kind: 'cts.field', typeId: 'facade', inputDefaults: { field: 'rogue' },
           access: { level: 'read', grants: [{ roleId, level: 'read' }] }
         }
       }
@@ -978,8 +978,8 @@ function previewProcessData() {
     screens: {},
     processNodes: {
       entity: { id: 'entity', kind: 'source.literalItem', value: { data: { serial: null } } },
-      present: { id: 'present', kind: 'cts.field', typeId: 'part', path: 'data.serial' },
-      absent: { id: 'absent', kind: 'cts.field', typeId: 'part', path: 'data.design' }
+      present: { id: 'present', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'data.serial' } },
+      absent: { id: 'absent', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'data.design' } }
     }
   };
 }

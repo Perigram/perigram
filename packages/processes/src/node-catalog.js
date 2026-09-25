@@ -408,13 +408,26 @@ function acceptedEntityType(candidates = []) {
 // record config), value out. Ports never vanish with binding state; the
 // output is typed from the authored default when one exists, dynamic
 // otherwise.
+function authoredFieldPath(record = {}) {
+  const raw = record.inputDefaults?.field;
+  if (raw == null) return '';
+  // Normalized definitions wrap defaults in data trees; authored drafts
+  // carry the plain value. Both are the same fact.
+  if (raw && typeof raw === 'object' && Array.isArray(raw.branches)) {
+    const items = raw.branches.flatMap(branch => branch.items || []);
+    return items.length ? String(items[0]) : '';
+  }
+  return String(raw);
+}
+
 function nativeFieldPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   const entityIn = typeId
     ? processType('entity', { typeId })
     : processType('entity');
-  const field = record.inputDefaults?.field
-    ? ((context.fieldSchemas || []).find(candidate => candidate.path === record.inputDefaults.field) || null)
+  const fieldPath = authoredFieldPath(record);
+  const field = fieldPath
+    ? ((context.fieldSchemas || []).find(candidate => candidate.path === fieldPath) || null)
     : null;
   return {
     inputs: [

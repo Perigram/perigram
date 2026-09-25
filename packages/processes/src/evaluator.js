@@ -34,8 +34,13 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'cts.field') {
     const source = required(packets, 'entity', record);
     // One channel: the field path arrives on the field socket (wire or
-    // authored default) — never a parallel static record config.
-    const path = String(packets.field ? packetValue(packets.field) : (record.inputDefaults?.field || ''));
+    // authored default) — never a parallel static record config. The
+    // authored default may arrive as a normalized data tree.
+    const rawDefault = record.inputDefaults?.field;
+    const defaultPath = rawDefault && typeof rawDefault === 'object' && Array.isArray(rawDefault.branches)
+      ? String((rawDefault.branches.flatMap(branch => branch.items || [])[0]) ?? '')
+      : String(rawDefault || '');
+    const path = String(packets.field ? packetValue(packets.field) : defaultPath);
     return mapDataPacket(source, value => {
       const fieldValue = readPath(value, path);
       if (isMissingField(fieldValue)) return missingFieldMarker(path);

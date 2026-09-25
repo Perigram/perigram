@@ -87,8 +87,8 @@ function fieldReadDefinition() {
     screens: {},
     processNodes: {
       sheet: { id: 'sheet', kind: 'cts.read', select: 'current', typeId: 'sheet' },
-      present: { id: 'present', kind: 'cts.field', typeId: 'sheet', path: 'data.serial' },
-      absent: { id: 'absent', kind: 'cts.field', typeId: 'sheet', path: 'data.material' }
+      present: { id: 'present', kind: 'cts.field', typeId: 'sheet', inputDefaults: { field: 'data.serial' } },
+      absent: { id: 'absent', kind: 'cts.field', typeId: 'sheet', inputDefaults: { field: 'data.material' } }
     }
   };
 }
@@ -179,7 +179,7 @@ describe('graph protocol v5 (SPEC §20)', () => {
       .toContainEqual(expect.stringMatching(/state FLYING is not declared for facade/));
 
     const badField = structuredClone(base);
-    badField.processNodes.present = { id: 'present', kind: 'cts.field', typeId: 'material', field: 'rogue' };
+    badField.processNodes.present = { id: 'present', kind: 'cts.field', typeId: 'material', inputDefaults: { field: 'rogue' } };
     expect(checkCtsGraphBindings(badField, domain))
       .toContainEqual(expect.stringMatching(/field rogue is not in the material row/));
   });

@@ -154,9 +154,10 @@ export function normalizeProcessSocket(socket = {}, fallback = {}) {
 export function processTypesCompatible(sourceType, targetType) {
   const source = normalizeProcessType(sourceType);
   const target = normalizeProcessType(targetType);
-  if (source.nullable && !target.nullable) {
-    return incompatible('A nullable value cannot satisfy a required socket; handle the empty case first', source, target);
-  }
+  // Nullability is a value property, not a wire property (SPEC §20):
+  // absence at runtime is the missing-value marker, which propagates
+  // safely through operations; value.required is an explicit authoring
+  // choice, never a gate. Sockets carry types; wires typecheck.
   if (sameQualifiedType(source, target)) {
     return { ok: true, implicit: true, source, target };
   }
