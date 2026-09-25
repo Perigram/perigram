@@ -85,13 +85,10 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     const widget = typeRecordFor(bundle, 'widget');
     expect(widget.identifier).toBe('name');
     expect(widget.depiction).toEqual({ glyph: widget.glyph, thumb: null });
-    // Per-state display resolves on the axis: authored severity, terminal
-    // default, startCase label default (state values are authored
-    // vocabulary).
-    expect(widget.states.main.render).toEqual({
-      draft: { label: 'Draft', icon: null, severity: 'info' },
-      done: { label: 'Done', icon: null, severity: 'success' }
-    });
+    // State display is not type-derived (SPEC §7): the bundle carries no
+    // state vocabulary — compiled process contracts own per-state display
+    // from the draft's state records.
+    expect(widget.states).toBeUndefined();
   });
 
   it('resolves card/detail fact rows from the derived sections keyed by surface', () => {
