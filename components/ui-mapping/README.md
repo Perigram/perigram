@@ -196,20 +196,26 @@ surface concerns:
   (when nested), Avatar identity with title and a `type · id` muted
   subtitle, placed actions, the Edit toggle (rendered only on patchable
   surfaces; see `onPatch` above — while editing it reads as Save and
-  submits the draft), and exactly one status
-  surface. A state axis is a tree, never a line, so stateful types carry
-  no lifecycle strip: the header renders the current state as a Tag
-  colored by the declared render policy with a clock affordance opening
-  the shared `StateHistory` popover (the `status_events` audit trail over
-  `/api/state/history`), and every available runtime transition renders
+  submits the draft), and exactly one state
+  surface. A state axis is a tree, never a line, so stateful records
+  carry no lifecycle strip: an instance with a flat `state` renders the
+  segmented current-state tag (`StateTag`, resolved against the region's
+  `statePolicy` — the header shows the data's state even when the
+  served vocabulary has none for it) with a clock affordance opening
+  the shared `StateHistory` popover (the `status_events` audit trail
+  over `/api/state/history`, a vertical stepper), and every available
+  runtime transition renders
   as a dedicated transition button after the inline action budget,
   dispatching through the `transition` channel (never the generic run
-  menu). Stateless types keep the status Tag beside the title; the
-  detail body renders neither. The bar is its own layout container: the
+  menu) — machine transitions arrive as `{ __runtime, state: { to },
+  intent, region }` from the page's state-service fetch and their
+  labels/severity/icons resolve from the same policy map. Instances
+  without a state render no state surface (no state is information —
+  nothing synthesizes one). The bar is its own layout container: the
   identity/actions row engages from the header container width through
   the scoped CSS block (never the viewport — headers render inside panels
   and detail side columns): the identity block stays one
-  avatar-title-status row (`LAYOUT.row` plus `LAYOUT.headerIdentity`) that
+  avatar-title row (`LAYOUT.row` plus `LAYOUT.headerIdentity`) that
   still truncates long names through the `min-w-0` chain, wide headers
   floor the title at 16rem so
   a large action cluster wraps below the title instead of crunching it,
@@ -217,6 +223,12 @@ surface concerns:
   a third and every further action join one popup ellipsis menu (no
   reserved layout space) with the
   same localized labels.
+- `StateTag.vue` — the segmented state tag: one materialization of the
+  mapping contract's `stateDisplayFor`. Flat values render as a single
+  Tag styled by the authored severity/icon; dotted values render as a
+  path — muted ancestor Tags with angle separators and the styled leaf —
+  so nested/nested-legacy state values stay readable. The raw value
+  rides in the title attribute as the debugging channel.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card (same-role nesting
   flattens to a Divider), `row` / `inline` → dense flex row with budgeted
