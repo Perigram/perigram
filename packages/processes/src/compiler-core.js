@@ -1166,6 +1166,23 @@ function resolveSourceProducerOutputId(process, source, sourcePort) {
   return matching.length === 1 ? matching[0].producerOutputId : null;
 }
 
+// The declared lineage input for a native `lineage.<lineageKey>` socket:
+// construction inputs are the catalog's port source (the designer persists
+// the derived domain input there); the top-level socket list mirrors it.
+function declaredLineageInput(record = {}, handle = '') {
+  const matches = input => input && (
+    normalizeHandle(input.id) === handle
+    || normalizeHandle(input.path) === handle
+  );
+  return (record.construction?.inputs || []).find(matches)
+    || (record.inputs || []).find(matches)
+    || null;
+}
+
+function declaredAncestorTypeId(input = {}) {
+  return input.typeId || input.type?.typeId || '';
+}
+
 export function validateLineageBindingResolution(process = {}, domain = {}) {
   const errors = [];
   const push = (message, anchors = {}) => errors.push({ message, ...anchors });
@@ -1210,6 +1227,51 @@ export function validateLineageBindingResolution(process = {}, domain = {}) {
     const lineageKey = entry.key || lineageKeyForTypeId(ancestorType);
     if (!lineageKey) {
       push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} has no lineage key for ancestor type ${ancestorType}`, anchors);
+      continue;
+    }
+    if (portTypeId && sourcePort?.id
+      && !resolveSourceProducerOutputId(process, source, sourcePort)) {
+      push(
+        `Edge ${edge.id} lineage source socket ${source.id}:${sourcePort.id} on ${source.id} emits entity type ${portTypeId} `
+        + `but has no resolvable producer output record`,
+        anchors
+      );
+    }
+  }
+  // Native parity: a typed `lineage.<lineageKey>` socket on a
+  // lineage-persisting construct resolves by the same rules, so a dropped
+  // native binding is an activation failure too.
+  for (const edge of process.graph?.edges || []) {
+    const handle = normalizeHandle(edge.targetHandle);
+    if (!handle.startsWith('lineage.') || handle === 'lineage.') continue;
+    const target = recordsByGraphId.get(String(edge.target));
+    if (!target || !['effect.createEntity', 'effect.runProducer'].includes(effectKindOf(target))) continue;
+    const anchors = { edgeId: edge.id, nodeId: String(edge.target), socketId: handle };
+    const declared = declaredLineageInput(target, handle);
+    if (!declared) {
+      push(`Edge ${edge.id} targets lineage socket ${handle} missing on ${target.id || target.label}`, anchors);
+      continue;
+    }
+    const source = recordsByGraphId.get(String(edge.source));
+    if (!source) {
+      push(`Edge ${edge.id} cannot resolve lineage source node ${String(edge.source)} for socket ${handle} on ${target.id}`, anchors);
+      continue;
+    }
+    let sourcePort = null;
+    try {
+      sourcePort = catalogPortForHandle(
+        resolveCatalogNodePorts(source, catalogContext(domain, source)).outputs,
+        edge.sourceHandle
+      );
+    } catch { sourcePort = null; }
+    const portTypeId = sourcePort?.type?.typeId || sourcePort?.type?.itemType?.typeId || '';
+    const ancestorType = portTypeId || source.typeId || declaredAncestorTypeId(declared) || '';
+    if (!ancestorType) {
+      push(`Edge ${edge.id} cannot resolve an ancestor entity type for lineage socket ${handle} on ${target.id} from source ${source.id}`, anchors);
+      continue;
+    }
+    if (ancestorType === 'organization') {
+      push(`Edge ${edge.id} lineage socket ${handle} on ${target.id} cannot use organization as an ancestor`, anchors);
       continue;
     }
     if (portTypeId && sourcePort?.id
@@ -1342,6 +1404,45 @@ export function compileLineageBindings(process = {}, domain = {}) {
         consumingSocket: String(edge.targetHandle || '')
       });
     }
+  }
+  // Native species wiring: a typed `lineage.<lineageKey>` data socket on a
+  // lineage-persisting construct, fed by an entity-emitting output — the
+  // graph-authored hierarchy without a compose-block node. Same binding
+  // identity and fields as the composed path; the declared input's type
+  // only backfills an ancestor the wire cannot resolve.
+  for (const edge of graph.edges || []) {
+    const handle = normalizeHandle(edge.targetHandle);
+    if (!handle.startsWith('lineage.') || handle === 'lineage.') continue;
+    const target = recordsByGraphId.get(String(edge.target));
+    if (!target || !['effect.createEntity', 'effect.runProducer'].includes(effectKindOf(target))) continue;
+    const declared = declaredLineageInput(target, handle);
+    if (!declared) continue;
+    const childTypeId = target.typeId || target.targetTypeId || '';
+    if (!childTypeId) continue;
+    const source = recordsByGraphId.get(String(edge.source));
+    if (!source) continue;
+    let outputs = [];
+    try { outputs = resolveCatalogNodePorts(source, catalogContext(domain, source)).outputs; } catch { outputs = []; }
+    const sourcePort = catalogPortForHandle(outputs, edge.sourceHandle);
+    const ancestorType = sourcePort?.type?.typeId
+      || sourcePort?.type?.itemType?.typeId
+      || source.typeId
+      || declaredAncestorTypeId(declared)
+      || '';
+    if (!ancestorType || ancestorType === 'organization') continue;
+    const sourceProducerOutputId = resolveSourceProducerOutputId(process, source, sourcePort)
+      || source.producerOutputId || null;
+    bindings.push({
+      childTypeId,
+      parentTypeId: ancestorType,
+      lineageKey: handle.slice('lineage.'.length),
+      producerOutputId: target.producerOutputId || null,
+      sourceProducerOutputId,
+      sourceNode: String(edge.source),
+      sourceSocket: String(edge.sourceHandle || ''),
+      consumingNode: String(edge.target),
+      consumingSocket: String(edge.targetHandle || '')
+    });
   }
   const unique = new Map(bindings.map(binding => [
     [

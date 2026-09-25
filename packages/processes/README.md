@@ -123,7 +123,10 @@ must exist for the ancestor type. An entity-emitting lineage source socket must
 also resolve to a producer output record — by exact `nodeId:outputSocketId`
 key, by authored socket alias, or as the single same-type candidate — because
 `compileLineageBindings` carries that identity on every binding as
-`sourceProducerOutputId`. Each error names the edge id plus the responsible
+`sourceProducerOutputId`. A native `data:lineage.<lineageKey>` edge into a
+construct resolves by the same rules (the input must be declared on the
+consuming record), so a dropped wiring binding fails activation exactly like a
+dropped composition binding. Each error names the edge id plus the responsible
 node, entry, and socket, so a dropped lineage binding is an activation failure
 instead of a silently missing runtime binding. Dataflow edge incompatibilities
 and required-input availability errors carry the same producer context: an
@@ -370,8 +373,15 @@ source output, so same-type producers keep separate bindings; deduplication
 uses that full identity and never merges bindings merely because child type,
 ancestor type, and lineage key match. The child type is
 derived from the Create/Modify entity consumer wired to the composed block, so
-persisted composers need no manually selected `targetEntityType`. Each
- compiled producer output exposes only its own `lineageBindings`. Compiled lineage bindings are the authoritative
+persisted composers need no manually selected `targetEntityType`. Native
+species graphs author the same hierarchy without a composer: a construct's
+construct-addressable `lineage.<lineageKey>` input (the domain-derived
+construction input a declared parent edge exposes, persisted on the record)
+receives the producer's entity output through a `data:lineage.<lineageKey>`
+edge, and `compileLineageBindings` emits the same binding from that wiring —
+the input's declared entity type only backfills an ancestor the wire cannot
+resolve. Each
+compiled producer output exposes only its own `lineageBindings`. Compiled lineage bindings are the authoritative
 hierarchy contract for the active process; access scoping and grant
 windows read them alone. Presentation placement — home eligibility, root
 scoping, inferred child regions, contextual action placement — reads the
