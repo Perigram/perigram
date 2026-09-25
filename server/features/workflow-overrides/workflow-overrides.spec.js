@@ -38,12 +38,13 @@ vi.mock('~/server/core/access/service.js', () => ({
 }));
 
 vi.mock('~/server/features/process-definitions/runtime.js', () => ({
-  resolveProcessWorkflow: vi.fn(async () => null)
+  resolveProcessWorkflow: vi.fn(async () => null),
+  getActiveCompiledProcess: vi.fn(async () => null)
 }));
 
 import * as repository from './repository.js';
 import * as service from './service.js';
-import { resolveProcessWorkflow } from '~/server/features/process-definitions/runtime.js';
+import { resolveProcessWorkflow, getActiveCompiledProcess } from '~/server/features/process-definitions/runtime.js';
 
 const auth = {
   userId: 'user-1',
@@ -148,5 +149,57 @@ describe('workflow overrides service', () => {
     // system-transition merging, no declaration fallbacks.
     expect(workflow.initial).toBe('NEW');
     expect(workflow.transitions).toEqual([]);
+  });
+
+  it('resolves the compiled machine by type when the caller names no producer', async () => {
+    // The plain transition channel carries no producer context: the
+    // active process's first producer of the type serves its machine, or
+    // org-authored stateful types resolve no machine at all.
+    getActiveCompiledProcess.mockResolvedValue({
+      producerOutputs: {
+        'make:entity': { producerOutputId: 'make:entity', typeId: 'project', workflow: null },
+        'other:entity': { producerOutputId: 'other:entity', typeId: 'gadget', workflow: { initial: 'OTHER' } },
+        'seed:entity': {
+          producerOutputId: 'seed:entity',
+          typeId: 'project',
+          workflow: {
+            initial: 'SEEDED',
+            states: { SEEDED: {}, DONE: {} },
+            transitions: [{ from: 'SEEDED', to: 'DONE' }]
+          }
+        }
+      }
+    });
+    repository.findActiveByEntity.mockResolvedValue(null);
+
+    const workflow = await service.resolveActiveWorkflow({
+      typeId: 'project',
+      organizationId: auth.memberships[0].organizationId
+    });
+
+    expect(getActiveCompiledProcess).toHaveBeenCalledWith(auth.memberships[0].organizationId);
+    expect(workflow.initial).toBe('SEEDED');
+    expect(workflow.schemaVersion).toBe(2);
+    // An organization override never wins over the active process: the
+    // process is the authored lifecycle, the override is the escape hatch
+    // for types the process does not govern.
+    repository.findActiveByEntity.mockResolvedValue({ workflow: { initial: 'CUSTOM', states: { CUSTOM: {} }, transitions: [] } });
+    const overridden = await service.resolveActiveWorkflow({
+      typeId: 'project',
+      organizationId: auth.memberships[0].organizationId
+    });
+    expect(overridden.initial).toBe('SEEDED');
+  });
+
+  it('falls through an inactive compiled process to the override and default', async () => {
+    getActiveCompiledProcess.mockResolvedValueOnce({ producerOutputs: {} });
+    repository.findActiveByEntity.mockResolvedValue(null);
+
+    const workflow = await service.resolveActiveWorkflow({
+      typeId: 'project',
+      organizationId: auth.memberships[0].organizationId
+    });
+
+    expect(workflow.initial).toBe('DRAFT');
   });
 });

@@ -109,9 +109,13 @@ async function seedStatefulProcess(app) {
   expect(assignResponse.ok(), await assignResponse.text()).toBeTruthy();
 
   const access = { level: 'admin', roleIds: [role.id], grants: [{ roleId: role.id, level: 'admin' }] };
+  // State records speak the canvas vocabulary exactly (value, severity,
+  // icon, terminal as explicit booleans — labels derive from the value):
+  // the activation round-trip regenerates records from the canvas and
+  // refuses any key the canvas cannot reproduce.
   const stateRecords = {
-    st_draft: { id: 'st_draft', kind: 'state', typeId: TYPE, value: 'draft', label: 'Draft', severity: 'info' },
-    st_done: { id: 'st_done', kind: 'state', typeId: TYPE, value: 'done', label: 'Done', severity: 'success', terminal: true }
+    st_draft: { id: 'st_draft', kind: 'state', typeId: TYPE, value: 'draft', severity: 'info', terminal: false },
+    st_done: { id: 'st_done', kind: 'state', typeId: TYPE, value: 'done', severity: 'success', terminal: true }
   };
   const processNodes = {
     create: {
@@ -119,6 +123,7 @@ async function seedStatefulProcess(app) {
       kind: 'cts.construct',
       typeId: TYPE,
       via: 'genericCreate',
+      producerOutputId: 'create:entity',
       construction: { mode: 'genericCreate', inputs: [{ id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }] },
       state: { to: 'draft' },
       trigger: { mode: 'manual' },
@@ -134,16 +139,23 @@ async function seedStatefulProcess(app) {
       access
     }
   };
+  // The producer output owns the type's compiled machine (SPEC §7): the
+  // state records seed its vocabulary, the construct's target seeds the
+  // initial, and the transition record wires the edge.
+  const producerOutputs = {
+    'create:entity': {
+      producerOutputId: 'create:entity',
+      nodeId: 'create',
+      outputSocketId: 'entity',
+      typeId: TYPE,
+      fields: { read: [], write: [], private: [] }
+    }
+  };
   const canvas = [
-    { id: 'cls', type: 'ctsClass', data: { refId: 'cls', typeId: TYPE, class: 'item' } },
     { id: 'st_draft', type: 'ctsState', data: { refId: 'st_draft', typeId: TYPE, value: 'draft', terminal: false } },
     { id: 'st_done', type: 'ctsState', data: { refId: 'st_done', typeId: TYPE, value: 'done', terminal: true } },
     { id: 'create', type: 'processNode', data: { refId: 'create' } },
     { id: 'advance', type: 'processNode', data: { refId: 'advance' } }
-  ];
-  const edges = [
-    { id: 'e1', source: 'st_draft', target: 'cls', role: 'type', label: 'state' },
-    { id: 'e2', source: 'st_done', target: 'cls', role: 'type', label: 'state' }
   ];
   const draftResponse = await app.request.post('/api/process-definitions', {
     data: {
@@ -153,7 +165,8 @@ async function seedStatefulProcess(app) {
         roleGrants: {},
         ctsTypes: stateRecords,
         processNodes,
-        graph: { nodes: canvas, edges }
+        producerOutputs,
+        graph: { nodes: canvas, edges: [] }
       }
     }
   });

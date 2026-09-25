@@ -130,14 +130,19 @@ const trail = computed(() => {
 // Runtime state transitions never join the overflow menu: they render as
 // dedicated transition buttons after the inline budget (they dispatch
 // through the transition channel, which the generic run menu items do
-// not carry).
+// not carry). A compiled action whose state target the machine already
+// serves is the same hop through the run channel — the machine button
+// owns the header (its dispatch targets the opened instance), so the
+// compiled twin never doubles it.
+const transitionActions = computed(() => props.actions
+  .filter(action => action?.__runtime && action?.state?.to));
+const transitionTargets = computed(() => new Set(transitionActions.value.map(action => action.state.to)));
 const manualActions = computed(() => props.actions
-  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime));
+  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
+  .filter(action => !action?.state?.to || !transitionTargets.value.has(action.state.to)));
 const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS_INLINE));
 const overflowActions = computed(() => manualActions.value
   .filter(action => !inlineActions.value.includes(action)));
-const transitionActions = computed(() => props.actions
-  .filter(action => action?.__runtime && action?.state?.to));
 const historyPopover = ref(null);
 const overflowMenu = ref(null);
 const overflowMenuItems = computed(() => overflowActions.value.map(action => {
