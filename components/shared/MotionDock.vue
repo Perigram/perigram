@@ -160,6 +160,7 @@
             return {
                 currentSize: size.current,
                 labelVisible,
+                isFocused,
                 setItemRef,
                 setLabelRef,
                 handleHoverStart,

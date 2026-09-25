@@ -155,6 +155,7 @@ function relatedInstances(instance, address, pool) {
 
 function readFilterValue(instance, field) {
   if (field === '_id' || field === 'id') return instance?.id ?? null;
+  if (field === 'state') return instance?.state ?? instance?.states?.main ?? null;
   if (/^states\.[^.]+$/.test(field)) return instance?.states?.[field.slice('states.'.length)] ?? null;
   if (field.startsWith(LINEAGE_PREFIX)) {
     const ref = instance?.lineage?.[field.slice(LINEAGE_PREFIX.length)];

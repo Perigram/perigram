@@ -20,7 +20,7 @@ describe('flat transport projection', () => {
     expect(tree).toEqual({
       and: [
         { field: '_id', op: 'eq', value: '507f1f77bcf86cd799439011' },
-        { field: 'states.main', op: 'eq', value: 'available' },
+        { field: 'state', op: 'eq', value: 'available' },
         { field: 'lineage.binId', op: 'eq', value: 'bin-1' },
         { field: 'lineage.shelfId', op: 'eq', value: 'shelf-2' }
       ]
@@ -29,7 +29,7 @@ describe('flat transport projection', () => {
 
   it('splits primaryStates CSV into one in-predicate', () => {
     expect(filterFromFlatFilters({ primaryStates: 'available, installed,' }))
-      .toEqual({ field: 'states.main', op: 'in', value: ['available', 'installed'] });
+      .toEqual({ field: 'state', op: 'in', value: ['available', 'installed'] });
     expect(filterFromFlatFilters({ primaryStates: ' , ' })).toBeNull();
   });
 
@@ -96,7 +96,7 @@ describe('instanceMatchesFilter', () => {
     fields: { name: 'Mystery Part', size: { value: 12, unit: 'mm' }, grade: 'a', madeAt: '2026-01-01T10:00:00Z' },
     lineage: { madeById: { type: 'user', id: 'u-1' }, zoneId: 'z-2' },
     relations: { pinned: [{ type: 'document', id: 'd-1' }, { type: 'document', id: 'd-2' }] },
-    states: { main: 'available' }
+    state: 'available'
   };
   const pool = {
     user: { 'u-1': { id: 'u-1', fields: { name: 'Ada' }, states: {} } },
@@ -115,7 +115,7 @@ describe('instanceMatchesFilter', () => {
   });
 
   it('matches the primary status, lineage ref ids, and the instance id', () => {
-    expect(instanceMatchesFilter(instance, { field: 'states.main', op: 'eq', value: 'available' })).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'state', op: 'eq', value: 'available' })).toBe(true);
     expect(instanceMatchesFilter(instance, { field: 'lineage.madeById', op: 'eq', value: 'u-1' })).toBe(true);
     expect(instanceMatchesFilter(instance, { field: 'lineage.zoneId', op: 'eq', value: 'z-2' })).toBe(true);
     expect(instanceMatchesFilter(instance, { field: 'lineage.madeById', op: 'eq', value: 'u-2' })).toBe(false);
@@ -134,8 +134,8 @@ describe('instanceMatchesFilter', () => {
   });
 
   it('matches membership and case-insensitive substrings', () => {
-    expect(instanceMatchesFilter(instance, { field: 'states.main', op: 'in', value: ['installed', 'available'] })).toBe(true);
-    expect(instanceMatchesFilter(instance, { field: 'states.main', op: 'in', value: ['installed'] })).toBe(false);
+    expect(instanceMatchesFilter(instance, { field: 'state', op: 'in', value: ['installed', 'available'] })).toBe(true);
+    expect(instanceMatchesFilter(instance, { field: 'state', op: 'in', value: ['installed'] })).toBe(false);
     expect(instanceMatchesFilter(instance, { field: 'name', op: 'contains', value: 'MYSTERY' })).toBe(true);
     expect(instanceMatchesFilter(instance, { field: 'name', op: 'contains', value: 'zzz' })).toBe(false);
     expect(instanceMatchesFilter(instance, { field: 'id', op: 'contains', value: 'w-9' })).toBe(true);
@@ -147,14 +147,14 @@ describe('instanceMatchesFilter', () => {
     const tree = {
       and: [
         { or: [{ field: 'grade', op: 'eq', value: 'b' }, { field: 'grade', op: 'eq', value: 'a' }] },
-        { not: { field: 'states.main', op: 'eq', value: 'installed' } }
+        { not: { field: 'state', op: 'eq', value: 'installed' } }
       ]
     };
     expect(instanceMatchesFilter(instance, tree)).toBe(true);
     const refused = {
       and: [
         { or: [{ field: 'grade', op: 'eq', value: 'b' }, { field: 'name', op: 'contains', value: 'zzz' }] },
-        { not: { field: 'states.main', op: 'eq', value: 'available' } }
+        { not: { field: 'state', op: 'eq', value: 'available' } }
       ]
     };
     expect(instanceMatchesFilter(instance, refused)).toBe(false);

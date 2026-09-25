@@ -117,6 +117,11 @@ const poolLoading = ref(false);
 const poolError = ref('');
 const poolStates = ref({});
 async function reload() {
+  // The instance store fetches through raw $fetch, which does not forward
+  // the request's auth cookie during SSR — a server-side reload here
+  // 401s against authenticated endpoints. The pool hydrates on the
+  // client right after; SSR renders the loading states.
+  if (import.meta.server) return;
   const screenValue = screen.value;
   if (!screenValue) return;
   const sources = (screenValue.sources || []).filter(source => source.id && source.typeId);
@@ -163,8 +168,9 @@ function applyTransitionSnapshot(updated = {}) {
 
 // The declaration machine's live transitions for the opened detail
 // instance: fetched through the state service (the same endpoint the
-// strip's steps dispatch through), filtered to declared states, labeled
-// by the authored state policy.
+// strip's steps dispatch through). The served actions are already
+// machine-legal (the compiled contract owns the vocabulary), so they map
+// straight into the strip's action shape.
 const runtimeTransitions = ref({});
 const stateController = useStateController();
 
@@ -175,14 +181,11 @@ async function loadRuntimeTransitions(instance = {}) {
   const typeId = instance.type || screen.value?.typeId || '';
   const id = String(instance._id || instance.id || '');
   if (!typeId || !id) { runtimeTransitions.value = {}; return; }
-  const typeRecord = (authStore.processPayload?.bundle?.types || []).find(type => type.id === typeId);
-  const declared = new Set((typeRecord?.states?.main?.values || []));
-  if (!declared.size) { runtimeTransitions.value = {}; return; }
   try {
     const actions = await stateController.fetchActions(typeId, id);
     runtimeTransitions.value = {
       [typeId]: actions
-        .filter(action => declared.has(action.to))
+        .filter(action => action.to)
         .map(action => ({
           __runtime: true,
           actionKind: 'updateInstance',
@@ -190,7 +193,7 @@ async function loadRuntimeTransitions(instance = {}) {
           status: { to: action.to },
           intent: action.intent || null,
           region: action.region || null,
-          label: typeRecord?.states?.main?.render?.[action.to]?.label || null
+          label: action.display?.label || null
         }))
     };
   } catch {
