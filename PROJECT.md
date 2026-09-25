@@ -6,7 +6,7 @@ context_version: 1.1.0
 updated: 2026-09-25
 owner: product-owner
 classification: internal
-git_remote: r330:/srv/forgejo/git/repositories/sodalab/perigram.git
+git_remote: r330:/srv/forgejo/git/repositories/labfasad/perigram.git
 ```
 
 Канонический путь: `/home/cutkit/perigram`. Прежнее имя — cutkit-demo
