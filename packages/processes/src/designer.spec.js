@@ -486,18 +486,12 @@ describe('tree declaration compilation', () => {
       name: { base: 'string' },
       width: { base: 'quantity', unit: 'mm' }
     });
-    expect(compiled.widget.states.main).toEqual({
-      initial: 'raw',
-      states: {
-        raw: {},
-        done: { initial: 'archived', states: { archived: { terminal: true } } }
-      },
-      transitions: []
-    });
-    // No transition record exists: the axis carries the empty transition set.
+    // State nodes declare no type facet (SPEC §7): the posted declaration
+    // carries fields and edges only — the state vocabulary stays draft
+    // authoring wired into create/transition sockets.
+    expect(compiled.widget.states).toBeUndefined();
     expect(compiled.widget.transitions).toBeUndefined();
     expect(compiled.widget.edges).toEqual({ children: { parts: { types: ['gadget'], onRemove: 'cascade' } } });
-    expect(compiled.gadget.states.main.initial).toBe('new');
   });
 
   it('authored field names are labels; the row id derives, not validates', () => {
@@ -570,42 +564,43 @@ describe('tree declaration compilation', () => {
     expect(Object.hasOwn(emptied[0], 'migrate')).toBe(false);
   });
 
-  it('states without exactly one initial are a diagnostic, never a default (R4)', () => {
+  it('no state is an initial — initials are construct socket authoring (SPEC §7)', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];
     const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
-    const noEntry = compileTreeDeclarations(nodes, edges);
-    expect(noEntry.diagnostics.some(message => message.includes('no initial state'))).toBe(true);
+    const compiled = compileTreeDeclarations(nodes, edges);
+    expect(compiled.diagnostics).toEqual([]);
 
-    // two constructs wired to different states: the entries disagree
+    // two constructs wired to different states: each construct owns its
+    // own initial — there is no class-level initial to disagree about
     const constructA = { id: 'ca', type: 'processNode', data: { refId: 'ca', typeId: 'widget' } };
     const constructB = { id: 'cb', type: 'processNode', data: { refId: 'cb', typeId: 'widget' } };
-    const disagree = compileTreeDeclarations(
+    const wired = compileTreeDeclarations(
       [...nodes, constructA, constructB],
       [...edges,
         { id: 'e1', source: nodes[1].id, target: 'ca', role: 'type', label: 'entry' },
-        { id: 'e2', source: nodes[2].id, target: 'cb', role: 'type', label: 'entry' }]
+        { id: 'e2', source: nodes[2].id, target: 'cb', role: 'type', label: 'entry' }],
+      {
+        ca: { id: 'ca', kind: 'cts.construct', typeId: 'widget' },
+        cb: { id: 'cb', kind: 'cts.construct', typeId: 'widget' }
+      }
     );
-    expect(disagree.diagnostics.some(message => message.includes('multiple initial states'))).toBe(true);
+    expect(wired.diagnostics).toEqual([]);
   });
 
-  it('a sole wired state is the initial state — there is no choice to make', () => {
+  it('a sole wired state declares nothing on the type — it is wiring vocabulary', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw')];
     const { declarations, diagnostics } = compileTreeDeclarations(nodes, [declares(nodes[1], widget, 'state')]);
     expect(diagnostics).toEqual([]);
-    expect(declarations[0].states.main).toEqual({
-      initial: 'raw',
-      states: { raw: {} },
-      transitions: []
-    });
+    expect(declarations[0].states).toBeUndefined();
   });
 
-  it('transition records reference declared states without synthesizing them', () => {
+  it('transition records carry no declaration synthesis — authored targets validate against the state nodes', () => {
     const goo = classNode('t-uth93vgdab');
     const nodes = [
       goo,
-      stateNode('t-uth93vgdab', 'GOO', { initial: true }),
+      stateNode('t-uth93vgdab', 'GOO'),
       stateNode('t-uth93vgdab', 'CHANGED', { terminal: true })
     ];
     const edges = [
@@ -617,21 +612,16 @@ describe('tree declaration compilation', () => {
         id: 'move',
         kind: 'cts.transition',
         typeId: 't-uth93vgdab',
-        state: { axis: 'main', from: 'GOO', to: 'CHANGED' }
+        inputDefaults: { state: 'CHANGED' }
       }
     };
     const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges, records);
     expect(diagnostics).toEqual([]);
-    const compiled = declarations[0];
-    expect(compiled.states.main).toEqual({
-      initial: 'GOO',
-      states: { GOO: {}, CHANGED: { terminal: true } },
-      transitions: [{ axis: 'main', from: 'GOO', to: 'CHANGED' }]
-    });
-    expect(compiled.transitions).toEqual([{ axis: 'main', from: 'GOO', to: 'CHANGED' }]);
+    expect(declarations[0].states).toBeUndefined();
+    expect(declarations[0].transitions).toBeUndefined();
   });
 
-  it('rejects a transition record that references an undeclared state', () => {
+  it('rejects a transition record that targets an undeclared state', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw')];
     const edges = [declares(nodes[1], widget, 'state')];
@@ -640,23 +630,22 @@ describe('tree declaration compilation', () => {
         id: 'ship',
         kind: 'cts.transition',
         typeId: 'widget',
-        state: { axis: 'main', from: 'raw', to: 'SHIPPED' }
+        state: { to: 'SHIPPED' }
       }
     };
     const { diagnostics } = compileTreeDeclarations(nodes, edges, records);
-    expect(diagnostics.some(message => message.includes('to SHIPPED not in states.main'))).toBe(true);
+    expect(diagnostics.some(message => message.includes('state SHIPPED not declared for widget'))).toBe(true);
   });
 
-  it('incomplete transition references are diagnostics', () => {
+  it('an untargeted transition is not a declaration diagnostic — required inputs belong to compile', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw')];
     const edges = [declares(nodes[1], widget, 'state')];
     const records = {
-      unauthored: { id: 'unauthored', kind: 'cts.transition', typeId: 'widget' },
-      orphan: { id: 'orphan', kind: 'cts.transition', state: { to: 'DONE' } }
+      unauthored: { id: 'unauthored', kind: 'cts.transition', typeId: 'widget' }
     };
     const { diagnostics } = compileTreeDeclarations(nodes, edges, records);
-    expect(diagnostics.some(message => message.includes('must reference declared from and to states'))).toBe(true);
+    expect(diagnostics).toEqual([]);
   });
 
   it('invalid field descriptors surface as diagnostics naming the type and field', () => {
@@ -669,7 +658,7 @@ describe('tree declaration compilation', () => {
 
   it('diagnostics name the authored class name, not only the registry id', () => {
     const widget = classNode('widget', { name: 'Widget' });
-    const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];
+    const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'raw')];
     const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
     const { diagnostics } = compileTreeDeclarations(nodes, edges);
     expect(diagnostics.some(message => message.startsWith('class Widget:'))).toBe(true);
@@ -838,9 +827,9 @@ describe('declaration node ports', () => {
     const fieldPorts = declarationNodePorts({ type: 'ctsField', data: { name: 'width', descriptor: { base: 'quantity', unit: 'mm' } } });
     expect(fieldPorts.outputSpecs[0]).toMatchObject({ id: 'field', label: 'width' });
 
-    // the state node's transition-from handle is a real spec, not a ghost
+    // the state node's nesting input and value output are real specs
     const statePorts = declarationNodePorts({ type: 'ctsState', data: { value: 'raw' } });
-    expect(statePorts.inputSpecs[0]).toMatchObject({ id: 'in', type: { base: 'status' } });
+    expect(statePorts.inputSpecs[0]).toMatchObject({ id: 'state', type: { base: 'status' } });
     expect(statePorts.outputSpecs[0]).toMatchObject({ id: 'state', type: { base: 'status' } });
 
     const typePorts = declarationNodePorts({ type: 'ctsType', data: { typeId: 'sheet' } }, [{ id: 'sheet' }]);

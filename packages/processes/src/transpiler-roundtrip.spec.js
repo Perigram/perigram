@@ -62,10 +62,11 @@ describe('declaration wire labels round-trip', () => {
     expect(diagnostics).toEqual([]);
     const widget = declarations.find(declaration => declaration.id === 'widget');
     expect(widget.fields).toMatchObject({ name: { base: 'string' } });
-    expect(widget.states.main.states.ready.states.done).toEqual({
-      policy: { severity: 'success', icon: 'pi pi-check-circle' }
-    });
-    expect(widget.transitions).toBeUndefined();
+    // State nodes declare no type facet (SPEC §7): the vocabulary round-trips
+    // as ctsTypes records and nesting/entry wires, never onto the declaration.
+    expect(widget.states).toBeUndefined();
     expect(widget.edges.children.gadgets).toMatchObject({ types: ['gadget'], onRemove: 'restrict' });
+    const stateRecords = Object.values(definition.ctsTypes || {}).filter(record => record.kind === 'state');
+    expect(stateRecords.map(record => record.value).sort()).toEqual(['done', 'ready']);
   });
 });

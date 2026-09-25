@@ -120,12 +120,13 @@ describe('native CTS process execution contract', () => {
     const read = portsFor({ kind: 'cts.read', select: 'parent', typeId: 'panel' }, domain);
     const field = portsFor({ kind: 'cts.field', typeId: 'panel', path: 'data.name' }, domain);
 
-    expect(construct.inputs.map(port => port.id)).toEqual(['type', 'data.name', 'data.note']);
+    expect(construct.inputs.map(port => port.id)).toEqual(['type', 'data.name', 'data.note', 'state']);
     expect(construct.inputs.some(port => port.id === 'states.main')).toBe(false);
     expect(mutate.inputs.map(port => port.id)).toEqual(['entity', 'data.name', 'data.note']);
     expect(mutate.inputs.some(port => port.id === 'states.main')).toBe(false);
-    expect(transition.inputs.map(port => port.id)).toEqual(['entity', 'note']);
+    expect(transition.inputs.map(port => port.id)).toEqual(['entity', 'note', 'state']);
     expect(read.inputs.map(port => port.id)).toEqual(['entity']);
+    expect(field.inputs.map(port => port.id)).toEqual(['entity', 'field']);
     expect(field.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entity', typeId: 'panel' } });
   });
 

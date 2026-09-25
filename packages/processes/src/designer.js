@@ -1,6 +1,6 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { PRODUCER_ORIGIN_EFFECT_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
-import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, transitionNodeStateTargets } from '../../cts/src/index.js';
+import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
@@ -180,16 +180,15 @@ export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'cts
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
   if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
-  // A state wired into a state declares its PARENT status (nested
-  // machines: the child compiles under `parent.child`). Transitions are
-  // defined by transition nodes only — never by declaration wires.
+  // A state wired into a state input nests inside it (SPEC §7). No axis
+  // names, no parent markers — the wire is the nesting declaration.
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'nested';
-  // A state wires into a status-bearing process node: it authors the
-  // machine entry (on constructs) and the action's target state (on
-  // status-mutating effects) — the wire IS the status value. The connect
-  // gate additionally requires the landed input to be status-typed.
+  // A state wires into a status-bearing operation's state socket: the
+  // construct's initial state, the transition's target — the wire IS the
+  // value. The connect gate additionally requires the landed input to be
+  // status-typed.
   if (sourceType === 'ctsState' && targetType === 'processNode'
-    && ((targetRecord?.kind || targetRecordKind) === 'cts.transition')) {
+    && ['cts.construct', 'cts.transition'].includes(targetRecord?.kind || targetRecordKind)) {
     return 'entry';
   }
   // A ref field receives its accepted target types as inputs: wiring a
@@ -239,25 +238,14 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     const target = nodeById.get(edge.target);
     if (source?.type === 'ctsState' && target?.type === 'ctsState') stateParent.set(source.id, target.id);
   }
-  const statePath = node => {
-    const segments = [String(node?.data?.value || '')];
-    const seen = new Set();
-    let cursor = node;
-    while (cursor && stateParent.has(cursor.id) && !seen.has(cursor.id)) {
-      seen.add(cursor.id);
-      cursor = nodeById.get(stateParent.get(cursor.id));
-      segments.push(String(cursor?.data?.value || ''));
-    }
-    return segments.reverse().filter(Boolean).join('.');
-  };
-  const statePathsByType = new Map();
+  // The state vocabulary is flat (SPEC §7): each state node contributes its
+  // own value; nesting wires structure nodes but derive no paths.
+  const valuesByType = new Map();
   for (const node of nodes) {
     if (node.type !== 'ctsState' || !node.data?.typeId) continue;
-    const axis = String(node.data.axis || 'main');
-    const key = `${node.data.typeId}:${axis}`;
-    const paths = statePathsByType.get(key) || new Set();
-    paths.add(statePath(node));
-    statePathsByType.set(key, paths);
+    const values = valuesByType.get(node.data.typeId) || new Set();
+    values.add(String(node.data?.value || ''));
+    valuesByType.set(node.data.typeId, values);
   }
 
   for (const node of nodes) {
@@ -304,83 +292,44 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     }
   }
 
+  // Authored state targets must name a declared state of the bound type —
+  // the vocabulary is the draft's own state nodes, nothing else.
   for (const record of Object.values(records || {})) {
-    if (operationKindOf(record) !== 'effect.changeStatus') continue;
-    if (record.typeId && (!record.state?.from || !record.state?.to)) {
-      diagnostics.push(`transition ${record.id || '(unnamed)'} must reference declared from and to states`);
-      continue;
-    }
+    if (!['cts.construct', 'cts.transition'].includes(record?.kind)) continue;
+    const target = record.kind === 'cts.transition'
+      ? record.state?.to ?? record.inputDefaults?.state
+      : record.inputDefaults?.state;
+    if (typeof target !== 'string' || !target) continue;
     if (!record.typeId) continue;
-    const axis = String(record.state?.axis || 'main');
-    const paths = statePathsByType.get(`${record.typeId}:${axis}`) || new Set();
-    for (const endpoint of ['from', 'to']) {
-      if (record.state?.[endpoint] && !paths.has(record.state[endpoint])) {
-        diagnostics.push(`transition ${record.id || '(unnamed)'}: ${endpoint} ${record.state[endpoint]} not in states.${axis}`);
-      }
+    const values = valuesByType.get(record.typeId);
+    if (values && !values.has(target)) {
+      diagnostics.push(`${record.kind === 'cts.transition' ? 'transition' : 'construct'} ${record.id || '(unnamed)'}: state ${target} not declared for ${record.typeId}`);
     }
   }
 
   const classes = nodes.filter(node => node.type === 'ctsClass' && node.data?.typeId);
   for (const classNode of classes) {
-    const states = nodes.filter(node => node.type === 'ctsState' && node.data.typeId === classNode.data.typeId);
-    const parentOf = new Map();
-    for (const edge of edges) {
-      if (edge.role !== 'type' || edge.label !== 'nested') continue;
-      const source = nodeById.get(edge.source);
-      const target = nodeById.get(edge.target);
-      if (source?.type === 'ctsState' && target?.type === 'ctsState' && source.data.typeId === classNode.data.typeId) {
-        parentOf.set(source.id, target.id);
-      }
-    }
     const seenAncestors = new Set();
-    for (const state of states) {
+    for (const state of nodes.filter(node => node.type === 'ctsState' && node.data?.typeId === classNode.data.typeId)) {
       seenAncestors.clear();
       let cursor = state;
-      while (cursor && parentOf.has(cursor.id)) {
+      while (cursor && stateParent.has(cursor.id)) {
         if (seenAncestors.has(cursor.id)) {
-          diagnostics.push(`state ${labelOf(cursor)} has a cyclic parent chain`);
+          diagnostics.push(`state ${labelOf(cursor)} has a cyclic nesting chain`);
           break;
         }
         seenAncestors.add(cursor.id);
-        cursor = nodeById.get(parentOf.get(cursor.id));
+        cursor = nodeById.get(stateParent.get(cursor.id));
       }
     }
 
-    const byParent = new Map();
-    for (const state of states) {
-      const parent = parentOf.get(state.id) || 'root';
-      const siblings = byParent.get(parent) || [];
-      if (siblings.some(candidate => candidate.data.value === state.data.value)) {
-        diagnostics.push(`class ${labelOf(classNode)}: duplicate state name ${state.data.value}`);
+    const seenValues = new Set();
+    for (const state of nodes.filter(node => node.type === 'ctsState' && node.data?.typeId === classNode.data.typeId)) {
+      const value = String(state.data?.value || '');
+      if (seenValues.has(value)) {
+        diagnostics.push(`class ${labelOf(classNode)}: duplicate state name ${value}`);
       }
-      siblings.push(state);
-      byParent.set(parent, siblings);
-    }
-
-    const roots = byParent.get('root') || [];
-    const entryStateIds = new Set();
-    for (const edge of edges) {
-      if (edge.role !== 'type' || edge.label !== 'entry') continue;
-      const state = nodeById.get(edge.source);
-      const target = nodeById.get(edge.target);
-      const record = target?.data?.refId ? records[target.data.refId] : null;
-      const targetTypeId = record?.typeId || target?.data?.typeId;
-      if (state?.type === 'ctsState' && targetTypeId === classNode.data.typeId) entryStateIds.add(state.id);
-    }
-    if (roots.length > 1) {
-      const initials = roots.filter(state => state.data.initial === true || entryStateIds.has(state.id));
-      if (initials.length > 1) {
-        diagnostics.push(`class ${labelOf(classNode)}: multiple initial states — ${initials.map(state => state.data.value).join(', ')}; mark exactly one as initial`);
-      } else if (!initials.length) {
-        diagnostics.push(`class ${labelOf(classNode)}: no initial state — mark one state initial`);
-      }
-    }
-    for (const [parentId, children] of byParent) {
-      if (parentId === 'root' || !children.length) continue;
-      const parent = nodeById.get(parentId);
-      if (children.length && !children.some(child => child.data.initial === true)) {
-        diagnostics.push(`class ${labelOf(classNode)}: nested state ${labelOf(parent)} requires one initial child`);
-      }
+      seenValues.add(value);
     }
   }
   return diagnostics;
@@ -426,10 +375,7 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
       id: recordId,
       kind: 'state',
       typeId: data.typeId,
-      axis: data.axis || 'main',
-      parentStateId: data.parentStateId || null,
       value: data.value,
-      initial: data.initial === true,
       terminal: data.terminal === true,
       ...(data.label ? { label: data.label } : {}),
       ...(data.severity ? { severity: data.severity } : {}),
@@ -551,7 +497,9 @@ export function declarationNodePorts(node = {}, types = []) {
   }
   if (node.type === 'ctsState') {
     return {
-      inputSpecs: [{ id: 'in', label: 'parent', role: 'data', type: processType('status'), access: 'item', plane: 'declaration' }],
+      // The input nests another state node inside this one (SPEC §7); the
+      // output is the value wired into create/transition state sockets.
+      inputSpecs: [{ id: 'state', role: 'data', type: processType('status'), access: 'item', plane: 'declaration' }],
       outputSpecs: [{ id: 'state', label: node.data?.value || 'state', role: 'data', type: processType('status'), access: 'item' }]
     };
   }
@@ -601,8 +549,8 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '', recor
     if (source?.type === 'ctsState') stateNodes.set(source.id, source);
   }
   const stateIds = new Set(stateNodes.keys());
-  // State-to-state wires declare nesting (parent status), not
-  // transitions — the machine's transitions come from transition nodes.
+  // State-to-state wires declare nesting (SPEC §7) — structure only, no
+  // paths, no initials; terminal is authored on the node.
   const nesting = edges
     .filter(edge => edge.role === 'type' && stateIds.has(edge.source) && stateIds.has(edge.target))
     .map(edge => ({
@@ -610,29 +558,12 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '', recor
       child: String(nodeById.get(edge.source)?.data?.value || ''),
       parent: String(nodeById.get(edge.target)?.data?.value || '')
     }));
-  // End states are derived: terminal is a property of the machine, and
-  // the machine's transitions come from transition nodes (their targets
-  // fan from every other declared value — SPEC §20). The entry is
-  // authored by wiring a state into a construct of this class (an entry
-  // wire) — not by flagging the state.
-  const classTypeId = String(nodeById.get(classNodeId)?.data?.typeId || '');
-  const targets = (transitionNodeStateTargets(records).get(classTypeId) || [])
-    .map(target => String(target.value || ''));
-  const hasOutgoing = value => targets.some(target => target !== value);
-  // constructs bound to this class: binds wires class -> processNode
-  const boundConstructs = new Set(edges
-    .filter(edge => edge.role === 'type' && (edge.label === 'type' || edge.label === 'binds') && edge.source === classNodeId)
-    .map(edge => edge.target));
-  const entryNodeIds = new Set(edges
-    .filter(edge => edge.role === 'type' && edge.label === 'entry' && boundConstructs.has(edge.target))
-    .map(edge => edge.source));
   const states = [...stateNodes.values()].map(node => ({
     nodeId: node.id,
     value: String(node.data?.value || ''),
     severity: node.data?.severity || null,
     icon: node.data?.icon || null,
-    initial: entryNodeIds.has(node.id),
-    terminal: !hasOutgoing(String(node.data?.value || ''))
+    terminal: node.data?.terminal === true
   }));
   return { states, nesting };
 }
@@ -646,8 +577,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   const nodeById = new Map(nodes.map(node => [node.id, node]));
   const bindEdges = [];
   const refTargetsByField = new Map();
-  const stateParent = new Map();
-  const transitionEntryEdges = [];
+  const stateEntryEdges = [];
 
   for (const edge of edges) {
     if (edge.role !== 'type') continue;
@@ -658,12 +588,10 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       declaredBy.set(source.id, target.id);
       if (source.type === 'ctsField') fieldCounts.set(target.id, (fieldCounts.get(target.id) || 0) + 1);
       else stateCounts.set(target.id, (stateCounts.get(target.id) || 0) + 1);
-    } else if (source.type === 'ctsState' && target.type === 'ctsState') {
-      stateParent.set(source.id, target.id);
     } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'processNode') {
       bindEdges.push([source, target]);
     } else if (source.type === 'ctsState' && target.type === 'processNode') {
-      transitionEntryEdges.push([source, target]);
+      stateEntryEdges.push([source, target]);
     } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'ctsField') {
       const targets = refTargetsByField.get(target.id) || [];
       const typeId = source.data?.typeId;
@@ -672,42 +600,20 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
     }
   }
 
-  const statePath = node => {
-    const segments = [String(node?.data?.value || '')];
-    const seen = new Set();
-    let cursor = node;
-    while (cursor && stateParent.has(cursor.id) && !seen.has(cursor.id)) {
-      seen.add(cursor.id);
-      cursor = nodeById.get(stateParent.get(cursor.id));
-      segments.push(String(cursor?.data?.value || ''));
-    }
-    return segments.reverse().filter(Boolean).join('.');
-  };
-  for (const [stateNode, targetNode] of transitionEntryEdges) {
+  // The wire is the value (SPEC §7): a state wired into a construct or
+  // transition authors that operation's state socket default — the
+  // construct's initial state, the transition's target.
+  for (const [stateNode, targetNode] of stateEntryEdges) {
     const record = records[targetNode.data?.refId];
-    if (record?.kind !== 'cts.transition') continue;
-    const path = statePath(stateNode);
-    if (!path) continue;
-    if (record.state?.to !== path) mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'state.to', value: path });
-    const axis = String(stateNode.data?.axis || 'main');
-    if (record.state?.axis !== axis) mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'state.axis', value: axis });
+    if (!['cts.construct', 'cts.transition'].includes(record?.kind)) continue;
+    const value = String(stateNode.data?.value || '');
+    if (!value) continue;
+    if (record.inputDefaults?.state !== value) {
+      mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'inputDefaults.state', value });
+    }
   }
 
   for (const node of nodes) {
-    if (node.type === 'ctsState') {
-      const parentId = stateParent.has(node.id)
-        ? String(nodeById.get(stateParent.get(node.id))?.data?.refId || stateParent.get(node.id))
-        : null;
-      const axis = parentId
-        ? String(nodeById.get(stateParent.get(node.id))?.data?.axis || node.data?.axis || 'main')
-        : String(node.data?.axis || 'main');
-      if ((node.data?.parentStateId ?? null) !== parentId) {
-        mutations.push({ scope: 'node', nodeId: node.id, key: 'parentStateId', value: parentId });
-      }
-      if ((node.data?.axis ?? 'main') !== axis) {
-        mutations.push({ scope: 'node', nodeId: node.id, key: 'axis', value: axis });
-      }
-    }
     if (node.type === 'ctsField' || node.type === 'ctsState') {
       const classNode = declaredBy.has(node.id) ? nodeById.get(declaredBy.get(node.id)) : null;
       const value = classNode?.data?.typeId || null;

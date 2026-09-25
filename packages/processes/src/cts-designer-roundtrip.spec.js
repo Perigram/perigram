@@ -50,15 +50,16 @@ describe('graph protocol v5 designer round trip', () => {
     const read = resolveCatalogNodePorts({ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, context({ type: 'sheet' }));
     expect(read.outputs).toHaveLength(1);
 
-    expect(transition.inputs.map(port => port.id)).toEqual(['entity', 'note']);
+    expect(transition.inputs.map(port => port.id)).toEqual(['entity', 'note', 'state']);
     expect(transition.inputs.some(port => port.id === 'status' || port.id === 'changes')).toBe(false);
     expect(read.inputs.map(port => port.id)).toEqual(['entity']);
     const fieldProjection = resolveCatalogNodePorts(
-      { kind: 'cts.field', typeId: 'sheet', path: 'data.source' },
+      { kind: 'cts.field', typeId: 'sheet', field: 'data.source' },
       { domain, fieldSchemas: domain.fieldSchemas.sheet || [] }
     );
-    expect(fieldProjection.inputs).toHaveLength(1);
+    expect(fieldProjection.inputs).toHaveLength(2);
     expect(fieldProjection.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entity', typeId: 'sheet' } });
+    expect(fieldProjection.inputs[1]).toMatchObject({ id: 'field', type: { base: 'string' } });
     expect(fieldProjection.outputs[0]).toMatchObject({ id: 'value', type: { base: 'json' } });
   });
 

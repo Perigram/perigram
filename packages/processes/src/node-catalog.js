@@ -259,7 +259,10 @@ function nativeConstructionPorts(record = {}, context = {}) {
       ...constructionInputs.map(input => ({
         ...socket(input.path || input.id || 'value', mapDomainInputType(input.type, input), DATA, input.required === true && input.default === undefined, 'list'),
         label: input.label || input.path || input.id || 'value'
-      }))
+      })),
+      // The initial state arrives by wire (SPEC §7): a state node wired
+      // into this socket authors the created instance's state.
+      socket('state', processType('status', { typeId }), DATA, false, 'list')
     ],
     outputs: [
       completedSocket(),
@@ -304,7 +307,11 @@ function nativeTransitionPorts(record = {}) {
   return {
     inputs: [
       socket('entity', processType('entityRef', { typeId }), DATA, true, 'list'),
-      socket('note', processType('string'), DATA, false, 'list')
+      socket('note', processType('string'), DATA, false, 'list'),
+      // The target state arrives by wire (SPEC §7): a state node wired
+      // into this socket is the transition's target — the wire is the
+      // value, and an authored socket default is equivalent.
+      socket('state', processType('status', { typeId }), DATA, true, 'list')
     ],
     outputs: [
       completedSocket(),
@@ -396,14 +403,22 @@ function acceptedEntityType(candidates = []) {
   return processType('entity', { nullable: true });
 }
 
+// The field projection is socket algebra (SPEC §20): an entity input and
+// a field input — the field NAME arrives by wire, so nothing pre-defines a
+// per-type field list. The output is dynamically typed.
 function nativeFieldPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   if (!typeId) {
     return { inputs: [socket('entity', processType('entityRef'), DATA, true)], outputs: [] };
   }
-  const field = (context.fieldSchemas || []).find(candidate => candidate.path === record.path) || null;
+  const field = record.field
+    ? ((context.fieldSchemas || []).find(candidate => candidate.path === record.field) || null)
+    : null;
   return {
-    inputs: [socket('entity', processType('entity', { typeId }), DATA, true)],
+    inputs: [
+      socket('entity', processType('entity', { typeId }), DATA, true),
+      socket('field', processType('string'), DATA, false)
+    ],
     outputs: [socket('value', field?.type || processType('json', { nullable: true }))]
   };
 }

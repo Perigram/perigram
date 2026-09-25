@@ -197,7 +197,7 @@ describe('process v4 node catalog', () => {
         ]
       }
     }, context);
-    expect(speciesCreate.inputs.map(input => input.id)).toEqual(['type', 'specs.width']);
+    expect(speciesCreate.inputs.map(input => input.id)).toEqual(['type', 'specs.width', 'state']);
     expect(speciesCreate.inputs.some(input => input.id === 'states.main')).toBe(false);
   });
 
