@@ -4,7 +4,7 @@ import { operationKindOf, describeType, normalizeOperator, normalizeType, typeId
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
-import { migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren } from '../../cts/src/index.js';
+import { resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren } from '../../cts/src/index.js';
 import { processType } from './types.js';
 
 // Field-id derivation for authored names: the label is user-plane, the
@@ -24,22 +24,16 @@ export function camelCaseId(value = '') {
 
 // The single authored-definition seam (SPEC §20): every consumer of an
 // authored graph — server validation/activation, canvas round trip —
-// flows through here. v4 graphs migrate one-way to the species
-// vocabulary (legacy `type` strings normalize to `typeId`), binding
-// checks run beside it, and lowering to the executable working shapes
-// happens exactly once, internally. Nothing outside this package
-// resolves or lowers the vocabulary.
-export function migrateProcessDefinition(data = {}, domain = {}) {
-  return migrateV4Definition(data, domain);
-}
-
+// flows through here. Authored definitions speak the current species
+// vocabulary only: binding checks run beside id/row resolution, and
+// lowering to the executable working shapes happens exactly once,
+// internally. Nothing outside this package resolves or lowers the
+// vocabulary, and no legacy rewrite runs at any seam.
 export function prepareAuthoredDefinition(data = {}, domain = {}) {
   const wasCts = isCtsGraphDefinition(data);
-  const { definition: migrated } = migrateV4Definition(data, domain);
-  const { definition, diagnostics } = resolveCtsDefinition(migrated, domain);
-  // Declaration-binding checks are the cts vocabulary's gate; v4-authored
-  // graphs keep the compiler's own validation as their correctness gate.
-  const errors = [...(wasCts ? checkCtsGraphBindings(migrated, domain) : []), ...diagnostics];
+  const { definition, diagnostics } = resolveCtsDefinition(data, domain);
+  // Declaration-binding checks are the cts vocabulary's gate.
+  const errors = [...(wasCts ? checkCtsGraphBindings(definition, domain) : []), ...diagnostics];
   return { definition, errors };
 }
 

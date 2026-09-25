@@ -16,6 +16,8 @@ import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { stateService } from '~/server/core/machines/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
+import { createTypeRegistry, frameworkTypes } from '~/packages/cts/src/index.js';
+import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
 import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/test-data/persisted-acceptance.js';
 
 vi.mock('../cts-types/service.js', async () => {
@@ -607,7 +609,7 @@ describe('current process-definition service contract', () => {
     expect(persisted.identity.reference).toEqual({ code: 'M-01', location: 'Hall A' });
   });
 
-  it('splits a v4 update that smuggled a status beside its field patch into mutate -> transition', async () => {
+  it('applies a mutate field patch and a chained transition state as separate operations', async () => {
     const machine = {
       type: 'machine',
       id: 'machine-1',
@@ -635,8 +637,45 @@ describe('current process-definition service contract', () => {
         ? { processUpdate }
         : type === 'organization' ? organizationService : null
     });
-    const data = readModifyWriteProcessData();
-    data.processNodes.update.inputDefaults = { 'states.main': 'MAINTENANCE' };
+    const data = {
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graphProtocol: 5,
+      graph: {
+        nodes: ['update', 'transition'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'update-transition', source: 'update', sourceHandle: 'data:result', target: 'transition', targetHandle: 'data:entity', role: 'data' },
+          { id: 'update-transition-flow', source: 'update', sourceHandle: 'control:completed', target: 'transition', targetHandle: 'control:in', role: 'control' }
+        ]
+      },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      screens: {},
+      processNodes: {
+        update: {
+          id: 'update', kind: 'cts.mutate', typeId: 'machine',
+          trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
+          inputDefaults: { 'identity.name': 'Renamed machine', 'identity.reference': { code: 'M-01', location: 'Hall A' } }
+        },
+        transition: {
+          id: 'transition', kind: 'cts.transition', typeId: 'machine',
+          state: { axis: 'main', to: 'MAINTENANCE' },
+          trigger: { mode: 'event' }, access: { level: 'write', grants: [] }
+        }
+      }
+    };
+    const machineRegistry = createTypeRegistry({ id: 'spec-machine' });
+    for (const declaration of [...frameworkTypes, ...cncTypePack]) machineRegistry.defineType(declaration);
+    machineRegistry.defineType({
+      id: 'machine', class: 'item', name: 'Machine',
+      fields: { name: { base: 'string' } },
+      states: { main: { initial: 'ACTIVE', states: { ACTIVE: {}, MAINTENANCE: {} } } },
+      transitions: [{ axis: 'main', from: 'ACTIVE', to: 'MAINTENANCE', intent: 'maintain' }]
+    });
+    vi.mocked(ctsTypes.compileRegistryForOrganization).mockResolvedValueOnce(machineRegistry);
     processRepository.findById.mockResolvedValue(draftRecord(data));
 
     const run = await startRun('process-draft', {
@@ -645,8 +684,8 @@ describe('current process-definition service contract', () => {
     }, adminAuth(), { runRepository });
 
     expect(run.status).toBe('succeeded');
-    // The field patch and the declared status are separate operations: the
-    // mutate persists fields only, the chained transition owns the state.
+    // The field patch and the declared state are separate operations: the
+    // mutate persists fields only, the transition owns the state.
     expect(processUpdate).toHaveBeenCalledWith(
       'machine-1',
       expect.objectContaining({
@@ -661,7 +700,7 @@ describe('current process-definition service contract', () => {
       targetId: 'machine-1',
       targetState: 'MAINTENANCE'
     }));
-    const transitionStep = run.steps.find(step => step.nodeId === 'update:status')?.output;
+    const transitionStep = run.steps.find(step => step.nodeId === 'transition')?.output;
     expect(transitionStep).toMatchObject({
       _id: 'machine-1',
       states: { main: 'MAINTENANCE' }

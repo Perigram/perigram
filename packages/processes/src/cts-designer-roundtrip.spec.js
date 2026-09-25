@@ -1,17 +1,16 @@
 // Graph protocol v5 designer round trip (SPEC §20, slice 2): the palette
 // creates cts.* records, the catalog resolves their ports through the
-// operation-kind twin, producer outputs sync from species records, and a
-// v4 definition loaded onto the canvas comes back as v5 — graphProtocol 5,
-// species kinds, kebab type ids — without losing records through the
-// canvas round trip.
+// operation-kind twin, producer outputs sync from species records, and
+// authored definitions survive the canvas round trip — graphProtocol 5,
+// species kinds, kebab type ids — without losing records.
 import { describe, it, expect } from 'vitest';
-import { PROCESS_DESIGNER_PALETTE_GROUPS, createProcessDesignerContract, syncProcessNodeProducerOutputs, migrateProcessDefinition } from './designer.js';
+import { PROCESS_DESIGNER_PALETTE_GROUPS, createProcessDesignerContract, syncProcessNodeProducerOutputs } from './designer.js';
 import { resolveCatalogNodePorts, getProcessNodeDefinition } from './node-catalog.js';
 import { definitionToCanvas, canvasToDefinition, validateRoundTrip } from './transpiler.js';
 import { servicesPaletteGroups } from './designer.js';
 import {
   createTypeRegistry, projectDomainFromView,
-  migrateV4Definition, resolveCtsDefinition
+  resolveCtsDefinition
 } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
 import { frameworkTypes } from '../../cts/src/pack/framework.js';
@@ -85,94 +84,6 @@ describe('graph protocol v5 designer round trip', () => {
     expect(data.producerOutputs['n2:result']).toBeUndefined();
   });
 
-  it('definitions persisted under the legacy entityType vocabulary load and compile as typeId', () => {
-    const domain = projectedDomain();
-    const legacy = {
-      schemaVersion: 1,
-      dataflowVersion: 4,
-      graph: { nodes: [{ id: 'update', type: 'processNode', data: { refId: 'update' } }], edges: [] },
-      roleGrants: {},
-      producerOutputs: {},
-      actions: {},
-      services: {},
-      sockets: {},
-      stateDefinitions: {},
-      valueInputs: {},
-      screens: { list: { id: 'list', label: 'List', template: 'entityList', roleIds: [], sources: [{ id: 'sheet', entityType: 'sheet', mode: 'list', filters: {} }], regions: [{ id: 'main', slot: 'main', sourceId: 'sheet', surface: 'card', actions: [] }] } },
-      processNodes: {
-        update: {
-          id: 'update', kind: 'effect.updateEntity', entityType: 'cut_plan',
-          blocks: ['identity'], trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
-        }
-      }
-    };
-
-    const { definition: migrated } = migrateProcessDefinition(legacy, domain);
-    expect(migrated.processNodes.update.kind).toBe('cts.mutate');
-    expect(migrated.processNodes.update.typeId).toBe('cut-plan');
-    expect(migrated.screens.list.template).toBe('typeList');
-    expect(migrated.screens.list.sources[0].typeId).toBe('sheet');
-  });
-
-  it('kebab-normalizes ctsTypes record typeIds so one type has one spelling', () => {
-    // Drafts saved by older sessions spelled the generated prefix with an
-    // underscore while every other record collection was kebab-normalized
-    // — the same type was then referenced under two spellings and
-    // validation reported "unknown type" on both.
-    const draft = {
-      dataflowVersion: 4,
-      ctsTypes: {
-        ctsClass_1: { id: 'ctsClass_1', kind: 'class', typeId: 't_uth93vgdab', class: 'item' },
-        ctsField_1: { id: 'ctsField_1', kind: 'field', typeId: 't_uth93vgdab', name: 'title', descriptor: { base: 'string' } },
-        ctsState_1: { id: 'ctsState_1', kind: 'state', typeId: 't_uth93vgdab', value: 'new', initial: true }
-      },
-      processNodes: {},
-      producerOutputs: {}
-    };
-    const { definition } = migrateProcessDefinition(draft);
-    const records = Object.values(definition.ctsTypes);
-    expect(records.every(record => record.typeId === 't-uth93vgdab')).toBe(true);
-  });
-
-  it('a v4 definition loads onto the canvas and round-trips as v5', () => {
-    const domain = projectedDomain();
-    const v4 = {
-      schemaVersion: 1,
-      dataflowVersion: 4,
-      graph: {
-        nodes: [{ id: 'update', type: 'processNode', data: { refId: 'update' } }],
-        edges: []
-      },
-      roleGrants: {},
-      producerOutputs: {},
-      actions: {},
-      services: {},
-      sockets: {},
-      stateDefinitions: {},
-      valueInputs: {},
-      screens: {},
-      processNodes: {
-        update: {
-          id: 'update', kind: 'effect.updateEntity', typeId: 'cut_plan',
-          blocks: ['identity'], trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
-        }
-      }
-    };
-
-    const { definition: migrated } = migrateV4Definition(v4, domain);
-    const canvas = definitionToCanvas(migrated);
-    const saved = canvasToDefinition(canvas, migrated);
-    expect(saved.graphProtocol).toBe(5);
-    expect(saved.processNodes.update.kind).toBe('cts.mutate');
-    expect(saved.processNodes.update.typeId).toBe('cut-plan');
-    expect(validateRoundTrip(saved).ok).toBe(true);
-
-    // resolution brings the working shapes back for the compiler
-    const { definition: resolved, diagnostics } = resolveCtsDefinition(saved, domain);
-    expect(diagnostics).toEqual([]);
-    expect(resolved.processNodes.update.kind).toBe('cts.mutate');
-    expect(resolved.processNodes.update.typeId).toBe('cut-plan');
-  });
   it('type reference nodes persist through the canvas and their wires never reach validation', () => {
     const domain = projectedDomain();
     const v5 = {

@@ -37,7 +37,7 @@ export {
   extractRow, rowToFieldSchemas, slotFor
 } from './compat/field-schema-rows.js';
 export {
-  migrateV4Definition, renameLegacyTypeKeys, resolveCtsDefinition, checkCtsGraphBindings,
+  renameLegacyTypeKeys, resolveCtsDefinition, checkCtsGraphBindings,
   isCtsGraphDefinition, operationKindOf, resolveCtsRecord,
   typeIdOf, setTypeBinding, declarationsFromCtsRecords, transitionNodeStateTargets
 } from './compat/graph-protocol.js';

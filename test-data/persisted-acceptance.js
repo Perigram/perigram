@@ -25,6 +25,7 @@ export function createPersistedAcceptanceFixture() {
   const processData = {
     schemaVersion: 1,
     dataflowVersion: PROCESS_DATAFLOW_VERSION,
+    graphProtocol: 5,
     graph: {
       nodes: ['create_cassette'].map((id, index) => ({
         id,
@@ -57,15 +58,13 @@ export function createPersistedAcceptanceFixture() {
     processNodes: {
       create_cassette: {
         id: 'create_cassette',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'cassette',
         producerOutputId: 'create_cassette:result',
         label: 'Create cassette',
         construction: { mode: 'editor', inputs: [{ id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }] },
         trigger: { mode: 'manual' },
-        access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] },
-        state: { to: 'ACTIVE' },
-        blocks: []
+        access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] }
       }
     }
   };

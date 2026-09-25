@@ -13,14 +13,14 @@ describe('process workflow resolution', () => {
     const id = 'processNode_1785860422855';
     const result = await compileActiveProcessRuntime({
       dataflowVersion: 4,
+      graphProtocol: 5,
       processNodes: {
         [id]: {
           id,
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           typeId: 'cassette',
           construction: { mode: 'genericCreate', inputs: [] },
-          trigger: { mode: 'manual' },
-          state: { to: 'CREATED' }
+          trigger: { mode: 'manual' }
         }
       },
       graph: { nodes: [{ id, type: 'processNode', data: { refId: id } }], edges: [] }

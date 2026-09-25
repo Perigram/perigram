@@ -12,7 +12,6 @@ import { useProcessDesignerInspector } from '~/composables/useProcessDesignerIns
 import {
   canvasToDefinition,
   definitionToCanvas,
-  migrateProcessDefinition,
   PROCESS_DATAFLOW_VERSION,
   createProcessDesignerContract
 } from '~/packages/processes/src/index.js';
@@ -30,8 +29,7 @@ function projectedDomain() {
 // The page's setDraft body, verbatim in effect
 function setDraft(value, { nodes, edges, validation, applyMutations }) {
   value = JSON.parse(JSON.stringify(value || {}));
-  const { definition: migrated } = migrateProcessDefinition(value?.data || {}, projectedDomain());
-  const canvas = definitionToCanvas(migrated);
+  const canvas = definitionToCanvas(value?.data || {});
   validation.value = null;
   nodes.value = canvas.nodes;
   edges.value = canvas.edges;

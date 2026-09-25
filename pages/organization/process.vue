@@ -586,7 +586,6 @@ import {
   declarationWireLegality,
   definitionToCanvas,
   isProcessDataHandle,
-  migrateProcessDefinition,
   parseProcessSocketHandleId,
   prepareAuthoredDefinition,
   processSocketsCompatible,
@@ -1519,8 +1518,7 @@ function setDraft(value) {
   selectedProcessId.value = value?._id ? String(value._id) : null;
   let canvas;
   try {
-    const { definition: migrated } = migrateProcessDefinition(value?.data || {}, ctsProjectedDomain());
-    canvas = definitionToCanvas(migrated);
+    canvas = definitionToCanvas(value?.data || {});
     validation.value = null;
   } catch (error) {
     canvas = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };

@@ -85,22 +85,4 @@ describe('persisted genericCreate constructs validate against the real domain', 
     const validation = validateProcessDefinition(accepted, projected, {});
     expect((validation.errors || []).filter(error => error.includes('construction mode'))).toEqual([]);
   });
-
-  it('covers v4-authored effect.createEntity records (the migrateV4 path)', () => {
-    const projected = realDomain();
-    const definition = {
-      dataflowVersion: 4,
-      graph: { nodes: [], edges: [] },
-      roleGrants: { role_admin: [] },
-      producerOutputs: {}, actions: {}, services: {}, sockets: {}, screens: {}, stateDefinitions: {}, valueInputs: {},
-      processNodes: {
-        n1: { id: 'n1', kind: 'effect.createEntity', typeId: 'cassette', construction: { mode: 'genericCreate' }, label: 'Make cassette' }
-      }
-    };
-    const { definition: accepted, errors } = prepareAuthoredDefinition(definition, projected);
-    expect(errors).toEqual([]);
-    expect(accepted.processNodes.n1.kind).toBe('cts.construct');
-    const modes = Object.values(accepted.processNodes || {}).map(node => `${node.typeId}:${node.construction?.mode}`);
-    expect(modes).toEqual(['cassette:editor']);
-  });
 });

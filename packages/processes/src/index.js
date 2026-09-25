@@ -43,7 +43,6 @@ export {
   compileTreeDeclarations,
   declarationNodePorts,
   interpretDeclarationEdges,
-  migrateProcessDefinition,
   prepareAuthoredDefinition,
   operationKindOf,
   createProcessDesignerContract,
