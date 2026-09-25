@@ -216,7 +216,7 @@
       ],
       "label": "Solve nesting",
       "outputs": [
-        "nesting_run",
+        "solve_run",
         "sheet_design",
         "sheet"
       ],
@@ -1217,6 +1217,51 @@
         "relations",
         "provenance"
       ],
+      "collection": "cassette_instances",
+      "lineage": {},
+      "type": "cassette_instance"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "states",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "queues",
+      "lineage": {},
+      "type": "queue"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "states",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "nesting_runs",
+      "lineage": {},
+      "type": "solve_run"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "states",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
       "collection": "cassette_designs",
       "lineage": {},
       "type": "cassette_design"
@@ -1315,6 +1360,82 @@
       "lineage": {},
       "meta": true,
       "type": "process_definition"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "states",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "projects",
+      "lineage": {},
+      "type": "project"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "states",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "libraries",
+      "lineage": {},
+      "type": "library"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "states",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "sheets",
+      "lineage": {},
+      "type": "sheet"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "states",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "remnants",
+      "lineage": {},
+      "type": "remnant"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "states",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "meta": true,
+      "type": "geometry_capture"
     },
     {
       "blocks": [
@@ -1467,6 +1588,12 @@
       "source": "user",
       "target": "tool_profile",
       "via": "lineage.userId"
+    },
+    {
+      "kind": "summary",
+      "source": "library",
+      "target": "cassette",
+      "via": "lineage.libraryId"
     }
   ],
   "routes": [
@@ -1487,6 +1614,24 @@
       "list": "/api/cassettes",
       "single": "/api/cassettes/:id",
       "type": "cassette"
+    },
+    {
+      "collection": "cassette-instances",
+      "list": "/api/instances/cassette-instance",
+      "single": "/api/instances/cassette-instance/:id",
+      "type": "cassetteInstance"
+    },
+    {
+      "collection": "queues",
+      "list": "/api/instances/queue",
+      "single": "/api/instances/queue/:id",
+      "type": "queue"
+    },
+    {
+      "collection": "nesting-runs",
+      "list": "/api/instances/solve-run",
+      "single": "/api/instances/solve-run/:id",
+      "type": "solveRun"
     },
     {
       "collection": "cassette-designs",
@@ -1531,6 +1676,36 @@
       "type": "processDefinition"
     },
     {
+      "collection": "projects",
+      "list": "/api/instances/project",
+      "single": "/api/instances/project/:id",
+      "type": "project"
+    },
+    {
+      "collection": "libraries",
+      "list": "/api/instances/library",
+      "single": "/api/instances/library/:id",
+      "type": "library"
+    },
+    {
+      "collection": "sheets",
+      "list": "/api/instances/sheet",
+      "single": "/api/instances/sheet/:id",
+      "type": "sheet"
+    },
+    {
+      "collection": "remnants",
+      "list": "/api/instances/remnant",
+      "single": "/api/instances/remnant/:id",
+      "type": "remnant"
+    },
+    {
+      "collection": "files",
+      "list": "/api/instances/geometry-capture",
+      "single": "/api/instances/geometry-capture/:id",
+      "type": "geometryCapture"
+    },
+    {
       "collection": "profile-templates",
       "list": "/api/instances/profile-template",
       "single": "/api/instances/profile-template/:id",
@@ -1556,7 +1731,15 @@
     }
   ],
   "schemaVersion": 1,
-  "summaries": [],
+  "summaries": [
+    {
+      "countField": "cassetteCount",
+      "parentIdKey": "libraryId",
+      "parentType": "library",
+      "sumFields": {},
+      "typeId": "cassette"
+    }
+  ],
   "tasks": [
     {
       "attachments": [
@@ -1618,7 +1801,7 @@
       "key": "nestingSolve",
       "label": "Solve nesting",
       "outputs": [
-        "nesting_run",
+        "solve_run",
         "sheet_design",
         "sheet"
       ],
@@ -1700,6 +1883,49 @@
       ],
       "transitionCount": 1,
       "type": "cassette_design"
+    },
+    {
+      "initial": "PRODUCED",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "PRODUCED",
+        "MILLED",
+        "INSTALLED"
+      ],
+      "transitionCount": 2,
+      "type": "cassette_instance"
+    },
+    {
+      "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "DRAFT",
+        "NESTING",
+        "READY",
+        "ERROR",
+        "CLOSED",
+        "ARCHIVED"
+      ],
+      "transitionCount": 11,
+      "type": "queue"
+    },
+    {
+      "initial": "NESTING",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "NESTING",
+        "COMPLETE",
+        "FAILED",
+        "CHOSEN"
+      ],
+      "transitionCount": 3,
+      "type": "solve_run"
     },
     {
       "initial": "PENDING",

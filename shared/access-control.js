@@ -177,11 +177,9 @@ function resolveLineageFact(path, context) {
 
 function getPrimaryStatus(status) {
   if (typeof status === 'string') return status;
-  // `states.main` may carry the workflow-state object (the v24 Status
-  // block shape) — resolve to the primary string either way.
-  const main = status?.main;
-  if (typeof main === 'string') return main;
-  if (main && typeof main === 'object') return main.primary || Object.values(main.active || {}).find(Boolean);
+  // Instance documents carry one flat `state` string (SPEC §3/§7); the
+  // legacy v24 Status block resolves to its primary either way.
+  if (typeof status?.main === 'string') return status.main;
   if (typeof status?.state === 'string') return status.state;
   return status?.primary ?? status?.state?.primary ?? Object.values(status?.active || {}).find(Boolean);
 }

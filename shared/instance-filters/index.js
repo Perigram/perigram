@@ -75,12 +75,12 @@ export function filterFromFlatFilters(filters = {}, { lineageKeys = null } = {})
       continue;
     }
     if (key === 'primaryState') {
-      predicates.push({ field: 'states.main', op: 'eq', value: String(value) });
+      predicates.push({ field: 'state', op: 'eq', value: String(value) });
       continue;
     }
     if (key === 'primaryStates') {
       const values = String(value).split(',').map(item => item.trim()).filter(Boolean);
-      if (values.length) predicates.push({ field: 'states.main', op: 'in', value: values });
+      if (values.length) predicates.push({ field: 'state', op: 'in', value: values });
       continue;
     }
     if (/^states\.[^.]+$/.test(key)) {

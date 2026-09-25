@@ -108,10 +108,9 @@ const resolvedControls = computed(() => props.controls || resolveListControls(pr
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const statusOf = instance => {
-  const value = instance.states?.main;
-  if (!value || !props.type?.states?.main) return null;
-  const render = props.type.states?.main?.render?.[value];
-  return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
+  const value = instance.state ?? instance.states?.main;
+  if (!value) return null;
+  return { label: startCase(value), severity: 'secondary' };
 };
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)

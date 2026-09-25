@@ -264,7 +264,7 @@ watch(viewScope, scope => {
 // the primary status over the states actually present.
 const builderFields = computed(() => [
   {
-    name: 'states.main',
+    name: 'state',
     label: t('uiMapping.fieldStatus'),
     kind: 'enum',
     values: statusValues.value
@@ -290,7 +290,7 @@ const filterRows = computed(() => new Map(props.items.map(entity => {
     relations: {}
   };
   const status = entityStatus(entity);
-  if (status && !projected.states?.main) projected.states = { main: status };
+  if (status && projected.state === undefined) projected.state = status;
   return [entity, projected];
 })));
 const activeFilter = computed(() => {
@@ -376,10 +376,10 @@ function formatCell(entity, path) {
 }
 
 function entityStatus(entity = {}) {
-  return entity.states?.main
+  return entity.state
+    || entity.states?.main
     || entity.states?.active?.main
-    || entity.status?.lifecycle?.state
-    || (typeof entity.states === 'string' ? entity.status.state : '')
+    || (typeof entity.status?.state === 'string' ? entity.status.state : '')
     || (typeof entity.status === 'string' ? entity.status : '');
 }
 

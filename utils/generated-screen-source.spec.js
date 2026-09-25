@@ -140,15 +140,15 @@ describe('entityMatchesFilters (wire reconciliation of source filters)', () => {
     expect(entityMatchesFilters({ lineage: { binId: 'bin-2' } }, { 'lineage.binId': 'bin-1' })).toBe(false);
   });
 
-  it('keeps status window filters on states.main', () => {
+  it('keeps status window filters on the flat state', () => {
     expect(entityMatchesFilters(
-      { states: { main: 'installed' }, lineage: { binId: 'bin-1' } },
+      { state: 'installed', lineage: { binId: 'bin-1' } },
       { primaryStates: 'available,installed', binId: 'bin-1' }
     )).toBe(true);
     expect(entityMatchesFilters(
-      { states: { main: 'gone' }, lineage: { binId: 'bin-1' } },
+      { state: 'gone', lineage: { binId: 'bin-1' } },
       { primaryStates: 'available,installed', binId: 'bin-1' }
     )).toBe(false);
-    expect(entityMatchesFilters({ states: { main: 'available' } }, { primaryState: 'available' })).toBe(true);
+    expect(entityMatchesFilters({ state: 'available' }, { primaryState: 'available' })).toBe(true);
   });
 });

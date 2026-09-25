@@ -867,7 +867,9 @@ describe('Design system manifest', () => {
     expect(getWorkflowStateActions({ typeId: 'cassette', state: 'ACTIVE', t: key => key })).toEqual(expect.arrayContaining([
       expect.objectContaining({ to: 'ARCHIVED', display: 'menu' })
     ]));
-    expect(getWorkflowStateActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).toEqual([]);
+    expect(getWorkflowStateActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).toEqual(expect.arrayContaining([
+      expect.objectContaining({ to: 'NESTING', intent: 'requestNesting', display: 'menu' })
+    ]));
   });
 
   it('keeps status popovers free of placeholder copy and duplicate last-updated sections', () => {

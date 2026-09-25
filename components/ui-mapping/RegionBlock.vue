@@ -506,10 +506,10 @@ const searchToggleAvailable = computed(() => toolbarVisibleFor(props.node));
 // offers the conditions panel — not only facet-rich ones.
 const builderFields = computed(() => [
   {
-    name: 'states.main',
+    name: 'state',
     label: t('uiMapping.fieldStatus'),
     kind: 'enum',
-    values: [...new Set(props.node.instances.map(instance => instance?.states?.main).filter(Boolean))].sort()
+    values: [...new Set(props.node.instances.map(instance => instance?.state).filter(Boolean))].sort()
   },
   ...builderFieldsForType(props.node.type, { bundle: props.bundle })
 ].filter(field => field.kind !== 'enum' || field.values.length));

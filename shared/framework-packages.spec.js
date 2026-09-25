@@ -270,7 +270,7 @@ describe('Framework package contracts', () => {
         abstractEntities: [expect.objectContaining({
           name: 'source',
           capability: 'attachments.generate',
-          accepts: ['sheet_design', 'nesting_run']
+          accepts: ['sheet_design', 'solve_run']
         })]
       },
       access: { permissions: [expect.objectContaining({ feature: 'artifacts', level: 'write' })] }
@@ -290,7 +290,7 @@ describe('Framework package contracts', () => {
     expect(cncDesignSystemInstanceContracts).toContainEqual(expect.objectContaining({ key: 'cassette', typeId: 'cassette' }));
     expect(cncTasks.nestingSolve).toMatchObject({ id: 'nesting.solve', service: 'nesting' });
     expect(cncTasks.nestingSolve.output.entities).toEqual([
-      { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'completion' },
+      { type: 'solve_run', persistenceOwner: 'commandOwned', timing: 'completion' },
       { type: 'sheet_design', persistenceOwner: 'commandOwned', timing: 'completion' },
       { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
     ]);

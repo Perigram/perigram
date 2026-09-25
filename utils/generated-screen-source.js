@@ -25,11 +25,11 @@ export function shouldRenderHomeSection({ items = [], rawItems = [], source = {}
 // not at the DTO root — a created child carrying its parent ref must
 // therefore match the open parent detail's child region and accumulate
 // into it. Status-window filters (`primaryState`/`primaryStates`) read
-// `states.main`; dotted paths read verbatim.
+// the flat `state`; dotted paths read verbatim.
 export function entityMatchesFilters(entity = {}, filters = {}) {
   return Object.entries(filters || {}).every(([path, expected]) => {
-    if (path === 'primaryState') return entity.states?.main === expected;
-    if (path === 'primaryStates') return String(expected).split(',').includes(entity.states?.main);
+    if (path === 'primaryState') return entity.state === expected;
+    if (path === 'primaryStates') return String(expected).split(',').includes(entity.state);
     if (expected && typeof expected === 'object') return false;
     const actual = readFilterPath(entity, path);
     return String(actual ?? '') === String(expected ?? '');
