@@ -184,8 +184,24 @@ describe('graph protocol v5 (SPEC §20)', () => {
       .toContainEqual(expect.stringMatching(/field rogue is not in the material row/));
   });
 
-  it('non-CTS definitions pass through resolution untouched', () => {
+  it('a vocabulary without an authored construct default compiles with a deterministic entry', () => {
+    // A draft may declare state records before any construct wires its
+    // initial: the machine still compiles (SPEC §7) — the first declared
+    // state is the entry until authoring the construct default replaces it.
     const domain = projectedDomain();
+    const definition = readModifyWriteDefinition();
+    definition.ctsTypes = {
+      s1: { id: 's1', kind: 'state', typeId: 'sheet', value: 'available', terminal: false },
+      s2: { id: 's2', kind: 'state', typeId: 'sheet', value: 'milled', terminal: true }
+    };
+    definition.producerOutputs['sheet_context:entity'].lifecycle = { mode: 'defaultCreated' };
+    const compiled = compileProcessDefinition(definition, domain, { roles });
+    const workflow = compiled.producerOutputs['sheet_context:entity'].workflow;
+    expect(workflow.regions.main.initial).toBe('available');
+    expect(Object.keys(workflow.regions.main.states).sort()).toEqual(['available', 'milled']);
+  });
+
+  it('non-CTS definitions pass through resolution untouched', () => {    const domain = projectedDomain();
     const original = {
       schemaVersion: 1,
       dataflowVersion: PROCESS_DATAFLOW_VERSION,

@@ -1617,6 +1617,13 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     if (!Object.values(builder.regions).some(region => Object.keys(region.states).length)) continue;
     for (const region of Object.values(builder.regions)) {
       applyStatusDefinitionMetadata(region, process.producerOutputs?.[producerOutputId]?.typeId, process.stateDefinitions);
+      // A machine requires an entry (SPEC §7): the construct's state
+      // default authors it; when none is authored yet, the first declared
+      // state record supplies a deterministic entry so the vocabulary
+      // compiles — authoring the construct default replaces it.
+      if (!region.initial) {
+        region.initial = Object.keys(region.states)[0] || '';
+      }
     }
     workflows[producerOutputId] = normalizeWorkflow({
       ...builder.contracts,
