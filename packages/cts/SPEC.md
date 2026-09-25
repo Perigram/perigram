@@ -763,16 +763,14 @@ exact target type.
 - `operationKindOf` is presentation/classification only. It may answer
   "construct", "mutate", "transition", "read", or "service" for shared code;
   it never changes a record kind or replaces its authored ports.
-- `migrateV4Definition(definition)` is the one-way persisted rewrite for
-  graphs saved before this protocol. It runs before resolution and rewrites
-  old records and handles into current species records. The retired
-  executable kinds have no runtime fallback after migration.
+- Authored definitions speak the current species vocabulary only. There is
+  no v4 rewrite at any seam; the retired executable kinds have no runtime
+  fallback.
 - `checkCtsGraphBindings(definition, view)` validates type, field, state,
   transition, operator, and declared-edge bindings beside R1–R6.
-- Acceptance requires semantic round-trip equivalence: every authored native
-  record has the same kind and typed ports before and after
-  migration → resolution → compilation. A twin operation kind merely existing
-  is not acceptance.
+- Acceptance requires that resolution and compilation preserve every
+  authored native record's kind and typed ports. A twin operation kind
+  merely existing is not acceptance.
 
 ### Type nodes and binding wires
 

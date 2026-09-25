@@ -80,9 +80,10 @@ graph edges. `operationKindOf` is classification only.
 The declaration view edits class, field, state, transition, and operator
 records plus typed declaration edges. The process view composes native
 `cts.*` species and pure value/list/control records against the projected CTS
-domain. Stored legacy graphs receive one-way migration at the load boundary;
-there is no runtime fallback vocabulary. Serialization strips only derived
-node data, never authored declaration facts.
+domain. Stored graphs are authored in the current species vocabulary only:
+there is no load-boundary rewrite and no runtime fallback vocabulary.
+Serialization strips only derived node data, never authored declaration
+facts.
 
 The process palette has no raw-id lookup, producer-path join, fixed-arity
 list constructor, packet matching control, or transport adapter item. Entity

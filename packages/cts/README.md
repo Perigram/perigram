@@ -145,23 +145,17 @@ module layout and how the code maps to the spec's build-order tiers.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator. See SPEC §15/§19 for what it owns per key.
 - `compat/graph-protocol.js` — the native species graph protocol (SPEC §20):
-  `migrateV4Definition` is the one-way persisted rewrite into current
-  species records; `resolveCtsDefinition` resolves declaration ids and row
-  paths while preserving species kinds, discriminators, socket ids, and
-  graph edges; `checkCtsGraphBindings` validates type, field, state,
-  transition, operator, and edge bindings. `operationKindOf` is a
-  classification helper only and never changes executable ports.
+  `resolveCtsDefinition` resolves declaration ids and row paths while
+  preserving species kinds, discriminators, socket ids, and graph edges;
+  `checkCtsGraphBindings` validates type, field, state, transition,
+  operator, and edge bindings. `operationKindOf` is a classification
+  helper only and never changes executable ports.
   `declarationsFromCtsRecords` receives the declaration graph as well as
   records, so nested state and edge acceptance matches what APPLY posts.
-  The rewrite migrates the graph with its records: retired read/field
-  handles move to the native sockets (`entity` streams, one `result`
-  output), the retired hidden-predicate query wires die, a composer fed
-  into a construct/mutate block expands into that consumer's field wires
-  (the composer and its now-dead decompose leave the graph), a construct's
-  lifecycle-entry socket dies with its default (the type declaration owns
-  initial state), and a v4 update that smuggled a status beside its field
-  patch splits into `cts.mutate -> cts.transition` with control and entity
-  wires chaining the two.
+  Authored definitions speak the current species vocabulary only: there is
+  no v4 rewrite at any seam and no runtime fallback vocabulary.
+  `renameLegacyTypeKeys` remains a pure key rewriter exported for the
+  one-shot persisted-data migration script, never invoked at load.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table acceptance
   fixture (file/item/group/process families, the typed nesting seam, and
   sample instances).
@@ -188,8 +182,8 @@ rule with both passing and failing fixtures, the tenancy resolution, the
 diff refusal path, the pack compile, and the synthesis projection
 (`compat/domain-projection.spec.js`: per-class collections, declared
 workflows/construction/containment, tenancy). The graph-protocol acceptance
-gate proves migration and resolution preserve current species kinds, typed
-ports, and executable behavior through compilation. The retired source-flip
+gate proves resolution preserves current species kinds, typed ports, and
+executable behavior through compilation. The retired source-flip
 converter has no runtime path.
 
 ## Related

@@ -172,13 +172,12 @@ never selects the first same-type producer. A type the supplied vocabulary
 does not know is left to validation's anchored unknown-type report rather
 than refused here — without a supplied vocabulary the strict rewrite stays.
 
-The v4 → v5 species rewrite itself (records and graph edges together —
-read/field handle migration, composer expansion onto construct/mutate field
-sockets, the retired lifecycle-entry sockets, and the mutate/transition
-split for smuggled statuses) is owned by `@perigram/cts`
-`migrateV4Definition`; see `packages/cts/README.md` (SPEC §20) for the
-canonical contract. This package consumes that seam through
-`prepareAuthoredDefinition` and never re-implements it.
+Authored definitions are current-vocabulary only: `prepareAuthoredDefinition`
+resolves CTS ids and declared row paths through `@perigram/cts`
+`resolveCtsDefinition` (see `packages/cts/README.md`, SPEC §20, for the
+canonical contract) and runs the declaration binding checks beside it.
+There is no v4 → v5 species rewrite at any seam and no legacy fallback
+vocabulary.
 
 Compiler entry points are separated by responsibility. `normalization.js`,
 `validation.js`, `action-compilation.js`, `screen-compilation.js`,
