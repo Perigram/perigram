@@ -238,12 +238,19 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     if (source?.type === 'ctsState' && target?.type === 'ctsState') stateParent.set(source.id, target.id);
   }
   // The state vocabulary is flat (SPEC §7): each state node contributes its
-  // own value; nesting wires structure nodes but derive no paths.
+  // own value; nesting wires structure nodes but derive no paths. Unscoped
+  // value tokens satisfy any bound type — scope is authored data, never a
+  // precondition.
+  const unscopedStateValues = new Set();
   const valuesByType = new Map();
   for (const node of nodes) {
-    if (node.type !== 'ctsState' || !node.data?.typeId) continue;
+    if (node.type !== 'ctsState' || !node.data?.value) continue;
+    if (node.data.typeId == null) {
+      unscopedStateValues.add(String(node.data.value));
+      continue;
+    }
     const values = valuesByType.get(node.data.typeId) || new Set();
-    values.add(String(node.data?.value || ''));
+    values.add(String(node.data.value));
     valuesByType.set(node.data.typeId, values);
   }
 
@@ -292,7 +299,8 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
   }
 
   // Authored state targets must name a declared state of the bound type —
-  // the vocabulary is the draft's own state nodes, nothing else.
+  // the vocabulary is the draft's own state nodes; an unscoped value token
+  // satisfies any type.
   for (const record of Object.values(records || {})) {
     if (!['cts.construct', 'cts.transition'].includes(record?.kind)) continue;
     const target = record.kind === 'cts.transition'
@@ -301,7 +309,7 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     if (typeof target !== 'string' || !target) continue;
     if (!record.typeId) continue;
     const values = valuesByType.get(record.typeId);
-    if (values && !values.has(target)) {
+    if (values && !values.has(target) && !unscopedStateValues.has(target)) {
       diagnostics.push(`${record.kind === 'cts.transition' ? 'transition' : 'construct'} ${record.id || '(unnamed)'}: state ${target} not declared for ${record.typeId}`);
     }
   }

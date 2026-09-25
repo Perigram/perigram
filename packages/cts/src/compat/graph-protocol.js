@@ -506,10 +506,13 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
     if (node.kind === CTS_KIND.transition) {
       const target = node.state?.to || node.inputDefaults?.state || node.target || '';
       if (target) {
-        // The vocabulary is the draft's own state records (SPEC §7) —
-        // nothing outside the draft supplies or constrains targets.
-        const declared = Object.values(data.ctsTypes || {})
-          .some(record => record?.kind === 'state' && record.typeId === (resolvedTypeId || typeId) && record.value === target);
+        // The vocabulary is the draft's own state records (SPEC §7). A
+        // state node is a value token: unscoped records satisfy any bound
+        // type (scope is authored data, never a precondition); only a
+        // value scoped exclusively to OTHER types is a mismatch.
+        const records = Object.values(data.ctsTypes || {}).filter(record => record?.kind === 'state');
+        const declared = records.some(record => record.value === target
+          && (record.typeId == null || record.typeId === (resolvedTypeId || typeId)));
         if (!declared) {
           errors.push(`processNodes.${id}: state ${target} is not declared for ${resolvedTypeId || typeId}`);
         }

@@ -22,17 +22,22 @@ const RESERVED_GENERIC_SLOT = 'data.value';
 export function checkDeclarationsAgainstCts(processDefinition = {}, registry, organizationId = null) {
   const errors = [];
   const view = registry?.resolveView ? registry.resolveView(organizationId) : new Map();
-  const statesByType = new Map();
   const rowRootsByType = new Map();
   for (const type of view.values()) {
     rowRootsByType.set(type.id, allowedFieldRoots(type));
   }
   const data = processDefinition?.data || processDefinition || {};
   // The state vocabulary is draft authoring (SPEC §7): ctsState records
-  // carry it, scoped by typeId. Nothing outside the draft supplies or
-  // constrains state values.
+  // carry it. A record is a value token — unscoped records satisfy any
+  // bound type; scoped records constrain only their own type.
+  const unscopedStateValues = new Set();
+  const statesByType = new Map();
   for (const record of Object.values(data.ctsTypes || {})) {
-    if (record?.kind !== 'state' || !record.typeId || !record.value) continue;
+    if (record?.kind !== 'state' || !record.value) continue;
+    if (record.typeId == null) {
+      unscopedStateValues.add(String(record.value));
+      continue;
+    }
     const values = statesByType.get(record.typeId) || new Set();
     values.add(String(record.value));
     statesByType.set(record.typeId, values);
@@ -77,7 +82,7 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
       if (targets.length) {
         const states = statesByType.get(typeId) || new Set();
         for (const value of targets) {
-          if (!states.has(value)) {
+          if (!states.has(value) && !unscopedStateValues.has(value)) {
             errors.push(`${path} moves ${typeId} to undeclared state ${value}`);
           }
         }
