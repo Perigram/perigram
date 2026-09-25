@@ -124,13 +124,14 @@ export function useProcessDesignerNodeSync({
 
   function catalogContext(node = {}) {
     // cts.field resolves its field against the bound type; everything else
-    // resolves entity fields by its own binding when present.
+    // resolves entity fields by its own binding when present. The field
+    // fact is the socket channel: wire, else authored default.
     const bound = nodeTypeId(node);
     const fields = node.kind === 'cts.field' || bound
       ? designer.fieldsForEntity(bound)
       : [];
     return {
-      fieldSchema: fields.find(field => field.value === node.path) || null,
+      fieldSchema: fields.find(field => field.path === (node.inputDefaults?.field || node.path)) || null,
       fieldSchemas: fields,
       command: designer.domain.commands?.[node.commandId] || null,
       domain: projectedDomain()
@@ -194,19 +195,10 @@ export function useProcessDesignerNodeSync({
     return operations.map(value => ({ label: processNodeOperationLabels[value] || value, value }));
   }
 
-  // The field projection's path choices: the bound type's readable fields.
-  // Unbound, a cts.field offers no paths (only its entity input).
+  // The field projection's field arrives by wire or authored default
+  // (SPEC §20 socket algebra): no pre-defined per-type list, no dropdown.
   function processNodeFieldOptions(node = {}) {
-    if (node.kind !== 'cts.field') return [];
-    const bound = nodeTypeId(node);
-    if (!bound) return [];
-    return designer.fieldsForEntity(bound)
-      .filter(field => field.readable !== false)
-      .map(field => ({
-        label: field.i18n ? `${t(field.i18n)} · ${field.value}` : field.label,
-        value: field.value,
-        type: field.type
-      }));
+    return [];
   }
 
   // Status fallback choices for an effect's typed status input: the bound

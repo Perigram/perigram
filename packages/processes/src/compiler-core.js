@@ -4336,10 +4336,13 @@ function validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget
 }
 
 function catalogContext(domain, record) {
+  const fieldPath = record.kind === 'cts.field'
+    ? (record.inputDefaults?.field || '')
+    : record.path;
   return {
     fieldSchema: processNodeUsesStructuralFields(record.kind)
-      ? structuralFieldSchema(domain, record.path)
-      : entityFieldSchema(domain, record.typeId, record.path),
+      ? structuralFieldSchema(domain, fieldPath)
+      : entityFieldSchema(domain, record.typeId, fieldPath),
     fieldSchemas: processNodeUsesStructuralFields(record.kind)
       ? blockFieldSchemas(domain, record.block)
       : entityFieldSchemas(domain, record.typeId),

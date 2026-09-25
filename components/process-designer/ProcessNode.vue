@@ -41,16 +41,6 @@
         size="small"
         @update:model-value="updateOperation"
       />
-      <Select
-        v-if="showsFieldSelect"
-        :model-value="record.path"
-        :options="fieldOptions"
-        option-label="label"
-        option-value="value"
-        size="small"
-        filter
-        @update:model-value="value => update({ path: value })"
-      />
       <TypedValueControl
         v-if="opKind === 'source.literalItem'"
         :base="record.type?.base || 'json'"
@@ -154,9 +144,6 @@ const nodeSpecTooltip = computed(() => {
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
-const fieldOptions = computed(() => props.data.processFieldOptions || []);
-const showsFieldSelect = computed(() => fieldOptions.value.length > 0);
-
 const showTypeEditor = computed(() => (
   opKind.value.startsWith('source.literal')
   || (opKind.value === 'value.logic'
@@ -180,7 +167,6 @@ const literalStructureDisplay = computed(() => (
 const hasInlineConfiguration = computed(() => (
   showTypeEditor.value
   || operationOptions.value.length
-  || fieldOptions.value.length > 0
   || opKind.value.startsWith('source.literal')
 ));
 function update(updates) {
