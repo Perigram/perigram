@@ -609,7 +609,13 @@ narrowing, and restructuring connections require explicit author intent and
 are rejected when the selected node contract cannot express that intent.
 
 `data-tree.js` owns the universal tree solver. `evaluator.js` executes pure data
-nodes and authorized reads through it. Item access maps matched items, List
+nodes and authorized reads through it. The structure species execute natively
+with the same semantics their catalog ports declare: `cts.compose` composes
+open entries into one block per aligned tuple, `cts.decompose` projects the
+declared blocks (one block when a specific output is pulled, the block map
+otherwise, deriving the same block list its ports derive), and `cts.join`
+concatenates two same-type streams — no execution path rewrites a species
+kind to its legacy twin. Item access maps matched items, List
 access runs once per matched branch, and Tree access receives the complete
 structure. The authoring projection filters any typed list
 with the same data algebra: read/deconstruct the compared field over the list,
@@ -621,8 +627,10 @@ any branch or item mismatch instead of silently repeating the last mask entry.
 Comparison semantics are scalar for status and enum values — `states.main`
 travels through the ordinary Get Field/Logic dataflow as the primary status id
 string and compares as a scalar, and enum values compare as their scalar string
-form — while typed entity references compare structurally by their serialized
-`{ type, id }` shape. The runtime retains lower-level predicate and patch
+form — while typed entity references and other structured values compare by
+stable structural equality (sorted-key serialization): two values with the
+same content match regardless of key insertion order, and Distinct/Group By
+key on the same stable form. The runtime retains lower-level predicate and patch
 operations for execution/migration, but they are not separate authoring
 concepts. Only `effect.*` nodes may persist changes or invoke external work.
 
@@ -641,7 +649,9 @@ validly into the same socket. A single item source is one broadcast item, and
 the same broadcast rule applies to run-context values and authored
 `inputDefaults` on these sockets: a scalar is wrapped as a one-item packet
 rather than rejected as a list arity error, while an array spreads into one
-packet item per entry.
+packet item per entry. Both input-resolution paths shape values this way —
+the token-driven operational pass and the pulled data-node pass — so the
+socket contract does not depend on how a node is executed.
 
 When every aligned call succeeds the step output is exactly the historical
 effect result: a single aligned item yields the bare service DTO, and a
