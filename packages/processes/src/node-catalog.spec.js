@@ -254,7 +254,7 @@ describe('process v4 node catalog', () => {
       const ports = resolveCatalogNodePorts(record, context);
       expect(ports.inputs.map(input => input.id), record.kind).toEqual(['type']);
     }
-    const typedRead = resolveCatalogNodePorts({ kind: 'cts.read', select: 'byRef', typeId: 'queue' }, context);
+    const typedRead = resolveCatalogNodePorts({ kind: 'cts.read', select: 'all', typeId: 'queue' }, context);
     expect(typedRead.inputs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', typeId: 'queue' } });
   });
 

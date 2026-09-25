@@ -124,7 +124,7 @@ describe('palette trace', () => {
   });
 
   it('origin reads keep the pin; entity-derived reads never carry one', () => {
-    for (const select of ['current', 'byRef', 'all']) {
+    for (const select of ['current', 'all']) {
       const ports = resolveCatalogNodePorts({ id: 't', kind: 'cts.read', select, typeId: 'sheet' }, { domain });
       expect(ports.inputs[0]?.id, select).toBe('type');
     }

@@ -32,7 +32,7 @@ describe('graph protocol v5 designer round trip', () => {
       expect(getProcessNodeDefinition(item.kind), item.kind).not.toBeNull();
     }
     const readPresets = groups.instances.filter(item => item.kind === 'cts.read').map(item => item.preset.select);
-    expect(readPresets).toEqual(['current', 'byRef', 'all', 'parent', 'children', 'related']);
+    expect(readPresets).toEqual(['current', 'all', 'parent', 'children', 'related']);
   });
 
   it('catalog ports resolve native species records without legacy sockets', () => {

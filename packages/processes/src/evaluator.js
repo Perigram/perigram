@@ -395,8 +395,6 @@ async function executeRead(record, packets, context) {
   switch (record.select) {
     case 'current':
       return createDataPacket(await context.currentEntity?.(record.typeId));
-    case 'byRef':
-      return createDataPacket(await context.resolveEntityRef?.(packetValue(required(packets, 'value', record))));
     case 'parent':
       return createDataPacket(await context.parentEntity?.(entityStream(), record.typeId));
     case 'children':

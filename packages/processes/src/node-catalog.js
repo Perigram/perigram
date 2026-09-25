@@ -208,14 +208,14 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
 // Type-bound species (SPEC §20) split by binding semantics.
 // Origin species mint values out of a type declaration and carry the
 // persistent Type binding pin: constructs, and the reads that start from
-// nothing but a declared type (current, byId, byRef, query). The
+// nothing but a declared type (current, all). The
 // entity-derived reads (parent, children, related), the effect consumers
 // (mutate, transition, remove), and the field projection are consumers:
 // no pin, entity input only, binding adapts to the entity stream's type.
 // `carriesTypePin(record)` is the per-record seam — kind plus read
 // select — every binding consumer routes through.
 const ENTITY_DERIVED_READS = Object.freeze(['parent', 'children', 'related']);
-const ORIGIN_READ_SELECTS = Object.freeze(['current', 'byRef', 'all']);
+const ORIGIN_READ_SELECTS = Object.freeze(['current', 'all']);
 
 export function carriesTypePin(record = {}) {
   const kind = String(record.kind || '');
@@ -347,15 +347,6 @@ function nativeReadPorts(record = {}, context = {}) {
     return {
       inputs: [declarationTypePin(record)],
       outputs: [socket('result', processType('entity', { typeId }), DATA, false)]
-    };
-  }
-  if (select === 'byRef') {
-    return {
-      inputs: [
-        declarationTypePin(record),
-        socket('value', processType('entityRef', { typeId }), DATA, true)
-      ],
-      outputs: [socket('result', processType('entity', { typeId, nullable: true }), DATA, false)]
     };
   }
   if (select === 'all') {

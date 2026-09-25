@@ -283,7 +283,7 @@ describe('process designer domain contract', () => {
     // declared-edge traversal remains separate from unfiltered collection
     // reads.
     expect(groups.instances.map(item => item.preset.select)).toEqual([
-      'current', 'byRef', 'all', 'parent', 'children', 'related', undefined
+      'current', 'all', 'parent', 'children', 'related', undefined
     ]);
     // The field projection lives with the entity sources; block composition
     // (cts.compose/cts.decompose) is catalog-only for migrated graphs.

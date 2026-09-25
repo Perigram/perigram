@@ -124,7 +124,6 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     id: 'instances',
     items: [
       paletteItem('contextEntity', 'cts.read', { preset: { select: 'current' } }),
-      paletteItem('findEntityByReference', 'cts.read', { preset: { select: 'byRef' } }),
       paletteItem('allEntities', 'cts.read', { preset: { select: 'all' } }),
       paletteItem('parentEntity', 'cts.read', { preset: { select: 'parent' } }),
       paletteItem('childEntities', 'cts.read', { preset: { select: 'children' } }),
