@@ -3,7 +3,8 @@
 // trimmed to pairs whose endpoints survive in `cncEntities`; nothing new
 // may be added here.
 export const cncContainment = [
-  { parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' }
+  { parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' },
+  { parentType: 'library', childType: 'cassette', lineageKey: 'libraryId' }
 ];
 
 export const cncRelations = [

@@ -12,35 +12,15 @@ The system consists of three main parts: the transition engine, the dynamic hook
   entity's organization-scoped active override from
   `server/features/workflow-overrides` before falling back to the registered
   domain workflow.
-- **Declaration workflows**: A type with no domain workflow, override, or
-  process machine is NOT machine-less: the declaration itself is a machine
-  source. Resolution derives a normalized v2 machine from the type's
-  registry declaration (`states.main` axis + declared `transitions`, display
-  policy from the axis render) through the shared
-  `@perigram/cts` declaration→workflow projection — the same shape the
-  compiler's domain projection emits, so producer lifecycles and the status
-  engine agree. Tenancy follows the declaration seam: org-authored types
-  resolve through the instances feature's cached per-organization
-  declaration lookup (invalidated on declaration writes), pack/framework
-  types through their static declarations (also the org-less synchronous
-  fallback). Guards match the legacy default machines: declaration
-  transitions carry no roles, so any authenticated actor with entity access
-  may fire them; intents on declared transitions resolve through
-  `applyIntent` unchanged.
 - **Process workflows**: When the target organization has an active process
-  definition, compiled process workflows resolve before workflow overrides.
-  Process lifecycle profiles and action-only graph status changes are
-  normalized v2 machines and drive real entity status, action lookup, lifecycle
-  validation, hooks, and audit events.
-  Runtime resolution keeps domain-owned system intent transitions available
-  when a process workflow overrides an entity lifecycle. Service-owned flows
-  such as `nesting_run` solver completion still need their hidden
-  `NESTING -> COMPLETE` / `NESTING -> ERROR` intents even when the user-facing
-  process adds custom statuses. If a process-authored state does not declare a
-  domain system intent, workflow composition adds a hidden self-transition for
-  that intent. This lets internal events such as `artifactFileStored` complete
-  and enter status history without replacing the process-owned state or
-  invalidating status-scoped grants.
+  definition, compiled process workflows resolve before workflow overrides —
+  the compiled machine is the vocabulary (SPEC §7): its states come from the
+  process's state records, its initial from the creating construct's state
+  socket, and transitions from authored transition nodes. There is no
+  declaration-derived machine and no system-transition composition: an org
+  process that wants a system flow declares its states and transitions
+  itself; service-owned defaults (queue nesting, solve runs, cassette
+  production) live in the registered domain workflow table.
   Process-authored user transitions are authorized by their compiled
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the
@@ -51,9 +31,12 @@ The system consists of three main parts: the transition engine, the dynamic hook
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry, falling
   back to the per-class instance collections for CTS-native types that never
-  enter the static registry. Instance documents are read through a status
-  view projected from `states.main` and written back to `states.main` —
-  the legacy `status` block is never written onto them.
+  enter the static registry. The write world follows the document (SPEC §3):
+  a typed instance document persists one flat `state` string (the engine
+  projects it into the machine view internally); a legacy status-block
+  document keeps its block. Evidence, lifecycle facts, and display metadata
+  are event-sourced — `status_events` carries the full snapshot, the flat
+  instance carries the state.
 
 The reusable workflow API is being extracted to
 [`@perigram/workflows`](../../../packages/workflows/README.md). The current
@@ -68,8 +51,9 @@ string; the canonical snapshot shape and workflow definition examples live in
 [`@perigram/workflows`](../../../packages/workflows/README.md).
 
 Use `getPrimaryState(status)` for primary lifecycle reads and
-`getRegionState(status, regionId)` for scoped reads. Primary-state indexes and
-filters use `states.main`.
+`getRegionState(status, regionId)` for scoped reads. Flat instance
+documents persist the primary state as one `state` string; the engine
+projects it into the machine view.
 
 `metadata` is transition-local context. Current lifecycle facts belong in
 `status.lifecycle`, which is validated against each state's optional lifecycle

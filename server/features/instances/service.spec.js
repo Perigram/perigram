@@ -55,13 +55,13 @@ function stubCollection() {
 }
 
 describe('generic instance service stored shape (SPEC §3)', () => {
-  it('stores flat fields + states and projects the wire DTO', async () => {
+  it('stores flat fields + state and projects the wire DTO', async () => {
     const coll = stubCollection();
     coll.findOneAndUpdate.mockResolvedValue(null); // create path ignores it; update test sets its own
     const service = instanceServiceResolver('cassette'); // pack type: static declaration, name row field
 
     const dto = await service.create(
-      { identity: { name: 'My cassette' }, data: { name: 'My cassette' }, states: { main: 'draft' }, lineage: {} },
+      { identity: { name: 'My cassette' }, data: { name: 'My cassette' }, state: 'draft', lineage: {} },
       'user-1',
       'org-1'
     );
@@ -69,7 +69,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const stored = coll.insertOne.mock.calls[0][0];
     expect(stored.type).toBe('cassette');
     expect(stored.fields).toEqual({ name: 'My cassette' });
-    expect(stored.states).toEqual({ main: 'draft' });
+    expect(stored.state).toBe('draft');
     expect(stored.organizationId).toBe('org-1');
     expect(stored.lineage).toEqual({});
     expect(stored.identity).toBeUndefined();
@@ -79,7 +79,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto).toMatchObject({
       type: 'cassette',
       identity: { name: 'My cassette' },
-      states: { main: 'draft' },
+      state: 'draft',
       data: { name: 'My cassette' }
     });
   });
@@ -100,15 +100,15 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto.specs).toEqual({ width: 2500 });
   });
 
-  it('initializes and projects every declared lifecycle axis', async () => {
+  it('creates without a state — nothing synthesizes an initial (SPEC §7)', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('panel');
 
     const dto = await service.create({ data: { serial: 'AX-1' }, lineage: {} }, 'user-1', 'org-1');
 
     const stored = coll.insertOne.mock.calls[0][0];
-    expect(stored.states).toEqual({ main: 'available', quality: 'unchecked' });
-    expect(dto.states).toEqual({ main: 'available', quality: 'unchecked' });
+    expect(stored.state).toBeNull();
+    expect(dto.state).toBeNull();
   });
 
   it('refuses direct lifecycle writes outside the status runtime', async () => {
@@ -117,7 +117,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
     await expect(service.processUpdate('507f1f77bcf86cd799439011', {
       data: { serial: 'AX-2' },
-      states: { quality: 'passed' }
+      state: 'passed'
     }, 'org-1')).rejects.toThrow(/status runtime/);
     expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
   });

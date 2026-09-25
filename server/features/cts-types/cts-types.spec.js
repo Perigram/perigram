@@ -106,31 +106,29 @@ describe('cts type storage', () => {
     applyTypeMigrationSteps.mockResolvedValueOnce({
       appliedAt: '2026-09-22T00:00:00.000Z',
       actor: 'admin',
-      counts: { 'rename-enum-value': 5 },
+      counts: { 'rename-field': 5 },
       failures: []
     });
     const existing = {
       id: 'widget', class: 'item', scope: 'org', organizationId: ORG, version: 3,
-      fields: { code: { base: 'string' } },
-      states: { main: { values: ['scrap', 'ready'], initial: 'scrap' } }
+      fields: { code: { base: 'string' } }
     };
     repository.findByTypeId.mockResolvedValue(existing);
     repository.listByOrganization.mockResolvedValue([existing]);
     const stored = await defineType(
       {
         id: 'widget', class: 'item',
-        fields: { code: { base: 'string' } },
-        states: { main: { values: ['recycled', 'ready'], initial: 'ready' } },
-        migrate: [{ kind: 'rename-enum-value', from: 'scrap', to: 'recycled' }]
+        fields: { serial: { base: 'string' } },
+        migrate: [{ kind: 'rename-field', from: 'code', to: 'serial' }]
       },
       { organizationId: ORG, actor: 'admin' }
     );
     expect(stored.version).toBe(4);
-    expect(stored.migrated).toMatchObject({ actor: 'admin', counts: { 'rename-enum-value': 5 } });
+    expect(stored.migrated).toMatchObject({ actor: 'admin', counts: { 'rename-field': 5 } });
     expect(applyTypeMigrationSteps).toHaveBeenCalledWith(expect.objectContaining({
       toVersion: 4,
       actor: 'admin',
-      steps: [{ kind: 'rename-enum-value', axis: 'main', from: 'scrap', to: 'recycled' }]
+      steps: [{ kind: 'rename-field', from: 'code', to: 'serial' }]
     }));
   });
 
@@ -199,16 +197,14 @@ describe('cts type storage', () => {
   it('refuses a breaking redefinition whose steps do not cover the diff', async () => {
     const existing = {
       id: 'widget', class: 'item', scope: 'org', organizationId: ORG, version: 3,
-      fields: { code: { base: 'string' } },
-      states: { main: { values: ['scrap', 'ready'], initial: 'scrap' } }
+      fields: { code: { base: 'string' } }
     };
     repository.findByTypeId.mockResolvedValue(existing);
     repository.listByOrganization.mockResolvedValue([existing]);
     await expect(defineType(
       {
         id: 'widget', class: 'item',
-        fields: { code: { base: 'string' } },
-        states: { main: { values: ['ready'], initial: 'ready' } }
+        fields: {}
       },
       { organizationId: ORG }
     )).rejects.toThrow(/without a covering declared migration/);

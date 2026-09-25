@@ -189,11 +189,21 @@ export const stateService = {
       throw error;
     }
     const { entity, machine: loadedMachine } = loaded;
+    const primaryState = entity.states
+      ? getPrimaryState(entity.states, loadedMachine ? normalizeWorkflow(loadedMachine).initial : undefined)
+      : getPrimaryState(entity.status, undefined);
     if (!loadedMachine) {
-      return { typeId: normalizedTypeId, targetId, state: entity.states || null, actions: [] };
+      // No machine, still process-driven: compiled process actions surface
+      // without one (the graph owns the vocabulary, not a registry machine).
+      const actions = [];
+      appendProcessStatusActions(actions, {
+        auth,
+        typeId: normalizedTypeId,
+        primaryState
+      });
+      return { typeId: normalizedTypeId, targetId, state: entity.states || entity.state || null, primaryState, actions };
     }
     const normalizedMachine = normalizeWorkflow(loadedMachine);
-    const primaryState = getPrimaryState(entity.states ?? entity.status, normalizedMachine.initial);
     const lifecycle = entity.status?.lifecycle || normalizeLifecycle();
     const actions = [];
 
@@ -490,7 +500,12 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     });
     
     const entitySet = instanceDoc
-      ? { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() }
+      ? {
+        ...instanceStateSetFromStatus(statusData),
+        ...evidence.entityAttachmentSet,
+        ...(options.entityPatch || {}),
+        updatedAt: new Date().toISOString()
+      }
       : {
         status: statusData,
         ...evidence.entityAttachmentSet,
@@ -673,10 +688,11 @@ function storedStateAxes(states = {}) {
     .filter(([axis, value]) => axis && !STATE_EVIDENCE_KEYS.has(axis) && typeof value === 'string' && value));
 }
 
+// Instance docs persist one flat state string (SPEC §3/§7); the legacy
+// status block belongs to static-registry collections only.
 function instanceStateSetFromStatus(status = {}) {
-  return Object.fromEntries(Object.entries(status?.state?.active || {})
-    .filter(([axis, value]) => axis && typeof value === 'string' && value)
-    .map(([axis, value]) => [`states.${axis}`, value]));
+  const primary = status?.state?.primary;
+  return typeof primary === 'string' && primary ? { state: primary } : {};
 }
 
 function statusPrimaryForRegion(workflow = {}, regionId = '', state = '') {
@@ -867,7 +883,7 @@ function snapshotEntityRef(entity = {}) {
   return {
     id: entity._id?.toString?.() || entity._id || entity.identity?.uid || '',
     label: entity.identity?.name || entity.identity?.slug || entity.identity?.uid || entity._id?.toString?.() || '',
-    status: getPrimaryState(entity.status)
+    status: getPrimaryState(entity.states ?? entity.status ?? entity.state)
   };
 }
 
@@ -1021,7 +1037,10 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
         });
       }
 
-      return { entity, machine, collection, flexId };
+      // The write world follows the document, not the lookup path: a §3
+      // instance (typed fields row, flat state) writes flat; a legacy
+      // status-block doc keeps its block.
+      return { entity, machine, collection, flexId, instanceDoc: isFlatInstanceDoc(entity) ? entity : null };
     }
     // Dual-world types (a legacy definition beside CTS instances) miss
     // the static collection when the record was created through the
@@ -1054,10 +1073,20 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
   return { entity: instanceStateView(found.doc), machine, collection: found.collection, flexId: found.doc._id, instanceDoc: found.doc };
 }
 
-// The §3 stored shape keeps one active leaf path per declared state axis.
-// Project every persisted axis into the engine view so a secondary-region
-// transition can never rewrite the primary axis by mistake.
+// A §3 stored-shape instance: typed row + flat state, no legacy status
+// block. Those documents write their state flat (SPEC §3/§7).
+function isFlatInstanceDoc(doc = {}) {
+  return Boolean(doc && doc.type && !doc.status && (doc.fields || typeof doc.state === 'string'));
+}
+
+// The §3 stored shape keeps one flat state string. Project it into the
+// engine's snapshot shape so region reads resolve the primary; persisted
+// legacy `states` axes (pre-flat documents) keep their map until the
+// stored-shape migration re-homes them.
 function instanceStateView(doc = {}) {
+  if (doc && typeof doc === 'object' && !doc.status && typeof doc.state === 'string' && doc.state) {
+    return { ...doc, states: { main: doc.state } };
+  }
   if (doc && typeof doc === 'object' && !doc.status && doc.states) {
     const axes = storedStateAxes(doc.states);
     if (Object.keys(axes).length) {

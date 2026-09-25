@@ -42,7 +42,7 @@ export const cncTasks = {
     input: cncCommands.solveNesting.input,
     output: {
       entities: [
-        { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'completion' },
+        { type: 'solve_run', persistenceOwner: 'commandOwned', timing: 'completion' },
         { type: 'sheet_design', persistenceOwner: 'commandOwned', timing: 'completion' },
         { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
       ],

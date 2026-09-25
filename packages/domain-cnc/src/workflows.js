@@ -24,6 +24,77 @@ const workflowDefinitions = {
       { from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'cassette_designs', level: 'admin' }] } }
     ]
   },
+  cassette_instance: {
+    initial: 'PRODUCED',
+    states: {
+      PRODUCED: { canUpdateMeta: true },
+      MILLED: {
+        canUpdateMeta: true,
+        lifecycle: {
+          actors: [],
+          data: true,
+          attachments: {
+            geometry: { kind: 'geometry' },
+            photos: { kind: 'photo' }
+          }
+        }
+      },
+      INSTALLED: {
+        isTerminal: true,
+        canUpdateMeta: false,
+        lifecycle: {
+          actors: [],
+          data: true,
+          attachments: {
+            geometry: { kind: 'geometry' },
+            photos: { kind: 'photo' }
+          }
+        }
+      }
+    },
+    transitions: [
+      { from: 'PRODUCED', to: 'MILLED', intent: 'completeMilling', display: 'menu', access: { permissions: [{ feature: 'cassettes', level: 'write' }] } },
+      { from: 'MILLED', to: 'INSTALLED', intent: 'installPart', display: 'menu', access: { permissions: [{ feature: 'cassettes', level: 'write' }] } }
+    ]
+  },
+  queue: {
+    initial: 'DRAFT',
+    states: {
+      DRAFT: { canUpdateMeta: true },
+      NESTING: { canUpdateMeta: true },
+      READY: { canUpdateMeta: true },
+      ERROR: { canUpdateMeta: true },
+      CLOSED: { isTerminal: true, canUpdateMeta: false },
+      ARCHIVED: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: [
+      { from: 'DRAFT', to: 'NESTING', intent: 'requestNesting', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
+      { from: 'DRAFT', to: 'READY', intent: 'completeNestingProduction', display: 'hidden', access: { system: true } },
+      { from: 'NESTING', to: 'READY', intent: 'completeNestingProduction', display: 'hidden', access: { system: true } },
+      { from: 'NESTING', to: 'ERROR', intent: 'nestingSolveFailed', display: 'hidden', access: { system: true } },
+      { from: 'READY', to: 'CLOSED', intent: 'closeQueue', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
+      { from: 'ERROR', to: 'DRAFT', intent: 'resetQueue', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
+      { from: 'DRAFT', to: 'ARCHIVED', intent: 'archiveQueue', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] } },
+      { from: 'NESTING', to: 'ARCHIVED', intent: 'archiveQueue', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] } },
+      { from: 'READY', to: 'ARCHIVED', intent: 'archiveQueue', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] } },
+      { from: 'ERROR', to: 'ARCHIVED', intent: 'archiveQueue', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] } },
+      { from: 'CLOSED', to: 'ARCHIVED', intent: 'archiveQueue', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] } }
+    ]
+  },
+  solve_run: {
+    initial: 'NESTING',
+    states: {
+      NESTING: { canUpdateMeta: true },
+      COMPLETE: { canUpdateMeta: true },
+      FAILED: { canUpdateMeta: true },
+      CHOSEN: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: [
+      { from: 'NESTING', to: 'COMPLETE', intent: 'nestingSolveCompleted', display: 'hidden', access: { system: true } },
+      { from: 'NESTING', to: 'FAILED', intent: 'nestingSolveFailed', display: 'hidden', access: { system: true } },
+      { from: 'COMPLETE', to: 'CHOSEN', intent: 'acceptNestingRun', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] } }
+    ]
+  },
   artifact: {
     initial: 'PENDING',
     states: {

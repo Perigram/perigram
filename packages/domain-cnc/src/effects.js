@@ -27,7 +27,7 @@ export const cncEffects = {
     effects: [
       {
         type: 'transition',
-        entity: { type: 'nesting_run', from: 'event.source' },
+        entity: { type: 'solve_run', from: 'event.source' },
         intent: 'nestingSolveCompleted'
       }
     ]
@@ -38,7 +38,7 @@ export const cncEffects = {
     effects: [
       {
         type: 'transition',
-        entity: { type: 'nesting_run', from: 'event.source' },
+        entity: { type: 'solve_run', from: 'event.source' },
         intent: 'nestingSolveFailed'
       },
       {
@@ -49,12 +49,12 @@ export const cncEffects = {
     ]
   },
   nestingRunChosen: {
-    id: 'nesting_run.chosen',
-    on: 'nesting_run.chosen',
+    id: 'solve_run.chosen',
+    on: 'solve_run.chosen',
     effects: [
       {
         type: 'relatedEntity',
-        entity: { type: 'nesting_run', from: 'event.source' }
+        entity: { type: 'solve_run', from: 'event.source' }
       }
     ]
   }

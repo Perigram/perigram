@@ -5,14 +5,14 @@ export const cncServiceContracts = {
     service: 'nesting',
     label: 'Nesting service',
     inputs: ['queue', 'sheet', 'remnant', 'machine', 'tool_profile'],
-    outputs: ['nesting_run', 'sheet_design', 'sheet'],
+    outputs: ['solve_run', 'sheet_design', 'sheet'],
     actions: ['solveNesting'],
     triggers: ['queue.nestingRequested']
   },
   artifacts: {
     service: 'artifacts',
     label: 'Attachments service',
-    inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance', 'artifact_template'],
+    inputs: ['sheet_design', 'solve_run', 'cassette_design', 'cassette_instance', 'artifact_template'],
     outputs: ['artifact'],
     actions: ['generateAttachment', 'convertArtifact'],
     triggers: ['attachment.generationRequested']
@@ -89,7 +89,7 @@ export const cncCommands = {
     triggers: [{ event: 'queue.nestingRequested' }],
     output: {
       entities: [
-        { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'immediate' },
+        { type: 'solve_run', persistenceOwner: 'commandOwned', timing: 'immediate' },
         { type: 'sheet_design', persistenceOwner: 'commandOwned', timing: 'completion' },
         { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
       ],
@@ -117,13 +117,13 @@ export const cncCommands = {
           name: 'source',
           label: 'Attachment source',
           capability: 'attachments.generate',
-          accepts: ['sheet_design', 'nesting_run'],
+          accepts: ['sheet_design', 'solve_run'],
           required: true
         }
       ],
       entities: [
         { name: 'sheetDesign', type: 'sheet_design' },
-        { name: 'nestingRun', type: 'nesting_run' },
+        { name: 'nestingRun', type: 'solve_run' },
         { name: 'template', label: 'Artifact template', type: 'artifact_template', required: false }
       ],
       parameters: [

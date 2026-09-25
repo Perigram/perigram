@@ -9,7 +9,7 @@ const COUNT_FIELD_BY_CHILD = {
   cassette: 'cassetteCount',
   queue: 'queueCount',
   cassette_instance: 'instanceCount',
-  nesting_run: 'runCount',
+  solve_run: 'runCount',
   sheet_design: 'sheetDesignCount',
   sheet: 'sheetCount',
   color: 'colorCount'
@@ -28,7 +28,7 @@ const SUMMARY_CHILD_TYPES = new Set([
   'cassette',
   'queue',
   'cassette_instance',
-  'nesting_run',
+  'solve_run',
   'sheet_design',
   'sheet',
   'color'

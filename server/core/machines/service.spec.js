@@ -20,8 +20,8 @@ import * as workflowOverridesService from '~/server/features/workflow-overrides/
 
 const transitionAuth = {
   userId: 'operator-1',
-  memberships: [{ organizationId: 'org-1', permissions: { projects: 'write' } }],
-  permissions: { projects: 'write' }
+  memberships: [{ organizationId: 'org-1', permissions: { projects: 'write', cassettes: 'write' } }],
+  permissions: { projects: 'write', cassettes: 'write' }
 };
 
 describe('status service lifecycle payloads', () => {
@@ -44,12 +44,12 @@ describe('status service lifecycle payloads', () => {
   beforeEach(async () => {
     vi.restoreAllMocks();
     mockedConnectDB.mockReturnValue(db);
-    await db.collection('cassette_instances').deleteMany({});
+    await db.collection('items').deleteMany({});
     await db.collection('cassettes').deleteMany({});
-    await db.collection('nesting_runs').deleteMany({});
+    await db.collection('processes').deleteMany({});
     await db.collection('process_definitions').deleteMany({});
-    await db.collection('projects').deleteMany({});
-    await db.collection('queues').deleteMany({});
+    await db.collection('groups').deleteMany({});
+    await db.collection('processes').deleteMany({});
     await db.collection('status_events').deleteMany({});
   });
 
@@ -57,58 +57,9 @@ describe('status service lifecycle payloads', () => {
     vi.restoreAllMocks();
   });
 
-  it('persists a secondary-axis transition without rewriting the primary axis', async () => {
-    const machine = {
-      schemaVersion: 2,
-      primaryRegion: 'main',
-      regions: {
-        main: {
-          initial: 'PRODUCTION.cut',
-          states: {
-            PRODUCTION: {
-              initial: 'cut',
-              states: { cut: {}, done: { terminal: true } }
-            }
-          },
-          transitions: [{ from: 'PRODUCTION.cut', to: 'PRODUCTION.done' }]
-        },
-        quality: {
-          initial: 'OPEN',
-          states: { OPEN: {}, VERIFIED: { terminal: true } },
-          transitions: [{ from: 'OPEN', to: 'VERIFIED' }]
-        }
-      }
-    };
-    const resolveSpy = vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow')
-      .mockResolvedValue(machine);
-    await db.collection('items').insertOne({
-      _id: 'item-axis-1',
-      type: 'axis-widget',
-      identity: { uid: 'item-axis-1', name: 'Axis widget' },
-      lineage: { organizationId: 'org-1' },
-      states: { main: 'PRODUCTION.cut', quality: 'OPEN', userId: 'creator' }
-    });
-
-    await statusService.transitionWithResult({
-      typeId: 'axis-widget',
-      targetId: 'item-axis-1',
-      targetState: 'VERIFIED',
-      auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
-      context: { region: 'quality' }
-    });
-
-    const item = await db.collection('items').findOne({ _id: 'item-axis-1' });
-    expect(item.states.main).toBe('PRODUCTION.cut');
-    expect(item.states.quality).toBe('VERIFIED');
-    const event = await db.collection('status_events').findOne({ targetId: 'item-axis-1' });
-    expect(event.region).toBe('quality');
-    expect(event.toState).toBe('VERIFIED');
-    expect(event.toStatePrimary).toBe('PRODUCTION.cut');
-    resolveSpy.mockRestore();
-  });
-
   it('uses full auth context and registry collection metadata for cassette transitions', async () => {
     await db.collection('cassettes').insertOne({
+      type: 'cassette',
       _id: 'cassette-1',
       identity: { uid: 'cassette-1', name: 'Template' },
       lineage: { organizationId: 'org-1' },
@@ -128,6 +79,7 @@ describe('status service lifecycle payloads', () => {
 
   it('returns only server-authorized actions for the current user', async () => {
     await db.collection('cassettes').insertOne({
+      type: 'cassette',
       _id: 'cassette-2',
       identity: { uid: 'cassette-2', name: 'Template' },
       lineage: { organizationId: 'org-1' },
@@ -149,10 +101,11 @@ describe('status service lifecycle payloads', () => {
 
   it('preflights a named intent without mutating status', async () => {
     await db.collection('queues').insertOne({
+      type: 'queue',
       _id: 'queue-intent-preflight',
       identity: { uid: 'queue-intent-preflight', name: 'Queue' },
       lineage: { organizationId: 'org-1' },
-      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
+      state: 'DRAFT'
     });
 
     await expect(statusService.assertIntentAvailable(
@@ -163,16 +116,17 @@ describe('status service lifecycle payloads', () => {
     )).resolves.toMatchObject({ from: 'DRAFT', to: 'READY' });
 
     const queue = await db.collection('queues').findOne({ _id: 'queue-intent-preflight' });
-    expect(queue.status.state).toBe('DRAFT');
+    expect(queue.state).toBe('DRAFT');
     expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-preflight' })).toBe(0);
   });
 
   it('commits an intent transition and entity patch through one transition boundary', async () => {
     await db.collection('queues').insertOne({
+      type: 'queue',
       _id: 'queue-intent-patch',
       identity: { uid: 'queue-intent-patch', name: 'Queue' },
       lineage: { organizationId: 'org-1' },
-      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} },
+      state: 'DRAFT',
       data: { marker: 'before' }
     });
 
@@ -185,17 +139,18 @@ describe('status service lifecycle payloads', () => {
     });
 
     const queue = await db.collection('queues').findOne({ _id: 'queue-intent-patch' });
-    expect(queue.status.state.primary).toBe('READY');
+    expect(queue.state).toBe('READY');
     expect(queue.data.marker).toBe('after');
     expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-patch' })).toBe(1);
   });
 
   it('rejects combined status/entity writes when Mongo topology rejects transactions', async () => {
     await db.collection('queues').insertOne({
+      type: 'queue',
       _id: 'queue-standalone-patch',
       identity: { uid: 'queue-standalone-patch', name: 'Queue' },
       lineage: { organizationId: 'org-1' },
-      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} },
+      state: 'DRAFT',
       data: { marker: 'before' }
     });
     const session = {
@@ -222,7 +177,7 @@ describe('status service lifecycle payloads', () => {
     expect(standaloneDb.client.startSession).toHaveBeenCalled();
     expect(session.withTransaction).toHaveBeenCalled();
     expect(session.endSession).toHaveBeenCalled();
-    expect(queue.status.state).toBe('DRAFT');
+    expect(queue.state).toBe('DRAFT');
     expect(queue.data.marker).toBe('before');
     expect(await db.collection('status_events').countDocuments({ targetId: 'queue-standalone-patch' })).toBe(0);
   });
@@ -232,16 +187,17 @@ describe('status service lifecycle payloads', () => {
 
     for (const state of states) {
       const id = `queue-${state.toLowerCase()}`;
-      await db.collection('queues').insertOne({
+      await db.collection('processes').insertOne({
+        type: 'queue',
         _id: id,
         identity: { uid: id, name: `Queue ${state}` },
         lineage: { organizationId: 'org-1' },
-        status: { state, userId: 'creator', timestamp: new Date(), metadata: {} }
+        state
       });
 
       const allowed = await statusService.getActions('queue', id, {
         userId: 'operator-1',
-        memberships: [{ organizationId: 'org-1', permissions: { queues: 'write' } }]
+        memberships: [{ organizationId: 'org-1', permissions: { queues: 'admin' } }]
       });
 
       expect(allowed.actions).toEqual(
@@ -253,7 +209,8 @@ describe('status service lifecycle payloads', () => {
   });
 
   it('includes compiled process status actions for the matching entity status', async () => {
-    await db.collection('projects').insertOne({
+    await db.collection('groups').insertOne({
+      type: 'project',
       _id: 'project-process-1',
       identity: { uid: 'project-process-1', name: 'Process Project' },
       lineage: { organizationId: 'org-1' },
@@ -291,7 +248,8 @@ describe('status service lifecycle payloads', () => {
   });
 
   it('does not expose compiled process status actions that target the current state', async () => {
-    await db.collection('projects').insertOne({
+    await db.collection('groups').insertOne({
+      type: 'project',
       _id: 'project-process-current',
       identity: { uid: 'project-process-current', name: 'Current Project' },
       lineage: { organizationId: 'org-1' },
@@ -365,6 +323,7 @@ describe('status service lifecycle payloads', () => {
       }
     });
     await db.collection('queues').insertOne({
+      type: 'queue',
       _id: 'queue-process-transition-1',
       identity: { uid: 'queue-process-transition-1', name: 'Queue' },
       lineage: { organizationId: 'org-1' },
@@ -429,18 +388,18 @@ describe('status service lifecycle payloads', () => {
       data: {
         compiled: {
           workflows: {
-            nesting_run: {
+            solve_run: {
               schemaVersion: 2,
               primaryRegion: 'main',
               regions: {
                 main: {
-                  initial: 'CUT',
+                  initial: 'NESTING',
                   states: {
-                    CUT: { canUpdateMeta: true },
-                    SENT: { canUpdateMeta: true }
+                    NESTING: { canUpdateMeta: true },
+                    COMPLETE: { canUpdateMeta: true }
                   },
                   transitions: [
-                    { from: 'CUT', to: 'SENT' }
+                    { from: 'NESTING', to: 'COMPLETE', intent: 'nestingSolveCompleted', display: 'hidden', access: { system: true } }
                   ]
                 }
               }
@@ -450,6 +409,7 @@ describe('status service lifecycle payloads', () => {
       }
     });
     await db.collection('nesting_runs').insertOne({
+      type: 'solve_run',
       _id: 'run-process-system-intents',
       identity: { uid: 'run-process-system-intents', name: 'Run 1' },
       lineage: { organizationId: 'org-1', queueId: 'queue-1' },
@@ -467,7 +427,7 @@ describe('status service lifecycle payloads', () => {
     });
 
     await statusService.applyIntent(
-      'nesting_run',
+      'solve_run',
       'run-process-system-intents',
       'nestingSolveCompleted',
       { userId: 'SYSTEM', role: 'SYSTEM', system: true }
@@ -486,7 +446,7 @@ describe('status service lifecycle payloads', () => {
       organizationId: 'org-1',
       name: 'Note',
       fields: { name: 'Note' },
-      states: { main: 'new' },
+      state: 'new',
       lineage: { organizationId: 'org-1' }
     });
     vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
@@ -541,7 +501,7 @@ describe('status service lifecycle payloads', () => {
     expect(event.status.lifecycle.attachments.proof.fileId).toBe('proof-file');
 
     const entity = await db.collection('items').findOne({ _id: id });
-    expect(entity.states.main).toBe('active');
+    expect(entity.state).toBe('active');
     expect(entity).not.toHaveProperty('status');
   });
 
@@ -554,7 +514,7 @@ describe('status service lifecycle payloads', () => {
       organizationId: 'org-1',
       name: 'Note',
       fields: { name: 'Note' },
-      states: { main: 'new' },
+      state: 'new',
       lineage: { organizationId: 'org-1' }
     });
     vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
@@ -589,7 +549,7 @@ describe('status service lifecycle payloads', () => {
       organizationId: 'org-1',
       name: 'Note',
       fields: { name: 'Note' },
-      states: { main: 'new' },
+      state: 'new',
       lineage: { organizationId: 'org-1' }
     });
     const machine = {
@@ -621,7 +581,7 @@ describe('status service lifecycle payloads', () => {
     expect(event.status.metadata).not.toHaveProperty('source');
 
     const entity = await db.collection('items').findOne({ _id: id });
-    expect(entity.states.main).toBe('new');
+    expect(entity.state).toBe('new');
     expect(entity).not.toHaveProperty('status');
   });
 
@@ -642,12 +602,13 @@ describe('status service lifecycle payloads', () => {
   it('writes metadata and lifecycle to the entity snapshot and status event', async () => {
     const id = new ObjectId();
     const projectId = new ObjectId();
-    await db.collection('projects').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
+    await db.collection('groups').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
     await db.collection('cassette_instances').insertOne({
+      type: 'cassette_instance',
       _id: id,
       identity: { uid: id, name: 'Cassette 1' },
       lineage: { projectId },
-      status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
+      state: 'PRODUCED'
     });
 
     await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
@@ -663,13 +624,13 @@ describe('status service lifecycle payloads', () => {
     });
 
     const entity = await db.collection('cassette_instances').findOne({ _id: id });
-    expect(entity.status.state.primary).toBe('MILLED');
-    expect(entity.status.state?.primary ?? entity.status.state).toBe('MILLED');
-    expect(entity.status.metadata.note).toBe('Measured after milling');
-    expect(entity.status.lifecycle.actors[0].userId).toBe('mounter-1');
-    expect(entity.status.lifecycle.attachments.geometry.fileId).toBe('geometry-file');
-    expect(entity.status.lifecycle.attachments.photos).toHaveLength(1);
-    expect(entity.status.lifecycle.data.measuredWidth).toBe(1200);
+    expect(entity.state).toBe('MILLED');
+    const audit = await db.collection('status_events').findOne({ targetId: id });
+    expect(audit.status.metadata.note).toBe('Measured after milling');
+    expect(audit.status.lifecycle.actors[0].userId).toBe('mounter-1');
+    expect(audit.status.lifecycle.attachments.geometry.fileId).toBe('geometry-file');
+    expect(audit.status.lifecycle.attachments.photos).toHaveLength(1);
+    expect(audit.status.lifecycle.data.measuredWidth).toBe(1200);
 
     const event = await db.collection('status_events').findOne({ targetId: id });
     expect(event.status.lifecycle.attachments.geometry.fileId).toBe('geometry-file');
@@ -679,12 +640,13 @@ describe('status service lifecycle payloads', () => {
   it('keeps metadata-only transitions compatible', async () => {
     const id = new ObjectId();
     const projectId = new ObjectId();
-    await db.collection('projects').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
+    await db.collection('groups').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
     await db.collection('cassette_instances').insertOne({
+      type: 'cassette_instance',
       _id: id,
       identity: { uid: id, name: 'Cassette 2' },
       lineage: { projectId },
-      status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
+      state: 'PRODUCED'
     });
 
     await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
@@ -692,19 +654,22 @@ describe('status service lifecycle payloads', () => {
     });
 
     const entity = await db.collection('cassette_instances').findOne({ _id: id });
-    expect(entity.status.metadata.note).toBe('Legacy call shape');
-    expect(entity.status.lifecycle).toEqual({ actors: [], attachments: {}, data: {} });
+    expect(entity.state).toBe('MILLED');
+    const event = await db.collection('status_events').findOne({ targetId: id });
+    expect(event.status.metadata.note).toBe('Legacy call shape');
+    expect(event.status.lifecycle).toEqual({ actors: [], attachments: {}, data: {} });
   });
 
   it('strips producer output provenance from persisted entity status metadata', async () => {
     const id = new ObjectId();
     const projectId = new ObjectId();
-    await db.collection('projects').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
+    await db.collection('groups').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
     await db.collection('cassette_instances').insertOne({
+      type: 'cassette_instance',
       _id: id,
       identity: { uid: id, name: 'Cassette 3' },
       lineage: { projectId },
-      status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
+      state: 'PRODUCED'
     });
 
     await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
@@ -713,9 +678,8 @@ describe('status service lifecycle payloads', () => {
     });
 
     const entity = await db.collection('cassette_instances').findOne({ _id: id });
-    expect(entity.status.state.primary).toBe('MILLED');
-    expect(entity.status.metadata.note).toBe('Milled on line 2');
-    expect(entity.status.metadata).not.toHaveProperty('producerOutputId');
+    expect(entity.state).toBe('MILLED');
+    expect(entity).not.toHaveProperty('status');
 
     const event = await db.collection('status_events').findOne({ targetId: id });
     expect(event.status.metadata.note).toBe('Milled on line 2');
@@ -749,25 +713,28 @@ describe('status service lifecycle payloads', () => {
         }
       }
     });
-    await db.collection('projects').insertOne({
+    await db.collection('groups').insertOne({
+      type: 'project',
       _id: id,
       identity: { uid: id, name: 'Project' },
       lineage: { organizationId: 'org-1' },
-      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
+      state: 'DRAFT'
     });
 
     await statusService.setInitialStateForOrganization('project', id, 'DELETED', 'org-1', 'operator-1', {
       display: { label: 'Removed' }
     });
 
-    const entity = await db.collection('projects').findOne({ _id: id });
-    expect(entity.status.metadata.display).toEqual({
+    const entity = await db.collection('groups').findOne({ _id: id });
+    expect(entity.state).toBe('DELETED');
+    const event = await db.collection('status_events').findOne({ targetId: id });
+    expect(event.status.metadata.display).toEqual({
       label: 'Removed',
       color: 'danger',
       severity: 'danger',
       icon: 'pi pi-trash'
     });
-    expect(entity.status.state.active).toEqual({ main: 'DELETED', quality: 'UNVERIFIED' });
+    expect(event.status.state.active).toEqual({ main: 'DELETED', quality: 'UNVERIFIED' });
     workflowSpy.mockRestore();
   });
 
@@ -801,16 +768,17 @@ describe('status service lifecycle payloads', () => {
     });
 
     await db.collection('queues').insertOne({
+      type: 'queue',
       _id: queueId,
       identity: { uid: queueId, name: 'Evidence Queue' },
       lineage: { organizationId: 'org-1' },
-      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
+      state: 'DRAFT'
     });
     await db.collection('cassette_designs').insertOne({
       _id: 'design-1',
       identity: { uid: 'design-1', name: 'Design 1' },
       lineage: { organizationId: 'org-1', queueId },
-      status: { state: 'READY', userId: 'creator', timestamp: new Date(), metadata: {} }
+      state: 'READY'
     });
 
     const auth = {
@@ -837,20 +805,18 @@ describe('status service lifecycle payloads', () => {
     });
 
     const entity = await db.collection('queues').findOne({ _id: queueId });
-    const proof = entity.status.lifecycle.attachments.proof;
+    const event = await db.collection('status_events').findOne({ targetId: queueId });
+    const proof = event.status.lifecycle.attachments.proof;
     expect(proof.fileId).toBe(fileId);
     expect(proof.attachmentKey).toMatch(/^status_proof_/);
     expect(entity.attachments[proof.attachmentKey].kind).toBe('mounting-proof');
-    expect(entity.status.lifecycle.data.snapshots.designs).toMatchObject({
+    expect(event.status.lifecycle.data.snapshots.designs).toMatchObject({
       typeId: 'cassette_design',
       lineageKey: 'queueId',
       count: 1,
       refs: [{ id: 'design-1', label: 'Design 1', status: 'READY' }]
     });
-
-    const event = await db.collection('status_events').findOne({ targetId: queueId });
-    expect(event.status.lifecycle.attachments.proof.attachmentKey).toBe(proof.attachmentKey);
-    expect(event.status.lifecycle.data.snapshots.designs.count).toBe(1);
+    expect(entity.state).toBe('SENT');
 
     workflowSpy.mockRestore();
   });
@@ -858,8 +824,9 @@ describe('status service lifecycle payloads', () => {
   it('carries current lifecycle facts forward when the target state allows them', async () => {
     const id = new ObjectId();
     const projectId = new ObjectId();
-    await db.collection('projects').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
+    await db.collection('groups').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
     await db.collection('cassette_instances').insertOne({
+      type: 'cassette_instance',
       _id: id,
       identity: { uid: id, name: 'Cassette 3' },
       lineage: { projectId },
@@ -889,9 +856,10 @@ describe('status service lifecycle payloads', () => {
   it('rejects lifecycle attachment slots not declared for target state', async () => {
     const id = new ObjectId();
     await db.collection('cassette_instances').insertOne({
+      type: 'cassette_instance',
       _id: id,
       identity: { uid: id, name: 'Cassette 3' },
-      status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
+      state: 'PRODUCED'
     });
 
     await expect(statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', 'OPERATOR', {
@@ -911,7 +879,7 @@ describe('status service lifecycle payloads', () => {
       organizationId: 'org-1',
       name: 'Note',
       fields: { name: 'Note' },
-      states: { main: 'new' },
+      state: 'new',
       lineage: { organizationId: 'org-1' }
     });
     const machine = {
@@ -928,7 +896,7 @@ describe('status service lifecycle payloads', () => {
 
     await statusService.setInitialStateForOrganization('e2e-note', id.toString(), 'new', 'org-1', 'admin-1', {});
     let entity = await db.collection('items').findOne({ _id: id });
-    expect(entity.states.main).toBe('new');
+    expect(entity.state).toBe('new');
     expect(entity).not.toHaveProperty('status');
     expect(await db.collection('status_events').countDocuments({ targetId: id })).toBe(1);
 
@@ -937,7 +905,7 @@ describe('status service lifecycle payloads', () => {
       memberships: [{ organizationId: 'org-1', permissions: {} }]
     });
     entity = await db.collection('items').findOne({ _id: id });
-    expect(entity.states.main).toBe('active');
+    expect(entity.state).toBe('active');
     expect(await db.collection('status_events').countDocuments({ targetId: id })).toBe(2);
 
     // The read path sees the written state: active -> new is invalid.
