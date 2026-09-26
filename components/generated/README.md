@@ -266,11 +266,17 @@ Discord-style operational shell:
   instances hang beneath it as plain default rows carrying the type’s
   registry icon and the one title resolver label (`instanceLabelOf`).
   Menu selection follows the active pane's selected tab: opening an
-  instance un-mutes exactly its row (opening a type screen never unmutes
-  the list), the chats page un-mutes Chats; every other entry — instance
-  rows and communication — renders muted through PanelMenu's official
-  per-item `class` channel, while type headers keep full color
-  (categories stay legible), so default rendering stays untouched.
+  instance selects exactly its row (opening a type screen never selects
+  the list), the chats page selects Chats; a selected entry carries the
+  chrome-subtle surface (`rounded-ui bg-[var(--ck-chrome-subtle)]`)
+  beside its unmuted text, and every other entry — instance rows and
+  communication — renders muted through PanelMenu's official per-item
+  `class` channel, while type headers keep full color (categories stay
+  legible), so default rendering stays untouched. Pointer clicks blur
+  whatever PanelMenu focused inside the menu after its handlers run —
+  the list's focus-tracked item styling (mousemove-driven while the
+  list holds focus) otherwise keeps the last hovered row highlighted
+  after the cursor leaves.
   Header and nested-group clicks are split from collapse toggling by one
   capture-phase handler: clicking the label opens the content without
   toggling the panel, the submenu chevron toggles without running the

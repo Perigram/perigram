@@ -485,6 +485,17 @@ function menuKeyForElement(element) {
 }
 
 function onMenuClickCapture(event) {
+  // Pointer clicks blur whatever PrimeVue focuses inside the menu after
+  // its handlers run: the list's focus-tracked item (`data-p-focused`,
+  // driven by mousemove while the list holds focus) otherwise keeps the
+  // last hovered row highlighted after the cursor leaves. Keyboard
+  // activation (click detail 0) keeps PrimeVue's focus model intact.
+  if (event.detail > 0 && typeof document !== 'undefined') {
+    setTimeout(() => {
+      const active = document.activeElement;
+      if (active && typeof active.blur === 'function' && active.closest('.p-panelmenu')) active.blur();
+    }, 0);
+  }
   const onChevron = Boolean(event.target.closest('.p-panelmenu-submenu-icon'));
   const header = event.target.closest('.p-panelmenu-header');
   const row = event.target.closest('.p-panelmenu-item');
@@ -535,7 +546,7 @@ function entityPanelItem(node) {
     key: node.key,
     icon: instances.iconFor(node.data.item.type),
     label: instanceLabelOf(node.data.item.type, instanceIdValue),
-    class: selected ? '' : 'text-muted',
+    class: selected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : 'text-muted',
     workspaceItem: node.data.item,
     command: menuCommand(node.key, () => openInstanceTab(node.data.item.type, instanceIdValue)),
     items: node.children?.length
@@ -561,7 +572,7 @@ function communicationPanelModels() {
       key: 'communication:chats',
       label: t('support.chatTitle'),
       icon: 'pi pi-comments',
-      headerClass: chatsSelected ? '' : 'text-muted',
+      headerClass: chatsSelected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : 'text-muted',
       command: menuCommand('communication:chats', () => openChatsPage())
     },
     {
