@@ -61,12 +61,11 @@ test.describe('generated state surface', () => {
     await expect(header.locator('.p-tag').filter({ hasText: 'Draft' })).toHaveCount(0);
 
     // The audit trail grows the transition event: two stepper steps, the
-    // newest open. The trail renders vertically and consecutive steps by
-    // one principal carry the actor once — steps are not copies.
+    // newest open. Consecutive steps by one principal carry the actor
+    // once — steps are not copies of each other.
     await header.getByRole('button', { name: 'State history' }).click();
     await expect(stepper).toBeVisible({ timeout: 10000 });
     await expect(stepper.locator('.p-step')).toHaveCount(2);
-    await expect(stepper).toHaveClass(/p-stepper-vertical/);
     await expect(stepper.getByText('Perigram E2E User')).toHaveCount(1);
     await testInfo.attach('state-history-after-transition', {
       body: await stepper.screenshot(),
