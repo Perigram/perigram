@@ -1643,9 +1643,12 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       : (inputs.status?.id ?? record.state?.to);
     if (targetState == null) {
       // Activation refuses target-less transitions (graph-protocol binding
-      // check); this guard keeps an already-activated legacy draft from
-      // reaching the status runtime with undefined.
-      throw new Error(`${kind} declares no target state`);
+      // check); reaching here means the ACTIVE definition predates the
+      // authored target — name the node and the remedy instead of handing
+      // the status runtime an undefined target.
+      throw new Error(
+        `transition ${record.id || '(unnamed)'} declares no target state — author the target in the process designer and re-activate the process (actions execute the activated definition, not the draft)`
+      );
     }
     const result = await stateService.transitionWithResult({
       typeId,
