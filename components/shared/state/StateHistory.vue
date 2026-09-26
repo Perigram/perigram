@@ -181,7 +181,6 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
     <Stepper
       v-else-if="orderedEvents.length"
       v-model:value="activeStepRef"
-      orientation="vertical"
       class="min-w-72"
     >
       <StepItem v-for="(event, index) in orderedEvents" :key="stepKey(event, index)" :value="stepKey(event, index)">
