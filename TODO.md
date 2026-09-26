@@ -42,7 +42,7 @@ notes.
   CassetteEditorDialog import path rewire to cassette surfaces;
   CassetteDesignCard deleted; decide `parametric-cassettes` (keep only what
   template export needs); trim e2e specs that pin the dead flow.
-- [ ] P3b — facade-design/facade-pattern cut (owner-scoped domain): remove
+- [x] P3b — facade-design/facade-pattern cut (owner-scoped domain): remove
   the two pack type declarations + editor bindings + FacadeDesigner/
   FacadePatternDesigner + generated workspace pages + surface entries +
   related contract rows/policies (their persistence routes are already
