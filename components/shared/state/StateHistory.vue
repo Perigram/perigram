@@ -151,6 +151,14 @@ const openActorChat = (event) => {
 
 const eventKey = (event, index) => event._id || `${eventState(event)}-${event.timestamp}-${index}`;
 
+// A step shows its actor only when it differs from the adjacent newer
+// event's actor — consecutive steps by one principal carry the name once.
+const actorStartsRun = (index) => {
+  const newer = orderedEvents.value[index + 1];
+  if (!newer) return true;
+  return actorUserId(newer) !== actorUserId(orderedEvents.value[index]);
+};
+
 // The stepper reads oldest → newest (a trail, not a feed); the API serves
 // newest-first. The newest step opens with its evidence panel expanded.
 const orderedEvents = computed(() => [...displayEvents.value].reverse());
@@ -174,13 +182,14 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
     <Stepper
       v-else-if="orderedEvents.length"
       v-model:value="activeStepRef"
+      orientation="vertical"
       class="min-w-72"
     >
       <StepItem v-for="(event, index) in orderedEvents" :key="stepKey(event, index)" :value="stepKey(event, index)">
         <Step :pt="stepPt">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1 text-left">
             <StateTag :value="eventState(event)" :policy="policyByValue" />
-            <span v-if="actorUserId(event)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
+            <span v-if="actorUserId(event) && actorStartsRun(index)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
               <InstanceInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
               <Button
                 icon="pi pi-comments"
@@ -191,7 +200,7 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
                 @click.stop="openActorChat(event)"
               />
             </span>
-            <small v-else-if="actorName(event)" class="min-w-0 truncate text-muted" :title="actorTitle(event)">
+            <small v-else-if="actorName(event) && actorStartsRun(index)" class="min-w-0 truncate text-muted" :title="actorTitle(event)">
               <i class="pi pi-user mr-1"></i>{{ actorName(event) }}
             </small>
             <time
