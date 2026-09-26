@@ -676,6 +676,11 @@ path, item index, entity ref when known). These calls are not
 collection-atomic: a later failure does not roll back earlier writes or
 prevent subsequent aligned items from being attempted, so earlier completed
 mutations remain applied and are identified through `completedMutations`.
+Manual runs invert the envelope into an error: `startRun` inspects the
+effect step for collected failures and throws the underlying mutation
+messages (400), because a user-initiated action is a single intent and a
+failed slot behind a success toast is a silent no-op — automated batch
+flows keep the continue-and-collect contract.
 Change Status carries an optional `note` string that the workflow engine
 persists as `status.metadata.note` on the transition, and emits the updated
 entity DTO rather than the transition wrapper. The former raw `region`, `path`,
