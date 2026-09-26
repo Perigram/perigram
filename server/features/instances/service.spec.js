@@ -302,10 +302,10 @@ describe('generic instance list filters (compiled screen source contract)', () =
     const service = instanceServiceResolver('panel');
 
     await service.list({ primaryState: 'available' }, 'user-1', 'org-1');
-    expect(coll.find.mock.calls[0][0]['states.main']).toBe('available');
+    expect(coll.find.mock.calls[0][0].state).toBe('available');
 
     await service.list({ primaryStates: 'available,installed' }, 'user-1', 'org-1');
-    expect(coll.find.mock.calls[1][0]['states.main']).toEqual({ $in: ['available', 'installed'] });
+    expect(coll.find.mock.calls[1][0].state).toEqual({ $in: ['available', 'installed'] });
   });
 
   it('resolves _id reference lookups server-side', async () => {

@@ -33,10 +33,12 @@ function mongoFilterOf(node) {
 }
 
 // Filter-tree addresses are instance-shape reads; storage paths are the §3
-// document form: the instance id address is `_id`, lineage addresses are
-// their own storage paths, and field addresses live under `fields.`.
+// document form: the instance id address is `_id`, the primary state
+// address is the top-level `state` slot, lineage addresses are their own
+// storage paths, and field addresses live under `fields.`.
 function storagePathOf(field) {
   if (field === '_id' || field === 'id') return '_id';
+  if (field === 'state') return 'state';
   if (/^states\.[^.]+$/.test(field) || field.startsWith('lineage.')) return field;
   return `fields.${field}`;
 }
