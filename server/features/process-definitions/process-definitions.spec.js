@@ -30,6 +30,20 @@ vi.mock('../cts-types/service.js', async () => {
   }
   return { compileRegistryForOrganization: vi.fn(async () => registry) };
 });
+vi.mock('./run-repository.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRunRepository: () => ({
+      createRun: async ({ run, definition }) => ({ runId: run.id, state: run, definition, revision: 0 }),
+      saveRunState: async (_runId, state, revision) => ({ state, revision: revision + 1 }),
+      findUnreceiptedInvocations: async () => []
+    }),
+    executeManualRun: actual.executeManualRun,
+    continueStoredRun: actual.continueStoredRun
+  };
+});
+
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
   findById: vi.fn(),
@@ -702,6 +716,85 @@ describe('current process-definition service contract', () => {
       typeId: 'machine',
       targetId: 'machine-1',
       targetState: 'MAINTENANCE'
+    }));
+  });
+
+  it('executes an authored target-only transition end to end: activate, button, fan-out machine', async () => {
+    // The full chain the designer drives: a cts.transition record authors
+    // ONLY its target, activation compiles the machine (entry from the
+    // construct default, edges fanned from every declared value), and the
+    // generated button executes the transition for the opened instance.
+    const machine = {
+      type: 'machine', id: 'machine-1', _id: 'machine-1',
+      identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
+      lineage: { organizationId: 'org-acceptance' },
+      data: {}, attachments: {}, states: { main: 'state1' }
+    };
+    const processUpdate = vi.fn();
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === 'machine'
+        ? { processUpdate, processGetById: async () => machine }
+        : type === 'organization' ? organizationService : null
+    });
+    stateService.transitionWithResult.mockImplementation(async ({ targetState }) => {
+      const updated = structuredClone(machine);
+      updated.states = { main: targetState };
+      return { entity: updated, status: { state: { primary: targetState } }, actions: [], effects: [] };
+    });
+    const data = {
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graphProtocol: 5,
+      ctsTypes: {
+        s1: { id: 's1', kind: 'state', typeId: 'machine', value: 'state1' },
+        s2: { id: 's2', kind: 'state', typeId: 'machine', value: 'state2' }
+      },
+      graph: {
+        nodes: ['create', 'transition'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'create-transition', source: 'create', sourceHandle: 'data:result', target: 'transition', targetHandle: 'data:entity', role: 'data' },
+          { id: 'create-transition-flow', source: 'create', sourceHandle: 'control:completed', target: 'transition', targetHandle: 'control:in', role: 'control' }
+        ]
+      },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      screens: {},
+      processNodes: {
+        create: {
+          id: 'create', kind: 'cts.construct', typeId: 'machine',
+          trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
+          construction: { mode: 'genericCreate' },
+          inputDefaults: { state: 'state1' }
+        },
+        transition: {
+          id: 'transition', kind: 'cts.transition', typeId: 'machine',
+          state: { axis: 'main', to: 'state2' },
+          trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
+        }
+      }
+    };
+    const restoreMachineRegistry = mockMachineRegistry();
+    processRepository.findActiveByOrganization.mockResolvedValue(draftRecord(data));
+    processRepository.findById.mockResolvedValue(draftRecord(data));
+    organizationService.getProcessConfiguration.mockResolvedValueOnce({ roles: [], roleAssignments: {} });
+
+    const auth = {
+      userId: 'admin', organizationId: 'org-acceptance',
+      roleAssignments: { actions: [{ id: 'transition' }] }
+    };
+    const result = await executeActiveProcessAction({
+      actionId: 'transition',
+      instanceId: 'machine-1',
+      data: {}
+    }, { ...auth, effectivePermissions: { organizations: { level: 'admin' } } });
+    restoreMachineRegistry();
+
+    expect(result).toMatchObject({ _id: 'machine-1', states: { main: 'state2' } });
+    expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
+      typeId: 'machine', targetId: 'machine-1', targetState: 'state2'
     }));
   });
 
