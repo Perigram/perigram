@@ -26,6 +26,21 @@ const ENTITY_OPTION_LOADERS = {
     user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
 };
 
+/**
+ * One loader seam per type: framework/pack types keep their feature list
+ * services; every other type resolves its scoped list through the
+ * registry-resolved per-class instance service (`processList`, CTS SPEC
+ * §13 — see the instances README), so org-authored types are pickable,
+ * resolvable, and recipient-checkable without a hand-registered loader.
+ */
+function entityOptionLoaderFor(type) {
+    const featureLoader = ENTITY_OPTION_LOADERS[type];
+    if (featureLoader) return featureLoader;
+    const service = getAppRegistry().getInstanceService(type);
+    if (!service?.processList) return null;
+    return async (auth, filters) => (await service.processList(filters || {}, auth)) ?? [];
+}
+
 export async function getUserConversationContext(auth, recipientUserId = null) {
     const userId = auth?.userId;
     if (!userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
@@ -245,7 +260,7 @@ export async function getEntityConversationContext(auth, entityKey = '') {
         // count too.
         const sources = scopedEntityOptionSources(scopedAuth)
             .filter(source => source.typeId === parsed.type);
-        const loader = ENTITY_OPTION_LOADERS[parsed.type] || null;
+        const loader = entityOptionLoaderFor(parsed.type);
         const scoped = sources.length
             ? await loadEntityOptionsForSources(scopedAuth, parsed.type, sources).catch(() => [])
             : [];
@@ -1028,7 +1043,7 @@ function adminSupportConversationsMatch() {
 }
 
 async function loadEntityOptions(auth, type) {
-    const loader = ENTITY_OPTION_LOADERS[type];
+    const loader = entityOptionLoaderFor(type);
     if (!loader) return [];
 
     if (auth.process?.active && type !== 'user') {
@@ -1040,7 +1055,7 @@ async function loadEntityOptions(auth, type) {
 }
 
 async function loadEntityOptionsForSources(auth, type, sources = []) {
-    const loader = ENTITY_OPTION_LOADERS[type];
+    const loader = entityOptionLoaderFor(type);
     if (!loader || !sources.length) return [];
 
     const results = [];

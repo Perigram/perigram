@@ -897,4 +897,132 @@ describe('support communication service', () => {
       timestamp: null
     });
   });
+
+  describe('CTS per-class instance chats', () => {
+    // §3 wire DTO shape the generic instance service projects (instances
+    // README: identity/lineage projection of the stored shape).
+    const ctsDto = (typeId, id, name, lineage = {}) => ({
+      _id: id,
+      type: typeId,
+      typeVersion: 1,
+      identity: { uid: id, name },
+      state: null,
+      lineage: { organizationId: 'org-1', ...lineage },
+      relations: {}
+    });
+
+    const registryWith = (servicesByType) => {
+      mocks.appRegistry.getInstanceService.mockImplementation((type) => (
+        servicesByType[type] || { processGetById: vi.fn(async () => null) }
+      ));
+    };
+
+    const ctsProcessAuth = (sources, lineageBindings = []) => ({
+      ...auth,
+      process: { active: true, lineageBindings },
+      screens: [{ id: 'wo_screen', screenKey: 'wo_screen', sources }]
+    });
+
+    afterEach(() => {
+      mocks.appRegistry.getInstanceService.mockImplementation(() => ({
+        processGetById: vi.fn(async () => null)
+      }));
+    });
+
+    it('loads picker options for org-authored types through the registry per-class service', async () => {
+      const wo1 = ctsDto('work_order', 'wo-1', 'WO One');
+      registryWith({
+        work_order: {
+          processList: vi.fn(async () => [wo1, ctsDto('work_order', 'wo-2', 'WO Two')]),
+          processGetById: vi.fn(async () => null)
+        }
+      });
+      const processAuth = ctsProcessAuth([
+        { id: 'work_orders', typeId: 'work_order', mode: 'list', label: 'Work Orders' }
+      ]);
+
+      const options = await supportService.listEntityOptions(processAuth, 'work_order', 'one');
+
+      expect(options).toEqual([
+        { type: 'work_order', value: 'wo-1', label: 'WO One', entity: wo1 }
+      ]);
+    });
+
+    it('resolves the entity context through the scoped source pool when the direct registry read misses', async () => {
+      const wo1 = ctsDto('work_order', 'wo-1', 'WO One');
+      registryWith({
+        work_order: {
+          processList: vi.fn(async () => [wo1]),
+          processGetById: vi.fn(async () => null)
+        }
+      });
+      const processAuth = ctsProcessAuth([
+        { id: 'work_orders', typeId: 'work_order', mode: 'list' }
+      ]);
+
+      await expect(supportService.getEntityConversationContext(processAuth, 'entity:work_order:wo-1'))
+        .resolves.toMatchObject({
+          kind: 'entity',
+          typeId: 'work_order',
+          instanceId: 'wo-1',
+          entityName: 'WO One',
+          conversationKey: 'entity:work_order:wo-1'
+        });
+    });
+
+    it('persists the ancestor path and composes the parent view from descendant messages', async () => {
+      const parent = ctsDto('work_order', 'wo-1', 'WO One');
+      const child = ctsDto('panel', 'panel-9', 'Panel Nine', { workOrderId: 'wo-1' });
+      const org = ctsDto('organization', 'org-1', 'Acme');
+      registryWith({
+        work_order: { processGetById: vi.fn(async (id) => (id === 'wo-1' ? parent : null)) },
+        panel: { processGetById: vi.fn(async (id) => (id === 'panel-9' ? child : null)) },
+        organization: { processGetById: vi.fn(async () => org) }
+      });
+      const processAuth = ctsProcessAuth(
+        [{ id: 'work_orders', typeId: 'work_order', mode: 'list' }],
+        [{ childTypeId: 'panel', parentTypeId: 'work_order', lineageKey: 'workOrderId' }]
+      );
+      mocks.repository.insert.mockImplementation(async (record) => record);
+
+      await supportService.sendUserMessage(processAuth, {
+        entity: { type: 'panel', id: 'panel-9' },
+        message: 'child update'
+      });
+
+      const record = mocks.repository.insert.mock.calls[0][0];
+      expect(record.entityLink).toMatchObject({ type: 'panel', id: 'panel-9', name: 'Panel Nine' });
+      expect(record.entityPath.map(entry => `${entry.type}:${entry.id}`))
+        .toEqual(['organization:org-1', 'work_order:wo-1', 'panel:panel-9']);
+
+      const parentContext = await supportService.getEntityConversationContext(processAuth, 'entity:work_order:wo-1');
+      expect(supportService.entityConversationMatch(parentContext, true)).toEqual({
+        entityPath: { $elemMatch: { type: 'work_order', id: 'wo-1' } }
+      });
+      expect(supportService.entityConversationMatch(parentContext, false)).toEqual({
+        conversationKey: 'entity:work_order:wo-1'
+      });
+    });
+
+    it('marks recipient access for org-authored types from the registry service', async () => {
+      const wo1 = ctsDto('work_order', 'wo-1', 'WO One');
+      registryWith({
+        work_order: {
+          processList: vi.fn(async () => [wo1]),
+          processGetById: vi.fn(async () => null)
+        }
+      });
+      mocks.usersService.getById.mockResolvedValue({
+        memberships: [{ organizationId: 'org-1' }],
+        toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+      });
+      const processAuth = ctsProcessAuth([
+        { id: 'work_orders', typeId: 'work_order', mode: 'list' }
+      ]);
+
+      const options = await supportService.listEntityOptions(processAuth, 'work_order', '', 'user-b');
+
+      expect(options.find(option => option.value === 'wo-1')?.recipientHasAccess).toBe(true);
+    });
+  });
 });
