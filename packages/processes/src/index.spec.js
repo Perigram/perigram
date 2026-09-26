@@ -660,6 +660,42 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.producerOutputs['make_queue:entity'].workflow).toBeUndefined();
   });
 
+  it('stamps the wiring arrival state on a status-mutating action so surfaces scope the button', () => {
+    // Same wiring fact as the machine edge: the producer's output state is
+    // the transition's declared from-state, and the manifest carries it so
+    // the client hides the action in states the transition does not
+    // leave. The projection must keep `from` beside `to`.
+    const projectDomain = {
+      ...domain,
+      construction: { ...(domain.construction || {}), project: { modes: ['genericCreate'], defaultMode: 'genericCreate' } }
+    };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      graph: {
+        nodes: ['make_project', 't'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'e1', source: 'make_project', sourceHandle: 'data:result', target: 't', targetHandle: 'data:entity', role: 'data' },
+          { id: 'e2', source: 'make_project', sourceHandle: 'control:completed', target: 't', targetHandle: 'control:in', role: 'control' }
+        ]
+      },
+      producerOutputs: producerOutputRecords([['make_project', 'project']]),
+      ctsTypes: {
+        s1: { id: 's1', kind: 'state', typeId: 'project', value: 'draft' },
+        s2: { id: 's2', kind: 'state', typeId: 'project', value: 'done' }
+      },
+      actions: {
+        make_project: { id: 'make_project', actionKind: 'createEntity', typeId: 'project', producerOutputId: 'make_project:entity', trigger: { mode: 'manual' }, access: { grants: [] }, inputDefaults: { state: 'draft' } },
+        t: { id: 't', actionKind: 'updateEntity', typeId: 'project', state: { axis: 'main', to: 'done' }, trigger: { mode: 'manual' }, access: { grants: [] } }
+      },
+      processNodes: {
+        make_project: { id: 'make_project', kind: 'cts.construct', typeId: 'project', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, inputDefaults: { state: 'draft' } },
+        t: { id: 't', kind: 'cts.transition', typeId: 'project', state: { to: 'done' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+      }
+    }, projectDomain);
+    const action = compiled.actions.t;
+    expect(action.state).toMatchObject({ from: 'draft', to: 'done' });
+  });
+
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
     // Org-authored lifecycles stay traversable: the declared machine is the
     // whole contract — its own states, transitions, and entry — with no

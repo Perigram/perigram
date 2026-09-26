@@ -1094,6 +1094,13 @@ one-time broom is
 [`server/scripts/sweep-redundant-screens.js`](../../server/scripts/README.md)
 (dry-run default, `--apply` deletes and best-effort recompiles).
 
+The wiring graph context treats native species records (`cts.*`) as
+executable graph citizens beside the legacy `effect.*` kinds: a wired
+producer's output state is both the machine edge's from-state and the
+compiled action's status window (`state.from`), so generated surfaces scope
+a transition's button to the states its wiring declares and the status
+engine validates the operated instance against exactly those edges.
+
 A process whose grants infer zero stations compiles to zero screens:
 authoring is delta-only (there is no screen create verb), so with no
 inferred stations there is nothing to customize and nothing authored.
