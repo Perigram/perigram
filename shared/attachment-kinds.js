@@ -21,20 +21,6 @@ export const frameworkAttachmentKinds = {
     editor: { mode: 'none' },
     file: { extensions: ['.dxf'], mimeTypes: ['application/dxf', 'application/x-dxf'], maxBytes: 50 * 1024 * 1024 }
   },
-  SVG_PREVIEW: {kind: 'SVG_PREVIEW',
-    bucket: 'userDxfFilesSvg',
-    mimeType: 'image/svg+xml',
-    preview: { mode: 'svg' },
-    creation: { mode: 'workflow' },
-    editor: { mode: 'none' }
-  },
-  CASSETTE_DXF: {kind: 'CASSETTE_DXF',
-    bucket: 'cassettes',
-    mimeType: 'application/dxf',
-    preview: { mode: 'download' },
-    creation: { mode: 'workflow' },
-    editor: { mode: 'none' }
-  },
   CAPTURE_PHOTO: {kind: 'CAPTURE_PHOTO',
     bucket: 'capturePhotos',
     mimeType: 'image/*',

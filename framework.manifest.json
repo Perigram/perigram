@@ -28,24 +28,6 @@
       }
     },
     {
-      "bucket": "userDxfFilesSvg",
-      "key": "SVG_PREVIEW",
-      "kind": "SVG_PREVIEW",
-      "mimeType": "image/svg+xml",
-      "preview": {
-        "mode": "svg"
-      }
-    },
-    {
-      "bucket": "cassettes",
-      "key": "CASSETTE_DXF",
-      "kind": "CASSETTE_DXF",
-      "mimeType": "application/dxf",
-      "preview": {
-        "mode": "download"
-      }
-    },
-    {
       "bucket": "capturePhotos",
       "key": "CAPTURE_PHOTO",
       "kind": "CAPTURE_PHOTO",
@@ -194,9 +176,7 @@
         }
       ],
       "service": "cassettes",
-      "tasks": [
-        "cassette.bakeTemplate"
-      ],
+      "tasks": [],
       "triggers": [
         {
           "event": "cassette.templateSaved"
@@ -1499,93 +1479,7 @@
   ],
   "schemaVersion": 1,
   "summaries": [],
-  "tasks": [
-    {
-      "attachments": [
-        "DXF_SOURCE",
-        "SVG_PREVIEW"
-      ],
-      "events": [],
-      "executor": {
-        "type": "worker",
-        "workerType": "file-processing"
-      },
-      "id": "dxf.parseUpload",
-      "inputs": [
-        "artifact"
-      ],
-      "key": "dxfParseUpload",
-      "label": "Parse uploaded DXF",
-      "outputs": [],
-      "service": "files",
-      "tasks": []
-    },
-    {
-      "attachments": [
-        "CASSETTE_DXF"
-      ],
-      "events": [],
-      "executor": {
-        "type": "worker",
-        "workerType": "cassette-processing"
-      },
-      "id": "cassette.bakeTemplate",
-      "inputs": [
-        "cassette"
-      ],
-      "key": "cassetteBakeTemplate",
-      "label": "Bake cassette template",
-      "outputs": [
-        "cassette_design"
-      ],
-      "service": "cassettes",
-      "tasks": []
-    },
-    {
-      "attachments": [
-        "LAYOUT_DXF",
-        "PDF_PASSPORT"
-      ],
-      "events": [
-        "attachment.generationQueued",
-        "attachment.generationCompleted",
-        "attachment.generationFailed"
-      ],
-      "executor": {
-        "target": "artifacts",
-        "type": "server"
-      },
-      "id": "attachment.generate",
-      "inputs": [
-        "attachments.generate"
-      ],
-      "key": "attachmentGenerate",
-      "label": "Generate attachment",
-      "outputs": [],
-      "service": "artifacts",
-      "tasks": []
-    },
-    {
-      "attachments": [],
-      "events": [],
-      "executor": {
-        "type": "worker",
-        "workerType": "geometry-capture"
-      },
-      "id": "vision.extractGeometry",
-      "inputs": [
-        "geometry_capture",
-        "artifact"
-      ],
-      "key": "visionExtractGeometry",
-      "label": "Extract geometry from capture photo",
-      "outputs": [
-        "geometry_capture"
-      ],
-      "service": "geometry-captures",
-      "tasks": []
-    }
-  ],
+  "tasks": [],
   "validations": {
     "issues": [],
     "ok": true

@@ -17,54 +17,12 @@ const INDEXES = {
     { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
     { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } }
   ],
-  // Layer Standards Collection
-  layer_standards: [
-    { keys: { 'data.code': 1 }, options: { unique: true, name: 'code_unique' } },
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
-  ],
-
-  // Pen Templates Collection
-  pen_templates: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
-    { keys: { 'identity.name': 1 }, options: { name: 'name_idx' } }
-  ],
-
-  // Tool Profiles Collection
-  tool_profiles: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
-  ],
 
   // Cassettes Collection
   cassettes: [
     { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } },
     { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
     { keys: { 'lineage.libraryId': 1 }, options: { name: 'lineage_library_idx' } }
-  ],
-
-  // Libraries Collection
-  libraries: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
-    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
-  ],
-
-  // Projects Collection
-  projects: [
-    { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } },
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
-    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
-  ],
-
-  // Queues Collection
-  queues: [
-    { keys: { 'lineage.organizationId': 1, 'lineage.projectId': 1 }, options: { name: 'lineage_org_prj_idx' } },
-    { keys: { 'identity.queueNumber': -1 }, options: { name: 'queue_number_idx' } },
-    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
-  ],
-
-  // Nesting Runs Collection
-  nesting_runs: [
-    { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
-    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Sheet Designs Collection
@@ -76,33 +34,6 @@ const INDEXES = {
   cassette_designs: [
     { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
     { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } }
-  ],
-
-  // Cassette Instances Collection
-  cassette_instances: [
-    { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } },
-    { keys: { 'lineage.sheetId': 1 }, options: { name: 'lineage_sheet_idx' } },
-    { keys: { 'identity.serial': 1 }, options: { name: 'serial_idx' } }
-  ],
-
-  // Material Piles Collection
-  material_piles: [
-    { keys: { 'lineage.organizationId': 1, 'lineage.warehouseId': 1 }, options: { name: 'lineage_org_wh_idx' } },
-    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
-  ],
-
-  // Sheets Collection
-  sheets: [
-    { keys: { 'identity.serial': 1 }, options: { unique: true, name: 'serial_unique' } },
-    { keys: { 'lineage.pileId': 1 }, options: { name: 'lineage_pile_idx' } },
-    { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } },
-    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
-  ],
-
-  // Remnants Collection
-  remnants: [
-    { keys: { 'identity.serial': 1 }, options: { unique: true, name: 'serial_unique' } },
-    { keys: { 'lineage.parentSheetId': 1 }, options: { name: 'lineage_parent_sheet_idx' } }
   ],
 
   // Artifacts Collection
@@ -138,21 +69,6 @@ const INDEXES = {
   // Users Collection
   users: [
     { keys: { 'identity.email': 1 }, options: { unique: true, name: 'email_unique' } }
-  ],
-
-  // Warehouses Collection
-  warehouses: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
-  ],
-
-  // Catalogs Collection
-  catalogs: [
-    { keys: { manufacturerId: 1 }, options: { name: 'manufacturer_idx' } }
-  ],
-
-  // Colors Collection
-  colors: [
-    { keys: { 'lineage.catalogId': 1 }, options: { name: 'lineage_catalog_idx' } }
   ],
 
   // Idempotency Keys Collection (offline outbox replay dedupe)

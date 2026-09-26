@@ -22,7 +22,6 @@ export const facadeCommands = {
     triggers: [{ event: 'cassette.templateSaved' }],
     output: {
       entities: [{ type: 'cassette', persistenceOwner: 'commandOwned', timing: 'immediate' }],
-      tasks: ['cassette.bakeTemplate'],
       events: ['cassette.templateSaved']
     },
     access: {

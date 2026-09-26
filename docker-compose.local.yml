@@ -12,45 +12,6 @@ services:
       - perigram-network
     restart: always
 
-  user-file-processing-worker:
-    image: ghcr.io/1suo/file-processing-worker:latest
-    build:
-      context: .
-      dockerfile: workers/fileprocessing/Dockerfile
-    container_name: user-file-processing-worker
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/perigram_dev
-      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
-      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
-      - WORKER_ID=file-processing-normal
-      - WORKER_TAG=normal
-      - MAX_ENTITY_LIMIT=999
-    depends_on:
-      - mongo
-    networks:
-      - perigram-network
-    restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  cassette-processing-worker:
-    build:
-      context: .
-      dockerfile: workers/cassette-processing/Dockerfile
-    container_name: cassette-processing-worker
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/perigram_dev
-      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
-      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
-      - WORKER_ID=cassette-processing
-    depends_on:
-      - mongo
-    networks:
-      - perigram-network
-    restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
   nesting-worker:
     image: ghcr.io/1suo/nesting-worker:latest
     build:

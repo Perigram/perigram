@@ -23,6 +23,9 @@ const genericInstanceTypes = new Set([
   ...(orderedMountedPacks().find(pack => pack.id === 'documents')?.types?.map(type => type.id) || []),
   // tech-drawing reference types without feature directories of their own
   'color', 'dxf-source', 'svg-file', 'sketch',
+  // tech-drawing catalogue types whose legacy feature directories are gone:
+  // system instances live as §3 documents served by the generic machinery
+  'pen-template', 'layer-standard',
   // facade design/pattern file types: client designers + generic instances
   'facade-design', 'facade-pattern'
 ]);
@@ -58,7 +61,6 @@ const CAPABILITY_FEATURES = [
   'notification',
   'notifications',
   'parametric-cassettes',
-  'results',
   'sessions',
   'states',
   'support',
@@ -69,10 +71,7 @@ const CAPABILITY_FEATURES = [
   // cuts or declares them). Classified explicitly so the directory
   // check keeps guarding shape.
   'artifact-templates',
-  'cassette-designs',
-  'machines',
-  'profile-templates',
-  'tool-profiles'
+  'cassette-designs'
 ];
 const IGNORE = ['_template', 'README.md', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];

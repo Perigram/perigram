@@ -412,12 +412,16 @@ export async function archive(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
-function manualRunEnvironment(definition, auth = {}) {
+function manualRunEnvironment(definition, auth = {}, domain = null) {
   return {
     executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
     isAsyncBoundary: (request, result) => request.kind === 'effect.runCommand' && hasAsyncOutputBoundary(result),
-    catalogContext: catalogContextFromDefinition(definition.data),
-    domain: getDomain(),
+    catalogContext: catalogContextFromDefinition(definition.data, domain),
+    // The evaluator must see the same projected domain the compile path
+    // used: block records bound to org-authored types pass compilation
+    // against the projected entity contract, so the runtime block check
+    // reading the static base domain would reject them as undeclared.
+    domain: domain || getDomain(),
     data: run => processDataEnvironment(auth, run)
   };
 }
@@ -430,10 +434,13 @@ export async function startRun(id, payload = {}, auth = {}, options = {}) {
   }
   // Protocol acceptance at the execution boundary: a v5 definition lowers
   // here once, so the run's stored snapshot and every downstream evaluation
-  // see the executable working shapes.
+  // see the executable working shapes. The projected domain is computed once
+  // and shared by acceptance and the run environment so compilation and
+  // evaluation cannot disagree about the entity contracts.
+  const projectedDomain = await getProjectedDomain(resolveOrganizationId(auth));
   const runnableDefinition = {
     ...definition,
-    data: currentProcessDefinition(definition.data, await getProjectedDomain(resolveOrganizationId(auth)))
+    data: currentProcessDefinition(definition.data, projectedDomain)
   };
   const organizationId = resolveOrganizationId(auth);
   const actor = buildRunActor(auth, organizationId);
@@ -441,7 +448,7 @@ export async function startRun(id, payload = {}, auth = {}, options = {}) {
   return serializeProcessResult(await executeManualRun(runnableDefinition, payload, {
     actor,
     repository: runRepository,
-    ...manualRunEnvironment(runnableDefinition, auth)
+    ...manualRunEnvironment(runnableDefinition, auth, projectedDomain)
   }));
 }
 
@@ -458,19 +465,28 @@ function buildRunActor(auth, organizationId) {
   };
 }
 
-function catalogContextFromDefinition(processData) {
+function catalogContextFromDefinition(processData, domain = null) {
+  // The projected domain owns field schemas for pack and org types alike;
+  // the static getter only knows the legacy tables. Socket derivation must
+  // see the same schemas compilation validated against, or wired/prompted
+  // fields on org types resolve no port and silently drop from the patch.
+  const projectedSchemas = domain?.fieldSchemas || null;
+  const schemasFor = typeId => projectedSchemas?.[typeId] ?? getEntityFieldSchemas(typeId);
   return record => {
     const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
+    const recordSchemas = structural ? getBlockFieldSchemas(record.block) : schemasFor(record.typeId);
     return {
-      fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.typeId, record.path),
-      fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.typeId),
+      fieldSchema: structural
+        ? getBlockFieldSchema(record.path)
+        : (recordSchemas || []).find(field => field.path === record.path) || getEntityFieldSchema(record.typeId, record.path),
+      fieldSchemas: recordSchemas,
       blockComposition: null,
       command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null,
       // The projected domain carries the registered serviceContracts: a
       // cts.service record resolves its signature-derived sockets from it
       // at run time exactly as the designer does — without it the service
       // resolves empty ports and its parameters never reach the handler.
-      domain: getDomain()
+      domain: domain || getDomain()
     };
   };
 }
@@ -520,6 +536,7 @@ export async function ingestTaskCompletion({ taskRunId, taskResult = {} } = {}) 
   const runRecord = await loadRunRecord(runRepository, invocation.runId);
   const definition = runRecord.definition;
   const actor = runRecord.state?.context?.actor || {};
+  const resumedDomain = await getProjectedDomain(actor.organizationId ?? null);
 
   const ingested = await runRepository.ingestReceipt({
     invocationId: invocation.invocationId,
@@ -532,8 +549,8 @@ export async function ingestTaskCompletion({ taskRunId, taskResult = {} } = {}) 
         invocationId: claimed.invocationId,
         output
       }, {
-        catalogContext: catalogContextFromDefinition(definition.data),
-        domain: getDomain(),
+        catalogContext: catalogContextFromDefinition(definition.data, resumedDomain),
+        domain: resumedDomain,
         data: run => processDataEnvironment(actor, run)
       });
       return { state: resumed };
@@ -610,9 +627,10 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
   // Preview receives client-authored definitions: protocol acceptance runs
   // here too, so a v5 draft previews against the same lowered shapes the
   // compiler and runtime would use.
+  const previewDomain = await getProjectedDomain(organizationId);
   const previewDefinition = {
     ...definition,
-    data: currentProcessDefinition(definition.data || definition, await getProjectedDomain(organizationId))
+    data: currentProcessDefinition(definition.data || definition, previewDomain)
   };
   const run = { context: { inputs }, trigger };
   // Preview results cross the HTTP boundary, so the missing-field markers
@@ -622,14 +640,15 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
   return serializeProcessResult(await previewProcessDataflow(previewDefinition, { trigger, inputs }, {
     targetNodeId: nodeId,
     previewLimit: 100,
-    domain: getDomain(),
+    domain: previewDomain,
     catalogContext: record => {
       const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
       return {
         fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.typeId, record.path),
         fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.typeId),
         blockComposition: null,
-        command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
+        command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null,
+        domain: previewDomain
       };
     },
     data: processDataEnvironment(auth, run)
