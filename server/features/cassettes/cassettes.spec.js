@@ -18,6 +18,40 @@ vi.mock('h3', () => ({
   })
 }));
 
+const { workflowMachines } = vi.hoisted(() => {
+  // The cassette lifecycle exactly as the facade pack declares it; the
+  // revision lifecycle is the documented terminal RECORDED fallback
+  // (instance-revisions README). Machines are graph-derived (SPEC §7):
+  // the spec environment supplies them through the workflow-resolution
+  // seam the machines service consumes.
+  const cassetteWorkflow = {
+    primaryRegion: 'main',
+    regions: {
+      main: {
+        initial: 'ACTIVE',
+        states: { ACTIVE: {}, ARCHIVED: { terminal: true } },
+        transitions: [{ from: 'ACTIVE', to: 'ARCHIVED', intent: 'archiveCassette' }]
+      }
+    }
+  };
+  const entityRevisionWorkflow = {
+    primaryRegion: 'main',
+    regions: {
+      main: {
+        initial: 'RECORDED',
+        states: { RECORDED: { terminal: true } },
+        transitions: []
+      }
+    }
+  };
+  return { workflowMachines: { cassette: cassetteWorkflow, entity_revision: entityRevisionWorkflow } };
+});
+
+vi.mock('~/server/features/workflow-overrides/service.js', () => ({
+  resolveActiveWorkflow: vi.fn(async ({ typeId }) => workflowMachines[typeId] ?? null),
+  resolveDefaultWorkflow: vi.fn((typeId) => workflowMachines[typeId] ?? null)
+}));
+
 describe('Cassette Management & Ownership', () => {
   let con;
   let mongoServer;
@@ -53,10 +87,10 @@ describe('Cassette Management & Ownership', () => {
   };
 
   user1.permissions = {
-    memberships: [{ organizationId: user1.organizationId, permissions: { cassettes: 'admin', cassette_designs: 'admin' } }]
+    memberships: [{ organizationId: user1.organizationId, permissions: { cassettes: 'admin' } }]
   };
   user2.permissions = {
-    memberships: [{ organizationId: user2.organizationId, permissions: { cassettes: 'admin', cassette_designs: 'admin' } }]
+    memberships: [{ organizationId: user2.organizationId, permissions: { cassettes: 'admin' } }]
   };
 
   it('should create a standard cassette', async () => {
@@ -75,8 +109,7 @@ describe('Cassette Management & Ownership', () => {
     await db.collection('libraries').insertOne({
       _id: libraryId,
       identity: { name: 'Default Library', slug: 'default-library' },
-      lineage: { organizationId: user1.organizationId },
-      summary: { cassetteCount: 0 }
+      lineage: { organizationId: user1.organizationId }
     });
 
     const result = await cassetteService.create(
@@ -95,9 +128,6 @@ describe('Cassette Management & Ownership', () => {
     });
     expect(result.data.parameters).toEqual(['A', 'B', 'R', 'T']);
     expect(result.lineage.libraryId.toString()).toBe(libraryId.toString());
-
-    const library = await db.collection('libraries').findOne({ _id: libraryId });
-    expect(library.summary.cassetteCount).toBe(1);
   });
 
   it('should update an OCCS cassette definition under the canonical definition field', async () => {
@@ -128,27 +158,6 @@ describe('Cassette Management & Ownership', () => {
     expect(updated.data.occs).toBeUndefined();
   });
 
-  it('rejects design construction from templates without an OCCS graph tree', async () => {
-    // Incomplete legacy parametric templates no longer exist: every create
-    // falls back to a complete default OCCS document. The remaining
-    // non-evaluatable class is an OCCS document lacking the perigram graph
-    // tree (the designer's evaluated surface).
-    const cassette = await cassetteService.create({
-      name: 'Graphless Template',
-      type: 'PARAMETRIC',
-      definition: { occs: '0.4-draft', documentType: 'template', parameters: {} }
-    }, user1.userId, user1.organizationId, null, user1.permissions);
-
-    await expect(cassetteService.createDesignFromTemplate(
-      cassette._id.toString(),
-      {},
-      user1.userId,
-      user1.organizationId,
-      null,
-      user1.permissions
-    )).rejects.toThrow(/no OCCS graph tree/);
-  });
-
   it('should deny access to cassettes owned by other users', async () => {
     const cassette = await cassetteService.create({ name: 'Private Template' }, user1.userId, user1.organizationId, null, user1.permissions);
 
@@ -175,15 +184,18 @@ describe('Cassette Management & Ownership', () => {
 
   it('filters cassette lists by generated-screen statuses and detail-equivalent access', async () => {
     const active = await cassetteService.create({ name: 'Active Template' }, user1.userId, user1.organizationId, null, user1.permissions);
-    const draft = await cassetteService.create({ name: 'Draft Template' }, user1.userId, user1.organizationId, null, user1.permissions);
+    const archived = await cassetteService.create({ name: 'Archived Template' }, user1.userId, user1.organizationId, null, user1.permissions);
     const projectScoped = await cassetteService.create({ name: 'Project Template' }, user1.userId, user1.organizationId, null, user1.permissions);
+    // The stored shape keeps the status block; the list wire reads the
+    // `states` axes projected from `status.state.active`, so both move
+    // together (primary for the storage filter, active.main for the wire).
     await db.collection('cassettes').updateOne(
-      { _id: draft._id },
-      { $set: { 'status.state.primary': 'DRAFT' } }
+      { _id: archived._id },
+      { $set: { 'status.state.primary': 'ARCHIVED', 'status.state.active.main': 'ARCHIVED' } }
     );
     await db.collection('cassettes').updateOne(
       { _id: projectScoped._id },
-      { $set: { 'lineage.projectId': 'project-a', 'status.state.primary': 'DRAFT' } }
+      { $set: { 'lineage.projectId': 'project-a', 'status.state.primary': 'ARCHIVED', 'status.state.active.main': 'ARCHIVED' } }
     );
 
     const readOnlyActiveAuth = {
@@ -203,7 +215,7 @@ describe('Cassette Management & Ownership', () => {
       user1.organizationId,
       null,
       readOnlyActiveAuth,
-      { primaryStates: 'ACTIVE,DRAFT' }
+      { primaryStates: 'ACTIVE,ARCHIVED' }
     );
 
     expect(result.map(item => item._id.toString())).toEqual([active._id.toString()]);
@@ -218,11 +230,11 @@ describe('Cassette Management & Ownership', () => {
       user1.organizationId,
       null,
       scopedReadAuth,
-      { primaryStates: 'ACTIVE,DRAFT', projectId: 'project-a' }
+      { primaryStates: 'ACTIVE,ARCHIVED', projectId: 'project-a' }
     );
     expect(scoped.map(item => item._id.toString())).toEqual([projectScoped._id.toString()]);
     await expect(cassetteService.getById(
-      draft._id.toString(),
+      archived._id.toString(),
       'status-reader',
       user1.organizationId,
       null,

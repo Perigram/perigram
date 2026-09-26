@@ -7,7 +7,6 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/ChatSupport.vue': 'layout',
   'components/calls/CallPanel.vue': 'layout',
   'components/calls/CallWorkspacePage.vue': 'layout',
-  'components/generated/GeneratedProjectWorkspace.vue': 'layout',
   'components/shared/DesignerDialog.vue': 'layout',
   'components/shared/DesignerWorkspace.vue': 'layout',
   'components/shared/InstancePage.vue': 'layout',
@@ -62,7 +61,6 @@ export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
 });
 
 export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
-  'components/AssetsLibrary.vue': ['data-driven', [':style="{ backgroundColor: penForm.stroke.color }"']],
   'components/calls/CallPanel.vue': ['data-driven', [':style="{ left: `${reaction.left}%` }"']],
   'components/CassetteDesignerV2.vue': ['data-driven', [
     ':style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"',

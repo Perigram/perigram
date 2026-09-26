@@ -1,15 +1,6 @@
 {
   "attachmentKinds": [
     {
-      "bucket": "facadeModels",
-      "key": "FACADE_MODEL_SOURCE",
-      "kind": "FACADE_MODEL_SOURCE",
-      "mimeType": "model/gltf-binary",
-      "preview": {
-        "mode": "model3d"
-      }
-    },
-    {
       "bucket": "artifactTemplates",
       "key": "ARTIFACT_TEMPLATE_SOURCE",
       "kind": "ARTIFACT_TEMPLATE_SOURCE",
@@ -25,24 +16,6 @@
       "mimeType": "application/dxf",
       "preview": {
         "mode": "dxf"
-      }
-    },
-    {
-      "bucket": "userDxfFilesSvg",
-      "key": "SVG_PREVIEW",
-      "kind": "SVG_PREVIEW",
-      "mimeType": "image/svg+xml",
-      "preview": {
-        "mode": "svg"
-      }
-    },
-    {
-      "bucket": "cassettes",
-      "key": "CASSETTE_DXF",
-      "kind": "CASSETTE_DXF",
-      "mimeType": "application/dxf",
-      "preview": {
-        "mode": "download"
       }
     },
     {
@@ -194,9 +167,7 @@
         }
       ],
       "service": "cassettes",
-      "tasks": [
-        "cassette.bakeTemplate"
-      ],
+      "tasks": [],
       "triggers": [
         {
           "event": "cassette.templateSaved"
@@ -216,7 +187,7 @@
       "label": "Convert artifact",
       "outputs": [
         "artifact",
-        "cassette_design"
+        "cassette"
       ],
       "permissions": [
         {
@@ -310,35 +281,6 @@
         "typeId": "cassette"
       },
       {
-        "componentPath": "components/entities/CassetteDesign/CassetteDesignCard.vue",
-        "docs": [
-          "server/features/cassette-designs/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "production",
-        "key": "cassetteDesign",
-        "labelKey": "entities.cassetteDesign",
-        "propName": "design",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "cassette_design"
-      },
-      {
-        "componentPath": "components/entities/CassetteTemplate/CassetteTemplateCard.vue",
-        "docs": [
-          "components/entities/CassetteTemplate/README.md",
-          "server/features/cassettes/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "production",
-        "key": "cassetteTemplate",
-        "labelKey": "entities.cassetteTemplate",
-        "propName": "template",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "cassette_template"
-      },
-      {
         "componentPath": null,
         "docs": [
           "components/entities/EntityRevision/README.md",
@@ -354,51 +296,9 @@
         "typeId": "entity_revision"
       },
       {
-        "componentPath": null,
-        "docs": [
-          "server/features/profile-templates/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "master",
-        "key": "profileTemplate",
-        "labelKey": "entities.profileTemplate",
-        "propName": "profile",
-        "status": "hidden",
-        "trace": false,
-        "typeId": "profile_template"
-      },
-      {
-        "componentPath": "components/entities/ToolProfile/ToolProfileCard.vue",
-        "docs": [
-          "server/features/tool-profiles/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "master",
-        "key": "toolProfile",
-        "labelKey": "entities.toolProfile",
-        "propName": "tool",
-        "status": "hidden",
-        "trace": false,
-        "typeId": "tool_profile"
-      },
-      {
-        "componentPath": null,
-        "docs": [
-          "server/features/machines/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "master",
-        "key": "machine",
-        "labelKey": "entities.machine",
-        "propName": "machine",
-        "status": "hidden",
-        "trace": false,
-        "typeId": "machine"
-      },
-      {
         "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
         "docs": [
-          "server/features/pen-templates/README.md"
+          "server/features/instances/README.md"
         ],
         "fieldPaths": [],
         "group": "master",
@@ -412,7 +312,7 @@
       {
         "componentPath": "components/entities/LayerStandard/LayerStandardCard.vue",
         "docs": [
-          "server/features/layer-standards/README.md"
+          "server/features/instances/README.md"
         ],
         "fieldPaths": [],
         "group": "master",
@@ -1294,36 +1194,6 @@
       "collection": "files",
       "lineage": {},
       "type": "sheet-design"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "facade-design"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "facade-pattern"
     }
   ],
   "name": "perigram-framework",
@@ -1363,25 +1233,7 @@
     {
       "kind": "lineage",
       "source": "organization",
-      "target": "catalog",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
       "target": "process_definition",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "profile_template",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "project",
       "via": "lineage.organizationId"
     },
     {
@@ -1395,24 +1247,6 @@
       "source": "organization",
       "target": "workflow_override",
       "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "user",
-      "target": "pen_template",
-      "via": "lineage.userId"
-    },
-    {
-      "kind": "lineage",
-      "source": "user",
-      "target": "profile_template",
-      "via": "lineage.userId"
-    },
-    {
-      "kind": "lineage",
-      "source": "user",
-      "target": "tool_profile",
-      "via": "lineage.userId"
     }
   ],
   "routes": [
@@ -1485,107 +1319,11 @@
       "list": null,
       "single": null,
       "type": "sheet-design"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "facade-design"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "facade-pattern"
     }
   ],
   "schemaVersion": 1,
   "summaries": [],
-  "tasks": [
-    {
-      "attachments": [
-        "DXF_SOURCE",
-        "SVG_PREVIEW"
-      ],
-      "events": [],
-      "executor": {
-        "type": "worker",
-        "workerType": "file-processing"
-      },
-      "id": "dxf.parseUpload",
-      "inputs": [
-        "artifact"
-      ],
-      "key": "dxfParseUpload",
-      "label": "Parse uploaded DXF",
-      "outputs": [],
-      "service": "files",
-      "tasks": []
-    },
-    {
-      "attachments": [
-        "CASSETTE_DXF"
-      ],
-      "events": [],
-      "executor": {
-        "type": "worker",
-        "workerType": "cassette-processing"
-      },
-      "id": "cassette.bakeTemplate",
-      "inputs": [
-        "cassette"
-      ],
-      "key": "cassetteBakeTemplate",
-      "label": "Bake cassette template",
-      "outputs": [
-        "cassette_design"
-      ],
-      "service": "cassettes",
-      "tasks": []
-    },
-    {
-      "attachments": [
-        "LAYOUT_DXF",
-        "PDF_PASSPORT"
-      ],
-      "events": [
-        "attachment.generationQueued",
-        "attachment.generationCompleted",
-        "attachment.generationFailed"
-      ],
-      "executor": {
-        "target": "artifacts",
-        "type": "server"
-      },
-      "id": "attachment.generate",
-      "inputs": [
-        "attachments.generate"
-      ],
-      "key": "attachmentGenerate",
-      "label": "Generate attachment",
-      "outputs": [],
-      "service": "artifacts",
-      "tasks": []
-    },
-    {
-      "attachments": [],
-      "events": [],
-      "executor": {
-        "type": "worker",
-        "workerType": "geometry-capture"
-      },
-      "id": "vision.extractGeometry",
-      "inputs": [
-        "geometry_capture",
-        "artifact"
-      ],
-      "key": "visionExtractGeometry",
-      "label": "Extract geometry from capture photo",
-      "outputs": [
-        "geometry_capture"
-      ],
-      "service": "geometry-captures",
-      "tasks": []
-    }
-  ],
+  "tasks": [],
   "validations": {
     "issues": [],
     "ok": true

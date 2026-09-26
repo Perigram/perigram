@@ -97,7 +97,7 @@ the process-designer contract and the allowed runtime source kind. The current
 artifact-to-artifact conversion copies `LAYOUT_DXF` bytes to a new
 `DXF_SOURCE` record; the copied artifact has its own file revision and records
 the source artifact in `provenance.derivedFrom`. `DXF_SOURCE` can instead be
-converted into a `cassette_design` through the existing cassette import
+converted into a `cassette` through the existing cassette import
 service. The conversion layer does not infer arbitrary byte conversions.
 
 ## Related

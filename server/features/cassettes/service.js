@@ -1,6 +1,5 @@
 import * as repository from './repository.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
-import * as cassetteDesignService from '../cassette-designs/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as artifactsService from '../artifacts/service.js';
 import * as filesService from '../files/service.js';
@@ -11,17 +10,14 @@ import {
   createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, stateService } from '../../core/machines/service.js';
-import { aggregator } from '../../core/machines/aggregator.js';
 import standardSlugify from 'standard-slugify';
 import { generateRandomString } from '../../utils/strings.js';
-import { GridFSBucket } from 'mongodb';
-import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { Cassette } from './model.js';
 import { serializeForAccess } from '../../utils/entity-redaction.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
-import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
-import { isOccsDocument, occsQueueParameters } from '#utils/occs/parameters.js';
+import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
+import { isOccsDocument } from '#utils/occs/parameters.js';
 import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 import { generateLayeredDxf } from '../../utils/dxf-writer.js';
 
@@ -97,63 +93,6 @@ async function ensureGeometryRevision(cassette, userId, reason = 'content-change
   return { revision, cassette: updated };
 }
 
-export async function ensureCurrentGeometryRevision(cassetteOrId, userId = 'SYSTEM', reason = 'content-change') {
-  const raw = typeof cassetteOrId === 'object'
-    ? cassetteOrId
-    : await repository.findById(toFlexibleId(cassetteOrId));
-  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
-  return await ensureGeometryRevision(new Cassette(raw).toJSON(), userId, reason);
-}
-
-export function derivedFromGeometryRevision(revision, parameters = {}) {
-  return instanceRevisionsService.derivedFromRevision(revision, parameters);
-}
-
-function resolveTemplateDefinition(template = {}) {
-  const candidates = [
-    template.data?.definition,
-    template.data?.definition?.definition,
-    template.data?.definition?.occs,
-    template.definition?.data,
-    template.definition
-  ].filter(candidate => candidate && typeof candidate === 'object');
-
-  return candidates.find(isOccsDocument) ||
-    candidates.find(candidate => (
-      candidate.params ||
-      candidate.extrusions ||
-      candidate.extensions ||
-      (candidate.parameters && !Array.isArray(candidate.parameters))
-    )) ||
-    null;
-}
-
-function assertEvaluatableParametricTemplate(template = {}) {
-  const definition = resolveTemplateDefinition(template);
-  if (!isOccsDocument(definition)) {
-    throw createError({
-      statusCode: 422,
-      message: 'Cassette template has no OCCS construction definition — legacy parametric templates are no longer supported; recreate the template as an OCCS design'
-    });
-  }
-  if (!definition.extensions?.perigram?.graphTree) {
-    throw createError({ statusCode: 400, message: 'Cassette template has no OCCS graph tree' });
-  }
-  return definition;
-}
-
-function normalizeConstructionParameters(template = {}, supplied = {}) {
-  const definition = assertEvaluatableParametricTemplate(template);
-  const defaults = occsQueueParameters(definition);
-  const declaredNames = Array.isArray(template.data?.parameters) ? template.data.parameters : [];
-  const declaredDefaults = Object.fromEntries(declaredNames.map(name => [name, defaults[name] ?? 1]));
-  return {
-    ...declaredDefaults,
-    ...defaults,
-    ...(supplied || {})
-  };
-}
-
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Lineage: Templates belong to the organization
   const targetOrgId = userOrg || userId;
@@ -190,7 +129,6 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const cassette = await repository.create(cassetteData);
   const { cassette: updated } = await ensureGeometryRevision(cassette, userId, 'template-created');
-  await syncParentSummary(updated);
   return toDTO(updated);
 }
 
@@ -233,32 +171,20 @@ export async function importFromArtifact(artifactId, name, userId, userOrg, user
     data: createData({
       type: 'STANDARD',
       definition: { mapping: layerMapping },
-      parameters: parameters || []
+      parameters: parameters || [],
+      // The uploaded geometry is the template's own nestable content: the
+      // extracted cut contour and mapped semantic layers live on the
+      // cassette document, so previews, exports, and the nesting solver
+      // read one record.
+      polygonParts,
+      layerData
     })
   };
 
   const template = await repository.create(templateData);
-  const { revision, cassette: updatedTemplate } = await ensureGeometryRevision(template, userId, 'template-uploaded');
+  const { cassette: updatedTemplate } = await ensureGeometryRevision(template, userId, 'template-uploaded');
 
-  const design = await cassetteDesignService.createFromTemplateUpload({
-    name: `${name || fileName} (Base Design)`,
-    lineage,
-    templateId: template._id,
-    polygonParts,
-    layerData,
-    geometryData: {
-      polygonParts,
-      layerData
-    },
-    parameters: {},
-    relations: { sourceDxf: { type: 'artifact', id: artifact._id.toString() } },
-    provenance: { derivedFrom: derivedFromGeometryRevision(revision, {}) }
-  }, userId, userPermissions);
-
-  return {
-    template: toDTO(updatedTemplate),
-    design
-  };
+  return toDTO(updatedTemplate);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
@@ -372,10 +298,6 @@ function cassettePreview(cassette = {}, userPermissions = null) {
   return serializeForAccess('cassette', preview, userPermissions);
 }
 
-async function syncParentSummary(cassette = {}) {
-  if (!cassette.lineage?.libraryId) return;
-  await aggregator.syncParentSummary('cassette', cassette.lineage);
-}
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(toFlexibleId(id));
@@ -390,27 +312,6 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   return cassette.toJSON();
 }
 
-export async function findDefaultConstructableTemplate(userId, userOrg, userRole, userPermissions) {
-  const templates = await list(userId, userOrg, userRole, userPermissions, { limit: 100 });
-  return templates.find(isParametricConstructableTemplate)
-    || templates.find(isStandardTemplate)
-    || null;
-}
-
-function isParametricConstructableTemplate(template = {}) {
-  if (template.data?.type !== 'PARAMETRIC') return false;
-  try {
-    assertEvaluatableParametricTemplate(template);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function isStandardTemplate(template = {}) {
-  return template.data?.type === 'STANDARD';
-}
-
 export async function exportDxf(id, dimensions, userId, userOrg, userRole, userPermissions) {
   const template = await getById(id, userId, userOrg, userRole, userPermissions);
 
@@ -420,94 +321,16 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
     return layerData?.length
       ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : polygons })
       : generateSimpleDxf(polygons);
-  } else {
-    const design = await repository.findDesignByTemplateId(id);
-    if (!design) throw createError({ statusCode: 404, message: 'DXF not found for this template' });
-    return await cassetteDesignService.exportDxf(design._id, userId, userRole, userPermissions);
-  }
-}
-
-export async function createDesignFromTemplate(id, parameters, userId, userOrg, userRole, userPermissions) {
-  const template = await getById(id, userId, userOrg, userRole, userPermissions);
-
-  if (!hasLineagePermission(userPermissions || {}, template.lineage, 'cassettes', 'read')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  const outputLineage = { organizationId: toFlexibleId(userOrg || template.lineage?.organizationId || userId) };
-  if (!hasLineagePermission(userPermissions || {}, outputLineage, 'cassette_designs', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied for cassette designs' });
   }
 
-  if (template.data?.type === 'PARAMETRIC') {
-    assertEvaluatableParametricTemplate(template);
+  // STANDARD templates export their own uploaded geometry: the extracted
+  // semantic layers and cut contour are the export source of truth.
+  const layerData = Array.isArray(template.data?.layerData) ? template.data.layerData : [];
+  const polygonParts = Array.isArray(template.data?.polygonParts) ? template.data.polygonParts : [];
+  if (!layerData.length && !polygonParts.length) {
+    throw createError({ statusCode: 404, message: 'DXF not found for this template' });
   }
-  const constructionParameters = template.data?.type === 'PARAMETRIC'
-    ? normalizeConstructionParameters(template, parameters || {})
-    : (parameters || {});
-  const templateName = template.identity?.name || 'Cassette Template';
-  const revisionResult = await ensureCurrentGeometryRevision(template, userId, 'design-created');
-  const derivedFrom = derivedFromGeometryRevision(revisionResult.revision, constructionParameters);
-
-  if (template.data?.type !== 'PARAMETRIC') {
-    const existing = await cassetteDesignService.getByTemplateId(
-      id,
-      userId,
-      userOrg,
-      userRole,
-      userPermissions
-    );
-    if (existing) return existing;
-
-    throw createError({ statusCode: 400, message: 'Uploaded templates require a base design DXF' });
-  }
-
-  const { evaluateTemplate, generateSimpleDxf } = await import('../parametric-cassettes/service.js');
-  const {
-    polygons,
-    dimensions,
-    nestingPolygons,
-    layerData: evaluatedLayerData
-  } = await evaluateTemplate(id, constructionParameters);
-  if (!polygons?.length) {
-    throw createError({ statusCode: 400, message: 'Template evaluation produced no geometry' });
-  }
-  const layerData = evaluatedLayerData || polygons.map((polygon, index) => ({
-    layer: index === 0 ? OCCS_LAYER_CUT_OUTER : OCCS_LAYER_CONTOUR_CASSETTE_FACE,
-    coordinates: polygon.coordinates,
-    handles: polygon.handles || [(256 + index).toString(16).toUpperCase()]
-  }));
-  const dxfContent = layerData?.length
-    ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]] })
-    : generateSimpleDxf(polygons);
-
-  const db = await connectDB();
-  const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
-  const filename = `cassette-design-${id}-${Date.now()}.dxf`;
-  const dxfId = await new Promise((resolve, reject) => {
-    const uploadStream = bucket.openUploadStream(filename, {
-      metadata: { userId, organizationId: userOrg || userId, templateId: id, type: 'CASSETTE_DESIGN_DXF' }
-    });
-    uploadStream.on('finish', () => resolve(uploadStream.id));
-    uploadStream.on('error', reject);
-    uploadStream.write(dxfContent);
-    uploadStream.end();
-  });
-
-  return await cassetteDesignService.createFromTemplateUpload({
-    name: templateName,
-    lineage: outputLineage,
-    templateId: id,
-    polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],
-    layerData,
-    geometryData: {
-      polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],
-      layerData,
-      dimensions
-    },
-    dxfId,
-    parameters: dimensions || constructionParameters,
-    provenance: { derivedFrom }
-  }, userId, userPermissions);
+  return generateLayeredDxf({ layerData, polygonParts });
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {

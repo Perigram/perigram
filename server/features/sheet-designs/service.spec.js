@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient } from 'mongodb';
 import {
-  cassetteDesignsForNestingResult,
+  cassettesForNestingResult,
   collapseNestingLayoutsByComposition,
   nestingResultForLayout,
   nestingResultToPreview
@@ -14,6 +14,29 @@ const { mockedConnectDB } = vi.hoisted(() => ({
 
 vi.mock('../../db/mongo.js', () => ({ connectDB: mockedConnectDB }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
+
+const { workflowMachines } = vi.hoisted(() => {
+  // The documented revision lifecycle (instance-revisions README): the
+  // terminal system state RECORDED. Machines are graph-derived (SPEC §7):
+  // the spec environment supplies the machine through the
+  // workflow-resolution seam the machines service consumes.
+  const entityRevisionWorkflow = {
+    primaryRegion: 'main',
+    regions: {
+      main: {
+        initial: 'RECORDED',
+        states: { RECORDED: { terminal: true } },
+        transitions: []
+      }
+    }
+  };
+  return { workflowMachines: { entity_revision: entityRevisionWorkflow } };
+});
+
+vi.mock('~/server/features/workflow-overrides/service.js', () => ({
+  resolveActiveWorkflow: vi.fn(async ({ typeId }) => workflowMachines[typeId] ?? null),
+  resolveDefaultWorkflow: vi.fn((typeId) => workflowMachines[typeId] ?? null)
+}));
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
     const error = new Error(err.message);
@@ -43,15 +66,15 @@ describe('sheet design nesting preview', () => {
     expect(groups).toHaveLength(2);
     expect(groups[0]).toMatchObject({
       composition: [
-        { cassetteDesignId: 'design-a', count: 1 },
-        { cassetteDesignId: 'design-b', count: 1 }
+        { cassetteId: 'design-a', count: 1 },
+        { cassetteId: 'design-b', count: 1 }
       ],
       sheetCount: 2,
       representativeLayoutIndex: 0,
       layoutIndexes: [0, 1]
     });
     expect(groups[1]).toMatchObject({
-      composition: [{ cassetteDesignId: 'design-a', count: 2 }],
+      composition: [{ cassetteId: 'design-a', count: 2 }],
       sheetCount: 1,
       representativeLayoutIndex: 2
     });
@@ -234,9 +257,9 @@ describe('sheet design nesting preview', () => {
       }
     };
 
-    expect(cassetteDesignsForNestingResult(result)).toEqual([
-      { cassetteDesignId: 'design-a', count: 2 },
-      { cassetteDesignId: 'design-b', count: 1 }
+    expect(cassettesForNestingResult(result)).toEqual([
+      { cassetteId: 'design-a', count: 2 },
+      { cassetteId: 'design-b', count: 1 }
     ]);
   });
 });

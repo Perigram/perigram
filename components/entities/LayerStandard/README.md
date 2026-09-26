@@ -19,4 +19,4 @@ Master-data card for OCCS/layer-standard records used by drawing previews.
 ## Related
 
 - [components/shared/README.md](../../shared/README.md) - `DrawingCanvas`
-- [server/features/layer-standards/README.md](../../../server/features/layer-standards/README.md)
+- [generic instance machinery](../../../server/features/instances/README.md)

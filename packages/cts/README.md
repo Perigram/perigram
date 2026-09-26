@@ -89,9 +89,6 @@ module layout and how the code maps to the spec's build-order tiers.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator, synthesis-only: every type in the view (framework, pack,
   org) synthesizes its entities entry (per-class collection, §13),
-  `workflows` (recursive declared state machines projected into workflow
-  regions — derived by the exported `declarationWorkflow(type)`, the one
-  declaration→v2 machine seam the server's status resolution reuses), 
   `fieldSchemas` (core-slot convention + rows), `fieldAccess` (bound to
   the cts-types feature), `containment` (children edges with lineage
   keys), `construction` (`genericCreate` + declared construct operators

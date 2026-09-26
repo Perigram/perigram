@@ -20,8 +20,7 @@ Load these only when the task needs them:
 
 - `docs/specs/Cassette spec/VALIDATION.md` for document validation rules.
 - `docs/specs/Cassette spec/Implementation.md` for generator/tooling behavior.
-- `docs/specs/Cassette spec/MIGRATION_FROM_V0_1.md` and
-  `docs/specs/cassette-occs-migration-plan.md` for legacy graph migration.
+- `docs/specs/Cassette spec/MIGRATION_FROM_V0_1.md` for legacy graph migration.
 - `docs/specs/Cassette spec/LAYERS.md` and
   `docs/specs/Cassette spec/layers.json` for layer semantics.
 - `server/features/cassettes/README.md`,

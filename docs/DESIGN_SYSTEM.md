@@ -95,9 +95,9 @@ descriptors through `utils/instance-display-contract.js` (bundle first,
 layer additional field groups and surface overrides on top, but access policy
 still controls whether a path can render.
 
-`cassette`, `cassetteTemplate`, `cassetteDesign`, and `cassetteInstance` are
-separate card contracts. `cassette` covers the base `cassettes` collection,
-while template/design/instance cards cover their own production surfaces.
+`cassette` and `sheetDesign` are separate card contracts. `cassette` covers
+the base `cassettes` collection, while `sheetDesign` covers generated sheet
+layouts.
 
 `material`, `materialPile`, and `batchPile` are intentionally different card
 contracts. `material` covers the base material record, while `materialPile` and
@@ -107,7 +107,7 @@ entity type. `materialPile` is the general warehouse/manual stock surface;
 context such as `lineage.requisitionId`, receipt serial, specs, and stock.
 
 `InstanceState` owns lifecycle actions and current lifecycle context for entity
-types with real `cncWorkflows` definitions. Non-workflow cards hide status
+types with real workflow definitions. Non-workflow cards hide status
 chrome by default instead of inventing local states. Workflow transitions may
 declare `display: 'inline' | 'menu' | 'hidden'`; self-loop metadata transitions
 are hidden by default, primary forward actions are inline only on expanded/full

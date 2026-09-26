@@ -27,14 +27,6 @@ export async function find(filter = {}, options = {}) {
     .toArray();
 }
 
-export async function findDesignByTemplateId(templateId) {
-  const db = await connectDB();
-  return await db.collection('cassette_designs').findOne({
-    'provenance.derivedFrom.source.type': 'cassette',
-    'provenance.derivedFrom.source.id': templateId?.toString?.() || templateId
-  });
-}
-
 export async function updateById(id, updates) {
   const db = await connectDB();
   const { _id, ...clean } = updates;

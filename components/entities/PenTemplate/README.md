@@ -19,4 +19,4 @@ Master-data card for drawing pen templates.
 ## Related
 
 - [components/shared/README.md](../../shared/README.md) - drawing/layer UI rules
-- [server/features/pen-templates/README.md](../../../server/features/pen-templates/README.md)
+- [generic instance machinery](../../../server/features/instances/README.md)

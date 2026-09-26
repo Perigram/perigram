@@ -52,7 +52,7 @@ strings remain the escape hatch for non-unit decoration. `display:
 'dimensions'` renders a width × length span from the resolved specs object
 (the former `SpecsBlock` shape) with the declared unit. Rows with
 null/undefined values are hidden automatically.
-Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden. Fields with `display: 'parameterMap'` render scalar object entries as exact named parameters such as `A=1200, B=400`; use this for materialized cassette design values, not symbolic template parameter lists.
+Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden. Fields with `display: 'parameterMap'` render scalar object entries as exact named parameters such as `A=1200, B=400`; use this for materialized parameter values, not symbolic template parameter lists.
 Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
 The default `DataBlock` layout uses its own inline-size container, so columns
 follow the width assigned by a page or split pane rather than the browser
@@ -308,7 +308,6 @@ Current drawing display owners:
 | `GeometryPreview.vue` | `geometry-preview` |
 | `CassetteThumbnail.vue` | `dxf-url`, `parametric-cassette`, or `occs-cassette` |
 | `CassetteEditorDialog.vue` | `dxf-text` |
-| `ArtifactsTable.vue` | `dxf-url` / `svg-url` |
 | `CassetteDesigner.vue` | `parametric-cassette` with designer overlays |
 | `/test/ui-lab` | `geometry-preview` demo |
 
@@ -367,8 +366,8 @@ galleries use a bounded responsive grid instead of in-card horizontal
 scrolling; compact galleries show two refs and then an in-grid overflow tile so
 cropping remains visible inside the card.
 Use canonical design-system surface keys for new references, for example
-`materialPile`, `nestingRun`, `cassetteDesign`, `cassetteTemplate`, and
-`entityRevision`. Backend snake-case aliases continue to resolve through the
+`cassette`, `sheetDesign`, and `entityRevision`. Backend snake-case aliases
+continue to resolve through the
 domain UI adapter for compatibility, but they should not appear in new entity
 component templates.
 Inline reference hydration uses the entity collection boundary rather than the
@@ -387,7 +386,7 @@ When the active generated screen manifest exposes a detail route for the
 reference type, `InstanceInlineRef` provides that route to the expanded inline
 entity-card popover. The popover footer renders an icon-only open action that
 navigates through generated `/screens/:screenKey` detail routing, not legacy
-feature routes. Cassette, cassette-design, and sheet-design compact refs
+feature routes. Cassette and sheet-design compact refs
 suppress dimension annotation layers in their micro preview so annotation text
 does not overpower the gallery thumbnail. Inline-ref popovers also force the shared `TraceChain` even
 when the base card surface normally hides trace in compact contexts, and show a
@@ -460,9 +459,8 @@ chrome — the thread's own surface is the surface.
 Bounded hosts must NOT mount it: their `flush` frame is `h-full` and
 non-scrolling, so an in-flow rail has no track and collapses to nothing. Those
 hosts expose the same thread through the shared chat popup
-(`utils/instance-chat.js`) from their own chrome — the bounded file pane's
-action strip and `GeneratedProjectWorkspace`'s actions strip both do this,
-matching `InstanceCard` and `InstanceInlineRef`.
+(`utils/instance-chat.js`) from their own chrome, matching `InstanceCard`
+and `InstanceInlineRef`.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while

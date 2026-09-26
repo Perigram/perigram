@@ -25,7 +25,7 @@ vi.mock('../cts-types/service.js', async () => {
   const pack = await import('~/packages/cts/src/pack/cnc.js');
   const domainPack = await import('@perigram/facade');
   const registry = cts.createTypeRegistry({ id: 'spec-cts' });
-  for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.cncFileTypes]) {
+  for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.facadeFileTypes]) {
     registry.defineType(declaration);
   }
   return { compileRegistryForOrganization: vi.fn(async () => registry) };
@@ -576,7 +576,7 @@ describe('current process-definition service contract', () => {
       _id: 'machine-1',
       identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
       lineage: { organizationId: 'org-acceptance' },
-      data: { workingArea: { width: 1300, depth: 2500 } },
+      data: { label: 'Router', reference: { code: 'M-00', location: 'Hall B' } },
       attachments: {},
       states: { main: 'ACTIVE' }
     };
@@ -592,27 +592,31 @@ describe('current process-definition service contract', () => {
         ? { processUpdate }
         : type === 'organization' ? organizationService : null
     });
+    const restoreMachineRegistry = mockMachineRegistry();
     processRepository.findById.mockResolvedValue(draftRecord(readModifyWriteProcessData()));
 
     const run = await startRun('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
     }, adminAuth(), { runRepository });
+    restoreMachineRegistry();
 
+    console.log('RUNDEBUG', JSON.stringify({ status: run.status, steps: (run.steps||[]).map(s => ({ node: s.nodeId, status: s.status, error: s.error })) }));
     expect(run.status).toBe('succeeded');
     expect(processUpdate).toHaveBeenCalledTimes(1);
     expect(processUpdate).toHaveBeenCalledWith(
       'machine-1',
       expect.objectContaining({
-        'identity.name': 'Renamed machine',
-        'identity.reference': { code: 'M-01', location: 'Hall A' }
+        'data.label': 'Renamed machine',
+        'data.reference': { code: 'M-01', location: 'Hall A' }
       }),
       expect.objectContaining({ userId: 'admin', organizationId: 'org-acceptance' })
     );
     const persisted = await processUpdate.mock.results[0].value;
-    expect(persisted.identity.name).toBe('Renamed machine');
+    expect(persisted.data.label).toBe('Renamed machine');
+    expect(persisted.identity.name).toBe('CNC Router');
     expect(persisted.identity.slug).toBe('cnc-router');
-    expect(persisted.identity.reference).toEqual({ code: 'M-01', location: 'Hall A' });
+    expect(persisted.data.reference).toEqual({ code: 'M-01', location: 'Hall A' });
   });
 
   it('applies a mutate field patch and a chained transition state as separate operations', async () => {
@@ -622,7 +626,7 @@ describe('current process-definition service contract', () => {
       _id: 'machine-1',
       identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
       lineage: { organizationId: 'org-acceptance' },
-      data: { workingArea: { width: 1300, depth: 2500 } },
+      data: { label: 'Router', reference: { code: 'M-00', location: 'Hall B' } },
       attachments: {},
       states: { main: 'ACTIVE' }
     };
@@ -668,7 +672,7 @@ describe('current process-definition service contract', () => {
         update: {
           id: 'update', kind: 'cts.mutate', typeId: 'machine',
           trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
-          inputDefaults: { 'identity.name': 'Renamed machine', 'identity.reference': { code: 'M-01', location: 'Hall A' } }
+          inputDefaults: { 'data.label': 'Renamed machine', 'data.reference': { code: 'M-01', location: 'Hall A' } }
         },
         transition: {
           id: 'transition', kind: 'cts.transition', typeId: 'machine',
@@ -677,21 +681,14 @@ describe('current process-definition service contract', () => {
         }
       }
     };
-    const machineRegistry = createTypeRegistry({ id: 'spec-machine' });
-    for (const declaration of [...frameworkTypes, ...cncTypePack]) machineRegistry.defineType(declaration);
-    machineRegistry.defineType({
-      id: 'machine', class: 'item', name: 'Machine',
-      fields: { name: { base: 'string' } },
-      states: { main: { initial: 'ACTIVE', states: { ACTIVE: {}, MAINTENANCE: {} } } },
-      transitions: [{ axis: 'main', from: 'ACTIVE', to: 'MAINTENANCE', intent: 'maintain' }]
-    });
-    vi.mocked(ctsTypes.compileRegistryForOrganization).mockResolvedValueOnce(machineRegistry);
+    const restoreMachineRegistry = mockMachineRegistry();
     processRepository.findById.mockResolvedValue(draftRecord(data));
 
     const run = await startRun('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
     }, adminAuth(), { runRepository });
+    restoreMachineRegistry();
 
     expect(run.status).toBe('succeeded');
     // The field patch and the declared state are separate operations: the
@@ -699,8 +696,8 @@ describe('current process-definition service contract', () => {
     expect(processUpdate).toHaveBeenCalledWith(
       'machine-1',
       expect.objectContaining({
-        'identity.name': 'Renamed machine',
-        'identity.reference': { code: 'M-01', location: 'Hall A' }
+        'data.label': 'Renamed machine',
+        'data.reference': { code: 'M-01', location: 'Hall A' }
       }),
       expect.anything()
     );
@@ -999,7 +996,7 @@ function readModifyWriteProcessData() {
         {
           id: 'deconstruct-modify',
           source: 'deconstruct',
-          sourceHandle: 'data:identity',
+          sourceHandle: 'data:data',
           target: 'modify',
           targetHandle: 'data:block',
           role: 'data'
@@ -1009,7 +1006,7 @@ function readModifyWriteProcessData() {
           source: 'names',
           sourceHandle: 'data:value',
           target: 'modify',
-          targetHandle: 'data:identity.name',
+          targetHandle: 'data:data.label',
           role: 'data'
         },
         {
@@ -1017,7 +1014,7 @@ function readModifyWriteProcessData() {
           source: 'refs',
           sourceHandle: 'data:value',
           target: 'modify',
-          targetHandle: 'data:identity.reference',
+          targetHandle: 'data:data.reference',
           role: 'data'
         },
         {
@@ -1025,7 +1022,7 @@ function readModifyWriteProcessData() {
           source: 'modify',
           sourceHandle: 'data:block',
           target: 'update',
-          targetHandle: 'data:identity',
+          targetHandle: 'data:data',
           role: 'data'
         }
       ],
@@ -1035,7 +1032,7 @@ function readModifyWriteProcessData() {
     producerOutputs: {
       'machine_context:entity': {
         id: 'machine_context:entity', producerOutputId: 'machine_context:entity', nodeId: 'machine_context', outputSocketId: 'entity',
-        typeId: 'machine', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['identity.*'], private: [] }
+        typeId: 'machine', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*', 'data.*'], write: ['identity.*', 'data.*'], private: [] }
       }
     },
     actions: {},
@@ -1043,7 +1040,7 @@ function readModifyWriteProcessData() {
     sockets: {},
     screens: {},
     processNodes: {
-      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'machine', blocks: ['identity'] },
+      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'machine', blocks: ['data'] },
       names: { id: 'names', kind: 'source.literalList', access: 'list', value: ['Renamed machine'] },
       refs: {
         id: 'refs',
@@ -1054,8 +1051,8 @@ function readModifyWriteProcessData() {
       modify: {
         id: 'modify',
         kind: 'record.modifyBlock',
-        block: 'identity',
-        fields: ['identity.name', 'identity.reference']
+        block: 'data',
+        fields: ['data.label', 'data.reference']
       },
       update: {
         id: 'update',
@@ -1065,10 +1062,35 @@ function readModifyWriteProcessData() {
         label: 'Update machine',
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [] },
-        blocks: ['identity']
+        blocks: ['data']
       }
     }
   };
+}
+
+// The ad-hoc `machine` type both update-path tests run against: the
+// identifier row plus the data rows their field patches write. The legacy
+// identity.reference vocabulary died with the legacy domain tables — row
+// fields project onto the data block. The registry swap returns a restore
+// callback: validation, compilation, and runtime projection each re-resolve
+// the organization registry, so a single mockResolvedValueOnce is not enough.
+function mockMachineRegistry() {
+  const machineRegistry = createTypeRegistry({ id: 'spec-machine' });
+  for (const declaration of [...frameworkTypes, ...cncTypePack]) machineRegistry.defineType(declaration);
+  machineRegistry.defineType({
+    id: 'machine', class: 'item', name: 'Machine',
+    fields: {
+      name: { base: 'string' },
+      label: { base: 'string', nullable: true },
+      reference: { base: 'json', nullable: true }
+    },
+    states: { main: { initial: 'ACTIVE', states: { ACTIVE: {}, MAINTENANCE: {} } } },
+    transitions: [{ axis: 'main', from: 'ACTIVE', to: 'MAINTENANCE', intent: 'maintain' }]
+  });
+  const mocked = vi.mocked(ctsTypes.compileRegistryForOrganization);
+  const previous = mocked.getMockImplementation();
+  mocked.mockImplementation(async () => machineRegistry);
+  return () => mocked.mockImplementation(previous);
 }
 
 function setByPath(target, path, value) {

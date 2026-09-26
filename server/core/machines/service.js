@@ -1,7 +1,6 @@
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 import { createStatus } from '../../core/blocks/index.js';
-import { hooks } from './hooks.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { createError } from 'h3';
 import {
@@ -905,7 +904,7 @@ function mergeLifecycle(current = {}, next = {}) {
 }
 
 function validateHookParams(hookConfig = {}) {
-  const domain = getPerigramRegistry().getDomain('cnc');
+  const domain = getPerigramRegistry().getDomain('facade');
   const contract = domain?.hooks?.[hookConfig.handler];
   if (!contract) throw createError({ statusCode: 500, message: `Hook contract missing for ${hookConfig.handler}` });
 
@@ -986,7 +985,7 @@ async function runTransitionHooks(transition, phase, context, options = {}) {
 }
 
 function resolveHookHandler(registry, typeId, handler) {
-  const hookFn = registry.getHookHandler(handler) || hooks[handler];
+  const hookFn = registry.getHookHandler(handler);
   if (hookFn) return hookFn;
 
   const service = registry.getInstanceService(typeId);
@@ -994,7 +993,7 @@ function resolveHookHandler(registry, typeId, handler) {
 }
 
 function isSynchronousHook(hookConfig = {}) {
-  const domain = getPerigramRegistry().getDomain('cnc');
+  const domain = getPerigramRegistry().getDomain('facade');
   const contract = domain?.hooks?.[hookConfig.handler];
   return hookConfig.mode === 'sync' || hookConfig.blocking === true || contract?.mode === 'sync';
 }

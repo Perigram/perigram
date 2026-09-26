@@ -96,7 +96,7 @@ states: {
       },
       description: { required: true },
       snapshots: {
-        cassetteDesigns: { typeId: 'cassette_design', lineageKey: 'queueId' }
+        panels: { typeId: 'panel', lineageKey: 'projectId' }
       },
       data: true
     }

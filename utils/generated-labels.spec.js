@@ -11,7 +11,7 @@ const messages = {
   'generatedScreen.actions.run': 'Run',
   'generatedScreen.actions.send': 'Send',
   'entities.cassette': 'Cassette',
-  'entities.cassetteDesign': 'Cassette design'
+  'entities.sheetDesign': 'Sheet design'
 };
 
 const i18n = {
@@ -21,9 +21,9 @@ const i18n = {
 
 describe('generated labels', () => {
   it('uses domain entity translations for generated screens and sections', () => {
-    expect(generatedEntityLabel('cassette_design', i18n)).toBe('Cassette design');
+    expect(generatedEntityLabel('sheet_design', i18n)).toBe('Sheet design');
     expect(generatedScreenLabel({ template: 'home', label: 'Home' }, i18n)).toBe('Home');
-    expect(generatedScreenLabel({ typeId: 'cassette_design', label: 'Монтажник cassette_design' }, i18n)).toBe('Cassette design');
+    expect(generatedScreenLabel({ typeId: 'sheet_design', label: 'Монтажник sheet_design' }, i18n)).toBe('Sheet design');
   });
 
   it('does not include create verbs or raw status values in generated action labels', () => {
@@ -54,9 +54,9 @@ describe('generated labels', () => {
       typeId: 'queue',
       relation: {
         key: 'cassettes',
-        targetType: 'cassette_design'
+        targetType: 'sheet_design'
       }
-    }, '', i18n)).toBe('Cassette design');
+    }, '', i18n)).toBe('Sheet design');
   });
 
   it('accepts the projected manifest vocabulary (createInstance, link, typeId)', () => {
@@ -69,10 +69,10 @@ describe('generated labels', () => {
     expect(generatedActionLabel({
       actionKind: 'link',
       typeId: 'queue',
-      relation: { key: 'cassettes', targetType: 'cassette_design', cardinality: 'many' }
-    }, '', i18n)).toBe('Cassette design');
+      relation: { key: 'cassettes', targetType: 'cassette', cardinality: 'many' }
+    }, '', i18n)).toBe('Cassette');
 
-    expect(generatedScreenLabel({ template: 'typeList', typeId: 'cassette_design' }, i18n)).toBe('Cassette design');
+    expect(generatedScreenLabel({ template: 'typeList', typeId: 'cassette' }, i18n)).toBe('Cassette');
   });
 
   it('labels org-authored types by their authored name from the registry bundle', () => {

@@ -40,20 +40,6 @@ test.describe('artifact and designer UI', () => {
     await app.expectCleanRuntime();
   });
 
-  test('cassette page renders designer action', async ({ app }) => {
-    const cassettes = await app.request.get('/api/cassettes', { failOnStatusCode: false });
-    if (cassettes.ok()) {
-      const list = await cassettes.json();
-      const items = Array.isArray(list) ? list : list.items || [];
-      if (items.length) {
-        await app.page.goto(`/api/cassettes/${items[0]._id}`);
-        await app.page.waitForLoadState('load');
-        await app.page.waitForTimeout(1000);
-      }
-    }
-    await app.expectCleanRuntime();
-  });
-
   test('invitation page renders centered form without errors', async ({ app }) => {
     await app.page.goto('/invitation/invalid-token');
     await app.page.waitForLoadState('load');

@@ -1,26 +1,29 @@
-# COMPONENT: State Machine Engine & Aggregator - v24 Standardized
+# COMPONENT: State Machine Engine - v24 Standardized
 
-Governs entity lifecycles and maintains cross-entity data integrity (aggregations).
+Governs entity lifecycles: transition validation, status snapshots, and
+status-event history.
 
 ## Architecture
-The system consists of three main parts: the transition engine, the dynamic hook registry, and the centralized aggregator.
+The engine is `service.js` plus the hook dispatch contract. Machines are
+graph-derived (SPEC §7) — this module never defines machines itself.
 
 ### 1. State Machine Engine
-- **`definitions.js`**: Compatibility export that resolves workflow definitions from the active app registry.
 - **`service.js`**: Orchestrates transitions, performs lifecycle/capability validation, delegates access checks to `server/core/access/`, updates entity snapshots (`status` block), and logs history to `status_events`.
-- **Workflow overrides**: Runtime transition/action paths resolve the target
-  entity's organization-scoped active override from
-  `server/features/workflow-overrides` before falling back to the registered
-  domain workflow.
-- **Process workflows**: When the target organization has an active process
-  definition, compiled process workflows resolve before workflow overrides —
-  the compiled machine is the vocabulary (SPEC §7): its states come from the
+- **Machine resolution**: For an organization, the engine resolves the target
+  type's machine from `server/features/workflow-overrides` in order: the
+  producer-scoped compiled process workflow (when the caller names a producer
+  output), any compiled producer output emitting the type, then the
+  organization's stored override row. Without an organization or when none of
+  those exist there is deliberately no machine: creation through the status
+  runtime fails loudly (`No state machine defined for entity type`), because
+  no static workflow table remains — an org that wants a lifecycle authors it
+  in the process designer.
+- **Process workflows**: the compiled machine is the vocabulary (SPEC §7): its states come from the
   process's state records, its initial from the creating construct's state
   socket, and transitions from authored transition nodes. There is no
   declaration-derived machine and no system-transition composition: an org
   process that wants a system flow declares its states and transitions
-  itself; service-owned defaults (queue nesting, solve runs, cassette
-  production) live in the registered domain workflow table.
+  itself.
   Process-authored user transitions are authorized by their compiled
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the
@@ -75,18 +78,18 @@ and named relation snapshots. Descriptions are stored in `status.metadata.note`.
 Uploaded proof files are persisted on the entity `attachments` block and
 referenced from `status.lifecycle.attachments`, so the current entity owns file
 metadata while `status_events.status.lifecycle` preserves which file proved the
-transition. Snapshot declarations are generic: a state can name a target entity
-type and lineage key, such as `cassette_design` by `queueId`; the status
-runtime captures readable entity refs/counts into
-`status.lifecycle.data.snapshots` during the transition.
+transition. Snapshot declarations are generic: a state can name a declared
+child type and its lineage key; the status runtime captures readable entity
+refs/counts into `status.lifecycle.data.snapshots` during the transition.
 
-### 2. Dynamic Hook Registry (`hooks.js` & App Registry)
-Acts as a decoupled dispatcher for side-effects. Manufacturing-specific logic is NOT implemented in the core engine.
-- **Global Hooks (`hooks.js`)**: System-wide primitives (e.g., `propagateToChildren`, `triggerAggregator`).
-- **Feature Hooks**: Feature hook handlers are bound explicitly in `server/runtime/app-registry.js` or exported from the owning feature service.
-- **Resolution**: The engine reads hook handlers from the active app registry, then falls back to feature-service hooks for transitional compatibility.
+### 2. Hook Dispatch (App Registry)
+Acts as a decoupled dispatcher for side-effects. Domain logic is NOT implemented in the core engine.
+- **Resolution**: The engine reads hook handlers from the active app registry
+  (`registry.registerHookHandler`), falling back to hooks exported by the
+  owning instance service. No handler is registered today; a pack that wants
+  transition side effects mounts `hookHandlers` beside its domain.
 - **Typed Settings**: Hook handler ids and parameter fields are declared in
-  the registered domain hook contracts. The engine validates required and
+  the registered domain's hook contracts. The engine validates required and
   unknown hook parameters before executing side effects, and admin editors render
   typed controls instead of raw params JSON.
 - **Effects**: Hook results can return declared effects. The engine validates
@@ -98,14 +101,7 @@ Acts as a decoupled dispatcher for side-effects. Manufacturing-specific logic is
   `POST /api/state/transition` returns. Synchronous hook results are returned
   as transition `effects` so frontend stores can refresh related entities.
 
-### 3. Centralized Aggregator (`aggregator.js`)
-Synchronizes parent summaries based on child activity using lineage-aware MongoDB aggregation pipelines.
-- **Trigger**: Called by the `triggerAggregator` hook whenever an entity changes state.
-- **Standardization**: Uses runtime entity metadata to resolve target and parent collections.
-- **Domain Rules**: Summary rules are loaded from the active app registry; the
-  aggregator remains the Mongo runtime adapter.
-
-### 4. HTTP Status API
+### 3. HTTP Status API
 
 Interactive UI status changes use the canonical status endpoints:
 

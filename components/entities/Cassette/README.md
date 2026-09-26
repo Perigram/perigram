@@ -6,9 +6,7 @@ Cards for base `cassette` DTOs from the `cassettes` collection.
 
 - `CassetteCard.vue` renders inline, compact, and card variants through shared
   `InstanceCard` chrome. It shows cassette identity/status, the nearest lineage
-  parent from `lineage.libraryId`, and a data-type-aware cassette thumbnail;
-  exact parameter values belong to baked cassette designs, not template/source
-  cassette cards.
+  parent from `lineage.libraryId`, and a data-type-aware cassette thumbnail.
 
 ## Contract
 
@@ -24,8 +22,8 @@ Cards for base `cassette` DTOs from the `cassettes` collection.
   shared trace chrome, not as a duplicate body relation row.
 - Shows `data.revisions.geometry.currentId` as the current geometry revision via
   `InstanceInlineRef` when the backend revision pointer is present.
-- `cassette` is distinct from `cassette_template`, `cassette_design`, and
-  `cassette_instance` UI contracts.
+- `cassette` is the template record itself; there are no separate template or
+  design records.
 
 ## Related
 

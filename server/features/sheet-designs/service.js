@@ -266,7 +266,7 @@ function nestingSourceForItem(sourcePointsById, item = {}) {
   };
 }
 
-export function cassetteDesignsForNestingResult(result = {}) {
+export function cassettesForNestingResult(result = {}) {
   const itemsById = new Map((result.items || [])
     .map(item => [item.id?.toString(), item])
     .filter(([id]) => id !== undefined));
@@ -277,16 +277,16 @@ export function cassetteDesignsForNestingResult(result = {}) {
     const placedItems = layout.placed_items || layout.items || [];
     placedItems.forEach(placedItem => {
       const source = itemsById.get(itemSourceId(placedItem)?.toString()) || placedItem;
-      const cassetteDesignId = source.cassette_id || source.cassetteId || placedItem.cassette_id || placedItem.cassetteDesignId;
-      if (!cassetteDesignId) return;
-      const key = cassetteDesignId.toString();
-      const current = counts.get(key) || { cassetteDesignId: key, count: 0 };
+      const cassetteId = source.cassette_id || source.cassetteId || placedItem.cassette_id || placedItem.cassetteDesignId;
+      if (!cassetteId) return;
+      const key = cassetteId.toString();
+      const current = counts.get(key) || { cassetteId: key, count: 0 };
       current.count += 1;
       counts.set(key, current);
     });
   });
 
-  return Array.from(counts.values()).sort((left, right) => left.cassetteDesignId.localeCompare(right.cassetteDesignId));
+  return Array.from(counts.values()).sort((left, right) => String(left.cassetteId).localeCompare(String(right.cassetteId)));
 }
 
 export function cassetteCompositionForLayout(result = {}, layout = {}) {
@@ -302,8 +302,8 @@ export function cassetteCompositionForLayout(result = {}, layout = {}) {
     counts.set(id, (counts.get(id) || 0) + 1);
   }
   return [...counts.entries()]
-    .map(([cassetteDesignId, count]) => ({ cassetteDesignId, count }))
-    .sort((left, right) => left.cassetteDesignId.localeCompare(right.cassetteDesignId));
+    .map(([cassetteId, count]) => ({ cassetteId, count }))
+    .sort((left, right) => String(left.cassetteId).localeCompare(String(right.cassetteId)));
 }
 
 export function compositionHash(composition = []) {
@@ -418,95 +418,7 @@ export function nestingResultToPreview(result = {}, params = {}, options = {}) {
   };
 }
 
-export async function createFromRun(run, data, userId) {
-  // 1. Lineage Inheritance
-  const lineage = inheritLineage(run, 'run');
-  const uid = `sheet-design-${new ObjectId().toString().slice(-8)}`;
 
-  const geometryData = data.geometry?.data || data.geometryData || {};
-  const cassetteDesigns = data.cassetteDesigns || cassetteDesignsForNestingResult(geometryData);
-  const compositionKey = data.compositionHash || compositionHash(cassetteDesigns);
-  const existing = (await repository.find({
-    'lineage.runId': toFlexibleId(run._id),
-    'data.compositionHash': compositionKey
-  }))[0];
-  if (existing) return toDTO(existing);
-  const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
-
-  const designData = {
-    identity: {
-      uid,
-      name: data.name || `Sheet Design for Run ${run._id}`,
-      slug: uid,
-      serial: data.serial || uid.toUpperCase()
-    },
-    lineage,
-    specs: data.specs || {},
-    data: createData({
-      geometry: data.geometry || {
-        data: data.geometryData || null
-      },
-      cassetteDesigns,
-      compositionHash: compositionKey,
-      sheetCount: Math.max(Number(data.sheetCount || 1), 1),
-      materialPool: data.materialPool || run.data?.materialPool || [],
-      solveParams: data.solveParams || run.data?.params || {},
-      attachments: {
-        svg: data.svgId ? createAttachment('SVG', data.svgId, 'Design SVG') : null,
-        dxf: data.dxfId ? createAttachment('DXF', data.dxfId, 'Design DXF') : null
-      },
-      specs: data.specs || {}
-    }),
-    provenance: run.provenance?.solve
-      ? { solve: run.provenance.solve }
-      : null,
-    summary: {
-      ...(data.summary || {}),
-      cassetteDesignCount: cassetteDesigns.length,
-      cassettePlacementCount,
-      sheetCount: Math.max(Number(data.sheetCount || 1), 1)
-    }
-  };
-
-  const created = await repository.create(designData);
-  const revisioned = await ensureGeometryRevision(created, userId, 'nesting-layout-created');
-  return toDTO(revisioned.design);
-}
-
-export async function updateGeometryFromResult(id, { result = {}, summary = {}, params = {} } = {}) {
-  const raw = await repository.findById(id);
-  if (!raw) throw createError({ statusCode: 404, message: 'Sheet design not found' });
-  const design = new SheetDesign(raw);
-  if (design.specs) {
-    design.specs.width = Number(params.width || params.virtualWidth || design.specs.width || 0);
-    design.specs.length = Number(params.height || params.virtualLength || design.specs.length || 0);
-    design.specs.area = design.specs.width && design.specs.length ? (design.specs.width * design.specs.length) / 1000000 : design.specs.area;
-  }
-  const cassetteDesigns = cassetteDesignsForNestingResult(result);
-  const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
-  design.summary = {
-    ...(design.summary || {}),
-    utilization: summary.efficiency || 0,
-    partsCount: summary.placedCount || 0,
-    sheetCount: summary.sheetCount || 0,
-    remnantArea: summary.remnantArea || 0,
-    cassetteDesignCount: cassetteDesigns.length,
-    cassettePlacementCount
-  };
-  design.data = {
-    ...design.data,
-    cassetteDesigns,
-    geometry: {
-      ...(design.data?.geometry || {}),
-      data: result,
-      preview: nestingResultToPreview(result, params),
-      summary
-    }
-  };
-  const updated = await repository.updateById(id, design.toJSON());
-  const revisioned = await ensureGeometryRevision(updated, 'SYSTEM', 'nesting-layout-updated');
-  return toDTO(revisioned.design);
-}
 
 export async function updateLayout(id, { items = [], placedItems = [] } = {}, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(id);
@@ -537,7 +449,7 @@ export async function updateLayout(id, { items = [], placedItems = [] } = {}, us
     width: design.specs?.width,
     height: design.specs?.length
   };
-  const cassetteDesigns = cassetteDesignsForNestingResult(result);
+  const cassetteDesigns = cassettesForNestingResult(result);
   const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
   const data = {
     ...(design.data || {}),
@@ -638,22 +550,6 @@ function normalizeQueryList(value) {
   return String(value).split(',').map(item => item.trim()).filter(Boolean);
 }
 
-export async function listForRunOutput(queueId, runId, sheetDesignIds = []) {
-  const flexibleQueueId = toFlexibleId(queueId);
-  const ids = new Set((sheetDesignIds || []).map(String));
-  const designs = await repository.find({
-    'lineage.queueId': { $in: [flexibleQueueId, queueId?.toString()] }
-  });
-
-  return designs
-    .map(design => new SheetDesign(design).toJSON())
-    .filter(design => {
-      const designId = design._id?.toString?.() || design._id;
-      const designRunId = design.lineage?.runId?.toString?.() || design.lineage?.runId;
-      return designRunId?.toString() === runId?.toString() || ids.has(designId?.toString());
-    })
-    .sort((left, right) => String(left.identity?.serial || left._id).localeCompare(String(right.identity?.serial || right._id)));
-}
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
   const result = await stateService.transitionWithResult({

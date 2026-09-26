@@ -11,19 +11,18 @@ Organization-scoped lifecycle override storage for entity status machines.
 - Resolves the active machine for the status engine. Machines are
   graph-derived (SPEC §7): the active compiled process is the lifecycle
   source, an explicit organization override is the escape hatch for types
-  the process does not govern, and the registered domain's hand-authored
-  workflows keep serving the legacy pack types. Resolution order for an
-  organization: the producer output the caller names (`producerOutputId`),
-  then the first producer of the type in the active compiled process (the
-  plain transition channel carries no producer context — without the
-  by-type lookup, org-authored stateful types would resolve no machine at
-  all), then the organization override, then the domain workflow. A type
-  none of these covers resolves to no machine.
+  the process does not govern, and there is no static workflow table behind
+  them. Resolution order for an organization: the producer output the caller
+  names (`producerOutputId`), then the first producer of the type in the
+  active compiled process (the plain transition channel carries no producer
+  context — without the by-type lookup, org-authored stateful types would
+  resolve no machine at all), then the organization override. A type none of
+  these covers resolves to no machine, by design.
 
 ## Data Contract
 
 - `organizationId`: tenant that owns the override.
-- `typeId`: normalized entity type such as `project` or `queue`.
+- `typeId`: normalized entity type such as `cassette` or `sheet-design`.
 - `workflow`: normalized v2 workflow definition.
 - `status`: `ACTIVE`, `DRAFT`, or `ARCHIVED`; runtime uses only `ACTIVE`.
 - `createdBy` / `updatedBy`: authenticated user ids.

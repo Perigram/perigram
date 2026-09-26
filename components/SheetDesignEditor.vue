@@ -2,9 +2,6 @@
   <DesignerSurface>
     <DesignerWorkspace layout="lanes" class="h-full" :top-dock-items="documentDockItems">
       <div class="relative h-full w-full overflow-hidden">
-      <span class="absolute top-3 left-3 z-10 rounded-ui bg-content px-2 py-1 text-supporting shadow-overlay">
-        {{ $t('toolProfile.kerf') }}: {{ toolKerf }} mm
-      </span>
       <svg
         ref="svgRef"
         class="h-full w-full touch-none"
@@ -114,17 +111,17 @@
 
     <StandardDialog v-model:visible="addVisible" :header="$t('sheetDesign.addCassette')" size="md">
       <Select
-        v-model="selectedCassetteDesignId"
+        v-model="selectedCassetteId"
         :options="cassetteOptions"
         option-label="label"
         option-value="value"
-        type-id="cassetteDesign"
+        type-id="cassette"
         class="w-full"
         :placeholder="$t('sheetDesign.selectCassette')"
       />
       <template #footer>
         <Button :label="$t('common.cancel')" severity="secondary" text size="small" @click="addVisible = false" />
-        <Button :label="$t('common.add')" icon="pi pi-plus" size="small" :disabled="!selectedCassetteDesignId" @click="addSelectedCassette" />
+        <Button :label="$t('common.add')" icon="pi pi-plus" size="small" :disabled="!selectedCassetteId" @click="addSelectedCassette" />
       </template>
     </StandardDialog>
 
@@ -144,12 +141,12 @@ import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import CassetteEditorDialog from '~/components/CassetteEditorDialog.vue';
+import { useInstancesStore } from '~/stores/instances';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
-import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { DEFAULT_DRAWING_PEN, applyLayerPens } from '~/utils/drawingPreview.js';
 import {
-  cassetteDesignSheetItem,
+  cassetteSheetItem,
   clampSheetPlacement,
   magneticSheetPlacement,
   placementWithTranslation,
@@ -205,10 +202,8 @@ const { t } = useI18n();
 const toast = useToast();
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
-const toolsStore = useToolProfilesStore();
 const { standards } = storeToRefs(standardsStore);
 const { pens, systemPens } = storeToRefs(pensStore);
-const { tools } = storeToRefs(toolsStore);
 
 const svgRef = ref(null);
 const items = ref([]);
@@ -218,8 +213,9 @@ const dragState = ref(null);
 const saving = ref(false);
 const addVisible = ref(false);
 const uploadVisible = ref(false);
-const cassetteDesigns = ref([]);
-const selectedCassetteDesignId = ref('');
+const instances = useInstancesStore();
+const cassettes = ref([]);
+const selectedCassetteId = ref('');
 
 const sheetWidth = computed(() => Math.max(Number(props.design.specs?.width) || 1220, 1));
 const sheetHeight = computed(() => Math.max(Number(props.design.specs?.length) || 2440, 1));
@@ -232,10 +228,8 @@ const sheetPolygon = computed(() => normalizeSheetPolygon(
 ));
 const sheetPolygonPoints = computed(() => sheetPolygon.value?.outer?.map(point => point.join(',')).join(' ') || '');
 const solveEffective = computed(() => props.design.provenance?.solve?.effective || {});
-const selectedToolProfileId = computed(() => solveEffective.value.tool?.source?.id || '');
-const selectedTool = computed(() => tools.value.find(tool => String(tool._id) === String(selectedToolProfileId.value)) || null);
 const toolKerf = computed(() => Math.max(Number(
-  solveEffective.value.tool?.kerf ?? selectedTool.value?.data?.kerf ?? 0
+  solveEffective.value.tool?.kerf ?? 0
 ) || 0, 0));
 const boundaryOffset = computed(() => Math.max(Number(solveEffective.value.machine?.boundaryOffset || 0), 0));
 const editorPadding = computed(() => Math.max(sheetWidth.value, sheetHeight.value) * 0.025);
@@ -271,17 +265,16 @@ const fallbackPlacementStyle = computed(() => resolvedStyle('contour.cassette_fa
 const selectedSnapPoint = computed(() => selectedIndex.value >= 0
   ? sheetPlacementTransform(placedItems.value[selectedIndex.value])
   : null);
-const cassetteOptions = computed(() => cassetteDesigns.value.map(design => ({
-  label: design.identity?.name || design.identity?.slug || design._id,
-  value: design._id?.toString(),
-  entity: design
+const cassetteOptions = computed(() => cassettes.value.map(cassette => ({
+  label: cassette.identity?.name || cassette.identity?.slug || cassette._id,
+  value: cassette._id?.toString(),
+  entity: cassette
 })));
 
 onMounted(async () => {
   await Promise.all([
     standardsStore.fetchStandards?.(),
     pensStore.fetchPens?.(),
-    toolsStore.fetchTools?.()
   ]);
 });
 
@@ -430,15 +423,15 @@ function rotateSelected() {
 
 async function openAddDialog() {
   addVisible.value = true;
-  if (!cassetteDesigns.value.length) {
-    cassetteDesigns.value = await $fetch('/api/cassette-designs').catch(() => []);
+  if (!cassettes.value.length) {
+    cassettes.value = await instances.listInstances('cassette', {}, { silent: true }).catch(() => []);
   }
 }
 
-function addCassetteDesign(design) {
-  if (!design?._id) return;
-  const id = `manual-${design._id}-${Date.now()}-${items.value.length}`;
-  const item = cassetteDesignSheetItem(design, id);
+function addCassette(cassetteEntity) {
+  if (!cassetteEntity?._id) return;
+  const id = `manual-${cassetteEntity._id}-${Date.now()}-${items.value.length}`;
+  const item = cassetteSheetItem(cassetteEntity, id);
   if (!item) return;
   items.value.push(item);
   const start = clampSheetPlacement({
@@ -480,18 +473,18 @@ function normalizeSheetPolygon(polygon = null) {
 }
 
 function addSelectedCassette() {
-  const design = cassetteDesigns.value.find(item => String(item._id) === String(selectedCassetteDesignId.value));
-  addCassetteDesign(design);
-  selectedCassetteDesignId.value = '';
+  const cassetteEntity = cassettes.value.find(item => String(item._id) === String(selectedCassetteId.value));
+  addCassette(cassetteEntity);
+  selectedCassetteId.value = '';
   addVisible.value = false;
 }
 
 function addUploadedCassette(payload = {}) {
-  const design = payload.design || payload;
-  if (design?._id && !cassetteDesigns.value.some(item => String(item._id) === String(design._id))) {
-    cassetteDesigns.value.unshift(design);
+  const cassetteEntity = payload.template || payload.design || payload;
+  if (cassetteEntity?._id && !cassettes.value.some(item => String(item._id) === String(cassetteEntity._id))) {
+    cassettes.value.unshift(cassetteEntity);
   }
-  addCassetteDesign(design);
+  addCassette(cassetteEntity);
 }
 
 async function save() {

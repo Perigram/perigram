@@ -175,7 +175,7 @@ const emit = defineEmits(['save']);
 const { t } = useI18n();
 const authStore = useAuthStore();
 
-const selectedFeatureKey = ref('projects');
+const selectedFeatureKey = ref('artifacts');
 // Feature list is a PrimeVue Listbox; layout passthroughs keep the
 // option rows airy and full-width for the tag summary.
 const featureListPt = {
@@ -211,15 +211,8 @@ const PERMISSION_LEVELS = computed(() => [
 ]);
 
 const defaultFeatures = computed(() => [
-    { key: 'projects',      label: t('features.projects') },
-    { key: 'queues',        label: t('features.queues'), actions: ['view', 'edit', 'run', 'delete'] },
-    { key: 'nesting_runs',  label: t('entities.nestingRun'), actions: ['view', 'run', 'delete'] },
     { key: 'artifacts',     label: t('entities.artifact'), actions: ['view', 'create', 'delete'] },
     { key: 'cassettes',     label: t('features.cassettes') },
-    { key: 'warehouses',    label: t('features.warehouses') },
-    { key: 'catalogs',      label: t('features.catalogs'), actions: ['view', 'view_all', 'create', 'edit', 'delete'] },
-    { key: 'requisitions',  label: t('features.requisitions'), actions: ['view', 'create', 'edit', 'approve', 'reject', 'fulfill', 'delete'] },
-    { key: 'materials',     label: t('features.materials') },
     { key: 'layer_standards', label: t('features.layerStandards'), actions: ['setPen'] },
     { key: 'users',         label: t('features.users') },
     { key: 'organizations', label: t('features.organizations') },
@@ -230,9 +223,6 @@ const entities = computed(() => props.features.length ? props.features : default
 
 const scopeFields = computed(() => [
     { key: 'organizationId', label: t('auth.scope.organizationId') },
-    { key: 'projectId', label: t('auth.scope.projectId') },
-    { key: 'queueId', label: t('auth.scope.queueId') },
-    { key: 'warehouseId', label: t('auth.scope.warehouseId') },
     { key: 'instanceId', label: t('auth.scope.instanceId') },
     { key: 'typeId', label: t('auth.scope.typeId') }
 ]);
@@ -272,9 +262,6 @@ const relatedTypeIdOptions = computed(() => {
 
 const SCOPE_FACT_BY_KEY = {
     organizationId: 'lineage.organizationId',
-    projectId: 'lineage.projectId',
-    queueId: 'lineage.queueId',
-    warehouseId: 'lineage.warehouseId',
     instanceId: 'instanceId',
     typeId: 'typeId'
 };
@@ -750,7 +737,7 @@ function isStatusClause(clause = {}) {
 }
 
 function selectedFeatureTypeId() {
-    return featureEntityDefinition()?.type || typeIdOptions.value[0]?.value || 'project';
+    return featureEntityDefinition()?.type || typeIdOptions.value[0]?.value || '';
 }
 
 function selectedFeatureHasEntity() {
@@ -900,15 +887,7 @@ async function loadEntityOptions() {
         const featureTypeId = featureEntityDefinition()?.type;
         if (featureTypeId) requiredTypes.add(featureTypeId);
 
-        let projectEntities = [];
-        if (requiredTypes.has('project')) {
-            projectEntities = await loadEntityOptionsForType('project', next);
-        }
-        if (requiredTypes.has('queue')) {
-            next.queue = await loadQueueOptions(projectEntities);
-        }
-
-        await Promise.all([...requiredTypes].filter(type => !['project', 'queue'].includes(type)).map(async (type) => {
+        await Promise.all([...requiredTypes].map(async (type) => {
             if (type === 'organization') {
                 next.organization = organizationOptions();
                 return;
@@ -945,21 +924,6 @@ async function loadEntityOptionsForType(type, next) {
     }
 }
 
-async function loadQueueOptions(projectEntities = []) {
-    const projects = projectEntities.length ? projectEntities : entityOptionLists.value.project || [];
-    const queues = [];
-    await Promise.all(projects.map(async (project) => {
-        const projectKey = entityRouteKey(project);
-        if (!projectKey) return;
-        try {
-            const data = await $fetch(`/api/project/${encodeURIComponent(projectKey)}/queues`);
-            queues.push(...(Array.isArray(data) ? data : data.items || data.data || []));
-        } catch {
-            // Queue listing is project-scoped in this app; inaccessible projects simply contribute no options.
-        }
-    }));
-    return mapEntityOptions(dedupeEntities(queues));
-}
 
 function organizationOptions() {
     const organizations = [
@@ -1093,15 +1057,8 @@ function grantHasFilters(grant) {
 
 function getIcon(key) {
     const iconMap = {
-        projects: 'pi pi-folder',
-        queues: 'pi pi-list',
-        nesting_runs: 'pi pi-sitemap',
         artifacts: 'pi pi-file',
         cassettes: 'pi pi-pencil',
-        warehouses: 'pi pi-building',
-        catalogs: 'pi pi-book',
-        requisitions: 'pi pi-shopping-cart',
-        materials: 'pi pi-box',
         layer_standards: 'pi pi-palette',
         users: 'pi pi-users',
         organizations: 'pi pi-globe',

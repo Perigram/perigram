@@ -15,8 +15,8 @@ facade domain in the type system.
 ## Modules
 
 - `src/pack.js` — the browser-safe declaration data: `facadeFileTypes`
-  (cassette, sheet-design, facade-design, facade-pattern — with declared
-  states, transitions, render policies, and operators), `facadeEditors`
+  (cassette, sheet-design — with declared states, transitions, render
+  policies, and operators), `facadeEditors`
   (the canonical editor-binding contract served with the type view),
   `facadeServices` (the nesting solver's V→V registration, SPEC §8), and
   `facadeAttachmentKinds` (the OCCS upload kind).
@@ -27,7 +27,7 @@ facade domain in the type system.
   `server/core/commands/definitions.js`.
 - `src/events.js` — the pack's trigger declarations (`facadeEvents`).
 - `src/artifact-conversions.js` — the artifact conversion catalog
-  (LAYOUT_DXF → DXF source → cassette design).
+  (LAYOUT_DXF → DXF source → cassette).
 - `src/index.js` — the public barrel plus `facadeDomain`: the server-side
   domain slice (commands, events, service identity table) the app
   registry mounts. Never an entity catalog — the CTS registry view is

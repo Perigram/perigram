@@ -31,8 +31,6 @@ import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfa
 const CARD_COMPONENTS = {
   sheetDesign: defineAsyncComponent(() => import('~/components/entities/SheetDesign/SheetDesignCard.vue')),
   cassette: defineAsyncComponent(() => import('~/components/entities/Cassette/CassetteCard.vue')),
-  cassetteDesign: defineAsyncComponent(() => import('~/components/entities/CassetteDesign/CassetteDesignCard.vue')),
-  cassetteTemplate: defineAsyncComponent(() => import('~/components/entities/CassetteTemplate/CassetteTemplateCard.vue')),
   entityRevision: defineAsyncComponent(() => import('~/components/entities/EntityRevision/EntityRevisionCard.vue')),
   toolProfile: defineAsyncComponent(() => import('~/components/entities/ToolProfile/ToolProfileCard.vue')),
   penTemplate: defineAsyncComponent(() => import('~/components/entities/PenTemplate/PenTemplateCard.vue')),
@@ -77,14 +75,13 @@ const contextEntity = computed(() => {
   return null;
 });
 const hydrated = ref(null);
-const relationSheetDesigns = ref([]);
 const relationFetchId = computed(() => normalizedId.value
   || instanceId(props.entity)
   || instanceId(contextEntity.value)
   || ''
 );
 const baseResolved = computed(() => hydrated.value || props.entity || contextEntity.value || loaded.value);
-const resolved = computed(() => withNestingRunOutputRefs(baseResolved.value));
+const resolved = computed(() => baseResolved.value);
 const resolvedId = computed(() => normalizedId.value
   || resolved.value?._id?.toString?.()
   || resolved.value?.id?.toString?.()
@@ -142,7 +139,7 @@ const compactDataFields = computed(() => compactDisplay.value.fields.filter(fiel
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
 const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
 const compactPreviewHideDimensionLayer = computed(() =>
-  ['cassette', 'cassette_design', 'sheet_design'].includes(generatedTypeId.value)
+  ['cassette', 'sheet_design'].includes(generatedTypeId.value)
 );
 // The compact chip's status resolves through the flat contract: the
 // instance's wire `state` value against the type's policy map.
@@ -166,8 +163,7 @@ const popupActions = computed(() => {
     entity: resolved.value,
     typeId: generatedTypeId.value
   })
-    .filter(isGeneratedSurfaceAction)
-    .filter(action => !isConsumedDetailAction(action));
+    .filter(isGeneratedSurfaceAction);
   const contextual = props.contextActionEntries
     .map(entry => authStore.actionManifest.find(action => action.id === entry.id))
     .filter(Boolean);
@@ -186,20 +182,12 @@ watch(
   async () => {
     loaded.value = null;
     hydrated.value = null;
-    relationSheetDesigns.value = [];
     if (!relationFetchId.value || !props.fetch) return;
 
     const provided = props.entity || contextEntity.value;
     if (!provided) {
       loaded.value = await instances.resolveReadableReference(instances.canonicalTypeKey(props.type), relationFetchId.value, { silent: true });
-      await hydrateNestingRunOutputs(loaded.value);
-      return;
     }
-
-    if (needsNestingRunHydration(provided)) {
-      hydrated.value = await instances.resolveReadableReference(instances.canonicalTypeKey(props.type), relationFetchId.value, { silent: true });
-    }
-    await hydrateNestingRunOutputs(hydrated.value || provided);
   },
   { immediate: true }
 );
@@ -211,33 +199,6 @@ function instanceId(entity) {
     || '';
 }
 
-function hasNestingRunOutputRefs(entity) {
-  return Array.isArray(entity?.data?.sheetDesignIds) && entity.data.sheetDesignIds.length > 0;
-}
-
-function needsNestingRunHydration(entity) {
-  return generatedTypeId.value === 'nesting_run' && !hasNestingRunOutputRefs(entity);
-}
-
-async function hydrateNestingRunOutputs(entity) {
-  if (generatedTypeId.value !== 'nesting_run' || !entity) return;
-  const runId = instanceId(entity) || relationFetchId.value;
-  if (!runId) return;
-  relationSheetDesigns.value = await instances
-    .listInstances(instances.canonicalTypeKey('sheetDesign'), { runId }, { silent: true })
-    .catch(() => []);
-}
-
-function withNestingRunOutputRefs(entity) {
-  if (generatedTypeId.value !== 'nesting_run' || !entity || !relationSheetDesigns.value.length) return entity;
-  return {
-    ...entity,
-    data: {
-      ...(entity.data || {}),
-      sheetDesignIds: relationSheetDesigns.value
-    }
-  };
-}
 
 function contextTypeCandidates(type) {
   return Array.from(new Set([type, normalizeHierarchyType(type)].filter(Boolean)));
@@ -247,11 +208,6 @@ function generatedTypeIdFor(type) {
   return normalizeHierarchyType(type);
 }
 
-function isConsumedDetailAction(action = {}) {
-  return generatedTypeId.value === 'queue'
-    && action.actionKind === 'runCommand'
-    && action.commandId === 'solveNesting';
-}
 
 function toggleCompactPopup(event) {
   if (!props.interactive) return;
@@ -321,18 +277,18 @@ function entityToneStyle(type) {
 }
 
 function entityFamilyAccent(type) {
-  if (['project', 'queue'].includes(type)) return 'var(--ck-entity-tone-command)';
-  if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
-  if (['sheet', 'sheetDesign', 'remnant', 'nestingRun'].includes(type)) return 'var(--ck-entity-tone-output)';
-  if (['material', 'materialPile', 'batchPile', 'warehouse', 'catalog', 'color'].includes(type)) return 'var(--ck-entity-tone-material)';
-  if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
+
+  if (['cassette', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
+  if (['sheetDesign'].includes(type)) return 'var(--ck-entity-tone-output)';
+  if (['color'].includes(type)) return 'var(--ck-entity-tone-material)';
+  if (['organization', 'artifact', 'entityRevision', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
   return 'var(--p-surface-500)';
 }
 
 function entitySemanticRole(type) {
-  if (['project', 'queue', 'library', 'catalog', 'warehouse', 'organization'].includes(type)) return 'container';
-  if (['cassetteTemplate', 'cassetteDesign', 'sheetDesign', 'profileTemplate', 'entityRevision'].includes(type)) return 'definition';
-  if (['artifact', 'toolProfile', 'penTemplate', 'layerStandard', 'user', 'requisition'].includes(type)) return 'meta';
+  if (['organization'].includes(type)) return 'container';
+  if (['sheetDesign', 'profileTemplate', 'entityRevision'].includes(type)) return 'definition';
+  if (['artifact', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'meta';
   return 'item';
 }
 

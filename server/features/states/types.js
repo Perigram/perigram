@@ -1,35 +1,15 @@
 /**
- * Status Types Configuration
- * Defines valid statuses for each entity type
+ * Status vocabulary for the types the states feature itself serves. This is
+ * NOT the workflow source: machines are graph-derived (SPEC §7) from process
+ * definitions through the workflow runtime. The invitations feature seeds
+ * initial status documents here, and status history reads pass through; every
+ * governed production type resolves its states from its declared machine.
  */
 
 export const STATUS_TYPES = {
-  // Cassette lifecycle
-  cassette: ['draft', 'active', 'archived'],
-  cassette_design: ['draft', 'validated', 'nested', 'archived'],
-  cassette_instance: ['nested', 'cut', 'delivered', 'archived'],
-  
-  // Sheet lifecycle
-  sheet_design: ['draft', 'ready', 'processing', 'completed', 'error', 'archived'],
-  sheet_instance: ['in_stock', 'in_cutting', 'milled', 'cut', 'delivered', 'scrapped'],
-  
-  // Production
-  queue: ['draft', 'ready', 'processing', 'completed', 'cancelled', 'error', 'CUT'],
-  batch: ['pending', 'active', 'completed', 'archived'],
-  material_batch: ['requested', 'assembled', 'sent', 'arrived', 'in_stock', 'partially_used', 'used_up'],
-  
-  // Business entities
-  project: ['draft', 'active', 'completed', 'cancelled', 'archived'],
-  requisition: ['draft', 'sent', 'approved', 'rejected', 'in_fulfillment', 'fulfilled', 'canceled'],
   organization: ['active', 'inactive', 'suspended'],
-  
-  // Inventory
-  remnant: ['in_stock', 'reserved', 'used', 'scrapped'],
-  warehouse: ['active', 'inactive', 'full'],
-  
-  // System
-  invitation: ['pending', 'accepted', 'expired', 'revoked'],
-  catalog: ['draft', 'published', 'archived']
+  user: ['active', 'inactive', 'suspended'],
+  invitation: ['pending', 'accepted', 'expired', 'revoked']
 };
 
 /**
@@ -39,18 +19,12 @@ export function getValidStatuses(typeId) {
   return STATUS_TYPES[typeId] || [];
 }
 
-/**
- * Validate if a status is valid for an entity type
- */
 export function isValidStatus(typeId, status) {
-  const validStatuses = getValidStatuses(typeId);
-  return validStatuses.includes(status);
+  const statuses = STATUS_TYPES[typeId];
+  if (!statuses) return false;
+  return statuses.includes(status);
 }
 
-/**
- * Get default initial status for an entity type
- */
 export function getDefaultStatus(typeId) {
-  const statuses = getValidStatuses(typeId);
-  return statuses[0] || 'draft';
+  return STATUS_TYPES[typeId]?.[0] || 'pending';
 }

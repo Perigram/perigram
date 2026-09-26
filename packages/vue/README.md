@@ -33,6 +33,4 @@ singular collection name. This keeps runtime components able to pass canonical
 entity names such as `cassette_instance` while route ownership remains in the
 domain endpoint definitions.
 Keep semantically different surfaces on their own endpoint definitions even
-when they share product language. For example, `cassetteTemplate` resolves to
-`/api/cassettes/:id`, while `cassetteDesign` and `cassette_design` resolve to
-`/api/cassette-designs/:id`.
+when they share product language.

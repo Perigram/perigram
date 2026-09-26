@@ -221,19 +221,17 @@ describe('Design system manifest', () => {
   });
 
   it('uses string cassette template parameters matching the DTO contract', () => {
-    const template = factories.createMockCassetteTemplate();
     const cassette = factories.createMockCassette();
 
-    expect(template.data.parameters).toEqual(['A', 'B', 'C']);
     expect(cassette.data.parameters).toEqual(['A', 'B', 'C']);
     expect(cassette.data.type).toBe('PARAMETRIC');
-    expect(template).not.toHaveProperty('parameters');
+    expect(cassette).not.toHaveProperty('parameters');
   });
 
-  it('formats cassette design parameter maps as exact named values', () => {
-    const design = factories.createMockCassetteDesign();
+  it('formats concrete cassette parameter maps as exact named values', () => {
+    const parameters = { A: 1200, B: 400, C: 35 };
 
-    expect(decorateDataValue(design.data.parameters, { display: 'parameterMap' })).toBe('A=1200, B=400, C=35');
+    expect(decorateDataValue(parameters, { display: 'parameterMap' })).toBe('A=1200, B=400, C=35');
   });
 
 
@@ -459,7 +457,7 @@ describe('Design system manifest', () => {
   it('keeps shared instance accents inside the token system', () => {
     const entityInlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceInlineRef.vue'), 'utf8');
 
-    expect(entityInlineRef).toContain('var(--ck-entity-tone-command)');
+    expect(entityInlineRef).toContain('var(--ck-entity-tone-output)');
     expect(entityInlineRef).not.toMatch(/var\(--p-(?:blue|orange|teal|green|purple)-500\)/);
   });
 
@@ -517,13 +515,9 @@ describe('Design system manifest', () => {
     }
 
     expect(analyzeVueVisuals(
-      'components/AssetsLibrary.vue',
+      'components/CassetteDesignerV2.vue',
       '<template><div :style="{ borderRadius: \'1rem\' }" /></template>'
     )).toContain('replace:inline-visual (1)');
-    expect(analyzeVueVisuals(
-      'components/AssetsLibrary.vue',
-      '<template><div :style="{ backgroundColor: penForm.stroke.color }" /></template>'
-    )).toContain('narrowly-allowlist:inline-data-driven (1)');
     const renderVisual = '<script>\nexport default {\n  render() { return h(\'div\', { style: { borderRadius: \'1rem\' } }) }\n}\n</script>';
     expect(renderStyleBindings(renderVisual)).toHaveLength(1);
     expect(analyzeVueVisuals('components/RenderSurface.vue', renderVisual)).toContain('replace:render-visual (1)');
@@ -581,16 +575,12 @@ describe('Design system manifest', () => {
   it('keeps framework manifest UI fields tied to canonical DTO paths', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'framework.manifest.json'), 'utf8'));
     const cassette = manifest.designSystem.components.find(component => component.key === 'cassette');
-    const cassetteDesign = manifest.designSystem.components.find(component => component.key === 'cassetteDesign');
-    const cassetteTemplate = manifest.designSystem.components.find(component => component.key === 'cassetteTemplate');
 
     expect(manifest.validations).toEqual({ ok: true, issues: [] });
     expect(cassette.fieldPaths).toEqual([]);
     expect(cassette.fieldPaths).not.toContain('data.type');
     // The legacy residual field-group map died with the fact channel: no
     // design-system component carries legacy fact rows anymore.
-    expect(cassetteDesign.fieldPaths).toEqual([]);
-    expect(cassetteTemplate.fieldPaths).toEqual([]);
   });
 
   it('declares constructor surfaces and field groups in the domain contract', () => {
@@ -804,10 +794,6 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('instance-inline-compact-status-row');
     expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
     expect(inlineRef).toContain("'sheet_design'");
-    expect(inlineRef).toContain('needsNestingRunHydration');
-    expect(inlineRef).toContain('hydrateNestingRunOutputs');
-    expect(inlineRef).toContain(".listInstances(instances.canonicalTypeKey('sheetDesign'), { runId }, { silent: true })");
-    expect(inlineRef).toContain('relationSheetDesigns');
     expect(inlineRef).not.toContain('instance-inline-compact-fallback');
     expect(instanceCard).toContain('instance-inline-chip');
     expect(instanceCard).toContain('titleFor');

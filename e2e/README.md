@@ -44,11 +44,6 @@ noise.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
-- `queue-workflow.spec.js`: project/queue creation opens the queue editor and
-  `/api/queue/:id/nest` accepts `WAREHOUSE` material-pool command input before
-  returning the expected business validation error for an empty queue. The
-  nesting request supplies a readable tool profile because `solveNesting`
-  validates required command entities before checking queue contents.
 - `process-generated-screen.spec.js`: verifies the generic instance
   transport serves generated-screen collections (`/api/instances/cassette`;
   the removed `/api/queues` route stays dead) and drives the screen matrix
@@ -83,14 +78,10 @@ noise.
   on the updated entity, and the vertical-stepper history popover growing
   the audit step. The attached screenshots and history JSON are the
   durable acceptance artifact.
-- `project-workspace.spec.js`: uses the active compiled Project detail screen
-  and verifies a cassette reached through its linked Library region opens the
-  embedded cassette designer in the same pane; verifies pane tabs, icon-only
-  status, suppressed embedded entity header, tab close behavior, and restoration
-  after reload.
-- `home-and-instance-ui.spec.js`: creates a real project/queue pair, verifies the
-  compiled Home and detail-context placement, parent-responsive entity chrome,
-  and organization switching through the account menu.
+- `home-and-instance-ui.spec.js`: seeds declared types through the species
+  process, verifies the compiled Home and detail-context placement,
+  parent-responsive entity chrome, and organization switching through the
+  account menu.
 - `process-designer-boot.spec.js`: boots the process designer against a seeded
   species process, verifies the canvas renders, and creates plus saves a new
   draft from the dock (regression for the reported dead designer).
@@ -103,20 +94,16 @@ noise.
   with a late initial snapshot), and with no rooms the panel carries no rows
   and no expandable affordance.
 
-The queue nesting regression intentionally stops before the worker-backed
-solve. Full nesting tests need explicit fixture cassette geometry and a running
-worker stack; keep those in a separate spec so smoke tests stay cheap.
-
-Known-stale specs (retired vocabulary, failing at seed time — the matrix spec
-above is the live-registry reference for their rewrite):
-`artifact-and-designer-ui.spec.js` and `instance-actions.spec.js` call removed
-fixture helpers (`createProject`) and seed retired types;
-`queue-workflow.spec.js` and `project-workspace.spec.js` still author
-project/queue/library entities the registry no longer declares;
-`home-and-instance-ui.spec.js`'s organization-switch case registers peers
-through the pre-split register contract (registration no longer creates
-organizations); `home-calls.spec.js` asserts the `[data-active-calls]`
-selector no component renders.
+Full nesting tests need explicit fixture cassette geometry and a running
+worker stack; keep those in a separate spec so smoke tests stay cheap. The
+retired queue/project/workspace specs (`queue-workflow.spec.js`,
+`project-workspace.spec.js`, `instance-actions.spec.js`) were deleted with
+the surfaces they exercised; the matrix spec above is the live-registry
+reference. Known-stale remainder: `home-and-instance-ui.spec.js`'s
+organization-switch case registers peers through the pre-split register
+contract (registration no longer creates organizations);
+`home-calls.spec.js` asserts the `[data-active-calls]` selector no component
+renders.
 
 ## Adding Workflows
 

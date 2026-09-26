@@ -9,10 +9,7 @@ Most cards are registered through the design-system manifest in
 `packages/facade/src/ui.js` and bound to Vue components in
 `utils/design-system.js`.
 `EntityRevision` is a read-only system entity surface used by provenance rows
-such as cassette template geometry versions and cassette design source
-revisions.
-`Library` is the material-scoped cassette-template container surface; it shows
-material data and cassette child counts from the domain field groups.
+such as cassette template geometry versions.
 
 ## Card Contract
 
@@ -38,10 +35,10 @@ material data and cassette child counts from the domain field groups.
   `type-id` prop and filter paths through `shared/instance-field-access.js`
   using the field policies exported by `@perigram/facade`. If a field is not
   declared in the policy, cards must not display it.
-- Relation refs should pass design-system UI keys (`materialPile`,
-  `nestingRun`, `cassetteDesign`, `entityRevision`) instead of backend
-  snake-case names. The shared domain UI adapter still accepts backend aliases
-  for compatibility, but component code should speak in surface keys.
+- Relation refs should pass design-system UI keys (`cassette`, `sheetDesign`,
+  `entityRevision`) instead of backend snake-case names. The shared domain UI
+  adapter still accepts backend aliases for compatibility, but component code
+  should speak in surface keys.
 - Inline and compact variants may add `compact-content` or `inline-extra` only
   for short, stable cues; the full body remains the authoritative summary.
 - Subtitle chips are collapsed-context cues only. If an entity card declares a

@@ -1,62 +1,11 @@
 version: "3.8"
 services:
-  user-file-processing-worker-normal:
-    image: ghcr.io/1suo/file-processing-worker:latest
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/perigram_dev
-      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
-      - WORKER_TOKEN=${WORKER_TOKEN}
-      - WORKER_ID=file-processing-normal
-      - WORKER_TAG=normal
-      - MAX_ENTITY_LIMIT=999
-    deploy:
-      replicas: 1
-      update_config:
-        order: start-first
-
   nesting-worker:
     image: ghcr.io/1suo/nesting-worker:latest
     ports:
       - "8000:8000"
     environment:
       - MONGO_URI=mongodb://mongo:27017/perigram_dev
-    deploy:
-      replicas: 1
-      update_config:
-        order: start-first
-
-  cassette-processing-worker:
-    image: ghcr.io/1suo/cassette-processing-worker:latest
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/perigram_dev
-      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
-      - WORKER_TOKEN=${WORKER_TOKEN}
-      - WORKER_ID=cassette-processing
-    deploy:
-      replicas: 1
-      update_config:
-        order: start-first
-
-  geometry-capture-worker:
-    image: ghcr.io/1suo/geometry-capture-worker:latest
-    environment:
-      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
-      - WORKER_TOKEN=${WORKER_TOKEN}
-      - GEOMETRY_CAPTURE_WORKER_ID=geometry-capture
-      - GEOMETRY_CAPTURE_ML=${GEOMETRY_CAPTURE_ML:-1}
-      - GEOMETRY_CAPTURE_MODEL_FIRST=${GEOMETRY_CAPTURE_MODEL_FIRST:-1}
-      - GEOMETRY_CAPTURE_PRELOAD_MODELS=${GEOMETRY_CAPTURE_PRELOAD_MODELS:-}
-      - HF_HOME=/models/huggingface
-      - SAM2_MODEL_ID=${SAM2_MODEL_ID:-facebook/sam2-hiera-large}
-      - SAM2_CHECKPOINT=${SAM2_CHECKPOINT:-}
-      - SAM2_MODEL_CFG=${SAM2_MODEL_CFG:-}
-      - SAM2_DEVICE=${SAM2_DEVICE:-cpu}
-      - GROUNDING_DINO_MODEL=${GROUNDING_DINO_MODEL:-IDEA-Research/grounding-dino-tiny}
-      - GROUNDING_DINO_DEVICE=${GROUNDING_DINO_DEVICE:-cpu}
-      - GROUNDING_DINO_BOX_THRESHOLD=${GROUNDING_DINO_BOX_THRESHOLD:-0.25}
-      - GROUNDING_DINO_TEXT_THRESHOLD=${GROUNDING_DINO_TEXT_THRESHOLD:-0.25}
-    volumes:
-      - geometry-model-cache:/models
     deploy:
       replicas: 1
       update_config:
@@ -73,4 +22,3 @@ services:
 
 volumes:
   mongo-data:
-  geometry-model-cache:

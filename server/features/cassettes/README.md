@@ -1,6 +1,10 @@
 # COMPONENT: Cassette Templates (v24 Standardized)
 
-Manages cassette templates (Standard and Parametric). Templates are the digital logic/source for creating designs.
+Manages cassette templates (Standard and Parametric). A cassette is the single
+geometry-bearing record: the editable logic, the immutable geometry revision
+chain, and — for uploaded templates — the extracted nestable contour and
+semantic layers all live on the cassette document. There is no separate baked
+design record; evaluation and export render from the template.
 
 ## Core Files
 - `repository.js`: Database operations on `cassettes` collection.
@@ -20,59 +24,43 @@ Manages cassette templates (Standard and Parametric). Templates are the digital 
       `extensions.perigram.graphTree`.
     - Standard uploaded templates store layer mapping data such as `{ mapping }`.
 - **`data.parameters`**: Array<String> of configurable variable names.
+- **`data.polygonParts` / `data.layerData`**: (STANDARD uploads) the extracted
+  closed `cut.outer` contour and mapped semantic layer curves. These are the
+  nestable geometry and the preview/export source of truth.
 - **`data.revisions.geometry`**: Current immutable geometry revision pointer
   `{ currentId, number, contentHash }` maintained by the service after template
   create/update/upload.
 
-`Cassette.toJSON()` hoists `type`, `definition`, and `parameters` for frontend compatibility. Frontend cards, thumbnails, and queue editors should read those hoisted fields first. Older records may also carry `data.params` / `data.extrusions` directly; the model normalizes that legacy graph into `definition`.
+`Cassette.toJSON()` hoists `type`, `definition`, and `parameters` for frontend compatibility. Frontend cards, thumbnails, and editors read those hoisted fields first. Older records may also carry `data.params` / `data.extrusions` directly; the model normalizes that legacy graph into `definition`.
 
 ## Key Workflows
 
-### Digital Intent vs. Baked Geometry
-Templates in the `cassettes` collection do NOT store DXF files or physical tracking data. They serve as the source for `cassette_designs`.
+### Digital Intent and Geometry on One Record
+Templates in the `cassettes` collection do NOT store DXF files or physical
+tracking data.
 - **Parametric**: `data.definition` contains the editable legacy designer graph
-  or an OCCS v2 template document.
-- **Standard**: `data.definition.mapping` contains DXF-to-OCCS semantic layer
-  mapping; uploaded DXF bytes and extracted baked geometry live in
-  `cassette_designs`.
+  or an OCCS v2 template document; geometry is evaluated on demand by
+  [parametric-cassettes](../parametric-cassettes/README.md) for export.
+- **Standard**: `data.definition.mapping` contains the DXF-to-OCCS semantic
+  layer mapping; the extracted `data.polygonParts` and `data.layerData` are the
+  template's own geometry.
 
 Every template save resolves an `entity_revision` with `scope: "geometry"` from
 `data.type`, `data.definition`, and `data.parameters`. The template stores only
 the current pointer under `data.revisions.geometry`; the immutable source
 snapshot lives in `entity_revisions`.
 Revision identities include the cassette source id, so separate templates can
-each create geometry revision 1 without colliding before design provenance is
-built.
+each create geometry revision 1 without colliding.
 
-### Template-to-Design Creation
-`POST /api/cassettes/:id/designs` calls `createDesignFromTemplate()` and creates
-or returns a `cassette_design` for the selected template.
-- Parametric templates are evaluated with the supplied concrete parameter map,
-  generate a layer-aware DXF into the `cassettes` GridFS bucket, and create a
-  design with `data.polygonParts`, `data.layerData`, `data.geometry.dxfId`, and
-  `provenance.derivedFrom` pointing to the source geometry revision.
-- Standard uploaded templates already create their initial base design during
-  upload. The route returns that existing design when available instead of
-  duplicating the uploaded DXF.
+### Template Export
+`GET /api/cassettes/:id/export` is the DXF export boundary for both template
+kinds. Parametric exports evaluate the template (evaluated `layerData` when
+available, so folds, marks, dimensions, and cut layers are preserved instead of
+emitting only the nestable contour). STANDARD exports render the template's own
+`layerData`/`polygonParts` through the layered DXF writer and 404 when the
+template carries no geometry.
 
-The same constructor is used by process `createEntity` actions whose
-construction mode is `bakeCassetteDesignFromTemplate`. Process execution passes
-the prompted template id and parameter object into `createDesignFromTemplate()`.
-The resulting `cassette_design` derives its identity name from the source
-cassette; no separate design-name input exists in the process or API contract.
-It has the same baked geometry, `provenance.derivedFrom`, DXF/gridfs references, and editor
-contract as a design created from the cassette UI. Process runtime status is
-applied after construction by the process-definition service. Parametric
-templates must be construction-ready before this path runs: OCCS templates need
-`data.definition.extensions.perigram.graphTree`, and legacy parametric templates
-need the required `A` and `B` graph parameters. Incomplete draft templates are
-rejected before WASM evaluation so the renderer never receives a graph with
-null string fields. `findDefaultConstructableTemplate()` returns the first
-construction-ready parametric template visible to the caller, falling back to a
-standard template only when no parametric template is available. Process
-construction uses that selector when a graph action is executed without an
-explicit template id.
-
+### Process Construction
 Process `createEntity` actions target the ordinary cassette service; cassette
 creation has no alternate process construction mode. The service stores the
 supplied OCCS definition or creates the default OCCS v2 graph-tree document
@@ -86,15 +74,7 @@ If the graph action has a `library` parent input, process execution passes
 `libraryId` into the typed constructor and the cassette service persists it
 under `lineage.libraryId`. A parent-scoped process action must provide that
 parent id; the process runtime rejects the action before calling this service
-when the compiled parent input is missing. After a library-owned template is
-created, the cassette service synchronizes the parent library summary through
-the domain aggregation contract, so `summary.cassetteCount` reflects persisted
-children instead of UI-local inference.
-
-`GET /api/cassettes/:id/export` remains a template-level DXF export. Parametric
-exports use evaluated `layerData` when available, so folds, marks, dimensions,
-and cut layers are preserved instead of emitting only the nestable contour. For
-saved design assets, use the cassette-design export endpoint.
+when the compiled parent input is missing.
 
 `GET /api/cassettes` is the generated-screen list boundary for cassette
 templates. It must forward lineage filters such as `libraryId` to
@@ -105,21 +85,20 @@ only templates whose `lineage.libraryId` matches that opened library.
 `listPreviewByLibraries()` is the library-card summary snapshot path used by
 generated screens. Those `summary.cassettePreview[]` entries must include the
 thumbnail-critical cassette fields that `CassetteThumbnail` consumes:
-`data.definition`, baked `data.geometry`, `data.layerData`, and
+`data.definition`, `data.layerData`, and
 `data.polygonParts`, in addition to identity/status metadata. Returning only an
 id plus light summary data breaks inline cassette previews inside library child
 galleries because `InstanceInlineRef` intentionally reuses the provided entity
 snapshot before issuing another fetch.
 
 ### DXF Upload
-`upload()` requires one mapped DXF layer to resolve to `cut.outer`. The service
-extracts closed polygons from that layer into the created cassette design
-`data.polygonParts` / `data.geometry.data.polygonParts` so nesting can consume
-the design directly. Other mapped DXF layers are extracted as open or closed
-curve `layerData` so nested sheet-design previews can carry folds, marks,
-dimensions, and other semantic layers forward. The endpoint returns both the
-created template and its initial design; queue uploads should add the design id,
-not the template id.
+`POST /api/cassettes/upload` (multipart file) and `POST /api/cassettes/import`
+(JSON `artifactId`, the two-step companion used by the sheet editor's upload
+dialog) both call `importFromArtifact()`. One mapped DXF layer must resolve to
+`cut.outer`: the service extracts closed polygons from that layer into the
+created cassette's `data.polygonParts`, and other mapped layers are extracted
+as open or closed curve `data.layerData`, so nesting and sheet-design previews
+consume the template directly. Both endpoints return the created template DTO.
 
 ### Update Operations
 - The generated designer mounts persist through the instance transport
@@ -127,13 +106,9 @@ not the template id.
   the OCCS document is the file payload, and the designer emits its document
   to the mounting surface. The legacy direct-REST designer path died with the
   cassette manager. These routes remain for the pack-internal pipeline
-  (designs-from-template, export, DXF upload) and the sheet editor's
-  cassette upload dialog.
+  (export, DXF upload/import) and the sheet editor's cassette upload dialog.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
 - **`updateParameters`**: Updates the list of configurable parameters for the template.
-- **`ensureCurrentGeometryRevision`**: Creates or reuses the current geometry
-  revision and refreshes `data.revisions.geometry`. Migration scripts use this
-  helper to backfill old templates.
 
 ### Permission Model
 Access is governed by `lineage.organizationId` and status-scoped process
@@ -146,9 +121,8 @@ filter and then prunes results through the same read check used by
 detail page would return 403. Single-template reads must also pass the full
 cassette entity to the access evaluator; passing only `cassette.lineage` drops
 status data and breaks process grants scoped to statuses such as `CREATED2`.
-Lineage query aliases such as `projectId`, `queueId`, `warehouseId`,
-`libraryId`, and `cassetteId` are normalized to `lineage.*` filters before
-repository access.
+Lineage query aliases such as `libraryId` are normalized to `lineage.*`
+filters before repository access.
 This keeps generated or authored screen filters scoped to actual lineage
 fields instead of accidentally matching root-level compatibility fields.
 Mutation paths such as template update, layer mapping, parameter update, and
@@ -161,6 +135,6 @@ status, so a role granted cassette writes in `NEW` can create or Save As a
 template through the cassette entity endpoint.
 
 ## Related
-- [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.
 - [instance-revisions](../instance-revisions/README.md) - Immutable source revision snapshots.
 - [parametric-cassettes](../parametric-cassettes/README.md) - Engine for evaluating parametric logic.
+- [artifact-conversions](../artifact-conversions/README.md) - DXF-source artifact to cassette conversion.

@@ -1,10 +1,6 @@
 import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
 import CassetteCard from '~/components/entities/Cassette/CassetteCard.vue';
-import CassetteDesignCard from '~/components/entities/CassetteDesign/CassetteDesignCard.vue';
-import CassetteTemplateCard from '~/components/entities/CassetteTemplate/CassetteTemplateCard.vue';
 import EntityRevisionCard from '~/components/entities/EntityRevision/EntityRevisionCard.vue';
-import ProfileTemplateCard from '~/components/entities/ProfileTemplate/ProfileTemplateCard.vue';
-import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 import UserCard from '~/components/entities/User/UserCard.vue';
@@ -24,11 +20,7 @@ import {
 const components = {
   sheetDesign: SheetDesignCard,
   cassette: CassetteCard,
-  cassetteDesign: CassetteDesignCard,
-  cassetteTemplate: CassetteTemplateCard,
   entityRevision: EntityRevisionCard,
-  profileTemplate: ProfileTemplateCard,
-  toolProfile: ToolProfileCard,
   penTemplate: PenTemplateCard,
   layerStandard: LayerStandardCard,
   user: UserCard,

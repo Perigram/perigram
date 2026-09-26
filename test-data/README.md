@@ -121,28 +121,12 @@ organization membership, and permissions so permission editors do not render a
 fake role-only user contract.
 Current mutable location examples belong in `status.lifecycle.data.location`, not in root `data` or `lineage`. Use typed shapes such as `warehouse`, `coordinates`, or `address` so `InstanceState` can render the same location contract used by real DTOs.
 Geometry previews for design/remnant cards belong under `data.geometry.preview` with layer paths or polygon points. Do not add UI-only filename fields when the card needs a visual preview.
-`createMockPile()` represents a general/manual warehouse material pile. `createMockBatchPile()` represents a requisition-sourced pile and must include `lineage.requisitionId` so UI Lab keeps `materialPile` and `batchPile` visually distinct even though both use the `material_pile` backend entity type.
 
 ## Workbench Context
 
-`workbench-context.js` is the admin workbench source of truth for generated
-and runtime dev data. It stores entities as a type/id map, refs, relationships,
-compiled workflows, access defaults, and typed command input bindings in
-one context. Command outputs are upserted back into that same context before
-they are rendered, so the UI does not create placeholder entity cards. Local
-preview status transitions patch entity `status` blocks inside this same
-context rather than calling persisted APIs for draft fixtures.
-`workbench-manual-entities.js` owns the typed manual entity creation rules used
-by the workbench. It creates minimal DTOs from v24 blocks instead of copying
-factory demo payloads: lineage references are declared as `instanceId` fields,
-queues get only the typed cassette/quantity inputs needed for nesting, and
-cassette designer output is stored in the backend `cassette` bucket while
-previewing through the cassette-template UI surface. Queue item parameter
-defaults are extracted through `utils/occs/parameters.js` and support both
-legacy cassette `definition.params` and OCCS v2 `definition.parameters`, so
-saved Cassette Designer v2 templates can feed the nesting command through the
-normal queue input. Default manual drafts only fill name and workflow state;
-entity references must be selected explicitly.
+The workbench context module and its manual-creation rules table were orphans
+of the deleted entity-era workbench and are gone; factories remain low-level
+DTO constructors.
 
 The legacy `scenarios.js` demo-graph composer was deleted with the entity-era
 CNC vocabulary (SPEC §19 abandoned data). The context helper

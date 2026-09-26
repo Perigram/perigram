@@ -106,11 +106,11 @@ function normalizeCassetteParameters(value = {}) {
 
 function normalizeEntityListValue(field = {}, value = []) {
   const ids = Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);
-  if (field.accepts?.includes('cassette_design')) {
+  if (field.accepts?.includes('cassette')) {
     return ids.map((id, index) => ({
       entryId: `${field.id || 'entry'}_${index + 1}`,
       id,
-      typeId: 'cassette_design',
+      typeId: 'cassette',
       quantity: 1
     }));
   }

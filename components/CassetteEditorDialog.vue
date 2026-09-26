@@ -349,7 +349,7 @@ const handleUpload = async () => {
             }
           }
         })
-      : await $fetch('/api/cassette-designs/import', { method: 'POST', body: data });
+      : await $fetch('/api/cassettes/import', { method: 'POST', body: data });
     const uploadedTemplate = uploadResult?.template || uploadResult;
 
     emit('uploaded', uploadedTemplate);

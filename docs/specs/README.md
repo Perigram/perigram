@@ -9,7 +9,6 @@ runtime modules.
 | Spec | Purpose |
 |---|---|
 | [Cassette spec](<./Cassette spec/SPEC.md>) | OCCS v0.4 draft package for canonical cassette templates/designs, declarative hardware/profile workpieces, semantic layers, validation, examples, and tooling. |
-| [cassette-occs-migration-plan.md](./cassette-occs-migration-plan.md) | Maps the current Perigram cassette designer graph to OCCS and defines the migration path. |
 | [nodi-operation-contract.md](./nodi-operation-contract.md) | Formal Perigram-to-Nodi3d operation manifest and compiler contract for OCCS evaluation. |
 | [nodi-operation-manifest.schema.json](./nodi-operation-manifest.schema.json) | JSON Schema for validating Nodi3d operation manifests. |
 | [nodi-occs-graph-checklist.md](./nodi-occs-graph-checklist.md) | Short build sheet for the first Nodi3d operation graphs needed to evaluate OCCS cassette templates. |

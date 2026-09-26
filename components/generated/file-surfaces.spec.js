@@ -79,8 +79,6 @@ describe('file surface registry', () => {
     expect(actions.get('cassette')).toMatchObject({ forceIdentity: false });
     expect(actions.get('cassette').component).toBeTruthy();
     expect(actions.get('sheet-design')).toMatchObject({ component: null, forceIdentity: true });
-    expect(actions.get('facade-design')).toMatchObject({ component: null, forceIdentity: false });
-    expect(actions.get('facade-pattern')).toMatchObject({ component: null, forceIdentity: false });
     expect(actions.get('sketch')).toMatchObject({ component: null, forceIdentity: true });
     expect(actions.get('text-document')).toMatchObject({ component: null, forceIdentity: true });
     expect(actions.get('csv-table')).toMatchObject({ component: null, forceIdentity: true });
@@ -88,7 +86,7 @@ describe('file surface registry', () => {
 
   it('derives detail and workspace page rows only for surfaces with presentations', () => {
     const detailTypes = fileDetailOverloads().map(overload => overload.typeId).sort();
-    expect(detailTypes).toEqual(['cassette', 'csv-table', 'facade-design', 'facade-pattern', 'sheet-design', 'sketch', 'text-document']);
+    expect(detailTypes).toEqual(['cassette', 'csv-table', 'sheet-design', 'sketch', 'text-document']);
     const pageIds = fileWorkspacePages().map(page => page.id);
     expect(pageIds).toEqual(['cassette-designer']);
     expect(fileWorkspacePages()[0].typeId).toBe('cassette');
@@ -152,7 +150,7 @@ describe('file surface registry', () => {
     expect(resolveFileSurface(packEditorBindings, 'queue')).toBeNull();
     expect(resolveFileSurface([{ type: 'x', surface: 'no-such-surface', modes: ['edit'] }], 'x')).toBeNull();
     expect(resolveFileSurface(packEditorBindings, '')).toBeNull();
-    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sheet-design-editor', 'facade-designer', 'facade-pattern-designer', 'sketch-editor', 'text-editor', 'csv-editor']));
+    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sheet-design-editor', 'sketch-editor', 'text-editor', 'csv-editor']));
   });
 
   it('builds payload download URLs against the files bucket', () => {

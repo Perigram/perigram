@@ -18,8 +18,8 @@ seam graph processes drive.
 - `solve-value.js` is the registered service command (`solveNestingValue`,
   SPEC §8 s species): the pack's `nesting.solve` service registration
   ([`packages/facade` pack](../../../packages/facade/README.md))
-  names it, and the cnc pack mounts it as a command handler
-  ([`server/packs/cnc`](../../packs/README.md)). It receives the command
+  names it, and the facade pack mounts it as a command handler
+  ([`server/packs/facade`](../../packs/README.md)). It receives the command
   envelope; the declared parameter sockets `items` (job geometry) and
   `params` (sheet parameters) arrive on `parameters`. It validates the
   value shapes before any worker call (400s), calls the FastAPI solver at

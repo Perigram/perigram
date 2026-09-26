@@ -1,49 +1,29 @@
 # CONTAINER: Workers
 
-Worker services and app-side executors execute retryable `task_runs` declared by
-`@perigram/facade`. The app owns task persistence and exposes the worker
-protocol under `/api/tasks/*`; polling workers authenticate with
-`x-worker-token`.
+The worker tier is the nesting solver only. The polling task workers
+(file-processing, cassette-processing, geometry-capture) were deleted with
+the queue-era task chains: no code path enqueued their tasks
+(`dxf.parseUpload`, `cassette.bakeTemplate`, `vision.extractGeometry`), so
+their containers polled queues nothing feeds. The `task_runs` protocol
+under `/api/tasks/*` remains available for future task executors that are
+registered beside a live enqueue site.
 
 ## Services
 
-| Worker | Task | Entry point | Responsibility |
+| Worker | Protocol | Entry point | Responsibility |
 |---|---|---|---|
-| fileprocessing | `dxf.parseUpload` | `workers/fileprocessing/main.py` | Reads uploaded DXF payloads, extracts metadata/geometry, writes preview files. |
-| cassette-processing | `cassette.bakeTemplate` | `workers/cassette-processing/main.py` | Bakes cassette templates into concrete geometry/DXF data. |
-| geometry-capture | `vision.extractGeometry` | `workers/geometry-capture/main.py` | Uses prompted/automatic SAM2, GroundingDINO, and OpenCV fallback to turn capture photos into revisioned draft polygons with hole contours. |
-| nesting | `nesting.solve` HTTP executor | `workers/nesting/worker_service.py` | Pure FastAPI 2D nesting solver called by the app/adapter. |
+| nesting | HTTP solver | `workers/nesting/worker_service.py` | Pure FastAPI 2D nesting solver called synchronously by the `solveNestingValue` command through `NESTING_WORKER_URL`. |
 
-## Protocol
-
-1. App enqueues a `task_runs` record through `server/core/tasks`.
-2. Polling workers call `POST /api/tasks/claim` with `taskId`, `workerType`,
-   `workerId`, and `x-worker-token`.
-3. Polling workers send heartbeat/complete/fail calls with the claim token
-   returned by the claim response.
-4. App records the normalized task output in `task_runs`.
-
-The nesting service is different: it is a pure HTTP solver. The app-side
-`nesting.solve` executor claims the task internally and calls
-`workers/nesting/worker_service.py` through `NESTING_WORKER_URL`.
-
-`WORKER_TOKEN` must be set on the app and workers. Local compose files default
-to `perigram-dev-worker`; production stacks expect `WORKER_TOKEN` from the
-environment/secrets.
+The nesting service is not a task executor: the app-side
+`nesting.solve` V→V command (`server/features/nesting/solve-value.js`,
+mounted by the facade pack) validates inputs, calls the solver over HTTP,
+and maps results — there is no `task_runs` round trip.
 
 ## Docker
 
-Build workers from the project root. `cassette-processing` imports code from the
-file-processing worker, so root build context is required.
+Build from the project root (the solver image needs the repo context):
 
-`build-images.sh` builds the app image plus file-processing, nesting, and
-cassette-processing worker images. The geometry-capture worker source remains
-in this directory, but the neural-network capture worker is not built or
-started by the Docker compose files and does not maintain a Dockerfile.
-
-## Related
-
-- [Task runtime](../server/core/tasks/README.md)
-- [fileprocessing](./fileprocessing/README.md)
-- [cassette-processing](./cassette-processing/README.md)
-- [nesting](./nesting/README.md)
+`build-images.sh` builds the app image plus the nesting worker image.
+Both compose files and both stack files run `nesting-worker` beside the
+app and Mongo. `WORKER_TOKEN` remains the app/worker shared secret for
+any future polling executor; the nesting worker does not use it.

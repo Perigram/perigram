@@ -382,12 +382,12 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
 
   it('refuses types without a revision scope or payload traits', async () => {
     stubCollection();
-    const facadeDesign = instanceServiceResolver('facade-design'); // payload, no revisions
-    await expect(facadeDesign.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'm.glb' }, {}))
+    const dxfSource = instanceServiceResolver('dxf-source'); // payload, no revisions
+    await expect(dxfSource.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'm.dxf' }, {}))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('revision scope') });
 
-    const pattern = instanceServiceResolver('facade-pattern'); // revisions absent, no payload
-    await expect(pattern.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'g.json' }, {}))
+    const pen = instanceServiceResolver('pen-template'); // revisions absent, no payload
+    await expect(pen.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'g.json' }, {}))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('declares no payload') });
   });
 
