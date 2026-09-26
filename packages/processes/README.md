@@ -1095,11 +1095,16 @@ one-time broom is
 (dry-run default, `--apply` deletes and best-effort recompiles).
 
 The wiring graph context treats native species records (`cts.*`) as
-executable graph citizens beside the legacy `effect.*` kinds: a wired
-producer's output state is both the machine edge's from-state and the
-compiled action's status window (`state.from`), so generated surfaces scope
-a transition's button to the states its wiring declares and the status
-engine validates the operated instance against exactly those edges.
+executable graph citizens beside the legacy `effect.*` kinds, and one
+derivation — `declaredTransitionSources`, the arrival states on an action's
+entity wires (with an authored `from` as legacy fallback, never a filter) —
+feeds every consumer: the machine edges (both compiler branches), the
+compiled action's status window (`state.from`, carried through the manifest
+projection), and the client's action filter, so a transition's button
+appears exactly in the states its wiring declares and the status engine
+validates the operated instance against exactly those edges. Unscoped state
+value tokens satisfy any bound type in machine vocabulary seeding, the same
+rule the binding check applies.
 
 A process whose grants infer zero stations compiles to zero screens:
 authoring is delta-only (there is no screen create verb), so with no
