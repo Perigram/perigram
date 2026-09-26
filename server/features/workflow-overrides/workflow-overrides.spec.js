@@ -98,15 +98,19 @@ describe('workflow overrides service', () => {
     expect(workflow.initial).toBe('CUSTOM');
   });
 
-  it('falls back to the default workflow when no active override exists', async () => {
+  it('resolves no machine when no process output or override exists', async () => {
     repository.findActiveByEntity.mockResolvedValue(null);
+    getActiveCompiledProcess.mockResolvedValue({ producerOutputs: {} });
 
     const workflow = await service.resolveActiveWorkflow({
       typeId: 'project',
       organizationId: auth.memberships[0].organizationId
     });
 
-    expect(workflow.initial).toBe('DRAFT');
+    // Machines are graph-derived (SPEC §7): with no compiled producer
+    // output and no organization override there is deliberately no
+    // machine — creation through the status runtime must fail loudly.
+    expect(workflow).toBeNull();
     expect(resolveProcessWorkflow).not.toHaveBeenCalled();
   });
 
@@ -191,15 +195,17 @@ describe('workflow overrides service', () => {
     expect(overridden.initial).toBe('SEEDED');
   });
 
-  it('falls through an inactive compiled process to the override and default', async () => {
+  it('falls through an empty compiled process to the organization override', async () => {
     getActiveCompiledProcess.mockResolvedValueOnce({ producerOutputs: {} });
-    repository.findActiveByEntity.mockResolvedValue(null);
+    repository.findActiveByEntity.mockResolvedValue({
+      workflow: { initial: 'OVERRIDE', states: { OVERRIDE: {} }, transitions: [] }
+    });
 
     const workflow = await service.resolveActiveWorkflow({
       typeId: 'project',
       organizationId: auth.memberships[0].organizationId
     });
 
-    expect(workflow.initial).toBe('DRAFT');
+    expect(workflow.initial).toBe('OVERRIDE');
   });
 });

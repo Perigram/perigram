@@ -449,7 +449,7 @@ export async function updateLayout(id, { items = [], placedItems = [] } = {}, us
     width: design.specs?.width,
     height: design.specs?.length
   };
-  const cassetteDesigns = cassetteDesignsForNestingResult(result);
+  const cassetteDesigns = cassettesForNestingResult(result);
   const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
   const data = {
     ...(design.data || {}),

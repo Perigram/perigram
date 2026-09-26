@@ -72,9 +72,11 @@ export function resolveDefaultWorkflow(typeId) {
   return getDefaultWorkflow(normalizedTypeId);
 }
 
-function getDefaultWorkflow(typeId) {
-  const domain = getPerigramRegistry().getDomain('cnc');
-  return domain?.workflows?.[typeId] || null;
+// Machines are graph-derived (SPEC §7): state vocabularies live in process
+// definitions and the compiled contract owns machines wherever one is needed.
+// There is no domain workflow table behind the process/override chain.
+function getDefaultWorkflow() {
+  return null;
 }
 
 function normalizeWorkflowPayload(workflow) {
@@ -104,11 +106,6 @@ function assertWorkflowAdmin({ typeId, organizationId, auth }) {
 }
 
 function typeIdToFeature(typeId) {
-  if (typeId === 'project') return 'projects';
-  if (typeId === 'queue') return 'queues';
-  if (['material', 'material_pile', 'sheet', 'remnant', 'geometry_capture'].includes(typeId)) return 'materials';
-  if (typeId === 'requisition') return 'requisitions';
-  if (typeId.includes('cassette')) return 'projects';
   return typeId.replace(/_/g, '-');
 }
 

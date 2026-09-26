@@ -16,7 +16,6 @@ export async function enqueueTask(taskId, input = {}, auth = {}, options = {}) {
 
   return await repository.create({
     taskId,
-    domainId: options.domainId || 'cnc',
     service: task.service,
     executor: task.executor || null,
     workerType: task.executor?.workerType || task.executor?.target || null,

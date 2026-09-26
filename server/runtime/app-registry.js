@@ -3,7 +3,6 @@
 // facade-shaped — the facade plug-in (server/packs/facade) is mounted like
 // any pack, and removing it removes the pack.
 import { createRegistry } from '~/server/core/blocks/index.js';
-import { hooks } from '~/server/core/machines/hooks.js';
 
 import * as artifactsService from '~/server/features/artifacts/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
@@ -129,9 +128,6 @@ function registerAppBindings(registry) {
 
   for (const [id, handler] of Object.entries(frameworkCommandHandlers)) {
     registry.registerCommandHandler(id, handler);
-  }
-  for (const [id, handler] of Object.entries(hooks)) {
-    registry.registerHookHandler(id, handler);
   }
 }
 

@@ -14,6 +14,29 @@ const { mockedConnectDB } = vi.hoisted(() => ({
 
 vi.mock('../../db/mongo.js', () => ({ connectDB: mockedConnectDB }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
+
+const { workflowMachines } = vi.hoisted(() => {
+  // The documented revision lifecycle (instance-revisions README): the
+  // terminal system state RECORDED. Machines are graph-derived (SPEC §7):
+  // the spec environment supplies the machine through the
+  // workflow-resolution seam the machines service consumes.
+  const entityRevisionWorkflow = {
+    primaryRegion: 'main',
+    regions: {
+      main: {
+        initial: 'RECORDED',
+        states: { RECORDED: { terminal: true } },
+        transitions: []
+      }
+    }
+  };
+  return { workflowMachines: { entity_revision: entityRevisionWorkflow } };
+});
+
+vi.mock('~/server/features/workflow-overrides/service.js', () => ({
+  resolveActiveWorkflow: vi.fn(async ({ typeId }) => workflowMachines[typeId] ?? null),
+  resolveDefaultWorkflow: vi.fn((typeId) => workflowMachines[typeId] ?? null)
+}));
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
     const error = new Error(err.message);

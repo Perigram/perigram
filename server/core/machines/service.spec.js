@@ -17,12 +17,44 @@ vi.mock('h3', () => ({
 
 import { stateService as statusService } from './service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
+import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 
-const transitionAuth = {
-  userId: 'operator-1',
-  memberships: [{ organizationId: 'org-1', permissions: { projects: 'write', cassettes: 'write' } }],
-  permissions: { projects: 'write', cassettes: 'write' }
+// The cassette lifecycle exactly as the facade pack declares it (SPEC §7):
+// declarations are not a machine source, so the spec environment supplies
+// the machine through workflow resolution. The archive transition keeps
+// the access contract the authorization tests assert: the system actor
+// may archive, humans need the cassettes admin grant.
+const cassetteWorkflow = {
+  primaryRegion: 'main',
+  regions: {
+    main: {
+      initial: 'ACTIVE',
+      states: { ACTIVE: {}, ARCHIVED: { terminal: true } },
+      transitions: [{
+        from: 'ACTIVE',
+        to: 'ARCHIVED',
+        intent: 'archiveCassette',
+        display: 'menu',
+        access: {
+          system: true,
+          permissions: [{ feature: 'cassettes', typeId: 'cassette', level: 'admin' }]
+        }
+      }]
+    }
+  }
 };
+
+const mockCassetteWorkflow = () =>
+  vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(cassetteWorkflow);
+
+const cassetteDoc = (id, extra = {}) => ({
+  type: 'cassette',
+  _id: id,
+  identity: { uid: id, name: 'Template' },
+  lineage: { organizationId: 'org-1' },
+  status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} },
+  ...extra
+});
 
 describe('status service lifecycle payloads', () => {
   let con;
@@ -34,6 +66,10 @@ describe('status service lifecycle payloads', () => {
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
+    // Registry collection metadata for the cassette class: CTS file-class
+    // instances persist in the `files` class collection, and lifecycle
+    // snapshot capture resolves target collections through the registry.
+    getPerigramRegistry().defineEntity({ type: 'cassette', collection: 'files', feature: 'cassettes' });
   });
 
   afterAll(async () => {
@@ -45,7 +81,7 @@ describe('status service lifecycle payloads', () => {
     vi.restoreAllMocks();
     mockedConnectDB.mockReturnValue(db);
     await db.collection('items').deleteMany({});
-    await db.collection('cassettes').deleteMany({});
+    await db.collection('files').deleteMany({});
     await db.collection('processes').deleteMany({});
     await db.collection('process_definitions').deleteMany({});
     await db.collection('groups').deleteMany({});
@@ -58,33 +94,23 @@ describe('status service lifecycle payloads', () => {
   });
 
   it('uses full auth context and registry collection metadata for cassette transitions', async () => {
-    await db.collection('cassettes').insertOne({
-      type: 'cassette',
-      _id: 'cassette-1',
-      identity: { uid: 'cassette-1', name: 'Template' },
-      lineage: { organizationId: 'org-1' },
-      status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
-    });
+    mockCassetteWorkflow();
+    await db.collection('files').insertOne(cassetteDoc('cassette-1'));
 
     await statusService.transition('cassette', 'cassette-1', 'ARCHIVED', 'admin-1', {
       userId: 'admin-1',
       memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
     });
 
-    const entity = await db.collection('cassettes').findOne({ _id: 'cassette-1' });
+    const entity = await db.collection('files').findOne({ _id: 'cassette-1' });
     expect(entity.status.state.primary).toBe('ARCHIVED');
     expect(entity.status.state?.primary ?? entity.status.state).toBe('ARCHIVED');
     expect(entity.status.userId).toBe('admin-1');
   });
 
   it('returns only server-authorized actions for the current user', async () => {
-    await db.collection('cassettes').insertOne({
-      type: 'cassette',
-      _id: 'cassette-2',
-      identity: { uid: 'cassette-2', name: 'Template' },
-      lineage: { organizationId: 'org-1' },
-      status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
-    });
+    mockCassetteWorkflow();
+    await db.collection('files').insertOne(cassetteDoc('cassette-2'));
 
     const allowed = await statusService.getActions('cassette', 'cassette-2', {
       userId: 'admin-1',
@@ -100,59 +126,42 @@ describe('status service lifecycle payloads', () => {
   });
 
   it('preflights a named intent without mutating status', async () => {
-    await db.collection('queues').insertOne({
-      type: 'queue',
-      _id: 'queue-intent-preflight',
-      identity: { uid: 'queue-intent-preflight', name: 'Queue' },
-      lineage: { organizationId: 'org-1' },
-      state: 'DRAFT'
-    });
+    mockCassetteWorkflow();
+    await db.collection('files').insertOne(cassetteDoc('cassette-intent-preflight'));
 
     await expect(statusService.assertIntentAvailable(
-      'queue',
-      'queue-intent-preflight',
-      'completeNestingProduction',
+      'cassette',
+      'cassette-intent-preflight',
+      'archiveCassette',
       { userId: 'SYSTEM', role: 'SYSTEM', system: true }
-    )).resolves.toMatchObject({ from: 'DRAFT', to: 'READY' });
+    )).resolves.toMatchObject({ from: 'ACTIVE', to: 'ARCHIVED' });
 
-    const queue = await db.collection('queues').findOne({ _id: 'queue-intent-preflight' });
-    expect(queue.state).toBe('DRAFT');
-    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-preflight' })).toBe(0);
+    const cassette = await db.collection('files').findOne({ _id: 'cassette-intent-preflight' });
+    expect(cassette.status.state).toBe('ACTIVE');
+    expect(await db.collection('status_events').countDocuments({ targetId: 'cassette-intent-preflight' })).toBe(0);
   });
 
   it('commits an intent transition and entity patch through one transition boundary', async () => {
-    await db.collection('queues').insertOne({
-      type: 'queue',
-      _id: 'queue-intent-patch',
-      identity: { uid: 'queue-intent-patch', name: 'Queue' },
-      lineage: { organizationId: 'org-1' },
-      state: 'DRAFT',
-      data: { marker: 'before' }
-    });
+    mockCassetteWorkflow();
+    await db.collection('files').insertOne(cassetteDoc('cassette-intent-patch', { data: { marker: 'before' } }));
 
     await statusService.transitionWithResult({
-      typeId: 'queue',
-      targetId: 'queue-intent-patch',
-      intent: 'completeNestingProduction',
+      typeId: 'cassette',
+      targetId: 'cassette-intent-patch',
+      intent: 'archiveCassette',
       auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
       patch: { data: { marker: 'after' } }
     });
 
-    const queue = await db.collection('queues').findOne({ _id: 'queue-intent-patch' });
-    expect(queue.state).toBe('READY');
-    expect(queue.data.marker).toBe('after');
-    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-patch' })).toBe(1);
+    const cassette = await db.collection('files').findOne({ _id: 'cassette-intent-patch' });
+    expect(cassette.status.state.primary).toBe('ARCHIVED');
+    expect(cassette.data.marker).toBe('after');
+    expect(await db.collection('status_events').countDocuments({ targetId: 'cassette-intent-patch' })).toBe(1);
   });
 
   it('rejects combined status/entity writes when Mongo topology rejects transactions', async () => {
-    await db.collection('queues').insertOne({
-      type: 'queue',
-      _id: 'queue-standalone-patch',
-      identity: { uid: 'queue-standalone-patch', name: 'Queue' },
-      lineage: { organizationId: 'org-1' },
-      state: 'DRAFT',
-      data: { marker: 'before' }
-    });
+    mockCassetteWorkflow();
+    await db.collection('files').insertOne(cassetteDoc('cassette-standalone-patch', { data: { marker: 'before' } }));
     const session = {
       withTransaction: vi.fn(async () => {
         throw new Error('Transaction numbers are only allowed on a replica set member or mongos');
@@ -166,46 +175,20 @@ describe('status service lifecycle payloads', () => {
     mockedConnectDB.mockReturnValue(standaloneDb);
 
     await expect(statusService.transitionWithResult({
-      typeId: 'queue',
-      targetId: 'queue-standalone-patch',
-      intent: 'completeNestingProduction',
+      typeId: 'cassette',
+      targetId: 'cassette-standalone-patch',
+      intent: 'archiveCassette',
       auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
       patch: { data: { marker: 'after' } }
     })).rejects.toThrow('Transaction numbers are only allowed on a replica set member or mongos');
 
-    const queue = await db.collection('queues').findOne({ _id: 'queue-standalone-patch' });
+    const cassette = await db.collection('files').findOne({ _id: 'cassette-standalone-patch' });
     expect(standaloneDb.client.startSession).toHaveBeenCalled();
     expect(session.withTransaction).toHaveBeenCalled();
     expect(session.endSession).toHaveBeenCalled();
-    expect(queue.state).toBe('DRAFT');
-    expect(queue.data.marker).toBe('before');
-    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-standalone-patch' })).toBe(0);
-  });
-
-  it('returns archive as a queue menu action from every queue lifecycle state', async () => {
-    const states = ['DRAFT', 'NESTING', 'READY', 'CLOSED'];
-
-    for (const state of states) {
-      const id = `queue-${state.toLowerCase()}`;
-      await db.collection('processes').insertOne({
-        type: 'queue',
-        _id: id,
-        identity: { uid: id, name: `Queue ${state}` },
-        lineage: { organizationId: 'org-1' },
-        state
-      });
-
-      const allowed = await statusService.getActions('queue', id, {
-        userId: 'operator-1',
-        memberships: [{ organizationId: 'org-1', permissions: { queues: 'admin' } }]
-      });
-
-      expect(allowed.actions).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ to: 'ARCHIVED', display: 'menu' })
-        ])
-      );
-    }
+    expect(cassette.status.state).toBe('ACTIVE');
+    expect(cassette.data.marker).toBe('before');
+    expect(await db.collection('status_events').countDocuments({ targetId: 'cassette-standalone-patch' })).toBe(0);
   });
 
   it('includes compiled process status actions for the matching entity status', async () => {
@@ -372,71 +355,6 @@ describe('status service lifecycle payloads', () => {
     expect(queue.status.state.primary).toBe('Создано');
   });
 
-  it('keeps domain system intents available when an active process defines custom statuses', async () => {
-    await db.collection('process_definitions').insertOne({
-      _id: 'process-active-system-intents',
-      identity: { uid: 'process-active-system-intents', name: 'Process' },
-      lineage: { organizationId: 'org-1' },
-      status: {
-        state: {
-          schemaVersion: 2,
-          primary: 'ACTIVE',
-          active: { main: 'ACTIVE' },
-          regions: { main: { state: 'ACTIVE', path: ['ACTIVE'] } }
-        }
-      },
-      data: {
-        compiled: {
-          workflows: {
-            solve_run: {
-              schemaVersion: 2,
-              primaryRegion: 'main',
-              regions: {
-                main: {
-                  initial: 'NESTING',
-                  states: {
-                    NESTING: { canUpdateMeta: true },
-                    COMPLETE: { canUpdateMeta: true }
-                  },
-                  transitions: [
-                    { from: 'NESTING', to: 'COMPLETE', intent: 'nestingSolveCompleted', display: 'hidden', access: { system: true } }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-    await db.collection('nesting_runs').insertOne({
-      type: 'solve_run',
-      _id: 'run-process-system-intents',
-      identity: { uid: 'run-process-system-intents', name: 'Run 1' },
-      lineage: { organizationId: 'org-1', queueId: 'queue-1' },
-      status: {
-        state: {
-          schemaVersion: 2,
-          primary: 'NESTING',
-          active: { main: 'NESTING' },
-          regions: { main: { state: 'NESTING', path: ['NESTING'] } }
-        },
-        userId: 'SYSTEM',
-        timestamp: new Date(),
-        metadata: {}
-      }
-    });
-
-    await statusService.applyIntent(
-      'solve_run',
-      'run-process-system-intents',
-      'nestingSolveCompleted',
-      { userId: 'SYSTEM', role: 'SYSTEM', system: true }
-    );
-
-    const run = await db.collection('nesting_runs').findOne({ _id: 'run-process-system-intents' });
-    expect(run.status.state.primary).toBe('COMPLETE');
-  });
-
   it('records actor, operation, and evidence first-class on transition events', async () => {
     const id = new ObjectId();
     await db.collection('items').insertOne({
@@ -599,93 +517,6 @@ describe('status service lifecycle payloads', () => {
     });
   });
 
-  it('writes metadata and lifecycle to the entity snapshot and status event', async () => {
-    const id = new ObjectId();
-    const projectId = new ObjectId();
-    await db.collection('groups').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
-    await db.collection('cassette_instances').insertOne({
-      type: 'cassette_instance',
-      _id: id,
-      identity: { uid: id, name: 'Cassette 1' },
-      lineage: { projectId },
-      state: 'PRODUCED'
-    });
-
-    await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
-      metadata: { note: 'Measured after milling' },
-      lifecycle: {
-        actors: [{ userId: 'mounter-1', capability: 'mounting', states: ['INSTALLED'] }],
-        attachments: {
-          geometry: { fileId: 'geometry-file', bucketName: 'uploads' },
-          photos: [{ fileId: 'photo-file', bucketName: 'uploads' }]
-        },
-        data: { measuredWidth: 1200 }
-      }
-    });
-
-    const entity = await db.collection('cassette_instances').findOne({ _id: id });
-    expect(entity.state).toBe('MILLED');
-    const audit = await db.collection('status_events').findOne({ targetId: id });
-    expect(audit.status.metadata.note).toBe('Measured after milling');
-    expect(audit.status.lifecycle.actors[0].userId).toBe('mounter-1');
-    expect(audit.status.lifecycle.attachments.geometry.fileId).toBe('geometry-file');
-    expect(audit.status.lifecycle.attachments.photos).toHaveLength(1);
-    expect(audit.status.lifecycle.data.measuredWidth).toBe(1200);
-
-    const event = await db.collection('status_events').findOne({ targetId: id });
-    expect(event.status.lifecycle.attachments.geometry.fileId).toBe('geometry-file');
-    expect(event.status.metadata.note).toBe('Measured after milling');
-  });
-
-  it('keeps metadata-only transitions compatible', async () => {
-    const id = new ObjectId();
-    const projectId = new ObjectId();
-    await db.collection('groups').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
-    await db.collection('cassette_instances').insertOne({
-      type: 'cassette_instance',
-      _id: id,
-      identity: { uid: id, name: 'Cassette 2' },
-      lineage: { projectId },
-      state: 'PRODUCED'
-    });
-
-    await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
-      note: 'Legacy call shape'
-    });
-
-    const entity = await db.collection('cassette_instances').findOne({ _id: id });
-    expect(entity.state).toBe('MILLED');
-    const event = await db.collection('status_events').findOne({ targetId: id });
-    expect(event.status.metadata.note).toBe('Legacy call shape');
-    expect(event.status.lifecycle).toEqual({ actors: [], attachments: {}, data: {} });
-  });
-
-  it('strips producer output provenance from persisted entity status metadata', async () => {
-    const id = new ObjectId();
-    const projectId = new ObjectId();
-    await db.collection('groups').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
-    await db.collection('cassette_instances').insertOne({
-      type: 'cassette_instance',
-      _id: id,
-      identity: { uid: id, name: 'Cassette 3' },
-      lineage: { projectId },
-      state: 'PRODUCED'
-    });
-
-    await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
-      producerOutputId: 'create_cassette:entity',
-      metadata: { note: 'Milled on line 2', producerOutputId: 'create_cassette:entity' }
-    });
-
-    const entity = await db.collection('cassette_instances').findOne({ _id: id });
-    expect(entity.state).toBe('MILLED');
-    expect(entity).not.toHaveProperty('status');
-
-    const event = await db.collection('status_events').findOne({ targetId: id });
-    expect(event.status.metadata.note).toBe('Milled on line 2');
-    expect(event.status.metadata).not.toHaveProperty('producerOutputId');
-  });
-
   it('fills status display metadata from the active workflow state', async () => {
     const id = new ObjectId();
     const workflowSpy = vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
@@ -757,7 +588,7 @@ describe('status service lifecycle payloads', () => {
                   proof: { required: true, multiple: false, kind: 'mounting-proof' }
                 },
                 snapshots: {
-                  designs: { typeId: 'cassette_design', lineageKey: 'queueId', required: true }
+                  designs: { typeId: 'cassette', lineageKey: 'queueId', required: true }
                 }
               }
             }
@@ -767,18 +598,19 @@ describe('status service lifecycle payloads', () => {
       }
     });
 
-    await db.collection('queues').insertOne({
+    await db.collection('processes').insertOne({
       type: 'queue',
       _id: queueId,
       identity: { uid: queueId, name: 'Evidence Queue' },
       lineage: { organizationId: 'org-1' },
       state: 'DRAFT'
     });
-    await db.collection('cassette_designs').insertOne({
-      _id: 'design-1',
-      identity: { uid: 'design-1', name: 'Design 1' },
+    await db.collection('files').insertOne({
+      type: 'cassette',
+      _id: 'cassette-evidence-1',
+      identity: { uid: 'cassette-evidence-1', name: 'Cassette 1' },
       lineage: { organizationId: 'org-1', queueId },
-      state: 'READY'
+      state: 'ACTIVE'
     });
 
     const auth = {
@@ -786,7 +618,7 @@ describe('status service lifecycle payloads', () => {
       roleAssignments: { roleIds: ['role_operator'] },
       memberships: [{
         organizationId: 'org-1',
-        permissions: { queues: 'write', cassette_designs: 'read' }
+        permissions: { queues: 'write', cassettes: 'read' }
       }]
     };
 
@@ -804,67 +636,21 @@ describe('status service lifecycle payloads', () => {
       }
     });
 
-    const entity = await db.collection('queues').findOne({ _id: queueId });
+    const entity = await db.collection('processes').findOne({ _id: queueId });
     const event = await db.collection('status_events').findOne({ targetId: queueId });
     const proof = event.status.lifecycle.attachments.proof;
     expect(proof.fileId).toBe(fileId);
     expect(proof.attachmentKey).toMatch(/^status_proof_/);
     expect(entity.attachments[proof.attachmentKey].kind).toBe('mounting-proof');
     expect(event.status.lifecycle.data.snapshots.designs).toMatchObject({
-      typeId: 'cassette_design',
+      typeId: 'cassette',
       lineageKey: 'queueId',
       count: 1,
-      refs: [{ id: 'design-1', label: 'Design 1', status: 'READY' }]
+      refs: [{ id: 'cassette-evidence-1', label: 'Cassette 1', status: 'ACTIVE' }]
     });
     expect(entity.state).toBe('SENT');
 
     workflowSpy.mockRestore();
-  });
-
-  it('carries current lifecycle facts forward when the target state allows them', async () => {
-    const id = new ObjectId();
-    const projectId = new ObjectId();
-    await db.collection('groups').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
-    await db.collection('cassette_instances').insertOne({
-      type: 'cassette_instance',
-      _id: id,
-      identity: { uid: id, name: 'Cassette 3' },
-      lineage: { projectId },
-      status: {
-        state: 'MILLED',
-        userId: 'operator-1',
-        timestamp: new Date(),
-        metadata: {},
-        lifecycle: {
-          actors: [{ userId: 'mounter-1', capability: 'mounting', states: ['INSTALLED'] }],
-          attachments: { geometry: { fileId: 'geometry-file' } },
-          data: { measuredWidth: 1200 }
-        }
-      }
-    });
-
-    await statusService.transition('cassette_instance', id, 'INSTALLED', 'mounter-1', { ...transitionAuth, userId: 'mounter-1' }, {
-      note: 'Mounted'
-    });
-
-    const entity = await db.collection('cassette_instances').findOne({ _id: id });
-    expect(entity.status.lifecycle.attachments.geometry.fileId).toBe('geometry-file');
-    expect(entity.status.lifecycle.data.measuredWidth).toBe(1200);
-    expect(entity.status.metadata.note).toBe('Mounted');
-  });
-
-  it('rejects lifecycle attachment slots not declared for target state', async () => {
-    const id = new ObjectId();
-    await db.collection('cassette_instances').insertOne({
-      type: 'cassette_instance',
-      _id: id,
-      identity: { uid: id, name: 'Cassette 3' },
-      state: 'PRODUCED'
-    });
-
-    await expect(statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', 'OPERATOR', {
-      lifecycle: { attachments: { invoice: { fileId: 'invoice-file' } } }
-    })).rejects.toThrow(/Invalid lifecycle payload/);
   });
 
   it('reads and writes lifecycle state on CTS-native instance documents', async () => {

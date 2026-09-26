@@ -10,7 +10,6 @@ import {
   createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, stateService } from '../../core/machines/service.js';
-import { aggregator } from '../../core/machines/aggregator.js';
 import standardSlugify from 'standard-slugify';
 import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -130,7 +129,6 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const cassette = await repository.create(cassetteData);
   const { cassette: updated } = await ensureGeometryRevision(cassette, userId, 'template-created');
-  await syncParentSummary(updated);
   return toDTO(updated);
 }
 
@@ -300,10 +298,6 @@ function cassettePreview(cassette = {}, userPermissions = null) {
   return serializeForAccess('cassette', preview, userPermissions);
 }
 
-async function syncParentSummary(cassette = {}) {
-  if (!cassette.lineage?.libraryId) return;
-  await aggregator.syncParentSummary('cassette', cassette.lineage);
-}
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(toFlexibleId(id));
