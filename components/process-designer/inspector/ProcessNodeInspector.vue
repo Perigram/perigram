@@ -51,18 +51,6 @@
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.transitionFrom') }}</label>
-          <Select
-            :model-value="record.state?.from || ''"
-            :options="transitionPathOptions(record.state?.axis || 'main')"
-            option-label="label"
-            option-value="value"
-            size="small"
-            filter
-            @update:model-value="value => updateTransitionReference('from', value)"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
           <label>{{ $t('processDesigner.transitionTo') }}</label>
           <Select
             :model-value="record.state?.to || ''"

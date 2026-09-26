@@ -637,15 +637,16 @@ describe('tree declaration compilation', () => {
     expect(diagnostics.some(message => message.includes('state SHIPPED not declared for widget'))).toBe(true);
   });
 
-  it('an untargeted transition is not a declaration diagnostic — required inputs belong to compile', () => {
+  it('an untargeted transition is a declaration diagnostic naming the node; archive transitions are exempt', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw')];
     const edges = [declares(nodes[1], widget, 'state')];
     const records = {
-      unauthored: { id: 'unauthored', kind: 'cts.transition', typeId: 'widget' }
+      unauthored: { id: 'unauthored', kind: 'cts.transition', typeId: 'widget' },
+      archiver: { id: 'archiver', kind: 'cts.transition', typeId: 'widget', archive: true }
     };
     const { diagnostics } = compileTreeDeclarations(nodes, edges, records);
-    expect(diagnostics).toEqual([]);
+    expect(diagnostics).toEqual(['transition unauthored: pick a target state']);
   });
 
   it('invalid field descriptors surface as diagnostics naming the type and field', () => {

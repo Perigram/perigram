@@ -249,8 +249,12 @@ verbatim through the cycle, and class nodes round-trip their authored `glyph`
 Lifecycle machines are authored vocabulary only (SPEC §7: graph-derived at
 compile, never invented). A producer's machine compiles from the draft's
 state records (the state vocabulary), the construct's authored state default
-(the machine entry), and compiled create/update actions' authored from/to
-pairs (the transitions). A producer whose type carries none of these
+(the machine entry), and its transition nodes' authored targets (the
+transitions): a transition node declares only its target — the operated
+entity arrives in its current state — and the machine fans the edge from
+every other declared value of the axis. An authored `from` narrows the fan
+to one edge (legacy reference data); the transition inspector authors no
+from-state. A producer whose type carries none of these
 compiles NO machine: instances of such types are stateless, creation writes
 no status, and the status runtime refuses transitions for them. No
 synthesized CREATED lifecycle exists — a state nobody declared is not

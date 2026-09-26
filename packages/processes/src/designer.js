@@ -313,7 +313,17 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     const target = record.kind === 'cts.transition'
       ? record.state?.to ?? record.inputDefaults?.state
       : record.inputDefaults?.state;
-    if (typeof target !== 'string' || !target) continue;
+    if (typeof target !== 'string' || !target) {
+      // An executable transition authors its target and nothing else — the
+      // entity arrives with its from-state. A transition without a target
+      // is unfinished authoring the designer names at the node, before any
+      // activation attempt. Archive transitions resolve their intent at
+      // the effect boundary and declare no target.
+      if (record.kind === 'cts.transition' && record.archive !== true) {
+        diagnostics.push(`transition ${record.id || '(unnamed)'}: pick a target state`);
+      }
+      continue;
+    }
     if (!record.typeId) continue;
     const values = valuesByType.get(record.typeId);
     if (values && !values.has(target) && !unscopedStateValues.has(target)) {

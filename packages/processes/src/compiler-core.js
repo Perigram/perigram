@@ -1645,15 +1645,24 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
         if (!workflowBuilder) continue;
         const regionId = action.state?.axis || workflowBuilder.primaryRegion;
         const region = workflowBuilder.regions[regionId] || primaryRegionBuilder(workflowBuilder);
-        const from = action.state?.from;
-        if (!from) continue;
-        addWorkflowState(region, from);
-        addWorkflowState(region, to);
-        upsertWorkflowTransition(region, {
-          from,
-          to,
-          processRoleIds: actionExposureRoleIdsForInput(action, access, null)
-        });
+        // The transition's entity arrives with its current state (SPEC
+        // §7/§20): a transition node authors only its target, and the
+        // machine fans the edge from every other declared value — the
+        // instance supplies the from-state at run time. An authored
+        // `from` narrows the fan to one edge (legacy reference data).
+        const authoredFrom = action.state?.from;
+        const sources = authoredFrom
+          ? [authoredFrom]
+          : Object.keys(region.states).filter(state => state !== to);
+        for (const from of sources) {
+          addWorkflowState(region, from);
+          addWorkflowState(region, to);
+          upsertWorkflowTransition(region, {
+            from,
+            to,
+            processRoleIds: actionExposureRoleIdsForInput(action, access, null)
+          });
+        }
       }
       continue;
     }
