@@ -70,7 +70,7 @@ test.describe('generated state surface', () => {
     // No number markers: the state tags are the trail's markers.
     await expect(stepper.locator('.p-step-number:not(.hidden)')).toHaveCount(0);
     // The open panel walks the trail through its own navigation.
-    await stepper.locator('[data-history-nav="older"]').click();
+    await stepper.locator('[data-history-nav="older"]:not([disabled])').click();
     await expect(stepper.locator('.p-stepitem').first()).toHaveClass(/p-stepitem-active/);
     await testInfo.attach('state-history-after-transition', {
       body: await stepper.screenshot(),
