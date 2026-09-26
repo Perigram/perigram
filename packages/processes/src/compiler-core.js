@@ -1645,17 +1645,20 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
         if (!workflowBuilder) continue;
         const regionId = action.state?.axis || workflowBuilder.primaryRegion;
         const region = workflowBuilder.regions[regionId] || primaryRegionBuilder(workflowBuilder);
-        // The transition's entity arrives with its current state (SPEC
-        // §7/§20): a transition node authors only its target, and the
-        // machine carries ONE from-any edge — the from-state is the
-        // instance's at execution time, not enumerated vocabulary. An
-        // authored `from` compiles one explicit edge (legacy reference
-        // data).
+        // A transition compiles one concrete declared state-to-state edge.
+        // The from-state is the arrival state of instances on its entity
+        // wire — the upstream producer's output state (derived from the
+        // wiring's status windows below and by the producer-bound branch),
+        // never authored on the node and never wildcarded.
+        const from = action.state?.from;
+        if (!from) continue;
+        addWorkflowState(region, from);
         addWorkflowState(region, to);
-        const authoredFrom = action.state?.from;
-        upsertWorkflowTransition(region, authoredFrom
-          ? { from: authoredFrom, to, processRoleIds: actionExposureRoleIdsForInput(action, access, null) }
-          : { fromAny: true, to, processRoleIds: actionExposureRoleIdsForInput(action, access, null) });
+        upsertWorkflowTransition(region, {
+          from,
+          to,
+          processRoleIds: actionExposureRoleIdsForInput(action, access, null)
+        });
       }
       continue;
     }
