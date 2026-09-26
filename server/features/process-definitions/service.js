@@ -445,11 +445,31 @@ export async function startRun(id, payload = {}, auth = {}, options = {}) {
   const organizationId = resolveOrganizationId(auth);
   const actor = buildRunActor(auth, organizationId);
   const runRepository = options.runRepository || getRunRepository(await repository.getConnection());
-  return serializeProcessResult(await executeManualRun(runnableDefinition, payload, {
+  const run = await executeManualRun(runnableDefinition, payload, {
     actor,
     repository: runRepository,
     ...manualRunEnvironment(runnableDefinition, auth, projectedDomain)
-  }));
+  });
+  assertManualRunHasNoMutationFailures(run);
+  return serializeProcessResult(run);
+}
+
+// The mutation mapper collects per-slot failures so batch flows keep going
+// (continue-and-collect), which leaves the run itself 'succeeded'. A manual
+// run is a single user intent: a failed slot is the action's failure, not a
+// silent partial success behind a success toast. Surface the underlying
+// mutation error (invalid transition, missing machine, denied access) as
+// the action error.
+function assertManualRunHasNoMutationFailures(run) {
+  const effectStep = [...(run?.steps || [])].reverse()
+    .find(step => step.kind?.startsWith('effect.') || step.kind?.startsWith('cts.'));
+  const failures = Array.isArray(effectStep?.output?.failures) ? effectStep.output.failures : [];
+  if (!failures.length) return;
+  const message = failures
+    .map(failure => failure?.error?.message)
+    .filter(Boolean)
+    .join('; ') || 'Action failed';
+  throw createError({ statusCode: 400, message });
 }
 
 function buildRunActor(auth, organizationId) {

@@ -619,6 +619,71 @@ describe('current process-definition service contract', () => {
     expect(persisted.data.reference).toEqual({ code: 'M-01', location: 'Hall A' });
   });
 
+  it('surfaces a failed mutation slot as the manual action error instead of a silent success', async () => {
+    // Regression: the mutation mapper collects per-slot failures and keeps
+    // the run 'succeeded', so a rejected transition (invalid from-state,
+    // missing machine, denied access) returned a failure envelope that the
+    // action endpoint passed through — the client toasted success while the
+    // state never changed.
+    const machine = {
+      type: 'machine',
+      id: 'machine-1',
+      _id: 'machine-1',
+      identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
+      lineage: { organizationId: 'org-acceptance' },
+      data: { label: 'Router' },
+      attachments: {},
+      states: { main: 'ACTIVE' }
+    };
+    const processUpdate = vi.fn(async (id, patch) => ({ ...machine, data: { ...machine.data, ...patch } }));
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === 'machine'
+        ? { processUpdate }
+        : type === 'organization' ? organizationService : null
+    });
+    stateService.transitionWithResult.mockRejectedValueOnce(
+      new Error('Transition MAINTENANCE is not valid from state ACTIVE')
+    );
+    const data = {
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graphProtocol: 5,
+      ctsTypes: {
+        s1: { id: 's1', kind: 'state', typeId: 'machine', value: 'ACTIVE' },
+        s2: { id: 's2', kind: 'state', typeId: 'machine', value: 'MAINTENANCE', terminal: true }
+      },
+      graph: {
+        nodes: [{ id: 'update', type: 'processNode', data: { refId: 'update' } }],
+        edges: []
+      },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      screens: {},
+      processNodes: {
+        update: {
+          id: 'update', kind: 'cts.mutate', typeId: 'machine',
+          trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
+          inputDefaults: { 'data.label': 'Renamed machine', state: 'MAINTENANCE' }
+        }
+      }
+    };
+    const restoreMachineRegistry = mockMachineRegistry();
+    processRepository.findById.mockResolvedValue(draftRecord(data));
+
+    await expect(startRun('process-draft', {
+      trigger: { nodeId: 'update' },
+      inputs: { entity: machine }
+    }, adminAuth(), { runRepository })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Transition MAINTENANCE is not valid from state ACTIVE'
+    });
+    restoreMachineRegistry();
+    expect(processUpdate).not.toHaveBeenCalled();
+  });
+
   it('applies a mutate field patch and a chained transition state as separate operations', async () => {
     const machine = {
       type: 'machine',
