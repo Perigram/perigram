@@ -194,6 +194,10 @@ target entity schema when projecting constructible or writable values. Stored
 process nodes retain selected block paths but not copied schema snapshots, so
 runtime behavior follows the activated domain contract rather than stale graph
 metadata.
+Consumer effects accept the operated entity in every shape the run context
+produces — a typed `{ type, id }` ref, a full DTO, or the bare instance id
+the manual action transport posts as `instanceId`; the effect boundary
+normalizes all three against the effect's `typeId` before the service call.
 Create, update, and status effects receive one scalar input tuple per invocation
 from the package-owned effect mapper. Every invocation independently re-enters
 the registered service/status boundary with the complete auth context. A fully
