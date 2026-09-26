@@ -947,7 +947,7 @@ import { usePayloadUpload } from '~/composables/usePayloadUpload.js'
 import { useInstancesStore } from '~/stores/instances'
 import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js'
-import { openEntityChat } from '~/utils/instance-chat.js'
+import { openInstanceChat } from '~/utils/instance-chat.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
@@ -1809,7 +1809,7 @@ const lowerEntityChip = (messageItem) => {
 
 const openLowerEntityChat = (messageItem) => {
     const link = messageItem.entityLink
-    openEntityChat({ type: link.type, id: String(link.id), name: link.name || '' })
+    openInstanceChat({ type: link.type, id: String(link.id), name: link.name || '' })
 }
 
 const cancelReply = () => {

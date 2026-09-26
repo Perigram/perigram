@@ -142,7 +142,7 @@
 <script setup>
 import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import { openEntityChat } from '~/utils/instance-chat.js';
+import { openInstanceChat } from '~/utils/instance-chat.js';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import Tree from 'primevue/tree';
@@ -234,7 +234,7 @@ const mainRegion = computed(() => regions.value.find(region => sourceStateForReg
 const project = computed(() => mainRegion.value ? sourceStateForRegion(mainRegion.value).entity : null);
 const openProjectChat = () => {
   const id = project.value?._id || project.value?.id || project.value?.identity?.uid || '';
-  openEntityChat({
+  openInstanceChat({
     type: 'project',
     id: String(id || ''),
     name: project.value?.identity?.name || ''

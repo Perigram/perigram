@@ -105,7 +105,7 @@ import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import { generatedEntityDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
-import { openEntityChat } from '~/utils/instance-chat.js';
+import { openInstanceChat as openSharedInstanceChat } from '~/utils/instance-chat.js';
 import {
   generatedDetailActionIds,
   generatedDetailScreenForTypeId
@@ -157,7 +157,7 @@ const boundedDetail = computed(() => (
 // The bounded pane's conversation entry: the shared chat popup, the one route
 // every entity surface opens its thread through.
 function openInstanceChat() {
-  openEntityChat({
+  openSharedInstanceChat({
     type: props.item?.type || '',
     id: instanceId.value,
     name: props.item?.entity?.identity?.name || ''
