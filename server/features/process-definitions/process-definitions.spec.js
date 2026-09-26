@@ -619,6 +619,92 @@ describe('current process-definition service contract', () => {
     expect(persisted.data.reference).toEqual({ code: 'M-01', location: 'Hall A' });
   });
 
+  it('chains a manual field mutate into an event-triggered transition with the entity carried through', async () => {
+    // Regression probe: a manually triggered mutate whose event edge fires
+    // a cts.transition must hand the entity to the transition — from the
+    // run-context entity when the wire has no upstream value, not "requires
+    // an entity reference".
+    const machine = {
+      type: 'machine',
+      id: 'machine-1',
+      _id: 'machine-1',
+      identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
+      lineage: { organizationId: 'org-acceptance' },
+      data: { label: 'Router' },
+      attachments: {},
+      states: { main: 'ACTIVE' }
+    };
+    const processUpdate = vi.fn(async (id, patch) => {
+      const persisted = structuredClone(machine);
+      for (const [path, value] of Object.entries(patch)) setByPath(persisted, path, value);
+      return persisted;
+    });
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === 'machine'
+        ? { processUpdate }
+        : type === 'organization' ? organizationService : null
+    });
+    stateService.transitionWithResult.mockImplementation(async ({ targetState }) => {
+      const updated = structuredClone(machine);
+      updated.states = { main: targetState };
+      return { entity: updated, status: { state: { primary: targetState } }, actions: [], effects: [] };
+    });
+    const data = {
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graphProtocol: 5,
+      ctsTypes: {
+        s1: { id: 's1', kind: 'state', typeId: 'machine', value: 'ACTIVE' },
+        s2: { id: 's2', kind: 'state', typeId: 'machine', value: 'MAINTENANCE', terminal: true }
+      },
+      graph: {
+        nodes: ['update', 'transition'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'update-transition', source: 'update', sourceHandle: 'data:result', target: 'transition', targetHandle: 'data:entity', role: 'data' },
+          { id: 'update-transition-flow', source: 'update', sourceHandle: 'control:completed', target: 'transition', targetHandle: 'control:in', role: 'control' }
+        ]
+      },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      screens: {},
+      processNodes: {
+        update: {
+          id: 'update', kind: 'cts.mutate', typeId: 'machine',
+          trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
+          inputDefaults: { 'data.label': 'Renamed machine' }
+        },
+        transition: {
+          id: 'transition', kind: 'cts.transition', typeId: 'machine',
+          state: { axis: 'main', to: 'MAINTENANCE' },
+          trigger: { mode: 'event' }, access: { level: 'write', grants: [] }
+        }
+      }
+    };
+    const restoreMachineRegistry = mockMachineRegistry();
+    processRepository.findById.mockResolvedValue(draftRecord(data));
+
+    const run = await startRun('process-draft', {
+      trigger: { nodeId: 'update' },
+      inputs: { entity: 'machine-1' }
+    }, adminAuth(), { runRepository });
+    restoreMachineRegistry();
+
+    expect(run.status).toBe('succeeded');
+    expect(processUpdate).toHaveBeenCalledWith(
+      'machine-1',
+      { 'data.label': 'Renamed machine' },
+      expect.anything()
+    );
+    expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
+      typeId: 'machine',
+      targetId: 'machine-1',
+      targetState: 'MAINTENANCE'
+    }));
+  });
+
   it('surfaces a failed mutation slot as the manual action error instead of a silent success', async () => {
     // Regression: the mutation mapper collects per-slot failures and keeps
     // the run 'succeeded', so a rejected transition (invalid from-state,
