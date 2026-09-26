@@ -1,5 +1,5 @@
 <template>
-    <InstancePage :entity="design" type-id="sheet_design">
+    <InstancePage :instance="design" type-id="sheet_design">
         <template #actions>
                 <Button
                     :label="$t('sheetDesign.downloadDxf')"
@@ -25,7 +25,7 @@
         <template #sidebar>
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('cassetteInstance.tracking')">
-                    <StateHistory :entity="design" type-id="sheet_design" />
+                    <StateHistory :instance="design" type-id="sheet_design" />
                 </Panel>
                 <Panel :header="$t('sheetDesign.cassetteDesigns')">
                     <div v-if="cassetteDesigns.length" class="flex flex-col gap-2">

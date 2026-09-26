@@ -54,7 +54,7 @@
       <GeneratedInstanceDetail
         :key="`${item.type}:${instanceId}`"
         :flush="boundedDetail"
-        :entity="item.entity"
+        :instance="item.entity"
         :type-id="item.type"
         :screen-key="detailScreen?.screenKey || detailScreen?.id || ''"
         :actions="resolvedActionIds"

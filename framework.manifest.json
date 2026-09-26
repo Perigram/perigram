@@ -603,16 +603,6 @@
         "purpose": "Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies."
       },
       {
-        "componentPath": "components/shared/blocks/StatusBadge.vue",
-        "docs": [
-          "components/shared/README.md",
-          "utils/README.md"
-        ],
-        "key": "StatusBadge",
-        "kind": "status",
-        "purpose": "Read-only status tag using the shared status mapping."
-      },
-      {
         "componentPath": "components/shared/state/InstanceState.vue",
         "docs": [
           "components/shared/README.md",
@@ -621,16 +611,6 @@
         "key": "InstanceState",
         "kind": "status",
         "purpose": "Interactive status display and workflow-derived transition actions."
-      },
-      {
-        "componentPath": "components/shared/state/StateLocation.vue",
-        "docs": [
-          "components/shared/README.md",
-          "docs/DESIGN_SYSTEM.md"
-        ],
-        "key": "StateLocation",
-        "kind": "status",
-        "purpose": "Typed current lifecycle location rendering from status.lifecycle.data.location."
       },
       {
         "componentPath": "components/shared/state/StateHistory.vue",

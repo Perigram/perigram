@@ -1,7 +1,7 @@
 <script setup>
 /**
  * Unified Status History Component - v24 Standardized
- * Fetches and displays the audit log (status_events) for an entity as a
+ * Fetches and displays the audit log (status_events) for an instance as a
  * vertical stepper trail: each event is one step, ordered oldest →
  * newest, with the newest step's evidence panel open by default —
  * clicking a step header expands that event's note, attachments, and
@@ -13,7 +13,8 @@ import Step from 'primevue/step';
 import StepPanel from 'primevue/steppanel';
 import ProgressSpinner from 'primevue/progressspinner';
 import Button from 'primevue/button';
-import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
+import StateTag from '~/components/ui-mapping/StateTag.vue';
+import { useStatePolicy } from '~/composables/useStatePolicy';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -22,7 +23,7 @@ import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalSt
 import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
-  entity: { type: Object, default: null },
+  instance: { type: Object, default: null },
   typeId: { type: String, required: true },
   targetId: { type: String, default: null },
   mockEvents: { type: Array, default: null },
@@ -30,7 +31,7 @@ const props = defineProps({
 });
 
 const resolvedTargetId = computed(
-  () => props.targetId || props.entity?._id?.toString() || props.entity?.id?.toString()
+  () => props.targetId || props.instance?._id?.toString() || props.instance?.id?.toString()
 );
 
 const { t } = useI18n();
@@ -41,15 +42,7 @@ const displayEvents = computed(() => {
   if (events.value.length) return events.value;
   return fallbackEvents.value;
 });
-const fallbackEvents = computed(() => {
-  const status = props.entity?.status || props.entity?.origin;
-  if (!status) return [];
-  return [{
-    toState: getPrimaryState(status),
-    timestamp: status.timestamp || status.createdAt || props.entity?.updatedAt || props.entity?.createdAt || new Date(),
-    status
-  }];
-});
+const fallbackEvents = computed(() => []);
 
 onMounted(() => {
   if (props.mockEvents) {
@@ -79,7 +72,11 @@ const dateTimeAttribute = (ts) => {
 
 const eventState = (event) => event.toStatePrimary || event.toState || getPrimaryState(event.status || event.state);
 
-const eventDisplay = (event) => event.status?.metadata?.display || event.metadata?.display || null;
+// Step badges resolve through the flat state contract: the type's policy
+// map drives each historical value's label/severity/icon via the one
+// materialization (StateTag).
+const { policyFor } = useStatePolicy();
+const policyByValue = policyFor(() => props.typeId);
 
 const eventNote = (event) => event.status?.metadata?.note || event.metadata?.note || '';
 
@@ -144,8 +141,8 @@ const openActorChat = (event) => {
       ? [{
           type: props.typeId,
           id: resolvedTargetId.value,
-          label: props.entity?.identity?.name || props.entity?.identity?.serial || resolvedTargetId.value,
-          entity: props.entity || null
+          label: props.instance?.identity?.name || props.instance?.identity?.serial || resolvedTargetId.value,
+          instance: props.instance || null
         }]
       : []
   };
@@ -182,7 +179,7 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
       <StepItem v-for="(event, index) in orderedEvents" :key="stepKey(event, index)" :value="stepKey(event, index)">
         <Step :pt="stepPt">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1 text-left">
-            <StatusBadge :state="eventState(event)" :type-id="typeId" :display="eventDisplay(event)" />
+            <StateTag :value="eventState(event)" :policy="policyByValue" />
             <span v-if="actorUserId(event)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
               <InstanceInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
               <Button

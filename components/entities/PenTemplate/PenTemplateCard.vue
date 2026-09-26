@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <InstanceCard :entity="pen" type-id="pen_template" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :instance="pen" type-id="pen_template" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <div class="h-8 w-16 shrink-0 rounded-ui border border-content-border flex items-center px-2">
           <span class="block w-full" :style="lineStyle" />

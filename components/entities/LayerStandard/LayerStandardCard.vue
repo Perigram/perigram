@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <InstanceCard :entity="standard" type-id="layer_standard" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :instance="standard" type-id="layer_standard" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-palette"></i>
       </template>

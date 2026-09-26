@@ -26,7 +26,6 @@ import { normalizeType, renderPolicyFor } from '../packages/cts/src/index.js';
 import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
-import { getWorkflowStateActions } from '../utils/state-actions.js';
 import {
   analyzeVueVisuals,
   inventoryId,
@@ -239,49 +238,6 @@ describe('Design system manifest', () => {
     }
   });
 
-  it('allows status actions to use a live workflow override', () => {
-    const actions = getWorkflowStateActions({
-      typeId: 'queue',
-      state: 'DRAFT',
-      workflows: {
-        queue: {
-          initial: 'DRAFT',
-          states: { DRAFT: {}, READY_FOR_TEST: {} },
-          transitions: [{ from: 'DRAFT', to: 'READY_FOR_TEST' }]
-        }
-      }
-    });
-
-    expect(actions.map(action => action.to)).toEqual(['READY_FOR_TEST']);
-  });
-
-  it('passes target lifecycle evidence schema through status actions', () => {
-    const actions = getWorkflowStateActions({
-      typeId: 'queue',
-      state: 'DRAFT',
-      workflows: {
-        queue: {
-          initial: 'DRAFT',
-          states: {
-            DRAFT: {},
-            SENT: {
-              lifecycle: {
-                description: { required: true },
-                attachments: { proof: { required: true } }
-              }
-            }
-          },
-          transitions: [{ from: 'DRAFT', to: 'SENT' }]
-        }
-      }
-    });
-
-    expect(actions[0].lifecycle).toEqual({
-      description: { required: true },
-      attachments: { proof: { required: true } }
-    });
-  });
-
 
   it('gives the UI lab test user a real access model', () => {
     const user = factories.createMockUser();
@@ -477,14 +433,11 @@ describe('Design system manifest', () => {
     expect(supportMessageContent).not.toContain('text-prose');
   });
 
-  it('keeps shared status and entity accents inside the token system', () => {
+  it('keeps shared instance accents inside the token system', () => {
     const entityInlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceInlineRef.vue'), 'utf8');
-    const statusBadge = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/StatusBadge.vue'), 'utf8');
 
     expect(entityInlineRef).toContain('var(--ck-entity-tone-command)');
     expect(entityInlineRef).not.toMatch(/var\(--p-(?:blue|orange|teal|green|purple)-500\)/);
-    expect(statusBadge).toMatch(/bg-status-(?:info|neutral|success|warning|danger)/);
-    expect(statusBadge).not.toMatch(/var\(--p-(?:green|blue|amber|red)-500\)/);
   });
 
   it('keeps app chrome and process signals on semantic color aliases', () => {
@@ -823,7 +776,7 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain("variant === 'compact'");
     expect(inlineRef).toContain('class="inline-flex w-full');
     expect(inlineRef).toContain('variant="inline"');
-    expect(inlineRef).toContain('StatusBadge');
+    expect(inlineRef).toContain('StateTag');
     expect(inlineRef).toContain('compactStatusState');
     expect(inlineRef).toContain('instance-inline-compact-status-row');
     expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
@@ -857,21 +810,6 @@ describe('Design system manifest', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('derives state actions from workflow definitions instead of hardcoded fallbacks', async () => {
-    const { getWorkflowStateActions } = await import('../utils/state-actions.js');
-
-    expect(getWorkflowStateActions({ typeId: 'process_definition', state: 'DRAFT', t: key => key })).toContainEqual(expect.objectContaining({
-      to: 'ACTIVE', display: 'inline'
-    }));
-    expect(getWorkflowStateActions({ typeId: 'artifact', state: 'PENDING', t: key => key })).toEqual([]);
-    expect(getWorkflowStateActions({ typeId: 'cassette', state: 'ACTIVE', t: key => key })).toEqual(expect.arrayContaining([
-      expect.objectContaining({ to: 'ARCHIVED', display: 'menu' })
-    ]));
-    expect(getWorkflowStateActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).toEqual(expect.arrayContaining([
-      expect.objectContaining({ to: 'NESTING', intent: 'requestNesting', display: 'menu' })
-    ]));
-  });
-
   it('keeps status popovers free of placeholder copy and duplicate last-updated sections', () => {
     const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/state/InstanceState.vue'), 'utf8');
     const statusHistory = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/state/StateHistory.vue'), 'utf8');
@@ -880,36 +818,8 @@ describe('Design system manifest', () => {
     expect(entityStatus).not.toContain("common.lastUpdated");
     expect(entityStatus).not.toContain("common.history");
     expect(entityStatus).not.toContain("metadata?.note");
-    expect(entityStatus).toContain("v-if=\"hasLocation\"");
     expect(statusHistory).not.toContain("status.noHistory");
-    expect(statusHistory).toContain('fallbackEvents');
     expect(statusHistory).toContain('displayEvents');
-    expect(statusHistory).toContain('eventDisplay');
-    expect(statusHistory).toContain(':display="eventDisplay(event)"');
-  });
-
-  it('normalizes typed state lifecycle locations for state surfaces', async () => {
-    const { normalizeStateLocation } = await import('../utils/state-location.js');
-
-    expect(normalizeStateLocation({
-      status: {
-        lifecycle: {
-          data: {
-            location: { type: 'warehouse', warehouseId: 'wh-1', label: 'Main' }
-          }
-        }
-      }
-    })).toEqual({ type: 'warehouse', id: 'wh-1', label: 'Main' });
-
-    expect(normalizeStateLocation({
-      status: {
-        lifecycle: {
-          data: {
-            location: { type: 'coordinates', coordinates: { x: 10, y: 20 } }
-          }
-        }
-      }
-    })).toEqual({ type: 'coordinates', label: 'x: 10, y: 20' });
   });
 
   it('keeps factory demo states aligned with workflow definitions and resolves declared state display from the states facet', () => {

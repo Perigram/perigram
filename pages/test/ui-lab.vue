@@ -60,7 +60,7 @@
             <small class="text-muted">{{ primitive.purpose }}</small>
 
             <template v-if="primitive.key === 'InstanceCard'">
-              <InstanceCard :entity="primitiveEntity" type-id="queue">
+              <InstanceCard :instance="primitiveEntity" type-id="queue">
                 <DataBlock type-id="queue" :entity="primitiveEntity" :fields="queueFields" />
                 <template #footer>
                   <Button :label="$t('common.open')" icon="pi pi-external-link" text size="small" />
@@ -69,7 +69,7 @@
             </template>
 
             <template v-else-if="primitive.key === 'InstancePage'">
-              <InstancePage :entity="primitiveEntity" type-id="queue">
+              <InstancePage :instance="primitiveEntity" type-id="queue">
                 <template #info>
                   <small>{{ primitiveEntity.queueNumber }}</small>
                 </template>
@@ -106,25 +106,15 @@
               <DataBlock type-id="materialPile" :entity="pileEntity" :fields="pileFields" />
             </template>
 
-            <template v-else-if="primitive.key === 'StatusBadge'">
-              <div class="flex flex-wrap gap-2">
-                <StatusBadge state="DRAFT" />
-                <StatusBadge state="NESTING" />
-                <StatusBadge state="COMPLETE" />
-              </div>
-            </template>
 
             <template v-else-if="primitive.key === 'InstanceState'">
-            <InstanceState :entity="primitiveEntity" type-id="queue" variant="inline" />
-            <InstanceState :entity="primitiveEntity" type-id="queue" variant="full" :show-actions="false" />
+            <InstanceState :instance="primitiveEntity" type-id="queue" variant="inline" />
+            <InstanceState :instance="primitiveEntity" type-id="queue" variant="full" :show-actions="false" />
             </template>
 
-            <template v-else-if="primitive.key === 'StateLocation'">
-              <StateLocation :entity="sheetEntity" />
-            </template>
 
             <template v-else-if="primitive.key === 'StateHistory'">
-              <StateHistory type-id="queue" :entity="primitiveEntity" :mock-events="mockHistory" />
+              <StateHistory type-id="queue" :instance="primitiveEntity" :mock-events="mockHistory" />
             </template>
 
             <template v-else-if="primitive.key === 'GeometryPreview'">
@@ -267,9 +257,7 @@ import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import frameworkManifest from '~/framework.manifest.json';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
-import StateLocation from '~/components/shared/state/StateLocation.vue';
 import StateHistory from '~/components/shared/state/StateHistory.vue';
-import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
@@ -322,9 +310,7 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'InstanceSelect',
   'InstanceMultiSelect',
   'DataBlock',
-  'StatusBadge',
   'InstanceState',
-  'StateLocation',
   'StateHistory',
   'DrawingCanvas',
   'DesignerSurface',

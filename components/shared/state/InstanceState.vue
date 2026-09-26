@@ -1,98 +1,73 @@
 <script setup>
 /**
- * InstanceState - v24 Absolute Final
- * Mandatory component for managing entity states and transitions.
- * Integrates display (StatusBadge) and logic (useStateController).
+ * InstanceState — the shared instance chrome's status surface.
+ *
+ * Flat state contract (SPEC §7): the value is the instance's flat wire
+ * `state` string; the vocabulary and display policy derive from the
+ * compiled producer workflows the hydration payload carries
+ * (statePolicyByType/stateDisplayFor — the same resolvers generated
+ * screens use). A type without a served vocabulary renders no state
+ * surface at all; unknown values degrade to the neutral stop-line chip;
+ * dotted values render as segmented paths.
  */
-import { ref, computed, inject, onUnmounted, toRef, unref, watch } from 'vue';
+import { ref, computed, onUnmounted, watch } from 'vue';
 import Popover from 'primevue/popover';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
-import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
+import StateTag from '~/components/ui-mapping/StateTag.vue';
 import StateHistory from '~/components/shared/state/StateHistory.vue';
-import StateLocation from '~/components/shared/state/StateLocation.vue';
 import StateTransitionDialog from '~/components/shared/state/StateTransitionDialog.vue';
-import { useStatus } from '~/composables/useBlocks';
 import { useStateController } from '~/composables/useStateController';
-import { useRegistryStore } from '~/stores/registry';
-import { compiledWorkflowFor, createStatusAction, getWorkflowStateActions, hasMeaningfulWorkflowState, hasWorkflow } from '~/utils/state-actions.js';
-import { kebabStateTypeId } from '~/utils/state-engine.js';
+import { useStatePolicy } from '~/composables/useStatePolicy';
+import { stateDisplayFor } from '#shared/ui-mapping/index.js';
 import { onInstanceChanged } from '~/utils/instance-events.js';
 
 const props = defineProps({
-  entity: { type: Object, required: true },
-  typeId: { type: String, required: true }, // e.g. 'project', 'queue'
-  variant: { type: String, default: 'inline' }, // icon, inline, full
-  showActions: { type: Boolean, default: true },
-  actions: { type: Array, default: () => [] }, // preferred action API
-  manualActions: { type: Array, default: () => [] }, // backward compatibility
-  expanded: { type: Boolean, default: null }, // auto-expands only for full status surfaces
-  maxInlineActions: { type: Number, default: null },
-  showHistory: { type: Boolean, default: true },
-  workflows: { type: Object, default: null }
+    instance: { type: Object, required: true },
+    typeId: { type: String, required: true },
+    variant: { type: String, default: 'inline' }, // icon, inline, full
+    showActions: { type: Boolean, default: true },
+    actions: { type: Array, default: () => [] }, // preferred action API
+    expanded: { type: Boolean, default: null }, // auto-expands only for full status surfaces
+    maxInlineActions: { type: Number, default: null },
+    showHistory: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['transitioned', 'refresh']);
 const { t } = useI18n();
 const toast = useToast();
-const { state, regions, metadata } = useStatus(toRef(props, 'entity'));
 const { transition, fetchActions, isTransitioning } = useStateController();
+const { policyFor } = useStatePolicy();
 const op = ref();
 const evidenceAction = ref(null);
 const evidenceDialogVisible = ref(false);
 const serverActions = ref([]);
-const providedWorkflows = inject('stateWorkflows', null);
-const localTransitionHandler = inject('statusTransitionHandler', null);
 
 const toggle = (event) => {
     op.value?.toggle(event);
 };
 
-const instanceId = computed(() => props.entity?._id || props.entity?.identity?.uid || props.entity?.identity?.slug);
-const localWorkflows = computed(() => props.workflows || unref(providedWorkflows) || null);
-// The compiled contract: the served bundle's type record (states facet +
-// transitions) drives workflow questions before any legacy fallback.
-// Development surfaces that supply local workflow drafts keep precedence
-// over the compiled record.
-const registry = useRegistryStore();
-const compiledTypeRecord = computed(() => registry.typeRecord(kebabStateTypeId(props.typeId)) || null);
-const compiledWorkflow = computed(() => (localWorkflows.value ? null : compiledWorkflowFor(compiledTypeRecord.value)));
-const compiledStateRender = computed(() => compiledTypeRecord.value?.states?.main?.render || null);
-const displaysLifecycleStatus = computed(() => hasMeaningfulWorkflowState(
-    props.typeId,
-    localWorkflows.value || undefined,
-    compiledWorkflow.value || undefined
-) || (props.variant === 'icon' && Boolean(props.entity?.states)));
-const hasRegisteredWorkflow = computed(() => hasWorkflow(
-    props.typeId,
-    localWorkflows.value || undefined,
-    compiledWorkflow.value || undefined
-));
-const useServerActions = computed(() => props.showActions && !localWorkflows.value && hasRegisteredWorkflow.value);
-const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));
+const instanceId = computed(() => props.instance?._id || props.instance?.identity?.uid || props.instance?.identity?.slug);
+const policyByValue = policyFor(() => props.typeId);
+const stateValue = computed(() => {
+    const value = props.instance?.state;
+    return typeof value === 'string' && value ? value : '';
+});
+const display = computed(() => stateDisplayFor(policyByValue.value, stateValue.value));
+// Rendering guard: no vocabulary or no value → no state surface at all.
+const displaysState = computed(() => Boolean(display.value));
+const hasVocabulary = computed(() => Boolean(policyByValue.value) && Object.keys(policyByValue.value).length > 0);
 
-// Available transitions (to be fetched or derived from a machine registry if available)
 const handleTransition = async (targetState, action = {}, evidence = {}) => {
     try {
-        const result = useLocalTransition.value
-            ? await localTransitionHandler({
-                typeId: props.typeId,
-                targetId: instanceId.value,
-                targetState,
-                intent: action.intent || null,
-                region: action.region || 'main',
-                path: action.path || null,
-                entity: props.entity,
-                ...evidence
-            })
-            : await transition(props.typeId, instanceId.value, targetState, {
-                ...evidence,
-                ...(action.intent ? { intent: action.intent } : {}),
-                region: action.region || 'main',
-                path: action.path || null
-            });
+        const result = await transition(props.typeId, instanceId.value, targetState, {
+            ...evidence,
+            ...(action.intent ? { intent: action.intent } : {}),
+            region: action.region || 'main',
+            path: action.path || null
+        });
         emit('transitioned', targetState, result);
         toast.add({
             severity: 'success',
@@ -115,7 +90,7 @@ const handleTransition = async (targetState, action = {}, evidence = {}) => {
 };
 
 const refreshServerActions = async () => {
-    if (!useServerActions.value || !instanceId.value) {
+    if (!props.showActions || !hasVocabulary.value || !instanceId.value) {
         serverActions.value = [];
         return;
     }
@@ -128,44 +103,30 @@ const refreshServerActions = async () => {
 };
 
 watch(
-    [() => props.typeId, instanceId, state, useServerActions],
+    [() => props.typeId, instanceId, stateValue, hasVocabulary],
     () => refreshServerActions(),
     { immediate: true }
 );
 
-const stopEntityChangeListener = onInstanceChanged(({ type, id, entity }) => {
-    if (!matchesEntityChange({ type, id, entity })) return;
+const stopInstanceChangeListener = onInstanceChanged(({ type, id, instance }) => {
+    if (!matchesInstanceChange({ type, id, instance })) return;
     emit('refresh');
 });
 
 onUnmounted(() => {
-    stopEntityChangeListener();
+    stopInstanceChangeListener();
 });
 
+// Custom actions ride the same shape as server transitions; their display
+// policy resolves through the flat vocabulary like every other target.
 const customActions = computed(() => {
-    const source = Array.isArray(props.actions) && props.actions.length > 0
-        ? props.actions
-        : Array.isArray(props.manualActions) && props.manualActions.length > 0
-            ? props.manualActions
-            : [];
-
-    return source
+    return (Array.isArray(props.actions) ? props.actions : [])
         .filter(action => Boolean(action?.to || action?.intent))
         .map(action => normalizeCustomAction(action));
 });
 
 const defaultTransitions = computed(() => {
-    if (useServerActions.value) {
-        return serverActions.value.map(action => createStatusAction(action, compiledStateRender.value, t));
-    }
-
-    return getWorkflowStateActions({
-        typeId: props.typeId,
-        state: state.value,
-        workflows: localWorkflows.value || undefined,
-        compiled: compiledWorkflow.value || undefined,
-        t
-    });
+    return serverActions.value.map(action => flatStatusAction(action));
 });
 
 const effectiveActions = computed(() => {
@@ -195,8 +156,7 @@ const overflowActions = computed(() => [
     ...effectiveActions.value.filter(action => (action.display || 'inline') === 'menu'),
     ...effectiveActions.value.filter(action => (action.display || 'inline') === 'inline').slice(inlineActionLimit.value)
 ]);
-const hasLocation = computed(() => Boolean(props.entity?.status?.lifecycle?.data?.location));
-const hasOverflowContent = computed(() => overflowActions.value.length > 0 || hasLocation.value || props.showHistory);
+const hasOverflowContent = computed(() => overflowActions.value.length > 0 || props.showHistory);
 const isExpanded = computed(() => {
     if (typeof props.expanded === 'boolean') return props.expanded;
     return props.variant === 'full';
@@ -230,6 +190,24 @@ const submitEvidenceTransition = async (evidence = {}) => {
     evidenceAction.value = null;
 };
 
+// A transition's label/severity/icon resolve through the flat vocabulary —
+// the authored policy of the target value, never a local heuristic.
+function flatStatusAction(action = {}) {
+    const to = action.to || action.state?.to || '';
+    const targetDisplay = stateDisplayFor(policyByValue.value, to);
+    return {
+        label: action.label || targetDisplay?.label || to,
+        to,
+        region: action.region || 'main',
+        path: action.path || [to],
+        intent: action.intent || null,
+        severity: targetDisplay?.severity || 'secondary',
+        icon: targetDisplay?.icon || null,
+        display: resolveActionDisplay(action),
+        lifecycle: action.lifecycle || null
+    };
+}
+
 function normalizeCustomAction(action = {}) {
     const display = action.display || action.displayBtn
         ? action.display || 'inline'
@@ -258,9 +236,13 @@ function actionRequiresEvidence(action = {}) {
     );
 }
 
-const secondaryRegions = computed(() => regions.value.filter(region => region.id !== 'main'));
-const statusDisplay = computed(() => metadata.value?.display || null);
-const regionDisplay = computed(() => metadata.value?.regions || {});
+function resolveActionDisplay(action = {}) {
+    if (action.display === false || action.displayBtn === false) return 'hidden';
+    if (action.display === 'hidden' || action.display === 'menu' || action.display === 'inline') return action.display;
+    if (action.displayBtn === true) return 'inline';
+    if (action.from && action.from === action.to) return 'hidden';
+    return 'inline';
+}
 
 function normalizeLabel(value = '') {
     return String(value)
@@ -269,10 +251,10 @@ function normalizeLabel(value = '') {
         .trim();
 }
 
-function matchesEntityChange({ type, id, entity } = {}) {
+function matchesInstanceChange({ type, id, instance } = {}) {
     if (normalizeEventType(type) !== normalizeEventType(props.typeId)) return false;
 
-    const changedId = id || entity?._id || entity?.identity?.uid || entity?.identity?.slug;
+    const changedId = id || instance?._id || instance?.identity?.uid || instance?.identity?.slug;
     if (!changedId || !instanceId.value) return false;
 
     return changedId.toString() === instanceId.value.toString();
@@ -285,32 +267,20 @@ function normalizeEventType(type) {
 
 <template>
   <div
-    v-if="props.entity && displaysLifecycleStatus"
-    class="entity-status inline-flex min-w-0 max-w-full justify-end"
+    v-if="displaysState"
+    class="instance-status inline-flex min-w-0 max-w-full justify-end"
     data-instance-card-interactive="true"
-    data-entity-status="true"
+    data-instance-status="true"
     :data-type-id="typeId"
-    :data-entity-id="instanceId"
+    :data-instance-id="instanceId"
     @click.stop
   >
     <template v-if="!isExpanded">
       <div class="flex min-w-0 max-w-48 flex-wrap items-center justify-end gap-1.5 sm:max-w-56">
-        <StatusBadge
-          :state="state"
-          :type-id="typeId"
-          :display="statusDisplay"
-          :icon-only="variant === 'icon'"
+        <StateTag
+          :policy="policyByValue"
+          :value="stateValue"
           class="cursor-pointer min-w-0 max-w-full shrink"
-          @click.stop="toggle"
-        />
-        <StatusBadge
-          v-for="region in secondaryRegions"
-          :key="region.id"
-          :state="region.state"
-          :type-id="typeId"
-          :display="regionDisplay[region.id]"
-          icon-only
-          class="cursor-pointer shrink-0"
           @click.stop="toggle"
         />
         <Button
@@ -346,15 +316,10 @@ function normalizeEventType(type) {
                   />
               </div>
 
-              <Divider v-if="overflowActions.length && (hasLocation || showHistory)" />
-
-              <div v-if="hasLocation" class="flex flex-col gap-3">
-                  <StateLocation :entity="entity" />
-              </div>
+              <Divider v-if="overflowActions.length && showHistory" />
 
               <template v-if="showHistory">
-                <Divider v-if="hasLocation" />
-                <StateHistory :entity="entity" :type-id="typeId" compact />
+                <StateHistory :instance="instance" :type-id="typeId" compact />
               </template>
 
               <slot name="extra"></slot>
@@ -365,20 +330,10 @@ function normalizeEventType(type) {
     <template v-else>
         <div class="flex flex-col gap-2 min-w-0 max-w-full">
             <div class="flex flex-wrap items-center gap-2 min-w-0">
-                <StatusBadge :state="state" :display="statusDisplay" class="max-w-full" />
-                <StatusBadge
-                    v-for="region in secondaryRegions"
-                    :key="region.id"
-                    :state="region.state"
-                    :display="regionDisplay[region.id]"
-                    icon-only
-                    class="shrink-0"
-                />
+                <StateTag :policy="policyByValue" :value="stateValue" class="max-w-full" />
             </div>
 
-            <StateLocation v-if="hasLocation" :entity="entity" />
-
-            <StateHistory v-if="showHistory" :entity="entity" :type-id="typeId" compact />
+            <StateHistory v-if="showHistory" :instance="instance" :type-id="typeId" compact />
 
             <div v-if="hasActions" class="flex flex-wrap gap-2">
                 <Button

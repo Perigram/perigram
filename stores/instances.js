@@ -274,7 +274,7 @@ export const useInstancesStore = defineStore('instances', () => {
   }
 
   // The delegated CRUD emission contract (previously useEntity's): direct
-  // feature mutations emit the shared browser-local entity event and
+  // feature mutations emit the shared browser-local instance event and
   // publish the typed invalidation for other sessions. Process actions
   // (runAction) reconcile through the server-published events instead.
   function publishMutation(detail = {}) {
@@ -285,9 +285,9 @@ export const useInstancesStore = defineStore('instances', () => {
   async function createInstance(typeKey = '', body = {}, { typeId = typeKey } = {}) {
     const data = await mutateDirect(typeKey, 'POST', {
       body,
-      meta: { kind: 'entity', typeId, change: 'created', reason: 'create' }
+      meta: { kind: 'instance', typeId, change: 'created', reason: 'create' }
     });
-    emitInstanceCreated({ type: typeId, id: data?._id, entity: data });
+    emitInstanceCreated({ type: typeId, id: data?._id, instance: data });
     publishMutation({ type: typeId, id: data?._id, change: 'created', reason: 'create' });
     return data;
   }
@@ -296,19 +296,19 @@ export const useInstancesStore = defineStore('instances', () => {
     const data = await mutateDirect(typeKey, 'PATCH', {
       id,
       body,
-      meta: { kind: 'entity', typeId, instanceId: id, change: 'updated', reason: 'update' }
+      meta: { kind: 'instance', typeId, instanceId: id, change: 'updated', reason: 'update' }
     });
-    emitInstanceUpdated({ type: typeId, id: data?._id || id, entity: data });
+    emitInstanceUpdated({ type: typeId, id: data?._id || id, instance: data });
     publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason: 'update' });
     return data;
   }
 
-  async function removeInstance(typeKey = '', id = '', { typeId = typeKey, entity = null } = {}) {
+  async function removeInstance(typeKey = '', id = '', { typeId = typeKey, instance = null } = {}) {
     await mutateDirect(typeKey, 'DELETE', {
       id,
-      meta: { kind: 'entity', typeId, instanceId: id, change: 'deleted', reason: 'delete' }
+      meta: { kind: 'instance', typeId, instanceId: id, change: 'deleted', reason: 'delete' }
     });
-    emitInstanceDeleted({ type: typeId, id, entity });
+    emitInstanceDeleted({ type: typeId, id, instance });
     publishMutation({ type: typeId, id, change: 'deleted', reason: 'delete' });
   }
 
@@ -318,16 +318,16 @@ export const useInstancesStore = defineStore('instances', () => {
   // idempotent, so a re-created store re-attaching under tests is harmless.
   function ensureSyncListener() {
     if (typeof window === 'undefined') return;
-    onInstanceChanged(({ type, id, entity, change }) => {
+    onInstanceChanged(({ type, id, instance, change }) => {
       const typeKey = canonicalTypeKey(type);
-      const normalizedId = id?.toString?.() || id || entity?._id?.toString?.() || entity?._id;
+      const normalizedId = id?.toString?.() || id || instance?._id?.toString?.() || instance?._id;
       if (!typeKey || !normalizedId) return;
       if (change === 'deleted') {
         removeRecord(typeKey, normalizedId);
         return;
       }
-      if (entity) {
-        upsertRecord(typeKey, entity);
+      if (instance) {
+        upsertRecord(typeKey, instance);
         return;
       }
       // Snapshot-less invalidation: drop the record so the next read

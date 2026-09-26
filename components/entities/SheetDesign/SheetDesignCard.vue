@@ -44,7 +44,7 @@ const openDesign = () => {
 
 <template>
   <div>
-    <InstanceCard :entity="design" type-id="sheet_design" :variant="variant" :show-status="false">
+    <InstanceCard :instance="design" type-id="sheet_design" :variant="variant" :show-status="false">
       <template #before-identity>
         <i class="ck-entity-icon ck-entity-icon-sheet-design"></i>
       </template>

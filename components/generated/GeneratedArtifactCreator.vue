@@ -103,7 +103,7 @@ async function upload() {
     form.append('name', name.value || initial.name);
     form.append('lineage', JSON.stringify(props.lineage || {}));
     const artifact = await $fetch('/api/artifacts', { method: 'POST', body: form });
-    emitInstanceCreated({ type: 'artifact', id: artifact?._id, entity: artifact, reason: 'artifact-uploaded' });
+    emitInstanceCreated({ type: 'artifact', id: artifact?._id, instance: artifact, reason: 'artifact-uploaded' });
     emit('created', artifact);
     close();
   } catch (error) {

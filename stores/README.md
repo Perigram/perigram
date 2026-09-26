@@ -49,12 +49,12 @@ Three cells; every surface derives from them, nothing else caches:
   is the runtime/client consumption contract.
 - `auth.js` — identity, memberships, and the compiled per-user access
   contract (`effectivePermissions`, screens, navigation, action manifest,
-  field policies, workflows, lineage bindings, process bundle). The sole
+  field policies, lineage bindings, process bundle). The sole
   hydration boundary; see its entry below.
 
 Direct feature CRUD lives on the instances store too:
 `createInstance`/`updateInstance`/`removeInstance` wrap `mutateDirect`
-with the shared entity-event emission contract (browser-local event plus
+with the shared instance-event emission contract (browser-local event plus
 the typed invalidation other sessions poll). `dtoRegistry` is the wire-DTO
 projection for the remaining handwritten card/detail surfaces.
 
@@ -66,8 +66,6 @@ endpoint, the hardcoded per-entity route tables in breadcrumb/trace
 routing, the queue editor flow and its orphan stores). The remaining
 client imports of `@perigram/domain-cnc` are owned by legacy server
 contracts, not by declarations —
-`utils/state-engine.js` (status labels/severity for feature-served
-types whose compiled workflows supplement the table),
 `utils/instance-display-contract.js` (the residual legacy card surface
 registry for undeclared types),
 `components/PermissionEditor.vue` (the membership feature-key
@@ -113,13 +111,13 @@ process vocabulary; none may gain new consumers.
   the snapshot and drives the sidebar rows and chat ongoing-call banner
   through `activeRoomForConversation`, which mirrors the server's derived
   room-name contract via `utils/call-rooms.js`.
-- `instanceEvents.js`: Browser-local entity synchronization and the contract
+- `instanceEvents.js`: Browser-local instance synchronization and the contract
   refresh hint: polls `/api/instance-events` by cursor and bridges returned
   changes into the browser-local event bus, and (via the connections org
   topic) re-hydrates auth once, debounced, when the server publishes a
   registry/process `contractChanged` marker. Browser-local
-  entity mutation snapshots publish through the same store. Successful
-  mutations publish a complete entity snapshot to the browser-local
+  instance mutation snapshots publish through the same store. Successful
+  mutations publish a complete instance snapshot to the browser-local
   `utils/instance-events.js` contract used by shared stores and generated screens.
 - `toolProfiles.js` etc.: Related feature stores. The legacy cassettes store died with the cassette manager; generated surfaces use the instances store.
 
@@ -133,9 +131,9 @@ process vocabulary; none may gain new consumers.
   compiled permissions. Tenant-management chrome can also check
   `tenantPermissions` through `hasTenantPermission()`, which reads explicit
   active membership grants for organization/team/process management recovery.
-  It also exposes the active process's compiled lifecycle machines through
-  `stateWorkflows`; entity UI uses this contract for workflow-derived status
-  visibility and transitions.
+  State surfaces derive their vocabulary through
+  [composables/useStatePolicy](../composables/README.md#usestatepolicy--the-flat-state-vocabulary-source),
+  the flat contract over the hydration payload's compiled producer workflows.
 - `navigation.js` owns route breadcrumbs. SSR callers must pass request
   headers through `fetchRouteHierarchy(path, query, fetchOptions)` so
   protected lookups use the same session cookie as auth middleware.

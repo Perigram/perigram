@@ -9,7 +9,7 @@ defineProps({
 </script>
 
 <template>
-  <InstanceCard :entity="artifactTemplate" type-id="artifactTemplate" :variant="variant" :show-status="false">
+  <InstanceCard :instance="artifactTemplate" type-id="artifactTemplate" :variant="variant" :show-status="false">
     <InstanceSurfaceContent :entity="artifactTemplate" type-id="artifactTemplate" :surface="variant" />
     <template #footer>
       <slot name="footer" />

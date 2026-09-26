@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <InstanceCard :entity="tool" type-id="tool_profile" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :instance="tool" type-id="tool_profile" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-wrench"></i>
       </template>

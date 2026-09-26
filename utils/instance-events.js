@@ -5,34 +5,34 @@ export function emitInstanceChanged(detail = {}) {
   window.dispatchEvent(new CustomEvent(INSTANCE_CHANGED_EVENT, { detail: normalizeInstanceChangeDetail(detail) }));
 }
 
-export function emitInstanceMutation({ type, id, entity = null, change = 'updated', reason = change, source = 'local' } = {}) {
+export function emitInstanceMutation({ type, id, instance = null, change = 'updated', reason = change, source = 'local' } = {}) {
   emitInstanceChanged({
     type,
     id,
-    entity,
+    instance,
     change,
     reason,
     source
   });
 }
 
-export function emitInstanceCreated({ type, id, entity = null, reason = 'create', source = 'local' } = {}) {
-  emitInstanceMutation({ type, id, entity, change: 'created', reason, source });
+export function emitInstanceCreated({ type, id, instance = null, reason = 'create', source = 'local' } = {}) {
+  emitInstanceMutation({ type, id, instance, change: 'created', reason, source });
 }
 
-export function emitInstanceUpdated({ type, id, entity = null, reason = 'update', source = 'local' } = {}) {
-  emitInstanceMutation({ type, id, entity, change: 'updated', reason, source });
+export function emitInstanceUpdated({ type, id, instance = null, reason = 'update', source = 'local' } = {}) {
+  emitInstanceMutation({ type, id, instance, change: 'updated', reason, source });
 }
 
-export function emitInstanceDeleted({ type, id, entity = null, reason = 'delete', source = 'local' } = {}) {
-  emitInstanceMutation({ type, id, entity, change: 'deleted', reason, source });
+export function emitInstanceDeleted({ type, id, instance = null, reason = 'delete', source = 'local' } = {}) {
+  emitInstanceMutation({ type, id, instance, change: 'deleted', reason, source });
 }
 
 export function emitStateTransitionResult({ typeId, targetId, response }) {
   emitInstanceMutation({
     type: typeId,
     id: response?.entity?._id || targetId,
-    entity: response?.entity,
+    instance: response?.entity,
     change: 'updated',
     reason: 'status-transition'
   });
@@ -41,7 +41,7 @@ export function emitStateTransitionResult({ typeId, targetId, response }) {
     emitInstanceMutation({
       type: changed.type,
       id: changed.id || changed.entity?._id,
-      entity: changed.entity,
+      instance: changed.entity,
       change: 'updated',
       reason: 'status-transition-effect'
     });
@@ -64,7 +64,8 @@ export function onInstanceChanged(handler) {
 }
 
 function normalizeInstanceChangeDetail(detail = {}) {
-  const normalizedId = detail.id?.toString?.() || detail.id || detail.entity?._id?.toString?.() || detail.entity?._id || null;
+  const snapshot = detail.instance || null;
+  const normalizedId = detail.id?.toString?.() || detail.id || snapshot?._id?.toString?.() || snapshot?._id || null;
   return {
     ...detail,
     id: normalizedId,

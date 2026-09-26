@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
+import StateTag from '~/components/ui-mapping/StateTag.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
@@ -14,7 +14,7 @@ import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCas
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
 import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
-import { openEntityChat } from '~/utils/instance-chat.js';
+import { openInstanceChat } from '~/utils/instance-chat.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { useInstancesStore } from '~/stores/instances';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
@@ -25,7 +25,7 @@ import { resolveInstanceDisplayContract } from '~/utils/instance-display-contrac
 import { titleFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
-import { hasMeaningfulWorkflowState } from '~/utils/state-actions.js';
+import { useStatePolicy } from '~/composables/useStatePolicy';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const CARD_COMPONENTS = {
@@ -144,13 +144,14 @@ const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.va
 const compactPreviewHideDimensionLayer = computed(() =>
   ['cassette', 'cassette_design', 'sheet_design'].includes(generatedTypeId.value)
 );
+// The compact chip's status resolves through the flat contract: the
+// instance's wire `state` value against the type's policy map.
+const { policyFor } = useStatePolicy();
+const compactPolicy = policyFor(() => generatedTypeId.value);
 const compactStatusState = computed(() => {
-  if (!hasMeaningfulWorkflowState(generatedTypeId.value, authStore.stateWorkflows || undefined)) return '';
-  const state = resolved.value?.states;
-  if (typeof state === 'string') return state;
-  return state?.primary || state?.active?.main || '';
+  const value = resolved.value?.state;
+  return typeof value === 'string' && value ? value : '';
 });
-const compactStatusDisplay = computed(() => resolved.value?.status?.metadata?.display || null);
 const popupDetailActionIds = computed(() => generatedDetailActionIds({
   screens: authStore.screenManifest,
   typeId: generatedTypeId.value,
@@ -285,7 +286,7 @@ function openEntityChatFromRef(event) {
   event?.stopPropagation?.();
   requestCloseMobileTransientSurfaces();
   compactOp.value?.hide?.();
-  openEntityChat({
+  openInstanceChat({
     type: generatedTypeId.value || props.type,
     id: resolvedId.value,
     name: resolved.value?.identity?.name || ''
@@ -427,10 +428,10 @@ function tonePalette(role) {
           </span>
         </span>
         <span class="instance-inline-compact-status-row">
-          <StatusBadge
+          <StateTag
             v-if="compactStatusState"
-            :state="compactStatusState"
-            :display="compactStatusDisplay"
+            :value="compactStatusState"
+            :policy="compactPolicy"
             class="max-w-full"
           />
         </span>
@@ -456,8 +457,8 @@ function tonePalette(role) {
           <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">
             <span class="min-w-0 truncate" :title="identityLabel">{{ identityLabel }}</span>
             <InstanceState
-              v-if="resolved.status"
-              :entity="resolved"
+              v-if="resolved"
+              :instance="resolved"
               :type-id="generatedTypeId"
               variant="inline"
             />

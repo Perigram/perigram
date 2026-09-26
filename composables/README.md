@@ -22,12 +22,31 @@ sources load without false 401s.
 ## useBlocks — Low-level Block Composables
 
 ```js
-import { useStatus, useLineage } from './useBlocks';
+import { useLineage } from './useBlocks';
 ```
 
 ⚠️ **Restricted use**: Only imported by the shared state/trace primitives
-(`InstanceState.vue`, `TraceChain.vue`). Entity cards and pages **must not**
+(`TraceChain.vue`). Instance cards and pages **must not**
 import directly. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
+
+---
+
+## useStatePolicy — the flat state vocabulary source
+
+The flat state vocabulary's one client-side source (SPEC §7): it derives the
+per-type state policy map from the compiled producer workflows the auth
+hydration payload already carries (`statePolicyByType` over
+`processPayload.producerOutputs`). Every state surface — generated screens
+and the shared instance chrome (`InstanceState`, `StateHistory`,
+`InstanceCard` visibility, `InstanceInlineRef` compact chips) — resolves
+labels, severities, icons, and terminal flags through it; the resolver
+contract itself is canonical in
+[shared/ui-mapping](../shared/ui-mapping/README.md).
+
+```js
+const { policyByType, policyFor } = useStatePolicy();
+const policyByValue = policyFor(() => props.typeId); // reactive per-type map
+```
 
 ---
 
@@ -248,8 +267,8 @@ carrying its parent ref lands in the open parent detail's child region — the
 generated hierarchy accumulates without a reload. Events without a complete
 snapshot are the only case that
 schedules a (debounced) source reload; API routes still enforce whether the
-source may read the changed entity. `GeneratedScreen.applyActionResult` feeds
-the same `applyEntitySnapshot` path synchronously from the action response, so
+source may read the changed instance. `GeneratedScreen.applyActionResult` feeds
+the same `applyInstanceSnapshot` path synchronously from the action response, so
 a successful procedural action patches affected sources before any sync event
 arrives.
 

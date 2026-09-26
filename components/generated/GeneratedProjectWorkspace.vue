@@ -64,7 +64,7 @@
                 @node-select="selectNode"
               >
                 <template #default="{ node }">
-                  <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
+                  <div v-if="node.data?.item?.kind === 'instance'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
                     <span class="truncate" :title="explorerEntityLabel(node.data.item.type, node.data.item.entity)">{{ explorerEntityLabel(node.data.item.type, node.data.item.entity) }}</span>
                   </div>
                   <div v-else class="flex min-w-0 flex-1 items-center gap-2">
@@ -249,7 +249,7 @@ const workspaceStorageKey = computed(() => projectWorkspaceStorageKey({
 }));
 const projectItem = computed(() => project.value ? {
   key: projectKey.value,
-  kind: 'entity',
+  kind: 'instance',
   type: 'project',
   entity: project.value,
   region: mainRegion.value
@@ -275,7 +275,7 @@ const entityItems = computed(() => [
   projectItem.value,
   ...childSections.value.flatMap(section => section.items.map(entity => ({
     key: entityKey(section.typeId, entity),
-    kind: 'entity',
+    kind: 'instance',
     type: section.typeId,
     entity,
     region: section.region
@@ -428,7 +428,7 @@ watch(linkedRefs, async refs => {
       || await instances.resolveReadableReference(instances.canonicalTypeKey(ref.typeId), ref.id, { silent: true });
     return entity ? {
       key: entityKey(ref.typeId, entity),
-      kind: 'entity',
+      kind: 'instance',
       type: ref.typeId,
       entity,
       region: null
@@ -714,7 +714,7 @@ function pageNode(page) {
 }
 
 function workspaceItemLabel(item) {
-  if (item?.kind === 'entity') {
+  if (item?.kind === 'instance') {
     return item.entity?.identity?.name || item.entity?.identity?.uid || instanceId(item.entity);
   }
   const definition = resolveGeneratedWorkspacePage(item?.pageId);
@@ -736,7 +736,7 @@ function entityKey(type, entity) {
 function workspaceEntityItem(type, entity) {
   return {
     key: entityKey(type, entity),
-    kind: 'entity',
+    kind: 'instance',
     type,
     entity,
     region: null

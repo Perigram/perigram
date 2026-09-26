@@ -113,10 +113,10 @@ describe('instances store cache', () => {
   it('reconciles shared entity events into the cache by canonical type key', async () => {
     const instances = useInstancesStore();
 
-    emitInstanceCreated({ type: 'queue', entity: { _id: 'q-1', identity: { name: 'Created' } } });
+    emitInstanceCreated({ type: 'queue', instance: { _id: 'q-1', identity: { name: 'Created' } } });
     expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ identity: { name: 'Created' } });
 
-    emitInstanceUpdated({ type: 'queue', entity: { _id: 'q-1', identity: { name: 'Updated' } } });
+    emitInstanceUpdated({ type: 'queue', instance: { _id: 'q-1', identity: { name: 'Updated' } } });
     expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ identity: { name: 'Updated' } });
 
     emitInstanceDeleted({ type: 'queue', id: 'q-1' });
@@ -143,7 +143,7 @@ describe('instances store cache', () => {
     const mutate = vi.spyOn(store, 'mutate').mockResolvedValue({});
     const instances = useInstancesStore();
 
-    await instances.mutateDirect('artifact', 'PATCH', { id: 'a-1', body: { data: { note: 'x' } }, meta: { kind: 'entity' } });
+    await instances.mutateDirect('artifact', 'PATCH', { id: 'a-1', body: { data: { note: 'x' } }, meta: { kind: 'instance' } });
     expect(mutate).toHaveBeenCalledWith(expect.objectContaining({
       url: '/api/artifacts/a-1',
       method: 'PATCH',

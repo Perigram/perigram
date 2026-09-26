@@ -62,7 +62,7 @@ const onPreviewKeydown = (event) => {
     @click.stop="emitPreview"
     @keydown="onPreviewKeydown"
   >
-    <InstanceCard :entity="artifact" type-id="artifact" :variant="variant" :show-status="false" :expandable="false">
+    <InstanceCard :instance="artifact" type-id="artifact" :variant="variant" :show-status="false" :expandable="false">
       <template #before-identity>
         <i :class="['pi', icon]"></i>
       </template>

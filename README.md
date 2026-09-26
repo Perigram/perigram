@@ -47,7 +47,7 @@ flowchart LR
 
 | Term | Definition |
 |---|---|
-| Entity | Persisted business object with canonical blocks. |
+| Instance | Persisted object of a declared type, served by the generic per-class instance services; carries a flat wire `state` string when its type's producer workflow declares a vocabulary. The `entity` vocabulary is legacy and lives only in uncleated server contracts. |
 | Command | Synchronous business intent and access boundary, recorded in `command_runs`. |
 | Task | Async execution boundary, queued in `task_runs` and claimed by workers/executors. |
 | Workflow | Entity lifecycle state machine and transition contract. |

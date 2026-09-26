@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <InstanceCard :entity="cassette" type-id="cassette" :variant="variant">
+    <InstanceCard :instance="cassette" type-id="cassette" :variant="variant">
       <template #before-identity>
         <i class="pi pi-clone"></i>
       </template>
