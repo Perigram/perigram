@@ -32,9 +32,6 @@ const CARD_COMPONENTS = {
   sheetDesign: defineAsyncComponent(() => import('~/components/entities/SheetDesign/SheetDesignCard.vue')),
   cassette: defineAsyncComponent(() => import('~/components/entities/Cassette/CassetteCard.vue')),
   entityRevision: defineAsyncComponent(() => import('~/components/entities/EntityRevision/EntityRevisionCard.vue')),
-  toolProfile: defineAsyncComponent(() => import('~/components/entities/ToolProfile/ToolProfileCard.vue')),
-  penTemplate: defineAsyncComponent(() => import('~/components/entities/PenTemplate/PenTemplateCard.vue')),
-  layerStandard: defineAsyncComponent(() => import('~/components/entities/LayerStandard/LayerStandardCard.vue')),
   user: defineAsyncComponent(() => import('~/components/entities/User/UserCard.vue')),
   organization: defineAsyncComponent(() => import('~/components/entities/Organization/OrganizationCard.vue')),
   artifact: defineAsyncComponent(() => import('~/components/entities/Artifact/ArtifactCard.vue')),
@@ -281,14 +278,14 @@ function entityFamilyAccent(type) {
   if (['cassette', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
   if (['sheetDesign'].includes(type)) return 'var(--ck-entity-tone-output)';
   if (['color'].includes(type)) return 'var(--ck-entity-tone-material)';
-  if (['organization', 'artifact', 'entityRevision', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
+  if (['organization', 'artifact', 'entityRevision', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
   return 'var(--p-surface-500)';
 }
 
 function entitySemanticRole(type) {
   if (['organization'].includes(type)) return 'container';
   if (['sheetDesign', 'profileTemplate', 'entityRevision'].includes(type)) return 'definition';
-  if (['artifact', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'meta';
+  if (['artifact', 'user'].includes(type)) return 'meta';
   return 'item';
 }
 

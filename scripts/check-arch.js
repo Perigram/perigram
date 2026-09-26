@@ -636,6 +636,27 @@ for (const file of walkDir('server').filter(item => item.endsWith('.js') && !ite
   }
 }
 
+// The same class of silent break exists for aliased component imports:
+// `defineAsyncComponent(() => import('~/...'))` resolves only when the card
+// renders, so a deleted target ships green until a user hits the surface.
+for (const file of walkDir('components')
+  .concat(walkDir('pages'), walkDir('composables'), walkDir('utils'), walkDir('shared'))
+  .filter(item => item.endsWith('.js') || item.endsWith('.vue'))) {
+  if (file.endsWith('.spec.js') || file.endsWith('.spec.js.ts')) continue;
+  const relFile = path.relative('.', file);
+  const content = fs.readFileSync(file, 'utf8');
+  for (const match of content.matchAll(/import\s*\(\s*['"]~\/([^'"]+)['"]\s*\)/g)) {
+    // Vite resolves extensionless specifiers (.js/.ts/.vue/index variants).
+    const base = path.resolve('.', match[1]);
+    const resolves = ['.js', '.ts', '.vue', '.mjs', '/index.js', '/index.ts']
+      .some(suffix => fs.existsSync(base + suffix)) || fs.existsSync(base);
+    if (!resolves) {
+      console.error(`❌ ${relFile} aliased dynamic import '~/${match[1]}' does not resolve to a file`);
+      errors++;
+    }
+  }
+}
+
 console.log('\n--- Bare workspace-package imports ---');
 // Bare `@perigram/*` specifiers resolve only where workspace symlinks exist
 // (a host install); the dev container runs Nitro with its own node_modules
