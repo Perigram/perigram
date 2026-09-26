@@ -306,14 +306,6 @@ function selectWorkflowTransition(region, state, targetState, intent = null) {
     if (intent) return candidates.find(transition => transition.intent === intent) || null;
     return candidates.find(transition => resolveWorkflowStatePath(region, transition.to) === targetState) || null;
   }
-  // From-any transitions accept whatever state the instance arrived in,
-  // except a same-state entry — re-entering the current state is a
-  // self-loop and needs an explicit declaration.
-  if (state !== targetState) {
-    const anyFrom = (region.transitions || []).filter(transition => transition.fromAny === true);
-    if (intent) return anyFrom.find(transition => transition.intent === intent) || null;
-    return anyFrom.find(transition => resolveWorkflowStatePath(region, transition.to) === targetState) || null;
-  }
   return null;
 }
 
@@ -338,10 +330,6 @@ function normalizeRegion(id, region = {}) {
   const initial = resolveWorkflowStatePath(normalized, region.initial);
   if (!initial) throw new Error(`Workflow region ${id} initial ${region.initial} is not declared`);
   for (const transition of transitions) {
-    // A from-any transition carries no from-state: the operated instance
-    // supplies it at execution time (the transition node's entity arrives
-    // in its current state). Only its target is declared vocabulary.
-    if (transition.fromAny === true) continue;
     if (!Object.hasOwn(states, transition.from)) {
       throw new Error(`Workflow region ${id} transition from ${transition.from} is not declared`);
     }
