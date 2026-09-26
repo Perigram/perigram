@@ -251,10 +251,12 @@ compile, never invented). A producer's machine compiles from the draft's
 state records (the state vocabulary), the construct's authored state default
 (the machine entry), and its transition nodes' authored targets (the
 transitions): a transition node declares only its target — the operated
-entity arrives in its current state — and the machine fans the edge from
-every other declared value of the axis. An authored `from` narrows the fan
-to one edge (legacy reference data); the transition inspector authors no
-from-state. A producer whose type carries none of these
+entity arrives in its current state — and the machine carries ONE from-any
+edge to that target; the from-state is resolved from the instance at
+execution time and is never enumerated into the machine. A from-any edge
+does not satisfy a same-state entry (self-loops stay explicit). An authored
+`from` compiles one explicit edge (legacy reference data); the transition
+inspector authors no from-state. A producer whose type carries none of these
 compiles NO machine: instances of such types are stateless, creation writes
 no status, and the status runtime refuses transitions for them. No
 synthesized CREATED lifecycle exists — a state nobody declared is not
