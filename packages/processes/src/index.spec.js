@@ -660,6 +660,34 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.producerOutputs['make_queue:entity'].workflow).toBeUndefined();
   });
 
+  it('compiles a from-less transition action into one from-any machine edge', () => {
+    // Doctrine: the transition node's entity arrives in its current state —
+    // the machine carries ONE from-any edge to the authored target, never
+    // an enumeration of from-states.
+    const workItemDomain = { ...domain, entities: [...domain.entities, { type: 'work_item', label: 'Work item', collection: 'items', blocks: ['identity', 'origin', 'status', 'lineage', 'relations', 'provenance', 'attachments', 'data'] }] };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      graph: {
+        nodes: [{ id: 't', type: 'processNode', data: { refId: 't' } }],
+        edges: []
+      },
+      producerOutputs: producerOutputRecords([['make_work_item', 'work_item']]),
+      ctsTypes: {
+        s1: { id: 's1', kind: 'state', typeId: 'work_item', value: 'draft' },
+        s2: { id: 's2', kind: 'state', typeId: 'work_item', value: 'done' }
+      },
+      actions: {
+        t: { id: 't', actionKind: 'updateEntity', typeId: 'work_item', state: { axis: 'main', to: 'done' }, trigger: { mode: 'manual' }, access: { grants: [] } }
+      },
+      processNodes: {
+        t: { id: 't', kind: 'cts.transition', typeId: 'work_item', state: { to: 'done' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+      }
+    }, workItemDomain);
+    const workflow = compiled.producerOutputs['make_work_item:entity'].workflow;
+    const transitions = workflow.regions.main.transitions.filter(transition => transition.to === 'done');
+    expect(transitions).toEqual([expect.objectContaining({ fromAny: true, to: 'done' })]);
+  });
+
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
     // Org-authored lifecycles stay traversable: the declared machine is the
     // whole contract — its own states, transitions, and entry — with no

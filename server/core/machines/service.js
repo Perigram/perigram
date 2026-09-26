@@ -209,7 +209,10 @@ export const stateService = {
     for (const [regionId, region] of Object.entries(normalizedMachine.regions || {})) {
       const currentState = getRegionState(entity.states ?? entity.status, regionId, region.initial);
       for (const transition of region.transitions || []) {
-      if (transition.from !== currentState) continue;
+      // From-any transitions are available from whatever state the
+      // instance arrived in; a same-state entry is a self-loop and stays
+      // explicitly declared.
+      if (transition.fromAny === true ? currentState === (transition.to ?? null) : transition.from !== currentState) continue;
 
       const validation = validateTransition({
         workflow: normalizedMachine,
@@ -312,7 +315,9 @@ async function resolveIntentTransition({
   const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
   const region = getWorkflowRegion(normalizedMachine, regionId);
   const currentState = getRegionState(entity.states ?? entity.status, regionId, region?.initial);
-  const transition = (region?.transitions || []).find(item => item.intent === intent && item.from === currentState);
+  const transitions = region?.transitions || [];
+  const transition = transitions.find(item => item.intent === intent && item.from === currentState)
+    || transitions.find(item => item.intent === intent && item.fromAny === true && currentState !== item.to);
   if (!transition) {
     throw createError({
       statusCode: 400,
