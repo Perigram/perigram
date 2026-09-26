@@ -66,8 +66,6 @@ const createEntity = ({
 };
 
 export const MOCK_IDS = {
-  facadeId: 'facade-demo-atrium',
-  facadePatternId: 'facade-pattern-demo-grid',
   organizationId: 'org-demo-acme',
   manufacturerId: 'org-demo-maker',
   warehouseId: 'wh-demo-main',

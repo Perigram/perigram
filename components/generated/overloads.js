@@ -2,8 +2,8 @@ import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspac
 import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
 import { fileDetailOverloads } from '~/components/generated/file-surfaces.js';
 
-// File-type detail bodies (cassette, sheet-design, facade-design,
-// facade-pattern, sketch) derive from the pack editor bindings through
+// File-type detail bodies (cassette, sheet-design, sketch) derive from the
+// pack editor bindings through
 // the file-surface registry — the type id is the projected entity key.
 // The artifact row stays static: artifacts are the framework file
 // service (SPEC §13), not a pack type.

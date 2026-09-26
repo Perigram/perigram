@@ -51,8 +51,6 @@ describe('generated overload registry', () => {
   it('keeps entity detail body overloads in the registry', () => {
     expect(resolveGeneratedInstanceDetailOverload('artifact')?.component).toBeTruthy();
     expect(resolveGeneratedInstanceDetailOverload('cassette')?.component).toBeTruthy();
-    expect(resolveGeneratedInstanceDetailOverload('facade-design')?.component).toBeTruthy();
-    expect(resolveGeneratedInstanceDetailOverload('facade-pattern')?.component).toBeTruthy();
     expect(resolveGeneratedInstanceDetailOverload('queue')).toBeNull();
     expect(resolveGeneratedInstanceDetailOverload('sheet-design')?.component).toBeTruthy();
     expect(resolveGeneratedInstanceDetailOverload('sketch')?.component).toBeTruthy();
@@ -65,8 +63,6 @@ describe('generated overload registry', () => {
     // The projected entity key is the CTS type id; legacy pre-projection
     // keys no longer resolve an editor surface (abandoned data, SPEC §19).
     expect(resolveGeneratedInstanceDetailOverload('sheet_design')).toBeNull();
-    expect(resolveGeneratedInstanceDetailOverload('facade')).toBeNull();
-    expect(resolveGeneratedInstanceDetailOverload('facade_pattern')).toBeNull();
 
     const cassette = resolveGeneratedInstanceDetailOverload('cassette');
     expect(cassette.ownsActionSurface).toBe(true);

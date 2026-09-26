@@ -87,7 +87,7 @@ content composes as plain labeled sections — one-line parameter rows (name,
 expression, remove) and one-line layer rows (visibility, layer chip,
 standard and pen inline chips) — without collapse controls, aggregate
 show/hide commands, or count badges. `layout="canvas"` is for graph editors whose palette and
-inspector overlay a full canvas, such as process and facade-pattern design.
+inspector overlay a full canvas, such as process design.
 
 ## Use the Three viewport
 

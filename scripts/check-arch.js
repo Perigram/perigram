@@ -26,8 +26,6 @@ const genericInstanceTypes = new Set([
   // tech-drawing catalogue types whose legacy feature directories are gone:
   // system instances live as §3 documents served by the generic machinery
   'pen-template', 'layer-standard',
-  // facade design/pattern file types: client designers + generic instances
-  'facade-design', 'facade-pattern'
 ]);
 const classifiedDeclarations = [...frameworkTypes, ...composeSystemDeclarations()]
   .filter(declaration => !genericInstanceTypes.has(declaration.id));

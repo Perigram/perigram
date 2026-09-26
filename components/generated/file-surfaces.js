@@ -1,7 +1,5 @@
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
-import GeneratedFacadeDesignerWorkspacePage from '~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue';
-import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
@@ -50,18 +48,6 @@ export const fileSurfaceRegistry = {
       props: ({ entity, canEditSheetDesign }) => ({ design: entity, editable: canEditSheetDesign })
     },
     forcesIdentity: true
-  },
-  'facade-designer': {
-    detail: {
-      component: GeneratedFacadeDesignerWorkspacePage,
-      props: ({ entity }) => ({ facade: entity })
-    }
-  },
-  'facade-pattern-designer': {
-    detail: {
-      component: GeneratedFacadePatternDesignerWorkspacePage,
-      props: ({ entity }) => ({ facadePattern: entity })
-    }
   },
   'sketch-editor': {
     detail: {

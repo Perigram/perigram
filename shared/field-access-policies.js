@@ -10,8 +10,6 @@ const COMMON_READ_FIELDS = [
 ];
 
 export const fieldAccessPolicies = {
-  facade: { feature: 'facades', read: [...COMMON_READ_FIELDS, 'data.parts', 'data.partAssignments', 'data.revisions'], write: ['relations.*', 'data.parts', 'data.partAssignments', 'data.revisions'], admin: ['identity.*', 'data.*', 'attachments.*'] },
-  facade_pattern: { feature: 'facade_patterns', read: [...COMMON_READ_FIELDS, 'data.graph', 'data.revisions'], write: ['identity.name', 'data.graph', 'data.revisions'], admin: ['identity.*', 'data.*', 'attachments.*'] },
   sheetDesign: {
     feature: 'sheet_designs',
     read: [...COMMON_READ_FIELDS, 'specs.*', 'data.geometry.*', 'data.materialPool', 'data.instanceIds', 'data.sheetIndex'],
@@ -115,8 +113,6 @@ const ENTITY_ALIASES = {
   // rows).
   'entity-revision': 'entityRevision',
   'sheet-design': 'sheetDesign',
-  'facade-design': 'facade',
-  'facade-pattern': 'facade_pattern'
 };
 
 export function normalizeFieldAccessTypeId(typeId = '') {

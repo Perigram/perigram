@@ -97,57 +97,8 @@ export const facadeFileTypes = [
         ] }
       ]
     }
-  },
-  {
-    id: 'facade-design',
-    class: 'file',
-    scope: 'system',
-    version: 1,
-    payload: {
-      mime: 'model/gltf-binary',
-      accept: ['.glb', '.gltf'],
-      maxSize: 100 * 1024 * 1024
-    },
-    fields: {
-      name: { base: 'string' }
-    },
-    render: {
-      label: 'Facade design',
-      icon: 'pi pi-building',
-      groups: [
-        { id: 'summary', fields: [
-          { path: 'data.parts.length', label: 'facade.parts', display: 'count', priority: 10 },
-          { path: 'data.partAssignments.length', label: 'facade.assignments', display: 'count', priority: 20 },
-          { path: 'relations.sourceModel', label: 'facade.sourceModel', display: 'entityRef', typeId: 'artifact', priority: 30 },
-          { path: 'relations.patterns', label: 'facade.patterns', display: 'entityRefList', typeId: 'facadePattern', priority: 40 }
-        ] }
-      ]
-    }
-  },
-  {
-    // The typed visual pattern graph. Persistence stays on the pattern
-    // designer's pack-internal feature route (the cassette pattern); this
-    // declaration serves the registry and generated-surface layer.
-    id: 'facade-pattern',
-    class: 'file',
-    scope: 'system',
-    version: 1,
-    fields: {
-      name: { base: 'string' },
-      graph: { base: 'json', nullable: true }
-    },
-    render: {
-      label: 'Facade pattern',
-      icon: 'pi pi-objects-column',
-      groups: [
-        { id: 'summary', fields: [
-          { path: 'data.graph.nodes.length', label: 'facadePattern.nodes', display: 'count', priority: 10 }
-        ] }
-      ]
-    }
   }
 ];
-
 // Editors bound to file types: which authoring surface opens for a type's
 // payload. The surfaces themselves are existing designer components; the
 // binding is pack data. This list is the canonical editor contract — it is
@@ -156,9 +107,7 @@ export const facadeFileTypes = [
 // components/generated/file-surfaces.js.
 export const facadeEditors = [
   { type: 'cassette', surface: 'cassette-designer', modes: ['create', 'edit'] },
-  { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['edit'] },
-  { type: 'facade-design', surface: 'facade-designer', modes: ['create', 'edit'] },
-  { type: 'facade-pattern', surface: 'facade-pattern-designer', modes: ['edit'] }
+  { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['edit'] }
 ];
 
 // Registered services (SPEC §8 s species) are executable registrations,

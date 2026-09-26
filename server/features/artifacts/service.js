@@ -69,7 +69,6 @@ export async function create(data, userId = 'SYSTEM', userOrg = null, userRole =
 
 export async function createUploaded({ buffer, filename, name, mimeType, type, lineage, metadata = {}, relations = {}, provenance = {} } = {}, auth = {}) {
   if (!buffer?.length) throw createError({ statusCode: 400, message: 'Artifact file is required' });
-  if (type === 'FACADE_MODEL_SOURCE') validateFacadeModel(buffer, filename);
   const bucketName = bucketNameForType(type);
   const stored = await filesService.uploadFile(buffer, filename || 'upload', {
     userId: auth.userId,
@@ -95,21 +94,6 @@ export async function createUploaded({ buffer, filename, name, mimeType, type, l
   }
 }
 
-function validateFacadeModel(buffer, filename = '') {
-  if (/\.glb$/i.test(filename)) {
-    if (buffer.length < 12 || buffer.toString('ascii', 0, 4) !== 'glTF') {
-      throw createError({ statusCode: 400, message: 'Facade model must be a valid GLB file' });
-    }
-    return;
-  }
-  if (!/\.gltf$/i.test(filename)) throw createError({ statusCode: 400, message: 'Facade model must be GLB or GLTF' });
-  let document;
-  try { document = JSON.parse(buffer.toString('utf8')); } catch { throw createError({ statusCode: 400, message: 'Facade GLTF must be valid JSON' }); }
-  const resources = [...(document.buffers || []), ...(document.images || [])];
-  if (resources.some(resource => resource?.uri && !String(resource.uri).startsWith('data:'))) {
-    throw createError({ statusCode: 400, message: 'Facade GLTF must embed all buffers and images' });
-  }
-}
 
 export async function createRendered({ buffer, filename, mimeType, type, lineage, metadata = {}, provenance = {}, layout, values = {} } = {}, auth = {}) {
   if (!layout) throw createError({ statusCode: 400, message: 'Rendered artifact layout is required' });
@@ -163,7 +147,6 @@ export async function replaceUploadedFile(id, { buffer, filename, mimeType } = {
   const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
   assertEntityAccess({ entity: artifact, typeId: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
   const type = artifact.data?.type;
-  if (type === 'FACADE_MODEL_SOURCE') throw createError({ statusCode: 409, message: 'Facade model source artifacts are immutable' });
   const bucketName = bucketNameForType(type);
   const stored = await filesService.uploadFile(buffer, filename || artifact.identity?.name || 'upload', {
     userId: auth.userId,
@@ -346,7 +329,6 @@ function createArtifactAttachment(type, fileId, name, mimeType = '', bucketName 
 }
 
 export function bucketNameForType(type) {
-  if (type === 'FACADE_MODEL_SOURCE') return 'facadeModels';
   if (type === 'LAYOUT_DXF') return 'nestDxf';
   if (type === 'LAYOUT_SVG') return 'nestSvg';
   if (type === 'PDF_PASSPORT') return 'artifacts';

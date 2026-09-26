@@ -15,8 +15,8 @@ facade domain in the type system.
 ## Modules
 
 - `src/pack.js` — the browser-safe declaration data: `facadeFileTypes`
-  (cassette, sheet-design, facade-design, facade-pattern — with declared
-  states, transitions, render policies, and operators), `facadeEditors`
+  (cassette, sheet-design — with declared states, transitions, render
+  policies, and operators), `facadeEditors`
   (the canonical editor-binding contract served with the type view),
   `facadeServices` (the nesting solver's V→V registration, SPEC §8), and
   `facadeAttachmentKinds` (the OCCS upload kind).

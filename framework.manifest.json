@@ -1,15 +1,6 @@
 {
   "attachmentKinds": [
     {
-      "bucket": "facadeModels",
-      "key": "FACADE_MODEL_SOURCE",
-      "kind": "FACADE_MODEL_SOURCE",
-      "mimeType": "model/gltf-binary",
-      "preview": {
-        "mode": "model3d"
-      }
-    },
-    {
       "bucket": "artifactTemplates",
       "key": "ARTIFACT_TEMPLATE_SOURCE",
       "kind": "ARTIFACT_TEMPLATE_SOURCE",
@@ -1203,36 +1194,6 @@
       "collection": "files",
       "lineage": {},
       "type": "sheet-design"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "facade-design"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "facade-pattern"
     }
   ],
   "name": "perigram-framework",
@@ -1358,16 +1319,6 @@
       "list": null,
       "single": null,
       "type": "sheet-design"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "facade-design"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "facade-pattern"
     }
   ],
   "schemaVersion": 1,

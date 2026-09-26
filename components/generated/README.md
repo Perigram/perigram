@@ -139,8 +139,8 @@ documented in the
 [cts-types README](../../server/features/cts-types/README.md).
 
 `overloads.js`, `instance-editor-action.js`, and `workspace-pages.js` derive
-their file-type rows (cassette, sheet-design, facade-design,
-facade-pattern, sketch, text-document, csv-table) from the pack editor
+their file-type rows (cassette, sheet-design, sketch, text-document,
+csv-table) from the pack editor
 bindings through this registry instead of hand-maintained entity-keyed
 maps. Rows key by the CTS type id — the projected entity key — so legacy
 pre-projection keys (`sheet_design`, `facade`, `facade_pattern`) no

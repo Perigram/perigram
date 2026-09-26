@@ -1,5 +1,4 @@
 export const frameworkAttachmentKinds = {
-  FACADE_MODEL_SOURCE: { kind: 'FACADE_MODEL_SOURCE', bucket: 'facadeModels', mimeType: 'model/gltf-binary', preview: { mode: 'model3d' }, creation: { mode: 'upload', accept: '.glb,.gltf,model/gltf-binary,model/gltf+json' }, editor: { mode: 'none' }, replacement: false },
   ARTIFACT_TEMPLATE_SOURCE: {kind: 'ARTIFACT_TEMPLATE_SOURCE',
     bucket: 'artifactTemplates',
     mimeType: 'application/octet-stream',

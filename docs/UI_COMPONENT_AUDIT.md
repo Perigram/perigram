@@ -147,8 +147,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-entities-pentemplate-pentemplatecard-vue` | `components/entities/PenTemplate/PenTemplateCard.vue` | derived usage | replace:chrome (5); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-entities-sheetdesign-sheetdesigncard-vue` | `components/entities/SheetDesign/SheetDesignCard.vue` | derived usage | compliant |
 | `ui-components-entities-user-usercard-vue` | `components/entities/User/UserCard.vue` | derived usage | compliant |
-| `ui-components-facadedesigner-vue` | `components/FacadeDesigner.vue` | derived usage | compliant |
-| `ui-components-facadepatterndesigner-vue` | `components/FacadePatternDesigner.vue` | derived usage | replace:chrome (9) |
 | `ui-components-footer-vue` | `components/Footer.vue` | derived usage | compliant |
 | `ui-components-generated-generatedactionbutton-vue` | `components/generated/GeneratedActionButton.vue` | derived usage | compliant |
 | `ui-components-generated-generatedartifactcreator-vue` | `components/generated/GeneratedArtifactCreator.vue` | derived usage | compliant |
@@ -156,8 +154,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedcassettedesignerworkspacepage-vue` | `components/generated/GeneratedCassetteDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | compliant |
 | `ui-components-generated-generateddetailscreen-vue` | `components/generated/GeneratedDetailScreen.vue` | derived usage | compliant |
-| `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
-| `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfilepreview-vue` | `components/generated/GeneratedFilePreview.vue` | derived usage | compliant |
 | `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (3); remove:important-override (4) |
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |

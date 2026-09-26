@@ -493,9 +493,6 @@ The generated entity-detail overload registry also maps `cassette` directly to
 the `CassetteDesignerV2` surface. Project panes and ordinary generated cassette
 detail routes therefore use the same editor affiliation and shared full-height
 designer host.
-It also maps `facade` to `FacadeDesigner` and `facade_pattern` to
-`FacadePatternDesigner`. Both use the shared designer shell: the facade editor
-owns immutable-model part assignment, while the pattern editor owns only its
 safe visual graph document.
 Entity-bound generated actions are filtered before
 rendering: the action entity type must match the region source, and
@@ -770,9 +767,6 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 - `CassetteDesignerV2` owns OCCS cassette-template editing. It uses
   `DesignerWorkspace` for its responsive palette/canvas/inspector layout; the
   shared workspace owns layout only and does not interpret OCCS state.
-- `FacadeDesigner` owns GLB/GLTF mesh-part selection and facade-pattern
-  assignments through `ThreeViewport`; `FacadePatternDesigner` owns the
-  persisted typed Vue Flow graph. Neither designer creates production designs
   or nesting records.
   `StandardDialog` for the profile sketch popup and `ProfileSketchEditor` for
   reusable `profile_template` sketches. Profile drawing saves library templates;
