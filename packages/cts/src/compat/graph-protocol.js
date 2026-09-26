@@ -328,6 +328,17 @@ function resolveNativeNode(node, domain, typeIdFor, diagnostics, at) {
     resolved.state = { to: resolved.target };
     delete resolved.target;
   }
+  // The legacy socket-default spelling persisted the transition target as
+  // `inputDefaults.state`; adopt it into the state reference (the one
+  // current authored shape) and drop the default so the two sources can
+  // never disagree.
+  if (resolved.kind === CTS_KIND.transition
+    && resolved.state === undefined
+    && typeof resolved.inputDefaults?.state === 'string') {
+    resolved.state = { to: resolved.inputDefaults.state };
+    const { state: _adopted, ...rest } = resolved.inputDefaults;
+    resolved.inputDefaults = rest;
+  }
   if (resolved.kind === CTS_KIND.read && !resolved.select) resolved.select = 'current';
   if (resolved.kind === CTS_SERVICE_KIND) {
     const service = resolved.operator ? domain.serviceContracts?.[resolved.operator] : null;

@@ -1638,9 +1638,17 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     // `record.state` (axis + from + to); the legacy status socket remains
     // the source only for records the load boundary has already migrated
     // past — authored state always wins.
+    // Target sources mirror validation exactly: the status input, the
+    // inspector's state reference, and an authored default (the legacy
+    // socket-default spelling persisted `state` under inputDefaults).
+    const authoredTargetDefault = record.inputDefaults
+      ? (typeof record.inputDefaults.state === 'string' ? record.inputDefaults.state : undefined)
+        ?? (typeof record.inputDefaults.status === 'string' ? record.inputDefaults.status : undefined)
+        ?? (typeof record.inputDefaults['states.main'] === 'string' ? record.inputDefaults['states.main'] : undefined)
+      : undefined;
     const targetState = typeof inputs.status === 'string'
       ? inputs.status
-      : (inputs.status?.id ?? record.state?.to);
+      : (inputs.status?.id ?? record.state?.to ?? authoredTargetDefault);
     if (targetState == null) {
       // Activation refuses target-less transitions (graph-protocol binding
       // check); reaching here means the ACTIVE definition predates the
