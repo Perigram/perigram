@@ -502,7 +502,10 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
       errors.push(`processNodes.${id}: unknown type ${typeId}`);
       continue;
     }
-    if (node.kind === CTS_KIND.transition) {
+    if (node.kind === CTS_KIND.transition && node.archive !== true) {
+      // Archive transitions resolve their intent at the effect boundary
+      // (ARCHIVED or the named archive intent) and carry no authored
+      // target; every other transition declares one.
       const target = node.state?.to || node.inputDefaults?.state || node.target || '';
       const hasStatusWire = (data.graph?.edges || []).some(edge => (
         String(edge.target) === id
