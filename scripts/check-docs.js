@@ -37,8 +37,6 @@ const SKIP_DIRS = new Set([
   '.obsidian'
 ]);
 
-const SKIP_FILES = new Set(['TODO.org_archive']);
-
 const FENCE_RE = /^```/;
 
 const MIN_DUPLICATE_LENGTH = 180;
@@ -64,7 +62,7 @@ function walk(dir) {
     }
     if (st.isDirectory()) {
       out.push(...walk(full));
-    } else if (entry.endsWith('.md') && !SKIP_FILES.has(entry)) {
+    } else if (entry.endsWith('.md')) {
       out.push(full);
     }
   }

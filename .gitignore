@@ -2,6 +2,7 @@
 .output
 .data
 .nuxt
+.nuxt.root-owned
 .nitro
 .cache
 dist
@@ -50,6 +51,10 @@ workers/nesting/jagua-rs/jagua-rs/target/
 .test-data
 
 .mongo-data
+
+# neolit org-tooling runtime state (config + session transcripts)
+.neolit
+.neolit.json
 
 # agent session worktrees (nested, poison dev watchers if watched)
 .agent-worktrees/
