@@ -216,6 +216,12 @@ export const DESIGN_SYSTEM_CONTRACT = {
 };
 
 
+// Per-entity surface chrome contracts died with the legacy domain package
+// that authored them; instance surfaces resolve from the compiled CTS
+// bundle today. The export stays (empty) so design-system consumers keep
+// one import surface until their own cutover removes it.
+export const DESIGN_SYSTEM_SURFACES = {};
+
 export function validateDesignSystemContracts(entries = DESIGN_SYSTEM_ENTITY_CONTRACTS) {
   return entries.flatMap((entry) => {
     const issues = [];
