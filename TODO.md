@@ -32,7 +32,7 @@ notes.
   InstanceInlineRef/InstancePreview/TraceChain/users.vue/access-control/
   field-access-policies/public-entities, dead icon glyphs (keep
   `sheet-design.svg`, rebuild font).
-- [ ] P3 — cassette_design cut: delete `server/features/cassette-designs` +
+- [x] P3 — cassette_design cut: delete `server/features/cassette-designs` +
   `api/cassette-designs/*` + `FEATURE_ROUTES.cassette_design` + support
   loader; cassettes service drops the design twin (`importFromArtifact`
   keeps creating the cassette, template DXF export stays template-level);
