@@ -126,7 +126,12 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   };
   if (action.producerOutputId) projected.producerOutputId = action.producerOutputId;
   if (action.commandId) projected.commandId = action.commandId;
-  if (action.state?.to) projected.state = { to: action.state.to };
+  if (action.state?.to || action.state?.from) {
+    projected.state = {
+      ...(action.state.from ? { from: action.state.from } : {}),
+      ...(action.state.to ? { to: action.state.to } : {})
+    };
+  }
   if (action.construction?.mode) {
     projected.construction = {
       mode: action.construction.mode,

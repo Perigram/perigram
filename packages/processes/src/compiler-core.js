@@ -2243,7 +2243,10 @@ function buildActionGraphContext(process = {}) {
   for (const node of process.graph?.nodes || []) {
     const refId = String(node.data?.refId || node.id || '');
     const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
-    if (node.type !== 'action' && !processNode?.kind?.startsWith('effect.')) continue;
+    // Native species records (cts.*) are executable graph citizens beside
+    // the legacy effect.* kinds — the wiring context must see them or no
+    // v5 graph derives arrival states, machine edges, or action windows.
+    if (node.type !== 'action' && !String(processNode?.kind || '').match(/^(effect|cts)\./)) continue;
     const actionId = String(processNode?.entryTriggerId || processNode?.id || refId);
     if (!actionId) continue;
     actionNodeById.set(actionId, node);
@@ -3440,7 +3443,7 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
       parentTypeId: parentTypeId || null,
       parentRevision: resolveParentRevision(action.parentRevision, parentTypeId, domain),
       commandId: action.commandId || null,
-      state: compileActionStatus(action, process),
+      state: compileActionStatus(action, process, wiringArrivalState(id, normalizedAction, resolvedTypeId, graphContext, actionWindows)),
       mutation: action.mutation || { fields: [] },
       relationMutation: action.relationMutation || null,
       projection: action.projection || null,
@@ -3501,14 +3504,29 @@ function compileActionEntityContracts(action = {}, inputs = [], outputs = [], ac
   return { inputs: inputContracts, outputs: outputContracts };
 }
 
-function compileActionStatus(action = {}, process = {}) {
+function compileActionStatus(action = {}, process = {}, wiredFrom = '') {
   const target = actionTargetState(action, process);
   const metadata = action.stateRef ? stateDefinitionMetadata(process.stateDefinitions?.[action.stateRef]) : {};
   return {
     ...(action.state || {}),
     ...metadata,
-    ...(target ? { to: target } : {})
+    ...(target ? { to: target } : {}),
+    // The wiring's arrival state scopes the action to the states its
+    // transition is declared from — the same fact the machine edge
+    // derives. An authored from wins (legacy reference data); a wiring
+    // with several arrival states stays unscoped on the manifest (the
+    // machine still guards execution server-side).
+    ...(!action.state?.from && wiredFrom ? { from: wiredFrom } : {})
   };
+}
+
+// The single arrival state a status-mutating action's entity wire
+// declares, when the wiring is unambiguous.
+function wiringArrivalState(actionId, action = {}, typeId = '', graphContext, actionWindows) {
+  if (action.state?.from || action.access?.stateFrom) return '';
+  if ((action.actionKind || 'createEntity') !== 'updateEntity') return '';
+  const sources = workflowTransitionSources(actionId, action, typeId, graphContext, actionWindows);
+  return sources.length === 1 ? sources[0].status : '';
 }
 
 function actionTargetState(action = {}, process = {}) {
