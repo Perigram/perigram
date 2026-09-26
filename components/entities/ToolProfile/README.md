@@ -17,4 +17,4 @@ Master-data card for CNC tool profiles.
 ## Related
 
 - [components/shared/README.md](../../shared/README.md)
-- [server/features/tool-profiles/README.md](../../../server/features/tool-profiles/README.md)
+- [generic instance machinery](../../../server/features/instances/README.md)

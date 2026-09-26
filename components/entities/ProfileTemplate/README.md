@@ -10,6 +10,6 @@ Master-data entity card for reusable OCCS profile-section templates.
 
 ## Related
 
-- [server/features/profile-templates/README.md](../../../server/features/profile-templates/README.md)
+- [generic instance machinery](../../../server/features/instances/README.md)
 - [components/shared/README.md](../../shared/README.md)
 

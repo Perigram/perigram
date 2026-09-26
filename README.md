@@ -66,15 +66,9 @@ commands.
 | Container | Source | Responsibility |
 |---|---|---|
 | `perigram-app` | `server/`, `pages/`, `components/`, `composables/` | Nuxt UI, Nitro API, command/task runtimes, feature services. |
-| `file-processing-worker` | `workers/fileprocessing/` | Claims `dxf.parseUpload`, processes uploaded DXF files. |
-| `cassette-processing-worker` | `workers/cassette-processing/` | Claims `cassette.bakeTemplate`, bakes cassette geometry. |
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
 | `livekit` | Docker image (`livekit/livekit-server`, `livekit.dev.yaml`) | Self-hosted WebRTC SFU for voice/video calls; rooms are derived and token-gated by the `livekit` capability module. |
-
-The geometry-capture worker source remains in `workers/geometry-capture/`, but
-the neural-network capture worker is not part of the Docker compose stack or
-standard image build script.
 
 ## Workflows
 

@@ -1,5 +1,88 @@
 # TODO
 
+## Dead-surface purge (2026-09-26)
+
+Domain truth per owner: the facade pack is cassette + sheet-design file types,
+their editors, and services like nesting. `queue` is not declared. The
+cassette_design entity machinery, the project/queue production flow, and the
+catalogue features behind it are legacy awaiting deletion. Four parallel
+liveness audits (server features, frontend surfaces, workers/scripts/docs,
+core packages) produced the phased plan below; evidence lives in the session
+notes.
+
+- [x] P1 — server-side dead cuts with no frontend impact: delete features
+  `machines`, `results`, `profile-templates`, `tool-profiles`,
+  `layer-standards`, `pen-templates` (UI reads these types through the
+  generic instance transport, not the features) + `api/results` route +
+  `server/core/project/` + `server/plugins/status-control.js` + their seed
+  scripts + orphaned/dead server-scripts and their specs + all four
+  framework task definitions (no enqueue site exists for any of them) +
+  workers `cassette-processing`, `fileprocessing`, `geometry-capture`
+  (compose/stack/build-images updates; nesting worker stays) + dead
+  attachment kinds `CASSETTE_DXF`/`SVG_PREVIEW` + dead-collection indexes in
+  `server/db/indexes.js` + `check-arch.js` list updates + fix the two specs
+  importing the removed `cncFileTypes` export.
+- [ ] P2 — frontend orphan sweep: queue utils trio + specs,
+  `stores/artifacts` + `ArtifactsTable`, `AssetsLibrary`, `PartLibrary`,
+  `TemplatesManager`, `ProjectStatistics`, `useTraceability`,
+  `SheetDesignDetail`, `stores/toolProfiles` (+ SheetDesignEditor kerf
+  fallback), unreachable entity cards (CassetteTemplate, ProfileTemplate,
+  ToolProfile) + contract rows + ui-lab/factories trim, project workspace
+  cluster + `project` overload, dead riders in PermissionEditor/
+  InstanceInlineRef/InstancePreview/TraceChain/users.vue/access-control/
+  field-access-policies/public-entities, dead icon glyphs (keep
+  `sheet-design.svg`, rebuild font).
+- [ ] P3 — cassette_design cut: delete `server/features/cassette-designs` +
+  `api/cassette-designs/*` + `FEATURE_ROUTES.cassette_design` + support
+  loader; cassettes service drops the design twin (`importFromArtifact`
+  keeps creating the cassette, template DXF export stays template-level);
+  `convertArtifact` retargets cassette; facade pack contract references
+  (`cassette.bakeTemplate` task list, cassette_design output) removed;
+  frontend: SheetDesignEditor placements + CassetteThumbnail fallbacks +
+  CassetteEditorDialog import path rewire to cassette surfaces;
+  CassetteDesignCard deleted; decide `parametric-cassettes` (keep only what
+  template export needs); trim e2e specs that pin the dead flow.
+- [ ] P3b — facade-design/facade-pattern cut (owner-scoped domain): remove
+  the two pack type declarations + editor bindings + FacadeDesigner/
+  FacadePatternDesigner + generated workspace pages + surface entries +
+  related contract rows/policies (their persistence routes are already
+  gone).
+- [ ] P4 — workflow core legacy: remove `getDomain('cnc')` zombie reads in
+  `server/core/machines` (validateHookParams, isSynchronousHook, aggregator,
+  dead stateMachines proxy), rewrite the ~13 dead spec expectations in
+  `machines/service.spec.js`, drop consumer-less `initialStatus`/
+  `getDefaultWorkflow` fallback paths and the `workflow-overrides` HTTP
+  routes (service stays — machines resolves through it), trim `states`
+  STATUS_TYPES to live types, remove bake/import grant special-cases in
+  `process-definitions/service.js`, remove dead alias rows in
+  `support/service.js`.
+- [ ] P5 — docs + guards: rewrite `server/features/README.md` inventory,
+  `server/api/README.md`, `workers/README.md`, `docs/SYSTEM_ARCHITECTURE.md`,
+  root README container table, both scripts READMEs, nesting README link,
+  DESIGN_SYSTEM rows; regenerate `framework.manifest.json`; stale TODO lines
+  (`domain-cnc` spec note); run `check-arch`, `docs:validate`,
+  `framework:validate`, focused vitest + SSR smoke; report.
+
+### Agent Notes (2026-09-26)
+
+Audit verdicts (full evidence in session): LIVE and untouched — cassettes,
+sheet-designs, artifacts, artifact-templates, artifact-conversions, nesting,
+files, support (chat + instance options), workflow-overrides (service),
+instances, cts-types, process-definitions, _template (process-update-handler
+is imported by live services). DEAD — machines, results, profile-templates,
+tool-profiles, layer-standards, pen-templates (features; types are served by
+the generic instance transport), all four framework tasks, three of four
+workers, status-control plugin, server/core/project. Legacy-live until P3 —
+cassette-designs, parametric-cassettes. Known broken on HEAD: four orphaned
+server-script specs, two process-definitions specs spreading removed
+`cncFileTypes`, ~13 machines/service.spec expectations pinned to the deleted
+cnc domain, artifact upload endpoint 400s for every kind (no registry kind
+declarations — separate defect, not in this purge). Open decisions taken:
+profile_template designer dialog left intact (works against org-declared
+types; only unreachable surfaces cut); `saveCassetteTemplate` command kept
+until P3 verifies its invokers; check-arch dead-name denylist kept (it guards
+reintroduction).
+
 ## Process Designer nodes
 
 - [ ] Nodes in node editor follow several completely different UI conventions. Need to unify (aligned with latted cts

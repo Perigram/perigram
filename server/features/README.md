@@ -16,8 +16,9 @@ Every feature module in `server/features/[name]/` **must** contain:
 | `service.js` | All business logic and cross-module calls. Uses the access engine for authorization. |
 | `index.js` | **Public API.** Exports `service` namespace only — never `repository` or `model`. |
 
-`node scripts/check-arch.js` derives the entity feature set from
-`@perigram/facade` persisted entity definitions. Run before every commit.
+`node scripts/check-arch.js` derives the entity feature set from the CTS
+registry view (framework + mounted pack declarations). Run before every
+commit.
 
 ### Entity vs Capability Modules
 
@@ -27,8 +28,18 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifacts`, `artifact-templates`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `instance-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `machines`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
-| Capability modules | `artifact-conversions`, `billing`, `instance-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
+| Entity modules | `artifact-templates`, `artifacts`, `cassette-designs` (legacy-live until the cassette-design cut), `cassettes`, `instance-revisions`, `organizations`, `process-definitions`, `sheet-designs`, `users` |
+| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `nesting`, `notification`, `notifications`, `parametric-cassettes`, `sessions`, `states`, `support`, `system-settings`, `workflow-overrides` |
+
+Types without a feature module — the documents/tech-drawing/facade pack
+types and every org-authored type — are served entirely by the generic
+instance machinery ([instances](./instances/README.md)); check-arch keeps
+their names on the generic list so no feature directory is expected. The
+legacy catalogue features (machines, pen-templates, layer-standards,
+profile-templates, tool-profiles) and the queue-era aggregates (projects,
+queues, nesting-runs, sheets, remnants, requisitions, warehouses,
+catalogs, libraries, cassette-instances, geometry-captures) are deleted;
+their §3 instances and seeds live on the generic path.
 
 ---
 
@@ -80,31 +91,15 @@ services must not self-register through hidden globals.
 
 | Module | Entity | Key lineage fields |
 |---|---|---|
-| `projects` | Root production container | `organizationId` |
-| `queues` | Nesting job / batch | `organizationId`, `projectId` |
-| `sheets` | Physical sheet or digital design | `organizationId`, `projectId`, `queueId` |
-| `materials` | Base material catalog record | — |
-| `material-piles` | Inventory batch | `organizationId`, `warehouseId` |
-| `instance-revisions` | Immutable scoped content snapshots | mirrors source lineage plus source entity id |
-| `geometry-captures` | Photo-derived draft geometry captures | `organizationId`, plus `warehouseId` for remnants or `projectId` for facades |
-| `layer-standards` | Drawing layer contract | `organizationId` when overridden or scoped |
-| `libraries` | Material-scoped cassette template library | `organizationId` |
-| `cassette-designs` | Master CAD template | `organizationId` |
-| `cassette-instances` | Manufactured part (digital twin) | `organizationId`, `projectId`, `queueId`, `cassetteDesignId` |
-| `nesting-runs` | Nesting engine output | `organizationId`, `projectId`, `queueId` |
-| `remnants` | Leftover material | `organizationId`, `projectId`, `queueId` |
-| `requisitions` | Procurement workflow | `organizationId`, `projectId` |
-| `artifacts` | DXF/SVG/PDF files | mirrors parent lineage |
+| `cassettes` | OCCS cassette templates (the cassette file type's service) | `organizationId`, `libraryId` |
+| `cassette-designs` | Baked template geometry (legacy-live until the cassette-design cut) | `organizationId`, `projectId`, `queueId` |
+| `sheet-designs` | Sheet design layouts (the sheet-design file type's service) | `organizationId`, `runId` |
+| `artifacts` | Generated files (DXF/SVG/PDF) | mirrors parent lineage |
 | `artifact-templates` | Organization-owned DXF/PDF generation layouts | `organizationId` |
 | `organizations` | Tenant root | — |
 | `users` | User accounts | `organizationId` (via memberships) |
-| `warehouses` | Material storage locations | `organizationId` |
-| `catalogs` | Material specifications | `organizationId` |
-| `machines` | Working-area presets | `organizationId` for custom machines; system machines use public system lineage |
-| `pen-templates` | Drawing pen/stroke template | `organizationId` or `userId` |
+| `instance-revisions` | Immutable scoped content snapshots | mirrors source lineage plus source entity id |
 | `process-definitions` | Organization process graph and compiled runtime contract | `organizationId` |
-| `profile-templates` | Reusable OCCS profile sketches for cassette hangers/extrusions | `organizationId` or `userId` |
-| `tool-profiles` | Milling tool parameters | `organizationId` or `userId` |
 
 ---
 

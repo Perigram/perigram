@@ -10,7 +10,7 @@ types/processes, not by writing entity services.
 flowchart TB
   subgraph Declarations["Type declarations"]
     Cts["@perigram/cts<br/>value universe, registry, compile R1–R7,<br/>domain projection (synthesis-only)"]
-    Packs["Packs: documents → tech-drawing → cnc<br/>(server/packs, SPEC §21)"]
+    Packs["Packs: documents → tech-drawing → facade<br/>(server/packs, SPEC §21)"]
     OrgTypes["Org-authored types<br/>(cts_types store)"]
   end
 
@@ -38,8 +38,6 @@ flowchart TB
   end
 
   subgraph Workers["Workers"]
-    FileWorker["dxf.parseUpload"]
-    CassetteWorker["cassette.bakeTemplate"]
     NestingWorker["nesting HTTP solver"]
   end
 
@@ -62,8 +60,6 @@ flowchart TB
   Generator --> UiContract
   Generator --> Api
   Home --> Api
-  FileWorker --> Api
-  CassetteWorker --> Api
   Api --> NestingWorker
 ```
 
@@ -74,7 +70,7 @@ flowchart TB
 | `@perigram/cts` | Value universe, type declarations, registry/compile, the CTS → compiler-domain projection | Vue, Nuxt, Mongo, workers |
 | `@perigram/processes` | Process normalization, validation, compilation, UI-contract projection, durable evaluation | Concrete domain imports |
 | Packs (`server/packs/*`) | Domain declarations, services/commands/task executors/hook handlers as mountable units | Framework vocabulary |
-| `@perigram/facade` | Pack-internal CNC content: legacy tables for the surviving non-process surfaces, shrinking with the legacy cut | Runtime handlers, DB access, Vue components |
+| `@perigram/facade` | Facade fabrication pack declarations (cassette/sheet-design/facade-design/facade-pattern types, editors, services, commands) and the server-side domain slice | Runtime handlers, DB access, Vue components |
 | `server/runtime` | Pack mounting, framework services, the instance-service resolver | Business logic |
 | `server/core/*` | Command/task/effect/workflow runtimes (domain-agnostic) | Domain-specific imports |
 | `server/features/*` | Framework entity services; pack-internal feature modules | Core vocabulary or global registration |

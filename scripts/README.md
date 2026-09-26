@@ -56,116 +56,16 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the inventory. Component
   ownership is derived from the domain primitive registry: exact registered
   paths are shared/domain primitives and every other Vue file is derived usage.
-- `server/scripts/migrate-flat-state-vocabulary.js`: One-shot
-  flat-state migration (SPEC §7). Strips `states`/`transitions` from
-  stored type declarations, rewrites persisted transition-record state
-  payloads into `inputDefaults.state` socket defaults, removes
-  axis/parentStateId/initial fluff from stored ctsState records, and
-  flattens instance documents' `states: {main}` into one `state` string.
-  Append-only `status_events` history is untouched. Idempotent,
-  dry-run by default; `--apply` persists.
-- `server/scripts/migrate-cts-state-trees.js`: one-way CTS declaration
-  migration from flat state axes to recursive state machines. It preserves
-  axes, transitions, and dotted leaf paths, moves terminal/render policy onto
-  state nodes, defaults to dry-run, and reports ambiguous secondary-axis data
-  for manual review. Use `--apply` to persist.
-- `server/scripts/migrate-process-state-declarations.js`: one-way process
-  draft/active declaration migration that derives stable state parent ids and
-  axes from declaration edges and adds `region: 'main'` to legacy status
-  migration rows. It is idempotent and dry-run by default; use `--apply` to
-  persist.
-- `migrate-status-state-v2.js`: One-shot legacy status migration. Converts
-  string `status.state` / `origin.state` values and `status_events` records to
-  the v2 structured status shape. Supports `--dry-run`.
-- `server/scripts/migrate-cutkit-extensions-to-perigram.js`: One-shot data
-  migration for the CutKit → Perigram rename. Renames persisted authoring
-  extensions from `extensions.cutkit` to `extensions.perigram` at any
-  document depth in every non-system collection; documents carrying both
-  keys keep `perigram`. Supports `--dry-run`.
-- `server/scripts/migrate-call-channels-to-groups.js`: One-shot migration of
-  the retired livekit `call_channels` collection into unified support
-  `chat_groups` (participants start as the creating member; same ids keep
-  room identity). Drops `call_channels` after copying. Supports `--dry-run`.
-- `server/scripts/migrate-process-update-actions.js`: Rewrites legacy
-  `changeStatus` process actions into canonical `updateEntity` actions with a
-  status mutation input and recompiles active runtime contracts. Run before
-  relying on the unified process action protocol.
-- `server/scripts/migrate-process-definitions-typeid.js`: One-shot rewrite of
-  persisted process definitions authored before the typeId unification —
-  legacy `entityType`/`childEntityType`/`ancestorEntityType`/
-  `parentEntityType` keys and `entityList`/`entityDetail` templates become
-  their `typeId`-vocabulary equivalents. The graph-protocol load seam
-  (`renameLegacyTypeKeys`) applies the same rewrite on every load, so the
-  script persists what hydration already normalizes; dry-run by default,
-  `APPLY=1` writes.
-- `server/scripts/migrate-process-command-output-statuses.js`: Active-process
-  data migration for command outputs. It reads graph edges from `runCommand`
-  action nodes into downstream status-mutating `updateEntity` nodes, builds
-  proper process status snapshots from the compiled workflow, inserts status
-  events, and updates existing output entities that are outside the active
-  process status window. Supports `--dry-run`.
-- `server/scripts/migrate-entity-reference-contracts.js`: Moves legacy entity
-  reference fields into canonical `relations` and `provenance` blocks,
-  including cassette-design derived-from data.
-- `server/scripts/migrate-queue-nesting-contracts.js`: Converts legacy queue
-  nesting params/items into the current `data.nestingSettings` and
-  `cassette_design` job-item contract, seeding the default machine id where
-  needed.
-- `server/scripts/migrate-sheet-design-compositions.js`: Non-destructively
-  backfills sheet-design composition metadata, sheet counts, and missing
-  physical sheet twins. It reports duplicate cassette-design multisets for
-  review but does not delete historical sheet designs, revisions, or layout
-  references.
-- `server/scripts/migrate-artifact-sources.js`: Backfills artifact source
-  relations and cassette upload provenance for records created before artifact
-  sources were canonical entity refs.
-- `server/scripts/migrate-artifact-template-command-inputs.js`: Reprojects
-  stored `generateAttachment` action inputs from the current command contract,
-  removing the inert `pdfTemplateId` copy and adding typed template/value
-  sockets. It is a dry run unless `APPLY=1` is set.
-- `server/scripts/migrate-process-compiled-runtime.js`: Recompiles stored
-  `data.compiled` contracts after process compiler changes. Use this after
-  generated-screen synthesis changes so active organizations drop stale
-  compiler-projected home and navigation manifests.
-- `server/scripts/migrate-process-dataflow-v4.js`: Migrates stored v3 process
-  graphs to the universal v4 data-tree contract. It is a dry run by default and
-  writes only with `--apply`. The write pass aborts if any legacy relation
-  append/remove operation requires an explicit list-dataflow rewrite.
-- `server/scripts/migrate-process-transition-role-access.js`: Compiled-process
-  cleanup for status transitions. It removes stale workflow
-  `access.permissions` from transitions that already have `processRoleIds`, so
-  process role assignment remains the transition authority and target-status
-  grants remain post-transition entity access windows. Supports `--dry-run`.
-- `server/scripts/migrate-organization-owner-admins.js`: Tenant safety
-  migration. It marks one active membership per organization as `owner: true`,
-  preferring the creator, then an active admin, then the first active member,
-  and materializes permanent organization/user admin recovery grants.
-- `server/scripts/migrate-profile-template-fillets.js`: Profile-template data
-  migration. Rewrites legacy multi-vertex sketch fillets and normalized OCCS
-  snapshots into per-corner `{ vertexId, radius }` fillet modifiers. Supports
-  `--dry-run`.
-- `seed-*.js`: Local seed helpers for layer standards, tool profiles, and
-  the tech-drawing palette colors (§3 system instances in the `files`
-  collection; `seed-palette-colors.js` upserts by code, `--apply` to
-  persist).
-- `server/scripts/sweep-redundant-screens.js`: One-time Phase 4 broom.
-  Finds authored screens in stored process definitions that are
-  projection-equal to the station inference would emit for the same
-  role + type (pure detection through the org's projected domain and
-  role catalog) and deletes them; validation refuses to re-apply such
-  screens. Dry-run reports; `--apply` deletes and best-effort
-  recompiles the stored contract.
-- `server/scripts/migrate-construction-modes.js`: Persists the
-  construct-mode hygiene re-bind into stored process definitions — create
-  nodes whose mode the type no longer declares are rewritten to the
-  type's current default through the same acceptance seam the server
-  uses (org declaration overlay included). Dry-run reports; `--apply`
-  persists. Definitions whose drafts fail strict acceptance (unbound
-  experimental types) are reported, not touched. Dev-stack runs need the
-  host-mapped Mongo with `?directConnection=true` (the replSet advertises
-  its internal hostname).
-- `test-*.js`, `debug_*.js`, `check-data.js`, `check-jobs.js`: Manual
-  diagnostics for local database, auth, jobs, and data shape investigations.
+- `migrate-status-state-v2.js` (root): One-shot legacy status migration.
+  Converts string `status.state` / `origin.state` values and `status_events`
+  records to the v2 structured status shape. Supports `--dry-run`.
+- One-shot migrations, seeds, and repair helpers under `server/scripts/`
+  (tech-drawing instance migration, §3 tenancy, state-tree flattening,
+  CutKit→Perigram rename, call-channel unification, owner admins, and the
+  rest) are documented in their canonical home:
+  [server/scripts/README.md](../server/scripts/README.md).
+- `test-*.js`, `debug_*.js`: Manual diagnostics for local database, auth,
+  and data-shape investigations.
 
 ## Guardrail Scope
 

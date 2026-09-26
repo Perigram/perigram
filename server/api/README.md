@@ -6,21 +6,26 @@ Routes are grouped into sub-directories corresponding to features:
 - `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
   replacement, authorized source streaming, and deletion. Template-generated
   artifacts expose `PUT /api/artifacts/:id/layout` for revision-backed edits.
-- `batch/`: Detailed batch operations.
-- `cassette-instances/`: Authenticated cassette instance listing, detail, and status routes.
+- `cassette-designs/`: Legacy-live design list/detail/delete/export/import
+  until the cassette-design machinery cut.
 - `cassettes/`: Upload and management of templates. The collection route
   forwards generated-screen lineage filters such as `libraryId` to the feature
   service so parent detail pages only list their own child templates.
 - `commands/`: Authenticated execution route for declared domain commands such
   as `saveCassetteTemplate` and `generateAttachment`.
-- `process-definitions/`: Draft/activation endpoints, effect-free graph preview,
-  plus durable v4
-  orchestration. `POST /:id/runs` starts a trigger, `POST /runs/:id/resume`
-  advances a running or due-waiting run, and `GET /runs/:id` reads its status.
-  Route handlers delegate authorization, persistence, scheduling, and effects
-  to the process-definitions feature service.
-  `POST /preview` evaluates pure/read nodes from an unsaved v4 definition,
-  bounds returned tree samples, and suppresses effects and control flow.
+- `instances/`: The generic per-type instance transport (`/api/instances/:type`
+  and `/api/instances/:type/:id`) serving every pack and org-authored type
+  through the CTS instance machinery, including typed payload upload/download.
+- `files/`: Shared file transport — `POST /api/files/upload` and
+  `GET /api/files/download/:id` for instance payloads and attachments.
+- `process-definitions/`: Draft/activation endpoints, effect-free graph
+  preview, plus durable orchestration. `POST /:id/runs` starts a trigger,
+  `POST /runs/:id/resume` advances a running or due-waiting run, and
+  `GET /runs/:id` reads its status. Route handlers delegate authorization,
+  persistence, scheduling, and effects to the process-definitions feature
+  service. `POST /preview` evaluates pure/read nodes from an unsaved
+  definition, bounds returned tree samples, and suppresses effects and
+  control flow.
 - `organizations/:id/billing`: Authenticated organization billing account,
   package catalog, Stripe checkout creation, and payment sync routes. Token
   packages come from runtime config, not from user records or database price
@@ -30,41 +35,16 @@ Routes are grouped into sub-directories corresponding to features:
   successful frontend CRUD mutations after their canonical entity API call
   succeeds.
 - `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
-  fail, and cancel.
-- `admin/commands/`: Authenticated command definition and run listing for
-  `command_runs`.
-- `geometry-captures/`: Authenticated photo-to-polygon capture CRUD,
-  preset-based recalculation, revision activation, review confirmation, and
-  worker-result callback.
-- `libraries/`: Authenticated cassette library CRUD. Libraries are
-  organization-scoped containers with material data; cassettes created under a
-  library persist `lineage.libraryId`.
-- `machines/`: Authenticated machine preset CRUD. The collection returns the
-  immutable public `3000 x 1500` system default plus organization-owned custom
-  machines readable by the caller.
-- `admin/tasks/`: Authenticated task definition and run listing for
-  `task_runs`.
-- `project/`: Main project orchestration and nesting triggers.
-  The project list route returns authorized project DTOs with canonical
-  identity, status, origin, lineage, safe project data, summary fields, and
-  queue previews.
-  Collection routes for process-generated screens accept `primaryState` or
-  comma-separated `primaryStates` when a role screen is scoped to one or more
-  lifecycle windows.
-- `process-definitions/`: Authenticated organization process definition CRUD,
-  validation, activation, and archive endpoints. Activation compiles the visual
-  graph into runtime access, navigation, workflow, field-policy, service, and
-  socket contracts. Active assignment updates patch the compiled process role
-  mapping for a user. Active action execution decodes the dynamic route segment
-  before resolving the action because derived ids contain separators such as
-  `:link:` and browsers percent-encode them. The endpoints resolve the action from
-  the active compiled process, verify that it is available to the current
-  process roles, and delegate to entity, status, socket, or command runtimes.
-  The active queue item endpoint appends an existing readable cassette design to
-  a readable queue through the queue feature's `processUpdate()` boundary for
-  generated process queue composition; it is not a generic queue PATCH alias.
-  Socket projection endpoints return selected entity fields and receiver
-  lifecycle metadata for cross-organization transfer flows.
+  fail, and cancel. No task executor is currently registered — the protocol
+  is live for the next executor that ships beside an enqueue site.
+- `admin/commands/` and `admin/tasks/`: Authenticated command/task definition
+  and run listings (`command_runs`, `task_runs`). `admin/cts/` serves the
+  org type registry view and declaration authoring API;
+  `admin/domain/` serves system domain inspection.
+- `state/`: Authenticated status action, transition, and history endpoints
+  backed by the workflow runtime (`server/core/machines`). Successful
+  transitions publish entity invalidation events through the shared entity
+  event bus so other devices can refresh affected surfaces.
 - `organizations/:id/invitations`: Authenticated team-management invitation
   listing, creation, and revocation. Handlers delegate authorization to the
   invitations feature so all invitation operations use the same process-derived
@@ -72,15 +52,6 @@ Routes are grouped into sub-directories corresponding to features:
 - `sheet-designs/`: Lineage-scoped sheet design list/detail, direct DXF export,
   and `PUT /api/sheet-designs/:id` for write-authorized, revision-backed manual
   placement updates.
-- `queue/:id` and `cassette-designs/:id`: Single-entity DELETE routes delegate
-  to feature `remove()` services, which enforce admin/delete access. Generated
-  process screens use these canonical routes through `useEntity().remove()`
-  instead of calling feature-specific browser code.
-- `status/`: Authenticated status action and history endpoints. History
-  handlers delegate to the statuses feature and return response-only actor
-  display data for audit rows. Successful status transitions publish entity
-  invalidation events through the shared entity event bus so other devices can
-  refresh affected surfaces.
 - `connections/`: Authenticated realtime layer. `GET /connections/events`
   is the single Server-Sent Events stream per browser tab; the server
   registers the connection with `user:`/`org:` topics and reports its
@@ -107,8 +78,7 @@ Routes are grouped into sub-directories corresponding to features:
   conversations. Group chats are created and deleted through
   `POST/DELETE /support/groups`. Conversation-list routes return unread
   counts from `supportConversationReads`. Messages may include structured
-  inline
-  `entityRefs` selected from readable generated-screen entity types and
+  inline `entityRefs` selected from readable generated-screen entity types and
   concrete readable entity options when a scoped list service exists. The
   instance-options route also accepts `recipientUserId` for direct-chat warning
   metadata. The shared chat message component renders both inline tokens and
