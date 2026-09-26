@@ -104,6 +104,21 @@ types; only unreachable surfaces cut); `saveCassetteTemplate` command kept
 until P3 verifies its invokers; check-arch dead-name denylist kept (it guards
 reintroduction).
 
+## Docs-first hardening (2026-09-26)
+
+Protocol amendments landed (per-concern read gate, diagnosis-is-change,
+blocking doc/code contradictions, comments-don't-home-contracts,
+cite-the-contract) plus the check-docs contract-homing backlog scanner.
+The scanner's current backlog (22 contract-shaped comments without a
+canonical home) is tracked debt: each entry resolves by moving the
+contract into its owning README and leaving a pointer, or consciously
+keeping it. `node scripts/check-docs.js` prints the live list.
+
+- [ ] Contract-homing backlog: move flagged semantics comments into their
+  owning READMEs (highest value first: `packages/processes/src/designer.js`
+  authoring-doctrine comments, `compiler-core.js` lifecycle comments,
+  `registry.js` compile-rule comments).
+
 ## Process Designer nodes
 
 - [ ] Nodes in node editor follow several completely different UI conventions. Need to unify (aligned with latted cts

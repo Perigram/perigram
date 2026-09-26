@@ -36,7 +36,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   to an existing file) and on duplicated canonical-contract passages — both
   verbatim paragraphs and fenced code blocks of meaningful length repeated
   across more than one README. Canonical contracts and examples must live in a
-  single canonical README and be linked, not restated. Run as
+  single canonical README and be linked, not restated. It also reports an
+  advisory contract-homing backlog: long, normative code comments that state
+  authoring/compilation semantics without citing a canonical home (a README or
+  a SPEC section). Advisory findings do not fail the guard; each is resolved
+  by moving the contract into its owning README (leaving the comment as a
+  pointer) or consciously keeping it as tracked debt. Run as
   `npm run docs:validate`.
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.

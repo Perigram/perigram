@@ -14,6 +14,15 @@
  *     DTO snapshots, socket contracts) must also live in one canonical README
  *     and be linked, not re-pasted.
  *
+ * Advisory findings (reported, non-blocking):
+ *  4. Contract-shaped code comments without a README home: block comments
+ *     (or // runs) long enough and normative enough to be authoring or
+ *     compilation semantics. Contracts live in READMEs; a comment that
+ *     states one is a misplaced contract and should either become a README
+ *     paragraph (leaving the comment as a pointer) or be consciously kept
+ *     as tracked debt. Flagged comments that already mention a README are
+ *     considered pointed and pass.
+ *
  * Run from the repository root: `node scripts/check-docs.js`.
  */
 
@@ -123,6 +132,12 @@ function main() {
   failures.push(...findDuplicateParagraphs(files));
   failures.push(...findDuplicateCodeBlocks(files));
 
+  const contractDebt = findContractShapedComments();
+  if (contractDebt.length) {
+    console.log(`Contract-homing debt (${contractDebt.length}) — comments stating semantics that belong in a README:`);
+    for (const finding of contractDebt) console.log(`  ~ ${finding}`);
+  }
+
   if (failures.length > 0) {
     console.error('Blocking findings:');
     for (const f of failures) console.error(`  - ${f}`);
@@ -181,6 +196,87 @@ function findDuplicateCodeBlocks(files) {
   }
 
   return duplicates;
+}
+
+const CONTRACT_COMMENT_MIN_LENGTH = 240;
+const CONTRACT_COMMENT_MARKERS = [
+  'must', 'never', 'always', 'owns', 'contract', 'doctrine', 'semantics',
+  'invariant', 'canonical', 'SPEC §', 'authored', 'authoring'
+];
+const CONTRACT_COMMENT_MIN_MARKERS = 3;
+const SOURCE_ROOTS = ['server/features', 'server/core', 'server/runtime', 'packages', 'shared', 'utils', 'composables'];
+
+function walkSource(dir, out = []) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
+    if (SKIP_DIRS.has(entry) || entry.startsWith('.')) continue;
+    const full = path.join(dir, entry);
+    let st;
+    try {
+      st = statSync(full);
+    } catch {
+      continue;
+    }
+    if (st.isDirectory()) {
+      // package-level walk starts at packages/<name>/src
+      if (dir === path.join(REPO_ROOT, 'packages') && !existsSync(path.join(full, 'src'))) continue;
+      walkSource(full, out);
+    } else if (/\.js$|\.vue$|\.ts$/.test(entry) && !/\.spec\.[jt]s$/.test(entry)) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+// A contract-shaped comment: long prose with repeated normative vocabulary
+// — the shape of "how this concern compiles / what this authored data
+// means", which the docs model homes in READMEs. Local implementation
+// notes rarely reach this density of normative language.
+function findContractShapedComments() {
+  const findings = [];
+  const files = SOURCE_ROOTS.flatMap(root => {
+    const base = path.join(REPO_ROOT, root);
+    if (root === 'packages') return walkSource(base);
+    return walkSource(base);
+  });
+  const seen = new Set();
+  for (const file of files) {
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const content = readFileSync(file, 'utf8');
+    const rel = path.relative(REPO_ROOT, file);
+    const blocks = [
+      ...content.matchAll(/\/\*\*?([\s\S]*?)\*\//g)
+    ].map(match => match[1]);
+    // // line runs of 3+ lines
+    let run = [];
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('//')) {
+        run.push(trimmed.replace(/^\/\/+\s?/, ''));
+      } else {
+        if (run.length >= 3) blocks.push(run.join(' '));
+        run = [];
+      }
+    }
+    if (run.length >= 3) blocks.push(run.join(' '));
+    for (const block of blocks) {
+      const text = block.replace(/\s+/g, ' ').trim();
+      if (text.length < CONTRACT_COMMENT_MIN_LENGTH) continue;
+      // A comment citing its canonical home (a README link or a SPEC
+      // section reference) is pointed, not debt.
+      if (/README|SPEC §/.test(text)) continue;
+      const markers = CONTRACT_COMMENT_MARKERS.filter(marker => text.includes(marker));
+      if (markers.length < CONTRACT_COMMENT_MIN_MARKERS) continue;
+      findings.push(`${rel} — contract-shaped comment (${text.length} chars; markers: ${markers.join(', ')})`);
+    }
+  }
+  return findings;
 }
 
 function splitOutsideFences(content) {
