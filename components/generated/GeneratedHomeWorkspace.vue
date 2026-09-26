@@ -457,16 +457,31 @@ function menuCommand(key, open) {
 }
 
 function menuKeyForElement(element) {
-  // Root headers key by model index (`${rootId}_${index}_header`); submenu
-  // rows key by the item key suffix (`${panelId}_${key}`). Key suffixes
-  // carry colons, so they cannot collide with the numeric id segments.
-  if (element.classList.contains('p-panelmenu-header')) {
-    const panels = [...element.closest('.p-panelmenu')?.querySelectorAll(':scope > .p-panelmenu-panel') || []];
-    const index = panels.indexOf(element.closest('.p-panelmenu-panel'));
-    return index >= 0 ? (sidebarMenuModel.value[index]?.key || null) : null;
+  // PanelMenu renders item ids from positional index paths, never from
+  // model keys, so the split resolves the clicked entry by POSITION: the
+  // panel's index among the root's panels, then each row's li index up
+  // the submenu nesting, walked against the sidebar model.
+  const root = element.closest('.p-panelmenu');
+  const panel = element.closest('.p-panelmenu-panel');
+  if (!root || !panel) return null;
+  const panels = [...root.querySelectorAll(':scope > .p-panelmenu-panel')];
+  const panelIndex = panels.indexOf(panel);
+  if (panelIndex < 0) return null;
+  let node = sidebarMenuModel.value[panelIndex];
+  if (!node) return null;
+  if (element.classList.contains('p-panelmenu-header')) return node.key || null;
+  const indices = [];
+  let row = element.closest('li');
+  while (row && row !== panel && indices.length < 32) {
+    const siblings = [...(row.parentElement?.children || [])].filter(child => child.tagName === 'LI');
+    indices.unshift(siblings.indexOf(row));
+    row = row.parentElement?.closest('li') || null;
   }
-  const id = element.id || '';
-  return [...menuOpenTargets.keys()].find(key => id.endsWith(`_${key}`)) || null;
+  for (const index of indices) {
+    if (index < 0 || !node?.items?.length) return null;
+    node = node.items[index];
+  }
+  return node?.key || null;
 }
 
 function onMenuClickCapture(event) {
@@ -505,6 +520,12 @@ function typePanelItem(node) {
   };
 }
 
+// PanelMenu renders the expand chevron only for items carrying non-empty
+// `items`, so an expandable row whose children are not loaded yet wears a
+// single invisible placeholder: the chevron exists from the start, toggling
+// it drives the lazy child load, and the real rows replace the placeholder.
+const pendingChildrenItem = Object.freeze({ visible: false });
+
 function entityPanelItem(node) {
   const instanceIdValue = instanceId(node.data.item.entity);
   // Rows mute unless THEIR instance is open — opening the type screen
@@ -517,7 +538,9 @@ function entityPanelItem(node) {
     class: selected ? '' : 'text-muted',
     workspaceItem: node.data.item,
     command: menuCommand(node.key, () => openInstanceTab(node.data.item.type, instanceIdValue)),
-    items: node.children?.length ? node.children.map(entityPanelItem) : undefined
+    items: node.children?.length
+      ? node.children.map(entityPanelItem)
+      : (node.leaf === false ? [pendingChildrenItem] : undefined)
   };
 }
 
