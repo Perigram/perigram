@@ -1457,7 +1457,7 @@ describe('@perigram/processes compiler', () => {
     expect(access.screens.some(screen => (screen.screenKey || screen.id) === 'auto_queue_detail')).toBe(true);
   });
 
-  it('does not pin inferred screens to one status when a role has multiple grants for the same entity', () => {
+  it('keeps wiring-derived status windows off inferred read requirements while permissions stay state-scoped', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_project: { id: 'role_project', label: 'Project role' }
@@ -1491,28 +1491,24 @@ describe('@perigram/processes compiler', () => {
       }
     }, domain);
 
+    // The read requirement carries no status window: the list shows every
+    // instance the read level covers, whatever state it is in (or none).
     expect(compiled.screens.auto_role_project_project.required).toEqual({
       feature: 'projects',
-      level: 'read',
-      rule: {
-        any: [
-          { fact: 'primaryState', equals: 'CREATED' },
-          { fact: 'primaryState', equals: 'NEW' }
-        ]
-      }
+      level: 'read'
     });
+    // State scoping survives where it belongs — on the permission grants
+    // that gate state-changing actions.
+    expect(compiled.userAccess.user_a.permissions.projects).toEqual(expect.arrayContaining([
+      expect.objectContaining({ level: 'write', rule: { fact: 'primaryState', equals: 'CREATED' } }),
+      expect.objectContaining({ level: 'admin', rule: { fact: 'primaryState', equals: 'NEW' } })
+    ]));
     expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_project')).toMatchObject({
       screenKey: 'auto_project',
       typeId: 'project',
       required: {
         feature: 'projects',
-        level: 'read',
-        rule: {
-          any: [
-            { fact: 'primaryState', equals: 'CREATED' },
-            { fact: 'primaryState', equals: 'NEW' }
-          ]
-        }
+        level: 'read'
       },
       actions: ['create_project_created', 'create_project_new']
     });
@@ -1562,24 +1558,12 @@ describe('@perigram/processes compiler', () => {
       actions: ['create_project_active'],
       required: {
         feature: 'projects',
-        level: 'read',
-        rule: {
-          any: [
-            { fact: 'primaryState', equals: 'CREATED' },
-            { fact: 'primaryState', equals: 'ACTIVE' }
-          ]
-        }
+        level: 'read'
       },
       sources: [expect.objectContaining({
         required: {
           feature: 'projects',
-          level: 'read',
-          rule: {
-            any: [
-              { fact: 'primaryState', equals: 'CREATED' },
-              { fact: 'primaryState', equals: 'ACTIVE' }
-            ]
-          }
+          level: 'read'
         }
       })]
     });
