@@ -74,10 +74,7 @@ If the graph action has a `library` parent input, process execution passes
 `libraryId` into the typed constructor and the cassette service persists it
 under `lineage.libraryId`. A parent-scoped process action must provide that
 parent id; the process runtime rejects the action before calling this service
-when the compiled parent input is missing. After a library-owned template is
-created, the cassette service synchronizes the parent library summary through
-the domain aggregation contract, so `summary.cassetteCount` reflects persisted
-children instead of UI-local inference.
+when the compiled parent input is missing.
 
 `GET /api/cassettes` is the generated-screen list boundary for cassette
 templates. It must forward lineage filters such as `libraryId` to

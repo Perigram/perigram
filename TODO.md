@@ -47,7 +47,7 @@ notes.
   FacadePatternDesigner + generated workspace pages + surface entries +
   related contract rows/policies (their persistence routes are already
   gone).
-- [ ] P4 — workflow core legacy: remove `getDomain('cnc')` zombie reads in
+- [x] P4 — workflow core legacy: remove `getDomain('cnc')` zombie reads in
   `server/core/machines` (validateHookParams, isSynchronousHook, aggregator,
   dead stateMachines proxy), rewrite the ~13 dead spec expectations in
   `machines/service.spec.js`, drop consumer-less `initialStatus`/
