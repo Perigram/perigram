@@ -56,12 +56,30 @@ notes.
   STATUS_TYPES to live types, remove bake/import grant special-cases in
   `process-definitions/service.js`, remove dead alias rows in
   `support/service.js`.
-- [ ] P5 — docs + guards: rewrite `server/features/README.md` inventory,
+- [x] P5 — docs + guards: rewrite `server/features/README.md` inventory,
   `server/api/README.md`, `workers/README.md`, `docs/SYSTEM_ARCHITECTURE.md`,
   root README container table, both scripts READMEs, nesting README link,
   DESIGN_SYSTEM rows; regenerate `framework.manifest.json`; stale TODO lines
   (`domain-cnc` spec note); run `check-arch`, `docs:validate`,
   `framework:validate`, focused vitest + SSR smoke; report.
+
+### Agent Notes (2026-09-26) — purge complete
+
+Executed on `agent/dead-code-purge-20260926` (merged to `local`): P1–P5 all
+landed. Final validation: `check-arch`, `docs:validate`, `framework:validate`
+all green; vitest server 59 files / 351 tests green (baseline: 24 failing
+tests, 6 broken files), packages 47 files green, SSR smoke green; frontend
+suites carry exactly the 4 pre-existing baseline failures
+(delete-visibility, home-workspace state, socket-tone ×2 — untouched, present
+on the primary checkout). Two real bugs found and fixed en route: the process
+run environments evaluated against the static domain instead of the projected
+org domain (org-type block records failed or silently dropped patches), and a
+missed rename call-site in sheet-designs updateLayout. Follow-ups not in
+scope: the 4 frontend baseline failures; the entity→instance vocabulary
+remainder (protocol kinds `effect.createEntity`, `entityRef`, framework type
+`entity_revision`, `BaseEntity`) — tracked separately as a rename+migration
+decision; artifact upload endpoint 400s for every kind because no registry
+attachment-kind declarations exist (pre-existing, unrelated to the purge).
 
 ### Agent Notes (2026-09-26)
 
