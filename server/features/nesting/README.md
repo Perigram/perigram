@@ -17,7 +17,7 @@ seam graph processes drive.
   persistence, no auth.
 - `solve-value.js` is the registered service command (`solveNestingValue`,
   SPEC §8 s species): the pack's `nesting.solve` service registration
-  ([`packages/domain-cnc` pack](../../../packages/domain-cnc/README.md))
+  ([`packages/facade` pack](../../../packages/facade/README.md))
   names it, and the cnc pack mounts it as a command handler
   ([`server/packs/cnc`](../../packs/README.md)). It receives the command
   envelope; the declared parameter sockets `items` (job geometry) and

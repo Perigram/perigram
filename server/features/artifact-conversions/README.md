@@ -5,7 +5,7 @@ artifact kind or a typed target entity. It owns no collection: file persistence
 remains in `artifacts`, and entity construction remains in the target feature.
 
 `service.js` reads the domain conversion contract from
-`packages/domain-cnc/src/artifact-conversions.js`, verifies the source artifact
+`packages/facade/src/artifact-conversions.js`, verifies the source artifact
 kind, then delegates. The current implementations copy `LAYOUT_DXF` into a new
 revision-backed `DXF_SOURCE` artifact and import a `DXF_SOURCE` through the
 cassette service's `importFromArtifact()` constructor. Conversion provenance is

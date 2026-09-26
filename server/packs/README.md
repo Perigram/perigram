@@ -19,11 +19,11 @@ service bindings stay in the mount modules.
   the `pen-template` and `layer-standard` reference types and their
   system-catalog instances ride the generic instance machinery.
   Declaration data lives in `packages/tech-drawing/src/index.js`.
-- `cnc/` — the CNC pack: cassette (OCCS file + cassette-designer editor),
+- `facade/` — the facade pack: cassette (OCCS file + cassette-designer editor),
   sheet design, facade design file types, and the nesting solver service
   (`nesting.solve` → the `solveNestingValue` command handler, the V→V
   boundary in `server/features/nesting/`). Declaration data lives in
-  `packages/domain-cnc/src/pack.js`; the pack requires `tech-drawing`
+  `packages/facade/src/pack.js`; the pack requires `tech-drawing`
   (pen/layer references resolve through the composed view, never by
   importing it).
 

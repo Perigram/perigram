@@ -10,7 +10,7 @@ Vue I18n locale dictionaries for shared UI, entity labels, workflow/status label
 ## Status Labels
 
 Status labels under `status.*` are consumed by `utils/state-engine.js` and workflow-derived actions in `utils/state-actions.js`.
-When adding a workflow state in `packages/domain-cnc/src/index.js`, add the matching status mapping and locale keys in both locale files in the same change.
+When adding a workflow state in `packages/facade/src/index.js`, add the matching status mapping and locale keys in both locale files in the same change.
 
 ## Generated Process UI
 

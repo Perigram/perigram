@@ -4,7 +4,7 @@ Shared frontend utility modules used by Vue pages/components.
 
 ## Design System Contract
 
-- `design-system-contract.js`: Compatibility exports and validation for the CNC design-system contract now owned by `@perigram/domain-cnc`. It does not import Vue components.
+- `design-system-contract.js`: Compatibility exports and validation for the CNC design-system contract now owned by `@perigram/facade`. It does not import Vue components.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
 - `processDesignerSocketTone.js`: Pure process-port resolver used by every
   designer node form and source edge. It maps structured port type/role data to a
@@ -60,14 +60,14 @@ Shared frontend utility modules used by Vue pages/components.
   declaration resolve to a neutral chip carrying the raw value — the
   documented stop-line for genuinely undeclared types (e.g. the artifact
   family until it is declared in a pack). The legacy compatibility tables
-  (`STATE_MAPPINGS` from `@perigram/domain-cnc` `cncStatusUi`, and the
+  (`STATE_MAPPINGS` from `@perigram/facade` `cncStatusUi`, and the
   `INSTANCE_UI` type→icon registry) are deleted; `cncStatusUi` itself is
   now orphaned in the domain package pending a later broom. Entity type
   icons resolve from the registry bundle's display-policy glyph
   (`stores/registry.js` `iconFor`).
 - `state-actions.js`: Derives `InstanceState` transition actions and
   workflow-visibility answers from the compiled contract first, then the
-  committed `@perigram/domain-cnc` machines as the verified-live fallback
+  committed `@perigram/facade` machines as the verified-live fallback
   for undeclared legacy types. `compiledWorkflowFor(typeRecord)` converts
   a served bundle type record (its `states` facet + `transitions`) into
   the v2 machine shape the workflow machinery consumes, with the axis
@@ -175,7 +175,7 @@ Shared frontend utility modules used by Vue pages/components.
   nesting source items without coupling geometry logic to Vue. Bounds helpers
   rotate source geometry around the nesting origin and clamp the complete shape
   to snap-aligned coordinates inside the material sheet.
-- `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency including multi-region workflows, builds automatic Vue Flow node/edge layout data with reciprocal-transition metadata used unless the page has browser-local manual node positions, and generates deterministic `@perigram/domain-cnc` source for manual export.
+- `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency including multi-region workflows, builds automatic Vue Flow node/edge layout data with reciprocal-transition metadata used unless the page has browser-local manual node positions, and generates deterministic `@perigram/facade` source for manual export.
 - `workflow-compiler.js`: Shared workbench/domain-builder compiler wrapper for live workflow drafts. It normalizes single-region and multi-region workflow shapes, validates draft machines, exposes state options for typed forms, and derives permission summaries used by fixture scenarios and workbench test access. If a caller has not loaded entity or hook definitions yet, it falls back to committed CNC contracts so workflow validation does not report every known workflow/hook as unknown.
 - `cassette.js` / `cassetteRenderer.js`: Browser cassette designer helpers. ID generation must work on plain HTTP LAN deployments where `crypto.randomUUID` may be unavailable; use local helpers that fall back to `crypto.getRandomValues` before non-cryptographic IDs.
 - `cassetteV2Clipper.js`: Cassette Designer v2 layout boolean helper. It loads

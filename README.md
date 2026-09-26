@@ -4,7 +4,7 @@ Perigram is a process programming platform: organizations author typed
 declarations, the process compiler turns them into runtime contracts, and
 generic instance services run every declared type. This repository is the
 demo deployment of that platform — a Nuxt/Nitro modular monolith backed by
-MongoDB and worker services, carrying a CNC manufacturing domain pack as
+MongoDB and worker services, carrying a facade fabrication domain pack as
 its exercised example.
 
 ## Architecture
@@ -17,7 +17,7 @@ type (see [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md)).
 ```mermaid
 flowchart LR
   Cts["@perigram/cts<br/>type declarations + registry + projection"]
-  Packs["server/packs/*<br/>documents → tech-drawing → cnc"]
+  Packs["server/packs/*<br/>documents → tech-drawing → facade"]
   Compiler["@perigram/processes<br/>process compiler + UI contract"]
   Runtime["server/runtime/app-registry<br/>pack mounts + instance-service resolver"]
   Commands["server/core/commands<br/>command_runs"]
@@ -203,7 +203,7 @@ builds only).
 | Runtime registry | [server/runtime/README.md](./server/runtime/README.md) |
 | Commands | [server/core/commands/README.md](./server/core/commands/README.md) |
 | Tasks | [server/core/tasks/README.md](./server/core/tasks/README.md) |
-| Domain package | [packages/domain-cnc/README.md](./packages/domain-cnc/README.md) |
+| Domain package | [packages/facade/README.md](./packages/facade/README.md) |
 | Type system (CTS) | [packages/cts/README.md](./packages/cts/README.md) |
 | Process compiler | [packages/processes/README.md](./packages/processes/README.md) |
 | Core package | [packages/core/README.md](./packages/core/README.md) |

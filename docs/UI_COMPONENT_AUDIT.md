@@ -106,7 +106,7 @@ longer override Material borders, elevation, or interaction states.
 | `mechanism-global-css` | Global CSS layers | system-owned | Font loading/inheritance, page background, app-shell behavior, and active global integrations only. | `assets/css/fonts.css`; `assets/css/main.css`; `assets/css/variants.css` | owned: HTML elements carry no application type role and generic controls remain Material-owned. |
 | `mechanism-runtime-overrides` | Runtime PrimeVue overrides | system-owned | No independent visual-value or generic PrimeVue override source. | `assets/css/main.css`; `shared/design-system.spec.js` | default: PrimeVue variable declarations, component selectors, and important rules are rejected. |
 | `mechanism-scoped-css` | Vue local/scoped CSS | shared/domain primitive | Exact reusable layout only; Material-owned padding is not layout. | Every inventory row with a CSS disposition; `shared/design-system.spec.js` allowlist. | compliant only at exact files and property sets; all other scoped CSS is a violation. |
-| `mechanism-primitive-registry` | Primitive registry | shared/domain primitive | Canonical registered shared/domain surfaces and component paths. | `packages/domain-cnc/src/ui.js:L46-L72`; `utils/design-system-contract.js` | owned: exact registry paths define shared/domain primitive rows; all other Vue rows are derived usage. |
+| `mechanism-primitive-registry` | Primitive registry | shared/domain primitive | Canonical registered shared/domain surfaces and component paths. | `packages/facade/src/ui.js:L46-L72`; `utils/design-system-contract.js` | owned: exact registry paths define shared/domain primitive rows; all other Vue rows are derived usage. |
 | `mechanism-runtime-registry` | Vue runtime bindings | shared/domain primitive | Bind the domain contract to Vue components and factories. | `utils/design-system.js`; `framework.manifest.json` | owned: runtime binding remains distinct from the pure domain contract. |
 | `mechanism-ui-lab` | UI lab coverage | derived usage | Render every registered primitive and entity contract for visual inspection. | `pages/test/ui-lab.vue:L480-L547`; `pages/test/README.md:L8-L24` | owned: existing tests reconcile primitive keys with examples. |
 | `mechanism-enforcement` | Automated enforcement | system-owned | Reconcile inventory, projections, registries, UI lab, wrappers, palettes, and known design-system boundaries. | `shared/design-system.spec.js` | owned: inventory enumeration fails on missing, stale, duplicate, or misidentified Vue rows. |
@@ -139,10 +139,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
 | `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
 | `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (21); remove:state (7); remove:important-override (11); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (2) |
-| `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | replace:chrome (4) |
-| `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
-| `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
-| `ui-components-config-bot-configbotvalidationpanel-vue` | `components/config-bot/ConfigBotValidationPanel.vue` | derived usage | replace:chrome (4) |
 | `ui-components-entities-artifact-artifactcard-vue` | `components/entities/Artifact/ArtifactCard.vue` | derived usage | compliant |
 | `ui-components-entities-artifact-artifactdetail-vue` | `components/entities/Artifact/ArtifactDetail.vue` | derived usage | centralize:layout (1) |
 | `ui-components-entities-artifacttemplate-artifacttemplatecard-vue` | `components/entities/ArtifactTemplate/ArtifactTemplateCard.vue` | derived usage | compliant |
@@ -190,7 +186,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | replace:chrome (3); remove:important-override (2) |
 | `ui-components-languageswitcher-vue` | `components/LanguageSwitcher.vue` | derived usage | compliant |
 | `ui-components-partlibrary-vue` | `components/PartLibrary.vue` | derived usage | replace:chrome (3) |
-| `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (2) |
+| `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (2); remove:important-override (6) |
 | `ui-components-permissionrulebuilder-vue` | `components/PermissionRuleBuilder.vue` | derived usage | replace:chrome (8) |
 | `ui-components-process-designer-applymigrationdialog-vue` | `components/process-designer/ApplyMigrationDialog.vue` | derived usage | replace:chrome (4) |
 | `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (1) |

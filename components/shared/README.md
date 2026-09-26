@@ -231,7 +231,7 @@ The root exposes stable E2E hooks through `data-entity-status`,
 `data-type-id`, and `data-entity-id`; menu triggers and transition buttons
 use `data-status-menu-trigger` and `data-status-action`.
 
-**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@perigram/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `InstanceState`, hides it, or renders read-only status.
+**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@perigram/facade` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `InstanceState`, hides it, or renders read-only status.
 Interactive status is enabled only for entity types that have a real workflow in
 `cncWorkflows`; non-workflow entities hide status chrome in cards unless a
 read-only `StatusBadge` is explicitly required. Live app transition actions are
@@ -259,7 +259,7 @@ synthesize local status labels or icons from action manifests.
 Workflow questions resolve from the compiled contract first: `InstanceState`
 converts the registry bundle's type record (`states` facet + `transitions`)
 through `utils/state-actions.js` `compiledWorkflowFor` before the legacy
-`@perigram/domain-cnc` fallback, so declared types drive status-chrome
+`@perigram/facade` fallback, so declared types drive status-chrome
 visibility and server-action lookups contract-first. Development surfaces
 with custom workflow drafts derive lifecycle actions from workflow
 definitions through the same utility. Card and page command
@@ -268,7 +268,7 @@ slots; only real lifecycle transitions belong in the status surface.
 `InstanceState` can also receive a `workflows` prop or consume a provided
 `stateWorkflows` value. This is used only by development surfaces such as the
 admin workbench so live draft machines can drive previews without replacing the
-committed `@perigram/domain-cnc` runtime workflow source.
+committed `@perigram/facade` runtime workflow source.
 Development surfaces that provide local workflows can also provide
 `statusTransitionHandler`; when present, `InstanceState` applies transitions
 through that handler instead of posting in-memory fixture ids to the server
@@ -762,7 +762,7 @@ Shared wrappers own semantic structure and reusable layout constraints, while Pr
 ## Demo Contract
 
 The design-system demo is contract-driven:
-- `@perigram/domain-cnc` contains entity UI policy and expected card prop names; `utils/design-system-contract.js` re-exports it for compatibility.
+- `@perigram/facade` contains entity UI policy and expected card prop names; `utils/design-system-contract.js` re-exports it for compatibility.
 - `utils/design-system.js` binds the contract to actual Vue components and DTO factories.
 - `test-data/factories.js` provides DTO-shaped examples with v24 blocks preserved.
 

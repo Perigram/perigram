@@ -131,7 +131,7 @@ module layout and how the code maps to the spec's build-order tiers.
   [utils/instance-display-contract.js](../../utils/README.md), and the
   UI mapping resolvers consume the same record (see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)).
-- `compat/domain-cnc.js` — DELETED (the strangler converter). The
+- `compat/domain-cnc.js` — DELETED (the strangler converter; the legacy domain package itself is deleted too). The
   equivalence phase is over: the projection synthesizes from declarations
   only and legacy tables are not converted, projected, or served.
 - `compat/field-schema-rows.js` — the row ⇄ field-schema translation the

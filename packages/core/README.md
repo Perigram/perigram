@@ -82,4 +82,4 @@ round-trip contract lives in
 ## Related
 
 - [server/core/blocks](../../server/core/blocks/README.md)
-- [@perigram/domain-cnc](../domain-cnc/README.md)
+- [@perigram/facade](../facade/README.md)

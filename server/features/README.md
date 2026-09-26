@@ -17,7 +17,7 @@ Every feature module in `server/features/[name]/` **must** contain:
 | `index.js` | **Public API.** Exports `service` namespace only — never `repository` or `model`. |
 
 `node scripts/check-arch.js` derives the entity feature set from
-`@perigram/domain-cnc` persisted entity definitions. Run before every commit.
+`@perigram/facade` persisted entity definitions. Run before every commit.
 
 ### Entity vs Capability Modules
 
@@ -28,7 +28,7 @@ Support capabilities are documented and classified, but do not need empty
 | Kind | Modules |
 |---|---|
 | Entity modules | `artifacts`, `artifact-templates`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `instance-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `machines`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
-| Capability modules | `artifact-conversions`, `billing`, `config-bot`, `instance-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
+| Capability modules | `artifact-conversions`, `billing`, `instance-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
 
 ---
 
@@ -100,7 +100,7 @@ services must not self-register through hidden globals.
 | `users` | User accounts | `organizationId` (via memberships) |
 | `warehouses` | Material storage locations | `organizationId` |
 | `catalogs` | Material specifications | `organizationId` |
-| `machines` | CNC working-area presets | `organizationId` for custom machines; system machines use public system lineage |
+| `machines` | Working-area presets | `organizationId` for custom machines; system machines use public system lineage |
 | `pen-templates` | Drawing pen/stroke template | `organizationId` or `userId` |
 | `process-definitions` | Organization process graph and compiled runtime contract | `organizationId` |
 | `profile-templates` | Reusable OCCS profile sketches for cassette hangers/extrusions | `organizationId` or `userId` |
@@ -131,7 +131,6 @@ services must not self-register through hidden globals.
 - [server/core/machines/README.md](../core/machines/README.md) — Lifecycle engine
 - [server/utils/README.md](../utils/README.md) — Permissions API
 - [server/features/_template/README.md](./_template/README.md) — Golden Path template
-- [server/features/config-bot/README.md](./config-bot/README.md) — draft package generator capability
 - [server/features/billing/README.md](./billing/README.md) — organization billing account and token ledger
 - [server/features/workflow-overrides/README.md](./workflow-overrides/README.md) — organization-owned lifecycle overrides
-- [packages/domain-cnc/README.md](../../packages/domain-cnc/README.md) — CNC entity/workflow definition pack
+- [packages/facade/README.md](../../packages/facade/README.md) — facade fabrication pack (types, editors, services)
