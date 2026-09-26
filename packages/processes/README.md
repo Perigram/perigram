@@ -1043,15 +1043,18 @@ generated screens by entity/template/scope into one effective screen such as
 access to cassettes and another grants admin/create access to the same
 cassettes, the user sees one cassette list/detail route with merged status
 windows and merged runnable actions, not duplicated role-specific cassette
-routes. If a role has multiple grants for the same entity feature, for example
-access to `project` in both `CREATED` and `NEW`, the inferred screen aggregates
-them into one feature-level read source instead of pinning the source to the
-first status rule or lifting the whole screen to the maximum grant level. The
-generated source keeps applicable grant rules as `rule.any`; frontend loading
-turns those rules into `primaryStates` filters. The entity API still enforces
-the individual status-scoped grants when it filters returned records, while
-edit/admin affordances come from action and field grants rather than the
-route-level screen requirement.
+routes. Inferred read sources carry no status window at all: wiring-derived
+state windows scope what a role may CHANGE (they ride the permission grants
+and gate state-changing actions), never what a list may show — a read gated
+by a transition's target states hides stateless instances and states the
+wiring no longer targets. A role holding multiple grants for one entity
+feature still aggregates into one feature-level read source at the maximum
+read level. Authored screens keep their authored `required` verbatim — an
+explicitly authored status window still scopes that screen's reads, and the
+frontend turns an authored `rule.any` into `primaryStates` filters. The
+entity API still enforces the individual status-scoped grants when it
+filters returned records, while edit/admin affordances come from action and
+field grants rather than the route-level screen requirement.
 
 **Inference owns default stations** (crystallization Phase 4): an
 authored screen that is projection-equal to the station inference would
