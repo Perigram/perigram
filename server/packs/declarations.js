@@ -8,18 +8,18 @@
 // `tech-drawing` has no service bindings: its types and system instances
 // are served entirely by the generic instance machinery, so appearing in
 // this list is its whole mount.
-import { techDrawingPack } from '~/packages/tech-drawing/src/index.js';
-import { documentsPack } from '~/packages/documents/src/index.js';
-import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
+import { techDrawingPack } from '../../packages/tech-drawing/src/index.js';
+import { documentsPack } from '../../packages/documents/src/index.js';
+import { facadePackContent } from '../../packages/facade/src/index.js';
 
 export const mountedPackDeclarations = [
   documentsPack,
   techDrawingPack,
   {
-    id: 'cnc',
+    id: 'facade',
     requires: ['tech-drawing'],
-    types: cncPackContent.types,
-    editors: cncPackContent.editors
+    types: facadePackContent.types,
+    editors: facadePackContent.editors
   }
 ];
 

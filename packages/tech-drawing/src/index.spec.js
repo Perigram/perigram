@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, checkValue } from '~/packages/cts/src/index.js';
-import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
+import { facadePackContent } from '@perigram/facade';
 import { techDrawingPack, techDrawingTypes } from './index.js';
 
 // The tech-drawing pack contract (SPEC §21): declarations compile against
@@ -65,7 +65,7 @@ describe('tech-drawing pack declarations', () => {
   it('composes with the CNC pack without id collisions', () => {
     const registry = createTypeRegistry({ id: 'spec-composed' });
     const ids = new Set();
-    for (const declaration of [...techDrawingTypes, ...cncPackContent.types]) {
+    for (const declaration of [...techDrawingTypes, ...facadePackContent.types]) {
       expect(ids.has(declaration.id), `duplicate system type id ${declaration.id}`).toBe(false);
       ids.add(declaration.id);
       registry.defineType(declaration);

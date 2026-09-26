@@ -1,7 +1,7 @@
 import { requireAuth } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
-import { cncDomain, cncPackContent } from '~/packages/domain-cnc/src/index.js';
+import { facadeDomain, facadePackContent } from '~/packages/facade/src/index.js';
 import { compileRegistryForOrganization } from '~/server/features/cts-types/service.js';
 import { projectEntityProcessCapabilities } from '~/packages/processes/src/index.js';
 
@@ -20,8 +20,8 @@ export default defineEventHandler(async (event) => {
   // tables are not projected.
   const organizationId = resolveOrganizationId(auth);
   const view = await compileRegistryForOrganization(organizationId);
-  const domain = projectDomainFromView(view, organizationId, cncDomain, {
-    packServices: cncPackContent.services
+  const domain = projectDomainFromView(view, organizationId, facadeDomain, {
+    packServices: facadePackContent.services
   });
 
   // Resolver-aware bindings: every entity in the projected view resolves

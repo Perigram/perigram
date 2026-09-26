@@ -1,11 +1,10 @@
-import { cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import { getPrimaryState, getWorkflowRegions, normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { resolveStateDisplay } from './state-engine.js';
 
 // Workflow source order: the compiled contract first — a served bundle
 // type record (its `states` facet + `transitions`) converts into the same
 // v2 machine shape the workflow machinery consumes — then the committed
-// `@perigram/domain-cnc` machines as the verified-live fallback for
+// compiled contracts are the only workflow source since the legacy
 // undeclared legacy types (cassette, cassette_design, artifact,
 // artifact_template, entity_revision, process_definition), which the
 // server status core still resolves as default workflows. Live app
@@ -40,7 +39,7 @@ export function compiledWorkflowFor(typeRecord = null) {
 export function getWorkflowStateActions({
   typeId,
   state,
-  workflows = cncWorkflows,
+  workflows = {},
   compiled = null,
   t = value => value
 } = {}) {
@@ -63,11 +62,11 @@ export function getWorkflowStateActions({
     .map(transition => createStatusAction(transition, stateRender, t));
 }
 
-export function hasWorkflow(typeId, workflows = cncWorkflows, compiled = null) {
+export function hasWorkflow(typeId, workflows = {}, compiled = null) {
   return Boolean(compiled || workflowForTypeId(typeId, workflows));
 }
 
-export function workflowStateCount(typeId, workflows = cncWorkflows, compiled = null) {
+export function workflowStateCount(typeId, workflows = {}, compiled = null) {
   const workflow = compiled || workflowForTypeId(typeId, workflows);
   if (!workflow) return 0;
   const states = Object.values(getWorkflowRegions(normalizeWorkflow(workflow)))
@@ -75,7 +74,7 @@ export function workflowStateCount(typeId, workflows = cncWorkflows, compiled = 
   return new Set(states).size;
 }
 
-export function hasMeaningfulWorkflowState(typeId, workflows = cncWorkflows, compiled = null) {
+export function hasMeaningfulWorkflowState(typeId, workflows = {}, compiled = null) {
   return workflowStateCount(typeId, workflows, compiled) !== 1;
 }
 

@@ -162,12 +162,8 @@ import Listbox from 'primevue/listbox';
 import Message from 'primevue/message';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
-import {
-    cncInstanceFieldGroups,
-    cncDomain,
-    cncWorkflows,
-    getEntityFieldAccessPolicy
-} from '@perigram/domain-cnc';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import PermissionRuleBuilder from './PermissionRuleBuilder.vue';
 
 const props = defineProps({
@@ -191,13 +187,22 @@ const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
 const selectedRuleTree = ref(null);
 const instances = useInstancesStore();
-const entityLoaders = Object.fromEntries(cncDomain.entities.map(entity => [
+// The declaration view is the entity catalog (one source): loaders,
+// feature matching, type options, state options, and field descriptors
+// all derive from the served CTS type view.
+const fileTypeView = useFileTypeView();
+const viewEntities = computed(() => fileTypeView.types.value.map(type => ({
+    type: type.id,
+    collection: `${String(type.id).replace(/_/g, '-')}s`,
+    declaration: type
+})));
+const entityLoaders = computed(() => Object.fromEntries(viewEntities.value.map(entity => [
     entity.type,
     {
-        list: (filters = {}) => instances.listInstances(instances.canonicalTypeKey(entity.surfaceKey), filters),
-        create: body => instances.createInstance(instances.canonicalTypeKey(entity.surfaceKey), body, { typeId: entity.type })
+        list: (filters = {}) => instances.listInstances(instances.canonicalTypeKey(entity.type), filters),
+        create: body => instances.createInstance(instances.canonicalTypeKey(entity.type), body, { typeId: entity.type })
     }
-]));
+])));
 
 const PERMISSION_LEVELS = computed(() => [
     { label: t('auth.permissionLevels.read'),  value: 'read' },
@@ -220,7 +225,6 @@ const defaultFeatures = computed(() => [
     { key: 'organizations', label: t('features.organizations') },
     { key: 'workbench',     label: t('admin.workbench.title') },
     { key: 'domain_builder', label: t('admin.domainBuilder.title') },
-    { key: 'config_bot',    label: t('features.configBot') }
 ]);
 const entities = computed(() => props.features.length ? props.features : defaultFeatures.value);
 
@@ -246,7 +250,7 @@ const subjectOptionsForFeature = computed(() => [
 ]);
 
 const typeIdOptions = computed(() => (
-    uniqueTypeIds(cncDomain.entities.map(entity => entity.type)).map(type => ({
+    uniqueTypeIds(viewEntities.value.map(entity => entity.type)).map(type => ({
         label: typeIdLabel(type),
         value: type
     }))
@@ -258,8 +262,7 @@ const relatedTypeIdOptions = computed(() => {
     const relatedTypes = selectedFeatureHasEntity() ? uniqueTypeIds([
         ...lineageBindings.filter(binding => binding.childTypeId === currentType).map(binding => binding.parentTypeId),
         ...lineageBindings.filter(binding => binding.parentTypeId === currentType).map(binding => binding.childTypeId),
-        ...(cncDomain.relations || []).filter(relation => relation.ownerType === currentType).map(relation => relation.targetType),
-        ...(cncDomain.relations || []).filter(relation => relation.targetType === currentType).map(relation => relation.ownerType)
+        ...declaredRelationTargets(currentType)
     ]) : [];
     return relatedTypes.map(type => ({
         label: typeIdLabel(type),
@@ -739,7 +742,7 @@ function typeIdForClause(clause = {}) {
 }
 
 function canLoadEntityOptions(typeId) {
-    return typeId === 'organization' || typeId === 'queue' || Boolean(entityLoaders[typeId]);
+    return typeId === 'organization' || Boolean(entityLoaders.value[typeId]);
 }
 
 function isStatusClause(clause = {}) {
@@ -755,9 +758,9 @@ function selectedFeatureHasEntity() {
 }
 
 function featureEntityDefinition() {
-    return cncDomain.entities.find(entity => (
-        (entity.feature || entity.collection) === selectedFeatureKey.value
-        || entity.collection === selectedFeatureKey.value
+    return viewEntities.value.find(entity => (
+        entity.collection === selectedFeatureKey.value
+        || entity.type === selectedFeatureKey.value
     )) || null;
 }
 
@@ -777,6 +780,18 @@ function camelizeTypeId(type = '') {
     return String(type).replace(/[-_]([a-z])/g, (_, char) => char.toUpperCase());
 }
 
+// Declared relation edges of one type (SPEC §6): the view's `edges`
+// vocabulary is the only relation source — a declared edge is the one
+// legal place a ref may be stored.
+function declaredRelationTargets(typeId) {
+    const declaration = typeId ? fileTypeView.typeById(typeId) : null;
+    const targets = [];
+    for (const types of Object.values(declaration?.edges?.relations || {})) {
+        targets.push(...(types || []));
+    }
+    return targets;
+}
+
 function pluralizeTypeId(type = '') {
     const value = camelizeTypeId(type);
     return value.endsWith('s') ? value : `${value}s`;
@@ -793,10 +808,18 @@ function snakeTypeId(type = '') {
 }
 
 function workflowStateOptions(typeId) {
-    const workflow = typeId ? cncWorkflows[typeId] || cncWorkflows[snakeTypeId(typeId)] : null;
-    const primaryRegion = workflow?.primaryRegion || 'main';
-    const states = workflow?.regions?.[primaryRegion]?.states || {};
-    return Object.keys(states).map(state => ({ label: statusLabel(state), value: state }));
+    const declaration = typeId ? fileTypeView.typeById(typeId) : null;
+    const states = declaration?.states || {};
+    const options = [];
+    const walk = (region, prefix = []) => {
+        for (const [name, state = {}] of Object.entries(region?.states || {})) {
+            const path = [...prefix, name].join('.');
+            options.push({ label: statusLabel(path), value: path });
+            if (state.states) walk(state, [...prefix, name]);
+        }
+    };
+    for (const region of Object.values(states)) walk(region);
+    return options;
 }
 
 function propertyTraitOptions(typeId) {
@@ -818,8 +841,8 @@ function propertyTraitOptions(typeId) {
 }
 
 function entityFieldDescriptors(typeId) {
-    const groups = cncInstanceFieldGroups[typeId] || {};
-    return Object.values(groups).flat();
+    const declaration = fileTypeView.typeById(typeId);
+    return (declaration?.render?.groups || []).flatMap(group => group.fields || []);
 }
 
 function entityAccessPaths(typeId) {
@@ -910,7 +933,7 @@ function typeIdsRequiredByRuleTree(node, required = new Set()) {
 }
 
 async function loadEntityOptionsForType(type, next) {
-    const loader = entityLoaders[type];
+    const loader = entityLoaders.value[type];
     if (!loader) return [];
     try {
         const entities = await loader.list();

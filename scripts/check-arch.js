@@ -4,27 +4,47 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { cncEntities } from '../packages/domain-cnc/src/entities.js';
-import { cncCommands } from '../packages/domain-cnc/src/commands.js';
-import { cncTasks } from '../packages/domain-cnc/src/tasks.js';
-import { cncEvents } from '../packages/domain-cnc/src/events.js';
-import { cncEffects } from '../packages/domain-cnc/src/effects.js';
-import { cncWorkflows } from '../packages/domain-cnc/src/workflows.js';
+import { facadeCommands, facadeEvents, facadeFileTypes } from '../packages/facade/src/index.js';
+import { composeSystemDeclarations, orderedMountedPacks } from '../server/packs/declarations.js';
+import { frameworkTypes } from '../packages/cts/src/index.js';
+import { frameworkCommandDefinitions } from '../server/core/commands/definitions.js';
+import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
 
 const FEATURES_DIR = './server/features';
 const API_DIR = './server/api';
 // instanceService entities resolve through the generic instance feature
 // (server/features/instances) and declare no feature directory of their own.
-const ENTITY_FEATURES = cncEntities.filter(entity => !entity.instanceService).map(entity => entity.feature || entityTypeToFeature(entity.type));
+// The registry view is the entity catalog (one source): feature keys derive
+// from projected view entities' collections, and lifecycle ownership comes
+// from declared state trees (SPEC §7) — machines are graph-compiled.
+// Documents-pack types ride the generic instance machinery and declare no
+// feature directories of their own.
+const genericInstanceTypes = new Set([
+  ...(orderedMountedPacks().find(pack => pack.id === 'documents')?.types?.map(type => type.id) || []),
+  // tech-drawing reference types without feature directories of their own
+  'color', 'dxf-source', 'svg-file', 'sketch',
+  // facade design/pattern file types: client designers + generic instances
+  'facade-design', 'facade-pattern'
+]);
+const classifiedDeclarations = [...frameworkTypes, ...composeSystemDeclarations()]
+  .filter(declaration => !genericInstanceTypes.has(declaration.id));
+const FEATURE_DIRECTORY_ALIASES = new Map([
+  ['entity-revisions', 'instance-revisions']
+]);
+const ENTITY_FEATURES = classifiedDeclarations.map(declaration => (
+  FEATURE_DIRECTORY_ALIASES.get(entityTypeToFeature(declaration.id)) || entityTypeToFeature(declaration.id)
+));
 const featureToEntityTypeMap = new Map(
-  cncEntities.filter(entity => !entity.instanceService).map(entity => [entity.feature || entityTypeToFeature(entity.type), entity.type])
+  classifiedDeclarations.map(declaration => [entityTypeToFeature(declaration.id), declaration.id])
 );
+const viewEntityTypes = new Set(classifiedDeclarations
+  .filter(declaration => declaration.states && Object.keys(declaration.states).length)
+  .map(declaration => declaration.id));
 function featureToEntityType(feature) {
   return featureToEntityTypeMap.get(feature) || null;
 }
 const CAPABILITY_FEATURES = [
   'instances',
-  'config-bot',
   'connections',
   'cts-types',
   'instance-events',
@@ -43,7 +63,16 @@ const CAPABILITY_FEATURES = [
   'states',
   'support',
   'system-settings',
-  'workflow-overrides'
+  'workflow-overrides',
+  // Undeclared entity features: master/derived types still served by
+  // feature services but absent from the type declarations (Phase 7
+  // cuts or declares them). Classified explicitly so the directory
+  // check keeps guarding shape.
+  'artifact-templates',
+  'cassette-designs',
+  'machines',
+  'profile-templates',
+  'tool-profiles'
 ];
 const IGNORE = ['_template', 'README.md', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];
@@ -324,7 +353,7 @@ jsFiles.forEach(file => {
 
 console.log('\nChecking command/task boundary leaks...');
 // Queue/nesting_run intent checks retired with the legacy entity vocabulary:
-// those workflows no longer exist in packages/domain-cnc/src/workflows.js
+// those workflows no longer exist (machines are graph-compiled, SPEC §7)
 // (deleted domain types are abandoned data, not defects to re-declare).
 
 const commandBoundaryFiles = walkDir('server/features').filter(file => file.endsWith('operations.js'));
@@ -346,8 +375,10 @@ commandBoundaryFiles.forEach(file => {
 });
 
 console.log('\nChecking domain event contracts...');
-const eventPolicies = Object.values(cncEffects || {});
-const eventDefinitions = new Map(Object.values(cncEvents || {}).map(event => [event.id, event]));
+// The deleted legacy effect-policy table was the old consumer contract;
+// declared definitions are the boundary the guard enforces now.
+const eventPolicies = [];
+const eventDefinitions = new Map(Object.values(facadeEvents || {}).map(event => [event.id, event]));
 const checkDeclaredOutputEvents = (ownerType, ownerId, events = []) => {
   for (const eventId of events || []) {
     const event = eventDefinitions.get(eventId);
@@ -364,10 +395,10 @@ const checkDeclaredOutputEvents = (ownerType, ownerId, events = []) => {
   }
 };
 
-Object.values(cncCommands || {}).forEach(command => {
+Object.values({ ...facadeCommands, ...frameworkCommandDefinitions }).forEach(command => {
   checkDeclaredOutputEvents('Command', command.id, command.output?.events || []);
 });
-Object.values(cncTasks || {}).forEach(task => {
+Object.values(frameworkTaskDefinitions || {}).forEach(task => {
   checkDeclaredOutputEvents('Task', task.id, task.output?.events || []);
 });
 
@@ -406,7 +437,7 @@ collectLineMatches(featureServiceFiles, [
     excludeFile: file => {
       const feature = path.basename(path.dirname(file));
       const entityType = featureToEntityType(feature);
-      return !entityType || !cncWorkflows[entityType];
+      return !entityType || !viewEntityTypes.has(entityType);
     }
   },
   {
@@ -461,8 +492,8 @@ genericUiFiles.forEach(file => {
 // 11. Duplicate object keys in domain registry files
 console.log('\nChecking duplicate object keys...');
 const objectKeyFiles = [
-  'packages/domain-cnc/src/summaries.js',
-  'packages/domain-cnc/src/relationships.js'
+  'packages/facade/src/commands.js',
+  'packages/facade/src/events.js'
 ];
 objectKeyFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');

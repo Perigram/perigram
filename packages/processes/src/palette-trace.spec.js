@@ -15,32 +15,15 @@ import {
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { createTypeRegistry, projectDomainFromView, resolveCtsRecord, frameworkTypes } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
-import { cncDomain } from '../../domain-cnc/src/index.js';
+import { facadeDomain, facadeServices } from '@perigram/facade';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'palette-trace' });
   for (const declaration of [...frameworkTypes, ...cncTypePack]) {
     registry.defineType(declaration);
   }
-  return projectDomainFromView(registry, 'org-1', cncDomain, {
-    packServices: [{
-      id: 'nesting.solve',
-      species: 'service',
-      command: 'solveNestingValue',
-      signature: {
-        input: { base: 'record', fields: {
-          items: { base: 'list', itemType: { base: 'json' } },
-          params: { base: 'record', fields: {
-            width: { base: 'quantity', unit: 'mm' },
-            height: { base: 'quantity', unit: 'mm' },
-            space: { base: 'quantity', unit: 'mm' },
-            sheetCount: { base: 'number' }
-          } }
-        } },
-        output: { base: 'json' }
-      },
-      render: { label: 'Nesting solver', icon: 'pi pi-compass' }
-    }]
+  return projectDomainFromView(registry, 'org-1', facadeDomain, {
+    packServices: facadeServices
   });
 }
 

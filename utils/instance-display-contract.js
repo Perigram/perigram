@@ -1,16 +1,16 @@
 import {
-  CNC_ACTION_DISPLAYS,
-  CNC_DATA_DISPLAYS,
-  CNC_PREVIEW_MODES,
-  CNC_RELATION_DISPLAYS,
-  CNC_SURFACES
-} from '@perigram/domain-cnc';
+  DESIGN_ACTION_DISPLAYS,
+  DESIGN_DATA_DISPLAYS,
+  DESIGN_PREVIEW_MODES,
+  DESIGN_RELATION_DISPLAYS,
+  DESIGN_SURFACES
+} from './design-system-contract.js';
 import { slotFor } from '#packages/cts/src/index.js';
 
 export const DEFAULT_INSTANCE_SURFACE = 'card';
 
 export function normalizeInstanceSurface(surface, fallback = DEFAULT_INSTANCE_SURFACE) {
-  return CNC_SURFACES.includes(surface) ? surface : fallback;
+  return DESIGN_SURFACES.includes(surface) ? surface : fallback;
 }
 
 // The one fact vocabulary, bundle-only: `factsFor(typeView, surface)`
@@ -172,16 +172,16 @@ function mergeSurface(...surfaces) {
 
 function normalizeSurfaceContract(surface = '', definition = {}) {
   return {
-    preview: CNC_PREVIEW_MODES.includes(definition.preview) ? definition.preview : 'none',
+    preview: DESIGN_PREVIEW_MODES.includes(definition.preview) ? definition.preview : 'none',
     fieldGroups: Array.isArray(definition.fieldGroups) ? definition.fieldGroups : [],
     fieldLimit: Number.isFinite(definition.fieldLimit)
       ? definition.fieldLimit
       : DEFAULT_FIELD_LIMITS[surface] ?? null,
-    dataDisplay: CNC_DATA_DISPLAYS.includes(definition.dataDisplay)
+    dataDisplay: DESIGN_DATA_DISPLAYS.includes(definition.dataDisplay)
       ? definition.dataDisplay
       : (surface === 'detail' ? 'sectioned' : surface === 'compact' ? 'compact' : surface === 'inline' ? 'inline' : 'grid'),
-    relations: CNC_RELATION_DISPLAYS.includes(definition.relations) ? definition.relations : 'none',
-    actions: CNC_ACTION_DISPLAYS.includes(definition.actions) ? definition.actions : 'none',
+    relations: DESIGN_RELATION_DISPLAYS.includes(definition.relations) ? definition.relations : 'none',
+    actions: DESIGN_ACTION_DISPLAYS.includes(definition.actions) ? definition.actions : 'none',
     status: definition.status || 'hidden',
     trace: definition.trace || 'hidden'
   };

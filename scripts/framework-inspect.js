@@ -2,21 +2,32 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
+import { facadeCommands, facadeFileTypes } from '../packages/facade/src/index.js';
+import { frameworkCommandDefinitions } from '../server/core/commands/definitions.js';
+import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
+import { frameworkAttachmentKinds } from '../shared/attachment-kinds.js';
 import {
-  cncAttachmentKinds,
-  cncDesignSystemInstanceContracts,
-  cncInstanceFieldGroups,
-  cncInstanceSurfaceContracts,
-  cncDesignSystemGroups,
-  cncDesignSystemPrimitives,
-  cncDesignSystemVariants,
-  cncDomain,
-  cncEntities,
-  cncCommands,
-  cncTasks,
-  cncSummaries,
-  cncWorkflows
-} from '../packages/domain-cnc/src/index.js';
+  DESIGN_SYSTEM_ENTITY_CONTRACTS,
+  DESIGN_SYSTEM_FIELD_GROUPS,
+  DESIGN_SYSTEM_GROUPS,
+  DESIGN_SYSTEM_PRIMITIVES,
+  DESIGN_SYSTEM_SURFACE_CONTRACTS,
+  DESIGN_SYSTEM_VARIANTS
+} from '../utils/design-system-contract.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
+import { composeSystemDeclarations } from '../server/packs/declarations.js';
+
+// The registry view is the domain catalog (one source): entities and
+// workflows project from the mounted declarations.
+const viewRegistry = createTypeRegistry({ id: 'framework-manifest-view' });
+for (const declaration of [...frameworkTypes, ...composeSystemDeclarations()]) viewRegistry.defineType(declaration);
+const projected = projectDomainFromView(viewRegistry, null);
+const cncEntities = projected.entities.map(entity => ({ ...entity, surfaceKey: entity.type }));
+const cncWorkflows = projected.workflows || {};
+const cncDomain = { ui: { endpoints: cncEntities.map(entity => ({ type: entity.type, path: `/api/instances/${entity.collection}` })) } };
+const cncCommands = { ...facadeCommands, ...frameworkCommandDefinitions };
+const cncTasks = frameworkTaskDefinitions;
+const cncSummaries = [];
 import {
   createFrameworkManifest,
   queryDocs,
@@ -38,7 +49,7 @@ const PACKAGE_NAMES = [
   '@perigram/vue',
   '@perigram/devtools',
   '@perigram/mcp',
-  '@perigram/domain-cnc'
+  '@perigram/facade'
 ];
 const UI_COMPONENT_PATHS = {
   project: 'components/entities/Project/ProjectCard.vue',
@@ -89,7 +100,7 @@ const docsCorpus = loadDocs([
   'packages/README.md',
   'packages/core/README.md',
   'packages/workflows/README.md',
-  'packages/domain-cnc/README.md',
+  'packages/facade/README.md',
   'packages/devtools/README.md',
   'packages/mcp/README.md',
   'docs/FRAMEWORK_EXTRACTION_STATUS.md',
@@ -259,12 +270,12 @@ function createManifest() {
     summaries: cncSummaries,
     commands: cncCommands,
     tasks: cncTasks,
-    attachmentKinds: cncAttachmentKinds,
+    attachmentKinds: frameworkAttachmentKinds,
     designSystem: {
-      variants: cncDesignSystemVariants,
-      groups: cncDesignSystemGroups,
-      primitives: cncDesignSystemPrimitives,
-      contracts: cncDesignSystemInstanceContracts,
+      variants: DESIGN_SYSTEM_VARIANTS,
+      groups: DESIGN_SYSTEM_GROUPS,
+      primitives: DESIGN_SYSTEM_PRIMITIVES,
+      contracts: DESIGN_SYSTEM_ENTITY_CONTRACTS,
       componentInventory,
       tokens: {
         designTokens,
@@ -288,8 +299,8 @@ function createComponentInventory() {
 }
 
 function contractFieldPaths(key) {
-  const groups = cncInstanceFieldGroups[key] || {};
-  const surfaceGroups = Object.values(cncInstanceSurfaceContracts[key]?.surfaces || {})
+  const groups = DESIGN_SYSTEM_FIELD_GROUPS[key] || {};
+  const surfaceGroups = Object.values(DESIGN_SYSTEM_SURFACE_CONTRACTS[key]?.surfaces || {})
     .flatMap(surface => surface.fieldGroups || []);
 
   return surfaceGroups

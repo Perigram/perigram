@@ -25,13 +25,12 @@ import {
   authoredSocketDefault
 } from '~/packages/processes/src/index.js';
 import {
-  cncDomain,
   getBlockFieldSchema,
   getBlockFieldSchemas,
-  getEntityFieldAccessPolicy,
   getEntityFieldSchema,
   getEntityFieldSchemas
-} from '~/packages/domain-cnc/src/index.js';
+} from './system-view.js';
+import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-control.js';
@@ -43,7 +42,7 @@ import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
+import { facadeDomain, facadePackContent } from '~/packages/facade/src/index.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   applyStatusMigrations,
@@ -465,7 +464,7 @@ function catalogContextFromDefinition(processData) {
     return {
       fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.typeId, record.path),
       fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.typeId),
-      blockComposition: cncDomain.blockComposition?.[record.block] || null,
+      blockComposition: null,
       command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null,
       // The projected domain carries the registered serviceContracts: a
       // cts.service record resolves its signature-derived sockets from it
@@ -629,7 +628,7 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
       return {
         fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.typeId, record.path),
         fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.typeId),
-        blockComposition: cncDomain.blockComposition?.[record.block] || null,
+        blockComposition: null,
         command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
       };
     },
@@ -1834,7 +1833,7 @@ function resolveOrganizationId(auth = {}) {
 }
 
 function getDomain() {
-  return getPerigramRegistry().getDomain('cnc');
+  return getPerigramRegistry().getDomain('facade') || facadeDomain;
 }
 
 // The compiler consumes the CTS-projected domain: strangler-converted system
@@ -1843,7 +1842,7 @@ function getDomain() {
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
   return projectDomainFromView(registry, organizationId, getDomain(), {
-    packServices: cncPackContent.services
+    packServices: facadePackContent.services
   });
 }
 

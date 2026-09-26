@@ -28,7 +28,7 @@ async function callNestingWorker(request) {
   return await response.json();
 }
 
-// Declared signature (pack.js cncServices `nesting.solve`):
+// Declared signature (the facade pack's `nesting.solve` service):
 //   items:  [{ polygonParts | dimensions, count, cassetteId }]  -- job geometry
 //   params: { width, height, space, sheetCount, sheet_polygon? }
 // Output: { layouts, summary } as values.

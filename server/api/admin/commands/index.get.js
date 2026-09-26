@@ -7,7 +7,7 @@ export default defineEventHandler((event) => {
   return {
     success: true,
     registry: {
-      source: '@perigram/domain-cnc:cncDomain',
+      source: 'app-registry:domains',
       count: commands.length,
       commandCount: commands.length,
       handlerCount: commands.filter(command => command.handlerRegistered).length

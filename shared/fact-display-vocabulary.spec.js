@@ -12,7 +12,8 @@
 // legacy residual fact channel is gone (artifact family excepted).
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
-import { cncFileTypes, cncInstanceFieldGroups } from '../packages/domain-cnc/src/index.js';
+import { facadeFileTypes } from '@perigram/facade';
+import { DESIGN_SYSTEM_FIELD_GROUPS } from '../utils/design-system-contract.js';
 import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
 import {
   resolveInstanceDisplayContract,
@@ -28,7 +29,7 @@ import { applyFieldDisplayRole, compileTreeDeclarations } from '../packages/proc
 // same composition as server/packs/declarations.js for the types under test).
 function servedBundle() {
   const registry = createTypeRegistry({ id: 'fact-vocab' });
-  for (const declaration of [...frameworkTypes, ...techDrawingTypes, ...cncFileTypes]) {
+  for (const declaration of [...frameworkTypes, ...techDrawingTypes, ...facadeFileTypes]) {
     registry.defineType(declaration);
   }
   // An org-authored item type with the naming vocabulary on its
@@ -172,11 +173,11 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
 
   it('keeps only the artifact family in the legacy residual map', () => {
     // Live-type audit: everything else that once lived in
-    // `cncInstanceFieldGroups` rendered entity types retired from
+    // `DESIGN_SYSTEM_FIELD_GROUPS` rendered entity types retired from
     // `cncEntities` (project, queue, sheet, remnant, catalog, …) or
     // master data whose legacy surfaces are gone. The artifact family
     // stays until Phase 7's file-paper cut.
-    expect(Object.keys(cncInstanceFieldGroups)).toEqual(['artifactTemplate']);
+    expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual(['artifactTemplate']);
     // An undeclared type resolves no fact rows and no legacy fallback.
     const undeclared = resolveInstanceDisplayContract({ typeId: 'queue', surface: 'card' });
     expect(undeclared.bundleResolved).toBe(false);

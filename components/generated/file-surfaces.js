@@ -5,7 +5,7 @@ import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
-import { cncEditors } from '@perigram/domain-cnc';
+import { facadeEditors } from '@perigram/facade';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
@@ -178,7 +178,7 @@ export function validateEditorBindings(bindings = [], registry = fileSurfaceRegi
 // records the cts-types feature serves with the organization type view.
 // Validated at module load so pack/registry drift fails here, not as a
 // silently missing editor presentation.
-export const packEditorBindings = validateEditorBindings([...documentsEditors, ...techDrawingEditors, ...cncEditors]);
+export const packEditorBindings = validateEditorBindings([...documentsEditors, ...techDrawingEditors, ...facadeEditors]);
 
 // Served-list default (editor-binding guard): when the app has fetched
 // the organization type view, the served editor list is the authoritative

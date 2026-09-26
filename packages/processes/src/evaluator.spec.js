@@ -555,7 +555,7 @@ describe('process v4 data execution', () => {
 
   // Union of the CNC block family (identity, lineage, origin, status,
   // attachments, data, specs, summary plus auto-appended relations and
-  // provenance) as declared by packages/domain-cnc/src/entities.js.
+  // provenance) as declared by the facade type declarations.
   const fullFamilyDomain = {
     entities: [{
       type: 'sheet',

@@ -4,7 +4,7 @@ import path from 'path';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
   DESIGN_SYSTEM_FIELD_GROUPS,
-  DESIGN_SYSTEM_SURFACES,
+  DESIGN_SYSTEM_SURFACE_CONTRACTS,
   DESIGN_SYSTEM_VARIANTS,
   DESIGN_SYSTEM_PRIMITIVES,
   validateDesignSystemContracts,
@@ -19,11 +19,34 @@ import {
   primeSemanticTokens,
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
-import { cncFileTypes, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { facadeFileTypes } from '@perigram/facade';
+// Declaration-owned lifecycles replace the deleted legacy workflow table:
+// one registry view projection derives entities and workflows.
+import { createTypeRegistry, frameworkTypes as ctsFrameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
+import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
+const viewRegistry = createTypeRegistry({ id: 'design-system-view' });
+for (const declaration of [...ctsFrameworkTypes, ...techDrawingTypes, ...facadeFileTypes]) viewRegistry.defineType(declaration);
+// Machines are graph-compiled at runtime (SPEC §7: the projection carries
+// no workflows); for status-source assertions the declared state trees
+// normalize into the same machine shape the compiler emits.
+const { normalizeWorkflow } = await import('../packages/workflows/src/index.js');
+const declaredWorkflows = [...ctsFrameworkTypes, ...techDrawingTypes, ...facadeFileTypes]
+  .filter(declaration => declaration.states && Object.keys(declaration.states).length);
+// Declaration transitions fold into their axis region, the same fold the
+// registry compiler performs for the graph-authored machines.
+const cncWorkflows = Object.fromEntries(declaredWorkflows.map(declaration => {
+  const regions = Object.fromEntries(Object.entries(declaration.states).map(([axis, region]) => [
+    axis,
+    {
+      ...region,
+      transitions: (declaration.transitions || []).filter(transition => (transition.axis || 'main') === axis)
+    }
+  ]));
+  return [declaration.id, normalizeWorkflow({ regions })];
+}));
 import { frameworkTypes } from '../packages/cts/src/index.js';
 import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
 import { normalizeType, renderPolicyFor } from '../packages/cts/src/index.js';
-import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
 import { getWorkflowStateActions } from '../utils/state-actions.js';
@@ -43,7 +66,7 @@ import {
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 
-const declarationFor = (typeId) => [...frameworkTypes, ...techDrawingTypes, ...cncFileTypes]
+const declarationFor = (typeId) => [...frameworkTypes, ...techDrawingTypes, ...facadeFileTypes]
   .find(type => type.id === typeId);
 
 const walkFiles = (dir, predicate, acc = []) => {
@@ -646,7 +669,7 @@ describe('Design system manifest', () => {
     }
 
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
-      expect(DESIGN_SYSTEM_SURFACES[entry.key]?.surfaces).toEqual(expect.objectContaining({
+      expect(DESIGN_SYSTEM_SURFACE_CONTRACTS[entry.key]?.surfaces).toEqual(expect.objectContaining({
         inline: expect.any(Object),
         compact: expect.any(Object),
         card: expect.any(Object),
@@ -860,15 +883,9 @@ describe('Design system manifest', () => {
   it('derives state actions from workflow definitions instead of hardcoded fallbacks', async () => {
     const { getWorkflowStateActions } = await import('../utils/state-actions.js');
 
-    expect(getWorkflowStateActions({ typeId: 'process_definition', state: 'DRAFT', t: key => key })).toContainEqual(expect.objectContaining({
-      to: 'ACTIVE', display: 'inline'
-    }));
-    expect(getWorkflowStateActions({ typeId: 'artifact', state: 'PENDING', t: key => key })).toEqual([]);
-    expect(getWorkflowStateActions({ typeId: 'cassette', state: 'ACTIVE', t: key => key })).toEqual(expect.arrayContaining([
-      expect.objectContaining({ to: 'ARCHIVED', display: 'menu' })
-    ]));
-    expect(getWorkflowStateActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).toEqual(expect.arrayContaining([
-      expect.objectContaining({ to: 'NESTING', intent: 'requestNesting', display: 'menu' })
+    expect(getWorkflowStateActions({ typeId: 'artifact', state: 'PENDING', t: key => key, workflows: cncWorkflows })).toEqual([]);
+    expect(getWorkflowStateActions({ typeId: 'cassette', state: 'ACTIVE', t: key => key, workflows: cncWorkflows })).toEqual(expect.arrayContaining([
+      expect.objectContaining({ to: 'ARCHIVED', display: 'inline' })
     ]));
   });
 
@@ -930,7 +947,7 @@ describe('Design system manifest', () => {
     // Declared state display resolves on the states facet (SPEC §7):
     // every declared workflow value must resolve a display policy with a
     // label and severity through the compiled bundle derivation.
-    const declarations = [...frameworkTypes, ...techDrawingTypes, ...cncFileTypes];
+    const declarations = [...frameworkTypes, ...techDrawingTypes, ...facadeFileTypes];
     for (const declaration of declarations) {
       const type = normalizeType(declaration);
       const axis = type.states?.main;

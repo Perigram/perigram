@@ -11,7 +11,7 @@ import { compileProcessDefinition } from './index.js';
 import { projectUiContractChannels, UI_CONTRACT_ACTION_KINDS, UI_CONTRACT_TEMPLATES } from './ui-contract-projection.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView, compileClientBundle } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
-import { cncDomain, cncPackContent } from '@perigram/domain-cnc';
+import { facadeDomain, facadePackContent } from '@perigram/facade';
 import { createPersistedAcceptanceFixture } from '../../../test-data/persisted-acceptance.js';
 import { composeScreen } from '#shared/ui-mapping/index.js';
 
@@ -19,9 +19,9 @@ const ORGANIZATION_ID = 'org-ui-contract';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'ui-contract-spec' });
-  for (const declaration of [...frameworkTypes, ...cncPackContent.types, ...cncTypePack]) registry.defineType(declaration);
+  for (const declaration of [...frameworkTypes, ...facadePackContent.types, ...cncTypePack]) registry.defineType(declaration);
   return {
-    domain: projectDomainFromView(registry, ORGANIZATION_ID, cncDomain, { packServices: cncPackContent.services }),
+    domain: projectDomainFromView(registry, ORGANIZATION_ID, facadeDomain, { packServices: facadePackContent.services }),
     registry
   };
 }
