@@ -1,7 +1,7 @@
 <template>
   <GeneratedMappingScreen
     :screen="screen"
-    :contract="{ actions: processActions }"
+    :contract="{ actions: processActions, statePolicy }"
     :bundle="processBundle"
     :instances="instanceGroups"
     :source-states="poolStates"
@@ -30,6 +30,7 @@ import { resolveCreatedInstanceOpen } from '~/components/generated/created-insta
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
+import { statePolicyByType } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -44,6 +45,10 @@ const instances = useInstancesStore();
 
 const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const processActions = computed(() => authStore.processPayload?.actions || {});
+// Per-type state policy from the compiled workflows — the same channel the
+// routed screen page passes, so state tags and transition surfaces reach
+// the pane detail identically.
+const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
 // The store exposes the keyed pool ({ type -> { id -> instance }}); the
 // generator's instances prop is the grouped-array shape.
 const instanceGroups = computed(() => Object.fromEntries(
