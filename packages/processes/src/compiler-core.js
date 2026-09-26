@@ -3140,23 +3140,26 @@ function groupGrantsByFeature(grants = []) {
   return map;
 }
 
+// Read-level requirements for inferred surfaces: lineage scope rides along
+// (a read may be parent-scoped), but state-scoped grant windows — the status
+// rules and transitions of state-changing actions — never do. A read list
+// gated by a transition's target states hides every instance outside them
+// (stateless instances, states the wiring no longer targets); those windows
+// govern what a role may CHANGE. An authored status window on an authored
+// screen keeps scoping its reads — only the implicit derivation dies here.
 function aggregateScreenRequirement(feature, grants = []) {
   if (grants.length === 1) {
     const grant = grants[0];
     return {
       feature,
       level: 'read',
-      scope: grant.scope,
-      transitions: grant.transitions,
-      rule: grant.rule
+      scope: grant.scope
     };
   }
-  const rules = grants.map(grant => grant.rule).filter(Boolean);
   const scopes = grants.map(grant => grant.scope).filter(Boolean);
   return {
     feature,
     level: 'read',
-    ...(rules.length ? { rule: { any: rules } } : {}),
     ...(scopes.length === 1 ? { scope: scopes[0] } : {})
   };
 }
