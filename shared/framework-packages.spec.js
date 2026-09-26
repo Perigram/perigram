@@ -259,7 +259,6 @@ describe('Framework package contracts', () => {
     const committed = JSON.parse(readFileSync('framework.manifest.json', 'utf8'));
     expect(committed).toEqual(generated);
     expect(committed.validations).toEqual({ ok: true, issues: [] });
-    expect(committed.designSystem.components.find(component => component.key === 'cassetteTemplate')?.fieldPaths).toEqual([]);
     // The legacy residual fact map died with the fact channel: no
     // design-system component carries legacy fact rows anymore.
     expect(committed.designSystem.components.find(component => component.key === 'cassetteDesign')?.fieldPaths).toEqual([]);

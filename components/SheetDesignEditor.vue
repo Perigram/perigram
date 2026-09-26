@@ -2,9 +2,6 @@
   <DesignerSurface>
     <DesignerWorkspace layout="lanes" class="h-full" :top-dock-items="documentDockItems">
       <div class="relative h-full w-full overflow-hidden">
-      <span class="absolute top-3 left-3 z-10 rounded-ui bg-content px-2 py-1 text-supporting shadow-overlay">
-        {{ $t('toolProfile.kerf') }}: {{ toolKerf }} mm
-      </span>
       <svg
         ref="svgRef"
         class="h-full w-full touch-none"
@@ -146,7 +143,6 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import CassetteEditorDialog from '~/components/CassetteEditorDialog.vue';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
-import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { DEFAULT_DRAWING_PEN, applyLayerPens } from '~/utils/drawingPreview.js';
 import {
   cassetteDesignSheetItem,
@@ -205,10 +201,8 @@ const { t } = useI18n();
 const toast = useToast();
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
-const toolsStore = useToolProfilesStore();
 const { standards } = storeToRefs(standardsStore);
 const { pens, systemPens } = storeToRefs(pensStore);
-const { tools } = storeToRefs(toolsStore);
 
 const svgRef = ref(null);
 const items = ref([]);
@@ -232,10 +226,8 @@ const sheetPolygon = computed(() => normalizeSheetPolygon(
 ));
 const sheetPolygonPoints = computed(() => sheetPolygon.value?.outer?.map(point => point.join(',')).join(' ') || '');
 const solveEffective = computed(() => props.design.provenance?.solve?.effective || {});
-const selectedToolProfileId = computed(() => solveEffective.value.tool?.source?.id || '');
-const selectedTool = computed(() => tools.value.find(tool => String(tool._id) === String(selectedToolProfileId.value)) || null);
 const toolKerf = computed(() => Math.max(Number(
-  solveEffective.value.tool?.kerf ?? selectedTool.value?.data?.kerf ?? 0
+  solveEffective.value.tool?.kerf ?? 0
 ) || 0, 0));
 const boundaryOffset = computed(() => Math.max(Number(solveEffective.value.machine?.boundaryOffset || 0), 0));
 const editorPadding = computed(() => Math.max(sheetWidth.value, sheetHeight.value) * 0.025);
@@ -281,7 +273,6 @@ onMounted(async () => {
   await Promise.all([
     standardsStore.fetchStandards?.(),
     pensStore.fetchPens?.(),
-    toolsStore.fetchTools?.()
   ]);
 });
 

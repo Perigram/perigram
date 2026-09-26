@@ -138,32 +138,6 @@ export function createMockCassette(overrides = {}) {
   };
 }
 
-export function createMockCassetteTemplate(overrides = {}) {
-  const definition = {
-    params: { A: 600, B: 400, C: 35 },
-    extrusions: [{ edge: 0, param: 'C' }]
-  };
-  const parameters = ['A', 'B', 'C'];
-
-  return {
-    ...createEntity({
-      uid: MOCK_IDS.cassetteTemplateId,
-      name: 'Parametric Type G',
-      slug: 'parametric-type-g',
-      state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
-      data: {
-        type: 'PARAMETRIC',
-        definition,
-        parameters,
-        organizationId: MOCK_IDS.organizationId,
-        userId: 'user-demo'
-      },
-      attachments: {}
-    }),
-    ...overrides
-  };
-}
 
 export function createMockCassetteDesign(overrides = {}) {
   const geometry = { data: null, dxfId: 'dxf-cassette-design-demo' };
@@ -227,64 +201,7 @@ export function createMockEntityRevision(overrides = {}) {
   };
 }
 
-export function createMockToolProfile(overrides = {}) {
-  return {
-    ...createEntity({
-      uid: 'tool-demo-flat-endmill-4',
-      name: 'Flat Endmill 4mm',
-      state: 'ACTIVE',
-      lineage: { userId: 'user-demo' },
-      data: { diameter: 4, angle: 180, kerf: 4, description: 'General cutting tool' }
-    }),
-    ...overrides
-  };
-}
 
-export function createMockProfileTemplate(overrides = {}) {
-  return {
-    ...createEntity({
-      uid: 'profile-demo-hanger',
-      name: 'Hanger profile',
-      state: 'ACTIVE',
-      lineage: { userId: 'user-demo' },
-      data: {
-        kind: 'hanger',
-        process: 'extruded',
-        parameters: { W: 42, H: 28, R: 3, D: 6, L: 120 },
-        sketch: {
-          version: '0.1',
-          units: 'mm',
-          parameters: { W: 42, H: 28, R: 3, D: 6, L: 120 },
-          points: [
-            { id: 'p0', x: 0, y: 0 },
-            { id: 'p1', x: 42, y: 0 },
-            { id: 'p2', x: 42, y: 28 },
-            { id: 'p3', x: 0, y: 28 }
-          ],
-          edges: [
-            { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
-            { id: 'e1', type: 'line', from: 'p1', to: 'p2' },
-            { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
-            { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
-          ],
-          holes: [{ id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }],
-          modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }]
-        },
-        occsProfile: {
-          section: {
-            type: 'polygon',
-            vertices: [['0', '0'], ['42', '0'], ['42', '28'], ['0', '28']],
-            edges: [{ type: 'line' }, { type: 'line' }, { type: 'line' }, { type: 'line' }],
-            holes: [{ type: 'circle', center: ['21', '14'], diameter: '6' }],
-            modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }]
-          },
-          sweep: { type: 'linear', length: '120' }
-        }
-      }
-    }),
-    ...overrides
-  };
-}
 
 export function createMockPenTemplate(overrides = {}) {
   const stroke = { color: '#FF0000', weight: 2, pattern: 'SOLID' };
@@ -406,21 +323,6 @@ export function createMockArtifactTemplate(overrides = {}) {
   };
 }
 
-export function createMockMachine(overrides = {}) {
-  return {
-    ...createEntity({
-      uid: 'machine-system-default',
-      name: 'Default 3000 × 1500 machine',
-      lineage: { scope: 'system', public: true },
-      data: {
-        workingArea: { width: 3000, length: 1500 },
-        boundaryOffset: 0,
-        visibility: { public: true }
-      }
-    }),
-    ...overrides
-  };
-}
 
 export function createMockHistory(statuses = ['DRAFT', 'ACTIVE', 'CLOSED']) {
   return statuses.map((state, index) => ({

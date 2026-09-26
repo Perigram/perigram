@@ -161,9 +161,6 @@
                     <InputText v-model="assignmentContext.typeId" :placeholder="$t('organization.typeId')" />
                     <InputText v-model="assignmentContext.instanceId" :placeholder="$t('organization.instanceId')" />
                     <InputText v-model="assignmentContext.status" :placeholder="$t('organization.primaryState')" />
-                    <InputText v-model="assignmentContext.projectId" :placeholder="$t('organization.projectId')" />
-                    <InputText v-model="assignmentContext.queueId" :placeholder="$t('organization.queueId')" />
-                    <InputText v-model="assignmentContext.warehouseId" :placeholder="$t('organization.warehouseId')" />
                 </div>
             </Panel>
             <Panel :header="$t('organization.compiledAccessPreview')">
@@ -277,7 +274,7 @@ const activeProcess = ref(null);
 const organizationRoles = ref({});
 const organizationRoleAssignments = ref({});
 const roleAssignment = ref({ roleIds: [], bindings: {} });
-const assignmentContext = ref({ typeId: '', instanceId: '', state: '', projectId: '', queueId: '', warehouseId: '' });
+const assignmentContext = ref({ typeId: '', instanceId: '', state: '' });
 const selectedRoleDerivedAccessSummary = computed(() => deriveRoleAccessSummary({
     process: activeProcess.value,
     roleIds: roleAssignment.value.roleIds
@@ -290,12 +287,7 @@ const assignmentPreview = computed(() => previewAssignmentAccess({
     contexts: assignmentContext.value.typeId ? [{
         typeId: assignmentContext.value.typeId,
         instanceId: assignmentContext.value.instanceId,
-        status: assignmentContext.value.status,
-        lineage: {
-            projectId: assignmentContext.value.projectId,
-            queueId: assignmentContext.value.queueId,
-            warehouseId: assignmentContext.value.warehouseId
-        }
+        status: assignmentContext.value.status
     }] : [],
     membership: selectedUser.value?.data?.memberships?.find(item => String(item.organizationId) === String(activeOrganizationId.value)) || null
 }));

@@ -5,14 +5,14 @@ import {
   redactEntityForAccess
 } from './instance-field-access.js';
 
-const project = {
-  _id: 'project-1',
-  identity: { uid: 'p-1', name: 'Project One' },
-  lineage: { organizationId: 'org-1', projectId: 'project-1' },
-  summary: { queueCount: 2, totalArea: 12 },
+const cassette = {
+  _id: 'cassette-1',
+  identity: { uid: 'c-1', name: 'Cassette One' },
+  lineage: { organizationId: 'org-1' },
+  summary: { revisionCount: 2, totalArea: 12 },
   data: {
-    address: 'Factory Row',
-    metadata: { customerNote: 'private' },
+    type: 'PARAMETRIC',
+    definition: { graphTree: { nodes: [] } },
     internalCost: 1000
   }
 };
@@ -30,7 +30,7 @@ const user = {
       role: 'role_viewer',
       roleIds: ['role_viewer'],
       status: 'active',
-      permissions: { projects: 'read' }
+      permissions: { cassettes: 'read' }
     }]
   }
 };
@@ -38,101 +38,103 @@ const user = {
 describe('entity field access', () => {
   it('denies fields without a registered entity policy', () => {
     expect(canDisplayEntityField({
-      permissions: { projects: 'admin' },
-      entity: project,
-      typeId: 'project',
+      permissions: { cassettes: 'admin' },
+      entity: cassette,
+      typeId: 'cassette',
       path: 'billing.internalCost'
     })).toBe(false);
   });
 
   it('filters card field descriptors by policy and active permissions', () => {
     const fields = [
-      { path: 'summary.queueCount' },
-      { path: 'data.address' },
-      { path: 'data.metadata.customerNote' },
+      { path: 'summary.revisionCount' },
+      { path: 'data.type' },
+      { path: 'data.definition' },
       { path: 'data.internalCost' }
     ];
 
     expect(filterEntityFields({
       fields,
-      permissions: { projects: 'read' },
-      entity: project,
-      typeId: 'project'
+      permissions: { cassettes: 'read' },
+      entity: cassette,
+      typeId: 'cassette'
     }).map(field => field.path)).toEqual([
-      'summary.queueCount',
-      'data.address'
+      'summary.revisionCount',
+      'data.type',
+      'data.definition'
     ]);
 
     expect(filterEntityFields({
       fields,
-      permissions: { projects: 'write' },
-      entity: project,
-      typeId: 'project'
+      permissions: { cassettes: 'write' },
+      entity: cassette,
+      typeId: 'cassette'
     }).map(field => field.path)).toEqual([
-      'summary.queueCount',
-      'data.address',
-      'data.metadata.customerNote'
+      'summary.revisionCount',
+      'data.type',
+      'data.definition',
+      'data.internalCost'
     ]);
   });
 
   it('keeps public system catalogue read fields visible without grants', () => {
-    const material = {
-      _id: 'mat-1',
-      identity: { name: 'ACM' },
+    const layerStandard = {
+      _id: 'ls-1',
+      identity: { name: 'OCCS Cut' },
       lineage: { scope: 'system', public: true },
-      data: { code: 'ACM', description: 'Panel', visibility: { public: true } }
+      data: { code: 'cut.outer', category: 'cut', visibility: { public: true } }
     };
 
-    expect(redactEntityForAccess(material, 'material', { permissions: {} })).toMatchObject({
-      _id: 'mat-1',
-      identity: { name: 'ACM' },
-      data: { code: 'ACM', description: 'Panel' }
+    expect(redactEntityForAccess(layerStandard, 'layerStandard', { permissions: {} })).toMatchObject({
+      _id: 'ls-1',
+      identity: { name: 'OCCS Cut' },
+      data: { code: 'cut.outer', category: 'cut' }
     });
   });
 
   it('honors scoped permission grants', () => {
     const permissions = {
-      projects: { level: 'read', scope: { projectId: 'project-1' } }
+      cassettes: { level: 'read', scope: { instanceId: 'cassette-1' } }
     };
 
     expect(canDisplayEntityField({
       permissions,
-      entity: project,
-      typeId: 'project',
-      path: 'summary.queueCount'
+      entity: cassette,
+      typeId: 'cassette',
+      path: 'summary.revisionCount'
     })).toBe(true);
 
     expect(canDisplayEntityField({
       permissions,
-      entity: { ...project, lineage: { ...project.lineage, projectId: 'project-2' } },
-      typeId: 'project',
-      path: 'summary.queueCount'
+      entity: { ...cassette, _id: 'cassette-2' },
+      typeId: 'cassette',
+      path: 'summary.revisionCount'
     })).toBe(false);
   });
 
   it('redacts DTOs to allowed paths for the active membership', () => {
-    const redacted = redactEntityForAccess(project, 'project', {
+    const redacted = redactEntityForAccess(cassette, 'cassette', {
       organizationId: 'org-1',
       memberships: [{
         organizationId: 'org-1',
-        permissions: { projects: 'read' }
+        permissions: { cassettes: 'read' }
       }]
     });
 
-    expect(redacted.identity.name).toBe('Project One');
-    expect(redacted.summary.queueCount).toBe(2);
-    expect(redacted.data.address).toBe('Factory Row');
-    expect(redacted.data.metadata).toBeUndefined();
+    expect(redacted.identity.name).toBe('Cassette One');
+    expect(redacted.summary.revisionCount).toBe(2);
+    expect(redacted.data.type).toBe('PARAMETRIC');
+    expect(redacted.data.definition).toEqual({ graphTree: { nodes: [] } });
     expect(redacted.data.internalCost).toBeUndefined();
   });
 
   it('uses active process permissions and field policies for redaction', () => {
-    const redacted = redactEntityForAccess(project, 'project', {
+    const redacted = redactEntityForAccess(cassette, 'cassette', {
       organizationId: 'org-1',
-      effectivePermissions: { projects: 'read' },
-      permissions: { projects: 'admin' },
+      effectivePermissions: { cassettes: 'read' },
+      permissions: { cassettes: 'admin' },
       fieldPolicies: {
-        project: {
+        cassette: {
           read: ['identity.name'],
           write: [],
           private: ['data.internalCost']
@@ -140,7 +142,7 @@ describe('entity field access', () => {
       }
     });
 
-    expect(redacted.identity.name).toBe('Project One');
+    expect(redacted.identity.name).toBe('Cassette One');
     expect(redacted.summary).toBeUndefined();
     expect(redacted.data).toBeUndefined();
   });

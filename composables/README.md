@@ -297,16 +297,6 @@ showing records that are only visible through another assigned role.
 
 ---
 
-## useTraceability
-
-Resolves ancestry and descendants via the lineage block.
-
-```js
-const { ancestors, descendants, fetch } = useTraceability(entity);
-```
-
-Used by `<TraceChain>` component.
-
 ## useFileTypeView
 
 Organization-scoped cached read of the served CTS type view

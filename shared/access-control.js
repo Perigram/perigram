@@ -113,9 +113,6 @@ function scopeMatches(scope = {}, entity = null, typeId = null) {
   const lineage = entity?.lineage || {};
   const instanceId = entity?._id || entity?.identity?.uid;
   return idScopeMatches(scope, 'organizationId', lineage.organizationId)
-    && idScopeMatches(scope, 'projectId', lineage.projectId)
-    && idScopeMatches(scope, 'queueId', lineage.queueId)
-    && idScopeMatches(scope, 'warehouseId', lineage.warehouseId)
     && idScopeMatches(scope, 'instanceId', instanceId);
 }
 

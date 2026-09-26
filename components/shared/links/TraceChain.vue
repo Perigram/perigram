@@ -76,11 +76,7 @@ const resolvedEntities = ref({});
 
 const FALLBACK_LABELS = {
     organization: 'Organization',
-    library: 'Library',
-    cassette: 'Cassette',
-    warehouse: 'Warehouse',
-    project: 'Project',
-    queue: 'Queue'
+    cassette: 'Cassette'
 };
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);

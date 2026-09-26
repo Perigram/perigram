@@ -60,8 +60,8 @@
             <small class="text-muted">{{ primitive.purpose }}</small>
 
             <template v-if="primitive.key === 'InstanceCard'">
-              <InstanceCard :instance="primitiveEntity" type-id="queue">
-                <DataBlock type-id="queue" :entity="primitiveEntity" :fields="queueFields" />
+              <InstanceCard :instance="primitiveEntity" type-id="cassette">
+                <DataBlock type-id="cassette" :entity="primitiveEntity" :fields="demoFields" />
                 <template #footer>
                   <Button :label="$t('common.open')" icon="pi pi-external-link" text size="small" />
                 </template>
@@ -69,9 +69,9 @@
             </template>
 
             <template v-else-if="primitive.key === 'InstancePage'">
-              <InstancePage :instance="primitiveEntity" type-id="queue">
+              <InstancePage :instance="primitiveEntity" type-id="cassette">
                 <template #info>
-                  <small>{{ primitiveEntity.queueNumber }}</small>
+                  <small>{{ primitiveEntity.identity?.serial }}</small>
                 </template>
                 <template #actions>
                   <Button :label="$t('common.update')" icon="pi pi-refresh" text size="small" />
@@ -86,7 +86,7 @@
                 :options="primitiveQueueOptions"
                 option-label="label"
                 option-value="value"
-                type-id="queue"
+                type-id="cassette"
                 class="w-full"
               />
             </template>
@@ -97,24 +97,24 @@
                 :options="primitiveQueueOptions"
                 option-label="label"
                 option-value="value"
-                type-id="queue"
+                type-id="cassette"
                 class="w-full"
               />
             </template>
 
             <template v-else-if="primitive.key === 'DataBlock'">
-              <DataBlock type-id="materialPile" :entity="pileEntity" :fields="pileFields" />
+              <DataBlock type-id="sheet_design" :entity="sheetDesignEntity" :fields="demoFields" />
             </template>
 
 
             <template v-else-if="primitive.key === 'InstanceState'">
-            <InstanceState :instance="primitiveEntity" type-id="queue" variant="inline" />
-            <InstanceState :instance="primitiveEntity" type-id="queue" variant="full" :show-actions="false" />
+            <InstanceState :instance="primitiveEntity" type-id="cassette" variant="inline" />
+            <InstanceState :instance="primitiveEntity" type-id="cassette" variant="full" :show-actions="false" />
             </template>
 
 
             <template v-else-if="primitive.key === 'StateHistory'">
-              <StateHistory type-id="queue" :instance="primitiveEntity" :mock-events="mockHistory" />
+              <StateHistory type-id="cassette" :instance="primitiveEntity" :mock-events="mockHistory" />
             </template>
 
             <template v-else-if="primitive.key === 'GeometryPreview'">
@@ -144,11 +144,11 @@
             </template>
 
             <template v-else-if="primitive.key === 'TraceLink'">
-              <TraceLink type="project" :id="primitiveEntity.lineage.projectId" :label="$t('uiLab.fixtures.downtownComplex')" slug="downtown-complex" />
+              <TraceLink type="organization" :id="MOCK_IDS.organizationId" :label="$t('uiLab.fixtures.downtownComplex')" slug="acme-manufacturing" />
             </template>
 
             <template v-else-if="primitive.key === 'TraceChain'">
-              <TraceChain :entity="primitiveEntity" type-id="queue" />
+              <TraceChain :entity="primitiveEntity" type-id="cassette" />
             </template>
 
             <template v-else-if="primitive.key === 'ActionToolbar'">
@@ -190,7 +190,7 @@
                 @cancel="dialogVisible = false"
                 @save="dialogVisible = false"
               >
-                <DataBlock type-id="materialPile" :entity="pileEntity" :fields="pileFields" />
+                <DataBlock type-id="sheet_design" :entity="sheetDesignEntity" :fields="demoFields" />
               </StandardDialog>
             </template>
 
@@ -292,10 +292,8 @@ import {
 } from '~/utils/design-system-contract.js';
 import {
   MOCK_IDS,
+  createMockCassette,
   createMockHistory,
-  createMockPile,
-  createMockQueue,
-  createMockSheet,
   createMockSheetDesign
 } from '~/test-data/factories.js';
 import { useInstancesStore } from '~/stores/instances';
@@ -350,14 +348,14 @@ const activeGroup = computed(() => groups.find((group) => group.id === activeSec
 const activeRows = computed(() => rows.filter((row) => row.group === activeSection.value));
 const activeRowsWithModels = computed(() => activeRows.value);
 
-const primitiveEntity = createMockQueue();
-const primitiveAlternateQueue = createMockQueue({
-  _id: 'queue-demo-evening',
+const primitiveEntity = createMockCassette();
+const primitiveAlternateQueue = createMockCassette({
+  _id: 'cassette-demo-evening',
   identity: {
     ...primitiveEntity.identity,
-    uid: 'queue-demo-evening',
-    name: 'Evening Production Run',
-    slug: 'evening-production-run'
+    uid: 'cassette-demo-evening',
+    name: 'Evening Run Cassette',
+    slug: 'evening-run-cassette'
   }
 });
 const primitiveQueueOptions = [primitiveEntity, primitiveAlternateQueue].map(entity => ({
@@ -367,22 +365,14 @@ const primitiveQueueOptions = [primitiveEntity, primitiveAlternateQueue].map(ent
 }));
 const primitiveSelectedQueueId = ref(primitiveEntity._id);
 const primitiveSelectedQueueIds = ref(primitiveQueueOptions.map(option => option.value));
-const pileEntity = createMockPile();
-const sheetEntity = createMockSheet();
 const sheetDesignEntity = createMockSheetDesign();
 const mockHistory = createMockHistory(['DRAFT', 'NESTING', 'READY']);
 
 seedDemoTraceEntities();
 
-const pileFields = [
-  { path: 'data.stock.total', i18n: 'piles.stockTotal' },
-  { path: 'data.stock.used', i18n: 'piles.stockUsed' }
-];
-
-const queueFields = [
-  { path: 'data.job.items.length', i18n: 'requisition.items' },
-  { path: 'summary.runCount', i18n: 'queue.runs' },
-  { path: 'summary.sheetCount', i18n: 'results.sheets' }
+const demoFields = [
+  { path: 'specs.width', i18n: 'uiLab.contract.source' },
+  { path: 'specs.length', i18n: 'uiLab.contract.source' }
 ];
 
 
@@ -400,11 +390,7 @@ const contractRows = computed(() =>
 
 function seedDemoTraceEntities() {
   const demoEntities = [
-    { type: 'organization', id: MOCK_IDS.organizationId, name: 'Acme Manufacturing' },
-    { type: 'project', id: MOCK_IDS.projectId, name: 'Downtown Complex', slug: 'downtown-complex' },
-    { type: 'queue', id: MOCK_IDS.queueId, name: 'Morning Production Run' },
-    { type: 'warehouse', id: MOCK_IDS.warehouseId, name: 'Main Logistic Hub' },
-    { type: 'catalog', id: MOCK_IDS.catalogId, name: 'Standard Metals' }
+    { type: 'organization', id: MOCK_IDS.organizationId, name: 'Acme Manufacturing' }
   ];
 
   for (const item of demoEntities) {

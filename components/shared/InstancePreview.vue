@@ -50,7 +50,7 @@ const { typeById } = useFileTypeView();
 const payloadPreview = computed(() => resolveFilePreview(props.entity, typeById(props.typeId)));
 
 const isCassetteLike = computed(() =>
-  ['cassette', 'cassette_template', 'cassette_design', 'cassette_instance'].includes(props.typeId)
+  ['cassette', 'cassette_design'].includes(props.typeId)
 );
 const cassetteId = computed(() => props.entity?.data?.cassetteDesignId || props.entity?._id);
 const thumbnailUrl = computed(() =>

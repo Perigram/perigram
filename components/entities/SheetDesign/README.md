@@ -12,11 +12,8 @@
   `DataBlock` (the sheet-design declaration's dimensional group).
 - Geometry presence is represented by the preview itself; the card does not add
   `Preview` or `DXF` tags that duplicate implementation details.
-- When rendered inside a project route, the card exposes an open action to
-  `/project/:slug/sheet-design/:sheetDesignId`, where the full
-  `SheetDesignDetail` view renders the same geometry preview plus a `DataBlock`
-  metric summary. Generated nesting metrics read `summary.efficiency` for
-  utilization and `summary.placedCount` for placed parts.
+- Generated nesting metrics read `summary.efficiency` for utilization and
+  `summary.placedCount` for placed parts.
 - The detail page DXF action triggers the standard
   `generateAttachment` command with `entities.sheetDesign` and
   `parameters.kind = "LAYOUT_DXF"`, then downloads the returned artifact from

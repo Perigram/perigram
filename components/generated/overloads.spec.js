@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('~/components/generated/GeneratedHomeWorkspace.vue', () => ({ default: { name: 'GeneratedHomeWorkspace' } }));
-vi.mock('~/components/generated/GeneratedProjectWorkspace.vue', () => ({ default: { name: 'GeneratedProjectWorkspace' } }));
 vi.mock('~/components/SheetDesignEditor.vue', () => ({ default: { name: 'SheetDesignEditor' } }));
 vi.mock('~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedCassetteDesignerWorkspacePage' } }));
 vi.mock('~/components/generated/GeneratedCassetteDesignerAction.vue', () => ({ default: { name: 'GeneratedCassetteDesignerAction' } }));
@@ -27,14 +26,13 @@ describe('generated overload registry', () => {
     expect(overload?.component).toBeTruthy();
   });
 
-  it('resolves project entity detail screens to the project workspace overload', () => {
+  it('does not overload instanceDetail screens for undeclared types', () => {
     const overload = resolveGeneratedScreenOverload({
       template: 'instanceDetail',
       sources: [{ id: 'project', typeId: 'project', mode: 'single' }]
     });
 
-    expect(overload?.typeId).toBe('project');
-    expect(overload?.component).toBeTruthy();
+    expect(overload).toBeNull();
   });
 
   it('does not overload unrelated generated screens', () => {

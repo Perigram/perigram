@@ -304,21 +304,6 @@
         "typeId": "cassette_design"
       },
       {
-        "componentPath": "components/entities/CassetteTemplate/CassetteTemplateCard.vue",
-        "docs": [
-          "components/entities/CassetteTemplate/README.md",
-          "server/features/cassettes/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "production",
-        "key": "cassetteTemplate",
-        "labelKey": "entities.cassetteTemplate",
-        "propName": "template",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "cassette_template"
-      },
-      {
         "componentPath": null,
         "docs": [
           "components/entities/EntityRevision/README.md",
@@ -334,51 +319,9 @@
         "typeId": "entity_revision"
       },
       {
-        "componentPath": null,
-        "docs": [
-          "server/features/profile-templates/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "master",
-        "key": "profileTemplate",
-        "labelKey": "entities.profileTemplate",
-        "propName": "profile",
-        "status": "hidden",
-        "trace": false,
-        "typeId": "profile_template"
-      },
-      {
-        "componentPath": "components/entities/ToolProfile/ToolProfileCard.vue",
-        "docs": [
-          "server/features/tool-profiles/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "master",
-        "key": "toolProfile",
-        "labelKey": "entities.toolProfile",
-        "propName": "tool",
-        "status": "hidden",
-        "trace": false,
-        "typeId": "tool_profile"
-      },
-      {
-        "componentPath": null,
-        "docs": [
-          "server/features/machines/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "master",
-        "key": "machine",
-        "labelKey": "entities.machine",
-        "propName": "machine",
-        "status": "hidden",
-        "trace": false,
-        "typeId": "machine"
-      },
-      {
         "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
         "docs": [
-          "server/features/pen-templates/README.md"
+          "server/features/instances/README.md"
         ],
         "fieldPaths": [],
         "group": "master",
@@ -392,7 +335,7 @@
       {
         "componentPath": "components/entities/LayerStandard/LayerStandardCard.vue",
         "docs": [
-          "server/features/layer-standards/README.md"
+          "server/features/instances/README.md"
         ],
         "fieldPaths": [],
         "group": "master",

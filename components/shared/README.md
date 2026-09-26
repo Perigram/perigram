@@ -308,7 +308,6 @@ Current drawing display owners:
 | `GeometryPreview.vue` | `geometry-preview` |
 | `CassetteThumbnail.vue` | `dxf-url`, `parametric-cassette`, or `occs-cassette` |
 | `CassetteEditorDialog.vue` | `dxf-text` |
-| `ArtifactsTable.vue` | `dxf-url` / `svg-url` |
 | `CassetteDesigner.vue` | `parametric-cassette` with designer overlays |
 | `/test/ui-lab` | `geometry-preview` demo |
 
@@ -460,9 +459,8 @@ chrome — the thread's own surface is the surface.
 Bounded hosts must NOT mount it: their `flush` frame is `h-full` and
 non-scrolling, so an in-flow rail has no track and collapses to nothing. Those
 hosts expose the same thread through the shared chat popup
-(`utils/instance-chat.js`) from their own chrome — the bounded file pane's
-action strip and `GeneratedProjectWorkspace`'s actions strip both do this,
-matching `InstanceCard` and `InstanceInlineRef`.
+(`utils/instance-chat.js`) from their own chrome, matching `InstanceCard`
+and `InstanceInlineRef`.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while

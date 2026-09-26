@@ -1,5 +1,4 @@
 import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspace.vue';
-import GeneratedProjectWorkspace from '~/components/generated/GeneratedProjectWorkspace.vue';
 import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
 import { fileDetailOverloads } from '~/components/generated/file-surfaces.js';
 
@@ -12,11 +11,6 @@ export const generatedScreenOverloads = [
   {
     template: 'home',
     component: GeneratedHomeWorkspace
-  },
-  {
-    template: 'instanceDetail',
-    typeId: 'project',
-    component: GeneratedProjectWorkspace
   }
 ];
 
