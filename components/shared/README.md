@@ -528,10 +528,13 @@ the thread opens (desktop drawer, mobile `/chats` target).
 
 ### `InstanceChatPanel.vue` (detail-page conversation rail)
 The instance detail page's own conversation — the one place a thread renders
-in place instead of opening the shared popup. It occupies `InstancePage`'s
+in place instead of opening the shared popup. It has two homes: the legacy
+renderer's detail column (`GeneratedInstanceDetail` provides `InstancePage`'s
 **sidebar slot**, so it is a sticky rail beside the body from the two-track
-breakpoint up (visible, bounded, in the page's own reading order) and stacks
-below the body as a full-width section under that breakpoint. It is not a
+breakpoint up and stacks below the body as a full-width section under that
+breakpoint) and the ui-mapping generator's routed detail surface
+(`GeneratedMappingScreen` mounts it after the composed body — plain
+org-authored CTS detail routes have no legacy overload). It is not a
 section appended to the main column: that buried the thread under the whole
 body, made it undiscoverable, and put it last in reading order.
 
