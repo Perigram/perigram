@@ -67,6 +67,11 @@ test.describe('generated state surface', () => {
     await expect(stepper).toBeVisible({ timeout: 10000 });
     await expect(stepper.locator('.p-step')).toHaveCount(2);
     await expect(stepper.getByText('Perigram E2E User')).toHaveCount(1);
+    // No number markers: the state tags are the trail's markers.
+    await expect(stepper.locator('.p-step-number:not(.hidden)')).toHaveCount(0);
+    // The open panel walks the trail through its own navigation.
+    await stepper.locator('[data-history-nav="older"]').click();
+    await expect(stepper.locator('.p-stepitem').first()).toHaveClass(/p-stepitem-active/);
     await testInfo.attach('state-history-after-transition', {
       body: await stepper.screenshot(),
       contentType: 'image/png'

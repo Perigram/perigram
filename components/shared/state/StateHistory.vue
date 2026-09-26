@@ -210,7 +210,7 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
             </time>
           </div>
         </Step>
-        <StepPanel :value="stepKey(event, index)">
+        <StepPanel :value="stepKey(event, index)" v-slot="{ activateCallback }">
           <div v-if="eventNote(event) || eventAttachments(event).length || eventSnapshots(event).length" class="min-w-0 pb-3 pl-1">
             <p v-if="eventNote(event)" class="m-0 min-w-0 break-words italic text-body">
               {{ eventNote(event) }}
@@ -240,6 +240,30 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
                 <span class="truncate">{{ snapshot.label }}: {{ snapshot.count }}</span>
               </small>
             </div>
+          </div>
+          <div v-if="orderedEvents.length > 1" class="flex items-center justify-end gap-1 pb-2 pl-1">
+            <Button
+              icon="pi pi-chevron-up"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              :disabled="index === 0"
+              :aria-label="$t('common.back')"
+              data-history-nav="older"
+              @click.stop="activateCallback(stepKey(orderedEvents[index - 1], index - 1))"
+            />
+            <Button
+              icon="pi pi-chevron-down"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              :disabled="index === orderedEvents.length - 1"
+              :aria-label="$t('common.next')"
+              data-history-nav="newer"
+              @click.stop="activateCallback(stepKey(orderedEvents[index + 1], index + 1))"
+            />
           </div>
         </StepPanel>
       </StepItem>
