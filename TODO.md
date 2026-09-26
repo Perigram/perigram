@@ -22,7 +22,7 @@ notes.
   attachment kinds `CASSETTE_DXF`/`SVG_PREVIEW` + dead-collection indexes in
   `server/db/indexes.js` + `check-arch.js` list updates + fix the two specs
   importing the removed `cncFileTypes` export.
-- [ ] P2 — frontend orphan sweep: queue utils trio + specs,
+- [x] P2 — frontend orphan sweep: queue utils trio + specs,
   `stores/artifacts` + `ArtifactsTable`, `AssetsLibrary`, `PartLibrary`,
   `TemplatesManager`, `ProjectStatistics`, `useTraceability`,
   `SheetDesignDetail`, `stores/toolProfiles` (+ SheetDesignEditor kerf
