@@ -1459,6 +1459,22 @@ async function executeDurableEffect(request, auth, run, processData) {
   return await performDurableEffect(request, auth, processData);
 }
 
+// The effect boundary receives the entity in every shape the run context
+// can produce: a typed ref ({ type, id }) from composed wires, a full DTO
+// from reads and in-run effect outputs, or a bare id string from the manual
+// action transport (the client posts `instanceId`). The boundary knows the
+// effect's typeId, so all three normalize to one typed target.
+function effectEntityTarget(value, typeId) {
+  const ref = normalizeInstanceRef(value);
+  if (ref) return ref;
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const id = value._id ?? value.id ?? value.identity?.uid;
+    return id != null && id !== undefined ? { type: typeId, id: String(id) } : null;
+  }
+  if (typeof value === 'string' && value) return { type: typeId, id: value };
+  return null;
+}
+
 export async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
   // Native species records classify once here: the durable branches stay
   // keyed on the operation contract while the record keeps its species
@@ -1542,7 +1558,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     await publishActionEntityEvent(auth, typeId, result, 'created', 'process-create');
     return result;
   }
-  const target = normalizeInstanceRef(inputs.entity);
+  const target = effectEntityTarget(inputs.entity, typeId);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);
   if (operation === 'effect.updateEntity') {
     // Field schemas resolve against the projected view first — org/pack
