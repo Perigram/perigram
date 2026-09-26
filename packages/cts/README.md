@@ -145,7 +145,10 @@ module layout and how the code maps to the spec's build-order tiers.
   `resolveCtsDefinition` resolves declaration ids and row paths while
   preserving species kinds, discriminators, socket ids, and graph edges;
   `checkCtsGraphBindings` validates type, field, state, transition,
-  operator, and edge bindings. `operationKindOf` is a classification
+  operator, and edge bindings; an executable `cts.transition` must carry an
+  authored target (inspector state reference, authored default, or a wire
+  into its status socket) — a target-less transition is refused at draft
+  acceptance and activation instead of failing at run time. `operationKindOf` is a classification
   helper only and never changes executable ports.
   `declarationsFromCtsRecords` receives the declaration graph as well as
   records, so nested state and edge acceptance matches what APPLY posts.

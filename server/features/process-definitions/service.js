@@ -1627,6 +1627,12 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const targetState = typeof inputs.status === 'string'
       ? inputs.status
       : (inputs.status?.id ?? record.state?.to);
+    if (targetState == null) {
+      // Activation refuses target-less transitions (graph-protocol binding
+      // check); this guard keeps an already-activated legacy draft from
+      // reaching the status runtime with undefined.
+      throw new Error(`${kind} declares no target state`);
+    }
     const result = await stateService.transitionWithResult({
       typeId,
       targetId: target.id,
