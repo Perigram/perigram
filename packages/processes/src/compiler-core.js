@@ -1599,8 +1599,17 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   // machine for every producer of their type — terminal flags ride the
   // records; nothing else supplies states.
   const stateRecordsByType = new Map();
+  const unscopedStateRecords = [];
   for (const record of Object.values(process.ctsTypes || {})) {
-    if (record?.kind !== 'state' || !record.typeId || !record.value) continue;
+    if (record?.kind !== 'state' || !record.value) continue;
+    // A state node is a value token (SPEC §7): unscoped records satisfy
+    // any bound type — the same rule the binding check applies. An
+    // unscoped token that validation accepts is machine vocabulary for
+    // every producer, or validation accepts what compilation drops.
+    if (!record.typeId) {
+      unscopedStateRecords.push(record);
+      continue;
+    }
     const list = stateRecordsByType.get(record.typeId) || [];
     list.push(record);
     stateRecordsByType.set(record.typeId, list);
@@ -1609,8 +1618,8 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     // A custom-authored lifecycle is the contract as written: vocabulary
     // seeding never replaces it.
     if (output.lifecycle?.mode === 'custom') continue;
-    const records = stateRecordsByType.get(output.typeId);
-    if (!records?.length) continue;
+    const records = [...(stateRecordsByType.get(output.typeId) || []), ...unscopedStateRecords];
+    if (!records.length) continue;
     // A declared vocabulary replaces the fallback machine entirely: no
     // synthesized CREATED — the draft's records are the whole vocabulary
     // and the construct's state default is the initial.
@@ -1645,20 +1654,25 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
         if (!workflowBuilder) continue;
         const regionId = action.state?.axis || workflowBuilder.primaryRegion;
         const region = workflowBuilder.regions[regionId] || primaryRegionBuilder(workflowBuilder);
-        // A transition compiles one concrete declared state-to-state edge.
-        // The from-state is the arrival state of instances on its entity
-        // wire — the upstream producer's output state (derived from the
-        // wiring's status windows below and by the producer-bound branch),
-        // never authored on the node and never wildcarded.
-        const from = action.state?.from;
-        if (!from) continue;
-        addWorkflowState(region, from);
-        addWorkflowState(region, to);
-        upsertWorkflowTransition(region, {
-          from,
-          to,
-          processRoleIds: actionExposureRoleIdsForInput(action, access, null)
-        });
+        // A transition compiles concrete declared state-to-state edges.
+        // The from-states are the arrival states of instances on its
+        // entity wire — the wiring's status windows, exactly what the
+        // producer-bound branch and the action window derive from. An
+        // authored `from` narrows to that one edge (legacy reference
+        // data); nothing wildcard or enumerated enters the machine.
+        const wiredFroms = declaredTransitionSources(actionId, action, typeId, graphContext, actionWindows)
+          .map(source => source.status)
+          .filter(Boolean);
+        if (!wiredFroms.length) continue;
+        for (const from of wiredFroms) {
+          addWorkflowState(region, from);
+          addWorkflowState(region, to);
+          upsertWorkflowTransition(region, {
+            from,
+            to,
+            processRoleIds: actionExposureRoleIdsForInput(action, access, null)
+          });
+        }
       }
       continue;
     }
@@ -1680,7 +1694,7 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     const access = normalizeActionAccess(action.access);
     if (!to) continue;
 
-    for (const source of workflowTransitionSources(actionId, action, typeId, graphContext, actionWindows)) {
+    for (const source of declaredTransitionSources(actionId, action, typeId, graphContext, actionWindows)) {
       const from = source.status;
       if (!from) continue;
       addWorkflowState(builder, from);
@@ -3520,12 +3534,24 @@ function compileActionStatus(action = {}, process = {}, wiredFrom = '') {
   };
 }
 
-// The single arrival state a status-mutating action's entity wire
-// declares, when the wiring is unambiguous.
+// The declared transition sources of a status-mutating action: incoming
+// entity-edge status windows, narrowed to an authored `from` when legacy
+// reference data carries one. The ONE derivation the machine edges, the
+// action window, and run availability consume — no consumer re-derives
+// the wiring independently.
+function declaredTransitionSources(actionId, action = {}, typeId = '', graphContext, actionWindows) {
+  if ((action.actionKind || 'createEntity') !== 'updateEntity') return [];
+  // Every arrival window on the action's entity wires declares an edge —
+  // a loop-back wire is as real as the first one — and an authored `from`
+  // is a fallback for legacy data without wires, never a filter on the
+  // wiring.
+  return workflowTransitionSources(actionId, action, typeId, graphContext, actionWindows);
+}
+
+// The single arrival state the wiring declares, when unambiguous — the
+// manifest's scoping fact.
 function wiringArrivalState(actionId, action = {}, typeId = '', graphContext, actionWindows) {
-  if (action.state?.from || action.access?.stateFrom) return '';
-  if ((action.actionKind || 'createEntity') !== 'updateEntity') return '';
-  const sources = workflowTransitionSources(actionId, action, typeId, graphContext, actionWindows);
+  const sources = declaredTransitionSources(actionId, action, typeId, graphContext, actionWindows);
   return sources.length === 1 ? sources[0].status : '';
 }
 
