@@ -798,6 +798,69 @@ describe('current process-definition service contract', () => {
     }));
   });
 
+  it('executes a legacy transition whose target lives in inputDefaults.state (persisted authoring shape)', async () => {
+    // Regression against a live draft: the target was authored as the
+    // status socket's default (inputDefaults.state), which validation
+    // accepts — activation compiled — but the runtime boundary read only
+    // state.to and threw 'declares no target state'.
+    const machine = {
+      type: 'machine', id: 'machine-1', _id: 'machine-1',
+      identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
+      lineage: { organizationId: 'org-acceptance' },
+      data: {}, attachments: {}, states: { main: 'state1' }
+    };
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === 'machine'
+        ? { processUpdate: vi.fn(), processGetById: async () => machine }
+        : type === 'organization' ? organizationService : null
+    });
+    stateService.transitionWithResult.mockImplementation(async ({ targetState }) => {
+      const updated = structuredClone(machine);
+      updated.states = { main: targetState };
+      return { entity: updated, status: { state: { primary: targetState } }, actions: [], effects: [] };
+    });
+    const data = {
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graphProtocol: 5,
+      ctsTypes: { s1: { id: 's1', kind: 'state', value: 'new' } },
+      graph: {
+        nodes: [{ id: 'transition', type: 'processNode', data: { refId: 'transition' } }],
+        edges: []
+      },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      screens: {},
+      processNodes: {
+        transition: {
+          id: 'transition', kind: 'cts.transition', typeId: 'machine',
+          inputDefaults: { state: 'new' },
+          trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
+        }
+      }
+    };
+    const restoreMachineRegistry = mockMachineRegistry();
+    processRepository.findActiveByOrganization.mockResolvedValue(draftRecord(data));
+    processRepository.findById.mockResolvedValue(draftRecord(data));
+    organizationService.getProcessConfiguration.mockResolvedValueOnce({ roles: [], roleAssignments: {} });
+
+    const result = await executeActiveProcessAction({
+      actionId: 'transition',
+      instanceId: 'machine-1',
+      data: {}
+    }, {
+      userId: 'admin', organizationId: 'org-acceptance',
+      roleAssignments: { actions: [{ id: 'transition' }] },
+      effectivePermissions: { organizations: { level: 'admin' } }
+    });
+    restoreMachineRegistry();
+
+    expect(result).toMatchObject({ _id: 'machine-1', states: { main: 'new' } });
+  });
+
   it('surfaces a failed mutation slot as the manual action error instead of a silent success', async () => {
     // Regression: the mutation mapper collects per-slot failures and keeps
     // the run 'succeeded', so a rejected transition (invalid from-state,
