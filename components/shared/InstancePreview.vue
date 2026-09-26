@@ -10,8 +10,7 @@
       v-if="isCassetteLike"
       :cassette="entity"
       :cassette-id="cassetteId"
-      :prefer-geometry="typeId === 'cassette_design'"
-      :hide-dimension-layer="hideDimensionLayer"
+            :hide-dimension-layer="hideDimensionLayer"
     />
     <img
       v-else-if="mode === 'thumbnail' && thumbnailUrl"
@@ -50,9 +49,9 @@ const { typeById } = useFileTypeView();
 const payloadPreview = computed(() => resolveFilePreview(props.entity, typeById(props.typeId)));
 
 const isCassetteLike = computed(() =>
-  ['cassette', 'cassette_design'].includes(props.typeId)
+  props.typeId === 'cassette'
 );
-const cassetteId = computed(() => props.entity?.data?.cassetteDesignId || props.entity?._id);
+const cassetteId = computed(() => props.entity?._id);
 const thumbnailUrl = computed(() =>
   props.entity?.data?.thumbnailUrl ||
   props.entity?.attachments?.thumbnail?.url ||

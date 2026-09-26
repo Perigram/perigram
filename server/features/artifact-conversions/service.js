@@ -16,8 +16,8 @@ export async function convertArtifact({ artifact, conversionId, name, layerMappi
   if (conversion.target.kind === 'artifact') {
     return await convertToArtifact(artifact, conversion, name, auth);
   }
-  if (conversion.target.kind === 'entity' && conversion.target.typeId === 'cassette_design') {
-    const imported = await cassettesService.importFromArtifact(
+  if (conversion.target.kind === 'entity' && conversion.target.typeId === 'cassette') {
+    const template = await cassettesService.importFromArtifact(
       artifact._id,
       name,
       auth.userId,
@@ -27,7 +27,7 @@ export async function convertArtifact({ artifact, conversionId, name, layerMappi
       layerMapping || null,
       parameters || null
     );
-    return { type: 'cassette_design', entity: imported.design };
+    return { type: 'cassette', entity: template };
   }
 
   throw createError({ statusCode: 400, message: `Unsupported artifact conversion target: ${conversion.id}` });

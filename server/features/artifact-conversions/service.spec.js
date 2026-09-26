@@ -44,17 +44,17 @@ describe('artifact conversion service', () => {
   });
 
   it('delegates DXF import to the cassette construction service', async () => {
-    importFromArtifactMock.mockResolvedValue({ design: { _id: 'design-1' } });
+    importFromArtifactMock.mockResolvedValue({ _id: 'cassette-1' });
     const result = await convertArtifact({
       artifact: { _id: 'dxf-1', data: { type: 'DXF_SOURCE' } },
-      conversionId: 'dxfSourceToCassetteDesign',
-      name: 'Imported design',
+      conversionId: 'dxfSourceToCassette',
+      name: 'Imported cassette',
       layerMapping: { CUT: 'cut.outer' }
     }, { userId: 'user-1', organizationId: 'org-1', role: 'member' });
 
     expect(importFromArtifactMock).toHaveBeenCalledWith(
-      'dxf-1', 'Imported design', 'user-1', 'org-1', 'member', expect.any(Object), { CUT: 'cut.outer' }, null
+      'dxf-1', 'Imported cassette', 'user-1', 'org-1', 'member', expect.any(Object), { CUT: 'cut.outer' }, null
     );
-    expect(result).toEqual({ type: 'cassette_design', entity: { _id: 'design-1' } });
+    expect(result).toEqual({ type: 'cassette', entity: { _id: 'cassette-1' } });
   });
 });

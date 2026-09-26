@@ -70,8 +70,7 @@ const CAPABILITY_FEATURES = [
   // feature services but absent from the type declarations (Phase 7
   // cuts or declares them). Classified explicitly so the directory
   // check keeps guarding shape.
-  'artifact-templates',
-  'cassette-designs'
+  'artifact-templates'
 ];
 const IGNORE = ['_template', 'README.md', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];

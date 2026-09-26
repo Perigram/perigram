@@ -27,7 +27,7 @@ facade domain in the type system.
   `server/core/commands/definitions.js`.
 - `src/events.js` — the pack's trigger declarations (`facadeEvents`).
 - `src/artifact-conversions.js` — the artifact conversion catalog
-  (LAYOUT_DXF → DXF source → cassette design).
+  (LAYOUT_DXF → DXF source → cassette).
 - `src/index.js` — the public barrel plus `facadeDomain`: the server-side
   domain slice (commands, events, service identity table) the app
   registry mounts. Never an entity catalog — the CTS registry view is

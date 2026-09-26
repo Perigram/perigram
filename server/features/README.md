@@ -28,7 +28,7 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifact-templates`, `artifacts`, `cassette-designs` (legacy-live until the cassette-design cut), `cassettes`, `instance-revisions`, `organizations`, `process-definitions`, `sheet-designs`, `users` |
+| Entity modules | `artifact-templates`, `artifacts`, `cassettes`, `instance-revisions`, `organizations`, `process-definitions`, `sheet-designs`, `users` |
 | Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `nesting`, `notification`, `notifications`, `parametric-cassettes`, `sessions`, `states`, `support`, `system-settings`, `workflow-overrides` |
 
 Types without a feature module — the documents/tech-drawing/facade pack
@@ -92,7 +92,6 @@ services must not self-register through hidden globals.
 | Module | Entity | Key lineage fields |
 |---|---|---|
 | `cassettes` | OCCS cassette templates (the cassette file type's service) | `organizationId`, `libraryId` |
-| `cassette-designs` | Baked template geometry (legacy-live until the cassette-design cut) | `organizationId`, `projectId`, `queueId` |
 | `sheet-designs` | Sheet design layouts (the sheet-design file type's service) | `organizationId`, `runId` |
 | `artifacts` | Generated files (DXF/SVG/PDF) | mirrors parent lineage |
 | `artifact-templates` | Organization-owned DXF/PDF generation layouts | `organizationId` |

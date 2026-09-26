@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient } from 'mongodb';
 import {
-  cassetteDesignsForNestingResult,
+  cassettesForNestingResult,
   collapseNestingLayoutsByComposition,
   nestingResultForLayout,
   nestingResultToPreview
@@ -43,15 +43,15 @@ describe('sheet design nesting preview', () => {
     expect(groups).toHaveLength(2);
     expect(groups[0]).toMatchObject({
       composition: [
-        { cassetteDesignId: 'design-a', count: 1 },
-        { cassetteDesignId: 'design-b', count: 1 }
+        { cassetteId: 'design-a', count: 1 },
+        { cassetteId: 'design-b', count: 1 }
       ],
       sheetCount: 2,
       representativeLayoutIndex: 0,
       layoutIndexes: [0, 1]
     });
     expect(groups[1]).toMatchObject({
-      composition: [{ cassetteDesignId: 'design-a', count: 2 }],
+      composition: [{ cassetteId: 'design-a', count: 2 }],
       sheetCount: 1,
       representativeLayoutIndex: 2
     });
@@ -234,9 +234,9 @@ describe('sheet design nesting preview', () => {
       }
     };
 
-    expect(cassetteDesignsForNestingResult(result)).toEqual([
-      { cassetteDesignId: 'design-a', count: 2 },
-      { cassetteDesignId: 'design-b', count: 1 }
+    expect(cassettesForNestingResult(result)).toEqual([
+      { cassetteId: 'design-a', count: 2 },
+      { cassetteId: 'design-b', count: 1 }
     ]);
   });
 });

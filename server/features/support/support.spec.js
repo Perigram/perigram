@@ -281,35 +281,35 @@ describe('support communication service', () => {
 
 
   it('loads concrete options for generated readable entity sources', async () => {
-    mocks.cassetteDesignsService.list.mockResolvedValue([
-      { _id: 'design-1', identity: { name: 'Design Alpha' }, data: {} }
+    mocks.sheetDesignsService.list.mockResolvedValue([
+      { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
     ]);
     const processAuth = {
       ...auth,
       process: { active: true },
       effectivePermissions: {
-        cassette_designs: [{ level: 'read' }]
+        sheet_designs: [{ level: 'read' }]
       },
       screens: [{
-        id: 'design_screen',
+        id: 'sheet_screen',
         sources: [{
-          id: 'cassette_design',
-          typeId: 'cassette_design',
-          label: 'Cassette Designs',
-          required: { feature: 'cassette_designs', level: 'read' }
+          id: 'sheet_design',
+          typeId: 'sheet_design',
+          label: 'Sheet Designs',
+          required: { feature: 'sheet_designs', level: 'read' }
         }]
       }]
     };
 
-    const options = await supportService.listEntityOptions(processAuth, 'cassette_design', 'alpha');
+    const options = await supportService.listEntityOptions(processAuth, 'sheet_design', 'alpha');
 
-    expect(mocks.cassetteDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {});
+    expect(mocks.sheetDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {});
     expect(options).toEqual([
       {
-        type: 'cassette_design',
-        value: 'design-1',
-        label: 'Design Alpha',
-        entity: { _id: 'design-1', identity: { name: 'Design Alpha' }, data: {} }
+        type: 'sheet_design',
+        value: 'sheet-1',
+        label: 'Sheet Alpha',
+        entity: { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
       }
     ]);
   });
@@ -359,11 +359,11 @@ describe('support communication service', () => {
 
   it('normalizes frontend entity type aliases before validating sent refs', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
-    mocks.cassetteDesignsService.list.mockResolvedValue([
+    mocks.cassettesService.list.mockResolvedValue([
       {
         toJSON: () => ({
-          _id: 'design-1',
-          identity: { name: 'Design 1' },
+          _id: 'cassette-1',
+          identity: { name: 'Cassette 1' },
           data: {}
         })
       }
@@ -371,14 +371,14 @@ describe('support communication service', () => {
 
     const message = await supportService.sendUserMessage(auth, {
       message: 'Alias',
-      entityRefs: [{ type: 'cassetteDesign', id: 'design-1' }]
+      entityRefs: [{ type: 'cassetteTemplate', id: 'cassette-1' }]
     });
 
     expect(message.entityRefs).toEqual([
       expect.objectContaining({
-        type: 'cassette_design',
-        id: 'design-1',
-        label: 'Design 1'
+        type: 'cassette',
+        id: 'cassette-1',
+        label: 'Cassette 1'
       })
     ]);
   });

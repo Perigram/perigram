@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  cassetteDesignSheetItem,
+  cassetteSheetItem,
   clampSheetPlacement,
   magneticSheetPlacement,
   placementHasClearance,
@@ -149,7 +149,7 @@ describe('sheet layout editor helpers', () => {
   });
 
   it('creates a nesting source item from uploaded cassette geometry', () => {
-    const item = cassetteDesignSheetItem({
+    const item = cassetteSheetItem({
       _id: 'design-1',
       identity: { name: 'Panel' },
       data: {

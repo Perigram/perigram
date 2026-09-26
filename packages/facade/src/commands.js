@@ -54,7 +54,7 @@ export const facadeCommands = {
     output: {
       entities: [
         { type: 'artifact', persistenceOwner: 'commandOwned', timing: 'immediate' },
-        { type: 'cassette_design', persistenceOwner: 'commandOwned', timing: 'immediate' }
+        { type: 'cassette', persistenceOwner: 'commandOwned', timing: 'immediate' }
       ],
       events: ['artifact.converted']
     },
@@ -63,7 +63,6 @@ export const facadeCommands = {
         { feature: 'artifacts', level: 'write' }
       ],
       executionGrants: [
-        { feature: 'cassette_designs', level: 'write', actions: { create: true } },
         { feature: 'cassettes', level: 'write', actions: { create: true } }
       ]
     }

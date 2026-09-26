@@ -139,37 +139,6 @@ export function createMockCassette(overrides = {}) {
 }
 
 
-export function createMockCassetteDesign(overrides = {}) {
-  const geometry = { data: null, dxfId: 'dxf-cassette-design-demo' };
-  const parameters = { A: 1200, B: 400, C: 35 };
-  return {
-    ...createEntity({
-      uid: MOCK_IDS.cassetteDesignId,
-      name: 'Standard Type A',
-      serial: 'CD-FACADE-01',
-      state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId },
-      provenance: {
-        derivedFrom: {
-          source: {
-            type: 'cassette',
-            id: MOCK_IDS.cassetteTemplateId,
-            revisionId: MOCK_IDS.entityRevisionId
-          },
-          scope: 'geometry',
-          revisionNumber: 1,
-          contentHash: 'sha256:demo1234567890',
-          parameters
-        }
-      },
-      data: {
-        geometry,
-        parameters
-      }
-    }),
-    ...overrides
-  };
-}
 
 export function createMockEntityRevision(overrides = {}) {
   return {

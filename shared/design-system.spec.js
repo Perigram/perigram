@@ -228,10 +228,10 @@ describe('Design system manifest', () => {
     expect(cassette).not.toHaveProperty('parameters');
   });
 
-  it('formats cassette design parameter maps as exact named values', () => {
-    const design = factories.createMockCassetteDesign();
+  it('formats concrete cassette parameter maps as exact named values', () => {
+    const parameters = { A: 1200, B: 400, C: 35 };
 
-    expect(decorateDataValue(design.data.parameters, { display: 'parameterMap' })).toBe('A=1200, B=400, C=35');
+    expect(decorateDataValue(parameters, { display: 'parameterMap' })).toBe('A=1200, B=400, C=35');
   });
 
 
@@ -575,14 +575,12 @@ describe('Design system manifest', () => {
   it('keeps framework manifest UI fields tied to canonical DTO paths', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'framework.manifest.json'), 'utf8'));
     const cassette = manifest.designSystem.components.find(component => component.key === 'cassette');
-    const cassetteDesign = manifest.designSystem.components.find(component => component.key === 'cassetteDesign');
 
     expect(manifest.validations).toEqual({ ok: true, issues: [] });
     expect(cassette.fieldPaths).toEqual([]);
     expect(cassette.fieldPaths).not.toContain('data.type');
     // The legacy residual field-group map died with the fact channel: no
     // design-system component carries legacy fact rows anymore.
-    expect(cassetteDesign.fieldPaths).toEqual([]);
   });
 
   it('declares constructor surfaces and field groups in the domain contract', () => {

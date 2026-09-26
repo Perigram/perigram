@@ -464,7 +464,7 @@ function designPolygonParts(design = {}) {
     .find(items => Array.isArray(items) && items.some(item => Array.isArray(item?.coordinates) && item.coordinates.length >= 3)) || [];
 }
 
-export function cassetteDesignSheetItem(design = {}, id) {
+export function cassetteSheetItem(design = {}, id) {
   const polygon = designPolygonParts(design)
     .find(item => (item.layer || item.standardCode) === 'cut.outer')
     || designPolygonParts(design)[0];

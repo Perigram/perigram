@@ -6,14 +6,10 @@ export const facadeArtifactConversions = [
     target: { kind: 'artifact', artifactKind: 'DXF_SOURCE' }
   },
   {
-    id: 'dxfSourceToCassetteDesign',
-    label: 'Import cassette design',
+    id: 'dxfSourceToCassette',
+    label: 'Import cassette',
     sourceKinds: ['DXF_SOURCE'],
-    target: {
-      kind: 'entity',
-      typeId: 'cassette_design',
-      constructionMode: 'importCassetteDesignFromArtifact'
-    }
+    target: { kind: 'entity', typeId: 'cassette' }
   }
 ];
 

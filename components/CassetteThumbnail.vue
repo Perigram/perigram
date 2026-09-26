@@ -102,7 +102,7 @@ const loadCassette = async () => {
   if (props.cassette) return props.cassette;
   const cid = props.cassetteId?.toString();
   if (!cid) return null;
-  return await $fetch(`/api/cassette-designs/${cid}`).catch(() => $fetch(`/api/cassettes/${cid}`).catch(() => null));
+  return await $fetch(`/api/cassettes/${cid}`).catch(() => null);
 };
 
 const setDxfSource = (dxfId, mapping = {}) => {
@@ -138,11 +138,7 @@ const handleDrawingReady = (drawing) => {
   resolvedPreviewLayerNames.value = allowed.length ? allowed : null;
 };
 
-const loadPreferredGeometryCassette = async (cassette) => {
-  if (!props.preferGeometry) return cassette;
-  if (!cassette?._id || hasRenderableGeometry(cassette)) return cassette;
-  return await $fetch(`/api/cassette-designs/${encodeURIComponent(cassette._id)}`).catch(() => cassette);
-};
+const loadPreferredGeometryCassette = async (cassette) => cassette;
 
 const updateThumbnail = async () => {
   if (!isVisible.value) return;
@@ -188,12 +184,6 @@ const updateThumbnail = async () => {
       return;
     }
 
-    if (!props.preferGeometry && type === 'STANDARD') {
-      const design = await $fetch(`/api/cassette-designs/by-template/${cassette._id}`).catch(() => null);
-      if (design?.data?.geometry?.dxfId) {
-        setDxfSource(design.data.geometry.dxfId, cassetteMapping(cassette));
-      }
-    }
   } finally {
     loading.value = false;
   }

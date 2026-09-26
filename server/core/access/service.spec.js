@@ -76,30 +76,30 @@ describe('access engine', () => {
   });
 
   it('allows public system catalogue entities to be read without grants only at read level', () => {
-    const material = {
+    const layerStandard = {
       lineage: { scope: 'system', public: true },
       data: { visibility: { public: true } }
     };
     const ungrantedAuth = { userId: 'u-public', memberships: [] };
 
     expect(hasInstanceAccess({
-      entity: material,
-      typeId: 'material',
-      feature: 'materials',
+      entity: layerStandard,
+      typeId: 'layerStandard',
+      feature: 'layer_standards',
       level: 'read',
       auth: null
     })).toBe(true);
     expect(hasInstanceAccess({
-      entity: material,
-      typeId: 'material',
-      feature: 'materials',
+      entity: layerStandard,
+      typeId: 'layerStandard',
+      feature: 'layer_standards',
       level: 'read',
       auth: ungrantedAuth
     })).toBe(true);
     expect(hasInstanceAccess({
-      entity: material,
-      typeId: 'material',
-      feature: 'materials',
+      entity: layerStandard,
+      typeId: 'layerStandard',
+      feature: 'layer_standards',
       level: 'write',
       auth: ungrantedAuth
     })).toBe(false);
@@ -118,21 +118,21 @@ describe('access engine', () => {
     expect(() => assertCommandAccess({ command, entities: { queue: entity }, auth })).toThrow(/artifacts:write/);
   });
 
-  it('supports project-scoped permission grants', () => {
-    const scopedEntity = { lineage: { organizationId: 'org-1', projectId: 'project-a' } };
+  it('supports instance-scoped permission grants', () => {
+    const scopedEntity = { _id: 'cassette-a', lineage: { organizationId: 'org-1' } };
     const scopedAuth = {
       userId: 'u2',
       memberships: [{
         organizationId: 'org-1',
         permissions: {
-          queues: [{ level: 'write', scope: { projectId: 'project-a' } }]
+          cassettes: [{ level: 'write', scope: { instanceId: 'cassette-a' } }]
         }
       }]
     };
 
-    expect(hasInstanceAccess({ entity: scopedEntity, feature: 'queues', level: 'write', auth: scopedAuth })).toBe(true);
+    expect(hasInstanceAccess({ entity: scopedEntity, feature: 'cassettes', level: 'write', auth: scopedAuth })).toBe(true);
     expect(hasInstanceAccess({
-      entity: { lineage: { organizationId: 'org-1', projectId: 'project-b' } },
+      entity: { _id: 'cassette-b', lineage: { organizationId: 'org-1' } },
       feature: 'queues',
       level: 'write',
       auth: scopedAuth

@@ -3,13 +3,13 @@ const itemSourceId = (item = {}) => item.item_id ?? item.itemId ?? item.id;
 const mergeCounts = (...groups) => {
   const counts = new Map();
   groups.flat().forEach((item) => {
-    const cassetteDesignId = item.cassetteDesignId?.toString?.() || item.cassetteDesignId;
-    if (!cassetteDesignId) return;
-    const current = counts.get(cassetteDesignId) || { cassetteDesignId, count: 0 };
+    const cassetteId = item.cassetteId?.toString?.() || item.cassetteId || item.cassetteDesignId;
+    if (!cassetteId) return;
+    const current = counts.get(cassetteId) || { cassetteId, count: 0 };
     current.count += Number(item.count || 0);
-    counts.set(cassetteDesignId, current);
+    counts.set(cassetteId, current);
   });
-  return Array.from(counts.values()).sort((left, right) => left.cassetteDesignId.localeCompare(right.cassetteDesignId));
+  return Array.from(counts.values()).sort((left, right) => String(left.cassetteId).localeCompare(String(right.cassetteId)));
 };
 
 const countsFromPlacements = (result = {}) => {
@@ -24,13 +24,13 @@ const countsFromPlacements = (result = {}) => {
     const placedItems = layout.placed_items || layout.items || [];
     placedItems.forEach((placedItem) => {
       const source = sourceById.get(itemSourceId(placedItem)?.toString()) || placedItem;
-      const cassetteDesignId = source.cassette_id || source.cassetteId || placedItem.cassette_id || placedItem.cassetteDesignId;
-      if (!cassetteDesignId) {
+      const cassetteId = source.cassette_id || source.cassetteId || placedItem.cassette_id || placedItem.cassetteDesignId;
+      if (!cassetteId) {
         unresolved += 1;
         return;
       }
-      const key = cassetteDesignId.toString();
-      const current = counts.get(key) || { cassetteDesignId: key, count: 0 };
+      const key = cassetteId.toString();
+      const current = counts.get(key) || { cassetteId: key, count: 0 };
       current.count += 1;
       counts.set(key, current);
     });
@@ -45,17 +45,17 @@ const countsFromPlacements = (result = {}) => {
 const countsFromDemand = (result = {}) => {
   const counts = new Map();
   (result.items || []).forEach((item) => {
-    const cassetteDesignId = item.cassette_id || item.cassetteId;
-    if (!cassetteDesignId) return;
-    const key = cassetteDesignId.toString();
-    const current = counts.get(key) || { cassetteDesignId: key, count: 0 };
+    const cassetteId = item.cassette_id || item.cassetteId;
+    if (!cassetteId) return;
+    const key = cassetteId.toString();
+    const current = counts.get(key) || { cassetteId: key, count: 0 };
     current.count += Number(item.demand || item.count || 1);
     counts.set(key, current);
   });
   return Array.from(counts.values());
 };
 
-export function cassetteDesignCountsForSheetDesign(design = {}) {
+export function cassetteCountsForSheetDesign(design = {}) {
   const explicit = Array.isArray(design.data?.cassetteDesigns) ? design.data.cassetteDesigns : [];
   const result = design.data?.geometry?.data || {};
   const placed = countsFromPlacements(result);
@@ -65,5 +65,5 @@ export function cassetteDesignCountsForSheetDesign(design = {}) {
 }
 
 export function cassettePlacementCountForSheetDesign(design = {}) {
-  return cassetteDesignCountsForSheetDesign(design).reduce((sum, item) => sum + Number(item.count || 0), 0);
+  return cassetteCountsForSheetDesign(design).reduce((sum, item) => sum + Number(item.count || 0), 0);
 }

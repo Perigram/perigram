@@ -31,8 +31,6 @@ import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfa
 const CARD_COMPONENTS = {
   sheetDesign: defineAsyncComponent(() => import('~/components/entities/SheetDesign/SheetDesignCard.vue')),
   cassette: defineAsyncComponent(() => import('~/components/entities/Cassette/CassetteCard.vue')),
-  cassetteDesign: defineAsyncComponent(() => import('~/components/entities/CassetteDesign/CassetteDesignCard.vue')),
-  cassetteTemplate: defineAsyncComponent(() => import('~/components/entities/CassetteTemplate/CassetteTemplateCard.vue')),
   entityRevision: defineAsyncComponent(() => import('~/components/entities/EntityRevision/EntityRevisionCard.vue')),
   toolProfile: defineAsyncComponent(() => import('~/components/entities/ToolProfile/ToolProfileCard.vue')),
   penTemplate: defineAsyncComponent(() => import('~/components/entities/PenTemplate/PenTemplateCard.vue')),
@@ -141,7 +139,7 @@ const compactDataFields = computed(() => compactDisplay.value.fields.filter(fiel
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
 const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
 const compactPreviewHideDimensionLayer = computed(() =>
-  ['cassette', 'cassette_design', 'sheet_design'].includes(generatedTypeId.value)
+  ['cassette', 'sheet_design'].includes(generatedTypeId.value)
 );
 // The compact chip's status resolves through the flat contract: the
 // instance's wire `state` value against the type's policy map.
@@ -280,7 +278,7 @@ function entityToneStyle(type) {
 
 function entityFamilyAccent(type) {
 
-  if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
+  if (['cassette', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
   if (['sheetDesign'].includes(type)) return 'var(--ck-entity-tone-output)';
   if (['color'].includes(type)) return 'var(--ck-entity-tone-material)';
   if (['organization', 'artifact', 'entityRevision', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
@@ -289,7 +287,7 @@ function entityFamilyAccent(type) {
 
 function entitySemanticRole(type) {
   if (['organization'].includes(type)) return 'container';
-  if (['cassetteTemplate', 'cassetteDesign', 'sheetDesign', 'profileTemplate', 'entityRevision'].includes(type)) return 'definition';
+  if (['sheetDesign', 'profileTemplate', 'entityRevision'].includes(type)) return 'definition';
   if (['artifact', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'meta';
   return 'item';
 }

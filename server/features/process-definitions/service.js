@@ -1235,12 +1235,6 @@ function constructionSourceGrants(action = {}) {
   if (action.parentTypeId) {
     sources.push({ typeId: action.parentTypeId, level: 'read', actions: { view: true } });
   }
-  if (action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-    sources.push({ typeId: 'cassette', level: 'read', actions: { view: true } });
-  }
-  if (action.construction?.mode === 'importCassetteDesignFromArtifact') {
-    sources.push({ typeId: 'artifact', level: 'read', actions: { view: true } });
-  }
   for (const field of [
     ...(action.construction?.inputs || []),
     ...(action.inputPolicy?.fields || []),

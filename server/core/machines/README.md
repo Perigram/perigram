@@ -75,10 +75,9 @@ and named relation snapshots. Descriptions are stored in `status.metadata.note`.
 Uploaded proof files are persisted on the entity `attachments` block and
 referenced from `status.lifecycle.attachments`, so the current entity owns file
 metadata while `status_events.status.lifecycle` preserves which file proved the
-transition. Snapshot declarations are generic: a state can name a target entity
-type and lineage key, such as `cassette_design` by `queueId`; the status
-runtime captures readable entity refs/counts into
-`status.lifecycle.data.snapshots` during the transition.
+transition. Snapshot declarations are generic: a state can name a declared
+child type and its lineage key; the status runtime captures readable entity
+refs/counts into `status.lifecycle.data.snapshots` during the transition.
 
 ### 2. Dynamic Hook Registry (`hooks.js` & App Registry)
 Acts as a decoupled dispatcher for side-effects. Manufacturing-specific logic is NOT implemented in the core engine.

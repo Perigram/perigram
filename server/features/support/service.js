@@ -1,6 +1,5 @@
 import { createError } from 'h3';
 import * as artifactsService from '~/server/features/artifacts/service.js';
-import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
 import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as sheetDesignsService from '~/server/features/sheet-designs/service.js';
 import * as usersService from '~/server/features/users/service.js';
@@ -23,7 +22,6 @@ const scopedList = (service) => (auth, filters) => service.list(auth.userId, aut
 const ENTITY_OPTION_LOADERS = {
     artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
     cassette: scopedList(cassettesService),
-    cassette_design: scopedList(cassetteDesignsService),
     sheet_design: scopedList(sheetDesignsService),
     user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
 };
@@ -1078,16 +1076,9 @@ function normalizeEntityOptionType(type) {
     if (typeof type !== 'string') return '';
     const value = type.trim();
     const aliases = {
-        nestingRun: 'nesting_run',
         sheetDesign: 'sheet_design',
-        cassetteDesign: 'cassette_design',
         cassetteTemplate: 'cassette',
-        cassetteInstance: 'cassette_instance',
-        materialPile: 'material_pile',
-        batchPile: 'material_pile',
         entityRevision: 'entity_revision',
-        geometryCapture: 'geometry_capture',
-        toolProfile: 'tool_profile',
         penTemplate: 'pen_template',
         layerStandard: 'layer_standard'
     };
@@ -1320,30 +1311,12 @@ function compactEntitySnapshot(type, entity) {
     };
     const data = { ...(dto.data || {}) };
 
-    if (type === 'nesting_run') {
-        snapshot.data = pickDefined(data, ['results', 'materialPool', 'sheetDesignIds']);
-        return snapshot;
-    }
-
-    if (type === 'library') {
-        snapshot.data = pickDefined(data, ['material', 'description']);
-        return snapshot;
-    }
-
     if (type === 'cassette') {
         snapshot.data = {
             ...pickDefined(data, ['type', 'definition', 'materialPool', 'parameters', 'description', 'revisions', 'sheetDesignIds', 'results']),
             ...(data.geometry ? { geometry: compactGeometrySnapshot(data.geometry) } : {}),
             ...(data.layerData ? { layerData: data.layerData } : {}),
             ...(data.polygonParts ? { polygonParts: data.polygonParts } : {})
-        };
-        return snapshot;
-    }
-
-    if (type === 'cassette_design' || type === 'sheet_design' || type === 'remnant') {
-        snapshot.data = {
-            ...pickDefined(data, ['materialPool', 'parameters', 'description', 'revisions', 'sheetDesignIds', 'results']),
-            ...(data.geometry ? { geometry: compactGeometrySnapshot(data.geometry) } : {})
         };
         return snapshot;
     }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { cassetteDesignCountsForSheetDesign } from './sheetDesigns.js';
+import { cassetteCountsForSheetDesign } from './sheetDesigns.js';
 
 describe('sheet design cassette design summaries', () => {
   it('derives counts from placed source items when ids resolve', () => {
-    expect(cassetteDesignCountsForSheetDesign({
+    expect(cassetteCountsForSheetDesign({
       data: {
         geometry: {
           data: {
@@ -20,13 +20,13 @@ describe('sheet design cassette design summaries', () => {
         }
       }
     })).toEqual([
-      { cassetteDesignId: 'design-a', count: 1 },
-      { cassetteDesignId: 'design-b', count: 2 }
+      { cassetteId: 'design-a', count: 1 },
+      { cassetteId: 'design-b', count: 2 }
     ]);
   });
 
   it('falls back to demand counts when worker placement ids are unresolved', () => {
-    expect(cassetteDesignCountsForSheetDesign({
+    expect(cassetteCountsForSheetDesign({
       data: {
         geometry: {
           data: {
@@ -43,8 +43,8 @@ describe('sheet design cassette design summaries', () => {
         }
       }
     })).toEqual([
-      { cassetteDesignId: 'design-a', count: 2 },
-      { cassetteDesignId: 'design-b', count: 10 }
+      { cassetteId: 'design-a', count: 2 },
+      { cassetteId: 'design-b', count: 10 }
     ]);
   });
 });

@@ -14,19 +14,13 @@ export const fieldAccessPolicies = {
   facade_pattern: { feature: 'facade_patterns', read: [...COMMON_READ_FIELDS, 'data.graph', 'data.revisions'], write: ['identity.name', 'data.graph', 'data.revisions'], admin: ['identity.*', 'data.*', 'attachments.*'] },
   sheetDesign: {
     feature: 'sheet_designs',
-    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.geometry.*', 'data.cassetteDesigns', 'data.materialPool', 'data.instanceIds', 'data.sheetIndex'],
+    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.geometry.*', 'data.materialPool', 'data.instanceIds', 'data.sheetIndex'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
   cassette: {
     feature: 'cassettes',
     read: [...COMMON_READ_FIELDS, 'data.type', 'data.parameters', 'data.definition', 'data.revisions', 'data.geometry.*', 'data.layerData', 'data.polygonParts'],
-    write: ['data.*'],
-    admin: ['data.*', 'attachments.*']
-  },
-  cassetteDesign: {
-    feature: 'cassette_designs',
-    read: [...COMMON_READ_FIELDS, 'data.parameters', 'data.geometry.*', 'data.layerData', 'data.polygonParts'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
@@ -110,7 +104,6 @@ export const fieldAccessPolicies = {
 const ENTITY_ALIASES = {
   sheet_design: 'sheetDesign',
   artifact_template: 'artifactTemplate',
-  cassette_design: 'cassetteDesign',
   entity_revision: 'entityRevision',
   process_definition: 'processDefinition',
   pen_template: 'penTemplate',

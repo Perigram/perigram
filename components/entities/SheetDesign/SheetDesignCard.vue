@@ -12,7 +12,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
-import { cassetteDesignCountsForSheetDesign, cassettePlacementCountForSheetDesign } from '~/utils/sheetDesigns.js';
+import { cassetteCountsForSheetDesign, cassettePlacementCountForSheetDesign } from '~/utils/sheetDesigns.js';
 
 const props = defineProps({
   design: { type: Object, required: true },
@@ -32,7 +32,7 @@ const specFields = computed(() => resolveInstanceDisplayFields({
 }));
 const projectSlug = computed(() => route.params.slug || props.design.lineage?.projectSlug || null);
 const canOpen = computed(() => Boolean(projectSlug.value && props.design._id));
-const cassetteDesigns = computed(() => cassetteDesignCountsForSheetDesign(props.design));
+const cassetteDesigns = computed(() => cassetteCountsForSheetDesign(props.design));
 const cassettePlacementCount = computed(() => cassettePlacementCountForSheetDesign(props.design));
 const materialPool = computed(() => props.design.data?.materialPool || []);
 const materialSourceCount = computed(() => materialPool.value.length);

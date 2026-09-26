@@ -30,12 +30,6 @@ const INDEXES = {
     { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } }
   ],
 
-  // Cassette Designs Collection
-  cassette_designs: [
-    { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
-    { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } }
-  ],
-
   // Artifacts Collection
   artifacts: [
     { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } },

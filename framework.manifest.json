@@ -196,7 +196,7 @@
       "label": "Convert artifact",
       "outputs": [
         "artifact",
-        "cassette_design"
+        "cassette"
       ],
       "permissions": [
         {
@@ -288,20 +288,6 @@
         "status": "interactive",
         "trace": true,
         "typeId": "cassette"
-      },
-      {
-        "componentPath": "components/entities/CassetteDesign/CassetteDesignCard.vue",
-        "docs": [
-          "server/features/cassette-designs/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "production",
-        "key": "cassetteDesign",
-        "labelKey": "entities.cassetteDesign",
-        "propName": "design",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "cassette_design"
       },
       {
         "componentPath": null,
@@ -1286,25 +1272,7 @@
     {
       "kind": "lineage",
       "source": "organization",
-      "target": "catalog",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
       "target": "process_definition",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "profile_template",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "project",
       "via": "lineage.organizationId"
     },
     {
@@ -1318,24 +1286,6 @@
       "source": "organization",
       "target": "workflow_override",
       "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "user",
-      "target": "pen_template",
-      "via": "lineage.userId"
-    },
-    {
-      "kind": "lineage",
-      "source": "user",
-      "target": "profile_template",
-      "via": "lineage.userId"
-    },
-    {
-      "kind": "lineage",
-      "source": "user",
-      "target": "tool_profile",
-      "via": "lineage.userId"
     }
   ],
   "routes": [

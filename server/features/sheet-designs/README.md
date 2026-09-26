@@ -26,8 +26,8 @@ Digital sheet layouts generated from nesting runs.
       preview, // DrawingCanvas-compatible { viewBox, layers }
       summary
     },
-    cassetteDesigns: [
-      { cassetteDesignId, count }
+    cassettes: [
+      { cassetteId, count }
     ],
     materialPool: [
       { type, id, label, specs, dimensions, available }
@@ -42,14 +42,6 @@ Digital sheet layouts generated from nesting runs.
 ```
 
 ## Workflow
-
-`createFromRun(run, data, userId)` inherits lineage from the nesting run,
-creates a `READY` status/origin block, stores geometry metadata, and returns
-`SheetDesign.toJSON()`. The nesting task groups returned layouts by
-cassette-design/count composition. Each unique composition becomes one
-`sheet_design` whose geometry comes from the first layout in stable worker
-order and whose `data.sheetCount` records how many physical sheets share that
-composition.
 
 `nestingResultForLayout(result, layoutIndex)` slices a multi-sheet worker result
 to one physical layout. `nestingResultToPreview(result, params, { layoutIndex })`
@@ -70,21 +62,16 @@ geometry is projected as DrawingCanvas text paths, so `code.cassette_mark`
 labels from cassette templates survive worker placement into sheet-design
 previews.
 
-Sheet designs also store `data.cassetteDesigns`, a per-layout count of cassette
-design ids placed on that physical sheet. The summary mirrors this as
-`cassetteDesignCount` and `cassettePlacementCount` for compact UI display.
-Current nesting output collapses layouts with the same cassette-design/count
-composition into one sheet design and records the physical multiplicity in
-`data.sheetCount`. The historical composition migration only backfills this
-metadata and missing sheet twins; it does not delete existing sheet-design
-records or their geometry revisions.
+Sheet designs also store per-layout counts of the cassette ids placed on that
+physical sheet. The summary mirrors these as cassette and placement counts for
+compact UI display. Current nesting output collapses layouts with the same
+cassette/count composition into one sheet design and records the physical
+multiplicity in `data.sheetCount`. The historical composition migration only
+backfills this metadata and missing sheet twins; it does not delete existing
+sheet-design records or their geometry revisions.
 When the parent run used warehouse mode, `data.materialPool` keeps the selected
 stock source context so sheet design cards/details can show which warehouse
 stock was allowed for the generated layout.
-
-`updateGeometryFromResult(id, { result, summary, params })` is retained for
-legacy callers that update an existing sheet design in place. New nesting runs
-create composition-grouped sheet designs directly through `createFromRun()`.
 
 Every generated or manually saved layout resolves an immutable
 `entity_revision` with `typeId: "sheet_design"` and `scope: "geometry"`.
@@ -112,12 +99,6 @@ List and detail access both evaluate the loaded sheet design through
 `sheet_designs` grants. Queue access does not imply sheet-design visibility;
 process command output grants from `solveNesting` are what expose generated
 layouts to generated queue/run screens.
-
-`listForRunOutput(queueId, runId, sheetDesignIds)` is an internal service
-lookup used by queue production output creation. It returns full sheet-design
-DTOs for the owning queue/run without applying UI field redaction, because
-remnant and cassette-instance generation need stored geometry and placement
-counts.
 
 ## DXF Export
 

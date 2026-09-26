@@ -21,7 +21,7 @@
 - Write-authorized detail surfaces mount `SheetDesignEditor`. It draws the
   physical sheet and cassette outlines in sheet coordinates, supports pointer
   dragging with tool-diameter snapping, keyboard or toolbar deletion, adding
-  existing cassette designs, and DXF upload through `CassetteEditorDialog`.
+  existing cassettes, and DXF upload through `CassetteEditorDialog`.
   The editor loads the same layer-standard and pen stores as `DrawingCanvas`,
   including canonical pen `identity.uid` references, and renders each source
   OCCS layer with its resolved stroke. A padded viewBox keeps the
@@ -33,10 +33,8 @@
   `GeometryPreview`.
 - Generated sheet-design details show the sheet identity in the standard
   `InstancePage` header in addition to lineage context.
-- Cards show a compact cassette-design summary when `data.cassetteDesigns` is
-  present. The detail sidebar lists each cassette design placed on the sheet
-  with `InstanceInlineRef type="cassetteDesign"` and its placement count; it must
-  not route those refs through `TraceLink` or cassette-template routes.
+- Cards show a compact placed-cassette summary with distinct cassette and
+  placement counts.
 - Cards and details show a compact material-source summary when
   `data.materialPool` is present on sheet designs generated from warehouse-mode
   nesting runs.

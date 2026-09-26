@@ -480,26 +480,10 @@ Enum options may declare `optionsFromEntity`; the dialog filters those choices
 using the selected/context entity DTO. Command results may include output DTOs
 beside their typed entity references, and the generated screen applies those
 snapshots to any matching loaded source immediately.
-Queue composition producers are resolved from the domain producer registry and
-then bound to the current user's compiled process action manifest where a
-process action provides the matching construction mode. Existing cassette
-designs, library cassette templates, DXF/artifact import, and additional
-process actions that output `cassette_design` remain distinct source menu
-items. Construction producers remain in the operational editor. Existing-entity
+Existing-entity
 linking stays on the generic generated-action surface: a compiler-generated Link
 action for any declared relation renders as **Add {target entity}**, uses the
 shared scoped option/creator dialog.
-Process-mode producer actions are accepted only when their current
-compiled action contract exposes a `cassette_design` output through
-`contracts.outputs`.
-When a process producer is executed from a queue detail, the queue id is sent as
-action context and the server appends the produced design through the queue
-feature's `processUpdate()` boundary. The browser does not rely on a generic
-queue PATCH grant for that process-scoped append.
-Queue item rows hydrate their referenced `cassette_design` records through the
-canonical detail endpoint when the collection list did not include a saved
-queue item. The row header renders the cassette-design identity from that
-canonical DTO when available, and otherwise renders a typed id chip without
 nesting another entity card inside the queue item panel.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page, and generated cassette
@@ -549,15 +533,6 @@ the relation selector with the creator's actual fields instead of nesting them
 under a redundant raw entity label. The dialog keeps the action name as its
 header, uses Add as the submit command, and exposes Select existing to return to
 the relation picker.
-Generated cassette-design creation must be scoped to a cassette template. A
-queue links the resulting design through `queue.relations.cassettes`; generated
-screens must not treat a queue as the parent/source for
-`bakeCassetteDesignFromTemplate`.
-Queue cassette cards present the source cassette as their identity and keep
-OCCS parameter controls inline. Parameter saves use the contextual Link action
-to replace the immutable design, while queue-local quantity is stored in the
-matching `data.job.items` association and sent to nesting as the production
-count.
 Generated collections may turn `identity.name` into a link only through the
 screen manifest: the collection looks for an `entityDetail` screen with a
 single source for the same entity type, preferring the detail screen paired
@@ -606,12 +581,10 @@ Geometry-capable entity cards should render the visual source, not tags that
 state a file type or preview flag. Use `GeometryPreview` for entities with
 `data.geometry.preview`/points and `CassetteThumbnail` for cassette DTOs because
 it resolves DXF, stored geometry previews, OCCS definitions, and legacy
-parametric definitions in the correct order. Cassette-like entities
-(`cassette`, `cassette_design`, and `cassette_instance`) must use
+parametric definitions in the correct order. Cassettes must use
 `CassetteThumbnail` on detail surfaces as well as cards; do not route detail
-previews through generic `GeometryPreview`, because baked designs commonly store
-their renderable source as `data.geometry.dxfId`, `data.layerData`, or
-`data.polygonParts`.
+previews through generic `GeometryPreview`, because uploaded templates store
+their renderable source as `data.layerData` or `data.polygonParts`.
 Parent-level card click handlers must ignore nested interactive targets through
 `utils/interactive-target.js` so embedded statuses, links, artifacts, geometry
 previews, and nested inline cards remain clickable.
@@ -1000,9 +973,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   templates. It asks only for a cassette name, DXF file, and DXF-layer to OCCS
   layer-standard mapping; it does not edit template parameters. The dialog
   previews the selected DXF through `DrawingCanvas`, requires one source layer
-  mapped to `cut.outer`, and emits the created template to normal upload
-  listeners while the queue upload workflow consumes the returned initial
-  `cassette_design` so the queued card has baked polygon geometry.
+  mapped to `cut.outer`, and emits the created template — with its extracted
+  polygon geometry on the cassette record — to normal upload listeners.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
 - Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: declared domain operations, uploads/downloads, invitations, permissions, support chat, organization billing, debug endpoints, and project-scoped subresources.
 Support chat uses direct `$fetch`/SSE routes and the shared

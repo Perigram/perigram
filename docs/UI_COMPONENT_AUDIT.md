@@ -141,7 +141,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-entities-artifact-artifactdetail-vue` | `components/entities/Artifact/ArtifactDetail.vue` | derived usage | centralize:layout (1) |
 | `ui-components-entities-artifacttemplate-artifacttemplatecard-vue` | `components/entities/ArtifactTemplate/ArtifactTemplateCard.vue` | derived usage | compliant |
 | `ui-components-entities-cassette-cassettecard-vue` | `components/entities/Cassette/CassetteCard.vue` | derived usage | compliant |
-| `ui-components-entities-cassettedesign-cassettedesigncard-vue` | `components/entities/CassetteDesign/CassetteDesignCard.vue` | derived usage | compliant |
 | `ui-components-entities-entityrevision-entityrevisioncard-vue` | `components/entities/EntityRevision/EntityRevisionCard.vue` | derived usage | compliant |
 | `ui-components-entities-layerstandard-layerstandardcard-vue` | `components/entities/LayerStandard/LayerStandardCard.vue` | derived usage | compliant |
 | `ui-components-entities-organization-organizationcard-vue` | `components/entities/Organization/OrganizationCard.vue` | derived usage | compliant |
