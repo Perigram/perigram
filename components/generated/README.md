@@ -275,8 +275,11 @@ Discord-style operational shell:
   capture-phase handler: clicking the label opens the content without
   toggling the panel, the submenu chevron toggles without running the
   open command (the command guard suppresses exactly that click), and
-  leaf entries keep whole-click-as-command. Keyboard activation keeps
-  PrimeVue's default command-plus-toggle behavior.
+  leaf entries keep whole-click-as-command. The handler resolves the
+  clicked entry POSITIONALLY — the panel's index among the root's panels
+  plus each row's li path up the submenu nesting — because PanelMenu
+  renders item ids from index paths, never from model keys. Keyboard
+  activation keeps PrimeVue's default command-plus-toggle behavior.
   its compiled `typeList` screen as a pane tab (`GeneratedScreenPane`,
   below) and toggles the panel, never a separate route. The whole type
   hierarchy auto-expands on first sight; explicit collapses persist per
@@ -294,10 +297,14 @@ Discord-style operational shell:
   record when the list DTO omits relations) and nests the referenced
   entities under the row. Section roots never nest. Entity nodes whose type
   declares containment children or carries relation refs are expandable;
-  expanding lazily loads children through the compiled detail-screen list
-  sources (`linkedExplorerChildSources`) scoped to the parent's lineage and
-  merges them into the workspace item pool. Entities opened through nested
-  pane navigation nest the same way.
+  because PanelMenu draws the chevron only for items with non-empty
+  `items`, an expandable row whose children are not loaded yet carries a
+  single invisible placeholder item — the chevron exists from the start,
+  toggling it drives the lazy load, and the loaded rows replace the
+  placeholder. Expanding lazily loads children through the compiled
+  detail-screen list sources (`linkedExplorerChildSources`) scoped to the
+  parent's lineage and merges them into the workspace item pool. Entities
+  opened through nested pane navigation nest the same way.
 - Selecting an explorer row opens the instance's compiled detail screen
    as a pane tab — the manifest's `instanceDetail` screen, or the
    synthesized fallback derived from the type's list screen — rendered
