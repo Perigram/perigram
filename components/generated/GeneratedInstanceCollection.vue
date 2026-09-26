@@ -84,7 +84,7 @@
                 </span>
               </Button>
             </div>
-            <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
+            <div class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
               <InstanceState
                 :instance="entity"
                 :type-id="typeId"
@@ -277,9 +277,7 @@ function setBuilderFilter(filter) {
 }
 // The §3 screen-instance projection the filter tree evaluates against:
 // dtoToScreenInstance when the registry knows the type, else the identity
-// shell. Legacy status shapes resolve through the same resolver the status
-// options derive from, so the status axis never depends on registry
-// presence.
+// shell. The flat wire state rides either way.
 const typeRecord = computed(() => typeById(props.typeId));
 const registryTypes = computed(() => [...registry.typesById.values()]);
 const filterRows = computed(() => new Map(props.items.map(entity => {
@@ -376,11 +374,7 @@ function formatCell(entity, path) {
 }
 
 function entityStatus(entity = {}) {
-  return entity.state
-    || entity.states?.main
-    || entity.states?.active?.main
-    || (typeof entity.status?.state === 'string' ? entity.status.state : '')
-    || (typeof entity.status === 'string' ? entity.status : '');
+  return typeof entity.state === 'string' ? entity.state : '';
 }
 
 function entityName(entity = {}) {
