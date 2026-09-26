@@ -58,6 +58,13 @@ Before changing files, read:
 
 Keep reads bounded to the touched concern; do not explore unrelated areas.
 
+The gate is per concern, not per session. Each new concern touched during a
+session — including one introduced by a bug report or a runtime error —
+restarts these reads for the area that owns the concern. Diagnosis is
+change work: a causal claim about behavior may be formed only after the
+README owning that contract has been read. Following error messages through
+code is investigation, not a substitute for the contract.
+
 ## Documentation Enforcement
 
 These rules are blocking, not advisory:
@@ -80,6 +87,20 @@ These rules are blocking, not advisory:
    canonical passages are blocking errors. Discover the guards this
    repository ships by following links from the root README. Report any
    guard that could not be run.
+5. **Contradictions are blocking.** Code behavior that contradicts a README
+   sentence already read is a defect: stop, reconcile the two (fix whichever
+   is wrong), and report the contradiction in the same task. Presenting
+   observed code behavior as the contract, without reconciling it against the
+   owning README, is itself the defect — the code is not the authority on
+   intent.
+6. **Comments do not home contracts.** Authoring, compilation, and runtime
+   semantics — what authored data means and how it is evaluated — live in the
+   owning README. A code comment may explain local implementation, but a
+   contract-shaped comment is a misplaced contract: move the contract to its
+   canonical README and leave the comment as a pointer. The documentation
+   guard surfaces contract-shaped comments as a homing backlog; entries there
+   are resolved by giving the contract a README home or consciously keeping
+   them as tracked debt.
 
 ## Execution Rules
 
@@ -95,6 +116,10 @@ These rules are blocking, not advisory:
 - Remove the session worktree after its branch has been merged, unless the
   user asks to keep it for inspection.
 - State risky assumptions before making changes.
+- Cite the contract: when a task's conclusion rests on a behavioral claim,
+  name the README contract relied on. If no README states the behavior, that
+  absence is a finding — either the documentation is missing the contract or
+  the code implements an undocumented one.
 - Avoid any hardcoding where possible. Always use existing architectural
   patterns and abstractions, or create ones where appropriate, with task
   goal as their implementation.
