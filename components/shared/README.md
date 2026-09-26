@@ -162,12 +162,79 @@ each encode, and the card arrangement) is canonical in the
 
 ### `DesignerWorkspace.vue`
 
-Shared full-height shell for operational designers. It owns responsive lane
-layout and overflow; feature designers supply `toolbar`, `palette`, default
-canvas, `inspector`, `support`, and `dock` slots. Use `layout="lanes"` for
-persistent editor panels and `layout="canvas"` for a full canvas with overlay
-palette and inspector. Do not recreate designer breakpoint grids or viewport
-height calculations in a feature component.
+Shared full-height shell for operational designers — the home of the
+operational-designer chrome contract. It owns full-height sizing, responsive
+lane placement, scroll containment, and narrow-screen panel overlays;
+feature designers supply only their controls through named slots:
+`toolbar` for document actions and selection tools, `palette` for
+creation/search controls, the default slot for the interactive canvas or
+viewport, `inspector` for the selected item configuration, `support` for a
+secondary preview, tree, or diagnostics, and `dock` for canvas-level
+navigation controls. Do not add page-local breakpoint grids,
+viewport-height calculations, independent lane scrolling, or a second
+floating palette/inspector/dock to a designer; a designer may position
+feature-local handles and popovers inside its default-slot canvas. Slot
+content compiles in the parent scope, so designer code drives panels
+through the workspace ref API (`panels`, `toggle`, `setPanel`), never
+provide/inject.
+
+Every operational designer uses this contract: cassette and facade design
+use `layout="lanes"`; the process designer and the sheet-design editor use
+`layout="canvas"`. Every designer first mounts through `DesignerSurface`,
+and `DesignerDialog` uses the same surface for dialog entry points.
+
+`layout="lanes"` is for editors with persistent side panels. The canvas is
+the workspace background, edge to edge — never a boxed panel beside the
+rails — and the row floor keeps the layout visible even when a host breaks
+the bounded-height chain. Document identity (name, template) belongs in the
+`toolbar` slot above the canvas, canvas-level commands render through the
+shared `MotionDock` in the `dock` slot, and rail content composes as plain
+labeled sections — one-line parameter rows and one-line layer rows —
+without collapse controls, aggregate show/hide commands, or count badges.
+`layout="canvas"` is for graph editors whose palette and inspector overlay
+a full canvas, such as process design.
+
+Dock commands split by concern into two `MotionDock`s: the **top dock**
+(`top-dock-items` prop) carries document operations grouped
+view/file/commit-last (open/load, rename, save/save-as, then destructive
+and utility items), the **bottom dock** (`dock` slot) carries canvas and
+content commands. Every canvas-capable designer exposes the same
+first-level zoom cluster in the bottom dock (zoom out, zoom in, reset/fit —
+plus frame selection on graph canvases), undo/redo where the editor owns a
+history, and content operations with the destructive item last in its
+group; DrawingCanvas hides its internal zoom cluster in designer mode and
+exposes the commands for the dock instead. The top dock floats top-anchored
+(`MotionDock` `placement="top"`) inside a full-width positioned wrapper, on
+the exact top line of the panel rails with the same 12px canvas inset; the
+bottom dock anchors near the canvas bottom between the rails. Popups toggle
+on click and close on confirm, selection, or outside click — pickers and
+rename prompts use `Popover`. Every dock item carries a label that renders
+as its hover tooltip, and the dock pill uses one symmetric padding so
+pressed-state items keep identical gaps.
+
+Panel visibility lives inside the top dock as its leading items: the
+workspace prepends pressed-state toggles (`pi-align-left` palette,
+`pi-align-right` inspector) before the designer's document commands,
+separated by a dock separator. Wide hosts toggle the rails/overlays
+directly; compact hosts (below 48rem of the workspace's own width) hide
+the rails and open one bounded tabbed overlay (60% height cap) whose active
+tab follows the toggle. The compact overlay follows the popover contract: a
+workspace-owned backdrop under the panel closes it on any tap outside the
+panel, so touch hosts never need a close control. Crossing the compact
+boundary resets to the mode's defaults — rails up when wide, canvas clear
+when compact. Panels share one surface contract in both layouts:
+full-height rounded bordered content-background rails with overlay shadow,
+running the same 12px insets top and bottom, sized by the workspace
+wrappers (17rem palette, 22rem inspector) — designers must not add their
+own panel borders, widths, or positioning.
+
+Touch hosts navigate canvases with gestures, not mouse emulation:
+DrawingCanvas pans with one finger in viewer modes and pinch-zooms/pans
+with two fingers in every viewer/designer mode (designer keeps single-finger
+taps for face/edge interaction), Vue Flow graph canvases pan with one
+finger and pinch-zoom natively on coarse pointers, and the Three viewports
+keep their OrbitControls touch handling. Gesture-owning canvas roots
+declare `touch-action: none` so the page never claims the gesture.
 
 ### `DesignerSurface.vue` and `DesignerDialog.vue`
 
@@ -182,10 +249,32 @@ owns only the flex sizing needed for the designer surface.
 
 ### `ThreeViewport.vue`
 
-Shared Three.js host for designer previews. It owns renderer/camera/control
-lifecycle, resize, selection raycasting, and disposal. Feature code supplies a
-scene group and stores selectable metadata in `object.userData.designerItem`;
-it must not create another renderer or global pointer listener.
+Shared Three.js host for designer previews. It owns the renderer, camera,
+lights, orbit controls, resize observer, object URL lifetime, selection
+raycasting, and disposal of attached Three.js objects. Feature components
+pass a constructed scene group through `scene`, receive selected object
+metadata through `select`, and must not create their own renderer or global
+pointer listeners.
+
+The `scene` group is feature-owned. It must carry selectable item metadata
+in `object.userData.designerItem`; non-selectable helpers set no such value.
+The viewport disposes geometry and materials when its scene changes or it
+is unmounted. It never persists geometry or interprets domain-specific
+metadata.
+
+### Graph designer contract
+
+Use a feature-owned graph document for any designer that needs editable
+nodes. The graph document must declare a schema version, nodes, edges,
+outputs, and any typed public parameters. The designer validates socket
+compatibility and acyclicity before save; the feature owns its evaluator
+and persistence.
+
+The shared workspace does not prescribe graph node kinds or a graph
+evaluator. The process designer owns business-flow nodes and a future
+geometry designer may own curve or mesh nodes. Do not reuse a graph
+evaluator across domains merely because both editors render nodes with
+VueFlow.
 
 ## Status & History (`components/shared/state/`)
 

@@ -4,10 +4,6 @@ Generated: 2026-06-05T08:45:57Z
 - PASS `examples/four-return-acm-tray.occs.json`
 - PASS `examples/simple-tray.occs.json`
 - PASS `examples/tray-with-profile-rib.occs.json`
-- PASS `generated/complex-cassette-design.occs.json`
-- PASS `generated/complex-cassette-template.occs.json`
-- PASS `generated/random-cassette-design.occs.json`
-- PASS `generated/random-cassette-template.occs.json`
 - PASS `layers.json`
 
 Result: PASS
