@@ -204,37 +204,47 @@
       ]
     },
     {
-      "action": "solve",
+      "action": "convert",
       "attachments": [],
       "events": [
-        "queue.nestingRequested",
-        "nesting.solveStarted"
+        "artifact.converted"
       ],
-      "id": "solveNesting",
+      "id": "convertArtifact",
       "inputs": [
-        "queue"
+        "artifact"
       ],
-      "label": "Solve nesting",
+      "label": "Convert artifact",
       "outputs": [
-        "solve_run",
-        "sheet_design",
-        "sheet"
+        "artifact",
+        "cassette_design"
       ],
       "permissions": [
         {
-          "feature": "queues",
+          "feature": "artifacts",
+          "level": "write"
+        }
+      ],
+      "service": "artifacts",
+      "tasks": [],
+      "triggers": []
+    },
+    {
+      "action": "solveValue",
+      "attachments": [],
+      "events": [],
+      "id": "solveNestingValue",
+      "inputs": [],
+      "label": "Solve nesting",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "sheet_designs",
           "level": "write"
         }
       ],
       "service": "nesting",
-      "tasks": [
-        "nesting.solve"
-      ],
-      "triggers": [
-        {
-          "event": "queue.nestingRequested"
-        }
-      ]
+      "tasks": [],
+      "triggers": []
     },
     {
       "action": "generate",
@@ -266,71 +276,6 @@
           "event": "attachment.generationRequested"
         }
       ]
-    },
-    {
-      "action": "convert",
-      "attachments": [],
-      "events": [
-        "artifact.converted"
-      ],
-      "id": "convertArtifact",
-      "inputs": [
-        "artifact"
-      ],
-      "label": "Convert artifact",
-      "outputs": [
-        "artifact",
-        "cassette_design"
-      ],
-      "permissions": [
-        {
-          "feature": "artifacts",
-          "level": "write"
-        }
-      ],
-      "service": "artifacts",
-      "tasks": [],
-      "triggers": []
-    },
-    {
-      "action": "generateDraft",
-      "attachments": [],
-      "events": [
-        "configBot.draftGenerated"
-      ],
-      "id": "generateConfigBotDraft",
-      "inputs": [],
-      "label": "Generate ConfigBot draft",
-      "outputs": [],
-      "permissions": [
-        {
-          "feature": "config_bot",
-          "level": "admin"
-        }
-      ],
-      "service": "configBot",
-      "tasks": [],
-      "triggers": []
-    },
-    {
-      "action": "reindexKnowledge",
-      "attachments": [],
-      "events": [
-        "configBot.knowledgeReindexed"
-      ],
-      "id": "reindexConfigBotKnowledge",
-      "inputs": [],
-      "label": "Reindex ConfigBot knowledge",
-      "outputs": [],
-      "permissions": [
-        {
-          "feature": "config_bot",
-          "level": "admin"
-        }
-      ],
-      "service": "configBot",
-      "tasks": [],
-      "triggers": []
     }
   ],
   "designSystem": {
@@ -516,7 +461,7 @@
         "key": "artifact",
         "labelKey": "entities.artifact",
         "propName": "artifact",
-        "status": "interactive",
+        "status": "hidden",
         "trace": true,
         "typeId": "artifact"
       },
@@ -1143,342 +1088,242 @@
     {
       "blocks": [
         "identity",
-        "lineage",
         "origin",
-        "states",
-        "attachments",
-        "data",
+        "status",
+        "lineage",
         "relations",
-        "provenance"
+        "provenance",
+        "attachments",
+        "data"
       ],
-      "collection": "artifacts",
+      "collection": "files",
       "lineage": {},
-      "type": "artifact"
+      "type": "image"
     },
     {
       "blocks": [
         "identity",
-        "lineage",
         "origin",
-        "states",
-        "attachments",
-        "data",
+        "status",
+        "lineage",
         "relations",
-        "provenance"
+        "provenance",
+        "attachments",
+        "data"
       ],
-      "collection": "artifact_templates",
+      "collection": "files",
       "lineage": {},
-      "meta": true,
-      "type": "artifact_template"
+      "type": "pdf-document"
     },
     {
       "blocks": [
         "identity",
-        "lineage",
         "origin",
-        "states",
-        "attachments",
-        "data",
+        "status",
+        "lineage",
         "relations",
-        "provenance"
+        "provenance",
+        "attachments",
+        "data"
       ],
-      "collection": "cassettes",
+      "collection": "files",
+      "lineage": {},
+      "type": "text-document"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "csv-table"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "xlsx-workbook"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "docx-document"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "pen-template"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "layer-standard"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "color"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "dxf-source"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "svg-file"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "sketch"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
       "lineage": {},
       "type": "cassette"
     },
     {
       "blocks": [
         "identity",
+        "origin",
+        "status",
         "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
         "relations",
-        "provenance"
-      ],
-      "collection": "cassette_instances",
-      "lineage": {},
-      "type": "cassette_instance"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
+        "provenance",
         "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "queues",
-      "lineage": {},
-      "type": "queue"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "nesting_runs",
-      "lineage": {},
-      "type": "solve_run"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "cassette_designs",
-      "lineage": {},
-      "type": "cassette_design"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "entity_revisions",
-      "lineage": {},
-      "meta": true,
-      "type": "entity_revision"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "layer_standards",
-      "lineage": {},
-      "meta": true,
-      "type": "layer_standard"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "machines",
-      "lineage": {},
-      "meta": true,
-      "type": "machine"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "organizations",
-      "lineage": {},
-      "meta": true,
-      "type": "organization"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "pen_templates",
-      "lineage": {},
-      "meta": true,
-      "type": "pen_template"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "process_definitions",
-      "lineage": {},
-      "meta": true,
-      "type": "process_definition"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "projects",
-      "lineage": {},
-      "type": "project"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "libraries",
-      "lineage": {},
-      "type": "library"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "sheets",
-      "lineage": {},
-      "type": "sheet"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "remnants",
-      "lineage": {},
-      "type": "remnant"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
+        "data"
       ],
       "collection": "files",
       "lineage": {},
-      "meta": true,
-      "type": "geometry_capture"
+      "type": "sheet-design"
     },
     {
       "blocks": [
         "identity",
-        "lineage",
         "origin",
-        "states",
-        "attachments",
-        "data",
+        "status",
+        "lineage",
         "relations",
-        "provenance"
+        "provenance",
+        "attachments",
+        "data"
       ],
-      "collection": "profile_templates",
+      "collection": "files",
       "lineage": {},
-      "meta": true,
-      "type": "profile_template"
+      "type": "facade-design"
     },
     {
       "blocks": [
         "identity",
-        "lineage",
         "origin",
-        "states",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "sheet_designs",
-      "lineage": {},
-      "type": "sheet_design"
-    },
-    {
-      "blocks": [
-        "identity",
+        "status",
         "lineage",
-        "origin",
-        "states",
-        "attachments",
-        "data",
         "relations",
-        "provenance"
-      ],
-      "collection": "tool_profiles",
-      "lineage": {},
-      "meta": true,
-      "type": "tool_profile"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "states",
+        "provenance",
         "attachments",
-        "data",
-        "relations",
-        "provenance"
+        "data"
       ],
-      "collection": "users",
+      "collection": "files",
       "lineage": {},
-      "meta": true,
-      "type": "user"
+      "type": "facade-pattern"
     }
   ],
   "name": "perigram-framework",
@@ -1505,7 +1350,7 @@
       "name": "@perigram/mcp"
     },
     {
-      "name": "@perigram/domain-cnc"
+      "name": "@perigram/facade"
     }
   ],
   "relationships": [
@@ -1568,158 +1413,92 @@
       "source": "user",
       "target": "tool_profile",
       "via": "lineage.userId"
-    },
-    {
-      "kind": "summary",
-      "source": "library",
-      "target": "cassette",
-      "via": "lineage.libraryId"
     }
   ],
   "routes": [
     {
-      "collection": "artifacts",
-      "list": "/api/artifacts",
-      "single": "/api/artifacts/:id/metadata",
-      "type": "artifact"
+      "list": null,
+      "single": null,
+      "type": "image"
     },
     {
-      "collection": "artifact-templates",
-      "list": "/api/artifact-templates",
-      "single": "/api/artifact-templates/:id",
-      "type": "artifactTemplate"
+      "list": null,
+      "single": null,
+      "type": "pdf-document"
     },
     {
-      "collection": "cassettes",
-      "list": "/api/cassettes",
-      "single": "/api/cassettes/:id",
+      "list": null,
+      "single": null,
+      "type": "text-document"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "csv-table"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "xlsx-workbook"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "docx-document"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "pen-template"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "layer-standard"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "color"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "dxf-source"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "svg-file"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "sketch"
+    },
+    {
+      "list": null,
+      "single": null,
       "type": "cassette"
     },
     {
-      "collection": "cassette-instances",
-      "list": "/api/instances/cassette-instance",
-      "single": "/api/instances/cassette-instance/:id",
-      "type": "cassetteInstance"
+      "list": null,
+      "single": null,
+      "type": "sheet-design"
     },
     {
-      "collection": "queues",
-      "list": "/api/instances/queue",
-      "single": "/api/instances/queue/:id",
-      "type": "queue"
+      "list": null,
+      "single": null,
+      "type": "facade-design"
     },
     {
-      "collection": "nesting-runs",
-      "list": "/api/instances/solve-run",
-      "single": "/api/instances/solve-run/:id",
-      "type": "solveRun"
-    },
-    {
-      "collection": "cassette-designs",
-      "list": "/api/cassette-designs",
-      "single": "/api/cassette-designs/:id",
-      "type": "cassetteDesign"
-    },
-    {
-      "collection": "entity-revisions",
-      "list": "/api/instances/entity-revision",
-      "single": "/api/instances/entity-revision/:id",
-      "type": "entityRevision"
-    },
-    {
-      "collection": "layer-standards",
-      "list": "/api/instances/layer-standard",
-      "single": "/api/instances/layer-standard/:id",
-      "type": "layerStandard"
-    },
-    {
-      "collection": "machines",
-      "list": "/api/instances/machine",
-      "single": "/api/instances/machine/:id",
-      "type": "machine"
-    },
-    {
-      "collection": "organizations",
-      "list": "/api/organizations",
-      "single": "/api/organizations/:id",
-      "type": "organization"
-    },
-    {
-      "collection": "pen-templates",
-      "list": "/api/instances/pen-template",
-      "single": "/api/instances/pen-template/:id",
-      "type": "penTemplate"
-    },
-    {
-      "collection": "process-definitions",
-      "list": "/api/process-definitions",
-      "single": "/api/process-definitions/:id",
-      "type": "processDefinition"
-    },
-    {
-      "collection": "projects",
-      "list": "/api/instances/project",
-      "single": "/api/instances/project/:id",
-      "type": "project"
-    },
-    {
-      "collection": "libraries",
-      "list": "/api/instances/library",
-      "single": "/api/instances/library/:id",
-      "type": "library"
-    },
-    {
-      "collection": "sheets",
-      "list": "/api/instances/sheet",
-      "single": "/api/instances/sheet/:id",
-      "type": "sheet"
-    },
-    {
-      "collection": "remnants",
-      "list": "/api/instances/remnant",
-      "single": "/api/instances/remnant/:id",
-      "type": "remnant"
-    },
-    {
-      "collection": "files",
-      "list": "/api/instances/geometry-capture",
-      "single": "/api/instances/geometry-capture/:id",
-      "type": "geometryCapture"
-    },
-    {
-      "collection": "profile-templates",
-      "list": "/api/instances/profile-template",
-      "single": "/api/instances/profile-template/:id",
-      "type": "profileTemplate"
-    },
-    {
-      "collection": "sheet-designs",
-      "list": "/api/sheet-designs",
-      "single": "/api/sheet-designs/:id",
-      "type": "sheetDesign"
-    },
-    {
-      "collection": "tool-profiles",
-      "list": "/api/instances/tool-profile",
-      "single": "/api/instances/tool-profile/:id",
-      "type": "toolProfile"
-    },
-    {
-      "collection": "users",
-      "list": "/api/users",
-      "single": "/api/users/:id",
-      "type": "user"
+      "list": null,
+      "single": null,
+      "type": "facade-pattern"
     }
   ],
   "schemaVersion": 1,
-  "summaries": [
-    {
-      "countField": "cassetteCount",
-      "parentIdKey": "libraryId",
-      "parentType": "library",
-      "sumFields": {},
-      "typeId": "cassette"
-    }
-  ],
+  "summaries": [],
   "tasks": [
     {
       "attachments": [
@@ -1761,34 +1540,6 @@
       ],
       "service": "cassettes",
       "tasks": []
-    },
-    {
-      "attachments": [],
-      "events": [
-        "nesting.solveStarted",
-        "nesting.solveCompleted",
-        "nesting.solveFailed"
-      ],
-      "executor": {
-        "endpoint": "/nest",
-        "target": "nesting-worker",
-        "type": "http"
-      },
-      "id": "nesting.solve",
-      "inputs": [
-        "queue"
-      ],
-      "key": "nestingSolve",
-      "label": "Solve nesting",
-      "outputs": [
-        "solve_run",
-        "sheet_design",
-        "sheet"
-      ],
-      "service": "nesting",
-      "tasks": [
-        "nesting.solve"
-      ]
     },
     {
       "attachments": [
@@ -1839,122 +1590,5 @@
     "issues": [],
     "ok": true
   },
-  "workflows": [
-    {
-      "initial": "ACTIVE",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "ACTIVE",
-        "ARCHIVED"
-      ],
-      "transitionCount": 1,
-      "type": "cassette"
-    },
-    {
-      "initial": "ACTIVE",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "ACTIVE",
-        "ARCHIVED"
-      ],
-      "transitionCount": 1,
-      "type": "cassette_design"
-    },
-    {
-      "initial": "PRODUCED",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "PRODUCED",
-        "MILLED",
-        "INSTALLED"
-      ],
-      "transitionCount": 2,
-      "type": "cassette_instance"
-    },
-    {
-      "initial": "DRAFT",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "DRAFT",
-        "NESTING",
-        "READY",
-        "ERROR",
-        "CLOSED",
-        "ARCHIVED"
-      ],
-      "transitionCount": 11,
-      "type": "queue"
-    },
-    {
-      "initial": "NESTING",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "NESTING",
-        "COMPLETE",
-        "FAILED",
-        "CHOSEN"
-      ],
-      "transitionCount": 3,
-      "type": "solve_run"
-    },
-    {
-      "initial": "PENDING",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "PENDING",
-        "AVAILABLE",
-        "FAILED"
-      ],
-      "transitionCount": 2,
-      "type": "artifact"
-    },
-    {
-      "initial": "ACTIVE",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "ACTIVE",
-        "ARCHIVED"
-      ],
-      "transitionCount": 1,
-      "type": "artifact_template"
-    },
-    {
-      "initial": "RECORDED",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "RECORDED"
-      ],
-      "transitionCount": 0,
-      "type": "entity_revision"
-    },
-    {
-      "initial": "DRAFT",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "DRAFT",
-        "ACTIVE",
-        "ARCHIVED"
-      ],
-      "transitionCount": 2,
-      "type": "process_definition"
-    }
-  ]
+  "workflows": []
 }

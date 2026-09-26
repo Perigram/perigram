@@ -43,7 +43,7 @@ per-route decoding.
 
 Commands are synchronous business intent boundaries. Tasks are asynchronous
 execution boundaries. Both are domain-agnostic runtimes backed by explicit
-registry definitions from `@perigram/domain-cnc`.
+registry definitions from `@perigram/facade`.
 
 Command, task, and status handlers may return declared effects. Those effects
 are executed by the centralized effect runtime after validation so handlers

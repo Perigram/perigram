@@ -11,11 +11,11 @@ import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.j
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
-import { cncDomain, cncPackContent } from '~/packages/domain-cnc/src/index.js';
+import { facadeDomain, facadePackContent } from '@perigram/facade';
 
 const registry = createTypeRegistry({ id: 'node-sync-spec' });
 for (const declaration of [...frameworkTypes, ...cncTypePack]) registry.defineType(declaration);
-const domain = projectDomainFromView(registry, 'org-1', cncDomain, { packServices: cncPackContent.services });
+const domain = projectDomainFromView(registry, 'org-1', facadeDomain, { packServices: facadePackContent.services });
 
 const t = key => key;
 const te = () => false;
@@ -28,8 +28,8 @@ const toast = { add: () => {} };
 const { designer } = useProcessDesignerTypes({
   nodes, edges, t, toast,
   activeOrganizationId: () => 'org-1',
-  baseDomain: cncDomain,
-  packContent: cncPackContent,
+  baseDomain: facadeDomain,
+  packContent: facadePackContent,
   syncNow: () => {}
 });
 

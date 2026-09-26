@@ -8,7 +8,7 @@ Perigram uses PrimeVue 4, Tailwind utilities, and a small app token layer. The d
 - `assets/presets/re_l.js` extends Aura with the primary brand palette only.
 - `tailwind.config.js` exposes semantic Tailwind aliases backed by PrimeVue `--p-*` and Perigram `--ck-*` variables.
 - `assets/css/main.css` contains global app-shell, integration, and layout rules; it does not override PrimeVue selectors or variables.
-- `packages/domain-cnc/src/index.js` defines the CNC entity card/demo contract
+- `packages/facade/src/index.js` defines the CNC entity card/demo contract
   without importing Vue.
 - `utils/design-system-contract.js` re-exports that contract for existing UI
   lab callers and provides validation.
@@ -91,7 +91,7 @@ If no previewable child refs are loaded, keep the numeric count.
 Standard field groups are authored `render.groups` on type declarations,
 compiled into the served CTS client bundle; Vue cards consume resolved field
 descriptors through `utils/instance-display-contract.js` (bundle first,
-`@perigram/domain-cnc`'s residual map for undeclared types). Final apps may
+`@perigram/facade`'s residual map for undeclared types). Final apps may
 layer additional field groups and surface overrides on top, but access policy
 still controls whether a path can render.
 

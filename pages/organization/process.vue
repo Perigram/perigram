@@ -592,7 +592,7 @@ import {
   PROCESS_DATAFLOW_VERSION
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
-import { cncDomain, cncPackContent } from '@perigram/domain-cnc';
+import { facadeDomain, facadePackContent } from '@perigram/facade';
 import { checkDeclarationsAgainstCts, classMayDeclareChildren, compileClientBundle, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
@@ -702,8 +702,8 @@ const {
   t,
   toast,
   activeOrganizationId,
-  baseDomain: cncDomain,
-  packContent: cncPackContent,
+  baseDomain: facadeDomain,
+  packContent: facadePackContent,
   records: () => draft.value?.data?.processNodes || {},
   syncNow: () => syncNodeData()
 });
@@ -1060,7 +1060,10 @@ const selectedRoleRecord = computed(() => selectedRoleId.value ? roles.value[sel
 const selectedScreenRecord = computed(() => selectedScreenId.value ? screens.value[selectedScreenId.value] : null);
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(principal => ({ label: principal.label || principal.id, value: principal.id })));
-const typeIdOptions = computed(() => designer.entityOptions);
+const typeIdOptions = computed(() => {
+  const icons = new Map(ctsTypeView().map(entry => [entry.id, entry.icon]));
+  return designer.entityOptions.map(option => ({ ...option, icon: icons.get(option.value) || null }));
+});
 const transitionAxisOptions = computed(() => {
   const typeId = nodeTypeId(selectedProcessNode.value);
   const workflow = typeId ? ctsProjectedDomain().workflows?.[typeId] : null;
@@ -1137,7 +1140,7 @@ const producerFieldPolicyOptions = computed(() => {
   return designer.fieldsForEntity(typeId).map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: field.value }));
 });
 function commandForId(commandId) {
-  return cncDomain.commands?.[commandId] || null;
+  return facadeDomain.commands?.[commandId] || null;
 }
 
 const selectedCommandService = computed(() => {
@@ -1756,7 +1759,7 @@ function recomputeProcessPreview(shouldApply = () => true) {
     // compile silently ignores cts.* species records, so the preview would
     // show an empty contract (no actions, no grants, no inferred screens)
     // for graphs the server compiles fine.
-    const projectedDomain = projectDomainFromView(ctsRegistry(), activeOrganizationId(), cncDomain);
+    const projectedDomain = projectDomainFromView(ctsRegistry(), activeOrganizationId(), facadeDomain);
     const { definition: lowered, errors: acceptErrors } = prepareAuthoredDefinition(processDefinitionSnapshot(), projectedDomain);
     if (acceptErrors.length) {
       compiledPreview.value = null;

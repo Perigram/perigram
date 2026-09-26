@@ -3,7 +3,7 @@
 Builds the explicit application registry used by backend runtimes.
 
 `app-registry.js` creates one `createRegistry()` instance, defines
-`@perigram/domain-cnc`, registers entity services, command handlers, and workflow
+`@perigram/facade`, registers entity services, command handlers, and workflow
 hook handlers. Backend runtimes consume this registry instead of importing
 domain packages or feature modules directly.
 
@@ -22,11 +22,6 @@ should call `getAppRegistry()`.
   `processList`/`processGetById` bindings, `processCapabilities`, and
   construction handlers (`artifact` keeps the `uploadArtifact` typed
   constructor).
-- Transitional legacy entity services mounted by their pack: the cnc pack
-  registers `queue` (with process bindings, capabilities, and the
-  `genericCreate` construction handler) because its queue production flow
-  drives transition-hook effects that resolve the queue service from the
-  registry. The binding is deleted with that flow's legacy cut.
 - The generic instance-service resolver (SPEC §13 of the CTS spec): every
   type without a framework or pack service resolves to its per-class
   instance service — pack types and org-authored types are executable
@@ -38,10 +33,9 @@ should call `getAppRegistry()`.
   documents are stored in the CTS §3 shape (flat `fields`, `states.main`,
   `name`); the service boundary owns the §3 ⇄ wire-DTO (block vocabulary)
   mapping for screens and compiled contracts.
-- Command handlers from the mounted packs (the CNC pack registers
+- Command handlers from the mounted packs (the facade pack registers
   `saveCassetteTemplate`, `solveNestingValue`, `convertArtifact`) plus the
-  framework's `generateAttachment`, `generateConfigBotDraft`,
-  `reindexConfigBotKnowledge`.
+  framework's `generateAttachment`.
 - Workflow transition hook handlers: the framework core handlers plus any
   `hookHandlers` a pack mounts.
 - Polling workers claim task definitions such
@@ -52,7 +46,7 @@ should call `getAppRegistry()`.
   registered feature hook handlers.
 - Domain definitions (commands, tasks, hooks, the canonical block
   vocabulary, UI metadata) are mounted from the packs; the legacy entity/
-  workflow/construction tables in `@perigram/domain-cnc` are pack-internal
+  workflow/construction tables in `@perigram/facade` are pack-internal
   content for non-process surfaces and are not registry services.
 - Process definition services are registered as persisted entities. Active
   process compiled workflows are resolved by the workflow runtime before

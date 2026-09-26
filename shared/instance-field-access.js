@@ -6,7 +6,7 @@ import {
 import {
   getEntityFieldAccessPolicy,
   normalizeFieldAccessTypeId
-} from '#packages/domain-cnc/src/index.js';
+} from './field-access-policies.js';
 import { isPublicReadEntity } from './public-entities.js';
 
 const POLICY_LEVELS = ['read', 'write', 'admin'];

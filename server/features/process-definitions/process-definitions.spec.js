@@ -23,7 +23,7 @@ import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/te
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
   const pack = await import('~/packages/cts/src/pack/cnc.js');
-  const domainPack = await import('~/packages/domain-cnc/src/pack.js');
+  const domainPack = await import('@perigram/facade');
   const registry = cts.createTypeRegistry({ id: 'spec-cts' });
   for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.cncFileTypes]) {
     registry.defineType(declaration);

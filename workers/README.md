@@ -1,7 +1,7 @@
 # CONTAINER: Workers
 
 Worker services and app-side executors execute retryable `task_runs` declared by
-`@perigram/domain-cnc`. The app owns task persistence and exposes the worker
+`@perigram/facade`. The app owns task persistence and exposes the worker
 protocol under `/api/tasks/*`; polling workers authenticate with
 `x-worker-token`.
 

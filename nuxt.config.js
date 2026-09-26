@@ -16,7 +16,7 @@ const perigramAliases = {
     '@perigram/devtools': resolveRoot('./packages/devtools/src/index.js'),
     '@perigram/mcp': resolveRoot('./packages/mcp/src/index.js'),
     '@perigram/processes': resolveRoot('./packages/processes/src/index.js'),
-    '@perigram/domain-cnc': resolveRoot('./packages/domain-cnc/src/index.js')
+    '@perigram/facade': resolveRoot('./packages/facade/src/index.js')
 }
 const portableAliases = {
     '#shared': resolveRoot('./shared'),

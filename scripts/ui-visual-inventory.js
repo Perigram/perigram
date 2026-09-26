@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { cncDesignSystemPrimitives } from '../packages/domain-cnc/src/ui.js';
+import { DESIGN_SYSTEM_PRIMITIVES } from '../utils/design-system-contract.js';
 
 export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/ChatSupport.vue': 'layout',
@@ -78,7 +78,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/shared/InstanceInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
 });
 
-const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primitive => primitive.componentPath));
+const REGISTERED_PRIMITIVE_PATHS = new Set(DESIGN_SYSTEM_PRIMITIVES.map(primitive => primitive.componentPath));
 
 const VISUAL_CONCERNS = [
   ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl|\[[0-9.]+(?:px|rem|em)\])|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|mono|serif)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\])|leading-(?:none|tight|snug|normal|relaxed|loose|\[[^\]]+\]))\b/g],

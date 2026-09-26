@@ -8,6 +8,13 @@ that tree, never by assuming, guessing, or hardcoding it. If a rule ever
 names a concrete file, path, command, or stack detail, it belongs in the
 README that owns the concern, not here.
 
+## Operation mode
+
+- If tasks execution would involve violation of arctitecture principles, project
+  guidelines or common sense, tell it explicitly, without inventing walkarounds or slop. User
+  may not understand how things work and his intent may be re-shaped to be delivered elegantly
+  in terms of software architecture
+
 ## Documentation Model
 
 README.md files form one interlinked documentation tree, scoped by C4
@@ -163,7 +170,7 @@ unstaged files.
 
 ### Tests
 
-- NEVER write unit tests after you write code. 
+- DON'T write unit tests after you write code unless it absolutely necessary to test core functionality. 
 - Highly prefer E2E tests as the sole testing mechanism. Use them to verify complex features work. At the end of E2E tests, produce a verifiable and repeatable artifact. 
 - If you must test a system in isolation, FIRST write all the ways it could fail, THEN write the code.
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createProcessDesignerContract, projectEntityProcessCapabilities, validateProcessDefinition } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '~/packages/cts/src/index.js';
-import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
+import { facadePackContent } from '~/packages/facade/src/index.js';
 import { getAppRegistry, resetAppRegistryForTests } from './app-registry.js';
 import { performDurableEffect } from '~/server/features/process-definitions/service.js';
 
@@ -33,7 +33,7 @@ const orgPanel = {
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'app-registry-spec' });
-  for (const declaration of [...frameworkTypes, ...cncPackContent.types, orgPanel]) {
+  for (const declaration of [...frameworkTypes, ...facadePackContent.types, orgPanel]) {
     registry.defineType(declaration);
   }
   return projectDomainFromView(registry, 'org-1', {});

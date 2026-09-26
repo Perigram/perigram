@@ -1,0 +1,22 @@
+export const facadeArtifactConversions = [
+  {
+    id: 'layoutDxfToDxfSource',
+    label: 'Create DXF source',
+    sourceKinds: ['LAYOUT_DXF'],
+    target: { kind: 'artifact', artifactKind: 'DXF_SOURCE' }
+  },
+  {
+    id: 'dxfSourceToCassetteDesign',
+    label: 'Import cassette design',
+    sourceKinds: ['DXF_SOURCE'],
+    target: {
+      kind: 'entity',
+      typeId: 'cassette_design',
+      constructionMode: 'importCassetteDesignFromArtifact'
+    }
+  }
+];
+
+export function getArtifactConversion(id) {
+  return facadeArtifactConversions.find(conversion => conversion.id === id) || null;
+}

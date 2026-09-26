@@ -1,15 +1,13 @@
-import { cncDomain } from '@perigram/domain-cnc';
+import { frameworkAttachmentKinds } from '~/shared/attachment-kinds.js';
 
-// The artifact/editor family's scoped view of the legacy attachment-kind
-// and surface tables. The server's artifact/files features still serve
-// these contracts (the payload-trait flip is the next wave), so this is the
-// one client seam that reads them — the global domain UI adapter is gone,
-// and no other client module may consume these tables. The artifact
-// download URL is the artifact feature's single endpoint (the raw GET
-// streams the file), matching the previous adapter behavior exactly.
-const attachmentKinds = cncDomain.attachmentKinds || {};
+// The artifact/editor family's scoped view of the framework attachment-kind
+// table (shared/attachment-kinds.js). The server's artifact/files features
+// still serve these contracts (the payload-trait flip is the next wave), so
+// this is the one client seam that reads them. The artifact download URL is
+// the artifact feature's single endpoint (the raw GET streams the file).
+const attachmentKinds = frameworkAttachmentKinds;
 
-export const artifactSurfaces = cncDomain.ui?.surfaces || [];
+export const artifactSurfaces = [];
 
 export function attachmentKind(kind = '') {
   return attachmentKinds[kind] || null;

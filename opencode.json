@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "primevue": {
+      "type": "local",
+      "command": ["node", ".opencode/mcp/primevue/node_modules/@primevue/mcp/dist/index.js"],
+      "enabled": true
+    }
+  }
+}

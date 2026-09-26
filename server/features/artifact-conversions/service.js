@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { createInstanceRef, createProvenance } from '../../core/blocks/index.js';
-import { getArtifactConversion } from '#packages/domain-cnc/src/artifact-conversions.js';
+import { getArtifactConversion } from '~/packages/facade/src/index.js';
 import * as artifactsService from '../artifacts/service.js';
 import * as cassettesService from '../cassettes/service.js';
 import * as filesService from '../files/service.js';

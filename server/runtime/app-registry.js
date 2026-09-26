@@ -1,7 +1,7 @@
 // The framework runtime registry: party/file/process-definition services,
 // framework commands, and pack mounting. This module imports nothing
-// CNC-shaped — the CNC plug-in (server/packs/cnc) is mounted like any pack,
-// and removing it removes the pack.
+// facade-shaped — the facade plug-in (server/packs/facade) is mounted like
+// any pack, and removing it removes the pack.
 import { createRegistry } from '~/server/core/blocks/index.js';
 import { hooks } from '~/server/core/machines/hooks.js';
 
@@ -12,10 +12,11 @@ import * as processDefinitionsService from '~/server/features/process-definition
 import * as usersService from '~/server/features/users/service.js';
 
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
-import { generateConfigBotDraft, reindexConfigBotKnowledge } from '~/server/features/config-bot/operations.js';
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
 
-import { cncPack } from '~/server/packs/cnc/index.js';
+import { facadePack } from '~/server/packs/facade/index.js';
+import { frameworkCommandDefinitions } from '~/server/core/commands/definitions.js';
+import { frameworkTaskDefinitions } from '~/server/core/tasks/definitions.js';
 
 let appRegistry = null;
 
@@ -23,7 +24,7 @@ let appRegistry = null;
 // and the packs to mount. A pack provides: domain content, entity services
 // with process bindings, construction handlers, delete adapters, commands,
 // and task executors.
-const FRAMEWORK_PACKS = [cncPack];
+const FRAMEWORK_PACKS = [facadePack];
 
 export function getAppRegistry() {
   if (appRegistry) {
@@ -80,9 +81,7 @@ const frameworkDeleteAdapters = {
 };
 
 const frameworkCommandHandlers = {
-  generateAttachment,
-  generateConfigBotDraft,
-  reindexConfigBotKnowledge
+  generateAttachment
 };
 
 function registerAppBindings(registry) {
@@ -91,6 +90,7 @@ function registerAppBindings(registry) {
   // and org-authored types are executable without hand-written services.
   registry.registerInstanceServiceResolver(instanceServiceResolver);
 
+  registry.defineDomain({ id: 'framework', label: 'Framework', commands: frameworkCommandDefinitions, tasks: frameworkTaskDefinitions });
   registerServiceSet(registry, {
     domain: packDomainOf(FRAMEWORK_PACKS),
     instanceServices: frameworkInstanceServices,

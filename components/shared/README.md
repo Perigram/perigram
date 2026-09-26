@@ -706,7 +706,7 @@ Shared wrappers own semantic structure and reusable layout constraints, while Pr
 ## Demo Contract
 
 The design-system demo is contract-driven:
-- `@perigram/domain-cnc` contains entity UI policy and expected card prop names; `utils/design-system-contract.js` re-exports it for compatibility.
+- `@perigram/facade` contains entity UI policy and expected card prop names; `utils/design-system-contract.js` re-exports it for compatibility.
 - `utils/design-system.js` binds the contract to actual Vue components and DTO factories.
 - `test-data/factories.js` provides DTO-shaped examples with v24 blocks preserved.
 

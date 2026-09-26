@@ -18,7 +18,7 @@ const perigramAliases = {
   '@perigram/vue': repo('./packages/vue/src/index.js'),
   '@perigram/devtools': repo('./packages/devtools/src/index.js'),
   '@perigram/mcp': repo('./packages/mcp/src/index.js'),
-  '@perigram/domain-cnc': repo('./packages/domain-cnc/src/index.js')
+  '@perigram/facade': repo('./packages/facade/src/index.js')
 };
 
 export default defineConfig({

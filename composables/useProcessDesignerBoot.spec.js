@@ -17,13 +17,13 @@ import {
 } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
-import { cncDomain, cncPackContent } from '~/packages/domain-cnc/src/index.js';
+import { facadeDomain, facadePackContent } from '@perigram/facade';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'boot-smoke' });
   for (const declaration of [...frameworkTypes, ...cncTypePack]) registry.defineType(declaration);
-  return projectDomainFromView(registry, 'org-1', cncDomain, { packServices: cncPackContent.services });
+  return projectDomainFromView(registry, 'org-1', facadeDomain, { packServices: facadePackContent.services });
 }
 
 // The page's setDraft body, verbatim in effect

@@ -215,7 +215,6 @@
 // mutation is an event back to the page's single update/sync entry point.
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
-import { cncUiSurfaces } from '@perigram/domain-cnc';
 import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
@@ -299,6 +298,6 @@ function typeIdLabelFor(typeId) {
   return props.typeIdOptions.find(option => option.value === typeId)?.label || typeId || '';
 }
 function entityIconFor(typeId) {
-  return cncUiSurfaces.find(surface => surface.typeId === typeId)?.icon || 'pi pi-box';
+  return props.typeIdOptions.find(option => option.value === typeId)?.icon || 'pi pi-box';
 }
 </script>

@@ -102,6 +102,6 @@ service. The conversion layer does not infer arbitrary byte conversions.
 
 ## Related
 
-- [domain-cnc attachment kinds](../../../packages/domain-cnc/README.md)
+- [framework attachment kinds](../../../packages/facade/README.md)
 - [commands](../../core/commands/README.md)
 - [artifact templates](../artifact-templates/README.md)
