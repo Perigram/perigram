@@ -74,7 +74,10 @@ suites carry exactly the 4 pre-existing baseline failures
 on the primary checkout). Two real bugs found and fixed en route: the process
 run environments evaluated against the static domain instead of the projected
 org domain (org-type block records failed or silently dropped patches), and a
-missed rename call-site in sheet-designs updateLayout. Follow-ups not in
+missed rename call-site in sheet-designs updateLayout. The CREATED minted-machine fallback was deleted after this
+audit (owner directive: authored vocabulary only) — vocabulary-less types are
+stateless and creation stamps the compiled machine's entry when one exists.
+Follow-ups not in
 scope: the 4 frontend baseline failures; the entity→instance vocabulary
 remainder (protocol kinds `effect.createEntity`, `entityRef`, framework type
 `entity_revision`, `BaseEntity`) — tracked separately as a rename+migration

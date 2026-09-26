@@ -47,7 +47,7 @@ describe('producer output process contract', () => {
       outputSocketId: 'entity',
       typeId: 'project'
     });
-    expect(compiled.producerOutputs['create:entity'].workflow).toBeTruthy();
+    expect(compiled.producerOutputs['create:entity'].workflow).toBeUndefined();
     expect(compiled.producerOutputs['create:entity'].fieldPolicy).toBeTruthy();
   });
 
@@ -123,11 +123,15 @@ describe('producer output entry-state and binding diagnostics', () => {
       { id: 'create_a', type: 'entity', data: { refId: 'create_a:entity' } },
       { id: 'import_b', type: 'entity', data: { refId: 'import_b:entity' } }
     ];
+    source.ctsTypes = {
+      project_draft: { id: 'project_draft', kind: 'state', typeId: 'project', value: 'DRAFT' },
+      project_active: { id: 'project_active', kind: 'state', typeId: 'project', value: 'ACTIVE' }
+    };
 
     const compiled = compileProcessDefinition(source, domain);
     const createA = compiled.producerOutputs['create_a:entity'];
     const importB = compiled.producerOutputs['import_b:entity'];
-    expect(createA.workflow.initial).toBe('CREATED');
+    expect(createA.workflow.initial).toBe('DRAFT');
     expect(importB.workflow.initial).toBe('IMPORTED');
     expect(createA.workflow).not.toBe(importB.workflow);
     expect(createA.fieldPolicy).not.toBe(importB.fieldPolicy);

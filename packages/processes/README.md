@@ -246,14 +246,17 @@ not become `''`). Field-node descriptors carry the SPEC §4 display dictionary
 verbatim through the cycle, and class nodes round-trip their authored `glyph`
 (`null` on both halves when absent).
 
-Lifecycle compilation projects the bound CTS type's recursive state
-declarations into normalized `@perigram/workflows` v2 regions. Producer
-overlays preserve the complete region/state/transition structure and may add
-process-role authorization for declared transitions. Compilation never
-synthesizes lifecycle facts from action nodes: a create operation enters the
-declared initial leaf, and transition operations require a declared
-from/to pair or explicit migrated `fromAny` expansion. Every region remains
-independent; recursive state trees remain nested inside their region.
+Lifecycle machines are authored vocabulary only (SPEC §7: graph-derived at
+compile, never invented). A producer's machine compiles from the draft's
+state records (the state vocabulary), the construct's authored state default
+(the machine entry), and compiled create/update actions' authored from/to
+pairs (the transitions). A producer whose type carries none of these
+compiles NO machine: instances of such types are stateless, creation writes
+no status, and the status runtime refuses transitions for them. No
+synthesized CREATED lifecycle exists — a state nobody declared is not
+vocabulary. Creation without an authored state default stamps the compiled
+machine's entry; every region remains independent, and recursive state
+trees stay nested inside their region.
 
 `src/templates.js` contains starter process templates for organization
 bootstrap. Each template exposes organization role identities separately from

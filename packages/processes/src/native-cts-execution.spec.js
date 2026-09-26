@@ -228,6 +228,13 @@ describe('native CTS process execution contract', () => {
         fields: { read: ['identity.*'], write: [], private: [] }
       }
     };
+    // The domain projection carries no workflows (SPEC §7): the draft's own
+    // state records author the panel vocabulary the transition targets.
+    definition.ctsTypes = {
+      panel_draft: { id: 'panel_draft', kind: 'state', typeId: 'panel', value: 'draft' },
+      panel_active: { id: 'panel_active', kind: 'state', typeId: 'panel', value: 'active' },
+      panel_archived: { id: 'panel_archived', kind: 'state', typeId: 'panel', value: 'archived', terminal: true }
+    };
 
     const validation = validateProcessDefinition(definition, domain, {
       roles: { role_admin: { id: 'role_admin', label: 'Admin' } }
