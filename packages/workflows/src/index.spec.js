@@ -290,3 +290,48 @@ describe('recursive workflow state trees', () => {
     expect(next.primary).toBe('PRODUCTION.cutting');
   });
 });
+
+describe('from-any transitions', () => {
+  const workflow = {
+    primaryRegion: 'main',
+    regions: {
+      main: {
+        initial: 'state1',
+        states: { state1: {}, other: {}, new: {} },
+        transitions: [{ fromAny: true, to: 'new' }]
+      }
+    }
+  };
+
+  it('accepts whatever state the instance arrived in', () => {
+    expect(validateTransition({ workflow, currentState: 'state1', targetState: 'new' }).ok).toBe(true);
+    expect(validateTransition({ workflow, currentState: 'other', targetState: 'new' }).ok).toBe(true);
+  });
+
+  it('does not satisfy a same-state entry — self-loops stay explicit', () => {
+    expect(validateTransition({ workflow, currentState: 'new', targetState: 'new' }).ok).toBe(false);
+  });
+
+  it('prefers an explicit from edge over the from-any fallback', () => {
+    const mixed = {
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'a',
+          states: { a: {}, b: {} },
+          transitions: [
+            { from: 'a', to: 'b', intent: 'narrow' },
+            { fromAny: true, to: 'b' }
+          ]
+        }
+      }
+    };
+    const result = validateTransition({ workflow: mixed, currentState: 'a', targetState: 'b' });
+    expect(result.ok).toBe(true);
+  });
+
+  it('normalizes without requiring a declared from state', () => {
+    expect(() => normalizeWorkflow(workflow)).not.toThrow();
+    expect(normalizeWorkflow(workflow).regions.main.transitions).toHaveLength(1);
+  });
+});
