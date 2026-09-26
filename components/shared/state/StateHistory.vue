@@ -151,12 +151,11 @@ const openActorChat = (event) => {
 
 const eventKey = (event, index) => event._id || `${eventState(event)}-${event.timestamp}-${index}`;
 
-// A step shows its actor only when it differs from the adjacent newer
-// event's actor — consecutive steps by one principal carry the name once.
+// The trail reads oldest → newest; a run of consecutive steps by one
+// principal carries the actor once, on the run's first step.
 const actorStartsRun = (index) => {
-  const newer = orderedEvents.value[index + 1];
-  if (!newer) return true;
-  return actorUserId(newer) !== actorUserId(orderedEvents.value[index]);
+  if (index === 0) return true;
+  return actorUserId(orderedEvents.value[index - 1]) !== actorUserId(orderedEvents.value[index]);
 };
 
 // The stepper reads oldest → newest (a trail, not a feed); the API serves
