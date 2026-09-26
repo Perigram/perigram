@@ -119,21 +119,6 @@ export {
   runProcessUntilSettled
 } from './orchestration.js';
 
-export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
-  return normalizeWorkflow({
-    schemaVersion: 2,
-    primaryRegion: 'main',
-    regions: {
-      main: {
-        label,
-        initial: 'CREATED',
-        states: { CREATED: { canUpdateMeta: true } },
-        transitions: []
-      }
-    }
-  });
-}
-
 const REMOVED_STATUS_EFFECT_INPUTS = new Set(['metadata', 'lifecycle', 'region', 'path']);
 
 function withoutRemovedStatusEffectEdges(graph, processNodes) {
@@ -739,7 +724,9 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     }
     try {
       const lifecycle = compileLifecycle(output, domain);
-      for (const [regionId, region] of Object.entries(lifecycle.regions || {})) {
+      // A vocabulary-less producer compiles no machine (stateless type):
+      // null lifecycle is valid, there is simply nothing to validate.
+      for (const [regionId, region] of Object.entries(lifecycle?.regions || {})) {
         const stateIds = Object.keys(region.states || {});
         if (!stateIds.length) continue;
         if (!region.initial) {
@@ -1577,37 +1564,21 @@ function normalizeActionRecord(action = {}) {
   };
 }
 
+// Lifecycle machines are authored data only (SPEC §7: graph-derived at
+// compile, never invented): the draft's state records seed the vocabulary,
+// compiled actions contribute transitions, and a producer whose type has no
+// authored vocabulary compiles NO machine — instances of such types are
+// stateless and creation writes no status. There is no synthesized CREATED
+// lifecycle: a state nobody declared is not vocabulary.
 function compileLifecycle(profile = {}, domain = {}) {
   const lifecycle = profile.lifecycle || {};
-  if (lifecycle.mode === 'defaultCreated' || !lifecycle.mode) {
-    // Producers mint into CREATED, but a type with a declared lifecycle
-    // keeps governing from there: its declared states and transitions
-    // join the minted machine so instances can actually traverse them.
-    // (Without this, org-authored lifecycles were unreachable — creation
-    // succeeded while every declared transition failed as invalid.)
-    const declared = domain.workflows?.[profile.typeId];
-    const region = declared?.regions?.[declared.primaryRegion || 'main'] || declared;
-    if (!region?.states) return createDefaultCreatedWorkflow(profile.label || profile.typeId);
-    return normalizeWorkflow({
-      schemaVersion: 2,
-      primaryRegion: 'main',
-      regions: {
-        main: {
-          label: profile.label || profile.typeId,
-          initial: region.initial || 'CREATED',
-          states: { CREATED: { canUpdateMeta: true }, ...(region.states || {}) },
-          transitions: [...(region.transitions || [])]
-        }
-      }
-    });
-  }
-  if (lifecycle.mode === 'domainDefault') {
-    const workflow = domain.workflows?.[profile.typeId];
-    if (!workflow) return createDefaultCreatedWorkflow(profile.label || profile.typeId);
-    return normalizeWorkflow(workflow);
-  }
-  if (lifecycle.mode === 'custom') return normalizeWorkflow(lifecycle.workflow);
-  throw new Error(`Unknown lifecycle mode ${lifecycle.mode}`);
+  if (lifecycle.mode === 'custom') return lifecycle.workflow ? normalizeWorkflow(lifecycle.workflow) : null;
+  // 'defaultCreated' and 'domainDefault' share one contract now: the
+  // declared machine when the domain carries one, otherwise the draft's
+  // seeded vocabulary (handled by the caller), otherwise no machine. The
+  // historical CREATED minting is gone — authored vocabulary only.
+  const workflow = domain.workflows?.[profile.typeId] || null;
+  return workflow ? normalizeWorkflow(workflow) : null;
 }
 
 function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
@@ -1615,7 +1586,8 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
   const graphContext = buildActionGraphContext(process);
   for (const output of Object.values(process.producerOutputs || {})) {
-    workflows[output.producerOutputId] = compileLifecycle(output, domain);
+    const workflow = compileLifecycle(output, domain);
+    if (workflow) workflows[output.producerOutputId] = workflow;
   }
 
   const builders = new Map(Object.entries(workflows).map(([producerOutputId, workflow]) => [
@@ -1694,7 +1666,7 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
         addWorkflowState(builder, targetState);
         // The construct's state default is the machine's initial (SPEC §7):
         // no declaration owns an initial.
-        if (!builder.initial || builder.initial === 'CREATED') builder.initial = targetState;
+        if (!builder.initial) builder.initial = targetState;
       }
       continue;
     }
@@ -3424,8 +3396,8 @@ function compileSockets(sockets = {}) {
 
 function initialSocketStatus(socket = {}) {
   const lifecycle = socket.receiverLifecycle || {};
-  if (lifecycle.mode === 'custom') {
-    const workflow = normalizeWorkflow(lifecycle.workflow || createDefaultCreatedWorkflow(socket.typeId));
+  if (lifecycle.mode === 'custom' && lifecycle.workflow) {
+    const workflow = normalizeWorkflow(lifecycle.workflow);
     const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
     return region?.initial || '';
   }

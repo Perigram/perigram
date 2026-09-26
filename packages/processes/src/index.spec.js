@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   canvasToDefinition,
   compileProcessDefinition as compileContract,
-  createDefaultCreatedWorkflow,
   definitionToCanvas,
   normalizeProcessDefinition,
   portSpecsCompatible,
@@ -651,16 +650,20 @@ describe('@perigram/processes compiler', () => {
     expect(workflow.regions.review.transitions[0]).toMatchObject({ from: 'OPEN', to: 'RESOLVED' });
   });
 
-  it('creates a CREATED-only workflow for defaultCreated lifecycle mode', () => {
-    const workflow = createDefaultCreatedWorkflow();
-    expect(workflow.regions.main.initial).toBe('CREATED');
-    expect(workflow.regions.main.transitions).toEqual([]);
+  it('emits no workflow for a defaultCreated producer whose type declares no vocabulary', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      graph: { nodes: [], edges: [] },
+      producerOutputs: producerOutputRecords([['make_queue', 'queue']])
+    }, domain);
+
+    expect(compiled.producerOutputs['make_queue:entity'].workflow).toBeUndefined();
   });
 
-  it('carries declared transitions into defaultCreated producer workflows', () => {
-    // Org-authored lifecycles must stay traversable: producers mint into
-    // CREATED, but the type's declared states and transitions join the
-    // minted machine instead of being discarded with the declaration.
+  it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
+    // Org-authored lifecycles stay traversable: the declared machine is the
+    // whole contract — its own states, transitions, and entry — with no
+    // synthesized CREATED state and no replaced initial.
     const declaredDomain = {
       ...domain,
       entities: [...domain.entities, { type: 'widget' }],
@@ -683,7 +686,8 @@ describe('@perigram/processes compiler', () => {
       producerOutputs: producerOutputRecords([['make_widget', 'widget']])
     }, declaredDomain);
     const workflow = compiled.producerOutputs['make_widget:entity'].workflow;
-    expect(Object.keys(workflow.regions.main.states).sort()).toEqual(['CREATED', 'active', 'new']);
+    expect(Object.keys(workflow.regions.main.states).sort()).toEqual(['active', 'new']);
+    expect(workflow.regions.main.initial).toBe('new');
     expect(workflow.regions.main.transitions).toContainEqual(expect.objectContaining({ from: 'new', to: 'active' }));
   });
 

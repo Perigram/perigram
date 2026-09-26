@@ -6,6 +6,7 @@ import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import { stateService } from '~/server/core/machines/service.js';
+import * as workflowOverridesService from '../workflow-overrides/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as entityEventService from '~/server/features/instance-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -1505,10 +1506,23 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const executionAuth = createActionExecutionAuth(auth, record);
     blockDraft = await normalizeProcessMutation(typeId, blockDraft, relationContracts, executionAuth);
-    const targetState = inputs.state ?? inputs['states.main']
+    let targetState = inputs.state ?? inputs['states.main']
       ?? (Object.hasOwn(record.inputDefaults || {}, 'state') ? String(authoredSocketDefault(record.inputDefaults.state)) : undefined)
       ?? (Object.hasOwn(record.inputDefaults || {}, 'states.main') ? processDefaultValue(record.inputDefaults['states.main']) : undefined)
       ?? record.state?.to;
+    if (targetState == null && record.producerOutputId) {
+      // A machine requires an authored entry (SPEC §7): when the construct
+      // authored no state default, the compiled machine's initial is that
+      // entry, and creation stamps it. A type with no machine stays
+      // stateless — no status is invented.
+      const machine = await workflowOverridesService.resolveActiveWorkflow({
+        typeId,
+        organizationId: resolveOrganizationId(auth),
+        producerOutputId: record.producerOutputId
+      });
+      const region = machine?.regions?.[machine.primaryRegion] || Object.values(machine?.regions || {})[0];
+      targetState = region?.initial || null;
+    }
     const draft = {
       ...blockDraft,
       ...constructionDraft,
