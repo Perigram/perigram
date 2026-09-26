@@ -187,107 +187,65 @@ lifecycle, resize, selection raycasting, and disposal. Feature code supplies a
 scene group and stores selectable metadata in `object.userData.designerItem`;
 it must not create another renderer or global pointer listener.
 
-### `StatusBadge.vue`
-Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
-The chip's display policy resolves from the compiled contract: process-authored
-display metadata passed as `display` (from `status.metadata.display`) wins;
-otherwise the badge resolves the served type view's per-state display policy
-(`states.main.render` through the registry bundle, passing `type-id`) into
-label, severity, and icon. A state value with no declaration — a missing
-`type-id` or a genuinely undeclared type — renders as a neutral chip carrying
-the raw value (the documented stop-line); there is no legacy domain status
-table lookup. Labels may be either authored strings or i18n keys: the badge
-checks whether a label is translatable before calling i18n; custom labels
-such as organization status names render as data, not as missing translation
-keys.
-
----
-
 ## Status & History (`components/shared/state/`)
 
 ### `InstanceState.vue`
-Interactive status component for display + state-machine transitions. Status-changing action buttons must live here (not in parent layouts).
+Interactive status surface for display + state-machine transitions on the
+shared instance chrome (cards, pages, tab chrome). Status-changing action
+buttons must live here (not in parent layouts).
 
-Props: `:entity`, `type-id`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
-`variant="icon"` renders the primary status as an accessible icon-only badge
-while retaining the normal interactive popover, transitions, location, and
-history. Icon mode is a bare semantic status dot with no Tag fill or border. In
-pane/tool chrome it still renders a DTO-backed state when no
-multi-state workflow is registered, while transition loading remains limited
-to registered workflows. It is intended for constrained pane/tool chrome; regular cards and
-pages continue to use `inline` or `full`.
-Rendering guard: component renders only when `props.entity` is present.
-Behavior: component auto-expands when lifecycle `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders lifecycle controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
+Props: `:instance`, `type-id`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
+Rendering guard: the component renders only when the resolved flat display
+exists — the instance carries a non-empty `state` value AND the type has a
+served state vocabulary. A type the organization's process authored no states
+for renders no state surface at all.
+
+**Flat state contract (SPEC §7):** the value is the instance's flat wire
+`state` string; the vocabulary and display policy derive client-side from the
+compiled producer workflows the hydration payload carries, through
+`statePolicyByType` / `stateDisplayFor`
+([shared/ui-mapping](../../../shared/ui-mapping/README.md) — the canonical
+contract; generated screens resolve through the same functions, so there is
+one resolution chain, not two). Dotted values render as segmented paths
+(ancestor segments muted, leaf styled) exactly like the generated
+`StateTag`; unknown values degrade to the neutral stop-line chip.
+There is no registry `states` facet read, no `@perigram/domain-cnc`
+workflow fallback, and no v24 `status` block read — those axes are retired.
+
+**Transitions** load from the canonical status API
+(`/api/state/actions`), which applies the process-compiled workflow
+server-side, so access and preflight filtering stay server-side; labels,
+severities, and icons for action targets resolve through the same flat
+policy. When an action includes `intent`, `InstanceState` posts that intent
+with the target state so frontend components do not infer business meaning
+from raw state names. When a target state lifecycle schema declares a
+description, attachment slots, or snapshots, `InstanceState` opens
+`StateTransitionDialog` before running the transition; the dialog uploads
+proof files through `/api/files/upload` and submits
+`stateMeta.metadata.note` plus `stateMeta.lifecycle.attachments` to the
+status API.
+
 Successful server transitions emit the `transitioned` event from
-`InstanceState`; matching browser-local entity-change events emit `refresh`
-from the status component itself. `InstanceCard` and `InstancePage` forward both as
-`refresh` on their entity shells, so entity-specific cards and pages can reload
-entity-local data after lifecycle changes without wiring listeners in each
-card.
-Status transition results and failures are surfaced through PrimeVue toast
-messages. Failed transitions also refresh server actions and emit `refresh`, so
-stale popover actions are corrected after backend preflight rejects an action.
-The root exposes stable E2E hooks through `data-entity-status`,
-`data-type-id`, and `data-entity-id`; menu triggers and transition buttons
+`InstanceState`; matching browser-local instance-change events emit `refresh`
+from the status component itself. `InstanceCard` and `InstancePage` forward
+both as `refresh` on their shells, so instance-specific cards and pages can
+reload instance-local data after lifecycle changes without wiring listeners
+in each card. Status transition results and failures are surfaced through
+PrimeVue toast messages. Failed transitions also refresh server actions and
+emit `refresh`, so stale popover actions are corrected after backend
+preflight rejects an action.
+The root exposes stable E2E hooks through `data-instance-status`,
+`data-type-id`, and `data-instance-id`; menu triggers and transition buttons
 use `data-status-menu-trigger` and `data-status-action`.
 
-**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@perigram/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `InstanceState`, hides it, or renders read-only status.
-Interactive status is enabled only for entity types that have a real workflow in
-`cncWorkflows`; non-workflow entities hide status chrome in cards unless a
-read-only `StatusBadge` is explicitly required. Live app transition actions are
-loaded from the canonical status API so access and preflight filtering stay
-server-side. When an action includes `intent`, `InstanceState` posts that intent
-with the target state so frontend components do not infer business meaning from
-raw lifecycle state names.
-When the effective organization or domain workflow declares exactly one unique
-state, shared entity surfaces hide the status chrome because it carries no
-lifecycle information. The canonical `status` block remains persisted for
-audit and DTO consistency. Visibility derives from the supplied workflow
-contract, never a hardcoded entity or status list.
-`InstanceState` renders the primary lifecycle badge from `states.main`.
-Additional active workflow regions render as compact status chips and actions
-carry `region` / `path` metadata back to the status API so parallel machines can
-transition independently.
-When an entity status carries process-authored display metadata under
-`status.metadata.display`, `InstanceState` passes it to `StatusBadge` so the
-badge uses the process status label, severity/color, and icon. Without DTO
-metadata the badge resolves the served type view's per-state display policy
-(`states.main.render`, see `StatusBadge` above) — `InstanceState` always
-passes its `type-id` through, and undeclared values render as neutral chips.
-Generated screens rely on this same resolution chain; they must not
-synthesize local status labels or icons from action manifests.
-Workflow questions resolve from the compiled contract first: `InstanceState`
-converts the registry bundle's type record (`states` facet + `transitions`)
-through `utils/state-actions.js` `compiledWorkflowFor` before the legacy
-`@perigram/domain-cnc` fallback, so declared types drive status-chrome
-visibility and server-action lookups contract-first. Development surfaces
-with custom workflow drafts derive lifecycle actions from workflow
-definitions through the same utility. Card and page command
-actions must live outside `InstanceState` in the card footer or page action
-slots; only real lifecycle transitions belong in the status surface.
-`InstanceState` can also receive a `workflows` prop or consume a provided
-`stateWorkflows` value. This is used only by development surfaces such as the
-admin workbench so live draft machines can drive previews without replacing the
-committed `@perigram/domain-cnc` runtime workflow source.
-Development surfaces that provide local workflows can also provide
-`statusTransitionHandler`; when present, `InstanceState` applies transitions
-through that handler instead of posting in-memory fixture ids to the server
-status API.
-When a target state lifecycle schema declares a description, attachment slots,
-or snapshots, `InstanceState` opens `StateTransitionDialog` before running the
-transition. That schema is the compiled workflow state's lifecycle evidence
-contract (server actions carry it from the process-compiled workflow state
-metadata; the status engine normalizes the same schema into the stamped
-event's `evidence`), so the dialog has no per-state assumptions of its own.
-The dialog uploads proof files through `/api/files/upload` and
-submits `stateMeta.metadata.note` plus `stateMeta.lifecycle.attachments` to
-the status API. Generic snapshots are captured server-side from the state
-schema, not from page-local loaded data.
+Card and page command actions must live outside `InstanceState` in the card
+footer or page action slots; only real lifecycle transitions belong in the
+status surface.
 
 ### `StateHistory.vue`
-Fetches and displays the audit log (`status_events`) for any entity.
+Fetches and displays the audit log (`status_events`) for any instance.
 
-Props: `:entity`, `type-id`, `target-id`, `mock-events`, `compact`.
+Props: `:instance`, `type-id`, `target-id`, `mock-events`, `compact`.
 Events render as a vertical PrimeVue Stepper trail so the component fits
 cards, popovers, sidebars, and other narrow surfaces: each event is one
 `StepItem`, ordered oldest → newest, whose `Step` header contains the
@@ -297,10 +255,11 @@ newest event's `StepPanel` opens by default and clicking a step header
 expands that event's evidence (note, attachments, snapshots) — one panel
 open at a time, the stepper's own accordion. Timestamps must not be
 rendered in a separate fixed-width side column.
-When the persisted audit log is not available yet, it renders the entity's
-current `status`/`origin` as the first timeline event instead of displaying an
-empty-history placeholder. Last-update timestamps belong in this timeline, not
-as a separate status section.
+Step badges resolve through the flat state contract: the type's policy map
+(`statePolicyByType` over the hydration payload's compiled producer
+workflows) drives each historical value's label, severity, and icon through
+`stateDisplayFor`, with the raw `toStatePrimary` remaining the state
+identifier, not the display contract.
 Persisted events may include response-only `actor` data from the status API.
 `StateHistory` prefers the event's first-class stamp actor — the persisted
 `label`/`name` for display and `id`/`userId` for the user ref — and falls
@@ -312,23 +271,8 @@ icon-only chat action that opens the support chat in direct user conversation
 mode for that actor.
 Structured v2 events prefer `toStatePrimary` for the visible badge and keep
 `region` available for grouped status surfaces.
-When an event snapshot carries process-authored display metadata under
-`status.metadata.display`, `StateHistory` passes it to `StatusBadge` so
-historical badges retain the authored label, severity/color, and icon. The
-event's raw `toStatePrimary` remains the state identifier, not the display
-contract.
 History panels render lifecycle proof attachment refs as download links and
 snapshot entries as compact count chips from the persisted event snapshot.
-
-### `StateLocation.vue`
-Renders the current mutable lifecycle location from `status.lifecycle.data.location`.
-
-Supported location shapes:
-- `{ type: 'warehouse', warehouseId, label? }` — renders a warehouse `TraceLink`.
-- `{ type: 'coordinates', coordinates: { x, y, z } }` or `{ lat, lng }` — renders a compact coordinate string.
-- `{ type: 'address', address }` — renders the address text.
-
-Use status lifecycle location for "where the entity is now"; static ancestry remains in `lineage`, and files remain in `attachments`.
 
 ### `DrawingCanvas.vue`
 Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, baked cassette `layerData` / `polygonParts`, DXF text/URLs, SVG URLs, legacy parametric cassette graphs, and OCCS cassette definitions with Perigram graph-tree extensions; owns layer visibility by default, viewer pan/zoom, cassette designer edge actions, shared viewer grid/stroke presentation, and layer-to-pen resolution through `utils/drawingPreview.js`. Viewport navigation is pointer-class aware: mouse wheel zooms at the cursor and drag pans (Shift in designer mode), while touch input pans with one finger in viewer modes and pinch-zoomes/pans with two fingers in every viewer/designer mode; designer mode reserves single-finger taps for face/edge interaction. The canvas root declares `touch-action: none` in viewer modes so the browser never claims a canvas gesture for page scrolling or zooming.
