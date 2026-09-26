@@ -6,13 +6,13 @@
        collapse against the h-full body or force the pane to scroll, breaking
        the bounded-editor contract. Bounded hosts expose the conversation
        through the shared chat popup instead (the pane's own action strip, the
-       same route every other entity surface uses). -->
+       same route every other instance surface uses). -->
   <div
-    v-if="entity && flush"
+    v-if="instance && flush"
     class="flex h-full min-h-0 w-full flex-col"
   >
     <GeneratedInstanceDetailBody
-      :entity="entity"
+      :instance="instance"
       :type-id="typeId"
       :surface="surface"
       :screen-key="screenKey"
@@ -24,8 +24,8 @@
     <slot />
   </div>
   <InstancePage
-    v-else-if="entity"
-    :entity="entity"
+    v-else-if="instance"
+    :instance="instance"
     :type-id="typeId"
     :show-trace="!embedded"
     :show-header="!embedded"
@@ -34,7 +34,7 @@
     @refresh="$emit('refresh')"
   >
     <GeneratedInstanceDetailBody
-      :entity="entity"
+      :instance="instance"
       :type-id="typeId"
       :surface="surface"
       :screen-key="screenKey"
@@ -49,13 +49,13 @@
          bottom disclosure buried the thread under the whole body, made it
          undiscoverable, and broke the page's reading order. -->
     <template #sidebar>
-      <InstanceChatPanel :type="typeId" :id="instanceIdValue" :name="entityNameValue" />
+      <InstanceChatPanel :type="typeId" :id="instanceIdValue" :name="instanceNameValue" />
     </template>
     <template v-if="editorActionComponent || headerActionIds.length" #actions>
       <component
         :is="editorActionComponent"
         v-if="editorActionComponent"
-        :entity="entity"
+        :instance="instance"
         menu-item
         :open-in-workspace="openActionsInWorkspace"
         @open-page="page => $emit('open-page', page)"
@@ -66,7 +66,7 @@
         :key="actionId"
         :action-id="actionId"
         menu-item
-        @execute="action => $emit('execute-action', action, entity)"
+        @execute="action => $emit('execute-action', action, instance)"
       />
     </template>
   </InstancePage>
@@ -91,7 +91,7 @@ import {
 
 const props = defineProps({
   typeId: { type: String, required: true },
-  entity: { type: Object, default: null },
+  instance: { type: Object, default: null },
   surface: { type: String, default: 'detail' },
   screenKey: { type: String, default: '' },
   excludedActions: { type: Array, default: () => [] },
@@ -108,9 +108,9 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
 const authStore = useAuthStore();
-const entityNameValue = computed(() => props.entity?.identity?.name || '');
+const instanceNameValue = computed(() => props.instance?.identity?.name || '');
 const instanceIdValue = computed(() => {
-  const id = props.entity?._id || props.entity?.id || props.entity?.identity?.uid || '';
+  const id = props.instance?._id || props.instance?.id || props.instance?.identity?.uid || '';
   return id ? String(id) : '';
 });
 const editorActionComponent = computed(() => instanceEditorActionFor(props.typeId));
@@ -119,7 +119,7 @@ const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed
 if (props.flush) {
   provide('displayedEntityContexts', computed(() => [
     ...(unref(parentDisplayedEntityContexts) || []),
-    { type: props.typeId, entity: props.entity }
+    { type: props.typeId, entity: props.instance }
   ]));
 }
 provide('generatedExecuteAction', (action, entity, context = {}) => {
@@ -128,14 +128,14 @@ provide('generatedExecuteAction', (action, entity, context = {}) => {
 const resolvedActions = computed(() => resolveGeneratedEntityActions({
   actionIds: props.actions,
   actionManifest: authStore.actionManifest,
-  entity: props.entity,
+  entity: props.instance,
   typeId: props.typeId,
   excludedActionIds: props.excludedActions
 }));
 const resolvedBodyActions = computed(() => resolveGeneratedEntityActions({
   actionIds: props.actions,
   actionManifest: authStore.actionManifest,
-  entity: props.entity,
+  entity: props.instance,
   typeId: props.typeId
 }).concat(resolveScopedGeneratedActions({
   actionIds: props.bodyActions,

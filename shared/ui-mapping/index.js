@@ -567,7 +567,9 @@ export function builderFieldsForType(typeRecord = {}, { bundle = null } = {}) {
   return Object.freeze(fields.map(field => Object.freeze(field)));
 }
 
-function startCaseKey(key = '') {
+// The stop-line label derivation shared by the display contract: the leaf
+// segment of a value, start-cased.
+export function startCaseKey(key = '') {
   return String(key).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 }
 

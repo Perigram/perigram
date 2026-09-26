@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <InstanceCard :entity="revision" type-id="entity_revision" :variant="variant" :show-status="false">
+    <InstanceCard :instance="revision" type-id="entity_revision" :variant="variant" :show-status="false">
       <template #before-identity>
         <i class="pi pi-history"></i>
       </template>

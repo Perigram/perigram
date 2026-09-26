@@ -75,14 +75,14 @@ export function useGeneratedScreen(screenRef) {
     load({ initial: true });
   }, { immediate: true, deep: true });
 
-  const stopEntityChangeListener = onInstanceChanged(change => {
-    if (!entityChangeAffectsSources(change, visibleSources.value, screen.value)) return;
+  const stopInstanceChangeListener = onInstanceChanged(change => {
+    if (!instanceChangeAffectsSources(change, visibleSources.value, screen.value)) return;
     if (change.change === 'deleted') {
-      removeEntitySnapshot(change.type, change.id);
+      removeInstanceSnapshot(change.type, change.id);
       return;
     }
-    if (change.entity) {
-      applyEntitySnapshot(change.type, change.entity);
+    if (change.instance) {
+      applyInstanceSnapshot(change.type, change.instance);
       return;
     }
     if (refreshTimer) clearTimeout(refreshTimer);
@@ -94,7 +94,7 @@ export function useGeneratedScreen(screenRef) {
 
   onUnmounted(() => {
     if (refreshTimer) clearTimeout(refreshTimer);
-    stopEntityChangeListener();
+    stopInstanceChangeListener();
   });
 
   function sourceState(sourceId) {
@@ -107,7 +107,7 @@ export function useGeneratedScreen(screenRef) {
     };
   }
 
-  function applyEntitySnapshot(typeId, entity = null) {
+  function applyInstanceSnapshot(typeId, instance = null) {
     const id = entity?._id?.toString?.() || entity?._id || entity?.identity?.uid?.toString?.() || entity?.identity?.uid;
     if (!typeId || !id || !entity) return;
     sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
@@ -128,7 +128,7 @@ export function useGeneratedScreen(screenRef) {
     }));
   }
 
-  function removeEntitySnapshot(typeId, id) {
+  function removeInstanceSnapshot(typeId, id) {
     if (!typeId || !id) return;
     sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
       if (state.source?.typeId !== typeId || state.source.mode === 'single') return [sourceId, state];
@@ -146,7 +146,7 @@ export function useGeneratedScreen(screenRef) {
     error,
     visibleSources,
     load,
-    applyEntitySnapshot,
+    applyInstanceSnapshot,
     sourceState
   };
 }
@@ -161,7 +161,7 @@ function entityMatchesSource(entity = {}, source = {}, screen = {}) {
   return entityMatchesFilters(entity, resolveSourceFilters(source, screen));
 }
 
-function entityChangeAffectsSources(change = {}, sources = [], screen = {}) {
+function instanceChangeAffectsSources(change = {}, sources = [], screen = {}) {
   if (!change.type) return false;
   return sources.some(source => {
     if (source.typeId !== change.type) return false;

@@ -33,7 +33,7 @@ export const useOutboxStore = defineStore('outbox', () => {
         emitInstanceMutation({
             type: meta.typeId,
             id: hasSnapshot ? (data?.entity?._id || data?._id) : meta.instanceId,
-            entity: hasSnapshot ? (meta.kind === 'entity' ? data : (data?.entity || null)) : null,
+            instance: hasSnapshot ? (meta.kind === 'instance' ? data : (data?.entity || null)) : null,
             change,
             reason: meta.reason || `outbox-${meta.kind}`,
             source: 'outbox'

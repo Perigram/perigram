@@ -1,7 +1,7 @@
 <template>
   <GeneratedInstanceDetail
     v-if="sourceState.source?.mode === 'single'"
-    :entity="sourceState.entity"
+    :instance="sourceState.entity"
     :type-id="sourceState.source.typeId"
     :surface="region.surface || 'detail'"
     :actions="effectiveActions"

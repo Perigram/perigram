@@ -1,12 +1,12 @@
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState';
 
 /**
- * Opens the composed entity chat thread from any entity surface (cards,
+ * Opens the composed instance chat thread from any instance surface (cards,
  * inline refs, popovers) as the single chat popup: full-bleed overlay on
  * mobile, the token-sized drawer card on desktop — one surface, one code
  * path. The preset target is consumed on chat mount.
  */
-export function openEntityChat({ type = '', id = '', name = '' } = {}) {
+export function openInstanceChat({ type = '', id = '', name = '' } = {}) {
   if (!type || !id) return;
   const chatTarget = useSupportChatTarget();
   chatTarget.value = { entityKey: `entity:${type}:${id}`, name: String(name || '') };

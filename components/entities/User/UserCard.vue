@@ -1,6 +1,6 @@
 <template>
   <div v-if="user" :class="[`variant-${variant}`]" class="cursor-pointer" @click="handleCardClick">
-    <InstanceCard :entity="user" type-id="user" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :instance="user" type-id="user" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" :size="avatarSize" class="[&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover" />
       </template>

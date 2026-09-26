@@ -59,11 +59,11 @@
     <InstanceCard
       v-for="entity in visibleItems"
       :key="entity._id || entity.id || entity.identity?.uid"
-      :entity="entity"
+      :instance="entity"
       :type-id="typeId"
       :surface="surface"
       variant="card"
-      :context-entity="actionContext.parentEntity"
+      :context-instance="actionContext.parentEntity"
       :context-type-id="actionContext.parentTypeId"
       @refresh="$emit('refresh')"
     >
@@ -86,7 +86,7 @@
             </div>
             <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
               <InstanceState
-                :entity="entity"
+                :instance="entity"
                 :type-id="typeId"
                 variant="inline"
                 @refresh="$emit('refresh')"

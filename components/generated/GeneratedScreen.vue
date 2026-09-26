@@ -329,7 +329,7 @@ const authStore = useAuthStore();
 const route = useRoute();
 const instances = useInstancesStore();
 const screenRef = toRef(props, 'screen');
-const { screen, loading, error, load, applyEntitySnapshot, sourceState } = useGeneratedScreen(screenRef);
+const { screen, loading, error, load, applyInstanceSnapshot, sourceState } = useGeneratedScreen(screenRef);
 const inputDialogVisible = ref(false);
 const submittingAction = ref(false);
 const pendingAction = ref(null);
@@ -551,23 +551,23 @@ function applyActionResult(action = {}, result = null) {
   if (!result || typeof result !== 'object') return;
   const mapped = mappedMutationItems(result);
   if (mapped) {
-    for (const entity of mapped) applyEntitySnapshot(action.typeId, entity?.entity || entity);
+    for (const entity of mapped) applyInstanceSnapshot(action.typeId, entity?.entity || entity);
     return;
   }
   if (action.actionKind === 'runCommand') {
     for (const output of result.entities || []) {
-      if (output?.entity) applyEntitySnapshot(output.type, output.entity);
+      if (output?.entity) applyInstanceSnapshot(output.type, output.entity);
     }
     return;
   }
-  if (result.owner) applyEntitySnapshot(action.typeId, result.owner);
+  if (result.owner) applyInstanceSnapshot(action.typeId, result.owner);
   if (result.created) {
     for (const entity of mappedMutationItems(result.created) || [result.created]) {
-      applyEntitySnapshot(action.relationMutation?.targetType || action.typeId, entity);
+      applyInstanceSnapshot(action.relationMutation?.targetType || action.typeId, entity);
     }
   }
   if (!result.owner && !result.created) {
-    applyEntitySnapshot(action.typeId, result.entity || result);
+    applyInstanceSnapshot(action.typeId, result.entity || result);
   }
 }
 

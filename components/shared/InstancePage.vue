@@ -1,7 +1,7 @@
 <script setup>
 /**
  * InstancePage - v24
- * Standardized layout for entity detail pages.
+ * Standardized layout for instance detail pages.
  */
 import InstanceState from './state/InstanceState.vue';
 import TraceChain from './links/TraceChain.vue';
@@ -14,7 +14,7 @@ import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useRegistryStore } from '~/stores/registry';
 
 const props = defineProps({
-  entity: { type: Object, required: true },
+  instance: { type: Object, required: true },
   typeId: { type: String, required: true },
   title: { type: String, default: null },
   loading: { type: Boolean, default: false },
@@ -39,28 +39,28 @@ const typeLabel = computed(() => {
   return typeof label === 'string' ? label : '';
 });
 const registry = useRegistryStore();
-const entityIcon = computed(() => registry.iconFor(props.typeId));
+const instanceIcon = computed(() => registry.iconFor(props.typeId));
 // Record titles resolve through the one title resolver (identifier field
 // value via the wire-to-screen bridge; unnamed otherwise).
 const typeView = computed(() => registry.typeRecord(props.typeId));
 const identityLabel = computed(() => titleFor(
-  typeView.value ? dtoToScreenInstance(props.entity, typeView.value) : null,
+  typeView.value ? dtoToScreenInstance(props.instance, typeView.value) : null,
   typeView.value,
   { unnamedLabel: t('common.unnamed') }
 ));
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 provide('displayedEntityContexts', computed(() => [
   ...(unref(parentDisplayedEntityContexts) || []),
-  { type: props.typeId, entity: props.entity }
+  { type: props.typeId, instance: props.instance }
 ]));
 </script>
 
 <template>
-  <div class="entity-page flex w-full min-w-0 flex-col gap-6">
-    <div v-if="showHeader" class="flex flex-col gap-3 border-b border-content-border pb-5" data-entity-page-header>
-      <TraceChain v-if="showTrace" :entity="entity" :type-id="typeId" :exclude="traceExclusions" />
+  <div class="instance-page flex w-full min-w-0 flex-col gap-6">
+    <div v-if="showHeader" class="flex flex-col gap-3 border-b border-content-border pb-5" data-instance-page-header>
+      <TraceChain v-if="showTrace" :entity="instance" :type-id="typeId" :exclude="traceExclusions" />
 
-      <div class="entity-page-header-content flex flex-col gap-3">
+      <div class="instance-page-header-content flex flex-col gap-3">
         <div class="flex min-w-0 flex-col gap-1">
           <small v-if="showTypeLabel && typeLabel" class="uppercase text-muted text-supporting">
             {{ typeLabel }}
@@ -70,12 +70,12 @@ provide('displayedEntityContexts', computed(() => [
           </div>
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <div v-if="showIdentity" class="flex min-w-0 items-center gap-2">
-              <i v-if="entityIcon" :class="entityIcon" class="shrink-0 text-muted" aria-hidden="true"></i>
+              <i v-if="instanceIcon" :class="instanceIcon" class="shrink-0 text-muted" aria-hidden="true"></i>
               <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
             </div>
             <InstanceState
               v-if="showStatus"
-              :entity="entity"
+              :instance="instance"
               :type-id="typeId"
               variant="inline"
               :actions="stateActions"
@@ -99,12 +99,12 @@ provide('displayedEntityContexts', computed(() => [
       </div>
     </div>
 
-    <div :class="[ $slots.sidebar ? 'entity-page-content-grid grid grid-cols-1 gap-6' : 'flex flex-col gap-6' ]">
-      <div :class="[ $slots.sidebar ? 'entity-page-main flex min-w-0 flex-col gap-6' : 'flex min-w-0 flex-col gap-6' ]">
+    <div :class="[ $slots.sidebar ? 'instance-page-content-grid grid grid-cols-1 gap-6' : 'flex flex-col gap-6' ]">
+      <div :class="[ $slots.sidebar ? 'instance-page-main flex min-w-0 flex-col gap-6' : 'flex min-w-0 flex-col gap-6' ]">
         <slot></slot>
       </div>
 
-      <div v-if="$slots.sidebar" class="entity-page-sidebar flex min-w-0 flex-col gap-6">
+      <div v-if="$slots.sidebar" class="instance-page-sidebar flex min-w-0 flex-col gap-6">
         <slot name="sidebar"></slot>
       </div>
     </div>
@@ -112,12 +112,12 @@ provide('displayedEntityContexts', computed(() => [
 </template>
 
 <style scoped>
-.entity-page {
+.instance-page {
   container-type: inline-size;
 }
 
 @container (min-width: 32rem) {
-  .entity-page-header-content {
+  .instance-page-header-content {
     align-items: flex-start;
     flex-direction: row;
     justify-content: space-between;
@@ -125,7 +125,7 @@ provide('displayedEntityContexts', computed(() => [
 }
 
 @container (min-width: 48rem) {
-  .entity-page-content-grid {
+  .instance-page-content-grid {
     grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
   }
 }

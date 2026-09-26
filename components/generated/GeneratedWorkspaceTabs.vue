@@ -17,8 +17,8 @@
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>
           <InstanceState
-            v-if="tab.kind === 'entity' && tab.entity?.states"
-            :entity="tab.entity"
+            v-if="tab.kind === 'instance'"
+            :instance="tab.instance"
             :type-id="tab.type"
             variant="icon"
             @click.stop
@@ -75,13 +75,13 @@ const registry = useRegistryStore();
 
 function tabLabel(tab = {}) {
   if (tab.kind === 'empty') return t('project.newTab');
-  if (tab.kind === 'entity') {
+  if (tab.kind === 'instance') {
     // Entity tab titles follow the one title resolver: the loaded DTO
     // maps through the wire-to-screen bridge before titleFor, so the
     // declared identity field wins and raw ids never render.
     const typeRecord = registry.typeRecord(tab.type) || null;
     return titleFor(
-      typeRecord ? dtoToScreenInstance(tab.entity || {}, typeRecord) : null,
+      typeRecord ? dtoToScreenInstance(tab.instance || {}, typeRecord) : null,
       typeRecord,
       { unnamedLabel: t('common.unnamed') }
     );
@@ -98,7 +98,7 @@ function tabLabel(tab = {}) {
 
 function tabIcon(tab = {}) {
   if (tab.kind === 'empty') return 'pi pi-plus';
-  if (tab.kind === 'entity' || tab.kind === 'screen') return registry.iconFor(tab.typeId);
+  if (tab.kind === 'instance' || tab.kind === 'screen') return registry.iconFor(tab.typeId);
   return resolveGeneratedWorkspacePage(tab.pageId)?.icon || 'pi pi-file';
 }
 </script>

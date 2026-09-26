@@ -90,7 +90,7 @@ test.describe('home and entity UI', () => {
     await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
     await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(id)}`);
     await expect(app.page.getByText('Detail Image One').first()).toBeVisible();
-    const entityPage = app.page.locator('.entity-page').first();
+    const entityPage = app.page.locator('.instance-page').first();
     if (await entityPage.count() > 0) {
       expect(await entityPage.evaluate(element => getComputedStyle(element).containerType)).toBe('inline-size');
     }
@@ -101,7 +101,7 @@ test.describe('home and entity UI', () => {
     await app.gotoClient('/');
     await app.page.waitForLoadState('load');
     await app.page.waitForTimeout(2000);
-    const entityPages = app.page.locator('.entity-page');
+    const entityPages = app.page.locator('.instance-page');
     const count = await entityPages.count();
     if (count > 0) {
       const containerType = await entityPages.first().evaluate(el => getComputedStyle(el).containerType);

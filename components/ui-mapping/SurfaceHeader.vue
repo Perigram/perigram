@@ -68,7 +68,7 @@
         @click="event => historyPopover?.toggle(event)"
       />
       <Popover ref="historyPopover">
-        <StateHistory :entity="instance" :type-id="type.id" :target-id="instance.id" compact />
+        <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
       </Popover>
     </div>
   </div>

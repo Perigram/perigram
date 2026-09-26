@@ -1,5 +1,5 @@
 <template>
-  <InstancePage :entity="artifact" type-id="artifact">
+  <InstancePage :instance="artifact" type-id="artifact">
     <template #actions>
       <Button icon="pi pi-download" :label="$t('common.download')" size="small" severity="secondary" outlined @click="download" />
       <Button v-if="canEdit && revision" icon="pi pi-history" :label="$t('artifacts.restoreRevision')" size="small" severity="secondary" outlined @click="restore" />

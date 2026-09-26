@@ -1,5 +1,5 @@
 <template>
-  <InstanceCard :entity="profile" type-id="profileTemplate" :variant="variant" :show-trace="false" :show-status="false">
+  <InstanceCard :instance="profile" type-id="profileTemplate" :variant="variant" :show-trace="false" :show-status="false">
     <template v-if="variant === 'card'">
       <Divider />
       <DataBlock type-id="profileTemplate" :entity="profile" :fields="FIELDS" />

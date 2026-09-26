@@ -1,6 +1,6 @@
 <template>
   <div>
-    <InstanceCard :entity="design" type-id="cassette_design" :variant="variant" :show-status="false">
+    <InstanceCard :instance="design" type-id="cassette_design" :variant="variant" :show-status="false">
       <template #before-identity>
         <InstanceInlineRef
           v-if="templateId"

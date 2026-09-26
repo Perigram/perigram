@@ -1,7 +1,7 @@
 <template>
   <InstancePage
     v-if="organization"
-    :entity="organization"
+    :instance="organization"
     type-id="organization"
     :show-status="false"
     :show-trace="false"

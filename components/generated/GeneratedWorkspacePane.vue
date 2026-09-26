@@ -3,7 +3,7 @@
        renderer family; generated home screens never produce entity items
        — their instance surfaces are compiled screen tabs. -->
   <GeneratedInstanceFile
-    v-if="item?.kind === 'entity'"
+    v-if="item?.kind === 'instance'"
     :item="item"
     :tabs="tabs"
     :action-entries="actionEntries"

@@ -1184,7 +1184,7 @@ function entityKey(type, entity) {
 function workspaceEntityItem(type, entity) {
   return {
     key: entityKey(type, entity),
-    kind: 'entity',
+    kind: 'instance',
     type,
     entity,
     region: sectionRegionForEntity(type, entity)

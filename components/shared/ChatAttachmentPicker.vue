@@ -176,7 +176,7 @@ const entityNode = (item) => {
     selectable: true,
     leaf: !expandable,
     children,
-    data: { kind: 'entity', item }
+    data: { kind: 'instance', item }
   }
 }
 

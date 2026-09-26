@@ -74,8 +74,11 @@ test.describe('generated project workspace', () => {
     await expect(cassetteTab).toHaveAttribute('aria-selected', 'true');
     const explorerFits = await app.page.locator('.project-explorer-tree').evaluate(element => element.scrollWidth <= element.clientWidth);
     expect(explorerFits).toBe(true);
-    await expect(cassetteTab.locator('..').locator('[data-entity-status="true"] .status-badge-glyph')).toHaveAttribute('aria-label', /active/i);
-    await expect(app.page.locator('[data-workspace-pane] .entity-page [data-entity-page-header]')).toHaveCount(0);
+    // Flat state contract: the tab chrome shows a status surface only for
+    // types the active process vocabulary covers; cassette is not produced
+    // by this organization's process, so the old status popup is gone.
+    await expect(cassetteTab.locator('..').locator('[data-instance-status="true"]')).toHaveCount(0);
+    await expect(app.page.locator('[data-workspace-pane] .instance-page [data-instance-page-header]')).toHaveCount(0);
     await expect(paneHeader.getByRole('button', { name: /^add$/i })).toBeVisible();
 
     await expect(paneHeader.getByRole('button', { name: /^edit$/i })).toHaveCount(0);

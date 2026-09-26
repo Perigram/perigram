@@ -20,8 +20,8 @@ describe('entity sync event helpers', () => {
     const received = [];
     window.addEventListener(INSTANCE_CHANGED_EVENT, event => received.push(event.detail));
 
-    emitInstanceCreated({ type: 'project', entity: { _id: 'project-1' } });
-    emitInstanceUpdated({ type: 'project', id: 'project-1', entity: { _id: 'project-1' } });
+    emitInstanceCreated({ type: 'project', instance: { _id: 'project-1' } });
+    emitInstanceUpdated({ type: 'project', id: 'project-1', instance: { _id: 'project-1' } });
     emitInstanceDeleted({ type: 'project', id: 'project-1' });
 
     expect(received).toEqual([
@@ -39,10 +39,10 @@ describe('entity sync event helpers', () => {
       typeId: 'queue',
       targetId: 'queue-1',
       response: {
-        entity: { _id: 'queue-1' },
+        instance: { _id: 'queue-1' },
         effects: {
           entities: [
-            { type: 'nesting_run', id: 'run-1', entity: { _id: 'run-1' } }
+            { type: 'nesting_run', id: 'run-1', instance: { _id: 'run-1' } }
           ]
         }
       }

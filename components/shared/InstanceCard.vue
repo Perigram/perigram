@@ -11,7 +11,7 @@
             @keydown="onToggleKeydown"
         >
             <span class="instance-inline-chip max-w-full" :title="identityLabel">
-                <i v-if="entityConfig.icon" :class="['instance-inline-chip-icon', entityConfig.icon]" aria-hidden="true"></i>
+                <i v-if="instanceConfig.icon" :class="['instance-inline-chip-icon', instanceConfig.icon]" aria-hidden="true"></i>
                 <span class="instance-inline-chip-label">{{ identityLabel }}</span>
             </span>
             <slot name="inline-extra" />
@@ -41,14 +41,14 @@
                     <template v-else>
                         <slot name="before-identity" />
                         <div class="flex min-w-0 items-center gap-2">
-                            <i v-if="entityConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                            <i v-if="instanceConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
                             <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
                         </div>
                     </template>
                 </div>
                 <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                     <InstanceState
-                        :entity="entity"
+                        :instance="instance"
                         :type-id="typeId"
                         variant="inline"
                         :actions="stateActions"
@@ -78,18 +78,18 @@
                     <slot name="title" />
                 </template>
                 <template v-else>
-                    <TraceChain v-if="effectiveShowTrace" :entity="entity" :type-id="typeId" :exclude="traceExclusions" variant="compact" expandable class="mb-2" />
+                    <TraceChain v-if="effectiveShowTrace" :entity="instance" :type-id="typeId" :exclude="traceExclusions" variant="compact" expandable class="mb-2" />
                     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />
                             <div class="flex min-w-0 items-center gap-2">
-                                <i v-if="entityConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                                <i v-if="instanceConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
                                 <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
                             </div>
                         </div>
                         <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                             <InstanceState
-                                :entity="entity"
+                                :instance="instance"
                                 :type-id="typeId"
                                 variant="inline"
                                 :actions="stateActions"
@@ -140,7 +140,7 @@
                     </small>
                     <InstanceState
                         v-if="effectiveShowStatus"
-                        :entity="entity"
+                        :instance="instance"
                         :type-id="typeId"
                         variant="inline"
                         :actions="stateActions"
@@ -149,12 +149,12 @@
                     />
                 </div>
                 <div class="flex min-w-0 items-center gap-2">
-                    <i v-if="entityConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                    <i v-if="instanceConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
                     <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
                 </div>
                 <TraceChain
                     v-if="effectivePopupShowTrace"
-                    :entity="entity"
+                    :entity="instance"
                     :type-id="typeId"
                     :exclude="traceExclusions"
                 />
@@ -164,7 +164,7 @@
                     </slot>
                     <slot name="footer" />
                 </div>
-                <!-- The entity chat entry always renders: every card opens its
+                <!-- The instance chat entry always renders: every card opens its
                      composed conversation. -->
                 <Divider class="m-0" />
                 <div class="flex flex-wrap items-center justify-end gap-2" @click.stop>
@@ -177,7 +177,7 @@
                     />
                     <GeneratedCassetteDesignerAction
                         v-if="inlineShowCassetteDesigner"
-                        :entity="inlineActionEntity"
+                        :entity="inlineActionInstance"
                     />
                     <GeneratedActionButton
                         v-for="actionId in inlineActionIds"
@@ -205,9 +205,9 @@
 import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
 /**
  * InstanceCard - v24 Standardized
- * Shared entity card structure: TraceChain + identity chrome + InstanceState.
+ * Shared instance card structure: TraceChain + identity chrome + InstanceState.
  * Entity-specific cards use this as their container, providing only
- * entity-specific body/footer content via slots.
+ * instance-specific body/footer content via slots.
  *
  * Slots:
  *   header           — custom card header slot
@@ -234,12 +234,12 @@ import { resolveInstanceDisplayContract } from '~/utils/instance-display-contrac
 import { titleFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useI18n } from 'vue-i18n';
-import { hasMeaningfulWorkflowState } from '~/utils/state-actions.js';
+import { useStatePolicy } from '~/composables/useStatePolicy';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const props = defineProps({
-    entity: { type: Object, required: true },
+    instance: { type: Object, required: true },
     typeId: { type: String, required: true },
     variant: { type: String, default: 'card' },
     surface: { type: String, default: null },
@@ -250,24 +250,24 @@ const props = defineProps({
     stateActions: { type: Array, default: () => [] },
     displayExtensions: { type: Object, default: null },
     displayOverrides: { type: Object, default: null },
-    contextEntity: { type: Object, default: null },
+    contextInstance: { type: Object, default: null },
     contextTypeId: { type: String, default: '' },
     footerDisplay: { type: String, default: 'inline', validator: value => ['menu', 'inline'].includes(value) }
 });
 
 const emit = defineEmits(['refresh']);
 
-const cardEntityId = computed(() => {
-    const id = props.entity?._id || props.entity?.id || props.entity?.identity?.uid || '';
+const cardInstanceId = computed(() => {
+    const id = props.instance?._id || props.instance?.id || props.instance?.identity?.uid || '';
     return id ? String(id) : '';
 });
 
 function openCardChat() {
     op.value?.hide?.();
-    openEntityChat({
+    openInstanceChat({
         type: props.typeId,
-        id: cardEntityId.value,
-        name: props.entity?.identity?.name || ''
+        id: cardInstanceId.value,
+        name: props.instance?.identity?.name || ''
     });
 }
 const inlineDetailRouteRef = inject('instanceInlineDetailRoute', null);
@@ -278,13 +278,12 @@ const inlineActionEntityRef = inject('instanceInlineActionEntity', null);
 const inlineActionTypeIdRef = inject('instanceInlineActionTypeId', '');
 const inlineShowCassetteDesignerRef = inject('instanceInlineShowCassetteDesigner', false);
 const inlineExecuteActionRef = inject('instanceInlineExecuteAction', null);
-const stateWorkflowsRef = inject('stateWorkflows', null);
 
 const { t } = useI18n();
 const registry = useRegistryStore();
 // Render-policy icons are the single icon source (stores/README.md):
 // the legacy instanceUiFor table died with the per-surface icon drift.
-const entityConfig = computed(() => ({ icon: registry.iconFor(props.typeId) }));
+const instanceConfig = computed(() => ({ icon: registry.iconFor(props.typeId) }));
 const displayPlan = computed(() => resolveInstanceDisplayContract({
     typeId: props.typeId,
     surface: props.surface || props.variant,
@@ -292,8 +291,10 @@ const displayPlan = computed(() => resolveInstanceDisplayContract({
     extensions: props.displayExtensions,
     overrides: props.displayOverrides
 }));
+const { policyFor } = useStatePolicy();
+const statePolicy = policyFor(() => props.typeId);
 const effectiveShowStatus = computed(() => {
-    if (!hasMeaningfulWorkflowState(props.typeId, unref(stateWorkflowsRef) || undefined)) return false;
+    if (!statePolicy.value || !Object.keys(statePolicy.value).length) return false;
     if (props.showStatus !== null) return props.showStatus;
     return displayPlan.value.surfaceContract.status === 'interactive'
         || displayPlan.value.surfaceContract.status === 'readonly';
@@ -304,8 +305,8 @@ const effectiveShowTrace = computed(() => {
 });
 const effectivePopupShowTrace = computed(() => effectiveShowTrace.value || Boolean(unref(inlineForceTraceRef)));
 const traceExclusions = computed(() => {
-    if (!props.contextEntity || !props.contextTypeId) return [];
-    return instanceHierarchyIds(props.contextEntity).map(id => ({
+    if (!props.contextInstance || !props.contextTypeId) return [];
+    return instanceHierarchyIds(props.contextInstance).map(id => ({
         type: props.contextTypeId,
         id
     }));
@@ -316,14 +317,14 @@ const traceExclusions = computed(() => {
 // without a declared title is unnamed.
 const typeView = computed(() => registry.typeRecord(props.typeId));
 const identityLabel = computed(() => titleFor(
-  typeView.value ? dtoToScreenInstance(props.entity, typeView.value) : null,
+  typeView.value ? dtoToScreenInstance(props.instance, typeView.value) : null,
   typeView.value,
   { unnamedLabel: t('common.unnamed') }
 ));
 const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
 const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);
-const inlineActionEntity = computed(() => unref(inlineActionEntityRef) || props.entity);
+const inlineActionInstance = computed(() => unref(inlineActionEntityRef) || props.instance);
 const inlineShowCassetteDesigner = computed(() => Boolean(unref(inlineShowCassetteDesignerRef)));
 const inlinePopupHasActions = computed(() => (
     inlineShowCassetteDesigner.value
