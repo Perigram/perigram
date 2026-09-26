@@ -41,6 +41,18 @@
       @patch="submitPatch"
     />
 
+    <!-- The routed detail surface keeps the instance conversation beside the
+         composed body: the generator owns plain (non-overload) detail routes —
+         org-authored CTS types after the migration — so the rail lives here
+         exactly like the legacy renderer's detail column. It starts
+         collapsed; the panel owns its own bounded height when expanded. -->
+    <InstanceChatPanel
+      v-if="detailInstance"
+      :type="detailInstance.type || screen?.typeId || ''"
+      :id="String(detailInstance._id || detailInstance.id || '')"
+      :name="detailInstance.identity?.name || ''"
+    />
+
     <Dialog
       v-model:visible="linkDialogVisible"
       modal
@@ -116,6 +128,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
+import InstanceChatPanel from '~/components/shared/InstanceChatPanel.vue';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
@@ -195,6 +208,14 @@ async function executeTransition(payload = {}) {
   await props.onTransition(payload);
 }
 const emit = defineEmits(['instance-mounted']);
+// The routed detail instance (org-authored CTS detail routes have no legacy
+// overload): the conversation rail and the transition watcher resolve the
+// same composed non-list region.
+const detailInstance = computed(() => {
+  if (props.screen?.template !== 'instanceDetail') return null;
+  const detail = (composed.value.regions || []).find(region => region.surfaceKind !== 'list');
+  return detail?.instances?.[0] || null;
+});
 // `immediate`: a routed detail that mounts with the instance already in
 // the shared pool (navigated from a workspace that loaded the same
 // source) never changes the watched key, so without the immediate pass
