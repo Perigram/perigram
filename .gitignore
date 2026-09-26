@@ -56,5 +56,8 @@ workers/nesting/jagua-rs/jagua-rs/target/
 .neolit
 .neolit.json
 
+# Local runtime state (LiveKit AppSettings.db, proxy tool configs)
+data/
+
 # agent session worktrees (nested, poison dev watchers if watched)
 .agent-worktrees/
