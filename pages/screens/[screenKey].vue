@@ -43,6 +43,7 @@ import Tag from 'primevue/tag';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
+import { applyOptimisticState } from '~/utils/optimistic-state.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
@@ -232,6 +233,10 @@ async function runRuntimeTransition(payload = {}) {
   const typeId = instance.type || screen.value?.typeId;
   const id = String(instance._id || instance.id || screen.value?.scope?.instanceId || '');
   if (!typeId || !id || !payload.to) return;
+  // Optimistic move: the pool flips now; the server result reconciles on
+  // success, the captured DTO rolls back on failure, and an offline
+  // queueing keeps the flip (the outbox replays and reconciles).
+  const rollback = applyOptimisticState(instances, { typeId, id, to: payload.to });
   try {
     const result = await stateController.transition(typeId, id, payload.to, {
       ...(payload.intent ? { intent: payload.intent } : {}),
@@ -244,6 +249,7 @@ async function runRuntimeTransition(payload = {}) {
       toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
       return;
     }
+    rollback?.();
     toast.add({ severity: 'error', summary: labelForState(typeId, payload.to), detail: error?.data?.message || error?.message || '', life: 5000 });
   }
 }

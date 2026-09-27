@@ -268,9 +268,11 @@ const cardMenuItems = computed(() => props.actions.map(action => {
 // would lose stylesheet order and never show); illegal lanes keep the
 // well. A card is draggable when either source offers moves from its
 // state, so a served machine with no contract copy still drags. The
-// drop is never optimistic — the machine executor owns the mutation and
-// the pool reconciles through the shared entity event, so a refused or
-// failed move leaves the card where the machine last put it.
+// drop only emits the intent; the host executors apply it optimistically
+// over the shared pool (utils/optimistic-state.js) — the card lands in
+// its lane immediately, the server result reconciles, a failure rolls
+// the captured record back, and an offline queueing keeps the flip for
+// the outbox to replay. The board itself never mutates the pool.
 const draggedInstance = ref(null);
 const dropValue = ref('');
 const rowEl = ref(null);
