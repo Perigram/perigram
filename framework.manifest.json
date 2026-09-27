@@ -479,7 +479,6 @@
       {
         "componentPath": "components/shared/DesignerSurface.vue",
         "docs": [
-          "components/designers/README.md",
           "components/shared/README.md"
         ],
         "key": "DesignerSurface",
@@ -489,7 +488,6 @@
       {
         "componentPath": "components/shared/DesignerWorkspace.vue",
         "docs": [
-          "components/designers/README.md",
           "components/shared/README.md"
         ],
         "key": "DesignerWorkspace",
@@ -499,7 +497,6 @@
       {
         "componentPath": "components/shared/DesignerDialog.vue",
         "docs": [
-          "components/designers/README.md",
           "components/shared/README.md"
         ],
         "key": "DesignerDialog",
@@ -509,7 +506,6 @@
       {
         "componentPath": "components/shared/ThreeViewport.vue",
         "docs": [
-          "components/designers/README.md",
           "components/shared/README.md"
         ],
         "key": "ThreeViewport",
