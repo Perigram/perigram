@@ -207,7 +207,8 @@ export const stateService = {
     const actions = [];
 
     for (const [regionId, region] of Object.entries(normalizedMachine.regions || {})) {
-      const currentState = getRegionState(entity.states ?? entity.status, regionId, region.initial);
+      const rawState = getRegionState(entity.states ?? entity.status, regionId, region.initial);
+      const currentState = resolveWorkflowStatePath(region, rawState) || rawState;
       for (const transition of region.transitions || []) {
       if (transition.from !== currentState) continue;
 
@@ -256,7 +257,8 @@ export const stateService = {
     appendProcessStatusActions(actions, {
       auth,
       typeId: normalizedTypeId,
-      primaryState
+      primaryState,
+      machine: normalizedMachine
     });
 
     return { typeId: normalizedTypeId, targetId, state: entity.states || createWorkflowState(normalizedMachine), primaryState, actions };
@@ -348,7 +350,15 @@ async function resolveIntentTransition({
   return { typeId: normalizedTypeId, entity, transition, regionId, currentState };
 }
 
-function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', primaryState = '' } = {}) {
+function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', primaryState = '', machine = null } = {}) {
+  const region = machine
+    ? (machine.regions?.[machine.primaryRegion] || Object.values(machine.regions || {})[0] || null)
+    : null;
+  const resolve = value => (region ? (resolveWorkflowStatePath(region, value) || value) : value);
+  const declared = new Set((region?.transitions || []).map(transition => (
+    `${transition.from}->${resolveWorkflowStatePath(region, transition.to) || transition.to}`
+  )));
+  const resolvedPrimary = resolve(primaryState);
   const existingTargets = new Set(actions.map(action => `${action.from || ''}->${action.to || ''}`));
   for (const action of auth.roleAssignments?.actions || []) {
     // The assignment manifest carries the projected UI-contract kinds
@@ -359,15 +369,20 @@ function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', prim
     const from = action.state?.from || action.access?.stateFrom || '';
     const to = action.state?.to || action.access?.stateTo || '';
     if (!to) continue;
-    if (from && from !== primaryState) continue;
-    if (to === primaryState) continue;
-    const key = `${from || primaryState}->${to}`;
+    const fromState = resolve(from || primaryState);
+    const toState = resolve(to);
+    if (from && fromState !== resolvedPrimary) continue;
+    if (toState === resolvedPrimary) continue;
+    // The compiled machine is the authority: a manifest action surfaces
+    // only when the machine declares the edge it would execute.
+    if (region && !declared.has(`${fromState}->${toState}`)) continue;
+    const key = `${fromState}->${toState}`;
     if (existingTargets.has(key)) continue;
     actions.push({
-      region: 'main',
-      path: [to],
-      from: from || primaryState,
-      to,
+      region: machine?.primaryRegion || 'main',
+      path: [toState],
+      from: fromState,
+      to: toState,
       intent: null,
       display: 'menu',
       label: action.label || ''
