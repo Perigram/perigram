@@ -45,6 +45,33 @@ describe('generated action visibility', () => {
     expect(actionAppliesToEntity(action, {}, 'cassette')).toBe(false);
   });
 
+  it('hides no-op status actions already in the target status', () => {
+    const unscoped = {
+      actionKind: 'updateInstance',
+      typeId: 'cassette',
+      state: { to: 'DELETED' }
+    };
+    expect(actionAppliesToEntity(unscoped, { states: { main: 'DELETED' } }, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity(unscoped, { states: { main: 'CREATED' } }, 'cassette')).toBe(true);
+
+    const scoped = {
+      actionKind: 'updateInstance',
+      typeId: 'cassette',
+      state: { from: 'CREATED', to: 'DELETED' }
+    };
+    expect(actionAppliesToEntity(scoped, { states: { main: 'DELETED' } }, 'cassette')).toBe(false);
+
+    const inState = {
+      actionKind: 'updateInstance',
+      typeId: 'cassette',
+      state: { from: 'DELETED', to: 'DELETED' }
+    };
+    expect(actionAppliesToEntity(inState, { states: { main: 'DELETED' } }, 'cassette')).toBe(true);
+
+    const plainUpdate = { actionKind: 'updateInstance', typeId: 'cassette' };
+    expect(actionAppliesToEntity(plainUpdate, { states: { main: 'DELETED' } }, 'cassette')).toBe(true);
+  });
+
   it('does not expose create actions on entity rows', () => {
     expect(actionAppliesToEntity({ actionKind: 'createInstance', typeId: 'cassette' }, {}, 'cassette')).toBe(false);
   });

@@ -43,6 +43,9 @@ export function actionAppliesToEntity(action = {}, entity = {}, typeId = '') {
   if (action.typeId && typeId && action.typeId !== typeId) return false;
   const fromStatus = action.state?.from || '';
   if (fromStatus && entityPrimaryStatus(entity) !== fromStatus) return false;
+  const currentStatus = entityPrimaryStatus(entity);
+  const toStatus = action.state?.to || '';
+  if (toStatus && currentStatus && toStatus === currentStatus && fromStatus !== currentStatus) return false;
   return true;
 }
 
