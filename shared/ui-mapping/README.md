@@ -117,6 +117,8 @@ InstancePicker's hierarchical mode) matches children through
 `childrenOfParent(type, pool, parentId)`: every children edge contributes
 the pool instances of its declared child types whose `lineage[edge.lineageKey]`
 points at the parent — the declared storage key, never the edge's map key.
+A lineage reference matches in both stored shapes, the `{ id }` ref and the
+normalized id.
 Presentation budgets
 scale with type richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide
 types earn more columns and facts) instead of fixed constants. Collection
