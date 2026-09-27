@@ -208,6 +208,12 @@ describe('screen composition', () => {
     expect(composeScreen(screen, contract, nestedBundle, nestedPool).regions[0].instances.map(instance => instance.id))
       .toEqual(['root1']);
 
+    // Compiled type lists ship an empty filters map: same root scope —
+    // the empty map never means "the whole type in one pile".
+    const emptyFilters = { ...screen, sources: [{ ...screen.sources[0], filters: {} }] };
+    expect(composeScreen(emptyFilters, contract, nestedBundle, nestedPool).regions[0].instances.map(instance => instance.id))
+      .toEqual(['root1']);
+
     // A type no children edge names keeps the total list.
     expect(composeScreen(screen, contract, bundle, nestedPool).regions[0].instances.map(instance => instance.id).sort())
       .toEqual(['child1', 'child2', 'root1']);
