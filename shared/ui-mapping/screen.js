@@ -74,8 +74,12 @@ function resolveList(source, screen, pool, sourcesById, typesById = {}) {
     const { filters, unresolved } = resolveFilterPlaceholders(source.filters, screen);
     if (unresolved) return [];
     const filter = filterFromFlatFilters(filters);
-    if (!filter) return Object.values(byId);
-    return Object.values(byId).filter(instance => instanceMatchesFilter(instance, filter));
+    // An empty resolved filter carries no scope (compiled type lists ship
+    // `filters: {}`): the source is unscoped and takes the root-scoped
+    // listing below, never the whole type in one pile.
+    if (filter) {
+      return Object.values(byId).filter(instance => instanceMatchesFilter(instance, filter));
+    }
   }
   // An unscoped list is a type-level surface: when the type can be
   // someone's child (a declared children edge names it), only root
