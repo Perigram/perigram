@@ -43,11 +43,16 @@ const { t, te } = useI18n();
 const { policyByType } = useStatePolicy();
 const action = computed(() => authStore.actionManifest.find(item => item.id === props.actionId));
 const actionLabel = computed(() => generatedActionLabel(action.value || {}, props.actionId, { t, te }));
-// Obvious actions are icon-only by default — delete (trash) and create
-// (plus) carry their meaning in the glyph; the localized label stays the
-// tooltip and the accessible name. Menu rows keep their labels.
+// Obvious actions are icon-only by default — delete (trash), create
+// (plus), and the plain edit (pencil) carry their meaning in the glyph;
+// the localized label stays the tooltip and the accessible name. Menu
+// rows and state-transition buttons keep their labels (the caption of a
+// transition is the operation, not a glyph).
 const iconOnly = computed(() => !props.menuItem
-  && (props.iconOnly || isDeleteAction(action.value || {}) || isCreateAction(action.value || {})));
+  && (props.iconOnly
+    || isDeleteAction(action.value || {})
+    || isCreateAction(action.value || {})
+    || (isUpdateAction(action.value || {}) && !action.value?.state?.to)));
 // A state-mutating update resolves its target state's display through the
 // compiled flat vocabulary — the authored policy's icon and severity for
 // the state it lands on, not a local heuristic.

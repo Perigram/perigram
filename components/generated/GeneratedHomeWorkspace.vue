@@ -69,6 +69,17 @@
             :title="node.label"
             @click="openTypeScreen(node.data.screen)"
           />
+          <Button
+            v-if="activeOrganizationLabel || (authStore.userOrganizations || []).length"
+            icon="pi pi-building"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('profile.myOrganizations')"
+            :title="$t('profile.myOrganizations')"
+            @click="navigateTo('/organization')"
+          />
         </nav>
 
         <!-- Expanded navigation is one raw PanelMenu: two communication

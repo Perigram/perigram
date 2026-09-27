@@ -369,6 +369,14 @@ const normalizeLayerDataDrawing = (source, options = {}) => {
   }, options);
 };
 
+// An OCCS cassette definition record (the parametric template payload
+// shape `CassetteThumbnail` and the cassette designer consume): `occs`
+// version plus `documentType` mark the graph-tree document.
+export const isOccsCassetteDefinition = (definition = null) => Boolean(
+  definition && typeof definition === 'object'
+  && definition.occs && definition.documentType
+);
+
 export const normalizeGeometryDrawing = (source, options = {}) => {
   const geometry = source?.data?.geometry || source?.geometry || source || {};
   const preview = geometry.preview || geometry.data || geometry;

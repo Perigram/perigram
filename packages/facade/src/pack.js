@@ -55,7 +55,7 @@ export const facadeFileTypes = [
           // order (the DataBlock fallbackPaths vocabulary), so generated
           // card previews never depend on which construction path baked
           // the record.
-          { path: 'data.geometry.preview', fallbackPaths: ['data.layerData', 'data.polygonParts'], label: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
+          { path: 'data.geometry.preview', fallbackPaths: ['data.layerData', 'data.polygonParts', 'data.definition'], label: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
         ] },
         { id: 'provenance', fields: [
           { path: 'data.geometryRevisionId', label: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }

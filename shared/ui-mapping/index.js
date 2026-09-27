@@ -991,34 +991,32 @@ export function childrenOfParent(type = null, pool = {}, parentId = null) {
   return children;
 }
 
-// The structural roots of a hierarchy projection: instances whose declared
-// parent (any type's children edge, matched by its declared lineage key)
-// is NOT loaded in the pool. A child whose parent row exists rides nested
-// under it — never duplicated at the top level; a child whose parent is
-// absent stays a root (hiding it would orphan it). This is the projection
-// safety net beside composeScreen's source-level root scoping: pools that
-// arrive pre-aggregated (or types whose unscoped list never passed the
-// source filter) still render one containment tree, not a flat pile.
+// The structural roots of a hierarchy projection: an instance whose
+// declared parent link (any type's children edge, matched by its declared
+// lineage key) is set rides nested under that parent — never duplicated
+// at the top level — whether or not the parent record is loaded in this
+// pool (an unloaded parent is reachable through its own screen; showing
+// the child as a root here would duplicate it the moment the parent
+// loads). A child with no parent stamp at all stays a visible root. This
+// mirrors composeScreen's source-level root scoping so the two never
+// disagree.
 export function hierarchyRootInstances(instances = [], bundle = null, pool = {}) {
   const edges = [];
   for (const parentType of bundle?.types || []) {
     for (const declaration of Object.values(parentType?.edges?.children || {})) {
       const key = lineageKeyOfEdge(declaration);
       if (!key) continue;
-      edges.push({ parentTypeId: parentType.id, key, childTypes: declaration?.types || [] });
+      edges.push({ key, childTypes: declaration?.types || [] });
     }
   }
   if (!edges.length) return instances;
-  const parentIdsByType = Object.fromEntries(Object.entries(pool)
-    .map(([typeId, byId]) => [typeId, new Set(Object.keys(byId))]));
   const nested = new Set();
   for (const edge of edges) {
     for (const childTypeId of edge.childTypes) {
       for (const instance of Object.values(pool[childTypeId] || {})) {
         const ref = instance?.lineage?.[edge.key];
         const value = ref?.id ?? ref;
-        if (value === null || value === undefined || value === '') continue;
-        if (parentIdsByType[edge.parentTypeId]?.has(String(value))) nested.add(instance.id);
+        if (value !== null && value !== undefined && value !== '') nested.add(instance.id);
       }
     }
   }
