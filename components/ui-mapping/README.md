@@ -168,16 +168,20 @@ surface concerns:
   collections and through the projection switch for any stateful
   structural collection (see the header-controls contract above). Columns are `subtle` wells on the surface ladder; cards
   sit on the content surface. Membership moves only through the
-  authored machine: a card may drop into a column only when a contract
-  edge (`stateTransitionsByType`, carried on the region node) leads
-  there from its current state. The affordance stays on the surface
-  ladder — while a drag is live every machine-legal target well steps up
-  to the content surface and the hovered receiver adds overlay
-  elevation — and a card whose state has no outgoing edges is not
-  draggable at all: a machine that authored vocabulary without wired
-  transition actions compiles states but no edges, and such boards are
-  read-only groupings (the authoring fix is update actions wired to
-  states in the process, not a board change). The drop emits the
+  machine: legality starts from the contract edges
+  (`stateTransitionsByType`, carried on the region node) and is replaced
+  at dragstart by the host's machine-authority resolver
+  (`onFetchTransitions` — the state service's per-instance transitions,
+  the same source the detail header's transition buttons dispatch
+  through), because the compiled contract copy can lag the served
+  machine (override or default machines serve transitions the producer
+  copy never carried). A machine-legal target lane paints the content
+  surface instead of the subtle well while a drag is live — the target
+  token REPLACES the well token, never a second background utility
+  (an appended `bg-*` pair is unordered in the generated stylesheet and
+  the idle well would win). Without a resolver and without contract
+  edges from a state, its cards are not draggable — a served machine
+  with no moves anywhere renders a read-only board. The drop emits the
   `transition` channel
   (the state-service executor the detail header shares), never an
   optimistic local move — the machine owns the mutation and the pool

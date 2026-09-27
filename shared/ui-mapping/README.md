@@ -201,12 +201,14 @@ pure helpers own every state-presentation decision:
 - `stateTransitionsByType(producerOutputs)` — `{ [typeId]: [{ from, to,
   region, intent }] }` from the same compiled producer workflows'
   `regions[*].transitions`: the authored machine edges, the board
-  projection's legal-move contract. First edge per from→to pair wins,
+  projection's instant legal-move map. First edge per from→to pair wins,
   mirroring the policy derivation. Edges compile only from wired update
-  actions in the process — a type whose states are authored without
-  transition actions carries vocabulary but no edges, and its boards
-  are read-only groupings (see
-  [packages/processes](../../packages/processes/README.md)).
+  actions in the process, so the contract copy can lag the served
+  machine (override or default machines serve transitions the producer
+  copy never carried) — the board replaces this map at dragstart with
+  the host's state-service resolver, the same authority the transition
+  buttons use (see
+  [components/ui-mapping](../../components/ui-mapping/README.md)).
   `hasStateVocabulary(policy)` is the
   companion signal: a vocabulary spanning `BOARD_MIN_COLUMNS` values
   earns the board projection.
