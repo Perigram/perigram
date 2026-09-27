@@ -694,10 +694,12 @@ describe('status service lifecycle payloads', () => {
     expect(entity.state).toBe('active');
     expect(await db.collection('status_events').countDocuments({ targetId: id })).toBe(2);
 
-    // The read path sees the written state: active -> new is invalid.
-    await expect(statusService.transition('e2e-note', id.toString(), 'new', 'admin-1', {
+    // Machine doctrine: declared-to-declared pairs are legal (the
+    // instance supplies the from-state); only a target outside the
+    // declared vocabulary is invalid.
+    await expect(statusService.transition('e2e-note', id.toString(), 'deleted', 'admin-1', {
       userId: 'admin-1',
       memberships: [{ organizationId: 'org-1', permissions: {} }]
-    })).rejects.toThrow(/Invalid transition from active to new/);
+    })).rejects.toThrow(/Invalid transition from active to deleted/);
   });
 });

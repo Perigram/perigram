@@ -125,7 +125,15 @@ export function validateTransition({ workflow, currentState, currentStatus = nul
     (hasLifecycle && workflowRegion.states[from]?.canUpdateLifecycle !== false && workflowRegion.states[from]?.lifecycle)
   );
 
-  if (!transition && !selfLoop) return { ok: false, reason: 'invalid_transition', from, to: targetState, region: regionId };
+  // Machine doctrine: the machine declares states; the operated instance
+  // supplies the from-state and the action supplies the target. A
+  // transition between declared states is legal — explicit edges are
+  // authored metadata (menus, legacy v4 data), never the gate.
+  const declaredPair = Object.hasOwn(workflowRegion.states, from)
+    && Object.hasOwn(workflowRegion.states, enteredTarget);
+  if (!transition && !selfLoop && !declaredPair) {
+    return { ok: false, reason: 'invalid_transition', from, to: targetState, region: regionId };
+  }
   const lifecycleValidation = validateLifecyclePayload(stateDefinition.lifecycle, lifecycle, { requireRequired: requireLifecyclePayload });
   if (!lifecycleValidation.ok) return { ...lifecycleValidation, from, to: targetState, region: regionId };
 

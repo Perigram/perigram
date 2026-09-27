@@ -1654,25 +1654,20 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
         if (!workflowBuilder) continue;
         const regionId = action.state?.axis || workflowBuilder.primaryRegion;
         const region = workflowBuilder.regions[regionId] || primaryRegionBuilder(workflowBuilder);
-        // A transition compiles concrete declared state-to-state edges.
-        // The from-states are the arrival states of instances on its
-        // entity wire — the wiring's status windows, exactly what the
-        // producer-bound branch and the action window derive from. An
-        // authored `from` narrows to that one edge (legacy reference
-        // data); nothing wildcard or enumerated enters the machine.
-        const wiredFroms = declaredTransitionSources(actionId, action, typeId, graphContext, actionWindows)
-          .map(source => source.status)
-          .filter(Boolean);
-        if (!wiredFroms.length) continue;
-        for (const from of wiredFroms) {
-          addWorkflowState(region, from);
-          addWorkflowState(region, to);
-          upsertWorkflowTransition(region, {
-            from,
-            to,
-            processRoleIds: actionExposureRoleIdsForInput(action, access, null)
-          });
-        }
+        // Machine doctrine: the machine carries vocabulary (states), not
+        // derived edges — the operated instance supplies the from-state
+        // and the engine validates declared-to-declared pairs. Authored
+        // v4 `from`/`to` pairs stay as explicit edge metadata for legacy
+        // surfaces; the wiring never materializes edges.
+        const authoredFrom = action.state?.from;
+        if (!authoredFrom) continue;
+        addWorkflowState(region, authoredFrom);
+        addWorkflowState(region, to);
+        upsertWorkflowTransition(region, {
+          from: authoredFrom,
+          to,
+          processRoleIds: actionExposureRoleIdsForInput(action, access, null)
+        });
       }
       continue;
     }
@@ -1694,15 +1689,14 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     const access = normalizeActionAccess(action.access);
     if (!to) continue;
 
-    for (const source of declaredTransitionSources(actionId, action, typeId, graphContext, actionWindows)) {
-      const from = source.status;
-      if (!from) continue;
-      addWorkflowState(builder, from);
+    const authoredFrom = action.state?.from || action.access?.stateFrom || '';
+    if (authoredFrom) {
+      addWorkflowState(builder, authoredFrom);
       addWorkflowState(builder, to);
       upsertWorkflowTransition(builder, {
-        from,
+        from: authoredFrom,
         to,
-        processRoleIds: actionExposureRoleIdsForInput(action, access, source.window)
+        processRoleIds: actionExposureRoleIdsForInput(action, access, actionWindows.get(actionId)?.input || null)
       });
     }
   }
