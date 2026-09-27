@@ -119,7 +119,12 @@ vocabulary spans at least `BOARD_MIN_COLUMNS` values (`stateful`, from
 collections as state lanes, because the authored workflow machine is
 that collection's structure; the entry rides a derived `boardable`
 candidate signal at one-key specificity so a narrow type override still
-outranks it through the override splice. Tree materialization
+outranks it through the override splice. Containment opts a type out of
+the derived board default (the tree projection owns lineage), but not
+out of boarding: the app-side projection switch — persisted user view
+state on the sort/filter seam, see
+[components/ui-mapping](../../components/ui-mapping/README.md)) — offers
+the board for any stateful structural collection. Tree materialization
 (HierarchyTable, InstancePicker's hierarchical mode) matches children
 through `childrenOfParent(type, pool, parentId)`: every children edge
 contributes the pool instances of its declared child types whose
