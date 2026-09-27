@@ -14,8 +14,23 @@ import { requireCompatible, normalizeMigrateSteps } from './diff.js';
 // today's attachment-kind authoring, as data on the type.
 const CREATION_PROTOCOLS = Object.freeze(['upload', 'capture', 'editor']);
 
-function normalizePayload(payload) {
-  if (!payload) return null;
+// Compact-snapshot preview paths (SPEC §4): dot paths into the wire DTO
+// a compact snapshot keeps. Bounded by design — a snapshot is a preview,
+// never a copy.
+function normalizeSnapshot(paths = []) {
+  if (!Array.isArray(paths)) throw new Error('snapshot must be an array of data paths');
+  const cleaned = [...new Set(paths.map(path => String(path).trim()))].filter(Boolean);
+  if (!cleaned.length) throw new Error('snapshot requires at least one data path');
+  if (cleaned.length > 12) throw new Error('snapshot accepts at most 12 data paths');
+  for (const path of cleaned) {
+    if (!/^data(\.[a-z][a-zA-Z0-9]*)+$/.test(path)) {
+      throw new Error(`snapshot path ${path} must be a data.* dot path`);
+    }
+  }
+  return Object.freeze(cleaned);
+}
+
+function normalizePayload(payload) {  if (!payload) return null;
   if (typeof payload === 'string') return Object.freeze({ mime: Object.freeze([payload]), creation: Object.freeze(['upload']) });
   const mime = typeof payload.mime === 'string' ? [payload.mime] : [...(payload.mime || [])];
   if (!mime.length) throw new Error('payload requires at least one accepted MIME type');
@@ -101,6 +116,11 @@ export function normalizeType(declaration = {}) {
     ...(glyph ? { glyph } : {}),
     fields: normalizeRow(fields),
     payload: normalizePayload(declaration.payload),
+    // Compact-snapshot preview contract (SPEC §4): the declared data
+    // paths a compact snapshot keeps (chat message instance previews and
+    // any bounded embed). Absent declaration strips heavy keys — a
+    // snapshot is a preview, never a copy.
+    ...(declaration.snapshot ? { snapshot: normalizeSnapshot(declaration.snapshot) } : {}),
     ...(previewSourceRow ? { previewSource: Object.freeze({ path: previewSourceRow.path, display: previewSourceRow.display || 'geometry' }) } : {}),
     // Derived types (SPEC §4): operator/service-produced — they enter
     // graphs as outputs, never as constructs.

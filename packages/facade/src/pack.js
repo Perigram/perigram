@@ -56,6 +56,14 @@ export const facadeFileTypes = [
         ] }
       ]
     },
+    // Compact-snapshot preview contract (SPEC §4): the chat/embed preview
+    // keeps the thumbnail-critical geometry and template identity, and
+    // compacts `data.geometry` when present.
+    snapshot: [
+      'data.type', 'data.definition', 'data.materialPool', 'data.parameters',
+      'data.description', 'data.revisions', 'data.sheetDesignIds', 'data.results',
+      'data.geometry', 'data.layerData', 'data.polygonParts'
+    ],
     operators: {
       edit: { id: 'edit', species: 'mutate', input: { base: 'ref', accepts: ['cassette'] } }
     }
@@ -98,17 +106,11 @@ export const facadeFileTypes = [
       }
     },
     transitions: [{ axis: 'main', from: 'ACTIVE', to: 'ARCHIVED', intent: 'archiveCassetteDesign' }],
-    render: {
-      label: 'Cassette design',
-      icon: 'pi pi-clone',
-      groups: [
-        { id: 'provenance', fields: [
-          { path: 'data.template', label: 'processDesigner.source', display: 'entityRef', typeId: 'cassette', priority: 10 },
-          { path: 'data.source', label: 'processDesigner.source', display: 'entityRef', typeId: 'dxf-source', priority: 11 },
-          { path: 'data.parameters', label: 'processDesigner.parameters', priority: 20 }
-        ] }
-      ]
-    },
+    name: 'Cassette design',
+    glyph: 'pi pi-clone',
+    // Compact snapshots keep provenance, not baked geometry (the payload
+    // preview covers uploaded sources; baked geometry is heavy).
+    snapshot: ['data.template', 'data.parameters'],
     operators: {
       bake: { id: 'bake', species: 'construct', input: { base: 'ref', accepts: ['cassette'] } },
       convertDxf: { id: 'convertDxf', species: 'construct', input: { base: 'ref', accepts: ['dxf-source'] } }
