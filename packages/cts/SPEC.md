@@ -708,7 +708,7 @@ exact target type.
 
 ### References
 
-- **Types**: `typeId: 'cassette_design'` becomes `typeId: 'cassette-design'`
+- **Types**: `typeId: 'sheet_design'` becomes `typeId: 'sheet-design'`
   (the CTS id) in every record collection — `processNodes`, `producerOutputs`
   (`fields` path lists included), `actions`, `sockets` (descriptors via the
   grammar adapter), `screens` sources. The binding key is `typeId`, never

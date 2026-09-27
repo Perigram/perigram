@@ -187,9 +187,7 @@ surface keeps the cell-table editor. Both editors take only that
 persistence contract —
 `ArtifactDetail` supplies the artifact-backed adapters for
 `SKETCH`/`TEXT`/`CSV`-kind artifacts, so one editor serves both hosts
-without duplicate editing logic. The `facade-pattern-designer` surface
-mounts the pattern designer workspace page; persistence stays on its
-pack-internal feature route.
+without duplicate editing logic.
 
 ### File payload previews
 

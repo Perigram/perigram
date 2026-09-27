@@ -506,7 +506,7 @@ this path: a stale `cassette -> queue` parent compiles to a root queue create,
 and the queue service creates organization-root lineage instead of requiring a
 project concept that the process graph did not define.
 Compilation hydrates create-action construction and prompt policy from the
-domain construction contract. A sparse visual action for `cassette_design`
+domain construction contract. A sparse visual action for `cassette`
 therefore still compiles with promptable `name` and `templateId` fields,
 so generated screens open the input dialog even when the draft did not persist
 `construction.inputs` or `inputPolicy.fields`. Generic `cassette` creation
@@ -1047,7 +1047,7 @@ implicit relation owner; only the relation target is prompted. When the domain
 declares one relationship for that owner/target pair, its key and cardinality
 replace the composer's provisional socket-derived key.
 Incoming graph parent edges are validated against lineage contracts. If an edge
-connects an unsupported parent, such as `queue -> create cassette_design`, the
+connects an unsupported parent, such as `queue -> create sheet_design`, the
 compiler ignores that parent edge and compiles the action as an unparented
 target-list create. Relationship context is separate from lineage: after a
 design is created, the action runtime may link it through a declared domain

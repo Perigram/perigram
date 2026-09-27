@@ -10,6 +10,22 @@ design record; evaluation and export render from the template.
 - `repository.js`: Database operations on `cassettes` collection.
 - `service.js`: Template management and permission handling.
 - `operations.js`: Domain operation handler for process-invoked cassette saves.
+- `evaluation.js`: PARAMETRIC template geometry evaluation and simple DXF rendering.
+
+## Evaluation
+
+PARAMETRIC templates evaluate on demand — there is no baked record and no
+separate evaluation feature. `evaluateTemplate(id, dimensions)` loads the
+cassette through the feature's own repository, unwraps the stored
+definition container, and, when it is an OCCS document, delegates to the
+OCCS evaluator (`#utils/occs/evaluate.js`) — the OCCS graph tree is the
+one construction contract, evaluated in pure JS under a serial evaluation
+lock. A definition that is not an OCCS document is legacy data: the
+evaluation refuses it (422) with a recreate-as-OCCS message instead of
+falling back to a removed engine. `generateSimpleDxf(polygons)` renders
+the flat AC1015 polyline DXF used when a definition carries no layered
+`layerData`; layered exports render through the same service's
+`generateLayeredDxf`.
 
 ## Data Structure (v24)
 
@@ -39,8 +55,8 @@ design record; evaluation and export render from the template.
 Templates in the `cassettes` collection do NOT store DXF files or physical
 tracking data.
 - **Parametric**: `data.definition` contains the editable legacy designer graph
-  or an OCCS v2 template document; geometry is evaluated on demand by
-  [parametric-cassettes](../parametric-cassettes/README.md) for export.
+  or an OCCS v2 template document; geometry is evaluated on demand by this
+  feature's `evaluation.js` (see Evaluation below) for export.
 - **Standard**: `data.definition.mapping` contains the DXF-to-OCCS semantic
   layer mapping; the extracted `data.polygonParts` and `data.layerData` are the
   template's own geometry.
@@ -136,5 +152,4 @@ template through the cassette entity endpoint.
 
 ## Related
 - [instance-revisions](../instance-revisions/README.md) - Immutable source revision snapshots.
-- [parametric-cassettes](../parametric-cassettes/README.md) - Engine for evaluating parametric logic.
 - [artifact-conversions](../artifact-conversions/README.md) - DXF-source artifact to cassette conversion.

@@ -70,7 +70,7 @@ flowchart TB
 | `@perigram/cts` | Value universe, type declarations, registry/compile, the CTS → compiler-domain projection | Vue, Nuxt, Mongo, workers |
 | `@perigram/processes` | Process normalization, validation, compilation, UI-contract projection, durable evaluation | Concrete domain imports |
 | Packs (`server/packs/*`) | Domain declarations, services/commands/task executors/hook handlers as mountable units | Framework vocabulary |
-| `@perigram/facade` | Facade fabrication pack declarations (cassette/sheet-design/facade-design/facade-pattern types, editors, services, commands) and the server-side domain slice | Runtime handlers, DB access, Vue components |
+| `@perigram/facade` | Facade fabrication pack declarations (cassette/sheet-design types, editors, services, commands) and the server-side domain slice | Runtime handlers, DB access, Vue components |
 | `server/runtime` | Pack mounting, framework services, the instance-service resolver | Business logic |
 | `server/core/*` | Command/task/effect/workflow runtimes (domain-agnostic) | Domain-specific imports |
 | `server/features/*` | Framework entity services; pack-internal feature modules | Core vocabulary or global registration |
