@@ -489,7 +489,7 @@ Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page, and generated cassette
 collection/home cards mirror that same editor action in their footers when the
 user has `cassettes:write` on the concrete cassette.
-The generated entity-detail overload registry also maps `cassette` directly to
+The generated instance-detail overload registry also maps `cassette` directly to
 the `CassetteDesignerV2` surface. Project panes and ordinary generated cassette
 detail routes therefore use the same editor affiliation and shared full-height
 designer host.
