@@ -266,7 +266,10 @@ operated instance's current state against exactly those declared edges.
 The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry
-one arrival fact, and a button is never offered in its own target state. A producer whose type carries none of these
+one arrival fact, and a button is never offered in its own target state.
+An exposed status-mutating action is the machine's edge: when the machine
+compiles no edge for it (a no-op arrival-to-target pair), the action is not
+exposed at all, so no surface offers a transition the runtime would refuse. A producer whose type carries none of these
 compiles NO machine: instances of such types are stateless, creation writes
 no status, and the status runtime refuses transitions for them. No
 synthesized CREATED lifecycle exists — a state nobody declared is not

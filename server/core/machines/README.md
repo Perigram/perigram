@@ -28,12 +28,12 @@ graph-derived (SPEC §7) — this module never defines machines itself.
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the
   source-state entity before the transition can run.
-  The compiled machine is the authority for `GET /api/state/actions`: a
-  compiled manual process action surfaces only when the machine declares the
-  exact state-to-state edge it would execute, with the instance's current and
-  target states resolved to their canonical nested paths. A manifest action
-  that the machine dropped — a no-op into the state the instance already
-  occupies — is never offered.
+  The compiled machine is the authority for `GET /api/state/actions` and for
+  transition execution: the instance's current state is resolved to its
+  canonical nested path, and a compiled manual process action surfaces and
+  executes only when the machine declares the exact state-to-state edge.
+  A manifest action that the machine dropped — a no-op into the state the
+  instance already occupies — is neither offered nor executable.
   Process actions that target the entity's current primary state are not
   returned from the status action API; no-op current-state buttons belong in
   neither generated process actions nor `InstanceState`.
