@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :top-dock-items="documentDockItems">
+    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :document-items="documentDockItems" :canvas-items="canvasDockItems">
 
       <template #palette>
       <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
@@ -643,11 +643,7 @@
         </div>
       </Popover>
 
-      <template #dock>
-        <MotionDock :items="canvasDockItems" :aria-label="$t('common.undo')" />
-      </template>
     </DesignerWorkspace>
-
     <StandardDialog
       v-model:visible="occsDialogVisible"
       :header="$t('cassette.v2.occsDraft')"
@@ -729,14 +725,13 @@
 </template>
 
 <script setup>
-import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import MotionDock from '~/components/shared/MotionDock.vue';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
@@ -847,36 +842,36 @@ function closeDockPopover() {
 
 const documentDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
+    icon: 'pi pi-folder-open',
     label: t('cassette.v2.loadTemplate'),
     onClick: event => openDockPopover('open', event),
     hasPopup: true
   },
   {
-    icon: () => h('i', { class: 'pi pi-pencil', 'aria-hidden': 'true' }),
+    icon: 'pi pi-pencil',
     label: t('common.rename'),
     onClick: event => openDockPopover('rename', event),
     hasPopup: true
   },
   { separator: true },
   {
-    icon: () => h('i', { class: 'pi pi-copy', 'aria-hidden': 'true' }),
+    icon: 'pi pi-copy',
     label: t('common.saveAs'),
     onClick: () => saveTemplate({ saveAs: true })
   },
   {
-    icon: () => h('i', { class: 'pi pi-save', 'aria-hidden': 'true' }),
+    icon: 'pi pi-save',
     label: t('common.save'),
     onClick: () => saveTemplate()
   },
   { separator: true },
   {
-    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    icon: 'pi pi-refresh',
     label: t('common.reset'),
     onClick: resetTree
   },
   {
-    icon: () => h('i', { class: 'pi pi-code', 'aria-hidden': 'true' }),
+    icon: 'pi pi-code',
     label: t('cassette.v2.occsDraft'),
     onClick: () => { occsDialogVisible.value = true; }
   }
@@ -884,30 +879,30 @@ const documentDockItems = computed(() => [
 
 const canvasDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-undo', 'aria-hidden': 'true' }),
+    icon: 'pi pi-undo',
     label: t('common.undo'),
     disabled: !canUndo.value,
     onClick: undoDesignerChange
   },
   {
-    icon: () => h('i', { class: 'pi pi-replay', 'aria-hidden': 'true' }),
+    icon: 'pi pi-replay',
     label: t('common.redo'),
     disabled: !canRedo.value,
     onClick: redoDesignerChange
   },
   { separator: true },
   {
-    icon: () => h('i', { class: 'pi pi-search-minus', 'aria-hidden': 'true' }),
+    icon: 'pi pi-search-minus',
     label: t('drawing.zoomOut'),
     onClick: () => drawingCanvasRef.value?.zoomOut()
   },
   {
-    icon: () => h('i', { class: 'pi pi-search-plus', 'aria-hidden': 'true' }),
+    icon: 'pi pi-search-plus',
     label: t('drawing.zoomIn'),
     onClick: () => drawingCanvasRef.value?.zoomIn()
   },
   {
-    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    icon: 'pi pi-refresh',
     label: t('drawing.resetView'),
     onClick: () => drawingCanvasRef.value?.resetView()
   }

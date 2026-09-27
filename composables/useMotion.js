@@ -16,48 +16,6 @@ export const loadGsap = () => {
 }
 
 /**
- * Smoothed numeric follow value. Replaces per-element spring graphs: callers
- * recompute a target from real state (for example pointer proximity) and call
- * `set(target)` as often as the input fires; GSAP's quickTo tweens toward the
- * latest target. `jump(target)` snaps without animation and cancels in-flight
- * smoothing — the reduced-motion switch.
- */
-export function useFollowValue(initial, { duration = 0.3, ease = 'power3.out' } = {}) {
-    const current = ref(initial)
-    const proxy = { value: initial }
-    let apply = null
-    let engine = null
-
-    onMounted(async () => {
-        engine = await loadGsap()
-        apply = engine.quickTo(proxy, 'value', {
-            duration,
-            ease,
-            onUpdate: () => { current.value = proxy.value }
-        })
-    })
-
-    onUnmounted(() => { engine?.killTweensOf(proxy) })
-
-    const set = target => {
-        if (!apply) {
-            proxy.value = target
-            current.value = target
-            return
-        }
-        apply(target)
-    }
-
-    const jump = target => {
-        engine?.killTweensOf(proxy)
-        proxy.value = target
-        current.value = target
-    }
-
-    return { current, set, jump }
-}
-
-/**
  * Enter/exit presence for a single element (tooltips, drawers, message rows).
  * The element stays mounted; visibility animates opacity plus a vertical
  * offset. Reduced motion resolves to an immediate show/hide with no spatial

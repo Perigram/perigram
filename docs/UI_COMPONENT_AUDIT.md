@@ -212,7 +212,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-links-tracechain-vue` | `components/shared/links/TraceChain.vue` | shared/domain primitive | centralize:layout (1) |
 | `ui-components-shared-links-tracelink-vue` | `components/shared/links/TraceLink.vue` | shared/domain primitive | replace:chrome (2) |
 | `ui-components-shared-metricpanel-vue` | `components/shared/MetricPanel.vue` | derived usage | replace:chrome (3) |
-| `ui-components-shared-motiondock-vue` | `components/shared/MotionDock.vue` | derived usage | replace:chrome (9); replace:inline-visual (2); replace:render-visual (5) |
 | `ui-components-shared-nameeditpopover-vue` | `components/shared/NameEditPopover.vue` | derived usage | compliant |
 | `ui-components-shared-offlineoutboxbadge-vue` | `components/shared/OfflineOutboxBadge.vue` | derived usage | replace:chrome (4) |
 | `ui-components-shared-responsivegrid-vue` | `components/shared/ResponsiveGrid.vue` | shared/domain primitive | centralize:layout (4); compliant:scoped-layout |

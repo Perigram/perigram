@@ -102,7 +102,7 @@
     "refresh": "Обновить"
   },
   "designer": {
-    "panels": "Панели",
+    "toolbar": "Панель инструментов",
     "palette": "Палитра",
     "inspector": "Инспектор",
     "support": "Поддержка"
@@ -2537,7 +2537,6 @@
     "editGrantConditions": "Настроить условия разрешения",
     "event": "Событие",
     "palette": "Палитра",
-    "canvasNavigation": "Навигация по холсту",
     "dataMatching": "Сопоставление данных",
     "outputPreview": "Выходные данные",
     "refreshPreview": "Проверить",

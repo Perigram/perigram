@@ -3,7 +3,8 @@
     <DesignerSurface>
       <DesignerWorkspace
         ref="canvasFrame"
-        :top-dock-items="documentDockItems"
+        :document-items="documentDockItems"
+        :canvas-items="canvasDockItems"
         layout="canvas"
         class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
         @mousedown.capture="handleDesignerPointerDown"
@@ -110,14 +111,6 @@
               </div>
             </div>
           </div>
-      </template>
-
-      <template #dock>
-        <MotionDock
-          :items="canvasDockItems"
-          :aria-label="$t('processDesigner.canvasNavigation')"
-          class-name="process-designer-dock"
-        />
       </template>
 
       <Popover ref="renameMenu">
@@ -603,7 +596,6 @@ import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScre
 import ProcessNodeInspector from '~/components/process-designer/inspector/ProcessNodeInspector.vue';
 import DeclarationInspector from '~/components/process-designer/inspector/DeclarationInspector.vue';
 import DeclarationEdgeInspector from '~/components/process-designer/inspector/DeclarationEdgeInspector.vue';
-import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
@@ -982,57 +974,58 @@ const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
 const documentDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
+    icon: 'pi pi-folder-open',
     label: t('common.open'),
     onClick: event => processMenu.value?.toggle(event),
     hasPopup: true
   },
-
   {
-    icon: () => h('i', { class: renamingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-pencil', 'aria-hidden': 'true' }),
+    icon: 'pi pi-pencil',
     label: t('common.rename'),
     onClick: event => openRenamePopover(event),
     disabled: !draft.value?._id || isActiveProcess.value,
+    loading: renamingDraft.value,
     hasPopup: true
   },
   { separator: true },
   {
-    icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    icon: 'pi pi-save',
     label: t('common.save'),
     onClick: saveDraftFromDock,
     disabled: !draft.value || savingDraft.value || creatingDraft.value || applyingProcess.value,
     attention: isDirty.value
   },
   {
-    icon: () => h('i', { class: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
+    icon: 'pi pi-check',
     label: t('processDesigner.apply'),
     onClick: applyProcess,
-    disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value
+    disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value,
+    loading: applyingProcess.value
   }
 ]);
 const canvasDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-search-minus', 'aria-hidden': 'true' }),
+    icon: 'pi pi-search-minus',
     label: t('drawing.zoomOut'),
     onClick: zoomCanvasOut
   },
   {
-    icon: () => h('i', { class: 'pi pi-search-plus', 'aria-hidden': 'true' }),
+    icon: 'pi pi-search-plus',
     label: t('drawing.zoomIn'),
     onClick: zoomCanvasIn
   },
   {
-    icon: () => h('i', { class: 'pi pi-expand', 'aria-hidden': 'true' }),
+    icon: 'pi pi-expand',
     label: t('processDesigner.frameAll'),
     onClick: frameAllNodes
   },
   {
-    icon: () => h('i', { class: 'pi pi-crosshairs', 'aria-hidden': 'true' }),
+    icon: 'pi pi-crosshairs',
     label: t('processDesigner.frameSelection'),
     onClick: frameSelectedNodes
   },
   {
-    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    icon: 'pi pi-refresh',
     label: t('processDesigner.resetZoom'),
     onClick: resetCanvasZoom
   }
