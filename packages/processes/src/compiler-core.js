@@ -1581,6 +1581,80 @@ function compileLifecycle(profile = {}, domain = {}) {
   return workflow ? normalizeWorkflow(workflow) : null;
 }
 
+// State nesting is authored by wiring a state node into another state node
+// (SPEC §7): source child, target parent, edge role `type` label `nested`.
+function stateNestingPairs(process = {}) {
+  const nodeById = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
+  const valueOf = node => {
+    if (!node || node.type !== 'ctsState') return '';
+    const refId = String(node.data?.refId || node.id);
+    return String(node.data?.value || process.ctsTypes?.[refId]?.value || '');
+  };
+  const pairs = [];
+  for (const edge of process.graph?.edges || []) {
+    const source = nodeById.get(String(edge.source));
+    const target = nodeById.get(String(edge.target));
+    if (source?.type !== 'ctsState' || target?.type !== 'ctsState') continue;
+    const handle = String(edge.targetHandle || '').replace(/^(input|data):/, '');
+    if (handle !== 'state') continue;
+    const child = valueOf(source);
+    const parent = valueOf(target);
+    if (child && parent && child !== parent) pairs.push({ child, parent });
+  }
+  return pairs;
+}
+
+function findStateEntry(states = {}, value = '', path = []) {
+  const name = String(value || '');
+  if (!name) return null;
+  for (const [key, definition] of Object.entries(states || {})) {
+    if (key === name) return { definition, container: states, name: key, path: [...path, key] };
+    const nested = definition?.states && findStateEntry(definition.states, name, [...path, key]);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function nestRegionStates(region = {}, pairs = []) {
+  let progressed = true;
+  let guard = 0;
+  while (progressed && guard++ < 200) {
+    progressed = false;
+    for (const { child, parent } of pairs) {
+      const childEntry = findStateEntry(region.states, child);
+      const parentEntry = findStateEntry(region.states, parent);
+      if (!childEntry || !parentEntry) continue;
+      if (childEntry.container === region.states) {
+        // still flat: attach under parent
+      } else {
+        continue;
+      }
+      if (childEntry.path.join('.') === parentEntry.path.join('.')) continue;
+      parentEntry.definition.states ||= {};
+      parentEntry.definition.states[childEntry.name] = childEntry.definition;
+      parentEntry.definition.initial ||= childEntry.name;
+      delete childEntry.container[childEntry.name];
+      progressed = true;
+    }
+  }
+}
+
+// Entering a state lands on its initial child chain (SPEC §7), so a
+// transition is a no-op when its arrival leaf equals its target leaf.
+function stateLeafPath(region = {}, value = '') {
+  const entry = findStateEntry(region.states, value);
+  if (!entry) return '';
+  let path = entry.path.join('.');
+  let definition = entry.definition;
+  while (definition?.states && Object.keys(definition.states).length) {
+    const child = definition.initial;
+    if (!child || !definition.states[child]) break;
+    path = `${path}.${child}`;
+    definition = definition.states[child];
+  }
+  return path;
+}
+
 function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   const workflows = {};
   const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
@@ -1707,10 +1781,20 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     }
   }
 
+  const nestingPairs = stateNestingPairs(process);
   for (const [producerOutputId, builder] of builders) {
     if (!Object.values(builder.regions).some(region => Object.keys(region.states).length)) continue;
     for (const region of Object.values(builder.regions)) {
       applyStatusDefinitionMetadata(region, process.producerOutputs?.[producerOutputId]?.typeId, process.stateDefinitions);
+      nestRegionStates(region, nestingPairs);
+      if (region.initial) region.initial = stateLeafPath(region, region.initial) || region.initial;
+      region.transitions = (region.transitions || [])
+        .map(transition => ({
+          ...transition,
+          from: stateLeafPath(region, transition.from) || transition.from,
+          to: stateLeafPath(region, transition.to) || transition.to
+        }))
+        .filter(transition => transition.from && transition.to && transition.from !== transition.to);
       // A machine requires an entry (SPEC §7): the construct's state
       // default authors it; when none is authored yet, the first declared
       // state record supplies a deterministic entry so the vocabulary

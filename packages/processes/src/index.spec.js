@@ -702,6 +702,44 @@ describe('@perigram/processes compiler', () => {
     expect(exposed.state).toMatchObject({ from: 'draft', to: 'done' });
   });
 
+  it('nests states declared by a state-to-state wire and drops no-op edges', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      graph: {
+        nodes: [
+          { id: 'cs1', type: 'ctsState', data: { refId: 'r1', value: 'state1' } },
+          { id: 'cs2', type: 'ctsState', data: { refId: 'r2', value: 'parentState' } },
+          { id: 'make_project', type: 'processNode', data: { refId: 'make_project' } },
+          { id: 't', type: 'processNode', data: { refId: 't' } }
+        ],
+        edges: [
+          { id: 'nest', source: 'cs2', target: 'cs1', sourceHandle: 'output:state', targetHandle: 'input:state', role: 'type', label: 'nested' },
+          { id: 'init', source: 'cs1', target: 'make_project', sourceHandle: 'output:state', targetHandle: 'data:state' },
+          { id: 'target', source: 'cs2', target: 't', sourceHandle: 'output:state', targetHandle: 'data:state' },
+          { id: 'entity', source: 'make_project', sourceHandle: 'data:result', target: 't', targetHandle: 'data:entity', role: 'data' }
+        ]
+      },
+      producerOutputs: producerOutputRecords([['make_project', 'project']]),
+      ctsTypes: {
+        r1: { id: 'r1', kind: 'state', typeId: 'project', value: 'state1' },
+        r2: { id: 'r2', kind: 'state', typeId: 'project', value: 'parentState' }
+      },
+      processNodes: {
+        make_project: { id: 'make_project', kind: 'cts.construct', typeId: 'project', producerOutputId: 'make_project:entity', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, inputDefaults: { state: 'state1' } },
+        t: { id: 't', kind: 'cts.transition', typeId: 'project', state: { to: 'parentState' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+      }
+    }, {
+      ...domain,
+      construction: { ...(domain.construction || {}), project: { modes: ['genericCreate'], defaultMode: 'genericCreate' } }
+    });
+    const region = compiled.producerOutputs['make_project:entity'].workflow.regions.main;
+    expect(Object.keys(region.states).sort()).toEqual(['state1', 'state1.parentState']);
+    expect(region.initial).toBe('state1.parentState');
+    // state1 enters parentState as its initial child, so a transition to
+    // parentState is a no-op and must not compile an edge.
+    expect(region.transitions).toEqual([]);
+  });
+
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
     // Org-authored lifecycles stay traversable: the declared machine is the
     // whole contract — its own states, transitions, and entry — with no

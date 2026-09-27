@@ -278,7 +278,18 @@ export function workflowStateEntries(region = {}) {
 }
 
 export function resolveWorkflowStatePath(region = {}, state) {
-  if (typeof state !== 'string' || !state || !Object.hasOwn(region?.states || {}, state)) return null;
+  if (typeof state !== 'string' || !state) return null;
+  const states = region?.states || {};
+  if (Object.hasOwn(states, state)) return descendToInitial(region, state);
+  if (state.includes('.')) return null;
+  // An authored value names a state by its local name; resolve it to the
+  // one canonical dotted path that carries it (nested machines, SPEC §7).
+  const matches = Object.keys(states).filter(key => key.endsWith(`.${state}`));
+  if (matches.length !== 1) return null;
+  return descendToInitial(region, matches[0]);
+}
+
+function descendToInitial(region = {}, state = '') {
   let path = state;
   let definition = region.states[state];
   while (definition?.[STATE_CHILDREN] && Object.keys(definition[STATE_CHILDREN]).length) {
