@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, readBody } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
-import * as cassetteService from '~/server/features/cassettes/service';
+import * as cassetteService from '~/server/packs/facade/cassettes/service';
 
 // Import a cassette template from an existing DXF_SOURCE artifact: the
 // two-step companion to `POST /api/cassettes/upload` (which accepts the file

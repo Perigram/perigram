@@ -6,7 +6,7 @@ vi.mock('h3', () => ({
   createError: (error) => Object.assign(new Error(error.message), error)
 }));
 
-vi.mock('../../features/cassettes/service.js', () => ({
+vi.mock('~/server/packs/facade/cassettes/service.js', () => ({
   list: vi.fn(async () => [])
 }));
 
@@ -15,7 +15,7 @@ vi.mock('../../utils/entity-redaction.js', () => ({
 }));
 
 import handler from './index.get.js';
-import * as cassetteService from '../../features/cassettes/service.js';
+import * as cassetteService from '~/server/packs/facade/cassettes/service.js';
 
 describe('GET /api/cassettes', () => {
   it('passes lineage filters to the cassette service', async () => {

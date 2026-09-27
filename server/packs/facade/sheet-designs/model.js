@@ -1,4 +1,4 @@
-import { BaseEntity } from '../../core/blocks/index.js';
+import { BaseEntity } from '../../../core/blocks/index.js';
 
 /**
  * Sheet Design Entity - v24 Absolute Final

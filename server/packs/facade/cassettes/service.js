@@ -1,25 +1,25 @@
 import * as repository from './repository.js';
-import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
-import * as instanceRevisionsService from '../instance-revisions/service.js';
-import * as artifactsService from '../artifacts/service.js';
-import * as filesService from '../files/service.js';
+import { createProcessUpdateHandler } from '../../../features/_template/process-update-handler.js';
+import * as instanceRevisionsService from '../../../features/instance-revisions/service.js';
+import * as artifactsService from '../../../features/artifacts/service.js';
+import * as filesService from '../../../features/files/service.js';
 import { createError } from 'h3';
-import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { hasLineagePermission, getLineageFilter } from '../../../utils/permissions.js';
 import {
   createIdentity,
   createData
-} from '../../core/blocks/index.js';
-import { createTransitionAuth, stateService } from '../../core/machines/service.js';
+} from '../../../core/blocks/index.js';
+import { createTransitionAuth, stateService } from '../../../core/machines/service.js';
 import standardSlugify from 'standard-slugify';
-import { generateRandomString } from '../../utils/strings.js';
-import { toFlexibleId } from '../../utils/objectid.js';
+import { generateRandomString } from '../../../utils/strings.js';
+import { toFlexibleId } from '../../../utils/objectid.js';
 import { Cassette } from './model.js';
-import { serializeForAccess } from '../../utils/entity-redaction.js';
-import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
+import { serializeForAccess } from '../../../utils/entity-redaction.js';
+import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../../utils/dxf-extractor.js';
 import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
 import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
-import { generateLayeredDxf } from '../../utils/dxf-writer.js';
+import { generateLayeredDxf } from '../../../utils/dxf-writer.js';
 
 /**
  * Cassette Templates Service - v24 Standardized

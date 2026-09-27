@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3';
 import { requireAuth } from '../../utils/permissions.js';
-import * as cassetteService from '../../features/cassettes/service.js';
+import * as cassetteService from '~/server/packs/facade/cassettes/service.js';
 import { serializeManyForAccess } from '../../utils/entity-redaction.js';
 
 export default defineEventHandler(async (event) => {

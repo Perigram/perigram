@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { createMock, createRenderedMock, generateAndStoreDxfMock, findLatestByRunMock, renderTemplateMock } = vi.hoisted(() => ({
+const { createMock, createRenderedMock, sheetDxfExporterMock, renderTemplateMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
   createRenderedMock: vi.fn(),
-  generateAndStoreDxfMock: vi.fn(),
-  findLatestByRunMock: vi.fn(),
+  sheetDxfExporterMock: vi.fn(),
   renderTemplateMock: vi.fn()
 }));
 
@@ -16,8 +15,6 @@ vi.mock('h3', () => ({
   })
 }));
 vi.mock('./service.js', () => ({ create: createMock, createRendered: createRenderedMock }));
-vi.mock('../sheet-designs/service.js', () => ({ generateAndStoreDxf: generateAndStoreDxfMock }));
-vi.mock('../nesting/jobs.js', () => ({ findLatestByRun: findLatestByRunMock }));
 vi.mock('../artifact-templates/service.js', () => ({ render: renderTemplateMock }));
 
 import { generateAttachment } from './operations.js';
@@ -26,8 +23,6 @@ describe('artifact operations', () => {
   beforeEach(() => {
     createMock.mockReset();
     createRenderedMock.mockReset();
-    generateAndStoreDxfMock.mockReset();
-    findLatestByRunMock.mockReset();
     renderTemplateMock.mockReset();
   });
 
@@ -73,7 +68,7 @@ describe('artifact operations', () => {
   });
 
   it('generates and stores a sheet design layout DXF before creating the artifact', async () => {
-    generateAndStoreDxfMock.mockResolvedValue({ fileId: 'file-1' });
+    sheetDxfExporterMock.mockResolvedValue({ fileId: 'file-1' });
     createMock.mockResolvedValue({
       _id: 'artifact-1',
       data: { type: 'LAYOUT_DXF' },
@@ -94,9 +89,13 @@ describe('artifact operations', () => {
         organizationId: 'org-1',
         role: 'member'
       }
+    }, {
+      // The pack seam: sheet-design DXF export arrives as the facade
+      // pack's injected executor (see server/packs/facade).
+      sheetDxfExporter: sheetDxfExporterMock
     });
 
-    expect(generateAndStoreDxfMock).toHaveBeenCalledWith('sheet-1', 'user-1', 'org-1', 'member', expect.any(Object));
+    expect(sheetDxfExporterMock).toHaveBeenCalledWith('sheet-1', expect.objectContaining({ userId: 'user-1', organizationId: 'org-1', role: 'member' }));
     expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
       type: 'LAYOUT_DXF',
       fileId: 'file-1',
@@ -110,7 +109,7 @@ describe('artifact operations', () => {
   });
 
   it('accepts an abstract attachment source entity for layout DXF generation', async () => {
-    generateAndStoreDxfMock.mockResolvedValue({ fileId: 'file-2' });
+    sheetDxfExporterMock.mockResolvedValue({ fileId: 'file-2' });
     createMock.mockResolvedValue({
       _id: 'artifact-2',
       data: { type: 'LAYOUT_DXF' },
@@ -132,9 +131,9 @@ describe('artifact operations', () => {
         organizationId: 'org-2',
         role: 'member'
       }
-    });
+    }, { sheetDxfExporter: sheetDxfExporterMock });
 
-    expect(generateAndStoreDxfMock).toHaveBeenCalledWith('sheet-2', 'user-2', 'org-2', 'member', expect.any(Object));
+    expect(sheetDxfExporterMock).toHaveBeenCalledWith('sheet-2', expect.objectContaining({ userId: 'user-2', organizationId: 'org-2', role: 'member' }));
     expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
       lineage: expect.objectContaining({ sheetDesignId: 'sheet-2' })
     }), 'user-2', 'org-2', 'member', expect.any(Object));

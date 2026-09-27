@@ -17,8 +17,6 @@ const mocks = vi.hoisted(() => ({
     getById: vi.fn(),
     list: vi.fn()
   },
-  cassetteDesignsService: { list: vi.fn() },
-  cassettesService: { list: vi.fn() },
   artifactsService: { list: vi.fn() },
   catalogsService: { list: vi.fn() },
   librariesService: { list: vi.fn() },
@@ -28,7 +26,6 @@ const mocks = vi.hoisted(() => ({
   nestingRunsService: { list: vi.fn() },
   remnantsService: { list: vi.fn() },
   requisitionsService: { list: vi.fn() },
-  sheetDesignsService: { list: vi.fn() },
   sheetsService: { list: vi.fn() },
   materialsService: { list: vi.fn() },
   warehousesService: { list: vi.fn() },
@@ -39,8 +36,6 @@ vi.mock('./repository.js', () => mocks.repository);
 vi.mock('~/server/runtime/app-registry.js', () => ({
   getAppRegistry: () => mocks.appRegistry
 }));
-vi.mock('~/server/features/cassette-designs/service.js', () => mocks.cassetteDesignsService);
-vi.mock('~/server/features/cassettes/service.js', () => mocks.cassettesService);
 vi.mock('~/server/features/artifacts/service.js', () => mocks.artifactsService);
 vi.mock('~/server/features/catalogs/service.js', () => mocks.catalogsService);
 vi.mock('~/server/features/libraries/service.js', () => mocks.librariesService);
@@ -51,7 +46,6 @@ vi.mock('~/server/features/material-piles/service.js', () => mocks.materialPiles
 vi.mock('~/server/features/nesting-runs/service.js', () => mocks.nestingRunsService);
 vi.mock('~/server/features/remnants/service.js', () => mocks.remnantsService);
 vi.mock('~/server/features/requisitions/service.js', () => mocks.requisitionsService);
-vi.mock('~/server/features/sheet-designs/service.js', () => mocks.sheetDesignsService);
 vi.mock('~/server/features/sheets/service.js', () => mocks.sheetsService);
 vi.mock('~/server/features/materials/service.js', () => mocks.materialsService);
 vi.mock('~/server/features/warehouses/service.js', () => mocks.warehousesService);

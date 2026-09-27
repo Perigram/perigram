@@ -1,11 +1,14 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
 import * as attachmentService from './service.js';
-import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as artifactTemplatesService from '../artifact-templates/service.js';
 import { createInstanceRef, createProvenance } from '../../core/blocks/index.js';
 
-export async function generateAttachment({ entities, parameters = {}, auth }) {
+// The pack seam: sheet-design DXF export is facade-domain behavior, so
+// the framework handler receives it as an injected executor (the facade
+// pack mounts the override). Without a pack executor the sheet-design
+// LAYOUT_DXF branch refuses honestly instead of importing domain code.
+export async function generateAttachment({ entities, parameters = {}, auth }, { sheetDxfExporter = null } = {}) {
   const source = entities.source || entities.sheetDesign || entities.nestingRun;
   if (!source) throw createError({ statusCode: 400, message: 'Attachment source entity is required' });
 
@@ -47,9 +50,13 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
   }
 
   if (kind === 'LAYOUT_DXF') {
-    const generatedDxf = isSheetDesign
-      ? await sheetDesignsService.generateAndStoreDxf(sourceId, auth.userId, auth.organizationId, auth.role, auth)
-      : null;
+    let generatedDxf = null;
+    if (isSheetDesign) {
+      if (typeof sheetDxfExporter !== 'function') {
+        throw createError({ statusCode: 400, message: 'Sheet-design DXF export requires the facade pack (no sheetDxf executor mounted)' });
+      }
+      generatedDxf = await sheetDxfExporter(sourceId, auth);
+    }
     const existingDxf = isNestingRun ? await findGeneratedRunDxf(sourceId) : null;
     const dxfFile = generatedDxf || existingDxf;
     const attachment = await attachmentService.create({

@@ -1,7 +1,5 @@
 import { createError } from 'h3';
 import * as artifactsService from '~/server/features/artifacts/service.js';
-import * as cassettesService from '~/server/features/cassettes/service.js';
-import * as sheetDesignsService from '~/server/features/sheet-designs/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -21,8 +19,6 @@ const ATTACHMENT_DURATION_MAX_SECONDS = 600;
 const scopedList = (service) => (auth, filters) => service.list(auth.userId, auth.organizationId, auth.role, auth, filters);
 const INSTANCE_OPTION_LOADERS = {
     artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
-    cassette: scopedList(cassettesService),
-    sheet_design: scopedList(sheetDesignsService),
     user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
 };
 

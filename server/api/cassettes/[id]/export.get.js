@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery, setResponseHeader, sendStream } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
-import * as cassetteService from '~/server/features/cassettes/service';
+import * as cassetteService from '~/server/packs/facade/cassettes/service';
 
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
