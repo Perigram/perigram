@@ -46,21 +46,6 @@ Every README.md must:
   canonical README. Every other README links to it. Verbatim restatement
   across READMEs is a defect.
 
-## Канон контура (обязателен для каждой сессии)
-
-- Конституция: /home/cutkit/agent-orchestrator/docs/circuit-constitution.md
-  (топография, DSM-правила, красные линии).
-- Эта территория — канонический workdir проекта perigram: сессия задачи
-  запускается отсюда (дефолт 2026-09-24,
-  /home/cutkit/agent-orchestrator/docs/инструкция-единое-окно.md §1).
-  Штаб — триаж неидентифицированных задач, координация, консолидация;
-  исполнительская работа из Штаба не ведётся.
-- Продукты не изолированы: перед изменением проверь затронутые проекты по
-  /home/cutkit/agent-orchestrator/docs/territory-dsm.md (ripple-правило §4);
-  нашёл незадокументированное ребро — внеси в карту.
-- Закрытие сессии: /home/cutkit/agent-orchestrator/docs/session-closure-protocol.md;
-  строка в /home/cutkit/Documents/cutkit-cortex/9_meta/session-close-log.md.
-
 ## Mandatory First Reads
 
 Before changing files, read:
