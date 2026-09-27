@@ -139,7 +139,8 @@ surface concerns:
   components).
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
-  `card-grid` | `timeline` | `stats` | `list` | `board`, matched by
+  `card-grid` | `timeline` | `stats` | `list` | `board` | `gantt` |
+  `calendar`, matched by
   class, shape, hierarchy, size, or the state vocabulary — see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)).
   The list header is one wrapping line — label, count, in-place expanding
@@ -169,7 +170,9 @@ surface concerns:
   single-type). Facts follow the card-grid budget
   (`cardFactCount` over `CARD_FACT_SCALE`); beyond-budget facts collapse
   behind the shared show-more keys with one expand per card — board
-  lanes are dense, so the budget is the collapse. Per-instance quick
+  lanes are dense, so the budget is the collapse — and the facts rhythm
+  follows the screen's injected spacing coefficient (compact screens
+  shrink board cards with everything else). Per-instance quick
   actions (deletion, instance-scoped commands) ride the card's ellipsis
   menu like the card grid; status transitions are the drag itself and
   the opened record's strip. It renders by derivation for process-class
@@ -212,6 +215,23 @@ surface concerns:
   HTML5 drag is the desktop affordance; the per-card ellipsis menu and
   the opened record's transition strip remain the accessible and touch
   paths.
+- `GanttCollection.vue` — the durational projection: one row per
+  instance over a shared instant scale. Declared instants in declaration
+  order are the interval (`temporalFieldsFor`: first start, second
+  end); the pool's own min/max bounds the scale, bars are data-driven
+  geometry (the inline data-driven exception: `left`/`width` from the
+  instant values) painted by the state severity token classes
+  (`bg-status-*`), a start without an end renders a point — never a
+  fabricated duration — and the axis carries month ticks (dense scales
+  drop labels, not structure) plus the today marker when the scale
+  spans now. Identity links follow the shared `onOpen` contract.
+- `CalendarCollection.vue` — the scheduled projection: a month grid over
+  the type's lone declared instant. Day cells are subtle wells, today's
+  cell steps up to the content surface, instances render as capped
+  identity chips with a plain overflow count (the day cell is a summary,
+  not a list), and month navigation is local view state — the month
+  opens on the first loaded instance's month. Labels and weekday
+  headers format through the active locale.
 - `CarouselGrid.vue` — the large media collection projection: a circular
   PrimeVue Carousel of clipped preview cards.
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor

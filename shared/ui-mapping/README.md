@@ -105,14 +105,20 @@ feedback, and large media collections lay out as a carousel. Spec-row
 values are click-to-edit via Inplace.
 
 `resolveListLayout(type, { hierarchical, size, stateful })` → `'table' |
-'tree-table' | 'card-grid' | 'timeline' | 'stats' | 'list' | 'board'`
-from one matcher table over `analyzeTypeShape(type)`: prose-dominant types
-are chronological (timeline), percent/quantity-dominant types are
+'tree-table' | 'card-grid' | 'timeline' | 'stats' | 'list' | 'board' |
+'gantt' | 'calendar'` from one
+matcher table over `analyzeTypeShape(type)`: prose-dominant types are
+chronological (timeline), percent/quantity-dominant types are
 statlike (StatGrid cards with the `text-metric` role), media types get
 card grids, lineage-holding collections get tree tables, handful-sized
 sets render as a bare stacked list, and the default is the generated
 columnar table — no hand-picked type ids anywhere and no authored
-override channel (display derivation replaced it). The board is the one
+override channel (display derivation replaced it). The temporal shapes:
+a type declaring two instants is durational (an interval — the gantt,
+outranking chronology because an interval is the stronger structure)
+and a lone instant with no stronger shape schedules the calendar
+(`temporalFieldsFor` derives the fields in declaration order); temporal
+shape beats size the way chronology already does. The board is the one
 class+vocabulary decision: a process-class type whose served state
 vocabulary spans at least `BOARD_MIN_COLUMNS` values (`stateful`, from
 `hasStateVocabulary` over the region's state policy) renders its
