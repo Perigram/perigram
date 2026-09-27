@@ -702,7 +702,7 @@ describe('@perigram/processes compiler', () => {
     expect(exposed.state).toMatchObject({ from: 'draft', to: 'done' });
   });
 
-  it('nests states declared by a state-to-state wire and drops no-op edges', () => {
+  it('nests the wired state under its parent and keeps the parent-to-child transition', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
       roles: { role_operator: { id: 'role_operator' } },
@@ -734,14 +734,20 @@ describe('@perigram/processes compiler', () => {
       construction: { ...(domain.construction || {}), project: { modes: ['genericCreate'], defaultMode: 'genericCreate' } }
     });
     const region = compiled.producerOutputs['make_project:entity'].workflow.regions.main;
-    expect(Object.keys(region.states).sort()).toEqual(['state1', 'state1.parentState']);
-    expect(region.initial).toBe('state1.parentState');
-    // state1 enters parentState as its initial child, so a transition to
-    // parentState is a no-op and must not compile an edge — nor be exposed.
-    expect(region.transitions).toEqual([]);
+    // The wire's source is the parent, its target the child: state1 nests
+    // under parentState, and the entry is the wired child (parentState.state1).
+    expect(Object.keys(region.states).sort()).toEqual(['parentState', 'parentState.state1']);
+    expect(region.initial).toBe('parentState.state1');
+    // parentState is itself a leaf, so moving to it from its child is a real
+    // transition (the machine compiles the edge and exposes/executes it).
+    expect(region.transitions).toEqual([
+      expect.objectContaining({ from: 'parentState.state1', to: 'parentState' })
+    ]);
     const exposed = compiled.roles.role_operator.actions.filter(entry => entry.actionKind === 'updateEntity');
-    expect(exposed).toEqual([]);
-    expect(compiled.actions.t).toBeUndefined();
+    expect(exposed.map(entry => entry.state)).toEqual([
+      { to: 'parentState', from: 'state1' }
+    ]);
+    expect(compiled.actions.t.state).toMatchObject({ from: 'state1', to: 'parentState' });
   });
 
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
@@ -4292,9 +4298,9 @@ describe('@perigram/processes compiler', () => {
     expect(workflow.regions.main.states['PRODUCTION.cut']).toMatchObject({ label: 'Cut' });
     expect(workflow.regions.main.states['PRODUCTION.cut'].path).toEqual(['PRODUCTION', 'cut']);
     expect(workflow.regions.main.states.PRODUCTION.label).toBe('Production');
-    // The action targets the region entry, so the machine compiles no edge
-    // and the execution channel omits it (a no-op is not a transition).
-    expect(compiled.actions.mark_cut).toBeUndefined();
+    // PRODUCTION is a leaf beside its child, so the action targets a
+    // distinct state and stays part of the contract.
+    expect(compiled.actions.mark_cut.state.to).toBe('PRODUCTION.cut');
     expect(compiled.stateDefinitions.cut.parentStatusId).toBe('PRODUCTION');
   });
 

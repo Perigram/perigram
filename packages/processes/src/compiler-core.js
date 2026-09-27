@@ -1608,8 +1608,10 @@ function stateNestingPairs(process = {}) {
     if (source?.type !== 'ctsState' || target?.type !== 'ctsState') continue;
     const handle = String(edge.targetHandle || '').replace(/^(input|data):/, '');
     if (handle !== 'state') continue;
-    const child = valueOf(source);
-    const parent = valueOf(target);
+    // The wire points from parent to child: the source state is the parent,
+    // the state it feeds into (the target's `state` input) is its child.
+    const parent = valueOf(source);
+    const child = valueOf(target);
     if (child && parent && child !== parent) pairs.push({ child, parent });
   }
   return pairs;
@@ -1650,20 +1652,10 @@ function nestRegionStates(region = {}, pairs = []) {
   }
 }
 
-// Entering a state lands on its initial child chain (SPEC §7), so a
-// transition is a no-op when its arrival leaf equals its target leaf.
-function stateLeafPath(region = {}, value = '') {
+// Canonical dotted path of a state value in the (possibly nested) tree.
+function stateCanonicalPath(region = {}, value = '') {
   const entry = findStateEntry(region.states, value);
-  if (!entry) return '';
-  let path = entry.path.join('.');
-  let definition = entry.definition;
-  while (definition?.states && Object.keys(definition.states).length) {
-    const child = definition.initial;
-    if (!child || !definition.states[child]) break;
-    path = `${path}.${child}`;
-    definition = definition.states[child];
-  }
-  return path;
+  return entry ? entry.path.join('.') : '';
 }
 
 function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
@@ -1798,12 +1790,12 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     for (const region of Object.values(builder.regions)) {
       applyStatusDefinitionMetadata(region, process.producerOutputs?.[producerOutputId]?.typeId, process.stateDefinitions);
       nestRegionStates(region, nestingPairs);
-      if (region.initial) region.initial = stateLeafPath(region, region.initial) || region.initial;
+      if (region.initial) region.initial = stateCanonicalPath(region, region.initial) || region.initial;
       region.transitions = (region.transitions || [])
         .map(transition => ({
           ...transition,
-          from: stateLeafPath(region, transition.from) || transition.from,
-          to: stateLeafPath(region, transition.to) || transition.to
+          from: stateCanonicalPath(region, transition.from) || transition.from,
+          to: stateCanonicalPath(region, transition.to) || transition.to
         }))
         .filter(transition => transition.from && transition.to && transition.from !== transition.to);
       // A machine requires an entry (SPEC §7): the construct's state

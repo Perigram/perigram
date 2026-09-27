@@ -179,8 +179,8 @@ export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'cts
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
   if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
-  // A state wired into a state input nests inside it (SPEC §7). No axis
-  // names, no parent markers — the wire is the nesting declaration.
+  // A state wired into a state input becomes that state's child: the wire's
+  // source is the parent, the target (receiving state) the child (SPEC §7).
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'nested';
   // A state wires into a status-bearing operation's state socket: the
   // construct's initial state, the transition's target — the wire IS the
@@ -573,14 +573,15 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '', recor
     if (source?.type === 'ctsState') stateNodes.set(source.id, source);
   }
   const stateIds = new Set(stateNodes.keys());
-  // State-to-state wires declare nesting (SPEC §7) — structure only, no
-  // paths, no initials; terminal is authored on the node.
+  // State-to-state wires declare nesting (SPEC §7): the wire's source is
+  // the parent, the receiving (target) state its child. Structure only, no
+  // initials; terminal is authored on the node.
   const nesting = edges
     .filter(edge => edge.role === 'type' && stateIds.has(edge.source) && stateIds.has(edge.target))
     .map(edge => ({
       edgeId: edge.id,
-      child: String(nodeById.get(edge.source)?.data?.value || ''),
-      parent: String(nodeById.get(edge.target)?.data?.value || '')
+      parent: String(nodeById.get(edge.source)?.data?.value || ''),
+      child: String(nodeById.get(edge.target)?.data?.value || '')
     }));
   const states = [...stateNodes.values()].map(node => ({
     nodeId: node.id,
