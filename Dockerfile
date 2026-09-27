@@ -13,6 +13,9 @@ WORKDIR /src
 FROM base as build
 
 COPY --link package.json package-lock.json ./
+# CI runner host: registry.npmjs.org resolves to a broken IPv6 path (read hangs,
+# ETIMEDOUT); force IPv4-first resolution for npm.
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
 RUN npm ci
 
 COPY --link . .
