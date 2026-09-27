@@ -84,7 +84,8 @@ export const designTokens = {
         swatchSize: '2.625rem',
         floatingMenuMinWidth: '12.5rem',
         previewDialogHeight: '95vh',
-        tableActionColumnWidth: '3rem'
+        tableActionColumnWidth: '3rem',
+        boardColumnMaxHeight: '36rem'
     },
     typography: {
         ui: "'IBM Plex Sans', sans-serif",
@@ -204,6 +205,7 @@ export const cssVariableTokens = {
     '--ck-floating-menu-min-width': designTokens.layout.floatingMenuMinWidth,
     '--ck-preview-dialog-height': designTokens.layout.previewDialogHeight,
     '--ck-table-action-column-width': designTokens.layout.tableActionColumnWidth,
+    '--ck-board-column-max-height': designTokens.layout.boardColumnMaxHeight,
     ...Object.fromEntries(Object.entries(zincPrimary).map(([step, value]) => [`--ck-primary-${step}`, value])),
     ...Object.fromEntries(Object.entries(perigramAccent).map(([step, value]) => [`--ck-accent-${step}`, value]))
 };
@@ -322,6 +324,9 @@ export const tailwindThemeExtension = {
         'support-chat': 'var(--ck-support-chat-height)',
         'support-chat-admin': 'var(--ck-support-chat-admin-height)',
         'preview-dialog': 'var(--ck-preview-dialog-height)'
+    },
+    maxHeight: {
+        'board-column': 'var(--ck-board-column-max-height)'
     },
     minHeight: {
         'support-chat': 'var(--ck-support-chat-height)'

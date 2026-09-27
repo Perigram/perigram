@@ -239,10 +239,19 @@ export const LAYOUT = Object.freeze({
   // Board projection: the horizontal column rail (columns are in-surface
   // wells one step above the canvas — the surface ladder's `subtle` inset
   // level — while the cards inside sit on the content surface) and the
-  // column body itself. Column width is a layout dimension token — one
-  // board column never depends on its content's width.
+  // column bodies. Column width is a layout dimension token — one board
+  // column never depends on its content's width — and column bodies are
+  // bounded (`max-h-board-column`) with their own vertical scroll, so the
+  // board never grows the page and each lane scrolls independently; the
+  // `flex-1 min-h-0` pair lets the same body fill bounded hosts (workspace
+  // panes) instead.
   boardRow: 'flex w-full items-start gap-4 overflow-x-auto pb-1',
   boardColumn: 'flex w-72 shrink-0 flex-col gap-2 rounded-panel bg-subtle p-3',
+  boardColumnScroll: 'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1 max-h-board-column',
+  // A dashed hairline marks the columns a drag may land in (the machine
+  // edges decide); the hovered receiver steps up to the content surface.
+  boardColumnTarget: 'border border-dashed border-content-border',
+  boardColumnReceiving: 'border border-dashed border-content-border bg-content',
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',

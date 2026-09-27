@@ -609,6 +609,7 @@
         "--ck-accent-900": "#7b0021",
         "--ck-accent-950": "#4e0015",
         "--ck-accent-ink": "#be0033",
+        "--ck-board-column-max-height": "36rem",
         "--ck-border-subtle": "var(--p-content-border-color)",
         "--ck-bounded-grid-item-max-width": "32rem",
         "--ck-bounded-grid-item-min-width": "24rem",
@@ -712,6 +713,7 @@
           "system": "var(--ck-entity-tone-system)"
         },
         "layout": {
+          "boardColumnMaxHeight": "36rem",
           "boundedGridItemMaxWidth": "32rem",
           "boundedGridItemMinWidth": "24rem",
           "compactPreviewWidth": "10rem",
@@ -952,6 +954,9 @@
           "support-chat": "var(--ck-support-chat-height)",
           "support-chat-admin": "var(--ck-support-chat-admin-height)",
           "swatch": "var(--ck-swatch-size)"
+        },
+        "maxHeight": {
+          "board-column": "var(--ck-board-column-max-height)"
         },
         "maxWidth": {
           "app": "var(--ck-page-max-width)",

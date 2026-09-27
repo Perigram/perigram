@@ -106,8 +106,9 @@
       />
       <BoardCollection
         v-else-if="listLayout === 'board'"
-        :instances="sortedInstances"
+        :instances="filteredInstances"
         :type="node.type"
+        :controls="node.listControls"
         :actions="instanceActionsForType"
         :openable="openable"
         :pool="pool"
@@ -256,8 +257,9 @@
       />
       <BoardCollection
         v-else-if="listLayout === 'board'"
-        :instances="sortedInstances"
+        :instances="filteredInstances"
         :type="node.type"
+        :controls="node.listControls"
         :actions="instanceActionsForType"
         :openable="openable"
         :pool="pool"
@@ -622,7 +624,8 @@ watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter))
 // Card ordering: the sort bar moved into the header cluster — the same
 // sortKeys contract, shared comparator, and persisted preference (scope
 // kept) the DataView header owned. The sort control serves the card-grid
-// and board projections (the table projection sorts natively by column).
+// projection (tables sort natively by column; the board sorts per column
+// inside BoardCollection, on its own scoped preference).
 const sortScope = computed(() => `card-grid:${props.node.typeId || ''}`);
 const preferredSort = loadSortPreference(sortScope.value);
 const sortName = ref(preferredSort?.name || props.node.listControls?.defaultSort || null);
@@ -631,7 +634,7 @@ const sortOptions = computed(() => (props.node.listControls?.sortKeys || [])
   .map(key => ({ label: key.label, value: key.name })));
 const sortKeyResolved = computed(() => (props.node.listControls?.sortKeys || [])
   .find(key => key.name === sortName.value) || null);
-const sortToggleAvailable = computed(() => ['card-grid', 'board'].includes(listLayout.value) && sortOptions.value.length > 0);
+const sortToggleAvailable = computed(() => listLayout.value === 'card-grid' && sortOptions.value.length > 0);
 const sortActive = computed(() => Boolean(sortName.value)
   && sortName.value !== props.node.listControls?.defaultSort);
 watch([sortName, sortOrder], () => {

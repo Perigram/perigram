@@ -46,10 +46,11 @@
         :screen="screen"
         :contract="world.contract"
         :bundle="world.bundle"
-        :instances="world.instances"
+        :instances="instancesWithOverrides"
         :source-states="sourceStatesFor(screen)"
         :spacing-scale="scale"
         :on-open="openInstance"
+        :on-transition="applyTransition"
       />
     </section>
 
@@ -68,7 +69,7 @@ import ScrollTop from 'primevue/scrolltop';
 import Slider from 'primevue/slider';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { generateUiMappingWorld, DEFAULT_RANDOM_SEED } from '~/test-data/ui-mapping-random.js';
-import { SPACING_STEPS } from '#shared/ui-mapping/index.js';
+import { SPACING_STEPS, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 definePageMeta({ layout: 'ui-lab-layout' });
 
@@ -81,6 +82,23 @@ const seed = computed(() => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_RANDOM_SEED;
 });
 const world = computed(() => generateUiMappingWorld(seed.value));
+// Board drops are executable in the lab: the showcase owns no state
+// service, so the transition executor applies optimistic per-instance
+// state overrides over the seeded world — the card visibly moves to the
+// machine-legal lane the drop named, and rerolling the seed resets the
+// world (stale overrides simply stop matching).
+const stateOverrides = ref({});
+const instancesWithOverrides = computed(() => Object.fromEntries(Object.entries(world.value.instances || {})
+  .map(([typeId, instances]) => [typeId, instances.map(instance => ({
+    ...instance,
+    state: stateOverrides.value[`${typeId}:${instance.id}`] || instance.state
+  }))])));
+async function applyTransition({ instance, to } = {}) {
+  if (!instance?.type || !instance?.id || !to) return;
+  stateOverrides.value = { ...stateOverrides.value, [`${instance.type}:${instance.id}`]: to };
+  const display = stateDisplayFor(world.value.contract.statePolicy?.[instance.type] || null, to);
+  toast.add({ severity: 'success', summary: display?.label || to, life: 1600 });
+}
 const scale = computed(() => {
   const raw = Number(route.query.scale);
   return SPACING_STEPS.includes(raw) ? raw : 1;
