@@ -304,8 +304,23 @@ const layerDataEntryPaths = (entry = {}) => {
 const normalizeLayerDataDrawing = (source, options = {}) => {
   const data = source?.data || source || {};
   const geometryData = data.geometry?.data || {};
-  const layerData = Array.isArray(data.layerData) ? data.layerData : (Array.isArray(geometryData.layerData) ? geometryData.layerData : []);
-  const polygonParts = Array.isArray(data.polygonParts) ? data.polygonParts : (Array.isArray(geometryData.polygonParts) ? geometryData.polygonParts : []);
+  // The declared preview channel may hand the baked parts straight
+  // through as the geometry value (a type's previewSource fallbackPaths
+  // resolve layer/polygon parts off the wire DTO): an array there IS the
+  // layerData list; an object may carry either parts list beside the
+  // geometry block.
+  const geometryLayerData = Array.isArray(data.geometry)
+    ? data.geometry
+    : (Array.isArray(data.geometry?.layerData) ? data.geometry.layerData : []);
+  const geometryPolygonParts = Array.isArray(data.geometry?.polygonParts)
+    ? data.geometry.polygonParts
+    : [];
+  const layerData = Array.isArray(data.layerData)
+    ? data.layerData
+    : (geometryLayerData.length ? geometryLayerData : (Array.isArray(geometryData.layerData) ? geometryData.layerData : []));
+  const polygonParts = Array.isArray(data.polygonParts)
+    ? data.polygonParts
+    : (geometryPolygonParts.length ? geometryPolygonParts : (Array.isArray(geometryData.polygonParts) ? geometryData.polygonParts : []));
   const layers = [];
   const boundsPoints = [];
 

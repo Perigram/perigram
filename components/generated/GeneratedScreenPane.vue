@@ -1,6 +1,6 @@
 <template>
   <section class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-    <div data-pane-header class="flex shrink-0 items-stretch">
+    <div data-pane-header class="flex h-9 shrink-0 items-stretch border-b border-chrome-border">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :active-key="activeKey"
@@ -9,7 +9,7 @@
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
       />
-      <div class="flex shrink-0 items-center border-b border-chrome-border pr-1">
+      <div class="flex shrink-0 items-center pr-1">
         <GeneratedWorkspacePaneMenu
           :splittable="splittable"
           :closeable="closeable"

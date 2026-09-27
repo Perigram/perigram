@@ -28,13 +28,35 @@
           />
         </header>
 
-        <!-- Wrapped rail: one icon per top-level panel; the brand mark,
-             profile avatar, and this rail are the whole sidebar. -->
+        <!-- Wrapped rail: communication first (chats, calls — the same
+             order the expanded menu leads with), then one icon per
+             top-level panel; the brand mark, profile avatar, and this rail
+             are the whole sidebar. -->
         <nav
           v-if="sidebarCollapsed"
           class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
           :aria-label="$t('nav.home')"
         >
+          <Button
+            icon="pi pi-comments"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('support.chatTitle')"
+            :title="$t('support.chatTitle')"
+            @click="openChatsPage"
+          />
+          <Button
+            icon="pi pi-phone"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('call.calls')"
+            :title="$t('call.calls')"
+            @click="event => callsFlyout?.toggle(event)"
+          />
           <Button
             v-for="node in explorerNodes"
             :key="node.key"
@@ -46,16 +68,6 @@
             :aria-label="node.label"
             :title="node.label"
             @click="openTypeScreen(node.data.screen)"
-          />
-          <Button
-            icon="pi pi-comments"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('support.chatTitle')"
-            :title="$t('support.chatTitle')"
-            @click="openChatsPage"
           />
         </nav>
 
@@ -76,10 +88,12 @@
             :pt="menuPt"
             @click.capture="onMenuClickCapture"
           />
-          <!-- The Calls entry toggles this popup flyout (ported to the
-               body, anchored at the entry): every ringable conversation. -->
-          <CommunicationMenu ref="callsFlyout" @start-call="startCallFromConversation" />
         </div>
+
+        <!-- The Calls flyout is anchored at whichever entry toggled it
+             (expanded row or wrapped icon) and lives outside the two
+             sidebar branches so the wrapped rail reaches it too. -->
+        <CommunicationMenu ref="callsFlyout" @start-call="startCallFromConversation" />
 
         <!-- Profile is its own bottom panel: the account trigger shows the
              user's actual name in the unwrapped state, the avatar alone in
@@ -102,8 +116,13 @@
                   class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                 />
                 <template v-if="!sidebarCollapsed">
-                  <span class="m-0 min-w-0 flex-1 truncate text-label">
-                    {{ authStore.userData.name || $t('common.user') }}
+                  <span class="m-0 flex min-w-0 flex-1 flex-col">
+                    <span class="truncate text-label">
+                      {{ authStore.userData.name || $t('common.user') }}
+                    </span>
+                    <span v-if="activeOrganizationLabel" class="truncate text-supporting text-muted">
+                      {{ activeOrganizationLabel }}
+                    </span>
                   </span>
                   <i class="pi pi-chevron-up shrink-0 text-muted" aria-hidden="true" />
                 </template>
@@ -408,8 +427,39 @@ const visibleTypes = computed(() => {
 // workspace item for the #item slot.
 const sidebarMenuModel = computed(() => [
   ...communicationPanelModels(),
-  ...explorerNodes.value.map(node => typePanelItem(node))
+  ...explorerNodes.value.map(node => typePanelItem(node)),
+  ...organizationPanelModels()
 ]);
+
+// Organization switching lives in the sidebar itself (the home workspace
+// has no other org surface): one trailing panel lists the user's
+// organizations — the active one checked; selecting another switches
+// context and opens the organization overview.
+function organizationPanelModels() {
+  const organizations = authStore.userOrganizations || [];
+  if (!organizations.length) return [];
+  return [{
+    key: 'organizations',
+    label: t('profile.myOrganizations'),
+    icon: 'pi pi-building',
+    headerClass: 'text-muted',
+    command: menuCommand('organizations', () => navigateTo('/organization')),
+    items: organizations.map(organization => {
+      const id = organization._id?.toString() || organization.id?.toString();
+      const active = Boolean(id) && id === authStore.userData?.organizationId?.toString();
+      return {
+        key: `organization:${id || 'unknown'}`,
+        icon: active ? 'pi pi-check text-status-success' : 'pi pi-building',
+        label: organization.identity?.name || organization.name || organization.identity?.uid || id,
+        class: 'text-muted',
+        command: async () => {
+          if (id && !active) await authStore.switchOrganization(id);
+          navigateTo('/organization');
+        }
+      };
+    })
+  }];
+}
 
 // Menu selection follows the active pane's selected tab: a type screen
 // selects its type panel, an instance/detail/page tab selects its entity
@@ -596,6 +646,17 @@ function activeRoomItems() {
     command: () => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })
   }));
 }
+
+// The sidebar footer's second line: the active organization's name (the
+// account menu switches organizations; the footer names where the user
+// currently works).
+const activeOrganizationLabel = computed(() => {
+  const activeId = authStore.userData?.organizationId?.toString();
+  if (!activeId) return '';
+  const active = (authStore.userOrganizations || []).find(organization =>
+    (organization._id?.toString() || organization.id?.toString()) === activeId);
+  return active?.identity?.name || active?.name || '';
+});
 
 const explorerNodes = computed(() => {
   const childTypes = new Map();

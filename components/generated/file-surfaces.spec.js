@@ -86,7 +86,7 @@ describe('file surface registry', () => {
 
   it('derives detail and workspace page rows only for surfaces with presentations', () => {
     const detailTypes = fileDetailOverloads().map(overload => overload.typeId).sort();
-    expect(detailTypes).toEqual(['cassette', 'csv-table', 'sheet-design', 'sketch', 'text-document']);
+    expect(detailTypes).toEqual(['cassette', 'csv-table', 'sheet-design', 'sketch', 'text-document', 'xlsx-workbook']);
     const pageIds = fileWorkspacePages().map(page => page.id);
     expect(pageIds).toEqual(['cassette-designer']);
     expect(fileWorkspacePages()[0].typeId).toBe('cassette');

@@ -6,13 +6,13 @@
       class="min-w-0 flex-1 justify-center"
       @update:value="key => key !== activeKey && $emit('select', key)"
     >
-      <TabList class="min-w-0 flex-1">
+      <TabList class="min-w-0 flex-1" :pt="tabListPt">
         <Tab
           v-for="tab in tabs"
           :key="tab.key"
           :value="tab.key"
           as="div"
-          class="flex max-w-56 min-w-28 items-center !py-0 !px-2.5"
+          class="group/workspace-tab flex max-w-56 min-w-28 items-center !py-0 !px-2.5"
         >
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>
@@ -31,13 +31,14 @@
             rounded
             size="small"
             severity="secondary"
+            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible"
             :aria-label="$t('common.close')"
             @click.stop="$emit('close-tab', tab.key)"
           />
         </Tab>
       </TabList>
     </Tabs>
-    <div class="flex shrink-0 items-center border-b border-chrome-border">
+    <div class="flex shrink-0 items-center">
       <Button
         icon="pi pi-plus"
         text
@@ -72,6 +73,16 @@ defineEmits(['select', 'close-tab', 'add', 'refresh']);
 
 const { t } = useI18n();
 const registry = useRegistryStore();
+
+// The tab strip fills the pane header's fixed height: PrimeVue sizes tab
+// rows by padding, so the viewport and the tab row stretch to 100% and the
+// tabs themselves (already !py-0) center inside. The pane header row owns
+// the single hairline under the whole stripe (tabs + pane controls), so
+// the tablist's own bottom border is dropped.
+const tabListPt = {
+  root: { style: { height: '100%' } },
+  tabList: { style: { height: '100%', alignItems: 'stretch', borderWidth: 0 } }
+};
 
 function tabLabel(tab = {}) {
   if (tab.kind === 'empty') return t('project.newTab');

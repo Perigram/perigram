@@ -49,7 +49,13 @@ export const facadeFileTypes = [
       icon: 'pi pi-box',
       groups: [
         { id: 'geometry', fields: [
-          { path: 'data.geometry.preview', label: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
+          // Cassette renderable geometry exists in several stored shapes:
+          // the baked geometry preview, or the raw layer/polygon parts
+          // uploaded templates store. The preview channel walks them in
+          // order (the DataBlock fallbackPaths vocabulary), so generated
+          // card previews never depend on which construction path baked
+          // the record.
+          { path: 'data.geometry.preview', fallbackPaths: ['data.layerData', 'data.polygonParts'], label: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
         ] },
         { id: 'provenance', fields: [
           { path: 'data.geometryRevisionId', label: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }

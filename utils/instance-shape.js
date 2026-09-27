@@ -60,11 +60,23 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
   // Declared preview field (type.previewSource — the authored
   // previewSource group row): the value reads straight off the wire DTO,
   // so generated previews render the declared channel (for example
-  // cassette geometry) even while the payload is absent.
-  const previewSourcePath = typeRecord.previewSource?.path;
-  const previewSourceValue = previewSourcePath
-    ? (readBlockPath(dto, previewSourcePath.split('.')) ?? null)
-    : null;
+  // cassette geometry) even while the payload is absent. The declared
+  // fallbackPaths walk in order — the same resolution DataBlock rows use
+  // — so a type whose renderable source is stored in several shapes
+  // previews whichever one the record carries.
+  const previewSourcePaths = [
+    typeRecord.previewSource?.path,
+    ...(typeRecord.previewSource?.fallbackPaths || [])
+  ].filter(Boolean);
+  let previewSourceValue = null;
+  for (const previewPath of previewSourcePaths) {
+    const value = readBlockPath(dto, previewPath.split('.'));
+    if (value !== null && value !== undefined
+      && (Array.isArray(value) ? value.length > 0 : true)) {
+      previewSourceValue = value;
+      break;
+    }
+  }
   return {
     id: String(dto._id || dto.identity?.uid || ''),
     type: typeRecord.id || '',

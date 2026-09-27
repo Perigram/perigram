@@ -51,6 +51,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
 import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
@@ -263,9 +264,9 @@ async function runGeneratedAction(action, data = {}, context = {}) {  const scop
   const instanceId = context.instance?.id || scope.instanceId || scope.instanceId || null;
   try {
     const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });
-    // Created entities open their destination like every other generated
-    // surface (compiled detail route first) instead of stranding the
-    // author on the list they came from.
+    // Created entities open in the home workspace (the same-tab contract —
+    // a create never routes the user out of the workspace shell); orgs
+    // without a compiled home keep the routed detail destination.
     if (isCreateAction(action)) {
       const target = resolveCreatedInstanceOpen({
         action,
@@ -273,6 +274,11 @@ async function runGeneratedAction(action, data = {}, context = {}) {  const scop
         screenKey: screenKey.value,
         manifest: authStore.screenManifest
       });
+      if (target?.kind === 'workspace') {
+        toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.typeId, life: 4000 });
+        openInstanceInWorkspace({ typeId: target.typeId, instanceId: target.instanceId });
+        return;
+      }
       if (target?.kind === 'route') {
         await navigateTo(target.route);
         return;

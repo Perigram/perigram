@@ -1,11 +1,13 @@
 <template>
   <Button
     v-if="!resolved.hidden"
-    :label="label"
+    :label="iconOnly ? undefined : label"
     :aria-label="label"
+    :title="iconOnly ? label : undefined"
     :severity="resolved.severity || (resolved.tone === 'danger' ? 'danger' : resolved.tone === 'primary' ? undefined : 'secondary')"
-    :outlined="resolved.tone === 'secondary'"
-    :text="resolved.tone === 'text'"
+    :outlined="!iconOnly && resolved.tone === 'secondary'"
+    :text="iconOnly || resolved.tone === 'text'"
+    :rounded="iconOnly"
     :icon="resolved.icon || undefined"
     size="small"
     @click="$emit('run', action)"
@@ -39,4 +41,9 @@ const label = computed(() => localizedLabel(
   actionLabelKey(props.action.id),
   props.label ?? (resolved.value.label || props.action.label)
 ));
+// The resolver's obvious-action channel: create and delete render
+// icon-only (the caption stays the tooltip and accessible name); the
+// context label ("New" beside a region header) never widens the button
+// back — the host chrome already names the target.
+const iconOnly = computed(() => resolved.value.iconOnly === true);
 </script>

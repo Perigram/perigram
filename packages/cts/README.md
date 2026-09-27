@@ -110,9 +110,12 @@ module layout and how the code maps to the spec's build-order tiers.
   `identifier` (the resolved flag field id, or null), `depiction:
   { glyph, thumb }` (thumb = the depiction flag field id or null),
   `fields` (descriptors including the normalized naming facet),
-  `previewSource` (`{ path, display }` adopted from the authored
-  `render.groups` row flagged `previewSource` — the declared
-  data-field preview channel, or null), and
+  `previewSource` (`{ path, display, fallbackPaths? }` adopted from the
+  authored `render.groups` row flagged `previewSource` — the declared
+  data-field preview channel, or null; `fallbackPaths` are stored-shape
+  fallbacks the preview channel walks in order, the same vocabulary
+  `DataBlock` rows use, so a type whose renderable source exists in
+  several stored shapes previews whichever the record carries), and
   `sections` — the derived grouping that replaces authored groups: total
   assignment by base (`quantity`→dimensions, `ref`→relations, `blob` or
   the depiction flag→media, multiline/long strings→notes, else summary;

@@ -1,14 +1,19 @@
 import { detailRouteForInstance, instanceIdentifier } from '~/components/generated/instance-detail-routing.js';
 
 // Where a successfully created entity opens (SPEC §4 editor protocol):
-// 1. its compiled detail route when the manifest has a screen for the
-//    type (the pane/route body mounts the type's editor surface through
-//    the file-surface overload);
-// 2. the home workspace pane when the create ran with the `editor`
+// 1. the home workspace pane tab — the "everything lives inside home"
+//    rule: while the manifest carries a compiled home screen, a create
+//    opens (or reuses) the created entity's tab in the same workspace
+//    instead of routing out of it;
+// 2. its compiled detail route when no home workspace exists (orgs
+//    without a compiled home still get the routed detail surface — the
+//    pane/route body mounts the type's editor surface through the
+//    file-surface overload);
+// 3. the home workspace pane when the create ran with the `editor`
 //    protocol and no compiled route exists — the editor contract ("blank
 //    instance whose first editor save fills the payload") guarantees the
 //    editor is reachable, not a silent close;
-// 3. a toast fallback so a create without any destination is never
+// 4. a toast fallback so a create without any destination is never
 //    silent.
 export function resolveCreatedInstanceOpen({ action = {}, result = null, screenKey = '', manifest = [] } = {}) {
   const entity = createdEntity(action, result);
@@ -16,6 +21,10 @@ export function resolveCreatedInstanceOpen({ action = {}, result = null, screenK
   if (!entity || !typeId) return null;
   const identifier = instanceIdentifier(entity);
   if (!identifier) return null;
+  const hasHomeWorkspace = manifest.some(screen => screen?.template === 'home');
+  if (hasHomeWorkspace) {
+    return { kind: 'workspace', typeId, instanceId: identifier, name: displayName(entity) };
+  }
   const route = detailRouteForInstance({ entity, typeId, screenKey, manifest });
   if (route) return { kind: 'route', route, typeId, instanceId: identifier };
   const mode = action.construction?.mode ?? action.via;

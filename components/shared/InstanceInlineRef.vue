@@ -134,6 +134,12 @@ const compactDataFields = computed(() => compactDisplay.value.fields.filter(fiel
   && field.role !== 'previewSource'
 ));
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
+// The micro card earns its box: it renders only when the type's compact
+// surface carries something to show beside identity — a preview band or
+// compact fact rows. Preview-less, fact-less relations render as the
+// plain identity chip (still the popover trigger), so galleries never
+// lay out grids of empty cards for data without visual fields.
+const compactCardWorthy = computed(() => compactHasPreview.value || compactDataFields.value.length > 0);
 const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
 const compactPreviewHideDimensionLayer = computed(() =>
   ['cassette', 'sheet_design'].includes(generatedTypeId.value)
@@ -341,7 +347,7 @@ function tonePalette(role) {
 
 <template>
   <span
-    v-if="variant === 'compact'"
+    v-if="variant === 'compact' && compactCardWorthy"
     class="inline-flex w-full min-w-0 max-w-full"
     :style="toneStyle"
   >

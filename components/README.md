@@ -181,8 +181,12 @@ Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain the canonical entity page for their
 selected entity or a registered workspace page, plus pane-local controls. Each
-pane header owns its IDE-style file tabs: each entity tab carries its compact
-lifecycle status and close affordance, followed by a standalone add-tab control.
+pane header owns its IDE-style file tabs in one compact fixed-height row whose
+single hairline spans the whole stripe — tab list and the right-side pane
+controls alike: each entity tab carries its compact
+lifecycle status and a close affordance that appears only on tab hover or
+focus (its space stays reserved so labels do not shift), followed by a
+standalone add-tab control.
 Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
 hidden, matching an IDE file-tab strip.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
@@ -395,9 +399,12 @@ generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
 and only humanizes ids as a last fallback. Generic process action labels must
 not display English verbs such as `Create` or raw target statuses such as
-`DELETED`; create actions show the localized entity name beside the plus icon,
-and status-mutating update actions show a localized operation label without
-exposing the state id in the button text.
+`DELETED`. Obvious actions render icon-only on instance surfaces — create is
+the plus glyph, delete the trash — with the localized label (create: the
+entity name) carried as the tooltip and accessible name; menu rows keep full
+labels. Status-mutating update actions resolve their target state's icon and
+severity from the compiled state policy (the same flat vocabulary
+`InstanceState` uses), so transition buttons carry the authored state icon.
 Generated non-status action surfaces, including detail header buttons and card
 footers, must not render status-mutating update actions. `InstanceState` loads
 server-filtered actions and owns the status popover/history.

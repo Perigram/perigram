@@ -267,6 +267,12 @@ The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry
 one arrival fact, and a button is never offered in its own target state.
+The scoping fact is kind-general: any state-bound effect wired from a
+single arrival state scopes by it — a delete wired from one state renders
+only there (per-state delete buttons), while a delete wired from several
+states (or unwired) stays unscoped and the server runtime still guards
+execution. Only status-mutating actions compile machine edges; deletes
+never do.
 An exposed status-mutating action is the machine's edge: when the machine
 compiles no edge for it (a no-op arrival-to-target pair), the action is part
 of neither the compiled execution channel nor the manifest, so no surface
