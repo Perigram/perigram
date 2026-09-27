@@ -36,8 +36,8 @@ export const useSupportChatStore = defineStore('supportChat', () => {
             if (payload?.type === 'support.inbox') refresh();
         };
         unsubscribeInbox = useConnections().subscribe(`user:${authStore.user.userId}`, handleInboxPing);
-        // Entity-linked chats fan their inbox pings out on the organization
-        // topic: org-mates see each other's entity messages without being
+        // Instance-linked chats fan their inbox pings out on the organization
+        // topic: org-mates see each other's instance messages without being
         // conversation participants.
         const organizationId = String(authStore.organizationData?._id || authStore.userData?.organizationId || '');
         if (organizationId) {

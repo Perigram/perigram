@@ -1,6 +1,6 @@
 <template>
     <!-- One surface for every host: the popup Dialog, the /chats route, the
-         entity detail panel, and the call workspace all embed this same
+         instance detail panel, and the call workspace all embed this same
          plain column — the host owns position, chrome, and stacking. -->
     <div class="chat-host flex h-full min-h-0 w-full items-stretch justify-stretch p-0">
         <div
@@ -19,7 +19,7 @@
             >
                 <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
                     <label
-                        v-if="hasEntityRows && !showArchived"
+                        v-if="hasInstanceRows && !showArchived"
                         class="mr-auto flex items-center gap-1 pl-1 text-muted text-supporting"
                         :title="$t('support.chatGroupingAll')"
                     >
@@ -107,8 +107,8 @@
                         <div class="group relative flex w-full min-w-0 items-start gap-2 md:gap-3">
                             <div class="relative shrink-0">
                                 <Avatar
-                                    v-if="option.conversationKind === 'entity'"
-                                    :icon="entityConversationIcon(option)"
+                                    v-if="option.conversationKind === 'instance'"
+                                    :icon="instanceConversationIcon(option)"
                                     shape="circle"
                                     size="normal"
                                     class="bg-subtle text-muted"
@@ -202,8 +202,8 @@
                         @click="showInbox"
                     />
                     <Avatar
-                        v-if="activeConversation.conversationKind === 'entity'"
-                        :icon="entityConversationIcon(activeConversation)"
+                        v-if="activeConversation.conversationKind === 'instance'"
+                        :icon="instanceConversationIcon(activeConversation)"
                         shape="circle"
                         class="shrink-0 bg-subtle text-muted"
                     />
@@ -223,24 +223,24 @@
                     <div class="flex min-w-0 flex-1 flex-col">
                         <div class="flex min-w-0 items-center gap-1">
                             <h2 class="m-0 min-w-0 truncate text-section-heading">
-                                <!-- The entity thread title itself is the
-                                     open-entity link; the children-messages
+                                <!-- The instance thread title itself is the
+                                     open-instance link; the children-messages
                                      toggle sits right beside it (inverted:
-                                     default shows the entity's own messages,
+                                     default shows the instance's own messages,
                                      toggling includes the children). -->
                                 <Button
-                                    v-if="activeConversation.conversationKind === 'entity' && activeEntityDetailRoute"
+                                    v-if="activeConversation.conversationKind === 'instance' && activeInstanceDetailRoute"
                                     link
                                     class="!p-0 text-left"
                                     :aria-label="conversationLabel(activeConversation)"
-                                    @click="openEntityFromThread"
+                                    @click="openInstanceFromThread"
                                 >
                                     {{ conversationLabel(activeConversation) }}
                                 </Button>
                                 <template v-else>{{ conversationLabel(activeConversation) }}</template>
                             </h2>
                             <Button
-                                v-if="activeConversation.conversationKind === 'entity'"
+                                v-if="activeConversation.conversationKind === 'instance'"
                                 icon="pi pi-sitemap"
                                 :severity="includeChildren ? 'primary' : 'secondary'"
                                 text
@@ -253,7 +253,7 @@
                             />
                         </div>
                         <!-- Group threads carry their member profiles inline;
-                             entity threads keep the scope subtitle. -->
+                             instance threads keep the scope subtitle. -->
                         <div
                             v-if="activeConversation.conversationKind === 'group'"
                             class="flex min-w-0 flex-wrap items-center gap-1"
@@ -454,7 +454,7 @@
                                     class="max-w-full"
                                 />
                                 <div
-                                    v-if="messageItem.message || (messageItem.entityRefs || []).length"
+                                    v-if="messageItem.message || (messageItem.instanceRefs || []).length"
                                     class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
                                     :class="isOwnMessage(messageItem)
                                         ? 'bg-primary text-primary-contrast'
@@ -500,7 +500,7 @@
                                 </div>
                                 <span class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting">
                                     {{ formatTime(messageItem.timestamp) }}
-                                    <!-- Messages linked to lower entities keep a
+                                    <!-- Messages linked to lower instances keep a
                                          subtle, clickable leaf link inside the
                                          caption; it is inline caption text, not a
                                          control, so a plain minimal element beats
@@ -508,14 +508,14 @@
                                          label underlines on hover; the icon
                                          never does. -->
                                     <button
-                                        v-if="lowerEntityChip(messageItem)"
+                                        v-if="lowerInstanceChip(messageItem)"
                                         type="button"
                                         class="group flex min-w-0 items-center gap-1 transition-opacity"
-                                        :aria-label="messageItem.entityLink.name"
-                                        @click="openLowerEntityChat(messageItem)"
+                                        :aria-label="messageItem.instanceLink.name"
+                                        @click="openLowerInstanceChat(messageItem)"
                                     >
-                                        <i :class="instances.iconFor(messageItem.entityLink.type)" class="shrink-0 scale-90" aria-hidden="true"></i>
-                                        <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ messageItem.entityLink.name }}</span>
+                                        <i :class="instances.iconFor(messageItem.instanceLink.type)" class="shrink-0 scale-90" aria-hidden="true"></i>
+                                        <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ messageItem.instanceLink.name }}</span>
                                     </button>
                                 </span>
                             </div>
@@ -566,17 +566,17 @@
                         />
                     </div>
 
-                    <!-- Entity target strip: lineage drill-down over ALL
+                    <!-- Instance target strip: lineage drill-down over ALL
                          children of the current target. Breadcrumb-like pills
                          walk back up; the chip row is the current level,
-                         exactly one target selected (the composed entity
+                         exactly one target selected (the composed instance
                          when no child is drilled). -->
                     <div
-                        v-if="activeConversation.conversationKind === 'entity' && (stripChildren.length || stripTrail.length)"
+                        v-if="activeConversation.conversationKind === 'instance' && (stripChildren.length || stripTrail.length)"
                         class="flex flex-col gap-1 pb-1"
-                        data-testid="entity-target-strip"
+                        data-testid="instance-target-strip"
                     >
-                        <!-- Entity target strip: dynamic breadcrumbs — the
+                        <!-- Instance target strip: dynamic breadcrumbs — the
                              drilled lineage leads the same strip as icon-only
                              pills (no text; tapping jumps back to that
                              level), an angle marks the descent, and the
@@ -586,7 +586,7 @@
                              the composer density, so the strip renders
                              minimal pill elements from the semantic tokens.
                              Exactly one target is selected: the composed
-                             entity root, the deepest drilled lineage pill, or
+                             instance root, the deepest drilled lineage pill, or
                              a drilled leaf chip. -->
                         <div class="flex items-center gap-1 overflow-x-auto">
                             <button
@@ -595,12 +595,12 @@
                                 :class="stripRootSelected
                                     ? 'bg-primary text-primary-contrast'
                                     : 'bg-subtle text-muted hover:opacity-80'"
-                                :title="activeConversation.entityName || localizedTypeIdLabel(activeConversation.typeId)"
-                                :aria-label="activeConversation.entityName || localizedTypeIdLabel(activeConversation.typeId)"
+                                :title="activeConversation.instanceName || localizedTypeIdLabel(activeConversation.typeId)"
+                                :aria-label="activeConversation.instanceName || localizedTypeIdLabel(activeConversation.typeId)"
                                 :aria-current="stripRootSelected ? 'true' : undefined"
                                 @click="resetStripTrail()"
                             >
-                                <i :class="entityConversationIcon(activeConversation)" aria-hidden="true"></i>
+                                <i :class="instanceConversationIcon(activeConversation)" aria-hidden="true"></i>
                             </button>
                             <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
                                 <i class="pi pi-angle-right shrink-0 text-muted" aria-hidden="true"></i>
@@ -642,17 +642,17 @@
                     <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted text-body">
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
                     </div>
-                    <div v-if="entityRefs.length" class="mb-2 flex flex-wrap gap-2">
+                    <div v-if="instanceRefs.length" class="mb-2 flex flex-wrap gap-2">
                         <div
-                            v-for="ref in entityRefs"
+                            v-for="ref in instanceRefs"
                             :key="`${ref.type}-${ref.id}`"
                             class="inline-flex max-w-full items-center gap-1 rounded-ui bg-subtle px-2 py-1"
                         >
                             <InstanceInlineRef
                                 :type="ref.type"
                                 :id="ref.id"
-                                :entity="ref.entity || null"
-                                :fetch="!ref.entity"
+                                :entity="ref.instance || null"
+                                :fetch="!ref.instance"
                             />
                             <Button
                                 icon="pi pi-times"
@@ -660,7 +660,7 @@
                                 rounded
                                 size="small"
                                 :aria-label="$t('common.delete')"
-                                @click="removeEntityRef(ref)"
+                                @click="removeInstanceRef(ref)"
                             />
                         </div>
                     </div>
@@ -736,7 +736,7 @@
                             <Button
                                 icon="pi pi-send"
                                 severity="primary"
-                                :disabled="(!message.trim() && !entityRefs.length) || isLoading"
+                                :disabled="(!message.trim() && !instanceRefs.length) || isLoading"
                                 :aria-label="$t('support.send')"
                                 @click="sendMessage"
                             />
@@ -842,7 +842,7 @@
                 <label v-for="field in createPromptFields" :key="field.id" class="flex flex-col gap-1">
                     <span class="text-muted text-supporting">{{ field.label || field.id }}</span>
                     <Select
-                        v-if="field.type === 'entity'"
+                        v-if="field.type === 'instance'"
                         v-model="createPromptValues[field.id]"
                         :options="createPromptOptions[field.id] || []"
                         option-label="label"
@@ -965,11 +965,11 @@ const props = defineProps({
     fullPage: { type: Boolean, default: false },
     conversationKey: { type: String, default: '' },
     openCallInPane: { type: Boolean, default: false },
-    // Detail-page panels pin one entity thread: no inbox, no back navigation.
+    // Detail-page panels pin one instance thread: no inbox, no back navigation.
     threadOnly: { type: Boolean, default: false },
-    // Entity display name hint for synthesized stubs before the snapshot
+    // Instance display name hint for synthesized stubs before the snapshot
     // fills the thread title.
-    entityName: { type: String, default: '' }
+    instanceName: { type: String, default: '' }
 })
 
 const emit = defineEmits(['open-call'])
@@ -992,7 +992,7 @@ const loadingOlder = ref(false)
 const currentUserId = ref(authStore.userData?.id || authStore.userData?.userId || null)
 let unsubscribeConversation = null
 let conversationLoadToken = 0
-const entityRefs = ref([])
+const instanceRefs = ref([])
 const attachmentPicker = ref(null)
 const pendingCreateAction = ref(null)
 const createPromptVisible = ref(false)
@@ -1006,14 +1006,14 @@ const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadF
 )
 const executingCreate = ref(false)
 const activeConversation = ref(null)
-// Entity thread state: the children toggle switches between messages linked
-// to the entity itself (default) and the composed subtree view; the toggle
+// Instance thread state: the children toggle switches between messages linked
+// to the instance itself (default) and the composed subtree view; the toggle
 // beside the title reads "include children", so the pressed/primary state is
 // the subtree view. The composer link target is the latest child chip by
-// default and falls back to the composed entity when nothing is selected.
+// default and falls back to the composed instance when nothing is selected.
 const includeChildren = ref(false)
-const composerEntity = ref(null)
-let composerEntityTouched = false
+const composerInstance = ref(null)
+let composerInstanceTouched = false
 // Reply state: quoted target for the next send, transient swipe arming, and
 // the anchored scroll highlight after jumping to a quoted message.
 const replyTo = ref(null)
@@ -1093,17 +1093,17 @@ const openCallSurface = (room = '') => {
     openCallInWorkspaceTab(room)
 }
 
-const messagePreviewVisible = computed(() => Boolean(message.value.includes('{{entity:')))
+const messagePreviewVisible = computed(() => Boolean(message.value.includes('{{instance:')))
 const draftPreviewMessage = computed(() => ({
-    message: message.value.includes('{{entity:') ? message.value : '',
-    entityRefs: entityRefs.value
+    message: message.value.includes('{{instance:') ? message.value : '',
+    instanceRefs: instanceRefs.value
 }))
 const activeRecipientUserId = computed(() => activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : '')
-const recipientLimitedRefs = computed(() => entityRefs.value.filter(ref => ref.recipientHasAccess === false))
+const recipientLimitedRefs = computed(() => instanceRefs.value.filter(ref => ref.recipientHasAccess === false))
 const localizedTypeIdLabel = (type) => {
     const candidates = [
         `support.typeIdLabels.${type}`,
-        `entities.${type}`,
+        `instances.${type}`,
         `common.${type}`
     ]
     for (const key of candidates) {
@@ -1114,15 +1114,15 @@ const localizedTypeIdLabel = (type) => {
 }
 
 
-// Entity rows ship in both groupings from the inbox snapshot: the joined
-// top-level view (default) and the flat per-entity leaf view.
+// Instance rows ship in both groupings from the inbox snapshot: the joined
+// top-level view (default) and the flat per-instance leaf view.
 const chatGrouping = ref('top')
 const groupingAll = computed({
     get: () => chatGrouping.value === 'all',
     set: (value) => { chatGrouping.value = value ? 'all' : 'top' }
 })
-const hasEntityRows = computed(() => supportChatStore.conversations
-    .some(conversation => conversation.conversationKind === 'entity'))
+const hasInstanceRows = computed(() => supportChatStore.conversations
+    .some(conversation => conversation.conversationKind === 'instance'))
 
 // Archived conversations live behind the inbox header toggle; the default
 // list hides them.
@@ -1132,12 +1132,12 @@ const displayConversations = computed(() => supportChatStore.conversations
     .filter(conversation => {
         if (Boolean(conversation.archived) !== showArchived.value) return false
         if (['direct', 'group'].includes(conversation.conversationKind)) return true
-        if (conversation.conversationKind !== 'entity') return false
-        // Top-level grouping hides leaf rows; Detailed shows every entity chat.
+        if (conversation.conversationKind !== 'instance') return false
+        // Top-level grouping hides leaf rows; Detailed shows every instance chat.
         return chatGrouping.value === 'all' || !conversation.isLeafRow
     }))
 
-// One unified inbox: person, group, and entity chats share a single list;
+// One unified inbox: person, group, and instance chats share a single list;
 // pinned rows lead, everything else follows the latest activity.
 const conversationSections = computed(() => [...displayConversations.value].sort((left, right) => {
     if (Boolean(right.pinned) !== Boolean(left.pinned)) return right.pinned ? 1 : -1
@@ -1150,15 +1150,15 @@ const conversationSections = computed(() => [...displayConversations.value].sort
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
 
-const entityConversationIcon = (conversation) => (
+const instanceConversationIcon = (conversation) => (
     instances.iconFor(conversation?.typeId)
 )
 
-// The entity thread title links into the entity surface: the generated
+// The instance thread title links into the instance surface: the generated
 // detail route when the process manifest exposes one.
-const activeEntityDetailRoute = computed(() => {
+const activeInstanceDetailRoute = computed(() => {
     const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'entity' || !conversation.instanceId) return null
+    if (conversation?.conversationKind !== 'instance' || !conversation.instanceId) return null
     return detailRouteForInstance({
         entity: { _id: conversation.instanceId },
         typeId: conversation.typeId,
@@ -1167,18 +1167,18 @@ const activeEntityDetailRoute = computed(() => {
     }) || null
 })
 
-// Desktop opens the entity as a home-workspace tab; mobile keeps the detail
+// Desktop opens the instance as a home-workspace tab; mobile keeps the detail
 // route.
-const openEntityFromThread = () => {
+const openInstanceFromThread = () => {
     const conversation = activeConversation.value
     if (!conversation?.typeId || !conversation.instanceId) return
     if (typeof window !== 'undefined'
         && window.matchMedia?.('(max-width: 767px)')?.matches) {
-        if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
+        if (activeInstanceDetailRoute.value) navigateTo(activeInstanceDetailRoute.value)
         return
     }
     if (openInstanceInWorkspace({ typeId: conversation.typeId, instanceId: String(conversation.instanceId) })) return
-    if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
+    if (activeInstanceDetailRoute.value) navigateTo(activeInstanceDetailRoute.value)
 }
 
 const groupParticipantIds = computed(() => (
@@ -1188,7 +1188,7 @@ const groupParticipantIds = computed(() => (
 const conversationSubtitle = computed(() => {
     const conversation = activeConversation.value
     if (!conversation) return ''
-    if (conversation.conversationKind === 'entity') {
+    if (conversation.conversationKind === 'instance') {
         return includeChildren.value
             ? t('support.includesChildren')
             : localizedTypeIdLabel(conversation.typeId)
@@ -1242,12 +1242,12 @@ const receiveTyping = (payload) => {
 }
 
 const sendMessage = async () => {
-    if ((!message.value.trim() && !entityRefs.value.length) || !activeConversation.value) return
+    if ((!message.value.trim() && !instanceRefs.value.length) || !activeConversation.value) return
 
     isLoading.value = true
 
     try {
-        const payloadEntityRefs = entityRefs.value.map(ref => ({
+        const payloadInstanceRefs = instanceRefs.value.map(ref => ({
             type: ref.type,
             id: ref.id,
             label: ref.label
@@ -1258,18 +1258,18 @@ const sendMessage = async () => {
                 message: message.value,
                 recipientUserId: activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
                 conversationKey: activeConversation.value.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
-                entity: activeConversation.value.conversationKind === 'entity'
-                    ? (composerEntity.value || {
+                entity: activeConversation.value.conversationKind === 'instance'
+                    ? (composerInstance.value || {
                         type: activeConversation.value.typeId,
                         id: activeConversation.value.instanceId
                     })
                     : null,
                 parentMessageId: replyTo.value?._id || null,
-                entityRefs: payloadEntityRefs
+                instanceRefs: payloadInstanceRefs
             }
         })
         message.value = ''
-        entityRefs.value = []
+        instanceRefs.value = []
         replyTo.value = null
     } catch (error) {
         // A failed send keeps the typed text for retry but releases the
@@ -1378,8 +1378,8 @@ const stopAndSendVoiceRecording = () => {
                     message: message.value,
                     recipientUserId: activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
                     conversationKey: activeConversation.value?.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
-                    entity: activeConversation.value?.conversationKind === 'entity'
-                        ? (composerEntity.value || {
+                    entity: activeConversation.value?.conversationKind === 'instance'
+                        ? (composerInstance.value || {
                             type: activeConversation.value.typeId,
                             id: activeConversation.value.instanceId
                         })
@@ -1421,7 +1421,7 @@ const activeConversationKey = computed(() => activeConversation.value?.conversat
 
 const conversationQuery = (extra = {}) => {
     const conversation = activeConversation.value
-    if (conversation.conversationKind === 'entity') {
+    if (conversation.conversationKind === 'instance') {
         return {
             ...extra,
             entity: `${conversation.typeId}:${conversation.instanceId}`,
@@ -1454,10 +1454,10 @@ const loadConversation = async () => {
             const conversation = activeConversation.value
             conversation.conversationKey = snapshot.conversation.conversationKey || conversation.conversationKey
             conversation.conversationKind = snapshot.conversation.kind
-            if (snapshot.conversation.kind === 'entity') {
+            if (snapshot.conversation.kind === 'instance') {
                 conversation.typeId = snapshot.conversation.typeId || conversation.typeId
                 conversation.instanceId = snapshot.conversation.instanceId || conversation.instanceId
-                conversation.entityName = snapshot.conversation.name || conversation.entityName
+                conversation.instanceName = snapshot.conversation.name || conversation.instanceName
             }
             if (snapshot.conversation.kind === 'group' && snapshot.conversation.name && !conversation.groupName) {
                 conversation.groupName = snapshot.conversation.name
@@ -1521,7 +1521,7 @@ const handleMessagesScroll = () => {
     if (container.scrollTop <= 60) loadOlderMessages()
 }
 
-// Entity target strip: lineage drill-down. The strip lists ALL children of
+// Instance target strip: lineage drill-down. The strip lists ALL children of
 // the current target (composed entity, or the deepest drilled entity);
 // picking a child drills into it (the next message lands there), breadcrumbs
 // of lineage icons walk back up. Children load through the same containment
@@ -1532,21 +1532,21 @@ const stripLoadingKeys = ref(new Set())
 
 const stripTargetKey = computed(() => {
     const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'entity') return ''
+    if (conversation?.conversationKind !== 'instance') return ''
     const deepest = stripTrail.value[stripTrail.value.length - 1]
     return deepest?.key || `${conversation.typeId}:${conversation.instanceId}`
 })
 
-// The composed entity is the target whenever no child is drilled; the root
+// The composed instance is the target whenever no child is drilled; the root
 // pill carries the selected state in that case so exactly one target is
 // always visibly selected.
-const stripRootSelected = computed(() => !stripTrail.value.length && !composerEntity.value)
+const stripRootSelected = computed(() => !stripTrail.value.length && !composerInstance.value)
 
 // A lineage pill is selected when it is the current composer target (the
 // deepest drilled level); drilled leaf chips compare the same way.
-const isTrailEntrySelected = (entry) => Boolean(composerEntity.value)
-    && composerEntity.value.type === entry.type
-    && String(composerEntity.value.id) === String(entry.id)
+const isTrailEntrySelected = (entry) => Boolean(composerInstance.value)
+    && composerInstance.value.type === entry.type
+    && String(composerInstance.value.id) === String(entry.id)
 
 // Children of the current target: containment-sourced entries plus the
 // children already seen in this thread's message paths — the path-derived
@@ -1556,12 +1556,12 @@ const stripChildren = computed(() => {
     const loaded = stripChildrenByKey.value.get(stripTargetKey.value) || []
     const byKey = new Map(loaded.map(item => [item.key, item]))
     const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'entity') return loaded
+    if (conversation?.conversationKind !== 'instance') return loaded
     const pathIndex = (path) => path.findIndex(entry => (
         entry.type === conversation.typeId && String(entry.id) === String(conversation.instanceId)
     ))
     for (const messageItem of messages.value) {
-        const path = messageItem.entityPath || []
+        const path = messageItem.instancePath || []
         let base = -1
         if (!stripTrail.value.length) {
             base = pathIndex(path)
@@ -1579,26 +1579,26 @@ const stripChildren = computed(() => {
     return [...byKey.values()]
 })
 
-async function loadStripChildren(targetKey, targetType, targetEntity = null) {
+async function loadStripChildren(targetKey, targetType, targetInstance = null) {
     if (!targetKey || stripChildrenByKey.value.has(targetKey) || stripLoadingKeys.value.has(targetKey)) return
     stripLoadingKeys.value = new Set([...stripLoadingKeys.value, targetKey])
     try {
         const sources = linkedExplorerChildSources({
-            linkedItems: [{ key: targetKey, type: targetType, entity: targetEntity }],
+            linkedItems: [{ key: targetKey, type: targetType, entity: targetInstance }],
             screens: authStore.screenManifest,
             containment: effectiveContainmentForStrip()
         })
         const loaded = await Promise.all(sources.map(async source => {
             try {
-                const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
-                return (Array.isArray(entities) ? entities : []).map(entity => ({
-                    key: `${source.typeId}:${stripEntityId(entity)}`,
+                const instances = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
+                return (Array.isArray(instances) ? instances : []).map(entity => ({
+                    key: `${source.typeId}:${stripInstanceId(entity)}`,
                     type: source.typeId,
                     // Chips must carry the id explicitly: path-derived chips
-                    // already do, and selection (plus the sent entity link)
+                    // already do, and selection (plus the sent instance link)
                     // compares on it.
-                    id: stripEntityId(entity),
-                    name: entity?.identity?.name || entity?.identity?.serial || stripEntityId(entity) || source.typeId,
+                    id: stripInstanceId(entity),
+                    name: entity?.identity?.name || entity?.identity?.serial || stripInstanceId(entity) || source.typeId,
                     entity
                 }))
             } catch {
@@ -1673,17 +1673,17 @@ function effectiveContainmentForStrip() {
     return edges
 }
 
-const stripEntityId = (entity = null) => {
+const stripInstanceId = (entity = null) => {
     const value = entity?._id || entity?.identity?.uid || ''
     return value ? String(value) : ''
 }
 
 watch([activeConversationKey, () => activeConversation.value?.typeId, () => activeConversation.value?.instanceId], ([key]) => {
-    if (!key || activeConversation.value?.conversationKind !== 'entity') return
+    if (!key || activeConversation.value?.conversationKind !== 'instance') return
     stripTrail.value = []
     stripChildrenByKey.value = new Map()
-    composerEntity.value = null
-    composerEntityTouched = false
+    composerInstance.value = null
+    composerInstanceTouched = false
     loadStripChildren(
         `${activeConversation.value.typeId}:${activeConversation.value.instanceId}`,
         activeConversation.value.typeId,
@@ -1693,14 +1693,14 @@ watch([activeConversationKey, () => activeConversation.value?.typeId, () => acti
 
 // Selection is exactly one target: key-based comparison so chips from any
 // source (loaded or path-derived) match reliably.
-const isChipSelected = (chip) => Boolean(composerEntity.value)
-    && composerEntity.value.type === chip.type
-    && String(composerEntity.value.id) === String(chip.id ?? (chip.key || '').split(':').slice(1).join(':'))
+const isChipSelected = (chip) => Boolean(composerInstance.value)
+    && composerInstance.value.type === chip.type
+    && String(composerInstance.value.id) === String(chip.id ?? (chip.key || '').split(':').slice(1).join(':'))
 
 async function drillStripTo(chip) {
     if (replyTo.value) return
-    composerEntityTouched = true
-    composerEntity.value = { type: chip.type, id: chip.id, name: chip.name }
+    composerInstanceTouched = true
+    composerInstance.value = { type: chip.type, id: chip.id, name: chip.name }
     // A child target only lands visibly in the composed subtree view; the
     // own-messages filter would hide the sent message entirely.
     if (!includeChildren.value) includeChildren.value = true
@@ -1714,8 +1714,8 @@ async function drillStripTo(chip) {
 function truncateStripTrail(index) {
     stripTrail.value = stripTrail.value.slice(0, index + 1)
     const deepest = stripTrail.value[stripTrail.value.length - 1] || null
-    composerEntityTouched = true
-    composerEntity.value = deepest
+    composerInstanceTouched = true
+    composerInstance.value = deepest
     if (!includeChildren.value) includeChildren.value = true
         ? { type: deepest.type, id: deepest.id, name: deepest.name }
         : null
@@ -1723,29 +1723,29 @@ function truncateStripTrail(index) {
 
 function resetStripTrail() {
     stripTrail.value = []
-    composerEntityTouched = true
-    composerEntity.value = null
+    composerInstanceTouched = true
+    composerInstance.value = null
 }
 
 watch(activeConversationKey, () => {
     replyTo.value = null
-    composerEntity.value = null
-    composerEntityTouched = false
+    composerInstance.value = null
+    composerInstanceTouched = false
     includeChildren.value = false
 })
 
 // The children toggle re-queries the thread: the composed subtree view and
-// messages linked to the entity itself are different server-side matches.
+// messages linked to the instance itself are different server-side matches.
 watch(includeChildren, () => {
-    if (activeConversation.value?.conversationKind === 'entity') loadConversation()
+    if (activeConversation.value?.conversationKind === 'instance') loadConversation()
 })
 
-// While a reply is pending, its entity link is locked to the quoted
+// While a reply is pending, its instance link is locked to the quoted
 // message and cannot be switched until the reply is discarded.
-const selectComposerEntity = (chip) => {
+const selectComposerInstance = (chip) => {
     if (replyTo.value) return
-    composerEntityTouched = true
-    composerEntity.value = chip
+    composerInstanceTouched = true
+    composerInstance.value = chip
         ? { type: chip.type, id: chip.id, name: chip.name }
         : null
 }
@@ -1788,27 +1788,27 @@ const openMessageMenu = (event, messageItem) => {
 
 // Replies quote the target inline in the composer; sending carries the
 // parent id and the message payload clears the quote on success. In entity
-// views a reply links to the same entity the quoted message belongs to.
+// views a reply links to the same instance the quoted message belongs to.
 const openReply = (messageItem) => {
     replyTo.value = messageItem || null
-    if (activeConversation.value?.conversationKind === 'entity') {
-        composerEntityTouched = true
-        const link = messageItem?.entityLink
-        composerEntity.value = link?.type && link?.id
+    if (activeConversation.value?.conversationKind === 'instance') {
+        composerInstanceTouched = true
+        const link = messageItem?.instanceLink
+        composerInstance.value = link?.type && link?.id
             ? { type: link.type, id: link.id, name: link.name || '' }
             : null
     }
 }
 
-const lowerEntityChip = (messageItem) => {
+const lowerInstanceChip = (messageItem) => {
     const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'entity' || !messageItem.entityLink?.id) return false
-    return !(messageItem.entityLink.type === conversation.typeId
-        && String(messageItem.entityLink.id) === String(conversation.instanceId))
+    if (conversation?.conversationKind !== 'instance' || !messageItem.instanceLink?.id) return false
+    return !(messageItem.instanceLink.type === conversation.typeId
+        && String(messageItem.instanceLink.id) === String(conversation.instanceId))
 }
 
-const openLowerEntityChat = (messageItem) => {
-    const link = messageItem.entityLink
+const openLowerInstanceChat = (messageItem) => {
+    const link = messageItem.instanceLink
     openInstanceChat({ type: link.type, id: String(link.id), name: link.name || '' })
 }
 
@@ -1975,7 +1975,7 @@ watch(() => messages.value.length, (newLength, oldLength) => {
 
 onMounted(() => {
     if (authStore.userIsSet) supportChatStore.connect()
-    if (chatTarget.value?.userId || chatTarget.value?.entityKey) openDirectTarget()
+    if (chatTarget.value?.userId || chatTarget.value?.instanceKey) openDirectTarget()
 })
 onBeforeUnmount(() => {
     if (unsubscribeConversation) {
@@ -1999,12 +1999,12 @@ onBeforeUnmount(() => {
 // conversation in the main window alongside the popup/drawer.
 watch(chatTarget, () => {
     if (props.embedded) return
-    if (supportDialog.value && (chatTarget.value?.userId || chatTarget.value?.entityKey)) openDirectTarget()
+    if (supportDialog.value && (chatTarget.value?.userId || chatTarget.value?.instanceKey)) openDirectTarget()
 }, { deep: true })
 
 watch(supportDialog, (isOpen) => {
     if (props.embedded || !isOpen) return
-    if (chatTarget.value?.userId || chatTarget.value?.entityKey) openDirectTarget()
+    if (chatTarget.value?.userId || chatTarget.value?.instanceKey) openDirectTarget()
 })
 
 const formatTime = (timestamp, withoutTime) => {
@@ -2098,7 +2098,7 @@ const scrollToBottom = async () => {
 
 // The attachment picker is the tiered menu over the same generated entity
 // sources the home explorer exposes: generated create buttons first, type
-// rows after, and one tap on an entity selects, adds the ref, and closes the
+// rows after, and one tap on an instance selects, adds the ref, and closes the
 // picker. With no readable types and no create actions the trigger stays
 // disabled instead of opening an empty menu.
 const attachmentPickerEmpty = computed(() => {
@@ -2112,8 +2112,8 @@ const openAttachmentPicker = (event) => {
 
 const selectAttachment = (option) => {
     if (!option?.type || !option.value) return
-    if (!entityRefs.value.some(ref => ref.type === option.type && ref.id === option.value)) {
-        entityRefs.value.push({
+    if (!instanceRefs.value.some(ref => ref.type === option.type && ref.id === option.value)) {
+        instanceRefs.value.push({
             type: option.type,
             id: option.value,
             label: option.label,
@@ -2136,7 +2136,7 @@ const runCreateAction = async (action) => {
     if (!action?.id) return
     // File creators ride the generic prompt dialog: the `file` control
     // uploads to the files bucket and the construct path mints a file
-    // instance — chat never mints artifact entities.
+    // instance — chat never mints artifact instances.
     if (promptedFields(action).length) {
         await openCreatePromptDialog(action)
         return
@@ -2154,7 +2154,7 @@ const openCreatePromptDialog = async (action) => {
     createPromptVisible.value = true
     for (const field of createPromptFields.value) {
         const type = field.typeId || field.accepts?.[0]
-        if (field.type === 'entity' || field.type === 'typeList') {
+        if (field.type === 'instance' || field.type === 'typeList') {
             if (!type) continue
             try {
                 createPromptOptions[field.id] = await $fetch('/api/support/instance-options', {
@@ -2190,12 +2190,12 @@ const executeCreateAction = async (action, data) => {
             method: 'POST',
             body: {
                 instanceId: null,
-                entities: {},
+                instances: {},
                 data,
                 parameters: {}
             }
         })
-        attachCreatedEntity(action, result)
+        attachCreatedInstance(action, result)
         toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 })
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 })
@@ -2204,16 +2204,16 @@ const executeCreateAction = async (action, data) => {
     }
 }
 
-// The created entity attaches to the draft like any picked entity; created
+// The created instance attaches to the draft like any picked entity; created
 // shapes mirror the generated action contract (created/entity payloads).
-const attachCreatedEntity = (action, result) => {
+const attachCreatedInstance = (action, result) => {
     if (!result || typeof result !== 'object') return
-    const entity = result.created || (!result.owner ? (result.entity || result) : null)
+    const instance = result.created || (!result.owner ? (result.entity || result) : null)
     const id = entity?._id?.toString?.() || entity?._id || entity?.id || entity?.identity?.uid || ''
     const type = action.relationMutation?.targetType || action.typeId
     if (!id || !type) return
-    if (!entityRefs.value.some(ref => ref.type === type && ref.id === id)) {
-        entityRefs.value.push({
+    if (!instanceRefs.value.some(ref => ref.type === type && ref.id === id)) {
+        instanceRefs.value.push({
             type,
             id,
             label: entity?.identity?.name || id,
@@ -2222,7 +2222,7 @@ const attachCreatedEntity = (action, result) => {
     }
 }
 
-const hydrateEntityRefs = async (refs = []) => {
+const hydrateInstanceRefs = async (refs = []) => {
     const hydrated = []
     for (const ref of refs) {
         if (!ref?.type || !ref?.id) continue
@@ -2238,19 +2238,19 @@ const hydrateEntityRefs = async (refs = []) => {
             hydrated.push({
                 ...ref,
                 label: option?.label || ref.label || ref.id,
-                entity: option?.entity || ref.entity || null,
+                entity: option?.entity || ref.instance || null,
                 recipientHasAccess: option?.recipientHasAccess
             })
         } catch (error) {
-            console.error('Failed to hydrate chat entity ref:', error)
+            console.error('Failed to hydrate chat instance ref:', error)
             hydrated.push(ref)
         }
     }
     return hydrated
 }
 
-const removeEntityRef = (targetRef) => {
-    entityRefs.value = entityRefs.value.filter(ref => !(ref.type === targetRef.type && ref.id === targetRef.id))
+const removeInstanceRef = (targetRef) => {
+    instanceRefs.value = instanceRefs.value.filter(ref => !(ref.type === targetRef.type && ref.id === targetRef.id))
 }
 
 const openNewChatDialog = async () => {
@@ -2280,7 +2280,7 @@ const openNewChatUser = (userId) => {
         conversationKind: 'direct',
         participants: [currentUserId.value, userId].filter(Boolean),
         lastMessage: '',
-        entityRefs: [],
+        instanceRefs: [],
         participant: option?.entity || {
             _id: userId,
             identity: { name: option?.label || userId },
@@ -2351,14 +2351,14 @@ function openConversationByKey(key) {
         supportChatStore.markRead(key)
         return
     }
-    if (key.startsWith('entity:')) {
+    if (key.startsWith('instance:')) {
         const [, typeId, instanceId] = key.split(':')
         activeConversation.value = {
             conversationKey: key,
-            conversationKind: 'entity',
+            conversationKind: 'instance',
             typeId,
             instanceId,
-            entityName: props.entityName || '',
+            instanceName: props.instanceName || '',
             lastMessage: ''
         }
         return
@@ -2369,7 +2369,7 @@ function openConversationByKey(key) {
             conversationKind: 'group',
             participants: [],
             lastMessage: '',
-            entityRefs: []
+            instanceRefs: []
         }
         return
     }
@@ -2379,7 +2379,7 @@ function openConversationByKey(key) {
             conversationKind: 'direct',
             participants: key.split(':').slice(1),
             lastMessage: '',
-            entityRefs: []
+            instanceRefs: []
         }
     }
 }
@@ -2444,8 +2444,8 @@ const openChatsPage = () => {
 }
 
 const openDirectTarget = async () => {
-    if (chatTarget.value?.entityKey) {
-        openConversationByKey(chatTarget.value.entityKey)
+    if (chatTarget.value?.instanceKey) {
+        openConversationByKey(chatTarget.value.instanceKey)
         return
     }
     if (!chatTarget.value?.userId) return
@@ -2459,20 +2459,20 @@ const openDirectTarget = async () => {
             data: {}
         }
     }
-    const draftRefs = (chatTarget.value.draftEntityRefs || [])
+    const draftRefs = (chatTarget.value.draftInstanceRefs || [])
         .filter(ref => ref?.type && ref?.id)
         .map(ref => ({
             type: ref.type,
             id: ref.id,
             label: ref.label || ref.id,
-            entity: ref.entity || null
+            entity: ref.instance || null
         }));
-    entityRefs.value = await hydrateEntityRefs(draftRefs);
+    instanceRefs.value = await hydrateInstanceRefs(draftRefs);
 }
 
 const conversationLabel = (conversation) => {
-    if (conversation?.conversationKind === 'entity') {
-        return conversation?.entityName || localizedTypeIdLabel(conversation?.typeId)
+    if (conversation?.conversationKind === 'instance') {
+        return conversation?.instanceName || localizedTypeIdLabel(conversation?.typeId)
     }
     if (conversation?.conversationKind === 'group') {
         return conversation?.groupName || t('support.sectionGroups')
@@ -2488,7 +2488,7 @@ const conversationAvatar = (conversation) => conversation?.participant?.avatarUr
 
 const conversationPreviewMessage = (conversation) => ({
     message: conversation.lastMessage || '',
-    entityRefs: conversation.entityRefs || [],
+    instanceRefs: conversation.instanceRefs || [],
     attachment: conversation.attachment || null,
     senderUserId: conversation.senderUserId || ''
 })

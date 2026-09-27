@@ -24,10 +24,10 @@
       class="flex h-support-chat min-h-0 flex-col overflow-hidden"
     >
       <ChatSupport
-        :key="entityKey"
+        :key="instanceKey"
         embedded
         thread-only
-        :conversation-key="entityKey"
+        :conversation-key="instanceKey"
         :entity-name="name"
       />
     </div>
@@ -68,6 +68,6 @@ const props = defineProps({
 })
 
 const collapsed = ref(true)
-const entityKey = computed(() => `entity:${props.type}:${props.id}`)
+const instanceKey = computed(() => `instance:${props.type}:${props.id}`)
 const threadId = useId()
 </script>
