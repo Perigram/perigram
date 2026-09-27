@@ -1258,7 +1258,7 @@ const sendMessage = async () => {
                 message: message.value,
                 recipientUserId: activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
                 conversationKey: activeConversation.value.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
-                entity: activeConversation.value.conversationKind === 'instance'
+                instance: activeConversation.value.conversationKind === 'instance'
                     ? (composerInstance.value || {
                         type: activeConversation.value.typeId,
                         id: activeConversation.value.instanceId
@@ -1378,7 +1378,7 @@ const stopAndSendVoiceRecording = () => {
                     message: message.value,
                     recipientUserId: activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
                     conversationKey: activeConversation.value?.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
-                    entity: activeConversation.value?.conversationKind === 'instance'
+                    instance: activeConversation.value?.conversationKind === 'instance'
                         ? (composerInstance.value || {
                             type: activeConversation.value.typeId,
                             id: activeConversation.value.instanceId
@@ -1424,7 +1424,7 @@ const conversationQuery = (extra = {}) => {
     if (conversation.conversationKind === 'instance') {
         return {
             ...extra,
-            entity: `${conversation.typeId}:${conversation.instanceId}`,
+            instance: `${conversation.typeId}:${conversation.instanceId}`,
             includeChildren: includeChildren.value ? 1 : 0
         }
     }

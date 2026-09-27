@@ -47,7 +47,7 @@
  * A PrimeVue text Button (Aura owns its focus/hover/press states; the icon is
  * stable across states and `aria-expanded` carries the state) toggles a
  * bounded `ChatSupport` in `embedded thread-only` mode pinned to
- * `entity:<type>:<id>`, giving the composed conversation without the inbox or
+ * `instance:<type>:<id>`, giving the composed conversation without the inbox or
  * back navigation. It starts collapsed so detail pages stay quiet until the
  * operator opens the thread.
  *
