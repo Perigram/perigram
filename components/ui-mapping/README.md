@@ -264,11 +264,14 @@ surface concerns:
   declared children edge names it) lists only root instances — children
   ride nested under their parents, never duplicated at the top level.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
-  the collection plus its lineage descendants nested as expandable rows
-  with the same generated columns and the same row-surface treatment as
-  `CollectionTable` (clipped rounded content rows, hairline gaps, muted
-  transparent header band). Row identities are link buttons under the
-  same `onOpen` navigation contract.
+  the collection's structural roots plus their lineage descendants
+  nested as expandable rows — `hierarchyRootInstances` (shared mapping
+  contract) drops any instance whose declared parent is loaded in the
+  pool, so children ride nested under their parents and never repeat at
+  the top level — with the same generated columns and the same
+  row-surface treatment as `CollectionTable` (clipped rounded content
+  rows, hairline gaps, muted transparent header band). Row identities
+  are link buttons under the same `onOpen` navigation contract.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
   cards lay out in the shared `ResponsiveGrid` primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside panels),
@@ -297,7 +300,10 @@ surface concerns:
   re-derives from the reactive pool, so reconciliation (a new child, a
   moved parent) re-nests it in place instead of waiting for a remount.
 - `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
-  (when nested), Avatar identity with title and a `type · id` muted
+  (when nested), a contextual `navigation` slot (a host that opened the
+  record inside another surface — a workspace tab reached from another
+  page, a popup with a back stack — injects its back affordance ahead of
+  the identity block), Avatar identity with title and a `type · id` muted
   subtitle, placed actions, the Edit toggle (rendered only on patchable
   surfaces; see `onPatch` above — while editing it reads as Save and
   submits the draft), and exactly one state
@@ -356,9 +362,12 @@ surface concerns:
   A type that declares a `previewSource` field (the authored pack
   vocabulary adopted by the CTS registry, carried on the bundle type
   record and read off the wire DTO by `dtoToScreenInstance` as
-  `instance.previewSource`) renders that value through `DrawingCanvas`
+  `instance.previewSource` — the first non-empty of the declared path
+  and its `fallbackPaths`, so stored-shape variants of one renderable
+  source all preview) renders that value through `DrawingCanvas`
   in the same band when no payload exists — the declared preview channel
-  (cassette geometry) never depends on an uploaded payload.
+  (cassette geometry, including raw layer/polygon parts) never depends
+  on an uploaded payload.
   Payload-less instances without a declared preview keep the
   deterministic per-instance inline SVG
   (seeded hue) built
@@ -410,7 +419,10 @@ surface concerns:
   accessible name. A host surface may pass a context-supplied label prop
   (still under locale-override precedence) to shorten a caption its own
   chrome already describes — RegionBlock's "New" beside the region header
-  is the one current use.
+  is the one current use. Obvious actions render icon-only when the
+  resolver says so (create `+`, delete trash): the label stays the
+  tooltip and accessible name, and the context label never widens the
+  button back.
 
 Select/MultiSelect only ever come through the shared entity wrappers
 (`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which own

@@ -346,9 +346,9 @@ status surface.
 Fetches and displays the audit log (`status_events`) for any instance.
 
 Props: `:instance`, `type-id`, `target-id`, `mock-events`, `compact`.
-Events render as a vertical PrimeVue Stepper trail so the component fits
-cards, popovers, sidebars, and other narrow surfaces: each event is one
-`StepItem`, ordered oldest → newest, whose `Step` header contains the
+Events render as a vertical PrimeVue Stepper feed: each event is one
+`StepItem`, ordered newest → oldest (the latest event leads), whose `Step`
+header contains the
 status badge, actor display name, and timestamp in a wrapping row (the
 stepper's number bubble stays hidden — the badge is the marker); the
 newest event's `StepPanel` opens by default and clicking a step header
@@ -456,7 +456,12 @@ stays on one line inside prose, truncates with ellipsis, and keeps the same
 semantic color treatment without inflating surrounding line height.
 `InstanceInlineRef` maps entity families to `--ck-entity-tone-*` values only; it
 must not introduce PrimeVue primitive color assignments of its own.
-`variant="compact"` renders a horizontal micro card instead of a chip. That
+`variant="compact"` renders a horizontal micro card instead of a chip —
+but only when the type's compact surface earns the card: a preview band
+or compact fact rows beside identity. Preview-less, fact-less relations
+degrade to the plain identity chip (still the popover trigger), so
+relation galleries never lay out grids of empty cards for data without
+visual fields. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the
 right, a read-only status badge beside identity, compact facts below, and the
@@ -684,6 +689,12 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 - **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome. The root `error.vue` surface uses this primitive for failures and recovery actions.
 - **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains preset-owned.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
+- **Default confirmation host**: the app layout (`layouts/app.vue`) mounts the
+  single default-group PrimeVue `ConfirmDialog`; feature surfaces call
+  `useConfirm()` without a group and never mount their own host — a second
+  default-group host anywhere in the tree renders every require twice
+  (chat mounts on several surfaces at once, so the host cannot live in a
+  feature component).
 - **`StandardPage.vue`**: Route-level page shell for title, subtitle,
   breadcrumbs, and page actions. The authenticated `app` layout owns outer
   route padding; `StandardPage` owns max width and header spacing only, so

@@ -155,7 +155,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | compliant |
 | `ui-components-generated-generateddetailscreen-vue` | `components/generated/GeneratedDetailScreen.vue` | derived usage | remove:important-override (3) |
 | `ui-components-generated-generatedfilepreview-vue` | `components/generated/GeneratedFilePreview.vue` | derived usage | compliant |
-| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (3); remove:important-override (4) |
+| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (1); remove:important-override (21) |
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
@@ -170,7 +170,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | compliant |
-| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | replace:chrome (3); remove:important-override (2) |
+| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | remove:important-override (3) |
 | `ui-components-generated-tableimportsurface-vue` | `components/generated/TableImportSurface.vue` | derived usage | replace:chrome (1) |
 | `ui-components-languageswitcher-vue` | `components/LanguageSwitcher.vue` | derived usage | compliant |
 | `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (2); remove:important-override (5) |
@@ -201,7 +201,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
 | `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | compliant |
-| `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (1); remove:important-override (2); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-instancemultiselect-vue` | `components/shared/InstanceMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instancepage-vue` | `components/shared/InstancePage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
 | `ui-components-shared-instancepreview-vue` | `components/shared/InstancePreview.vue` | derived usage | replace:chrome (1) |

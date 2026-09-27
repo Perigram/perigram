@@ -95,14 +95,13 @@ apply every `entities` output. A created entity enters a list source only when
 it satisfies that source's resolved filters, so a successful procedural action
 is visible without a page reload; the shared entity sync event remains the
 backstop for changes made outside this screen. Successful `createEntity`
-actions additionally navigate to the created entity's detail route
-(resolved through `created-instance-open.js`: a compiled detail screen
-first; when the manifest has no route for the type and the create ran
-the `editor` protocol, the blank instance opens as a home-workspace
+actions additionally open the created entity
+(resolved through `created-instance-open.js`: while the manifest carries a
+compiled home screen the created entity opens — or reuses — a home-workspace
 tab, whose pane body mounts the type's editor surface through the
-file-surface overload — the editor contract guarantees the editor is
-reachable; every other routeless create shows a success toast with the
-created name, so a create is never silent). A mapped
+file-surface overload when no detail screen exists; orgs without a home
+workspace keep the compiled detail route; a create is never silent — the
+fallback is a success toast with the created name). A mapped
 mutation response is either a bare shape-preserving data tree (zero failures)
 or a failure-carrying `{ result, failures, completedMutations }` envelope;
 every completed item is applied to matching source state, while failed slots
@@ -259,10 +258,13 @@ Discord-style operational shell:
   `PanelMenu`, header labels passthrough'd to line-height 1 so panel
   headers match row heights. The brand header is its own panel and
   carries the wrap control: wrapped, the sidebar becomes an icon rail
-  (brand mark, one icon per top-level panel, chats, avatar) and the
+  (brand mark, chats and calls first — the same order the expanded menu
+  leads with — then one icon per top-level panel, avatar) and the
   wordmark returns on expand; the wrapped state persists with the
   workspace layout (`sidebarCollapsed` in the home workspace state). The
-  Communication
+  Calls flyout (`CommunicationMenu`) lives outside the wrapped/expanded
+  branches so both the wrapped icon and the expanded row toggle the same
+  popup. The Communication
   is two entries in that PanelMenu: Chats is a plain entry opening the
   chats workspace page, and Calls is always present — it toggles the
   shared `CommunicationMenu` popup flyout (see
@@ -275,7 +277,11 @@ Discord-style operational shell:
   `IncomingCalls` ring cards — only brand-new invites float; ongoing
   calls stay under Calls and in chats. With no active rooms the Calls
   entry renders no rows and nothing expands; it expands automatically
-  when the first room appears.
+  when the first room appears. A trailing Organizations panel lists the
+  user's organizations (the active one checked); selecting another
+  switches context and opens the organization overview — organization
+  switching lives in the sidebar because the home shell has no other org
+  surface.
 - Entity navigation is a raw default `PanelMenu` — no item slot, default
   rows, `multiple` panels open — one panel per top-level type from the
   same TYPE hierarchy the render contracts declare: registry containment
@@ -344,8 +350,9 @@ Discord-style operational shell:
    desktop sidebar does not link out to hub entity-list screens; the full
    hierarchy is navigable in place.
 - The sidebar footer is a separate bottom profile panel mounting the shared
-  `UserAccountMenu`: a bordered trigger showing the user's actual name (and
-  the avatar alone in the wrapped rail), so on this route the desktop top
+  `UserAccountMenu`: a bordered trigger showing the user's actual name and
+  the active organization's name beneath it (and the avatar alone in the
+  wrapped rail), so on this route the desktop top
   navbar is hidden and its user controls live in the sidebar
   (`layouts/app.vue` resolves this from the active screen template).
 - The pane area is the same recursive `WorkspaceSplitNode` tree used by the

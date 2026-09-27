@@ -12,6 +12,21 @@ session; the legacy entity/workflow/construction tables that rode beside
 these declarations are deleted. What remains here is the whole of the
 facade domain in the type system.
 
+## Cassette previews
+
+The cassette type's declared preview channel walks its renderable stored
+shapes in order: the baked geometry preview (`data.geometry.preview`)
+first, then the raw layer/polygon parts uploaded templates store
+(`data.layerData`, `data.polygonParts`) as `previewSource`
+`fallbackPaths`. Generated card previews therefore render whichever
+construction path baked the record — OCCS-payload cassettes preview
+through the payload channel, legacy baked records through the declared
+one — without a cassette-specific branch in any generator surface (the
+shared canvas's geometry normalizer accepts the parts lists handed as
+the geometry value; see
+[instance-display](../../utils/instance-shape.js) and
+[components/shared/README.md](../../components/shared/README.md)).
+
 ## The cassette-design type and the bake construction
 
 `cassette-design` is the production drawing: one concrete piece baked from
