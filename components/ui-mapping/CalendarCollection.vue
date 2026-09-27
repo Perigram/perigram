@@ -21,12 +21,12 @@
         <span class="text-technical text-muted">{{ cell.day }}</span>
         <Button
           v-for="entry in cell.visible"
-          :key="entry.instance.id"
+          :key="entry.id"
           link
           size="small"
-          :label="identityOf(entry.instance)"
+          :label="identityOf(entry)"
           class="min-w-0 text-left [&_.p-button-label]:truncate"
-          @click="$emit('open', entry.instance)"
+          @click="$emit('open', entry)"
         />
         <span v-if="cell.hidden" class="text-supporting text-muted">+{{ cell.hidden }}</span>
       </div>
