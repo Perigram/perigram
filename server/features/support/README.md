@@ -19,14 +19,10 @@ Messages have a deterministic `conversationKey`:
 | Group chat | `group:<chatGroupId>` | The persisted group's member ids |
 | Instance chat | `instance:<typeId>:<instanceId>` | The sender (org-scoped read) |
 
-Legacy support messages without `conversationKey` remain readable through the
-support-channel match for the same `userId`. New writes always persist
+New writes always persist
 `conversationKey`, `conversationKind`, `participants`, `senderUserId`,
 `message`, `instanceRefs`, `timestamp`, and optionally `attachment` (see
-[Voice Messages](#voice-messages)). The instance vocabulary is one-way:
-`server/scripts/migrate-instance-chat-vocabulary.js` rewrites persisted
-`entity:` keys, kinds, fields, `{{entity:}}` tokens, and ref snapshots to
-the instance spellings (dry-run by default, `--apply` to persist).
+[Voice Messages](#voice-messages)).
 
 ### Inbox Preferences and Read Marks
 
@@ -56,7 +52,7 @@ routes remain scoped to support conversations and do not list direct user
 threads.
 An explicit recipient equal to the authenticated user creates the deterministic
 `direct:<userId>:<userId>` self-conversation; only a missing recipient selects
-the legacy customer-support channel.
+the customer-support channel.
 
 ## Group Chats
 
@@ -99,7 +95,7 @@ Chat messages can carry structured `instanceRefs`:
 ```
 
 `SupportMessageContent.vue` renders inline `{{instance:type:id}}` tokens as
-`InstanceInlineRef` chips for legacy/token-authored text and also renders
+`InstanceInlineRef` chips for token-authored text and also renders
 structured refs from `message.instanceRefs[]`. The chat composer stores selected
 instances only in `instanceRefs`; it does not inject attachment tokens into the
 message body.
@@ -143,11 +139,7 @@ Cassette snapshots must retain preview-driving fields such as `data.type` and
 `data.definition`, because direct-chat inline cards render from the stored
 snapshot instead of refetching protected cassette endpoints.
 Message writes drop unsupported or unreadable refs instead of accepting
-arbitrary ids. Incoming refs normalize common frontend/instance-surface aliases
-such as `cassetteTemplate`, `sheetDesign`, and `entityRevision` to their
-canonical backend snake-case types before that validation step, so
-status-history drafts and other UI-local relation refs do not disappear on
-send. Messages may contain
+arbitrary ids. Messages may contain
 only attachments; an empty body is valid as long as at least one instance ref
 survives write-time validation.
 
