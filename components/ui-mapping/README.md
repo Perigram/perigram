@@ -162,9 +162,18 @@ surface concerns:
 - `BoardCollection.vue` — the state board: the projection whose columns
   are the type's served state vocabulary
   (authored order, `StateTag` headers with per-column counts) and whose
-  cards are the loaded instances grouped by their flat state — budgeted
-  facts on the card-grid anatomy, no state badge (the lane already is
-  the state). It renders by derivation for process-class flat
+  cards are the loaded instances grouped by their flat state — the
+  card-grid anatomy (preview band through `PreviewBox`, identity link,
+  budgeted facts) with two deliberate omissions: no status badge (the
+  lane already is the state) and no type subtitle (a lane is
+  single-type). Facts follow the card-grid budget
+  (`cardFactCount` over `CARD_FACT_SCALE`); beyond-budget facts collapse
+  behind the shared show-more keys with one expand per card — board
+  lanes are dense, so the budget is the collapse. Per-instance quick
+  actions (deletion, instance-scoped commands) ride the card's ellipsis
+  menu like the card grid; status transitions are the drag itself and
+  the opened record's strip. It renders by derivation for process-class
+  flat
   collections and through the projection switch for any stateful
   structural collection (see the header-controls contract above). Columns are `subtle` wells on the surface ladder; cards
   sit on the content surface. Membership moves only through the
