@@ -85,7 +85,7 @@ surface concerns:
   shared `FilterBuilder` popover (own funnel trigger, condition-count
   badge) renders in the header cluster, and `SortControl` (its own
   popover over the `sortKeys` contract) carries ordering for the
-  card-grid projection. Set conditions are the one
+  card-grid and board projections. Set conditions are the one
   filtering state — no parallel facet selects speak the same axis. The panel's fields derive through
   `builderFieldsForType` (see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)): every scalar
@@ -97,13 +97,13 @@ surface concerns:
   their native sorting. The region header stays one line (label, count,
   controls, actions), wrapping only when the opened controls or the
   action cluster demand it. The
-  card-grid projection adds an in-place sort control (select + order
+  card-grid and board projections add an in-place sort control (select + order
   toggle unfolding beside the sort button; the persisted per-type sort
   preference survives the move; table projections keep native column
-  sorting, so the control renders only for card grids).
+  sorting, so the control renders only for card grids and boards).
 
-- `SortControl.vue` — the collection sort control for the card-grid
-  projection (tables sort natively by column): a self-contained popover
+- `SortControl.vue` — the collection sort control for the card-grid and
+  board projections (tables sort natively by column): a self-contained popover
   over the composed `listControls.sortKeys` contract. Keys render inline
   as buttons and the order toggle flips asc/desc beneath them; the host
   owns the value, the order, and their persistence
@@ -125,7 +125,9 @@ surface concerns:
   components).
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
-  `card-grid` | `timeline`, matched by class, hierarchy, or type override).
+  `card-grid` | `timeline` | `stats` | `list` | `board`, matched by
+  class, shape, hierarchy, size, or the state vocabulary — see
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)).
   The list header is one wrapping line — label, count, in-place expanding
   search and filter controls, and actions. The search toggle expands into
   an icon field AT the button's position (the icon or Esc collapses it;
@@ -143,6 +145,23 @@ surface concerns:
   main content in a 7-column lane with child regions in a 5-column lane
   (`detailSplit`, collapsing to stacked below xl); nested detail regions
   keep the Card surface. Empty regions render a Message.
+- `BoardCollection.vue` — the state board: the process-class collection
+  projection whose columns are the type's served state vocabulary
+  (authored order, `StateTag` headers with per-column counts) and whose
+  cards are the loaded instances grouped by their flat state — budgeted
+  facts on the card-grid anatomy, no state badge (the lane already is
+  the state). Columns are `subtle` wells on the surface ladder; cards
+  sit on the content surface. Membership moves only through the
+  authored machine: a card may drop into a column only when a contract
+  edge (`stateTransitionsByType`, carried on the region node) leads
+  there from its current state; the drop emits the `transition` channel
+  (the state-service executor the detail header shares), never an
+  optimistic local move — the machine owns the mutation and the pool
+  reconciles through the shared entity event. Stale states outside the
+  vocabulary degrade to neutral columns that admit no drops. Native
+  HTML5 drag is the desktop affordance; the per-card ellipsis menu and
+  the opened record's transition strip remain the accessible and touch
+  paths.
 - `CarouselGrid.vue` — the large media collection projection: a circular
   PrimeVue Carousel of clipped preview cards.
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor

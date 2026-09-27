@@ -104,21 +104,28 @@ OrderList, destructive actions confirm through ConfirmDialog with Toast
 feedback, and large media collections lay out as a carousel. Spec-row
 values are click-to-edit via Inplace.
 
-`resolveListLayout(type, { hierarchical, size })` → `'table' |
-'tree-table' | 'card-grid' | 'timeline' | 'stats' | 'list'` from one
-matcher table over `analyzeTypeShape(type)`: prose-dominant types are
-chronological (timeline), percent/quantity-dominant types are statlike
-(StatGrid cards with the `text-metric` role), media types get card grids,
-lineage-holding collections get tree tables, handful-sized sets render as
-a bare stacked list, and the default is the generated columnar table — no
-hand-picked type ids anywhere and no authored override channel (display
-derivation replaced it). Tree materialization (HierarchyTable,
-InstancePicker's hierarchical mode) matches children through
-`childrenOfParent(type, pool, parentId)`: every children edge contributes
-the pool instances of its declared child types whose `lineage[edge.lineageKey]`
-points at the parent — the declared storage key, never the edge's map key.
-A lineage reference matches in both stored shapes, the `{ id }` ref and the
-normalized id.
+`resolveListLayout(type, { hierarchical, size, stateful })` → `'table' |
+'tree-table' | 'card-grid' | 'timeline' | 'stats' | 'list' | 'board'`
+from one matcher table over `analyzeTypeShape(type)`: prose-dominant types
+are chronological (timeline), percent/quantity-dominant types are
+statlike (StatGrid cards with the `text-metric` role), media types get
+card grids, lineage-holding collections get tree tables, handful-sized
+sets render as a bare stacked list, and the default is the generated
+columnar table — no hand-picked type ids anywhere and no authored
+override channel (display derivation replaced it). The board is the one
+class+vocabulary decision: a process-class type whose served state
+vocabulary spans at least `BOARD_MIN_COLUMNS` values (`stateful`, from
+`hasStateVocabulary` over the region's state policy) renders its
+collections as state lanes, because the authored workflow machine is
+that collection's structure; the entry rides a derived `boardable`
+candidate signal at one-key specificity so a narrow type override still
+outranks it through the override splice. Tree materialization
+(HierarchyTable, InstancePicker's hierarchical mode) matches children
+through `childrenOfParent(type, pool, parentId)`: every children edge
+contributes the pool instances of its declared child types whose
+`lineage[edge.lineageKey]` points at the parent — the declared storage
+key, never the edge's map key. A lineage reference matches in both
+stored shapes, the `{ id }` ref and the normalized id.
 Presentation budgets
 scale with type richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide
 types earn more columns and facts) instead of fixed constants. Collection
@@ -186,6 +193,13 @@ pure helpers own every state-presentation decision:
   workflows; the first authored entry wins when several producers emit
   one type. This is the only client-side derivation of the state
   vocabulary — types declare nothing about states.
+- `stateTransitionsByType(producerOutputs)` — `{ [typeId]: [{ from, to,
+  region, intent }] }` from the same compiled producer workflows'
+  `regions[*].transitions`: the authored machine edges, the board
+  projection's legal-move contract. First edge per from→to pair wins,
+  mirroring the policy derivation. `hasStateVocabulary(policy)` is the
+  companion signal: a vocabulary spanning `BOARD_MIN_COLUMNS` values
+  earns the board projection.
 - `stateSegmentsOf(value)` — the display path of one value: single
   segments stay whole; dotted values (declaration-era tree paths that
   persist flat, nested machine state keys) split on `.`, because a
@@ -327,8 +341,9 @@ style themselves from their position in the hierarchy instead of guessing.
 Sibling arrangement is weight-driven and compose-time: `estimateRegionWeight`
 estimates each region's full rendered height from its own data — facts,
 structural fields, and relation refs for detail regions; per-layout row
-factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4 table rows, a timeline
-entry ≈ 2) times actual instance counts for lists, plus the wrapped
+factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4 table rows, a board
+card ≈ 4, a timeline entry ≈ 2) times actual instance counts for lists,
+plus the wrapped
 relation-chip rows the first declared relation adds, with no sampling
 cap —
 and `childrenModeFor` stacks siblings until their combined weight exceeds
