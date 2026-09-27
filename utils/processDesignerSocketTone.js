@@ -36,6 +36,10 @@ export function processSocketKind(port = {}) {
 }
 
 export function processSocketTone(port = {}) {
+  // Projections keep their own tone (README "Node UI contract"): a projected
+  // output socket is a read projection of its source, not an ordinary
+  // reference payload.
+  if (port.projection === true || port.kind === 'projection') return 'projection';
   return TYPE_TONES[socketBase(port)] || 'data';
 }
 

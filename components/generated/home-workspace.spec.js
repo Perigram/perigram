@@ -56,13 +56,19 @@ describe('home workspace state', () => {
   });
 
   it('normalizes invalid or missing stored state back to a single empty pane', () => {
-    expect(loadHomeWorkspaceState(memoryStorage(), 'k').paneTree)
-      .toEqual(createWorkspaceLeaf('pane-1'));
+    // The one-tab invariant (generated README): a repaired pane seeds a
+    // default empty tab and selects it — never a tabless leaf.
+    const expectRepairedPane = paneTree => {
+      expect(paneTree.kind).toBe('leaf');
+      expect(paneTree.id).toBe('pane-1');
+      expect(paneTree.tabKeys).toHaveLength(1);
+      expect(paneTree.tabKeys[0]).toMatch(/^empty:/);
+      expect(paneTree.selectionKey).toBe(paneTree.tabKeys[0]);
+    };
+    expectRepairedPane(loadHomeWorkspaceState(memoryStorage(), 'k').paneTree);
     const corrupted = memoryStorage({ k: '{not json' });
-    expect(loadHomeWorkspaceState(corrupted, 'k').paneTree)
-      .toEqual(createWorkspaceLeaf('pane-1'));
-    expect(loadHomeWorkspaceState(null, 'k').paneTree)
-      .toEqual(createWorkspaceLeaf('pane-1'));
+    expectRepairedPane(loadHomeWorkspaceState(corrupted, 'k').paneTree);
+    expectRepairedPane(loadHomeWorkspaceState(null, 'k').paneTree);
   });
 
   it('drops explorer fields from the persisted home shape', () => {

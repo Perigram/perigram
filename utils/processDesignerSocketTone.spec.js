@@ -7,7 +7,7 @@ import {
 
 describe('process designer socket tones', () => {
   it('maps the canonical port contract to semantic signal roles', () => {
-    expect(processSocketTone({ type: { base: 'entity' } })).toBe('entity');
+    expect(processSocketTone({ type: { base: 'entity' } })).toBe('reference');
     expect(processSocketTone({ type: { base: 'entityRef' } })).toBe('reference');
     expect(processSocketTone({ type: { base: 'block' } })).toBe('structure');
     expect(processSocketTone({ type: { base: 'number' } })).toBe('quantity');
@@ -15,7 +15,7 @@ describe('process designer socket tones', () => {
     expect(processSocketTone({ type: { base: 'dateTime' } })).toBe('temporal');
     expect(processSocketTone({ type: { base: 'attachmentRef' } })).toBe('external');
     expect(processSocketTone({ type: { base: 'string' } })).toBe('data');
-    expect(processSocketTone({ kind: 'entity' })).toBe('entity');
+    expect(processSocketTone({ kind: 'entity' })).toBe('reference');
   });
 
   it('keeps control flow and projections distinct from ordinary data', () => {

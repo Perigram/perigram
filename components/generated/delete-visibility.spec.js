@@ -24,9 +24,13 @@ describe('generated delete visibility', () => {
 
   it('normalizes access feature keys from the endpoint resolver', () => {
     expect(featureKey('queue')).toBe('cts-types');
-    expect(featureKey('cassette_design')).toBe('cassette_designs');
+    // cassette_design is a cut type: unknown/legacy ids normalize to the
+    // per-class feature, not a deleted feature key.
+    expect(featureKey('cassette_design')).toBe('cts-types');
     expect(useInstancesStore().canonicalTypeKey('cassetteDesign')).toBe('cassette_design');
-    expect(useInstancesStore().canonicalTypeKey('cut-plan')).toBe('cut_plan');
+    // Kebab registry ids are the canonical server form — they pass through
+    // unchanged (camel legacy surface keys are the only conversions).
+    expect(useInstancesStore().canonicalTypeKey('cut-plan')).toBe('cut-plan');
   });
 
   it('requires admin delete access for the exact generated entity', () => {
