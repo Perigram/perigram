@@ -61,6 +61,47 @@ export const facadeFileTypes = [
     }
   },
   {
+    // The production drawing (SPEC §21): one concrete piece baked from a
+    // parametric template at fixed parameter values. Pack type, not org
+    // vocabulary — baking is evaluation semantics (the OCCS evaluator runs
+    // at construction), which org-authored types cannot express. Records
+    // live in the §13 per-class collections; the pack binds the single
+    // `bake` construction mode (see server/features/cassettes/bake.js).
+    id: 'cassette-design',
+    class: 'item',
+    scope: 'system',
+    version: 1,
+    fields: {
+      name: { base: 'string' },
+      template: { base: 'ref', accepts: ['cassette'] },
+      parameters: { base: 'json' },
+      geometry: { base: 'json' }
+    },
+    states: {
+      main: {
+        initial: 'ACTIVE',
+        states: {
+          ACTIVE: {},
+          ARCHIVED: { terminal: true }
+        }
+      }
+    },
+    transitions: [{ axis: 'main', from: 'ACTIVE', to: 'ARCHIVED', intent: 'archiveCassetteDesign' }],
+    render: {
+      label: 'Cassette design',
+      icon: 'pi pi-clone',
+      groups: [
+        { id: 'provenance', fields: [
+          { path: 'data.template', label: 'processDesigner.source', display: 'entityRef', typeId: 'cassette', priority: 10 },
+          { path: 'data.parameters', label: 'processDesigner.parameters', priority: 20 }
+        ] }
+      ]
+    },
+    operators: {
+      bake: { id: 'bake', species: 'construct', input: { base: 'ref', accepts: ['cassette'] } }
+    }
+  },
+  {
     // Derived: sheet designs are produced by nesting runs (and refined
     // in the editor from cassette refs) — the legacy construction
     // exclusion, now declared. No construct modes; editor edits.

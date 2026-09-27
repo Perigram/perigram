@@ -1187,6 +1187,21 @@
         "attachments",
         "data"
       ],
+      "collection": "items",
+      "lineage": {},
+      "type": "cassette-design"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
       "collection": "files",
       "lineage": {},
       "type": "sheet-design"
@@ -1310,6 +1325,11 @@
       "list": null,
       "single": null,
       "type": "cassette"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "cassette-design"
     },
     {
       "list": null,

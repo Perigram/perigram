@@ -103,7 +103,14 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     resetAppRegistryForTests();
     const registry = getAppRegistry();
     const explicit = new Map(registry.listInstanceServices().map(binding => [binding.type, binding.service]));
-    expect([...explicit.keys()].sort()).toEqual([...FRAMEWORK_SERVICE_TYPES, ...PACK_LEGACY_SERVICE_TYPES].sort());
+    // cassette-design is the one pack type with an explicit registration:
+    // its `bake` construction mode is pack-bound, so the generic
+    // `genericCreate` mode must not be offered for it.
+    expect([...explicit.keys()].sort()).toEqual([
+      ...FRAMEWORK_SERVICE_TYPES,
+      ...PACK_LEGACY_SERVICE_TYPES,
+      'cassette-design'
+    ].sort());
 
     // Pack types resolve through the generic instance services with full
     // process boundaries.
