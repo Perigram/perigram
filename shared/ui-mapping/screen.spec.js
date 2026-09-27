@@ -184,6 +184,35 @@ describe('screen composition', () => {
     expect(composed.regions[0].childRegions.map(region => region.instances.map(instance => instance.id))).toEqual([['s1'], ['w2']]);
   });
 
+  it('lists only root instances for a type that can be someone\'s child', () => {
+    const nestedBundle = {
+      types: [
+        ...bundle.types,
+        {
+          id: 'bin', class: 'group', name: 'Bin', identifier: 'name',
+          fields: { name: { base: 'string' } },
+          edges: { children: { parts: { types: ['widget'], lineageKey: 'binId' } } }
+        }
+      ]
+    };
+    const nestedPool = buildInstancePool({
+      widgets: [
+        { id: 'root1', type: 'widget', fields: { name: 'Root' }, relations: {}, lineage: {} },
+        { id: 'child1', type: 'widget', fields: { name: 'Child' }, relations: {}, lineage: { binId: { id: 'b1' } } },
+        { id: 'child2', type: 'widget', fields: { name: 'RawChild' }, relations: {}, lineage: { binId: 'b1' } }
+      ]
+    });
+    const screen = { screenKey: 'roots', template: 'typeList', label: 'Roots',
+      sources: [{ id: 'widget', typeId: 'widget', mode: 'list' }],
+      regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'list' }] };
+    expect(composeScreen(screen, contract, nestedBundle, nestedPool).regions[0].instances.map(instance => instance.id))
+      .toEqual(['root1']);
+
+    // A type no children edge names keeps the total list.
+    expect(composeScreen(screen, contract, bundle, nestedPool).regions[0].instances.map(instance => instance.id).sort())
+      .toEqual(['child1', 'child2', 'root1']);
+  });
+
   it('carries tree-owned chrome per region (container role by depth)', () => {
     const composed = composeScreen(
       { screenKey: 'c1', template: 'instanceDetail', label: 'C1',

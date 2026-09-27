@@ -38,7 +38,7 @@ function resolveSingle(source, screen, pool) {
   return Object.values(byId)[0] || null;
 }
 
-function resolveList(source, screen, pool, sourcesById) {
+function resolveList(source, screen, pool, sourcesById, typesById = {}) {
   const byId = pool[source.typeId] || {};
   if (source.relation) {
     const originSource = sourcesById[source.relation.sourceId];
@@ -77,7 +77,13 @@ function resolveList(source, screen, pool, sourcesById) {
     if (!filter) return Object.values(byId);
     return Object.values(byId).filter(instance => instanceMatchesFilter(instance, filter));
   }
-  return Object.values(byId);
+  // An unscoped list is a type-level surface: when the type can be
+  // someone's child (a declared children edge names it), only root
+  // instances list — children ride nested under their parents, never
+  // duplicated at the top level.
+  const scopeKeys = rootScopeKeysFor(source.typeId, typesById);
+  if (!scopeKeys.size) return Object.values(byId);
+  return Object.values(byId).filter(instance => isRootInstance(instance, scopeKeys));
 }
 
 function resolveFilterPlaceholders(filters = {}, screen = {}) {
@@ -100,6 +106,28 @@ function surfaceKindOf(region, source) {
   return 'list';
 }
 
+// Declared lineage keys through which this type can be someone's child
+// (any type's children edge naming it, self-referential included). A type
+// with no incoming children edge has no root scope — every instance lists.
+function rootScopeKeysFor(typeId = '', typesById = {}) {
+  const keys = new Set();
+  for (const type of Object.values(typesById || {})) {
+    for (const edge of Object.values(type?.edges?.children || {})) {
+      if ((edge?.types || []).includes(typeId) && edge?.lineageKey) keys.add(edge.lineageKey);
+    }
+  }
+  return keys;
+}
+
+function isRootInstance(instance = {}, scopeKeys = new Set()) {
+  for (const key of scopeKeys) {
+    const ref = instance.lineage?.[key];
+    const value = ref?.id ?? ref;
+    if (value !== null && value !== undefined && value !== '') return false;
+  }
+  return true;
+}
+
 function composeRegion(region, screen, contract, pool, typesById, depth, providedStates) {
   const sourcesById = Object.fromEntries((screen.sources || []).map(source => [source.id, source]));
   const source = sourcesById[region.sourceId] || {};
@@ -109,9 +137,8 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   // falls back to listing the whole type.
   const instances = surfaceKind === 'detail'
     ? (single ? [single] : [])
-    : resolveList(source, screen, pool, sourcesById);
-  const type = typesById[source.typeId] || null;
-  const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
+    : resolveList(source, screen, pool, sourcesById, typesById);
+  const type = typesById[source.typeId] || null;  const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
   const containerRole = depth === 0 ? 'section' : 'card';
   const chrome = resolveChrome(containerRole, depth === 0 ? null : 'section');
   const childRegions = region.slot === 'children' ? [] : (screen.regions || [])

@@ -500,11 +500,13 @@ const headerActionLabel = action => (
     : null
 );
 const instanceActionsForType = computed(() => props.instanceActions?.[props.node.typeId] || []);
-// The collection toolbar renders type-level actions only: a status
-// transition depends on the opened instance's current state, so it never
-// renders beside the create button — the machine serves it per instance.
+// The collection toolbar renders type-level actions only: creates. Every
+// other action kind addresses a concrete instance (delete, transitions,
+// instance-scoped commands) and renders on the instance surfaces — the
+// row menus, the detail header, and the machine-served transitions —
+// never beside the create button.
 const collectionActions = computed(() => (props.node.actions || [])
-  .filter(action => !(action?.actionKind === 'updateInstance' && action?.state?.to)));
+  .filter(action => action?.actionKind === 'createInstance'));
 // The detail header's action set: the composed node's manifest actions
 // PLUS the per-instance quick actions (runtime state transitions ride
 // here) — the strip's steps draw from this combined list.
