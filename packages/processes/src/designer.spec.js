@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { applyFieldDisplayRole, compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, interpretDeclarationEdges, syncProcessNodeProducerOutputs, typeCatalogPaletteGroups } from './designer.js';
+import { applyFieldDisplayRole, compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, interpretDeclarationEdges, syncProcessNodeProducerOutputs } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -777,45 +777,6 @@ describe('field display-role toggles', () => {
     applyFieldDisplayRole(nodes, 'loose', 'identifier', true);
     expect(nodes[2].data.descriptor.identifier).toBe(true);
     expect(nodes[1].data.descriptor.identifier).toBe(true);
-  });
-});
-
-describe('type catalog palette', () => {
-  it('offers constructible types with operator via variants in one Types group', () => {
-    const groups = typeCatalogPaletteGroups([
-      { id: 'panel', class: 'item', label: 'Panel', icon: 'pi pi-box', description: 'item type', constructible: true, via: 'genericCreate', constructOperators: ['bake-panel'] },
-      { id: 'project', class: 'group', label: 'Project', icon: 'pi pi-folder', description: 'group type', constructible: true, via: 'genericCreate' },
-      { id: 'revision', class: 'process', label: 'Revision', icon: 'pi pi-cog', description: 'meta', constructible: false, via: 'genericCreate' }
-    ]);
-    expect(groups).toHaveLength(1);
-    expect(groups[0].id).toBe('types');
-    const items = groups[0].items;
-    expect(items[0]).toMatchObject({ id: 'panel', kind: 'cts.construct', preset: { typeId: 'panel', construction: { mode: 'genericCreate' } } });
-    expect(items[1]).toMatchObject({ id: 'panel:bake-panel', preset: { typeId: 'panel', construction: { mode: 'bake-panel' } } });
-    expect(items[2]).toMatchObject({ id: 'project' });
-    expect(items.some(item => item.id === 'revision')).toBe(false);
-  });
-
-  it('lists one construct variant per declared creation mode', () => {
-    const groups = typeCatalogPaletteGroups([
-      { id: 'image', class: 'file', label: 'Image', constructible: true, via: 'upload', modes: ['upload', 'capture'], constructOperators: [] },
-      { id: 'cassette', class: 'file', label: 'Cassette', constructible: true, via: 'editor', modes: ['editor'], constructOperators: [] }
-    ]);
-    const items = groups[0].items;
-    // Default mode keeps the plain label; additional modes become
-    // `· mode` variants — the artifact-era protocol picker.
-    expect(items.map(item => item.id)).toEqual(['image', 'image:capture', 'cassette']);
-    expect(items[0]).toMatchObject({ label: 'Image', preset: { typeId: 'image', construction: { mode: 'upload' } } });
-    expect(items[1]).toMatchObject({ label: 'Image · capture', preset: { typeId: 'image', construction: { mode: 'capture' } } });
-    expect(items[2]).toMatchObject({ label: 'Cassette', preset: { typeId: 'cassette', construction: { mode: 'editor' } } });
-  });
-
-  it('falls back to the entry via when no modes list is supplied', () => {
-    const groups = typeCatalogPaletteGroups([
-      { id: 'legacy-entry', constructible: true, via: 'genericCreate' }
-    ]);
-    expect(groups[0].items).toHaveLength(1);
-    expect(groups[0].items[0].preset).toEqual({ typeId: 'legacy-entry', construction: { mode: 'genericCreate' } });
   });
 });
 
