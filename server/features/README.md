@@ -29,7 +29,7 @@ Support capabilities are documented and classified, but do not need empty
 | Kind | Modules |
 |---|---|
 | Entity modules | `artifact-templates`, `artifacts`, `cassettes`, `instance-revisions`, `organizations`, `process-definitions`, `sheet-designs`, `users` |
-| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `nesting`, `notifications`, `parametric-cassettes`, `sessions`, `states`, `support`, `system-settings`, `workflow-overrides` |
+| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `nesting`, `notifications`, `sessions`, `states`, `support`, `system-settings`, `workflow-overrides` |
 
 Types without a feature module — the documents/tech-drawing/facade pack
 types and every org-authored type — are served entirely by the generic

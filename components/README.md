@@ -757,10 +757,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   props in production pages; use context only as a fallback for workbench/demo
   relationship detection.
 - Mutable current location belongs in `status.lifecycle.data.location`, not in a static display-only card field. Supported UI location types are `warehouse`, `coordinates`, and `address`; warehouse locations render as entity links.
-- `cassette`, `cassetteTemplate`, `cassetteDesign`, and `cassetteInstance`
-  are separate UI surfaces and must not be collapsed into one card contract.
-- `CassetteInstanceCard` renders the produced cassette geometry from the source
-  cassette design and embeds source design/template/queue context through
+- The cassette template surface and the produced-cassette surface are
+  separate UI surfaces and must not be collapsed into one card contract.
+- Queue-produced cassettes render the produced geometry through the cassette
+  card family and embed source design/template/queue context through
   compact `InstanceInlineRef` rows. Queue-produced instances are already `CUT`;
   lifecycle action design remains a workflow-machine concern, not a local card
   action override.
@@ -807,7 +807,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   summarize general/manual warehouse stock, and batch pile cards show
   requisition-sourced receipt context from `lineage.requisitionId`.
 - Entity relation rows use `InstanceInlineRef` with design-system surface keys
-  (`materialPile`, `nestingRun`, `cassetteDesign`, etc.). Do not use
+  (`materialPile`, `nestingRun`, `cassette`, etc.). Do not use
   `TraceLink` for relation summaries inside cards/details; reserve it for rows
   whose explicit purpose is route navigation.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.

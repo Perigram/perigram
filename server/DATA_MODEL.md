@@ -77,33 +77,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.source` | String | source field |
 | `data.sourceStatus` | Array | source status field |
 
-### facade_patterns
-*Facade-patterns - manages facade patterns*
-
-| Field | Type | Description |
-|---|---|---|
-| `identity` | Object | Standard Identity Block (uid, name) |
-| `origin` | Object | Standard Origin Block (creation state) |
-| `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
-| `attachments` | Object | Standard Attachments Block (files) |
-| `data.graph` | String | graph field |
-| `data.revisions` | Array | revisions field |
-
-### facades
-*Facades - manages facades*
-
-| Field | Type | Description |
-|---|---|---|
-| `identity` | Object | Standard Identity Block (uid, name) |
-| `origin` | Object | Standard Origin Block (creation state) |
-| `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
-| `attachments` | Object | Standard Attachments Block (files) |
-| `data.partAssignments` | Array | part assignments field |
-| `data.parts` | Array | parts field |
-| `data.revisions` | Array | revisions field |
-
 ### invitations
 *Invitations - manages invitations*
 

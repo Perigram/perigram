@@ -2,19 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 
 vi.mock('./repository.js', () => ({
-  findTemplateById: vi.fn()
-}));
-
-vi.mock('../../db/mongo.js', () => ({
-  connectDB: vi.fn()
+  findById: vi.fn()
 }));
 
 import * as repository from './repository.js';
-import { evaluateTemplate } from './service.js';
+import { evaluateTemplate } from './evaluation.js';
 
-describe('parametric cassette OCCS evaluation', () => {
+describe('cassette OCCS evaluation', () => {
   it('unwraps updated template definition containers before OCCS baking', async () => {
-    repository.findTemplateById.mockResolvedValue({
+    repository.findById.mockResolvedValue({
       _id: 'template-1',
       data: {
         type: 'PARAMETRIC',
