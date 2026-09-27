@@ -153,9 +153,9 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       for (const mode of declaredModes) {
         expect(Object.hasOwn(service.constructionHandlers || {}, mode), `${entity.type} mode ${mode}`).toBe(true);
       }
-      expect(service.processCapabilities.createModes, entity.type).toEqual(declaredModes);
+      expect(service.processCapabilities.createModes.slice().sort(), entity.type).toEqual(declaredModes);
       expect(service.processCapabilities.create, entity.type).toBe(declaredModes.length > 0);
-      expect(projection[entity.type].createModes, entity.type).toEqual(declaredModes);
+      expect(projection[entity.type].createModes.slice().sort(), entity.type).toEqual(declaredModes);
       expect(projection[entity.type].create, entity.type).toBe(declaredModes.length > 0);
       const inPalette = designer.createEntityOptions.some(option => option.value === entity.type);
       expect(inPalette, entity.type).toBe(declaredModes.length > 0);

@@ -11,20 +11,25 @@
 // once rode beside it are deleted.
 import { facadeDomain } from '~/packages/facade/src/index.js';
 import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
-import { bakeCassetteDesign } from '~/server/features/cassettes/bake.js';
+import {
+  bakeCassetteDesign,
+  convertDxfCassetteDesign,
+  uploadCassetteDesign
+} from '~/server/features/cassettes/cassette-design-construction.js';
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
 import { solveNestingValue } from '~/server/features/nesting/solve-value.js';
 import { convertArtifact } from '~/server/features/artifact-conversions/operations.js';
 
-// cassette-design constructs through the generic §13 service with one
-// pack-bound construction mode: `bake` (the OCCS evaluator runs at
-// construction — see server/features/cassettes/bake.js). The explicit
+// cassette-design constructs through the generic §13 service with three
+// pack-bound construction modes (upload/bake/convertDxf — see
+// server/features/cassettes/cassette-design-construction.js). The explicit
 // registration wins over the resolver so the generic `genericCreate` mode
-// is not offered for a type whose records are meaningless unbaked. The
-// service entry forwards every method to the resolved generic service at
-// call time: this module is imported through the declaration composition
-// chain before the instances feature finishes evaluating, so resolving at
-// module scope would read an uninitialized binding.
+// is not offered for a type whose records are meaningless without
+// geometry. The service entry forwards every method to the resolved
+// generic service at call time: this module is imported through the
+// declaration composition chain before the instances feature finishes
+// evaluating, so resolving at module scope would read an uninitialized
+// binding.
 const forwardCassetteDesign = method => (...args) => instanceServiceResolver('cassette-design')[method](...args);
 const cassetteDesignService = {
   list: forwardCassetteDesign('list'),
@@ -53,7 +58,7 @@ export const facadePack = {
     'cassette-design': { processUpdate: true, delete: true, archive: false }
   },
   constructionHandlers: {
-    'cassette-design': { bake: bakeCassetteDesign }
+    'cassette-design': { upload: uploadCassetteDesign, bake: bakeCassetteDesign, convertDxf: convertDxfCassetteDesign }
   },
 
   commandHandlers: {

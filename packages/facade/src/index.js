@@ -33,10 +33,12 @@ export const facadeDomain = {
   events: facadeEvents,
   // Construction contracts (SPEC §21): the executable construction modes
   // the registry capability binding verifies against registered handlers.
-  // cassette-design constructs only by baking an OCCS template — a bare
-  // generic create would produce a design with no geometry.
+  // cassette-design constructs three ways — uploaded DXF (the payload
+  // protocol with extraction), baked from an OCCS template, converted
+  // from a dxf-source instance. A bare generic create would produce a
+  // design with no geometry, so it is not offered.
   construction: {
-    'cassette-design': { modes: ['bake'] }
+    'cassette-design': { modes: ['upload', 'bake', 'convertDxf'] }
   },
   serviceContracts: {
     nesting: {
