@@ -103,7 +103,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
-import { generatedEntityDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
+import { generatedInstanceDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 import { openInstanceChat as openSharedInstanceChat } from '~/utils/instance-chat.js';
 import {
@@ -165,7 +165,7 @@ function openInstanceChat() {
 }
 const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
 const detailActionContext = computed(() => ({
-  parentEntity: props.item?.entity || null,
+  parentInstance: props.item?.entity || null,
   parentTypeId: props.item?.type || ''
 }));
 const detailErrorMessage = computed(() => detailError.value?.data?.message || detailError.value?.message || '');
@@ -198,7 +198,7 @@ const tabActionIds = computed(() => resolvedEntries.value
   .filter(action => action && !detailChildActionIds.value.includes(action.id))
   .filter(isGeneratedSurfaceAction)
   .filter(action => generatedActionRendersAt(action, ['entity', 'relation']))
-  .filter(action => !generatedEntityDetailConsumesAction(props.item?.type, action))
+  .filter(action => !generatedInstanceDetailConsumesAction(props.item?.type, action))
   .map(action => action.id));
 
 function executeAction(action, entity = null, context = {}) {

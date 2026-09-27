@@ -14,7 +14,7 @@ export const generatedScreenOverloads = [
   }
 ];
 
-export const generatedEntityDetailOverloads = [
+export const generatedInstanceDetailOverloads = [
   {
     typeId: 'artifact',
     component: ArtifactDetail,
@@ -32,7 +32,7 @@ export function resolveGeneratedScreenOverload(screen = {}) {
 }
 
 export function resolveGeneratedInstanceDetailOverload(typeId = '') {
-  return generatedEntityDetailOverloads.find(overload => overload.typeId === typeId) || null;
+  return generatedInstanceDetailOverloads.find(overload => overload.typeId === typeId) || null;
 }
 
 function detailScreenTypeId(screen = {}) {

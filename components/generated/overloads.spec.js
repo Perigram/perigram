@@ -48,7 +48,7 @@ describe('generated overload registry', () => {
     expect(resolveGeneratedScreenOverload([])).toBeNull();
   });
 
-  it('keeps entity detail body overloads in the registry', () => {
+  it('keeps instance detail body overloads in the registry', () => {
     expect(resolveGeneratedInstanceDetailOverload('artifact')?.component).toBeTruthy();
     expect(resolveGeneratedInstanceDetailOverload('cassette')?.component).toBeTruthy();
     expect(resolveGeneratedInstanceDetailOverload('queue')).toBeNull();

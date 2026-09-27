@@ -108,7 +108,7 @@ hand-written services.
   declares no payload or no revision scope. `PUT
   /api/instances/:type/:id/payload` is the transport; it gates through
   the shared access engine on the class-collection feature (the same
-  feature `resolveEntityFeature` compiles grants against) with the type
+  feature `resolveInstanceFeature` compiles grants against) with the type
   id as the type-id filter, so a write requires a compiled process
   grant — fail-closed.
 - Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the

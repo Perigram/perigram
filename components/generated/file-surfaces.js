@@ -208,7 +208,7 @@ export function resolveFileSurface(editors = activeEditorBindings(), typeId = ''
 }
 
 /**
- * Derive generated entity-detail overload rows for every bound file type:
+ * Derive generated instance-detail overload rows for every bound file type:
  * one row per editor binding whose surface has a detail presentation.
  */
 export function fileDetailOverloads(editors = activeEditorBindings()) {

@@ -9,23 +9,23 @@ describe('generated action context', () => {
   it('preserves opened parent context for child collection actions', () => {
     const library = { _id: 'library-1', identity: { name: 'Library 1' } };
     const context = mergeCollectionActionContext({
-      incoming: { parentTypeId: 'library', parentEntity: library },
+      incoming: { parentTypeId: 'library', parentInstance: library },
       typeId: 'cassette',
       items: [{ _id: 'cassette-1', identity: { name: 'Cassette 1' } }]
     });
 
     expect(context.parentTypeId).toBe('library');
-    expect(context.parentEntity).toBe(library);
+    expect(context.parentInstance).toBe(library);
     expect(context.typeId).toBe('cassette');
     expect(context.parentOptions).toEqual([]);
   });
 
-  it('uses opened parent entity as the create action parent id', () => {
+  it('uses opened parent instance as the create action parent id', () => {
     const entities = resolveGeneratedActionEntities({
       action: { actionKind: 'createInstance', typeId: 'cassette', parentTypeId: 'library' },
       context: {
         parentTypeId: 'library',
-        parentEntity: { _id: 'library-1' },
+        parentInstance: { _id: 'library-1' },
         typeId: 'cassette'
       },
       screen: { typeId: 'library', scope: { instanceId: 'library-1' } }
