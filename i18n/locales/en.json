@@ -1850,6 +1850,8 @@
     "sortLabel": "Sort by",
     "sortOrderLabel": "Toggle sort order",
     "moreActions": "More actions",
+    "projectionBoard": "Show as board",
+    "projectionTable": "Show as table",
     "new": "New",
     "stateHistory": "State history",
     "filters": "Filters",

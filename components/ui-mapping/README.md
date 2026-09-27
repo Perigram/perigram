@@ -101,6 +101,18 @@ surface concerns:
   toggle unfolding beside the sort button; the persisted per-type sort
   preference survives the move; table projections keep native column
   sorting, so the control renders only for card grids and boards).
+  The projection switch is the one layout-shaped user view state,
+  persisted per type beside sort and filters
+  (`utils/ui-projection-preference.js`): a collection whose type serves
+  a state vocabulary and whose derived layout is a structural collection
+  (table or tree-table) may switch to the board, and a derived board may
+  switch back to the table — one icon toggle in the header cluster, and
+  a stored preference for a non-switchable collection is ignored, so the
+  derivation stays the default and the switch never fights
+  shape-specialized projections (timeline, stats, carousel, the handful
+  list). Switching a hierarchical collection to the board flattens the
+  nesting for that view — cards group by state; the tree projection
+  returns with the toggle.
 
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column): a self-contained popover
@@ -145,12 +157,14 @@ surface concerns:
   main content in a 7-column lane with child regions in a 5-column lane
   (`detailSplit`, collapsing to stacked below xl); nested detail regions
   keep the Card surface. Empty regions render a Message.
-- `BoardCollection.vue` — the state board: the process-class collection
-  projection whose columns are the type's served state vocabulary
+- `BoardCollection.vue` — the state board: the projection whose columns
+  are the type's served state vocabulary
   (authored order, `StateTag` headers with per-column counts) and whose
   cards are the loaded instances grouped by their flat state — budgeted
   facts on the card-grid anatomy, no state badge (the lane already is
-  the state). Columns are `subtle` wells on the surface ladder; cards
+  the state). It renders by derivation for process-class flat
+  collections and through the projection switch for any stateful
+  structural collection (see the header-controls contract above). Columns are `subtle` wells on the surface ladder; cards
   sit on the content surface. Membership moves only through the
   authored machine: a card may drop into a column only when a contract
   edge (`stateTransitionsByType`, carried on the region node) leads
