@@ -395,7 +395,10 @@ into the canonical instance-filter tree
 ([shared/instance-filters](../instance-filters/README.md)) and evaluates
 over the pool (bare keys read as lineage keys — the total client default;
 an unresolved `$screen` placeholder means the pinned scope is unknown, so
-the source resolves no instances instead of the whole type), maps
+the source resolves no instances instead of the whole type); an unscoped
+list of a type that can be someone's child (a declared children edge
+names it) lists only root instances, both stored reference shapes
+matching; maps
 regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
 action records, the per-region `dataState` (see Data states), the

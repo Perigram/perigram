@@ -186,10 +186,13 @@ surface concerns:
   `utils/ui-sort-preference.js`, and the paginate/virtualize thresholds are the shared
   `TABLE_*` budgets from the mapping contract, never literals. Filtering
   belongs to the region toolbar above the table, not to a per-column
-  filter row. The region toolbar renders type-level actions only (creates,
-  commands): a status transition depends on the opened instance's current
-  state and never renders beside the create button — the machine serves it
-  per instance through the state service.
+  filter row. The region toolbar renders type-level actions only (creates):
+  every other action kind addresses a concrete instance (delete,
+  transitions, instance-scoped commands) and renders on the instance
+  surfaces — row menus, the detail header, and the machine-served
+  transitions. An unscoped list of a type that can be someone's child (a
+  declared children edge names it) lists only root instances — children
+  ride nested under their parents, never duplicated at the top level.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns and the same row-surface treatment as
