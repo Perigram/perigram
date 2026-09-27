@@ -33,6 +33,9 @@
           @dragstart="onDragStart($event, instance)"
           @dragend="onDragEnd"
         >
+          <template #header>
+            <PreviewBox :type="type" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
+          </template>
           <template #title>
             <div :class="LAYOUT.rowBetween">
               <div :class="LAYOUT.row">
@@ -59,7 +62,7 @@
           </template>
           <template #content>
             <div v-if="scalarFields.length" :class="LAYOUT.stackTight">
-              <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
+              <div v-for="field in visibleFieldsFor(instance)" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
                 <FieldControl
                   :model-value="instance.fields?.[field.name]"
@@ -69,6 +72,16 @@
                   :bundle="bundle"
                 />
               </div>
+              <Button
+                v-if="hiddenFieldCount(instance)"
+                :label="expandedCards.has(instance.id)
+                  ? $t('uiMapping.showLess')
+                  : $t('uiMapping.showMore', { count: hiddenFieldCount(instance) })"
+                link
+                size="small"
+                severity="secondary"
+                @click="toggleFacts(instance.id)"
+              />
             </div>
           </template>
         </Card>
@@ -111,6 +124,7 @@ import {
 } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import FieldControl from './FieldControl.vue';
+import PreviewBox from './PreviewBox.vue';
 import StateTag from './StateTag.vue';
 import SortControl from './SortControl.vue';
 
@@ -150,6 +164,24 @@ const emit = defineEmits(['open', 'run', 'transition']);
 const { te, t } = useI18n();
 
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
+// Facts follow the card-grid budget (cardFactCount over CARD_FACT_SCALE:
+// wide types earn more facts); beyond-budget facts collapse behind the
+// shared show-more keys — board lanes are dense, so the budget is the
+// collapse, and one expand per card lifts it.
+const factBudget = computed(() => cardFactCount(props.type));
+const expandedCards = ref(new Set());
+const visibleFieldsFor = instance => (expandedCards.value.has(instance.id)
+  ? scalarFields.value
+  : scalarFields.value.slice(0, factBudget.value));
+const hiddenFieldCount = instance => (expandedCards.value.has(instance.id)
+  ? 0
+  : Math.max(0, scalarFields.value.length - factBudget.value));
+function toggleFacts(id) {
+  const next = new Set(expandedCards.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  expandedCards.value = next;
+}
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
     && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)))
