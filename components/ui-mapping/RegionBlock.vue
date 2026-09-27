@@ -6,7 +6,7 @@
         <span class="text-label min-w-0 truncate">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
-      <div v-if="node.actions.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
+      <div v-if="collectionActions.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field
              at the same position; the icon or Esc collapses it back (an
              empty blur collapses too). -->
@@ -47,7 +47,7 @@
           @update:order="value => (sortOrder = value)"
         />
         <ActionButton
-          v-for="action in node.actions"
+          v-for="action in collectionActions"
           :key="action.id"
           :action="action"
           :render="node.type?.render"
@@ -129,7 +129,7 @@
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
     </template>
-    <template v-if="node.actions.length || searchToggleAvailable || facetsToggleAvailable" #icons>
+    <template v-if="collectionActions.length || searchToggleAvailable || facetsToggleAvailable" #icons>
       <div class="flex min-w-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field
              at the same position; the icon or Esc collapses it back (an
@@ -171,7 +171,7 @@
           @update:order="value => (sortOrder = value)"
         />
         <ActionButton
-          v-for="action in node.actions"
+          v-for="action in collectionActions"
           :key="action.id"
           :action="action"
           :render="node.type?.render"
@@ -471,6 +471,11 @@ const headerActionLabel = action => (
     : null
 );
 const instanceActionsForType = computed(() => props.instanceActions?.[props.node.typeId] || []);
+// The collection toolbar renders type-level actions only: a status
+// transition depends on the opened instance's current state, so it never
+// renders beside the create button — the machine serves it per instance.
+const collectionActions = computed(() => (props.node.actions || [])
+  .filter(action => !(action?.actionKind === 'updateInstance' && action?.state?.to)));
 // The detail header's action set: the composed node's manifest actions
 // PLUS the per-instance quick actions (runtime state transitions ride
 // here) — the strip's steps draw from this combined list.

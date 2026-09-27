@@ -6,6 +6,10 @@
     :instances="instanceGroups"
     :source-states="poolStates"
     :on-run="runAction"
+    :on-transition="runRuntimeTransition"
+    :on-transition-applied="applyTransitionSnapshot"
+    :runtime-transitions="runtimeTransitions"
+    @instance-mounted="loadRuntimeTransitions"
     :on-open="openInstance"
     :on-patch="runPatch"
   />
@@ -30,6 +34,7 @@ import { resolveCreatedInstanceOpen } from '~/components/generated/created-insta
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
+import { useStateController } from '~/composables/useStateController.js';
 import { statePolicyByType } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
@@ -55,6 +60,67 @@ const instanceGroups = computed(() => Object.fromEntries(
   Object.entries(instances.instancePool || {}).map(([typeKey, byId]) => [typeKey, Object.values(byId)])
 ));
 const poolStates = ref({});
+const stateController = useStateController();
+const runtimeTransitions = ref({});
+
+// The opened instance's machine-legal transitions, fetched through the
+// state service so the pane's header shows exactly what the machine
+// declares for the instance's current state.
+async function loadRuntimeTransitions(instance = {}) {
+  const typeId = instance.type || props.screen?.typeId || '';
+  const id = String(instance._id || instance.id || props.screen?.scope?.instanceId || '');
+  if (!typeId || !id) {
+    runtimeTransitions.value = {};
+    return;
+  }
+  try {
+    const actions = await stateController.fetchActions(typeId, id);
+    runtimeTransitions.value = {
+      [typeId]: actions
+        .filter(action => action.to)
+        .map(action => ({
+          __runtime: true,
+          actionKind: 'updateInstance',
+          trigger: { mode: 'manual' },
+          state: { to: action.to },
+          intent: action.intent || null,
+          region: action.region || null,
+          label: action.label || null
+        }))
+    };
+  } catch {
+    runtimeTransitions.value = {};
+  }
+}
+
+function applyTransitionSnapshot(updated = {}) {
+  const typeKey = instances.canonicalTypeKey(updated.type || props.screen?.typeId || '');
+  const id = String(updated._id || updated.id || '');
+  if (!typeKey || !id) return;
+  instances.upsertRecord?.(typeKey, updated);
+}
+
+async function runRuntimeTransition(payload = {}) {
+  const instance = payload.instance || {};
+  const typeId = instance.type || props.screen?.typeId;
+  const id = String(instance._id || instance.id || props.screen?.scope?.instanceId || '');
+  if (!typeId || !id || !payload.to) return;
+  try {
+    const result = await stateController.transition(typeId, id, payload.to, {
+      ...(payload.intent ? { intent: payload.intent } : {}),
+      ...(payload.region ? { region: payload.region } : {})
+    });
+    applyTransitionSnapshot(result?.entity || result);
+    toast.add({ severity: 'success', summary: payload.to, detail: t('generatedScreen.actionCompleted'), life: 2000 });
+    await loadRuntimeTransitions({ type: typeId, _id: id });
+  } catch (error) {
+    if (isOfflineQueuedError(error)) {
+      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      return;
+    }
+    toast.add({ severity: 'error', summary: payload.to, detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
 
 async function reload() {
   const sources = (props.screen.sources || []).filter(source => source.id && source.typeId);
