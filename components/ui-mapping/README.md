@@ -191,10 +191,14 @@ surface concerns:
   the idle well would win). Without a resolver and without contract
   edges from a state, its cards are not draggable — a served machine
   with no moves anywhere renders a read-only board. The drop emits the
-  `transition` channel
-  (the state-service executor the detail header shares), never an
-  optimistic local move — the machine owns the mutation and the pool
-  reconciles through the shared entity event. Ordering belongs to the
+  `transition` intent; the host executors apply it optimistically over
+  the shared pool (`utils/optimistic-state.js`) — the card lands in its
+  lane immediately, the server result reconciles, a failure rolls the
+  captured record back, and an offline queueing keeps the flip for the
+  outbox to replay (the app's one optimistic contract). The machine
+  stays the authority: every surface reconciles through the same store
+  write, refused moves restore, and no board-local state is mutated.
+  Ordering belongs to the
   column: each lane carries its own `SortControl` over the composed
   `sortKeys` contract with a persisted per-type-and-state preference
   (`board-column:` scopes through `utils/ui-sort-preference.js`).
