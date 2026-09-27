@@ -2096,7 +2096,13 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
         typeId: resolvedTypeId,
         parentTypeId: parentTypeId || null,
         parentRevision: resolveParentRevision(action.parentRevision, parentTypeId, domain),
-        state: actionStatusForExposure(action, actionWindow, access, process),
+        state: actionStatusForExposure(
+          action,
+          actionWindow,
+          access,
+          process,
+          wiringArrivalState(actionId, exposedAction, resolvedTypeId, graphContext, actionWindows)
+        ),
         relationMutation: action.relationMutation || null,
         construction: (action.actionKind || 'createEntity') === 'createEntity'
           ? normalizeConstruction(action.construction, action.typeId, domain)
@@ -2164,8 +2170,12 @@ function executableRoleIdsForWindow(window = null, access = {}) {
     .filter(Boolean);
 }
 
-function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}) {
-  const status = compileActionStatus(action, process);
+function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}, wiredFrom = '') {
+  // The exposed/manifest action carries the same wiring arrival as the
+  // execution channel: compileActionStatus derives `from` from the same
+  // wiring fact the machine edge and the compiled action use. The action
+  // window's arrival (carried under `status`) is the fallback.
+  const status = compileActionStatus(action, process, wiredFrom);
   // The incoming action window carries the arrival state under `status`
   // (compileActionWindow); the exposed/manifest action must keep it as
   // `from` so generated surfaces scope the button to the states the
