@@ -671,6 +671,7 @@ describe('@perigram/processes compiler', () => {
     };
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
+      roles: { role_operator: { id: 'role_operator' } },
       graph: {
         nodes: ['make_project', 't'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
@@ -684,16 +685,21 @@ describe('@perigram/processes compiler', () => {
         s2: { id: 's2', kind: 'state', typeId: 'project', value: 'done' }
       },
       actions: {
-        make_project: { id: 'make_project', actionKind: 'createEntity', typeId: 'project', producerOutputId: 'make_project:entity', trigger: { mode: 'manual' }, access: { grants: [] }, inputDefaults: { state: 'draft' } },
-        t: { id: 't', actionKind: 'updateEntity', typeId: 'project', state: { axis: 'main', to: 'done' }, trigger: { mode: 'manual' }, access: { grants: [] } }
+        make_project: { id: 'make_project', actionKind: 'createEntity', typeId: 'project', producerOutputId: 'make_project:entity', trigger: { mode: 'manual' }, access: { grants: [{ roleId: 'role_operator', level: 'write' }] }, inputDefaults: { state: 'draft' } },
+        t: { id: 't', actionKind: 'updateEntity', typeId: 'project', state: { axis: 'main', to: 'done' }, trigger: { mode: 'manual' }, access: { grants: [{ roleId: 'role_operator', level: 'write' }] } }
       },
       processNodes: {
-        make_project: { id: 'make_project', kind: 'cts.construct', typeId: 'project', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, inputDefaults: { state: 'draft' } },
-        t: { id: 't', kind: 'cts.transition', typeId: 'project', state: { to: 'done' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+        make_project: { id: 'make_project', kind: 'cts.construct', typeId: 'project', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_operator', level: 'write' }] }, inputDefaults: { state: 'draft' } },
+        t: { id: 't', kind: 'cts.transition', typeId: 'project', state: { to: 'done' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_operator', level: 'write' }] } }
       }
     }, projectDomain);
     const action = compiled.actions.t;
     expect(action.state).toMatchObject({ from: 'draft', to: 'done' });
+    // The exposed/manifest action (what generated screens gate on) carries
+    // the same arrival state, not just `to`: the action window's arrival
+    // rides under `status`, and the exposure must project it as `from`.
+    const exposed = compiled.roles.role_operator.actions.find(entry => (entry.actionId || entry.id) === 't');
+    expect(exposed.state).toMatchObject({ from: 'draft', to: 'done' });
   });
 
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
@@ -1768,7 +1774,7 @@ describe('@perigram/processes compiler', () => {
         id: 'approve_project',
         actionKind: 'updateInstance',
         typeId: 'project',
-        state: { to: 'APPROVED' }
+        state: { from: 'NEW', to: 'APPROVED' }
       })
     ]));
     expect(compiled.userAccess.user_a.screens.find(screen => screen.typeId === 'project').actions)

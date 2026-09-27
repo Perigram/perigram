@@ -2166,7 +2166,11 @@ function executableRoleIdsForWindow(window = null, access = {}) {
 
 function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}) {
   const status = compileActionStatus(action, process);
-  const inputStatus = actionWindow?.input?.state || '';
+  // The incoming action window carries the arrival state under `status`
+  // (compileActionWindow); the exposed/manifest action must keep it as
+  // `from` so generated surfaces scope the button to the states the
+  // transition actually leaves. Reading `.state` here silently dropped it.
+  const inputStatus = actionWindow?.input?.status || actionWindow?.input?.state || '';
   if (!status.from && inputStatus) status.from = inputStatus;
   const targetState = actionTargetState(action, process) || access.stateTo || actionWindow?.outputs?.[0]?.state || '';
   if (!status.to && targetState) status.to = targetState;
