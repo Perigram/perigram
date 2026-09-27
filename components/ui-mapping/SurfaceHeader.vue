@@ -141,7 +141,13 @@ const transitionActions = computed(() => props.actions
 // contract status action never joins the generic run menu.
 const manualActions = computed(() => props.actions
   .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
-  .filter(action => !(action?.actionKind === 'updateInstance' && action?.state?.to)));
+  .filter(action => !(action?.actionKind === 'updateInstance' && action?.state?.to))
+  .filter(action => {
+    const from = action.state?.from || '';
+    if (!from) return true;
+    const state = typeof props.instance?.state === 'string' ? props.instance.state : '';
+    return Boolean(state) && (state === from || state.endsWith(`.${from}`));
+  }));
 const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS_INLINE));
 const overflowActions = computed(() => manualActions.value
   .filter(action => !inlineActions.value.includes(action)));

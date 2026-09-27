@@ -345,10 +345,11 @@ const openAction = (action, context = {}) => {
     return;
   }
   if (launch === 'confirm') {
+    const typeLabel = (props.bundle.types || []).find(type => type.id === action.typeId)?.name || null;
     confirm.require({
       group: 'uiMappingConfirm',
       header: action.label,
-      message: [action.actionKind, action.typeId].filter(Boolean).join(' '),
+      message: typeLabel || action.label,
       accept: () => runAction(action, {}, context)
     });
     return;
