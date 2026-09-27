@@ -3603,7 +3603,13 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
       mutation: action.mutation || { fields: [] },
       relationMutation: action.relationMutation || null,
       projection: action.projection || null,
-      construction: normalizeConstruction(action.construction, action.typeId, domain),
+      // The construction contract is the create form: only create actions
+      // carry it. Hydrating the type's default contract onto deletes and
+      // transitions opened the create dialog for every non-create action
+      // (planActionLaunch keys off construction.inputs).
+      construction: (action.actionKind || 'createEntity') === 'createEntity'
+        ? normalizeConstruction(action.construction, action.typeId, domain)
+        : null,
       inputPolicy: compiledInputPolicy(action, domain),
       stateRef: action.stateRef || null,
       access: normalizeActionAccess(action.access),
@@ -3921,6 +3927,9 @@ function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
     if (actionTargetState(action, process)) return stateTargetLabel(action, process) || ['Move', typeIdLabel(domain, typeId), action.state?.to].filter(Boolean).join(' ');
     return ['Update', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
   }
+  if (action.actionKind === 'deleteEntity') {
+    return ['Delete', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
+  }
   if (action.actionKind === 'runCommand') {
     return ['Run', action.commandId].filter(Boolean).join(' ');
   }
@@ -3944,11 +3953,16 @@ function stateTargetLabel(action = {}, process = {}) {
 function isGenericActionLabel(label, actionKind = '') {
   const normalized = label.trim().toLowerCase();
   // Raw node-kind strings the designer saves as default labels are
-  // machinery vocabulary, not captions — the same set the UI projection
-  // treats as default action labels.
+  // machinery vocabulary, not captions — every species spelling (v5
+  // cts.* and the retired v4 effect.*) included: a caption that is just
+  // the record's kind derives from the action kind below.
   const generic = new Set([
     'create', 'status', 'service', 'update', 'send', 'action',
-    'cts.construct', 'effect.createentity', 'effect.runproducer',
+    'cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove',
+    'cts.read', 'cts.field', 'cts.command', 'cts.service', 'cts.conversion',
+    'effect.createentity', 'effect.runproducer', 'effect.updateentity',
+    'effect.changestatus', 'effect.archiveentity', 'effect.deleteentity',
+    'effect.runcommand', 'effect.sendentity',
     actionKind?.toLowerCase?.()
   ].filter(Boolean));
   return generic.has(normalized);

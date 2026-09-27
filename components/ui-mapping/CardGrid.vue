@@ -132,7 +132,20 @@ function openCardMenu(event, instance) {
   menuInstance.value = instance;
   cardMenu.value?.toggle(event);
 }
-const cardMenuItems = computed(() => props.actions.map(action => {
+// A state-scoped action applies only in the state it leaves; the flat
+// instance state may be a nested path (parentState.state1), so the leaf
+// segment matches the authored local name.
+const stateMatches = (action = {}, instance = null) => {
+  const from = action.state?.from || '';
+  if (!from) return true;
+  const state = typeof instance?.state === 'string' ? instance.state : '';
+  if (!state) return false;
+  return state === from || state.endsWith(`.${from}`);
+};
+
+const cardMenuItems = computed(() => props.actions
+  .filter(action => stateMatches(action, menuInstance.value))
+  .map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
   return {
     label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),
