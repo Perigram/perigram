@@ -86,7 +86,7 @@ import {
   resolveScopedGeneratedActions
 } from '~/components/generated/action-visibility.js';
 import {
-  generatedEntityDetailConsumesAction
+  generatedInstanceDetailConsumesAction
 } from '~/components/generated/detail-action-ownership.js';
 
 const props = defineProps({
@@ -145,6 +145,6 @@ const resolvedBodyActions = computed(() => resolveGeneratedEntityActions({
 )));
 const headerActionIds = computed(() => resolvedActions.value
   .filter(isGeneratedSurfaceAction)
-  .filter(action => !generatedEntityDetailConsumesAction(props.typeId, action))
+  .filter(action => !generatedInstanceDetailConsumesAction(props.typeId, action))
   .map(action => action.id));
 </script>

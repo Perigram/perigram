@@ -63,7 +63,7 @@
       :type-id="typeId"
       :surface="surface"
       variant="card"
-      :context-instance="actionContext.parentEntity"
+      :context-instance="actionContext.parentInstance"
       :context-type-id="actionContext.parentTypeId"
       @refresh="$emit('refresh')"
     >
@@ -230,7 +230,7 @@ const actionContext = computed(() => mergeCollectionActionContext({
   items: props.items
 }));
 const traceExclusions = computed(() => {
-  const entity = actionContext.value.parentEntity;
+  const entity = actionContext.value.parentInstance;
   if (!entity || !actionContext.value.parentTypeId) return [];
   return instanceHierarchyIds(entity).map(id => ({
     type: actionContext.value.parentTypeId,

@@ -1,9 +1,9 @@
 export function mergeCollectionActionContext({ incoming = {}, region = {}, source = {}, typeId = '', items = [] } = {}) {
-  const hasOpenedParent = Boolean(incoming.parentTypeId && (instanceIdentifier(incoming.parentEntity) || incoming.parentEntityId));
+  const hasOpenedParent = Boolean(incoming.parentTypeId && (instanceIdentifier(incoming.parentInstance) || incoming.parentInstanceId));
   const collectionParent = {
     parentTypeId: typeId,
-    parentEntity: null,
-    parentEntityId: '',
+    parentInstance: null,
+    parentInstanceId: '',
     parentOptions: items.map(entity => ({
       label: entity.identity?.name || entity.identity?.uid || entity._id,
       value: instanceIdentifier(entity),
@@ -12,8 +12,8 @@ export function mergeCollectionActionContext({ incoming = {}, region = {}, sourc
   };
   const openedParent = {
     parentTypeId: incoming.parentTypeId,
-    parentEntity: incoming.parentEntity || null,
-    parentEntityId: incoming.parentEntityId || instanceIdentifier(incoming.parentEntity),
+    parentInstance: incoming.parentInstance || null,
+    parentInstanceId: incoming.parentInstanceId || instanceIdentifier(incoming.parentInstance),
     parentOptions: incoming.parentOptions || []
   };
   return {
@@ -39,7 +39,7 @@ export function resolveGeneratedActionEntities({ action = {}, entity = null, con
   if (instanceId && typeId) entities[typeId] = instanceId;
 
   const contextParentId = parentType && resolvedContext.parentTypeId === parentType
-    ? instanceIdentifier(resolvedContext.parentEntity) || resolvedContext.parentEntityId
+    ? instanceIdentifier(resolvedContext.parentInstance) || resolvedContext.parentInstanceId
     : '';
   const parentId = parentType
     ? contextParentId || scopedParentId(parentType, screen) || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters, screen)
@@ -53,7 +53,7 @@ export function generatedActionRequiresParent({ action = {}, entity = null, cont
   if (!parentType) return '';
   if (instanceIdentifier(entity)) return '';
   const resolvedContext = context?.value || context || {};
-  if (resolvedContext.parentTypeId === parentType && (instanceIdentifier(resolvedContext.parentEntity) || resolvedContext.parentEntityId)) return '';
+  if (resolvedContext.parentTypeId === parentType && (instanceIdentifier(resolvedContext.parentInstance) || resolvedContext.parentInstanceId)) return '';
   if (scopedParentId(parentType, screen) || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters, screen)) return '';
   return parentType;
 }

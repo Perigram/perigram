@@ -1217,7 +1217,7 @@ function createRelationLinkExecutionAuth(auth = {}, action = {}, ownerType = '')
   const permissions = {
     ...(executionAuth.effectivePermissions || {})
   };
-  appendExecutionGrant(permissions, resolveEntityFeature(ownerType), {
+  appendExecutionGrant(permissions, resolveInstanceFeature(ownerType), {
     level: 'write',
     actions: { update: true, edit: true }
   });
@@ -1267,7 +1267,7 @@ function constructionSourceGrants(action = {}) {
   }
   const seen = new Set();
   return sources.flatMap(source => {
-    const feature = resolveEntityFeature(source.typeId);
+    const feature = resolveInstanceFeature(source.typeId);
     const key = `${feature}:${source.level}`;
     if (!feature || seen.has(key)) return [];
     seen.add(key);
@@ -1276,10 +1276,10 @@ function constructionSourceGrants(action = {}) {
 }
 
 function resolveActionFeature(action = {}) {
-  return resolveEntityFeature(resolveActionTypeId(action));
+  return resolveInstanceFeature(resolveActionTypeId(action));
 }
 
-function resolveEntityFeature(typeId = '') {
+function resolveInstanceFeature(typeId = '') {
   typeId = normalizeTypeId(typeId);
   const domain = getDomain();
   const entity = (domain?.entities || []).find(item => item.type === typeId);
@@ -1365,7 +1365,7 @@ async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
   assertEntityAccess({
     entity,
     typeId: relation.targetType,
-    feature: resolveEntityFeature(definition?.type || relation.targetType),
+    feature: resolveInstanceFeature(definition?.type || relation.targetType),
     level: 'read',
     action: 'view',
     auth
@@ -1397,7 +1397,7 @@ async function persistProcessEntityPatch(typeId, targetId, patch, auth) {
   assertEntityAccess({
     entity,
     typeId,
-    feature: resolveEntityFeature(typeId),
+    feature: resolveInstanceFeature(typeId),
     level: 'write',
     action: 'update',
     auth

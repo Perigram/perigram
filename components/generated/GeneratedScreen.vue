@@ -361,7 +361,7 @@ const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value
 const detailActionContext = computed(() => {
   const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
   return {
-    parentEntity: state?.entity || null,
+    parentInstance: state?.entity || null,
     parentTypeId: state?.source?.typeId || ''
   };
 });

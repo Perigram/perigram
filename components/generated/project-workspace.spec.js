@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createWorkspaceLeaf, splitWorkspaceLeaf, workspaceLeaves } from '~/utils/workspace-splits.js';
 import { loadProjectWorkspaceState, saveProjectWorkspaceState } from '~/utils/project-workspace-state.js';
-import { generatedEntityDetailConsumesAction } from './detail-action-ownership.js';
+import { generatedInstanceDetailConsumesAction } from './detail-action-ownership.js';
 
 describe('generated project workspace behavior', () => {
   it('starts empty and creates recursively splittable panes only through explicit selection', () => {
@@ -30,8 +30,8 @@ describe('generated project workspace behavior', () => {
   });
 
   it('keeps entity actions in the entity/detail body according to one ownership rule', () => {
-    expect(generatedEntityDetailConsumesAction('queue', { actionKind: 'updateInstance', typeId: 'queue' })).toBe(true);
-    expect(generatedEntityDetailConsumesAction('artifact', { actionKind: 'updateInstance', typeId: 'artifact' })).toBe(false);
-    expect(generatedEntityDetailConsumesAction('project', { actionKind: 'createInstance', typeId: 'artifact', parentTypeId: 'project' })).toBe(false);
+    expect(generatedInstanceDetailConsumesAction('queue', { actionKind: 'updateInstance', typeId: 'queue' })).toBe(true);
+    expect(generatedInstanceDetailConsumesAction('artifact', { actionKind: 'updateInstance', typeId: 'artifact' })).toBe(false);
+    expect(generatedInstanceDetailConsumesAction('project', { actionKind: 'createInstance', typeId: 'artifact', parentTypeId: 'project' })).toBe(false);
   });
 });
