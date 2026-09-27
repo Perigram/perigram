@@ -23,9 +23,9 @@ service bindings stay in the mount modules.
   sheet design, facade design file types, the nesting solver service
   (`nesting.solve` → the `solveNestingValue` command handler, the V→V
   boundary in `server/features/nesting/`), and the `cassette-design`
-  production type whose `bake` construction handler
-  (`server/features/cassettes/bake.js`) evaluates an OCCS template into a
-  per-piece record. Declaration data lives in
+  production type whose `upload`/`bake`/`convertDxf` construction handlers
+  (`server/features/cassettes/cassette-design-construction.js`) produce
+  per-piece records with extractable geometry. Declaration data lives in
   `packages/facade/src/pack.js`; the pack requires `tech-drawing`
   (pen/layer references resolve through the composed view, never by
   importing it).

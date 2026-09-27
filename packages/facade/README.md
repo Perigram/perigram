@@ -24,20 +24,26 @@ evaluator the template editor uses
 is the reusable library record; the cassette-design is what orders,
 nesting inputs, and per-piece traceability reference.
 
-- Class `item`; fields: `template` (`ref`, accepts `cassette`),
-  `parameters` (the applied values, json), `geometry` (the baked
-  evaluation — polygons, layer data, resolved dimensions — json). Records
-  live in the §13 per-class collections through the generic instance
-  service; the pack registers no bespoke storage.
-- Construction is exactly one mode: `bake`. The type declares the `bake`
-  operator (construct species, template ref input), the domain
-  construction contract names the mode, and the pack mount binds the
-  handler (`bakeCassetteDesign` in
-  `server/features/cassettes/bake.js`): load the template instance, read
-  its OCCS payload, evaluate with the row's parameter values, and create
-  the cassette-design through the generic instance create with the baked
-  geometry. Bake-time means bake-time: template edits after construction
-  never propagate to production pieces.
+- Class `item`; fields: `template` (`ref`, accepts `cassette`), `source`
+  (`ref`, accepts `dxf-source`), `parameters` (the applied values, json),
+  `geometry` (the baked/extracted evaluation — polygons, layer data,
+  resolved dimensions — json), plus a DXF payload trait. Records live in
+  the §13 per-class collections through the generic instance service; the
+  pack registers no bespoke storage.
+- Construction is exactly three modes, all pack-bound
+  (`server/features/cassettes/cassette-design-construction.js`):
+  **`upload`** — a DXF payload (the upload protocol's file) whose layers
+  use the canonical OCCS vocabulary (`cut.outer` carries the nesting
+  contour, other layers map by their own names); **`bake`** — an OCCS
+  template ref plus parameter values evaluated once through the same
+  pure evaluator the template editor uses; **`convertDxf`** — a
+  `dxf-source` instance ref extracted the same way, with the source
+  referenced on the created record. Construction-time means
+  construction-time: template edits or source-file changes after
+  construction never propagate to production pieces. The hand layer
+  mapping (DXF layer names → canonical layers) remains the STANDARD
+  cassette import pipeline's concern; these modes read canonical-named
+  layers directly.
 - Only OCCS parametric templates bake. STANDARD templates (the DXF import
   pipeline) carry their own geometry and are referenced directly, not
   baked.
