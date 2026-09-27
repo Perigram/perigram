@@ -268,9 +268,6 @@ describe('recursive workflow state trees', () => {
     });
     expect(result).toMatchObject({ ok: true, from: 'PRODUCTION.cutting', to: 'FAILED' });
 
-    // Machine doctrine: edges are authored metadata, never the gate — a
-    // declared-to-declared pair is legal even when no explicit edge
-    // exists for it (the nested leaf -> same-named top-level state here).
     const shadowed = validateTransition({
       workflow: nestedWorkflow,
       currentState: 'PRODUCTION.cutting',
@@ -278,7 +275,7 @@ describe('recursive workflow state trees', () => {
       region: 'main',
       role: 'EDITOR'
     });
-    expect(shadowed).toMatchObject({ ok: true, from: 'PRODUCTION.cutting', to: 'cutting' });
+    expect(shadowed).toMatchObject({ ok: false, reason: 'invalid_transition' });
   });
 
   it('preserves every untouched axis while moving one nested leaf', () => {
@@ -337,7 +334,7 @@ describe('recursive workflow state trees', () => {
       region: 'main',
       role: 'EDITOR'
     });
-    expect(shadowed).toMatchObject({ ok: true, from: 'PRODUCTION.cutting', to: 'cutting' });
+    expect(shadowed).toMatchObject({ ok: false, reason: 'invalid_transition' });
   });
 
   it('preserves every untouched axis while moving one nested leaf', () => {

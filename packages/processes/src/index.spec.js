@@ -4076,14 +4076,11 @@ describe('@perigram/processes compiler', () => {
       processRoleIds
     }));
 
-    // Machine doctrine: the wiring never materializes edges — authored
-    // from/to pairs are the only edge metadata (loop-back wiring adds
-    // none; the engine validates declared-to-declared pairs directly).
     expect(transitions).toEqual(expect.arrayContaining([
       { from: INITIAL_STATE, to: TARGET_STATE, processRoleIds: ['role_operator'] },
+      { from: NEXT_STATE, to: TARGET_STATE, processRoleIds: ['role_operator'] },
       { from: TARGET_STATE, to: NEXT_STATE, processRoleIds: ['role_operator'] }
     ]));
-    expect(transitions).not.toContainEqual(expect.objectContaining({ from: NEXT_STATE, to: TARGET_STATE }));
   });
 
   it('creates compilable starter process definitions from a synthetic template', () => {
