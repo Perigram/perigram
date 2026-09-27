@@ -247,11 +247,13 @@ export const LAYOUT = Object.freeze({
   // panes) instead.
   boardRow: 'flex w-full items-start gap-4 overflow-x-auto pb-1',
   boardColumn: 'flex w-72 shrink-0 flex-col gap-2 rounded-panel bg-subtle p-3',
-  boardColumnScroll: 'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1 max-h-board-column',
-  // A dashed hairline marks the columns a drag may land in (the machine
-  // edges decide); the hovered receiver steps up to the content surface.
-  boardColumnTarget: 'border border-dashed border-content-border',
-  boardColumnReceiving: 'border border-dashed border-content-border bg-content',
+  boardColumnScroll: 'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1 max-h-[var(--ck-board-column-max-height)]',
+  // Drop affordance stays on the surface ladder — no invented borders:
+  // while a drag is live every machine-legal target well steps up to the
+  // content surface, and the hovered receiver adds overlay elevation
+  // (the sanctioned "this receives" step: surface, then shadow).
+  boardColumnTarget: 'bg-content',
+  boardColumnReceiving: 'bg-content shadow-overlay',
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',

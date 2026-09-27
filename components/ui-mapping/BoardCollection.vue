@@ -1,5 +1,5 @@
 <template>
-  <div :class="LAYOUT.boardRow" data-testid="board-collection">
+  <div ref="rowEl" :class="LAYOUT.boardRow" data-testid="board-collection" @dragover="onRowDragOver">
     <section
       v-for="column in columns"
       :key="column.value"
@@ -27,8 +27,8 @@
         <Card
           v-for="instance in column.instances"
           :key="instance.id"
-          :class="[LAYOUT.clip, 'w-full cursor-grab active:cursor-grabbing']"
-          draggable="true"
+          :class="[LAYOUT.clip, 'w-full', movable(instance) ? 'cursor-grab active:cursor-grabbing' : null]"
+          :draggable="movable(instance)"
           data-testid="board-card"
           @dragstart="onDragStart($event, instance)"
           @dragend="onDragEnd"
@@ -96,7 +96,7 @@
 // growing the page. Native HTML5 drag is the desktop affordance; the
 // card's ellipsis menu and the opened record's transition strip remain
 // the accessible and touch paths.
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
@@ -216,16 +216,23 @@ const cardMenuItems = computed(() => props.actions.map(action => {
 }));
 
 // Drag-and-drop: the dragged card's current state plus the contract
-// edges decide which columns receive — every legal target carries the
-// dashed hairline while the drag is live, the hovered receiver steps up
-// to the content surface, and illegal lanes show no affordance at all.
-// The drop is never optimistic — the machine executor owns the mutation
-// and the pool reconciles through the shared entity event, so a refused
-// or failed move leaves the card where the machine last put it.
+// edges decide which columns receive — every legal target steps up from
+// the subtle well to the content surface while the drag is live, the
+// hovered receiver adds overlay elevation, and illegal lanes show no
+// affordance at all. A card whose state has no outgoing edges is not
+// draggable at all: a machine that authored vocabulary without
+// transitions (states, no update actions) renders a read-only board,
+// and dead drag gestures would read as breakage. The drop is never
+// optimistic — the machine executor owns the mutation and the pool
+// reconciles through the shared entity event, so a refused or failed
+// move leaves the card where the machine last put it.
 const draggedInstance = ref(null);
 const dropValue = ref('');
+const rowEl = ref(null);
 const edgeTo = (from, to) => (props.stateTransitions || [])
   .find(edge => edge.from === from && edge.to === to) || null;
+const movable = instance => (props.stateTransitions || [])
+  .some(edge => edge.from === instance?.state);
 const legalTargets = computed(() => {
   const from = draggedInstance.value?.state;
   if (!from) return new Set();
@@ -243,6 +250,7 @@ function onDragStart(event, instance) {
 function onDragEnd() {
   draggedInstance.value = null;
   dropValue.value = '';
+  edgeZone.value = 0;
 }
 function onDragOver(event, column) {
   const instance = draggedInstance.value;
@@ -271,4 +279,37 @@ function onDrop(event, column) {
     ...(edge.intent ? { intent: edge.intent } : {})
   });
 }
+
+// Horizontal rail auto-scroll: a drag hovering the rail's edge zone
+// scrolls the board toward the hidden columns. The zone is tracked from
+// the row's dragover (which keeps firing while the pointer rests), and a
+// timer performs the scroll so a stationary pointer still travels.
+const EDGE_ZONE_PX = 56;
+const EDGE_STEP_PX = 18;
+const EDGE_TICK_MS = 80;
+const edgeZone = ref(0);
+let edgeTimer = null;
+function onRowDragOver(event) {
+  if (!draggedInstance.value) return;
+  const el = rowEl.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  edgeZone.value = x < EDGE_ZONE_PX ? -1 : x > rect.width - EDGE_ZONE_PX ? 1 : 0;
+}
+watch(edgeZone, zone => {
+  if (edgeTimer) { clearInterval(edgeTimer); edgeTimer = null; }
+  if (!zone) return;
+  edgeTimer = setInterval(() => {
+    const el = rowEl.value;
+    if (!el || !draggedInstance.value) {
+      edgeZone.value = 0;
+      return;
+    }
+    el.scrollLeft += zone * EDGE_STEP_PX;
+  }, EDGE_TICK_MS);
+});
+onBeforeUnmount(() => {
+  if (edgeTimer) clearInterval(edgeTimer);
+});
 </script>

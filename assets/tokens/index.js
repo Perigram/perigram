@@ -85,7 +85,7 @@ export const designTokens = {
         floatingMenuMinWidth: '12.5rem',
         previewDialogHeight: '95vh',
         tableActionColumnWidth: '3rem',
-        boardColumnMaxHeight: '36rem'
+        boardColumnMaxHeight: 'calc(100dvh - 16rem)'
     },
     typography: {
         ui: "'IBM Plex Sans', sans-serif",
