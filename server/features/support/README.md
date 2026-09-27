@@ -135,9 +135,14 @@ their own access contract. The composer renders those as chat-only warnings.
 When such a ref is sent, the stored `instanceRefs[]` entry keeps a compact instance
 snapshot plus `chatOnlyForRecipient=true`, so the recipient can still inspect
 that instance inside chat without gaining generated-screen access.
-Cassette snapshots must retain preview-driving fields such as `data.type` and
-`data.definition`, because direct-chat inline cards render from the stored
-snapshot instead of refetching protected cassette endpoints.
+Snapshots are contract-driven (SPEC §4 `snapshot` facet): a type that
+declares snapshot paths keeps exactly those, resolved through the
+registry view — pack and org declarations alike, no per-type branches in
+the framework. The cassette declaration carries the thumbnail-critical
+geometry paths because direct-chat inline cards render from the stored
+snapshot instead of refetching protected endpoints; types without the
+facet get the generic compact strip (heavy geometry layers never ride
+previews).
 Message writes drop unsupported or unreadable refs instead of accepting
 arbitrary ids. Messages may contain
 only attachments; an empty body is valid as long as at least one instance ref

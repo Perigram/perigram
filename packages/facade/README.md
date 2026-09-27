@@ -29,7 +29,9 @@ nesting inputs, and per-piece traceability reference.
   `geometry` (the baked/extracted evaluation — polygons, layer data,
   resolved dimensions — json), plus a DXF payload trait. Records live in
   the §13 per-class collections through the generic instance service; the
-  pack registers no bespoke storage.
+  pack registers no bespoke storage. Compact snapshots keep provenance
+  only (`data.template`, `data.parameters`) — baked geometry never rides
+  previews.
 - Construction is exactly three modes, all pack-bound
   (`server/packs/facade/cassettes/cassette-design-construction.js`):
   **`upload`** — a DXF payload (the upload protocol's file) whose layers

@@ -190,6 +190,14 @@ assign by their item base, else summary) — and per-state display policy
 lives on the states facet (§7). Arrangement beyond derivation is
 station-side.
 
+Compact snapshots are a declaration concern: `snapshot` lists the
+`data.*` dot paths (at most 12) a bounded preview keeps — chat message
+instance previews and embeds read it. A type without the facet gets the
+generic compact strip (heavy geometry layers never ride previews);
+`data.geometry` is compacted when declared. Pack and org declarations
+carry it alike — previews are contract-driven, never per-type framework
+branches.
+
 Boundary migration (adopt-and-delete, one time at declaration
 normalization): the retired `render` keys are adopted and deleted —
 `render.label` becomes `name`, `render.icon` becomes `glyph`,

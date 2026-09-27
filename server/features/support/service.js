@@ -3,6 +3,7 @@ import * as artifactsService from '~/server/features/artifacts/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { declarationForType } from '~/server/features/instances/service.js';
 import * as connectionsService from '~/server/features/connections/service.js';
 import { actionToLevel, levelAtLeast, normalizePermissionGrants } from '#shared/access-control.js';
 import { createIdentity, createStatus } from '../../core/blocks/index.js';
@@ -807,6 +808,17 @@ async function normalizeInstanceRefs(instanceRefs = [], auth = {}, options = {})
         .slice(0, INSTANCE_REF_LIMIT);
 
     const refs = [];
+    // Contract-driven previews (SPEC §4): resolve each referenced type's
+    // declared snapshot paths once per message — pack and org declarations
+    // alike, resolved through the registry view.
+    const snapshotPathsByType = new Map();
+    const snapshotPathsFor = async (typeId) => {
+        if (!snapshotPathsByType.has(typeId)) {
+            const declaration = await declarationForType(typeId, scopedAuth.organizationId).catch(() => null);
+            snapshotPathsByType.set(typeId, Array.isArray(declaration?.snapshot) ? declaration.snapshot : null);
+        }
+        return snapshotPathsByType.get(typeId);
+    };
     for (const ref of normalized) {
         if (!allowedTypes.has(ref.type)) continue;
         const readableOptions = await listInstanceOptions(scopedAuth, ref.type, ref.id, options.recipientUserId || null);
@@ -816,7 +828,7 @@ async function normalizeInstanceRefs(instanceRefs = [], auth = {}, options = {})
                 type: ref.type,
                 id: ref.id,
                 label: option.label,
-                instance: compactInstanceSnapshot(ref.type, option.instance),
+                instance: compactInstanceSnapshot(ref.type, option.instance, await snapshotPathsFor(ref.type)),
                 chatOnlyForRecipient: option.recipientHasAccess === false
             });
         }
@@ -1298,7 +1310,7 @@ async function listReadableInstances(auth, type) {
         .filter(Boolean));
 }
 
-function compactInstanceSnapshot(type, instance) {
+function compactInstanceSnapshot(type, instance, snapshotPaths = null) {
     const dto = instance?.toJSON ? instance.toJSON() : instance;
     if (!dto || typeof dto !== 'object') return null;
 
@@ -1314,13 +1326,20 @@ function compactInstanceSnapshot(type, instance) {
     };
     const data = { ...(dto.data || {}) };
 
-    if (type === 'cassette') {
-        snapshot.data = {
-            ...pickDefined(data, ['type', 'definition', 'materialPool', 'parameters', 'description', 'revisions', 'sheetDesignIds', 'results']),
-            ...(data.geometry ? { geometry: compactGeometrySnapshot(data.geometry) } : {}),
-            ...(data.layerData ? { layerData: data.layerData } : {}),
-            ...(data.polygonParts ? { polygonParts: data.polygonParts } : {})
-        };
+    // Contract-driven previews (SPEC §4 snapshot facet): a type that
+    // declares its snapshot paths keeps exactly those — pack and org
+    // declarations alike, no per-type branches in the framework. A type
+    // without the declaration gets the generic compact strip: previews
+    // never carry heavy geometry layers.
+    if (Array.isArray(snapshotPaths)) {
+        const kept = {};
+        for (const path of snapshotPaths) {
+            const value = path.split('.').reduce((cursor, key) => (cursor?.[key] !== undefined ? cursor[key] : undefined), dto);
+            if (value === undefined) continue;
+            if (path === 'data.geometry') kept.geometry = compactGeometrySnapshot(value);
+            else kept[path.slice('data.'.length)] = value;
+        }
+        snapshot.data = kept;
         return snapshot;
     }
 
