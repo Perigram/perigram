@@ -280,7 +280,17 @@ export function workflowStateEntries(region = {}) {
 export function resolveWorkflowStatePath(region = {}, state) {
   if (typeof state !== 'string' || !state) return null;
   const states = region?.states || {};
-  if (Object.hasOwn(states, state)) return descendToInitial(region, state);
+  if (Object.hasOwn(states, state)) {
+    const path = descendToInitial(region, state);
+    if (path !== state) return path;
+    // A normalized machine carries nesting as canonical dotted keys, so a
+    // parent's initial child is not recoverable from the tree alone; the
+    // region entry is that child when the entry descends from this state.
+    if (!state.includes('.') && typeof region.initial === 'string' && region.initial.startsWith(`${state}.`)) {
+      return region.initial;
+    }
+    return state;
+  }
   if (state.includes('.')) return null;
   // An authored value names a state by its local name; resolve it to the
   // one canonical dotted path that carries it (nested machines, SPEC §7).
