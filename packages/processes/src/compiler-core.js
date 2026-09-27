@@ -1285,10 +1285,21 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
   const process = validation.definition;
   const lineageBindings = compileLineageBindings(process, domain);
   const workflows = compileWorkflows(process, domain, lineageBindings);
+  const workflowByType = {};
+  for (const [producerOutputId, workflow] of Object.entries(workflows)) {
+    const typeId = process.producerOutputs?.[producerOutputId]?.typeId;
+    if (typeId && !workflowByType[typeId]) workflowByType[typeId] = workflow;
+  }
   const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings, workflows);
   const compiledScreens = compileScreens(process, domain, compiledRoles, lineageBindings);
   const fieldPolicies = compileFieldPolicies(process.producerOutputs, domain);
-  const compiledActions = compileActions(process.actions, process, domain, lineageBindings);
+  // The compiled machine is the authority on the execution channel too: a
+  // status-mutating action whose edge the machine dropped is not part of
+  // the contract, so no surface renders it and the run API resolves none.
+  const compiledActions = Object.fromEntries(Object.entries(compileActions(process.actions, process, domain, lineageBindings))
+    .filter(([, action]) => action.actionKind !== 'updateEntity'
+      || !action.state?.to
+      || !workflowDropsNoOp(workflowByType[action.typeId], action.state.from, action.state.to)));
   const producerOutputs = Object.fromEntries(Object.entries(process.producerOutputs).map(([producerOutputId, output]) => [producerOutputId, {
     ...output,
     producerOutputId,
@@ -2186,7 +2197,7 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
       // the machine did not declare (a no-op arrival-to-target pair) is not
       // exposed, so no surface offers a transition execution would refuse.
       if ((action.actionKind || 'createEntity') === 'updateEntity' && exposureState.to
-        && !workflowDeclaresEdge(workflowByType[resolvedTypeId], exposureState.from, exposureState.to)) {
+        && workflowDropsNoOp(workflowByType[resolvedTypeId], exposureState.from, exposureState.to)) {
         continue;
       }
       roles[roleId].actions.push({
@@ -2226,6 +2237,20 @@ function workflowDeclaresEdge(workflow, from, to) {
     transition.from === fromPath
     && (resolveWorkflowStatePath(region, transition.to) || transition.to) === toPath
   ));
+}
+
+// Entering a state lands on its initial child, so a status action whose
+// arrival leaf equals its target leaf moves nowhere: it is a no-op, not a
+// transition, and belongs to neither the execution channel nor the manifest.
+function workflowDropsNoOp(workflow, from, to) {
+  if (!workflow || !to) return false;
+  const region = workflow.regions?.[workflow.primaryRegion]
+    || Object.values(workflow.regions || {})[0]
+    || null;
+  if (!region) return false;
+  const fromPath = resolveWorkflowStatePath(region, from || region.initial) || (from || region.initial);
+  const toPath = resolveWorkflowStatePath(region, to) || to;
+  return Boolean(fromPath) && fromPath === toPath;
 }
 
 function exposedActionFeature(action = {}, actionWindow = null, access = {}, domain = {}) {

@@ -741,6 +741,7 @@ describe('@perigram/processes compiler', () => {
     expect(region.transitions).toEqual([]);
     const exposed = compiled.roles.role_operator.actions.filter(entry => entry.actionKind === 'updateEntity');
     expect(exposed).toEqual([]);
+    expect(compiled.actions.t).toBeUndefined();
   });
 
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
@@ -4291,7 +4292,9 @@ describe('@perigram/processes compiler', () => {
     expect(workflow.regions.main.states['PRODUCTION.cut']).toMatchObject({ label: 'Cut' });
     expect(workflow.regions.main.states['PRODUCTION.cut'].path).toEqual(['PRODUCTION', 'cut']);
     expect(workflow.regions.main.states.PRODUCTION.label).toBe('Production');
-    expect(compiled.actions.mark_cut.state.to).toBe('PRODUCTION.cut');
+    // The action targets the region entry, so the machine compiles no edge
+    // and the execution channel omits it (a no-op is not a transition).
+    expect(compiled.actions.mark_cut).toBeUndefined();
     expect(compiled.stateDefinitions.cut.parentStatusId).toBe('PRODUCTION');
   });
 

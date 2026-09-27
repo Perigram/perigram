@@ -140,8 +140,12 @@ describe('producer output entry-state and binding diagnostics', () => {
 
   it('binds consumer effects to the upstream producer instead of minting own outputs', () => {
     const source = definition();
+    source.ctsTypes = {
+      project_draft: { id: 'project_draft', kind: 'state', typeId: 'project', value: 'DRAFT' },
+      project_active: { id: 'project_active', kind: 'state', typeId: 'project', value: 'ACTIVE' }
+    };
     source.processNodes = {
-      create: { id: 'create', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, state: { to: 'CREATED' } },
+      create: { id: 'create', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, inputDefaults: { state: 'DRAFT' }, state: { to: 'CREATED' } },
       rename: { id: 'rename', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, state: { to: 'ACTIVE' } },
       stale: { id: 'stale', kind: 'effect.changeStatus', typeId: 'project', trigger: { mode: 'manual' }, state: { to: 'ACTIVE' }, producerOutputId: 'stale:result' }
     };
@@ -165,10 +169,10 @@ describe('producer output entry-state and binding diagnostics', () => {
     expect(compiled.producerOutputs).not.toHaveProperty('stale:result');
     expect(compiled.processNodes.stale.producerOutputId).toBeUndefined();
     expect(compiled.actions.rename).toMatchObject({ producerOutputId: null });
-    expect(compiled.actions.stale).toMatchObject({
-      actionKind: 'updateEntity',
-      state: { to: 'ACTIVE' }
-    });
+    // `stale` targets the state it already arrives in (ACTIVE -> ACTIVE),
+    // so the machine compiles no edge and the action is not part of the
+    // contract.
+    expect(compiled.actions.stale).toBeUndefined();
     expect(Object.keys(compiled.producerOutputs)).toEqual(['create:entity']);
   });
 
