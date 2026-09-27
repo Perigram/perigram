@@ -1,12 +1,14 @@
 <template>
   <GeneratedMappingScreen
     :screen="screen"
-    :contract="{ actions: processActions, statePolicy }"
+    :contract="{ actions: processActions, statePolicy, stateTransitions }"
     :bundle="processBundle"
     :instances="instanceGroups"
     :source-states="poolStates"
     :on-run="runAction"
     :on-open="openInstance"
+    :on-transition="runRuntimeTransition"
+    :on-fetch-transitions="fetchBoardTransitions"
   />
 </template>
 
@@ -28,7 +30,8 @@ import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
-import { statePolicyByType } from '#shared/ui-mapping/index.js';
+import { useStateController } from '~/composables/useStateController.js';
+import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -45,8 +48,10 @@ const processBundle = computed(() => authStore.processPayload?.bundle || { types
 const processActions = computed(() => authStore.processPayload?.actions || {});
 // Per-type state policy from the compiled workflows — the same channel the
 // routed screen page passes, so the status column and state tags reach the
-// pane surfaces identically.
+// pane surfaces identically — plus the authored machine edges the board
+// projection reads for its instant legal-move map.
 const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
+const stateTransitions = computed(() => stateTransitionsByType(authStore.processPayload?.producerOutputs || {}));
 // The store exposes the keyed pool ({ type -> { id -> instance }}); the
 // generator's instances prop is the grouped-array shape.
 const instanceGroups = computed(() => Object.fromEntries(
@@ -114,5 +119,49 @@ async function runAction(action, data = {}, context = {}) {
 
 function openInstance(instance) {
   if (instance?.type && instance?.id) emit('open-instance', instance);
+}
+
+// Runtime transitions on type surfaces dispatch exactly like the routed
+// page: the state service executes, the updated entity lands in the
+// shared pool (every open surface reconciles through the same store
+// event), and board drops resolve legality through the same machine.
+const stateController = useStateController();
+
+function applyTransitionSnapshot(updated = {}) {
+  const typeKey = instances.canonicalTypeKey(updated.type || props.screen?.typeId || '');
+  const id = String(updated._id || updated.id || '');
+  if (!typeKey || !id) return;
+  instances.upsertRecord?.(typeKey, updated);
+}
+
+async function fetchBoardTransitions(instance = {}) {
+  const typeId = instance.type || props.screen?.typeId || '';
+  const id = String(instance._id || instance.id || '');
+  if (!typeId || !id) return [];
+  const actions = await stateController.fetchActions(typeId, id);
+  return actions.filter(action => action.to)
+    .map(action => ({ to: action.to, intent: action.intent || null, region: action.region || null }));
+}
+
+async function runRuntimeTransition(payload = {}) {
+  const instance = payload.instance || {};
+  const typeId = instance.type || props.screen?.typeId;
+  const id = String(instance._id || instance.id || '');
+  if (!typeId || !id || !payload.to) return;
+  try {
+    const result = await stateController.transition(typeId, id, payload.to, {
+      ...(payload.intent ? { intent: payload.intent } : {}),
+      ...(payload.region ? { region: payload.region } : {})
+    });
+    applyTransitionSnapshot(result?.entity || result);
+    const display = stateDisplayFor(statePolicy.value[typeId] || null, payload.to);
+    toast.add({ severity: 'success', summary: display?.label || payload.to, life: 2000 });
+  } catch (error) {
+    if (isOfflineQueuedError(error)) {
+      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      return;
+    }
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
 }
 </script>

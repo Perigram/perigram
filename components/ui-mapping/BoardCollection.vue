@@ -27,7 +27,7 @@
         <Card
           v-for="instance in column.instances"
           :key="instance.id"
-          :class="[LAYOUT.clip, 'w-full', movable(instance) ? 'cursor-grab active:cursor-grabbing' : null]"
+          :class="[LAYOUT.clip, 'w-full shrink-0', movable(instance) ? 'cursor-grab active:cursor-grabbing' : null]"
           :draggable="movable(instance)"
           data-testid="board-card"
           @dragstart="onDragStart($event, instance)"

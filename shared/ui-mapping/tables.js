@@ -245,7 +245,16 @@ export const LAYOUT = Object.freeze({
   // board never grows the page and each lane scrolls independently; the
   // `flex-1 min-h-0` pair lets the same body fill bounded hosts (workspace
   // panes) instead.
-  boardRow: 'flex w-full items-start gap-4 overflow-x-auto pb-1',
+  // Board projection: the horizontal column rail and the column bodies.
+  // Lanes STRETCH to the rail height (equal Notion-style lanes; in a
+  // bounded host the rail fills and each lane scrolls internally), and
+  // the body carries the hard bounds: `min-h-0 flex-1` lets it fill a
+  // bounded lane, `max-h-[var(--ck-board-column-max-height)]` caps it in
+  // unbounded (page-scrolling) hosts. Cards inside are `shrink-0` — a
+  // shrinking flex child would cramp instead of overflowing, and the
+  // body would never scroll. Column width is a layout dimension token —
+  // one board column never depends on its content's width.
+  boardRow: 'flex w-full items-stretch gap-4 overflow-x-auto pb-1',
   boardColumn: 'flex w-72 shrink-0 flex-col gap-2 rounded-panel bg-subtle p-3',
   boardColumnScroll: 'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1 max-h-[var(--ck-board-column-max-height)]',
   // The drop-target state REPLACES the well token — never appends a
