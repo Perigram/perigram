@@ -22,6 +22,21 @@ source choices are scoped by the opened owner, compiled process Lineage
 bindings, declared relations, and derivation provenance; the component never
 substitutes a global entity list for that scoped contract.
 
+## Action Visibility
+
+Generated surfaces resolve action visibility against the instance's primary
+state through `actionAppliesToEntity` (`action-visibility.js`). The primary
+state is read from the flat wire `state` string (SPEC §7); the `states.main`
+axis map and the legacy `status` block are older DTO shapes. An action
+applies when its `typeId` matches (and, for creates, its `parentTypeId`),
+and its authored `state.from` — when present — equals the current state. An
+action whose `state.to` already equals the current state is suppressed as a
+no-op; an in-state re-entry (`from === to`) stays visible because it carries
+new evidence. The state runtime never returns a transition targeting the
+entity's current primary state either (see
+[server/core/machines/README.md](../../server/core/machines/README.md)), so
+both channels agree on a no-op.
+
 ## Manual Prompt Forms
 
 `GeneratedScreen.vue` maps each prompted action field to a shared typed
