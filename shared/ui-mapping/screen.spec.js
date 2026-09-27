@@ -123,6 +123,67 @@ describe('screen composition', () => {
     expect(other.regions[0].childRegions[0].instances).toEqual([]);
   });
 
+  it('never guesses the scoped instance and yields nothing on an unresolved scope placeholder', () => {
+    // The screen's own scoped instance is explicit: a scope id that is not
+    // in the pool is a missing detail, not the first loaded record.
+    const missing = composeScreen(
+      { screenKey: 'm1', template: 'instanceDetail', label: 'M1', typeId: 'widget', scope: { instanceId: 'w404' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'made', typeId: 'widget', mode: 'list', filters: { madeById: '$screen.scope.instanceId' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'made', slot: 'children', sourceId: 'made', surface: 'list' }
+        ] },
+      contract, bundle, pool
+    );
+    expect(missing.regions[0].instances).toEqual([]);
+    expect(missing.regions[0].dataState).toBe('missing');
+    // The child filter pins to the unknown scope: no instances, never the
+    // whole child collection.
+    expect(missing.regions[0].childRegions[0].instances).toEqual([]);
+
+    const unscoped = composeScreen(
+      { screenKey: 'm2', template: 'instanceDetail', label: 'M2', typeId: 'widget',
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'made', typeId: 'widget', mode: 'list', filters: { madeById: '$screen.scope.instanceId' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'made', slot: 'children', sourceId: 'made', surface: 'list' }
+        ] },
+      contract, bundle, pool
+    );
+    expect(unscoped.regions[0].childRegions[0].instances).toEqual([]);
+  });
+
+  it('matches lineage and relation references in both stored shapes', () => {
+    const rawPool = buildInstancePool({
+      widgets: [
+        { id: 'w1', type: 'widget', fields: { name: 'A' }, relations: { sheets: ['s1'] }, lineage: {} },
+        { id: 'w2', type: 'widget', fields: { name: 'B' }, relations: {}, lineage: { madeBy: 'w1' } }
+      ],
+      sheets: [
+        { id: 's1', type: 'sheet_file', fields: { title: 'S1' }, relations: {}, lineage: {}, state: null }
+      ]
+    });
+    const screen = { screenKey: 'raw1', template: 'instanceDetail', label: 'RAW', typeId: 'widget', scope: { instanceId: 'w1' },
+      sources: [
+        { id: 'widget', typeId: 'widget', mode: 'single' },
+        { id: 'sheets', typeId: 'sheet_file', mode: 'list', relation: { sourceId: 'widget', key: 'sheets' } },
+        { id: 'children', typeId: 'widget', mode: 'list', lineage: { sourceId: 'widget', key: 'madeBy' } }
+      ],
+      regions: [
+        { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+        { id: 'sheets', slot: 'children', sourceId: 'sheets', surface: 'list' },
+        { id: 'children', slot: 'children', sourceId: 'children', surface: 'list' }
+      ] };
+    const composed = composeScreen(screen, contract, bundle, rawPool);
+    expect(composed.regions[0].childRegions.map(region => region.instances.map(instance => instance.id))).toEqual([['s1'], ['w2']]);
+  });
+
   it('carries tree-owned chrome per region (container role by depth)', () => {
     const composed = composeScreen(
       { screenKey: 'c1', template: 'instanceDetail', label: 'C1',

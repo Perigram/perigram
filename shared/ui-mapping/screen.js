@@ -29,7 +29,12 @@ export function buildInstancePool(instances = {}) {
 function resolveSingle(source, screen, pool) {
   const byId = pool[source.typeId] || {};
   const id = screen.scope?.instanceId;
-  if (id && byId[id]) return byId[id];
+  // The screen's own scoped instance is explicit: when it is not in the
+  // pool the source is missing, never a guess at the first loaded record.
+  // Sources of another type (relation/lineage origins) keep the fallback.
+  if (id && (!screen.typeId || screen.typeId === source.typeId)) {
+    return byId[id] || null;
+  }
   return Object.values(byId)[0] || null;
 }
 
@@ -41,13 +46,19 @@ function resolveList(source, screen, pool, sourcesById) {
     if (!origin) return [];
     const refs = origin.relations?.[source.relation.key];
     const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
-    return list.map(ref => pool[ref.type]?.[ref.id]).filter(Boolean);
+    return list
+      .map(ref => pool[ref?.type || source.typeId]?.[ref?.id ?? ref])
+      .filter(Boolean);
   }
   if (source.lineage) {
     const originSource = sourcesById[source.lineage.sourceId];
     const origin = originSource ? resolveSingle(originSource, screen, pool) : null;
     if (!origin) return [];
-    return Object.values(byId).filter(instance => instance.lineage?.[source.lineage.key]?.id === origin.id);
+    return Object.values(byId).filter(instance => {
+      const ref = instance.lineage?.[source.lineage.key];
+      const value = ref?.id ?? ref;
+      return value !== null && value !== undefined && String(value) === String(origin.id);
+    });
   }
   if (source.filters) {
     // The compiler-emitted child-region shape: flat scalar filters whose
@@ -57,7 +68,11 @@ function resolveList(source, screen, pool, sourcesById) {
     // declared-vocabulary gate client-side, the total default generated
     // screens were pinned against — and matching runs through the one
     // in-memory matcher, mirroring the server transport's semantics.
-    const filters = resolveFilterPlaceholders(source.filters, screen);
+    // An unresolved $screen placeholder means the scope the source is
+    // pinned to is unknown here: the source resolves no instances rather
+    // than every instance of the type.
+    const { filters, unresolved } = resolveFilterPlaceholders(source.filters, screen);
+    if (unresolved) return [];
     const filter = filterFromFlatFilters(filters);
     if (!filter) return Object.values(byId);
     return Object.values(byId).filter(instance => instanceMatchesFilter(instance, filter));
@@ -66,12 +81,14 @@ function resolveList(source, screen, pool, sourcesById) {
 }
 
 function resolveFilterPlaceholders(filters = {}, screen = {}) {
-  return Object.fromEntries(Object.entries(filters || {}).map(([key, value]) => [
-    key,
-    typeof value === 'string' && value.startsWith('$screen.')
-      ? screenPath(screen, value.slice('$screen.'.length))
-      : value
-  ]));
+  let unresolved = false;
+  const resolved = Object.fromEntries(Object.entries(filters || {}).map(([key, value]) => {
+    if (typeof value !== 'string' || !value.startsWith('$screen.')) return [key, value];
+    const screenValue = screenPath(screen, value.slice('$screen.'.length));
+    if (screenValue === undefined || screenValue === null || screenValue === '') unresolved = true;
+    return [key, screenValue];
+  }));
+  return { filters: resolved, unresolved };
 }
 
 function screenPath(screen = {}, path = '') {
@@ -88,7 +105,11 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   const source = sourcesById[region.sourceId] || {};
   const surfaceKind = surfaceKindOf(region, source);
   const single = surfaceKind === 'detail' ? resolveSingle(source, screen, pool) : null;
-  const instances = single ? [single] : resolveList(source, screen, pool, sourcesById);
+  // A detail source renders its resolved instance or nothing — it never
+  // falls back to listing the whole type.
+  const instances = surfaceKind === 'detail'
+    ? (single ? [single] : [])
+    : resolveList(source, screen, pool, sourcesById);
   const type = typesById[source.typeId] || null;
   const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
   const containerRole = depth === 0 ? 'section' : 'card';
