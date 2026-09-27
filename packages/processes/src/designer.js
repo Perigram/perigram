@@ -867,6 +867,10 @@ export function typeCatalogPaletteGroups(types = []) {
       }));
     }
     for (const operatorId of entry.constructOperators || []) {
+      // Operator-shaped construction already rides `modes` (the projection
+      // lists declared construct operators as the constructible modes):
+      // one item per mode, never a second listing of the same construct.
+      if (modes.includes(operatorId)) continue;
       items.push(paletteItem(`${entry.id}:${operatorId}`, 'cts.construct', {
         label: `${entry.label || entry.id} · ${operatorId}`,
         icon: entry.icon,

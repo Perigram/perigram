@@ -61,19 +61,30 @@ export const facadeFileTypes = [
     }
   },
   {
-    // The production drawing (SPEC §21): one concrete piece baked from a
-    // parametric template at fixed parameter values. Pack type, not org
-    // vocabulary — baking is evaluation semantics (the OCCS evaluator runs
-    // at construction), which org-authored types cannot express. Records
-    // live in the §13 per-class collections; the pack binds the single
-    // `bake` construction mode (see server/features/cassettes/bake.js).
+    // The production drawing (SPEC §21): one concrete piece with extractable
+    // geometry, produced three ways — uploaded DXF (payload protocol),
+    // baked from a parametric cassette template at fixed parameter values,
+    // or converted from a `dxf-source` instance. Pack type, not org
+    // vocabulary — all three constructions are evaluation/extraction
+    // semantics org-authored types cannot express. Records live in the §13
+    // per-class collections; the pack binds the construction handlers (see
+    // server/features/cassettes/cassette-design-construction.js).
     id: 'cassette-design',
     class: 'item',
     scope: 'system',
     version: 1,
+    payload: {
+      mime: ['application/dxf'],
+      accept: ['.dxf', 'application/dxf'],
+      maxSize: 25 * 1024 * 1024,
+      preview: 'dxf',
+      creation: ['upload']
+    },
+    revisions: 'geometry',
     fields: {
       name: { base: 'string' },
       template: { base: 'ref', accepts: ['cassette'] },
+      source: { base: 'ref', accepts: ['dxf-source'] },
       parameters: { base: 'json' },
       geometry: { base: 'json' }
     },
@@ -93,12 +104,14 @@ export const facadeFileTypes = [
       groups: [
         { id: 'provenance', fields: [
           { path: 'data.template', label: 'processDesigner.source', display: 'entityRef', typeId: 'cassette', priority: 10 },
+          { path: 'data.source', label: 'processDesigner.source', display: 'entityRef', typeId: 'dxf-source', priority: 11 },
           { path: 'data.parameters', label: 'processDesigner.parameters', priority: 20 }
         ] }
       ]
     },
     operators: {
-      bake: { id: 'bake', species: 'construct', input: { base: 'ref', accepts: ['cassette'] } }
+      bake: { id: 'bake', species: 'construct', input: { base: 'ref', accepts: ['cassette'] } },
+      convertDxf: { id: 'convertDxf', species: 'construct', input: { base: 'ref', accepts: ['dxf-source'] } }
     }
   },
   {

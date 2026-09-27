@@ -81,6 +81,30 @@ describe('palette trace', () => {
     }
   });
 
+  it('lists one palette item per construction mode — operator-shaped construction never double-lists', () => {
+    // Operator-constructed types (cassette-design): the declared operators
+    // ARE the modes, so the operator loop must not add a second listing.
+    const operatorShaped = typeCatalogPaletteGroups([{
+      id: 'cassette-design', class: 'item', label: 'Cassette design', icon: 'pi pi-clone',
+      description: 'item type', constructible: true, via: 'upload', modes: ['upload', 'bake', 'convertDxf'],
+      constructOperators: ['bake', 'convertDxf']
+    }]);
+    expect(operatorShaped[0].items.map(item => item.id)).toEqual([
+      'cassette-design',
+      'cassette-design:bake',
+      'cassette-design:convertDxf'
+    ]);
+
+    // A type whose operators are NOT modes (payload-less types with extra
+    // declared operators) still lists every construct variant once.
+    const extraOperator = typeCatalogPaletteGroups([{
+      id: 'thing', class: 'item', label: 'Thing', icon: 'pi pi-box',
+      description: 'item type', constructible: true, via: 'genericCreate', modes: ['genericCreate'],
+      constructOperators: ['special']
+    }]);
+    expect(extraOperator[0].items.map(item => item.id)).toEqual(['thing', 'thing:special']);
+  });
+
   it('pin carriers expose exactly the Type pin while unbound and derived sockets when bound', () => {
     const construct = { id: 't', kind: 'cts.construct', typeId: '', construction: { mode: 'genericCreate' } };
     expect(resolveCatalogNodePorts(construct, { domain }).inputs.map(port => port.id)).toEqual(['type']);

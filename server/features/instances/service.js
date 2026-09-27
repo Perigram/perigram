@@ -280,7 +280,15 @@ function instanceService(typeId) {
     if (!staticDeclaration) return ['genericCreate'];
     if (staticDeclaration.derived) return [];
     if (staticDeclaration.payload) {
-      return [...new Set([].concat(staticDeclaration.payload.creation || ['upload']).map(String))];
+      // A payload type with construct operators mirrors the view
+      // projection: creation protocols plus the operator modes.
+      const payloadOperators = Object.values(staticDeclaration.operators || {})
+        .filter(operator => operator?.species === 'construct')
+        .map(operator => operator.id);
+      return [...new Set([]
+        .concat(staticDeclaration.payload.creation || ['upload'])
+        .map(String)
+        .concat(payloadOperators))];
     }
     // A payload-less type whose construction is fully operator-shaped
     // (declared construct operators) mirrors the view projection: the
