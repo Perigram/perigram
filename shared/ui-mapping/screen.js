@@ -126,7 +126,12 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     chrome,
     level: depth,
     childrenMode,
-    weight: estimateRegionWeight({ surfaceKind, type, instances }),
+    weight: estimateRegionWeight({
+      surfaceKind,
+      type,
+      instances,
+      statePolicy: contract.statePolicy?.[source.typeId] || null
+    }),
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
     typeId: source.typeId || null,
@@ -137,6 +142,10 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     // region's type (SPEC §7 — types carry none); null means the type has
     // no authored states and its surfaces render no state chrome.
     statePolicy: contract.statePolicy?.[source.typeId] || null,
+    // The same contract's authored machine edges (stateTransitionsByType
+    // over the producer workflows): the board projection's legal-move
+    // map, carried beside the vocabulary it walks.
+    stateTransitions: contract.stateTransitions?.[source.typeId] || null,
     listControls: surfaceKind === 'list' && type ? resolveListControls(type, instances) : null,
     instances: Object.freeze(instances),
     actions: Object.freeze((region.actions || []).map(actionId => contract.actions?.[actionId]).filter(Boolean)),

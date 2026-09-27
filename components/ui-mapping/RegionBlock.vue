@@ -94,6 +94,20 @@
         @open="emitOpen"
         @run="emitRun"
       />
+      <BoardCollection
+        v-else-if="listLayout === 'board'"
+        :instances="sortedInstances"
+        :type="node.type"
+        :actions="instanceActionsForType"
+        :openable="openable"
+        :pool="pool"
+        :bundle="bundle"
+        :state-policy="node.statePolicy"
+        :state-transitions="node.stateTransitions"
+        @open="emitOpen"
+        @run="emitRun"
+        @transition="payload => emit('transition', payload)"
+      />
       <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
       <TimelineCollection
         v-else-if="listLayout === 'timeline'"
@@ -219,6 +233,20 @@
         :state-policy="node.statePolicy"
         @open="emitOpen"
         @run="emitRun"
+      />
+      <BoardCollection
+        v-else-if="listLayout === 'board'"
+        :instances="sortedInstances"
+        :type="node.type"
+        :actions="instanceActionsForType"
+        :openable="openable"
+        :pool="pool"
+        :bundle="bundle"
+        :state-policy="node.statePolicy"
+        :state-transitions="node.stateTransitions"
+        @open="emitOpen"
+        @run="emitRun"
+        @transition="payload => emit('transition', payload)"
       />
       <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
       <TimelineCollection
@@ -383,7 +411,7 @@ import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import {
   LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor, sortControlRows,
-  localizedLabel, typeLabelKey, instanceMatchesToolbar
+  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
@@ -394,6 +422,7 @@ import SortControl from './SortControl.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
 import CardGrid from './CardGrid.vue';
+import BoardCollection from './BoardCollection.vue';
 import CarouselGrid from './CarouselGrid.vue';
 import TimelineCollection from './TimelineCollection.vue';
 import StatGrid from './StatGrid.vue';
@@ -498,6 +527,7 @@ const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.t
 const regionLabel = computed(() => regionLabelFor(props.node));
 const listLayout = computed(() => resolveListLayout(props.node.type, {
   hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length),
+  stateful: hasStateVocabulary(props.node.statePolicy),
   size: props.node.instances.length <= SMALL_LIST_AT
     ? 'small'
     : props.node.instances.length > 12 ? 'large' : null
@@ -541,7 +571,7 @@ watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter))
 // Card ordering: the sort bar moved into the header cluster — the same
 // sortKeys contract, shared comparator, and persisted preference (scope
 // kept) the DataView header owned. The sort control serves the card-grid
-// projection (the table projection sorts natively by column).
+// and board projections (the table projection sorts natively by column).
 const sortScope = computed(() => `card-grid:${props.node.typeId || ''}`);
 const preferredSort = loadSortPreference(sortScope.value);
 const sortName = ref(preferredSort?.name || props.node.listControls?.defaultSort || null);
@@ -550,7 +580,7 @@ const sortOptions = computed(() => (props.node.listControls?.sortKeys || [])
   .map(key => ({ label: key.label, value: key.name })));
 const sortKeyResolved = computed(() => (props.node.listControls?.sortKeys || [])
   .find(key => key.name === sortName.value) || null);
-const sortToggleAvailable = computed(() => listLayout.value === 'card-grid' && sortOptions.value.length > 0);
+const sortToggleAvailable = computed(() => ['card-grid', 'board'].includes(listLayout.value) && sortOptions.value.length > 0);
 const sortActive = computed(() => Boolean(sortName.value)
   && sortName.value !== props.node.listControls?.defaultSort);
 watch([sortName, sortOrder], () => {

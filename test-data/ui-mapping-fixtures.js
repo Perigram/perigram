@@ -258,6 +258,23 @@ export function createUiMappingCompiledContract() {
         aborted: { label: null, severity: 'danger', icon: null, terminal: true }
       }
     },
+    // The authored machine edges the same producer workflows would carry
+    // (stateTransitionsByType in real hydration): the board projection's
+    // legal-move contract over those vocabularies.
+    stateTransitions: {
+      keeper: [
+        { from: 'available', to: 'busy', region: 'lifecycle', intent: null },
+        { from: 'busy', to: 'away', region: 'lifecycle', intent: null },
+        { from: 'away', to: 'available', region: 'lifecycle', intent: null }
+      ],
+      watch_job: [
+        { from: 'queued', to: 'running', region: 'lifecycle', intent: 'start' },
+        { from: 'running', to: 'review', region: 'lifecycle', intent: null },
+        { from: 'running', to: 'aborted', region: 'lifecycle', intent: 'abort' },
+        { from: 'queued', to: 'aborted', region: 'lifecycle', intent: 'abort' },
+        { from: 'review', to: 'done', region: 'lifecycle', intent: null }
+      ]
+    },
     roles: {
       operator: { id: 'operator', label: 'Operator', grants: [{ feature: 'documents', level: 'write' }] }
     },

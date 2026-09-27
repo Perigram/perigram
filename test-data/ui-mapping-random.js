@@ -540,6 +540,18 @@ export function generateUiMappingWorld(seed = 7) {
           icon: null,
           terminal: (terminalStates[typeId] || []).includes(value)
         }]))
+      ])),
+      // The authored machine edges over those vocabularies — a linear
+      // chain in vocabulary order (the world authors its vocabularies as
+      // ordered lanes), the board projection's legal-move contract.
+      stateTransitions: Object.fromEntries(Object.entries(stateVocabularies).map(([typeId, values]) => [
+        typeId,
+        values.slice(0, -1).map((value, index) => ({
+          from: value,
+          to: values[index + 1],
+          region: 'lifecycle',
+          intent: null
+        }))
       ]))
     },
     instances,

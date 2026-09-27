@@ -70,7 +70,17 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
 // resolver decision over the TYPE'S SHAPE, not a component branch or a
 // hand-picked type id. Shape keys come from analyzeTypeShape; `size` is
 // the caller's collection size class ('small' for handful-sized sets).
+// `boardable` is a derived signal like `shape`: the resolver composes it
+// from the process class, the caller's stateful option (a served state
+// vocabulary spanning at least BOARD_MIN_COLUMNS values), and flat
+// collections — the authored workflow machine IS a stateful process
+// collection's structure, so the entry sits first and the shape signals
+// it overlaps (chronology, stat ratios) are secondary facets on that
+// class. One match key keeps the entry on equal specificity with the
+// other shape entries, so a narrow type override still outranks it
+// through the override splice — the extension mechanism stays intact.
 export const LIST_LAYOUT_ENTRIES = Object.freeze([
+  { match: { boardable: true }, layout: 'board' },
   { match: { shape: 'chronological' }, layout: 'timeline' },
   { match: { shape: 'statlike' }, layout: 'stats' },
   { match: { class: 'file', size: 'large' }, layout: 'carousel' },
@@ -82,9 +92,14 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
 
 export const SMALL_LIST_AT = 3;
 
+// A board with one column is a list, not a board: the state vocabulary
+// must span at least this many values before a collection earns the
+// board projection.
+export const BOARD_MIN_COLUMNS = 2;
+
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
-export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'tree-table', 'card-grid', 'carousel', 'timeline', 'stats', 'list']);
+export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'tree-table', 'card-grid', 'carousel', 'timeline', 'stats', 'list', 'board']);
 
 // Collection thresholds live with the other design-system budgets so
 // materializations carry no magic numbers: tables paginate past
@@ -135,7 +150,8 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   table: 1,
   'tree-table': 1,
   timeline: 2,
-  'card-grid': 4
+  'card-grid': 4,
+  board: 4
 });
 
 // Density x hierarchy: how much information the screen carries picks the
@@ -220,6 +236,13 @@ export const LAYOUT = Object.freeze({
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
+  // Board projection: the horizontal column rail (columns are in-surface
+  // wells one step above the canvas — the surface ladder's `subtle` inset
+  // level — while the cards inside sit on the content surface) and the
+  // column body itself. Column width is a layout dimension token — one
+  // board column never depends on its content's width.
+  boardRow: 'flex w-full items-start gap-4 overflow-x-auto pb-1',
+  boardColumn: 'flex w-72 shrink-0 flex-col gap-2 rounded-panel bg-subtle p-3',
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',

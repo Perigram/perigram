@@ -12,7 +12,7 @@
       </div>
       <GeneratedMappingScreen
         :screen="screen"
-        :contract="{ actions: processActions, statePolicy }"
+        :contract="{ actions: processActions, statePolicy, stateTransitions }"
         :bundle="processBundle"
         :instances="instanceGroups"
         :source-states="poolStates"
@@ -50,7 +50,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
 import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
-import { statePolicyByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 definePageMeta({
   layout: 'app',
@@ -107,6 +107,9 @@ const processActions = computed(() => authStore.processPayload?.actions || {});
 // types declare nothing about states, so this is the one client-side
 // source for state labels/severities/icons on generated surfaces.
 const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
+// The authored machine edges from the same producer workflows: the board
+// projection's legal-move contract (stateTransitionsByType).
+const stateTransitions = computed(() => stateTransitionsByType(authStore.processPayload?.producerOutputs || {}));
 
 const instances = useInstancesStore();
 // The generator's data layer stands in the instance pool projection of the

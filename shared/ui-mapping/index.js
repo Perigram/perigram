@@ -7,6 +7,7 @@ import {
   FIELD_DISPLAY_ENTRIES,
   CHILDREN_TABS_AT,
   HEADER_ACTIONS_INLINE,
+  BOARD_MIN_COLUMNS,
   LIST_LAYOUT_VALUES,
   SEARCH_AT,
   SURFACE_ROW_BUDGET,
@@ -43,6 +44,7 @@ export {
   RENDERABLE_PREVIEW_MODES,
   LAYOUT,
   LIST_LAYOUT_VALUES,
+  BOARD_MIN_COLUMNS,
   SEARCH_AT,
   SURFACE_ROW_BUDGET,
   SMALL_LIST_AT,
@@ -234,17 +236,25 @@ export function createUiMapping(overrides = {}) {
     });
   }
 
-  // resolveListLayout(typeRecord, { hierarchical, size }): shape-derived
-  // only — the authored list-layout override channel is gone (display
-  // derivation replaced it); the matcher table over `analyzeTypeShape`
-  // decides.
+  // resolveListLayout(typeRecord, { hierarchical, size, stateful }):
+  // shape-derived only — the authored list-layout override channel is
+  // gone (display derivation replaced it); the matcher table over
+  // `analyzeTypeShape` decides. `stateful` is the caller's derived
+  // signal that the region's served state vocabulary spans enough
+  // values to board (hasStateVocabulary); it composes with the process
+  // class and flat collections into the `boardable` candidate signal.
+  // `hierarchical` emits false (never null) so containment is explicit.
   function resolveListLayout(typeRecord = {}, options = {}) {
     const shape = analyzeTypeShape(typeRecord);
+    const hierarchical = options.hierarchical === true;
+    const stateful = options.stateful === true;
     const entry = pickEntry(listLayoutEntries, {
       type: typeRecord.id || null,
       class: typeRecord.class || null,
       shape: shape.chronological ? 'chronological' : shape.statlike ? 'statlike' : null,
-      hierarchical: options.hierarchical === true ? true : null,
+      hierarchical: hierarchical ? true : false,
+      stateful: stateful ? true : null,
+      boardable: typeRecord.class === 'process' && stateful && !hierarchical ? true : null,
       size: options.size === 'small' ? 'small' : options.size === 'large' ? 'large' : null
     });
     return entry.layout;
@@ -612,6 +622,46 @@ export function statePolicyByType(producerOutputs = {}) {
   return byType;
 }
 
+// hasStateVocabulary(statePolicy): the board projection's `stateful`
+// signal — a served vocabulary spanning at least BOARD_MIN_COLUMNS
+// values. One value is a tag, not a lane; none is no state surface at
+// all.
+export function hasStateVocabulary(statePolicy = null) {
+  return Object.keys(statePolicy || {}).length >= BOARD_MIN_COLUMNS;
+}
+
+// stateTransitionsByType(producerOutputs): { [typeId]: [{ from, to,
+// region, intent }] } from the same compiled producer workflows
+// statePolicyByType reads — the authored machine's edges are the board
+// projection's legal-move contract (a card may drop into a column only
+// when an edge leads there from its current state). The first authored
+// edge for a from→to pair wins, mirroring statePolicyByType's
+// first-entry-wins; `region` is the owning workflow region key and
+// `intent` the authored transition intent, both passed through so drops
+// dispatch through the same state-service transition channel the detail
+// header's buttons use.
+export function stateTransitionsByType(producerOutputs = {}) {
+  const byType = {};
+  for (const output of Object.values(producerOutputs || {})) {
+    const typeId = output?.typeId;
+    if (!typeId || !output?.workflow) continue;
+    const edges = byType[typeId] || (byType[typeId] = []);
+    for (const [regionKey, region] of Object.entries(output.workflow.regions || {})) {
+      for (const transition of region.transitions || []) {
+        if (!transition?.from || !transition?.to) continue;
+        if (edges.some(edge => edge.from === transition.from && edge.to === transition.to)) continue;
+        edges.push(Object.freeze({
+          from: transition.from,
+          to: transition.to,
+          region: regionKey || null,
+          intent: transition.intent || null
+        }));
+      }
+    }
+  }
+  return byType;
+}
+
 // stateDisplayFor(policyByValue, value): the resolved display of one state
 // value against a type's policy map — the single resolver every state
 // surface (tags, table cells, transition buttons) reads. Lookup is exact
@@ -716,7 +766,8 @@ export function estimateRegionWeight(node = {}) {
     return facts + structural * 2 + Math.ceil(relationRefs / 4);
   }
   const layout = resolveListLayout(node.type || {}, {
-    hierarchical: Boolean(Object.keys(node.type?.edges?.children || {}).length)
+    hierarchical: Boolean(Object.keys(node.type?.edges?.children || {}).length),
+    stateful: hasStateVocabulary(node.statePolicy)
   });
   const perRow = ROW_WEIGHT_BY_LAYOUT[layout] || 1;
   // Rows grow with budgeted relation chips: the first declared relation's

@@ -1,7 +1,7 @@
 <template>
   <GeneratedMappingScreen
     :screen="screen"
-    :contract="{ actions: processActions, statePolicy }"
+    :contract="{ actions: processActions, statePolicy, stateTransitions }"
     :bundle="processBundle"
     :instances="instanceGroups"
     :source-states="poolStates"
@@ -36,7 +36,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
-import { statePolicyByType } from '#shared/ui-mapping/index.js';
+import { statePolicyByType, stateTransitionsByType } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -55,6 +55,9 @@ const processActions = computed(() => authStore.processPayload?.actions || {});
 // routed screen page passes, so state tags and transition surfaces reach
 // the pane detail identically.
 const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
+// The authored machine edges from the same producer workflows: the board
+// projection's legal-move contract (stateTransitionsByType).
+const stateTransitions = computed(() => stateTransitionsByType(authStore.processPayload?.producerOutputs || {}));
 // The store exposes the keyed pool ({ type -> { id -> instance }}); the
 // generator's instances prop is the grouped-array shape.
 const instanceGroups = computed(() => Object.fromEntries(
