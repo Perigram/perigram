@@ -1,5 +1,5 @@
 import { operationKindOf } from '../../cts/src/index.js';
-import { normalizeWorkflow } from '../../workflows/src/index.js';
+import { normalizeWorkflow, resolveWorkflowStatePath } from '../../workflows/src/index.js';
 import {
   generatedScreenRoute,
   normalizeScreenContract,
@@ -1284,9 +1284,9 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
 
   const process = validation.definition;
   const lineageBindings = compileLineageBindings(process, domain);
-  const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings);
-  const compiledScreens = compileScreens(process, domain, compiledRoles, lineageBindings);
   const workflows = compileWorkflows(process, domain, lineageBindings);
+  const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings, workflows);
+  const compiledScreens = compileScreens(process, domain, compiledRoles, lineageBindings);
   const fieldPolicies = compileFieldPolicies(process.producerOutputs, domain);
   const compiledActions = compileActions(process.actions, process, domain, lineageBindings);
   const producerOutputs = Object.fromEntries(Object.entries(process.producerOutputs).map(([producerOutputId, output]) => [producerOutputId, {
@@ -2109,8 +2109,13 @@ function topLevelHomeSections(screens = [], hierarchy = []) {
   return [...sectionsByType.values()].filter(section => !childTypes.has(section.typeId));
 }
 
-function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineageBindings = []) {
+function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineageBindings = [], workflows = {}) {
   const graphContext = buildActionGraphContext(process);
+  const workflowByType = {};
+  for (const [producerOutputId, workflow] of Object.entries(workflows || {})) {
+    const typeId = process.producerOutputs?.[producerOutputId]?.typeId;
+    if (typeId && !workflowByType[typeId]) workflowByType[typeId] = workflow;
+  }
   const roles = Object.fromEntries(Object.entries(organizationRoles).map(([roleId, role]) => [roleId, {
     id: role.id || roleId,
     label: role.label || role.id || roleId,
@@ -2170,6 +2175,20 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
         input.id === 'entity' && !input.typeId && resolvedTypeId ? { ...input, typeId: resolvedTypeId } : input
       ));
       const outputs = action.outputs || [];
+      const exposureState = actionStatusForExposure(
+        action,
+        actionWindow,
+        access,
+        process,
+        wiringArrivalState(actionId, exposedAction, resolvedTypeId, graphContext, actionWindows)
+      );
+      // The machine is the authority: a status-mutating action whose edge
+      // the machine did not declare (a no-op arrival-to-target pair) is not
+      // exposed, so no surface offers a transition execution would refuse.
+      if ((action.actionKind || 'createEntity') === 'updateEntity' && exposureState.to
+        && !workflowDeclaresEdge(workflowByType[resolvedTypeId], exposureState.from, exposureState.to)) {
+        continue;
+      }
       roles[roleId].actions.push({
         actionId: action.id || actionId,
         label: displayActionLabel(action, actionId, process, domain),
@@ -2180,13 +2199,7 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
         typeId: resolvedTypeId,
         parentTypeId: parentTypeId || null,
         parentRevision: resolveParentRevision(action.parentRevision, parentTypeId, domain),
-        state: actionStatusForExposure(
-          action,
-          actionWindow,
-          access,
-          process,
-          wiringArrivalState(actionId, exposedAction, resolvedTypeId, graphContext, actionWindows)
-        ),
+        state: exposureState,
         relationMutation: action.relationMutation || null,
         construction: (action.actionKind || 'createEntity') === 'createEntity'
           ? normalizeConstruction(action.construction, action.typeId, domain)
@@ -2199,6 +2212,20 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
     }
   }
   return roles;
+}
+
+function workflowDeclaresEdge(workflow, from, to) {
+  if (!workflow) return true;
+  const region = workflow.regions?.[workflow.primaryRegion]
+    || Object.values(workflow.regions || {})[0]
+    || null;
+  if (!region || !to) return true;
+  const fromPath = resolveWorkflowStatePath(region, from || region.initial) || (from || region.initial);
+  const toPath = resolveWorkflowStatePath(region, to) || to;
+  return (region.transitions || []).some(transition => (
+    transition.from === fromPath
+    && (resolveWorkflowStatePath(region, transition.to) || transition.to) === toPath
+  ));
 }
 
 function exposedActionFeature(action = {}, actionWindow = null, access = {}, domain = {}) {

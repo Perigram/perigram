@@ -313,7 +313,8 @@ async function resolveIntentTransition({
   const transitionScope = normalizeTransitionScope(transitionContext);
   const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
   const region = getWorkflowRegion(normalizedMachine, regionId);
-  const currentState = getRegionState(entity.states ?? entity.status, regionId, region?.initial);
+  const rawCurrentState = getRegionState(entity.states ?? entity.status, regionId, region?.initial);
+  const currentState = resolveWorkflowStatePath(region, rawCurrentState) || rawCurrentState;
   const transition = (region?.transitions || []).find(item => item.intent === intent && item.from === currentState);
   if (!transition) {
     throw createError({
@@ -403,7 +404,8 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     const transitionScope = normalizeTransitionScope(transitionContext);
     const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
     const workflowRegion = getWorkflowRegion(normalizedMachine, regionId);
-    const currentState = getRegionState(entity.states ?? entity.status, regionId, workflowRegion?.initial);
+    const rawCurrentState = getRegionState(entity.states ?? entity.status, regionId, workflowRegion?.initial);
+    const currentState = resolveWorkflowStatePath(workflowRegion, rawCurrentState) || rawCurrentState;
     const enteredTarget = resolveWorkflowStatePath(workflowRegion, targetState);
     const targetStateDefinition = enteredTarget ? workflowRegion.states[enteredTarget] : {};
     const transitionMetadata = mergeStatusDisplayMetadata(

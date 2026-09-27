@@ -705,6 +705,7 @@ describe('@perigram/processes compiler', () => {
   it('nests states declared by a state-to-state wire and drops no-op edges', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
+      roles: { role_operator: { id: 'role_operator' } },
       graph: {
         nodes: [
           { id: 'cs1', type: 'ctsState', data: { refId: 'r1', value: 'state1' } },
@@ -725,8 +726,8 @@ describe('@perigram/processes compiler', () => {
         r2: { id: 'r2', kind: 'state', typeId: 'project', value: 'parentState' }
       },
       processNodes: {
-        make_project: { id: 'make_project', kind: 'cts.construct', typeId: 'project', producerOutputId: 'make_project:entity', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, inputDefaults: { state: 'state1' } },
-        t: { id: 't', kind: 'cts.transition', typeId: 'project', state: { to: 'parentState' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+        make_project: { id: 'make_project', kind: 'cts.construct', typeId: 'project', producerOutputId: 'make_project:entity', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_operator', level: 'write' }] }, inputDefaults: { state: 'state1' } },
+        t: { id: 't', kind: 'cts.transition', typeId: 'project', state: { to: 'parentState' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_operator', level: 'write' }] } }
       }
     }, {
       ...domain,
@@ -736,8 +737,10 @@ describe('@perigram/processes compiler', () => {
     expect(Object.keys(region.states).sort()).toEqual(['state1', 'state1.parentState']);
     expect(region.initial).toBe('state1.parentState');
     // state1 enters parentState as its initial child, so a transition to
-    // parentState is a no-op and must not compile an edge.
+    // parentState is a no-op and must not compile an edge — nor be exposed.
     expect(region.transitions).toEqual([]);
+    const exposed = compiled.roles.role_operator.actions.filter(entry => entry.actionKind === 'updateEntity');
+    expect(exposed).toEqual([]);
   });
 
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
