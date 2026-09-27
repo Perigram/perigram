@@ -82,6 +82,9 @@ export function parentBoundCreateAppliesToTypeId(action = {}, typeId = '') {
 }
 
 export function entityPrimaryStatus(entity = {}) {
+  // The wire DTO's primary state is the flat `state` string (SPEC §7/§3);
+  // the `states` axis map and the legacy status block are older shapes.
+  if (typeof entity.state === 'string' && entity.state) return entity.state;
   return entity.states?.main || entityPrimaryStatusOfLegacyBlock(entity) || '';
 }
 

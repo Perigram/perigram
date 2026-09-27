@@ -51,25 +51,40 @@ describe('generated action visibility', () => {
       typeId: 'cassette',
       state: { to: 'DELETED' }
     };
-    expect(actionAppliesToEntity(unscoped, { states: { main: 'DELETED' } }, 'cassette')).toBe(false);
-    expect(actionAppliesToEntity(unscoped, { states: { main: 'CREATED' } }, 'cassette')).toBe(true);
+    expect(actionAppliesToEntity(unscoped, { state: 'DELETED' }, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity(unscoped, { state: 'CREATED' }, 'cassette')).toBe(true);
 
     const scoped = {
       actionKind: 'updateInstance',
       typeId: 'cassette',
       state: { from: 'CREATED', to: 'DELETED' }
     };
-    expect(actionAppliesToEntity(scoped, { states: { main: 'DELETED' } }, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity(scoped, { state: 'DELETED' }, 'cassette')).toBe(false);
 
     const inState = {
       actionKind: 'updateInstance',
       typeId: 'cassette',
       state: { from: 'DELETED', to: 'DELETED' }
     };
-    expect(actionAppliesToEntity(inState, { states: { main: 'DELETED' } }, 'cassette')).toBe(true);
+    expect(actionAppliesToEntity(inState, { state: 'DELETED' }, 'cassette')).toBe(true);
 
     const plainUpdate = { actionKind: 'updateInstance', typeId: 'cassette' };
-    expect(actionAppliesToEntity(plainUpdate, { states: { main: 'DELETED' } }, 'cassette')).toBe(true);
+    expect(actionAppliesToEntity(plainUpdate, { state: 'DELETED' }, 'cassette')).toBe(true);
+  });
+
+  it('resolves the primary status from the flat wire state and legacy shapes', () => {
+    const action = {
+      actionKind: 'updateInstance',
+      typeId: 'cassette',
+      state: { from: 'CREATED', to: 'DELETED' }
+    };
+    // Flat wire state (SPEC §7) is the production shape.
+    expect(actionAppliesToEntity(action, { state: 'CREATED' }, 'cassette')).toBe(true);
+    expect(actionAppliesToEntity(action, { state: 'DELETED' }, 'cassette')).toBe(false);
+    // Older axis-map shape still resolves.
+    expect(actionAppliesToEntity(action, { states: { main: 'CREATED' } }, 'cassette')).toBe(true);
+    // Legacy status block still resolves.
+    expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'cassette')).toBe(true);
   });
 
   it('does not expose create actions on entity rows', () => {
