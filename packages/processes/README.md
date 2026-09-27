@@ -250,14 +250,13 @@ Lifecycle machines are authored vocabulary only (SPEC §7: graph-derived at
 compile, never invented). A producer's machine compiles from the draft's
 state records (the state vocabulary), the construct's authored state default
 (the machine entry), and its transition nodes' authored targets (the
-transitions): a transition node declares only its target, and the machine
-edge is the concrete state-to-state pair declared by the wiring — the
-from-state is the arrival state of instances on the transition's entity
-wire (the upstream producer's output state, derived from the wiring's
-status windows at compile), the to-state is the node's target. No wildcard
-or enumerated from-state ever enters the machine; the transition inspector
-authors no from-state, and at execution the status engine validates the
-operated instance's current state against exactly those declared edges. A producer whose type carries none of these
+transitions): the machine is vocabulary — states and an entry — and never
+derived edges. A transition node declares only its target; at execution the
+operated instance supplies the from-state, and the status engine validates
+the pair as declared-state-to-declared-state. Anything else — a target
+outside the declared vocabulary — is invalid. Authored v4 from/to pairs
+persist as explicit edge metadata for legacy surfaces; the wiring never
+materializes edges, and the transition inspector authors no from-state. A producer whose type carries none of these
 compiles NO machine: instances of such types are stateless, creation writes
 no status, and the status runtime refuses transitions for them. No
 synthesized CREATED lifecycle exists — a state nobody declared is not
