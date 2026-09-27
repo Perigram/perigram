@@ -251,7 +251,10 @@ Discord-style operational shell:
   `GeneratedTypeScreen` (the
   same generator contract as the desktop panes); instance opens on
   mobile follow the routed surface contract: the compiled detail screen
-  route.
+  route. Type surfaces carry the runtime transition channel the routed
+  page has: board drops and any served machine transition dispatch
+  through the state service, and drag legality resolves through the same
+  per-instance fetch — the contract copy alone never gates moves.
 - The sidebar owns navigation for the whole shell as a PrimeVue
   `PanelMenu`, header labels passthrough'd to line-height 1 so panel
   headers match row heights. The brand header is its own panel and
