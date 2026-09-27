@@ -1680,7 +1680,9 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   }
   if (operation === 'effect.deleteEntity') {
     if (!service.processDelete) throw new Error(`Entity service cannot delete ${typeId}`);
-    return await service.processDelete(target.id, auth);
+    const deleted = await service.processDelete(target.id, auth);
+    await publishActionEntityEvent(auth, typeId, { _id: target.id }, 'deleted', 'process-delete');
+    return deleted;
   }
   if (operation === 'effect.sendEntity') {
     return await projectEntityThroughSocket({
