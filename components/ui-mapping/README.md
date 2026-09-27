@@ -170,20 +170,27 @@ surface concerns:
   sit on the content surface. Membership moves only through the
   authored machine: a card may drop into a column only when a contract
   edge (`stateTransitionsByType`, carried on the region node) leads
-  there from its current state; while a drag is live every machine-legal
-  target column carries the dashed target hairline and the hovered
-  receiver steps up to the content surface, so legality is visible
-  before the drop. The drop emits the `transition` channel
+  there from its current state. The affordance stays on the surface
+  ladder — while a drag is live every machine-legal target well steps up
+  to the content surface and the hovered receiver adds overlay
+  elevation — and a card whose state has no outgoing edges is not
+  draggable at all: a machine that authored vocabulary without wired
+  transition actions compiles states but no edges, and such boards are
+  read-only groupings (the authoring fix is update actions wired to
+  states in the process, not a board change). The drop emits the
+  `transition` channel
   (the state-service executor the detail header shares), never an
   optimistic local move — the machine owns the mutation and the pool
   reconciles through the shared entity event. Ordering belongs to the
   column: each lane carries its own `SortControl` over the composed
   `sortKeys` contract with a persisted per-type-and-state preference
   (`board-column:` scopes through `utils/ui-sort-preference.js`).
-  Column bodies are bounded (`max-h-board-column`) and scroll
-  independently — the board fits its container instead of growing the
-  page, and the same flex contract lets lanes fill bounded hosts
-  (workspace panes). Stale states outside the
+  Column bodies are bounded (`--ck-board-column-max-height`,
+  viewport-relative) and scroll independently — the board fits its
+  container instead of growing the page, and the same flex contract
+  lets lanes fill bounded hosts (workspace panes). Dragging into the
+  rail's horizontal edge zone auto-scrolls toward hidden columns. Stale
+  states outside the
   vocabulary degrade to neutral columns that admit no drops. Native
   HTML5 drag is the desktop affordance; the per-card ellipsis menu and
   the opened record's transition strip remain the accessible and touch

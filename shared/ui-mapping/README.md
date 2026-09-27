@@ -202,7 +202,12 @@ pure helpers own every state-presentation decision:
   region, intent }] }` from the same compiled producer workflows'
   `regions[*].transitions`: the authored machine edges, the board
   projection's legal-move contract. First edge per from→to pair wins,
-  mirroring the policy derivation. `hasStateVocabulary(policy)` is the
+  mirroring the policy derivation. Edges compile only from wired update
+  actions in the process — a type whose states are authored without
+  transition actions carries vocabulary but no edges, and its boards
+  are read-only groupings (see
+  [packages/processes](../../packages/processes/README.md)).
+  `hasStateVocabulary(policy)` is the
   companion signal: a vocabulary spanning `BOARD_MIN_COLUMNS` values
   earns the board projection.
 - `stateSegmentsOf(value)` — the display path of one value: single
