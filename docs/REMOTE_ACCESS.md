@@ -11,16 +11,16 @@ root-owned key files listed below.
 |---|---|---|
 | zeus | `192.168.0.15` (LAN), SSH alias `zeus` (user `storage`) | Forgejo (`forgejo` container, `127.0.0.1:3000`), public TLS edge (`tls-front` nginx :443 → `perigram.sodalab.pro`), NetBird server, sslh port multiplexing |
 | Staging host | `192.168.0.230` | Forgejo Actions `deploy` runner; runs the `perigram-staging` container on host network `:3001` |
-| Forgejo (public) | `https://forgejo.sodalab.pro` → zeus :443 | Primary git remote (`sodalab/perigram`) |
+| Forgejo (public) | `https://forgejo.sodalab.pro` → zeus :443 | Primary git remote (`perigram/perigram`) |
 | App (public) | `https://perigram.sodalab.pro` → `192.168.0.230:3001` | Staging app |
 | NetBird mesh | `10.77.0.0/16` (workstation: `wt0`) | Overlay for hosts that are not LAN-reachable; peer IPs come from `netbird status` |
 
 ## Workstation Access
 
 - SSH alias `zeus` (user `storage`) works over the LAN; no VPN needed.
-- The `origin` remote points at the Forgejo bare repo on zeus over SSH
-  (`r330:/srv/forgejo/git/repositories/sodalab/perigram.git`); pushes go
-  through the SSH alias, with no tunnel or stored HTTPS credentials.
+- The `origin` remote is the Forgejo HTTPS URL
+  (`https://forgejo.sodalab.pro/perigram/perigram.git`); pushes go through
+  the git credential-helper (evo push token), per AOR-INFRA-001.
 - Hosts without a LAN route (for example the staging host) are reached over
   the NetBird mesh; check `netbird status` for peer IPs.
 
@@ -28,7 +28,7 @@ root-owned key files listed below.
 
 ```bash
 git remote -v
-# origin   r330:/srv/forgejo/git/repositories/sodalab/perigram.git   (Forgejo on zeus)
+# origin   https://forgejo.sodalab.pro/perigram/perigram.git   (Forgejo on zeus)
 ```
 
 Deploy flow and secrets are documented in
