@@ -21,12 +21,6 @@
     <div v-if="layout === 'lanes'" class="designer-workspace__lanes min-h-0 min-w-0 flex-1 overflow-hidden">
       <main class="designer-workspace__canvas relative min-h-0 min-w-0 overflow-hidden">
         <slot />
-        <div v-if="dockTopItems.length" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
-          <MotionDock placement="top" :items="dockTopItems" :aria-label="$t('designer.panels')" />
-        </div>
-        <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
-          <slot name="dock" />
-        </div>
       </main>
       <aside
         v-if="hasPalette && !compact && panels.palette"
@@ -51,19 +45,44 @@
 
     <main v-else class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <slot />
-      <div v-if="dockTopItems.length" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
-        <MotionDock placement="top" :items="dockTopItems" :aria-label="$t('designer.panels')" />
-      </div>
       <div v-if="hasPalette && !compact && panels.palette" class="designer-workspace__rail absolute top-3 bottom-3 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
         <slot name="palette" />
       </div>
       <aside v-if="hasInspector && !compact && panels.inspector" class="designer-workspace__rail absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
         <slot name="inspector" />
       </aside>
-      <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
-        <slot name="dock" />
-      </div>
     </main>
+
+    <!-- One floating toolbar owns every designer command: panel toggles and
+         document operations in the start group, canvas commands in the end
+         group. The wrapper spans the workspace but passes pointer events
+         through its empty sides so the canvas stays interactive. -->
+    <div
+      v-if="hasToolbarItems"
+      data-designer-toolbar
+      class="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3"
+    >
+      <Toolbar :aria-label="$t('designer.toolbar')" class="pointer-events-auto max-w-full overflow-x-auto">
+        <template #start>
+          <template v-for="(item, index) in toolbarStartItems" :key="index">
+            <Divider v-if="item.separator" layout="vertical" />
+            <OverlayBadge v-else-if="item.attention">
+              <Button v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
+            </OverlayBadge>
+            <Button v-else v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
+          </template>
+        </template>
+        <template v-if="canvasItems.length" #end>
+          <template v-for="(item, index) in canvasItems" :key="index">
+            <Divider v-if="item.separator" layout="vertical" />
+            <OverlayBadge v-else-if="item.attention">
+              <Button v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
+            </OverlayBadge>
+            <Button v-else v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
+          </template>
+        </template>
+      </Toolbar>
+    </div>
 
     <!-- Compact overlay panels follow the popover contract: a tap on anything
          outside the panel (the backdrop over the canvas area) closes it, so
@@ -76,7 +95,7 @@
     />
     <aside
       v-if="compact && compactPanelOpen"
-      class="absolute inset-x-3 top-16 z-20 flex min-h-0 max-h-[50%] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
+      class="absolute inset-x-3 top-24 z-20 flex min-h-0 max-h-[50%] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
       data-designer-compact-panels
     >
       <Tabs :value="compactTab" class="flex min-h-0 flex-1 flex-col">
@@ -102,9 +121,12 @@
 </template>
 
 <script setup>
-import { computed, h, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import MotionDock from '~/components/shared/MotionDock.vue';
+import Button from 'primevue/button';
+import Divider from 'primevue/divider';
+import OverlayBadge from 'primevue/overlaybadge';
+import Toolbar from 'primevue/toolbar';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -120,8 +142,11 @@ const props = defineProps({
     validator: value => ['lanes', 'canvas'].includes(value)
   },
   // Document commands (open/load, rename, save...) rendered after the
-  // workspace-owned panel toggles inside the shared top dock.
-  topDockItems: { type: Array, default: () => [] }
+  // workspace-owned panel toggles in the toolbar start group.
+  documentItems: { type: Array, default: () => [] },
+  // Canvas commands (zoom cluster, content operations) rendered as the
+  // toolbar end group.
+  canvasItems: { type: Array, default: () => [] }
 });
 
 const slots = useSlots();
@@ -133,14 +158,14 @@ const hasInspector = computed(() => Boolean(slots.inspector));
 const hasSupport = computed(() => Boolean(slots.support));
 
 // Panel visibility is workspace-owned so every designer shares one contract:
-// lane chevrons, the compact overlay, and designer docks all drive this state.
+// lane chevrons, the compact overlay, and the toolbar toggles all drive this state.
 const panels = reactive({ palette: true, inspector: true, support: false });
 const compact = ref(false);
 const compactTab = ref('palette');
 
 const PANEL_KEYS = ['palette', 'inspector', 'support'];
 
-function togglePanelFromDock(panel) {
+function togglePanelFromToolbar(panel) {
   if (compact.value) {
     const sole = panels[panel] && PANEL_KEYS.every(key => !panels[key] || key === panel);
     for (const key of PANEL_KEYS) panels[key] = sole ? false : key === panel;
@@ -152,29 +177,49 @@ function togglePanelFromDock(panel) {
 
 const panelDockItems = computed(() => [
   hasPalette.value ? {
-    icon: () => h('i', { class: 'pi pi-align-left', 'aria-hidden': 'true' }),
+    icon: 'pi pi-align-left',
     label: t('designer.palette'),
     pressed: panels.palette,
-    onClick: () => togglePanelFromDock('palette')
+    onClick: () => togglePanelFromToolbar('palette')
   } : null,
   hasInspector.value ? {
-    icon: () => h('i', { class: 'pi pi-align-right', 'aria-hidden': 'true' }),
+    icon: 'pi pi-align-right',
     label: t('designer.inspector'),
     pressed: panels.inspector,
-    onClick: () => togglePanelFromDock('inspector')
+    onClick: () => togglePanelFromToolbar('inspector')
   } : null,
   hasSupport.value ? {
-    icon: () => h('i', { class: 'pi pi-window-maximize', 'aria-hidden': 'true' }),
+    icon: 'pi pi-window-maximize',
     label: t('designer.support'),
     pressed: panels.support,
-    onClick: () => togglePanelFromDock('support')
+    onClick: () => togglePanelFromToolbar('support')
   } : null,
-  (hasPalette.value || hasInspector.value || hasSupport.value) && props.topDockItems.length
+  (hasPalette.value || hasInspector.value || hasSupport.value) && props.documentItems.length
     ? { separator: true }
     : null
 ].filter(Boolean));
 
-const dockTopItems = computed(() => [...panelDockItems.value, ...props.topDockItems]);
+const toolbarStartItems = computed(() => [...panelDockItems.value, ...props.documentItems]);
+
+const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0);
+
+// Toolbar items are plain data (icon class + label + handlers); the shared
+// props mapping below keeps every rendered button one vocabulary: the label
+// is the accessible name, `loading` swaps the icon for the PrimeVue spinner,
+// and `pressed` switches to the outlined variant with aria-pressed.
+function toolbarButtonProps(item) {
+  return {
+    icon: item.icon,
+    severity: 'secondary',
+    variant: item.pressed ? 'outlined' : 'text',
+    rounded: true,
+    disabled: item.disabled,
+    loading: item.loading,
+    'aria-label': item.label,
+    ...(typeof item.pressed === 'boolean' ? { 'aria-pressed': item.pressed } : {}),
+    ...(item.hasPopup ? { 'aria-haspopup': 'dialog' } : {})
+  };
+}
 
 function toggle(panel) {
   panels[panel] = !panels[panel];

@@ -42,7 +42,7 @@ recursive lifecycle.
 The route is a composition surface, not the owner of every editor concern.
 Focused composables own process selection, draft persistence, graph
 selection and deletion, connection inference, palette queries, inspector
-record access, roles, screens, and dock/panel state:
+record access, roles, screens, and panel state:
 
 - `useProcessDesignerTypes` — the CTS registry generation, the projected
   designer contract, and the live tree overlay (one registry per overlay
@@ -462,15 +462,14 @@ The canvas uses its own token-backed work surface behind two side drawers.
 The palette and inspector are non-modal, non-dismissable PrimeVue `Drawer`
 panels with Aura drawer chrome; canvas clicks never close them,
 `closeOnEscape` is disabled so canvas Escape still clears graph selection,
-and the header close button plus the dock toggles own visibility. Each
+and the header close button plus the toolbar toggles own visibility. Each
 drawer scrolls its own content, and either can be closed independently to
-recover the full canvas. A compact top document dock owns the process
-lifecycle (open, rename, save, apply) and a shared `MotionDock` on the
-canvas owns view controls (zoom out, zoom in, frame all, frame selection,
-reset zoom), both icon-only with proximity magnification and hover labels
-through the GSAP patterns in `composables/useMotion.js`;
-`useReducedMotion()` disables magnification and label travel while keeping
-every action keyboard-reachable. There is no standalone Validate control:
+recover the full canvas. The floating PrimeVue `Toolbar` (shared
+`DesignerWorkspace` chrome) owns the process lifecycle in its document group
+(open, rename, save, apply) and the view controls in its canvas group
+(zoom out, zoom in, frame all, frame selection, reset zoom), every item
+icon-only with its label as tooltip and accessible name. There is no
+standalone Validate control:
 Apply saves, validates, and activates as one operation, while the result
 remains visible as feedback on the canvas. The process Folder opens a
 click-anchored Popover using the shared `InstanceSelect` value event
@@ -482,7 +481,7 @@ draft. Dirty state is a primary save affordance plus a small dot, not a
 persistent text badge. Delete/Backspace removes all selected nodes and
 edges together while preserving definition records that are still
 referenced. Home frames the graph, Numpad Decimal frames the selection,
-and the dock's direct view controls expose frame/zoom without requiring
+and the toolbar's direct view controls expose frame/zoom without requiring
 shortcuts. Zoom spans 0.1x through 4x, and the live viewport is persisted
 with the graph. Runtime-only selection styles are stripped before
 serialization. Validation reports missing sockets, incompatible types,
@@ -514,7 +513,8 @@ plan pauses Apply in `ApplyMigrationDialog`: each removed workflow state
 with live instances is listed with its count and a target-state select
 (the next contract's retained states), and activation proceeds only after
 every state is mapped. The side rails are always non-modal
-drawer overlays and the bottom dock stays icon-only on narrow layouts.
+drawer overlays and the toolbar stays icon-only (labels as tooltips) so it
+survives narrow layouts.
 
 An effect's trigger mode is derived, never authored: every effect card
 always shows its incoming event socket, and the operation runs

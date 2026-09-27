@@ -95,9 +95,11 @@ and bounded control operations. `types.vue` remains the read-only registry
 browser.
 
 The route uses the authenticated app layout with a full canvas workspace and
-the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The
-dock is supplied through the shell's dock slot, matching the shared designer
-contract used by Cassette, Facade, and Facade Pattern; the palette and
+the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell.
+Document and canvas commands render in the shell's floating PrimeVue
+`Toolbar` (the shared designer contract in
+[components/shared](../../components/shared/README.md)), matching the shell
+used by the cassette and sheet-design editors; the palette and
 inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
 The graph palette is the type catalog by class (File types, Items,
 Groups, Processes — dragging a type drops a bound construct) followed by
@@ -118,15 +120,13 @@ The palette and inspector are non-modal, non-dismissable drawers (left and
 right, `closeOnEscape` disabled so canvas Escape keeps clearing graph
 selection); each drawer owns its vertical scrolling so long entity lifecycle
 and role forms remain reachable without moving the canvas, and either closes
-independently to recover the canvas. The bottom dock is PrimeVue `Dock`
-wrapped by `components/process-designer/ProcessDesignerDock.vue`:
-`process.vue` maps the page actions into its item API, and
-`ProcessDesignerDockItem.vue` keeps proximity magnification and hover labels
-on the GSAP motion patterns while honoring reduced motion. Dock items are
-grouped by concern with separators: drawer toggles, direct canvas view
-controls, Save and Apply, and the Folder. Process selection and New Draft live
-in the Folder's click-anchored popover. Unsaved work is signaled by the active
-save control and a dot rather than a text badge.
+independently to recover the canvas. The toolbar's document group carries
+the process lifecycle: the Folder (open/select, with its click-anchored
+popover), rename, save, apply. Its canvas group carries the direct view
+controls: zoom out, zoom in, frame all, frame selection, reset zoom.
+Process selection and New Draft live in the Folder's click-anchored
+popover. Unsaved work is signaled by the save control's overlay badge dot
+rather than a text badge.
 Saved graphs containing legacy role/user layout nodes have those non-canvas
 nodes filtered out at load, and entity/service/socket nodes are reconstructed
 from the process records so active definitions do not open to a blank canvas.

@@ -1,6 +1,6 @@
 <template>
   <DesignerSurface>
-    <DesignerWorkspace layout="lanes" class="h-full" :top-dock-items="documentDockItems">
+    <DesignerWorkspace layout="lanes" class="h-full" :document-items="documentDockItems" :canvas-items="canvasDockItems">
       <div class="relative h-full w-full overflow-hidden">
       <svg
         ref="svgRef"
@@ -103,10 +103,6 @@
         </g>
       </svg>
       </div>
-
-      <template #dock>
-        <MotionDock :items="canvasDockItems" :aria-label="$t('sheetDesign.editor')" />
-      </template>
     </DesignerWorkspace>
 
     <StandardDialog v-model:visible="addVisible" :header="$t('sheetDesign.addCassette')" size="md">
@@ -130,7 +126,7 @@
 </template>
 
 <script setup>
-import { computed, h, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
@@ -138,7 +134,6 @@ import Button from 'primevue/button';
 import Select from '~/components/shared/InstanceSelect.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
-import MotionDock from '~/components/shared/MotionDock.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import CassetteEditorDialog from '~/components/CassetteEditorDialog.vue';
 import { useInstancesStore } from '~/stores/instances';
@@ -159,34 +154,35 @@ import {
 
 const documentDockItems = computed(() => [
   {
-    icon: () => h('i', { class: saving.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    icon: 'pi pi-save',
     label: t('common.save'),
     disabled: !props.editable || saving.value,
+    loading: saving.value,
     onClick: () => save()
   }
 ]);
 
 const canvasDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-plus', 'aria-hidden': 'true' }),
+    icon: 'pi pi-plus',
     label: t('sheetDesign.addCassette'),
     disabled: !props.editable,
     onClick: () => openAddDialog()
   },
   {
-    icon: () => h('i', { class: 'pi pi-upload', 'aria-hidden': 'true' }),
+    icon: 'pi pi-upload',
     label: t('common.upload'),
     disabled: !props.editable,
     onClick: () => { uploadVisible.value = true; }
   },
   {
-    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    icon: 'pi pi-refresh',
     label: t('common.rotate'),
     disabled: !props.editable || selectedIndex.value < 0,
     onClick: () => rotateSelected()
   },
   {
-    icon: () => h('i', { class: 'pi pi-trash', 'aria-hidden': 'true' }),
+    icon: 'pi pi-trash',
     label: t('common.delete'),
     disabled: !props.editable || selectedIndex.value < 0,
     onClick: () => removeSelected()
