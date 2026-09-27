@@ -21,9 +21,9 @@ jobs:
         run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
       - name: redeploy container
         env:
-          NUXT_MONGODB_URI: ${{ secrets.NUXT_MONGODB_URI }}
-          LIVEKIT_PUBLIC_URL: ${{ secrets.LIVEKIT_PUBLIC_URL }}
-          LIVEKIT_INTERNAL_URL: ${{ secrets.LIVEKIT_INTERNAL_URL }}
+          # LiveKit auth stays in Forgejo secrets; everything below is the
+          # hera backend set (owner word 2026-09-27: the CI deploy is the
+          # public app at perigram.sodalab.pro; mongo/livekit live on hera).
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
           NUXT_VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
@@ -32,9 +32,11 @@ jobs:
           docker rm -f perigram-staging || true
           docker run -d --name perigram-staging --restart unless-stopped \
             --network=host \
-            -e NUXT_MONGODB_URI \
-            -e LIVEKIT_PUBLIC_URL \
-            -e LIVEKIT_INTERNAL_URL \
+            -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit \
+            -e BASE_URL=https://perigram.sodalab.pro \
+            -e NUXT_PUBLIC_BASE_URL=https://perigram.sodalab.pro \
+            -e LIVEKIT_PUBLIC_URL=https://livekit.sodalab.pro \
+            -e LIVEKIT_INTERNAL_URL=http://192.168.0.248:7880 \
             -e LIVEKIT_API_KEY \
             -e LIVEKIT_API_SECRET \
             -e NUXT_VAPID_PUBLIC_KEY \
