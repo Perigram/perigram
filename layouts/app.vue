@@ -159,6 +159,11 @@
         <IncomingCalls v-if="authStore.userIsSet" />
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
         <CallFloatingWindow v-if="authStore.userIsSet" />
+        <!-- The app-level default confirmation host: one instance for the
+             whole layout. Feature surfaces (chat, calls, generated screens)
+             call useConfirm without a group; mounting a second host anywhere
+             else renders the same require twice. -->
+        <ConfirmDialog />
     </div>
 </template>
 
@@ -169,6 +174,7 @@
     import Button from 'primevue/button'
     import Badge from 'primevue/badge'
     import Menu from 'primevue/menu'
+    import ConfirmDialog from 'primevue/confirmdialog'
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'

@@ -3697,9 +3697,13 @@ function declaredTransitionSources(actionId, action = {}, typeId = '', graphCont
 }
 
 // The single arrival state the wiring declares, when unambiguous — the
-// manifest's scoping fact.
+// manifest's scoping fact. State-bound effects of every kind scope by
+// it: a delete wired from one state renders only there (per-state delete
+// buttons), exactly like an update's transition window. The machine-edge
+// derivation (declaredTransitionSources) stays update-only — deletes
+// author no machine edges.
 function wiringArrivalState(actionId, action = {}, typeId = '', graphContext, actionWindows) {
-  const sources = declaredTransitionSources(actionId, action, typeId, graphContext, actionWindows);
+  const sources = workflowTransitionSources(actionId, action, typeId, graphContext, actionWindows);
   return sources.length === 1 ? sources[0].status : '';
 }
 

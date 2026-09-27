@@ -407,12 +407,12 @@ export const RENDERABLE_PREVIEW_MODES = Object.freeze([
 // checked before kind entries (specificity handles ordering).
 export const ACTION_ENTRIES = Object.freeze([
   { match: { trigger: 'event' }, component: null, hidden: true },
-  { match: { actionKind: 'createInstance' }, component: 'Button', tone: 'primary', icon: 'pi pi-plus' },
-  { match: { actionKind: 'deleteInstance' }, component: 'Button', tone: 'danger', icon: 'pi pi-trash', confirm: true },
+  { match: { actionKind: 'createInstance' }, component: 'Button', tone: 'primary', icon: 'pi pi-plus', iconOnly: true },
+  { match: { actionKind: 'deleteInstance' }, component: 'Button', tone: 'danger', icon: 'pi pi-trash', confirm: true, iconOnly: true },
   { match: { actionKind: 'runCommand' }, component: 'Button', tone: 'secondary', icon: 'pi pi-bolt' },
   { match: { actionKind: 'link' }, component: 'Button', tone: 'text', icon: 'pi pi-link' },
   { match: { actionKind: 'unlink' }, component: 'Button', tone: 'text', icon: 'pi pi-times', inline: true },
-  { match: { actionKind: 'updateInstance', stateTarget: true }, component: 'Button', tone: 'state' },
+  { match: { actionKind: 'updateInstance', stateTarget: true }, component: 'Button', tone: 'state', icon: 'pi pi-arrow-right-arrow-left' },
   { match: { actionKind: 'updateInstance' }, component: 'Button', tone: 'secondary', icon: 'pi pi-pencil' },
   { match: {}, component: 'Button', tone: 'secondary' }
 ]);

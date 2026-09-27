@@ -2,10 +2,11 @@
 /**
  * Unified Status History Component - v24 Standardized
  * Fetches and displays the audit log (status_events) for an instance as a
- * vertical stepper trail: each event is one step, ordered oldest →
- * newest, with the newest step's evidence panel open by default —
- * clicking a step header expands that event's note, attachments, and
- * snapshots (one panel open at a time, the stepper's own accordion).
+ * vertical stepper feed: each event is one step, ordered newest → oldest
+ * (the latest event leads), with the newest step's evidence panel open by
+ * default — clicking a step header expands that event's note,
+ * attachments, and snapshots (one panel open at a time, the stepper's own
+ * accordion).
  */
 import Stepper from 'primevue/stepper';
 import StepItem from 'primevue/stepitem';
@@ -151,20 +152,20 @@ const openActorChat = (event) => {
 
 const eventKey = (event, index) => event._id || `${eventState(event)}-${event.timestamp}-${index}`;
 
-// The trail reads oldest → newest; a run of consecutive steps by one
-// principal carries the actor once, on the run's first step.
+// The trail reads newest → oldest (a feed: the latest event leads); the
+// API serves newest-first. A run of consecutive steps by one principal
+// carries the actor once, on the run's first step.
 const actorStartsRun = (index) => {
   if (index === 0) return true;
   return actorUserId(orderedEvents.value[index - 1]) !== actorUserId(orderedEvents.value[index]);
 };
 
-// The stepper reads oldest → newest (a trail, not a feed); the API serves
-// newest-first. The newest step opens with its evidence panel expanded.
-const orderedEvents = computed(() => [...displayEvents.value].reverse());
+// The newest step opens with its evidence panel expanded.
+const orderedEvents = computed(() => displayEvents.value);
 const activeStep = computed(() => (orderedEvents.value.length
-  ? eventKey(orderedEvents.value[orderedEvents.value.length - 1], 0)
+  ? stepKey(orderedEvents.value[0], 0)
   : null));
-const stepKey = (event, index) => eventKey(event, orderedEvents.value.length - 1 - index);
+const stepKey = (event, index) => eventKey(event, index);
 // Step index bubbles would count the audit trail; the state badge is the
 // marker, so the number stays hidden.
 const stepPt = { number: { class: 'hidden' } };
@@ -249,8 +250,8 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
               size="small"
               severity="secondary"
               :disabled="index === 0"
-              :aria-label="$t('common.back')"
-              data-history-nav="older"
+              :aria-label="$t('common.next')"
+              data-history-nav="newer"
               @click.stop="activateCallback(stepKey(orderedEvents[index - 1], index - 1))"
             />
             <Button
@@ -260,8 +261,8 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
               size="small"
               severity="secondary"
               :disabled="index === orderedEvents.length - 1"
-              :aria-label="$t('common.next')"
-              data-history-nav="newer"
+              :aria-label="$t('common.back')"
+              data-history-nav="older"
               @click.stop="activateCallback(stepKey(orderedEvents[index + 1], index + 1))"
             />
           </div>

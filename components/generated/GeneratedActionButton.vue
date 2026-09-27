@@ -20,6 +20,8 @@ import { computed } from 'vue';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
+import { useStatePolicy } from '~/composables/useStatePolicy';
+import { stateDisplayFor } from '#shared/ui-mapping/index.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 import {
   isCreateAction,
@@ -38,16 +40,35 @@ defineEmits(['execute']);
 
 const authStore = useAuthStore();
 const { t, te } = useI18n();
+const { policyByType } = useStatePolicy();
 const action = computed(() => authStore.actionManifest.find(item => item.id === props.actionId));
 const actionLabel = computed(() => generatedActionLabel(action.value || {}, props.actionId, { t, te }));
-const actionSeverity = computed(() => isDeleteAction(action.value || {}) ? 'danger' : 'secondary');
+// Obvious actions are icon-only by default — delete (trash) and create
+// (plus) carry their meaning in the glyph; the localized label stays the
+// tooltip and the accessible name. Menu rows keep their labels.
+const iconOnly = computed(() => !props.menuItem
+  && (props.iconOnly || isDeleteAction(action.value || {}) || isCreateAction(action.value || {})));
+// A state-mutating update resolves its target state's display through the
+// compiled flat vocabulary — the authored policy's icon and severity for
+// the state it lands on, not a local heuristic.
+const targetStateDisplay = computed(() => {
+  const value = action.value || {};
+  if (!isUpdateAction(value) || !value.state?.to) return null;
+  return stateDisplayFor(policyByType.value[value.typeId] || null, value.state.to);
+});
+const actionSeverity = computed(() => {
+  if (isDeleteAction(action.value || {})) return 'danger';
+  return targetStateDisplay.value?.severity || 'secondary';
+});
 const actionIcon = computed(() => {
   const value = action.value || {};
   if (isRelationLinkAction(value)) return 'pi pi-link';
   if (isCreateAction(value)) return 'pi pi-plus';
   if (value.actionKind === 'archiveEntity') return 'pi pi-box';
   if (isDeleteAction(value)) return 'pi pi-trash';
-  if (isUpdateAction(value) && value.status?.to) return 'pi pi-arrow-right-arrow-left';
+  if (isUpdateAction(value) && value.state?.to) {
+    return targetStateDisplay.value?.icon || 'pi pi-arrow-right-arrow-left';
+  }
   if (isUpdateAction(value)) return 'pi pi-pencil';
   if (value.actionKind === 'sendToOrganization') return 'pi pi-send';
   return 'pi pi-play';

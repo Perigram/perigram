@@ -48,7 +48,7 @@ import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, titleFor, iconFor, childrenOfParent, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, titleFor, iconFor, childrenOfParent, hierarchyRootInstances, stateDisplayFor } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -118,7 +118,14 @@ const buildNode = (instance, seen = new Set()) => {
   };
 };
 
-const nodes = computed(() => props.instances.map(instance => buildNode(instance)).filter(Boolean));
+// Top-level rows are the structural roots: an instance whose declared
+// parent is loaded in the pool rides nested under it, never repeated at
+// the top level (the projection-level guarantee beside composeScreen's
+// source-level root scoping — pre-aggregated pools still render one
+// containment tree, not a flat pile).
+const nodes = computed(() => hierarchyRootInstances(props.instances, props.bundle, props.pool)
+  .map(instance => buildNode(instance))
+  .filter(Boolean));
 const collectKeys = node => [node.key, ...node.children.flatMap(collectKeys)];
 const expandedKeys = computed(() => Object.fromEntries(nodes.value.flatMap(collectKeys).map(key => [key, true])));
 </script>

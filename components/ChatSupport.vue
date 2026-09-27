@@ -908,7 +908,6 @@
         </StandardDialog>
         <Menu ref="messageMenu" :model="messageMenuItems" :popup="true" />
         <Menu ref="conversationMenu" :model="conversationMenuItems" :popup="true" />
-        <ConfirmDialog />
     </div>
 </template>
 
@@ -918,7 +917,6 @@ import Avatar from 'primevue/avatar'
 import Divider from 'primevue/divider'
 import Listbox from 'primevue/listbox'
 import Button from 'primevue/button'
-import ConfirmDialog from 'primevue/confirmdialog'
 import InputText from 'primevue/inputtext'
 import Select from '~/components/shared/InstanceSelect.vue'
 import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue'

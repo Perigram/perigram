@@ -111,13 +111,17 @@ function surfaceKindOf(region, source) {
 }
 
 // Declared lineage keys through which this type can be someone's child
-// (any type's children edge naming it, self-referential included). A type
-// with no incoming children edge has no root scope — every instance lists.
+// (any type's children edge naming it, self-referential included). The
+// edge's declared key decides, with the entry's map key as the
+// raw-declaration fallback — the same resolution `childrenOfParent` and
+// the pickers use, so root scoping and nesting never disagree. A type
+// with no incoming children edge has no root scope; every instance lists.
 function rootScopeKeysFor(typeId = '', typesById = {}) {
   const keys = new Set();
   for (const type of Object.values(typesById || {})) {
-    for (const edge of Object.values(type?.edges?.children || {})) {
-      if ((edge?.types || []).includes(typeId) && edge?.lineageKey) keys.add(edge.lineageKey);
+    for (const [mapKey, edge] of Object.entries(type?.edges?.children || {})) {
+      const key = String(edge?.lineageKey || mapKey || '').trim();
+      if ((edge?.types || []).includes(typeId) && key) keys.add(key);
     }
   }
   return keys;

@@ -121,7 +121,17 @@ export function normalizeType(declaration = {}) {
     // any bounded embed). Absent declaration strips heavy keys — a
     // snapshot is a preview, never a copy.
     ...(declaration.snapshot ? { snapshot: normalizeSnapshot(declaration.snapshot) } : {}),
-    ...(previewSourceRow ? { previewSource: Object.freeze({ path: previewSourceRow.path, display: previewSourceRow.display || 'geometry' }) } : {}),
+    ...(previewSourceRow ? { previewSource: Object.freeze({
+      path: previewSourceRow.path,
+      display: previewSourceRow.display || 'geometry',
+      // Stored-shape fallbacks (the DataBlock fallbackPaths vocabulary):
+      // the preview channel resolves the first non-empty path, so a type
+      // whose renderable geometry lives in more than one stored shape
+      // (baked preview vs raw layer/polygon parts) previews them all.
+      ...(Array.isArray(previewSourceRow.fallbackPaths) && previewSourceRow.fallbackPaths.length
+        ? { fallbackPaths: [...previewSourceRow.fallbackPaths] }
+        : {})
+    }) } : {}),
     // Derived types (SPEC §4): operator/service-produced — they enter
     // graphs as outputs, never as constructs.
     ...(declaration.derived === true ? { derived: true } : {}),

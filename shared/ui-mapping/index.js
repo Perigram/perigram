@@ -193,6 +193,10 @@ export function createUiMapping(overrides = {}) {
       icon: entry.icon || null,
       confirm: entry.confirm === true,
       inline: entry.inline === true,
+      // Obvious actions (create "+", delete trash) render icon-only; the
+      // label stays the tooltip/aria name — hosts may still force the
+      // captioned form (menus keep labels).
+      iconOnly: entry.iconOnly === true,
       hidden: false
     };
     if (outcome.tone === 'state' && stateTarget) {
@@ -939,7 +943,7 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
 // entry's map key as the raw-declaration fallback. Children instances
 // store their parent under this key — matching by the map key alone reads
 // an authoring identity no instance ever carries.
-function lineageKeyOfEdge(edge = {}, mapKey = '') {
+export function lineageKeyOfEdge(edge = {}, mapKey = '') {
   return String(edge?.lineageKey || mapKey || '').trim();
 }
 
@@ -985,6 +989,41 @@ export function childrenOfParent(type = null, pool = {}, parentId = null) {
     }
   }
   return children;
+}
+
+// The structural roots of a hierarchy projection: instances whose declared
+// parent (any type's children edge, matched by its declared lineage key)
+// is NOT loaded in the pool. A child whose parent row exists rides nested
+// under it — never duplicated at the top level; a child whose parent is
+// absent stays a root (hiding it would orphan it). This is the projection
+// safety net beside composeScreen's source-level root scoping: pools that
+// arrive pre-aggregated (or types whose unscoped list never passed the
+// source filter) still render one containment tree, not a flat pile.
+export function hierarchyRootInstances(instances = [], bundle = null, pool = {}) {
+  const edges = [];
+  for (const parentType of bundle?.types || []) {
+    for (const declaration of Object.values(parentType?.edges?.children || {})) {
+      const key = lineageKeyOfEdge(declaration);
+      if (!key) continue;
+      edges.push({ parentTypeId: parentType.id, key, childTypes: declaration?.types || [] });
+    }
+  }
+  if (!edges.length) return instances;
+  const parentIdsByType = Object.fromEntries(Object.entries(pool)
+    .map(([typeId, byId]) => [typeId, new Set(Object.keys(byId))]));
+  const nested = new Set();
+  for (const edge of edges) {
+    for (const childTypeId of edge.childTypes) {
+      for (const instance of Object.values(pool[childTypeId] || {})) {
+        const ref = instance?.lineage?.[edge.key];
+        const value = ref?.id ?? ref;
+        if (value === null || value === undefined || value === '') continue;
+        if (parentIdsByType[edge.parentTypeId]?.has(String(value))) nested.add(instance.id);
+      }
+    }
+  }
+  if (!nested.size) return instances;
+  return instances.filter(instance => !nested.has(instance.id));
 }
 
 export const defaultMapping = createUiMapping();

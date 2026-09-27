@@ -2,6 +2,11 @@
   <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', LAYOUT.headerBar, 'surface-header']">
     <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" />
     <div :class="LAYOUT.headerRow" class="header-row">
+      <!-- Contextual navigation slot: a host that opened this record
+           inside another surface (a workspace tab reached from another
+           page, a popup with a back stack) injects its back affordance
+           here, ahead of the identity block. -->
+      <slot name="navigation" />
       <div :class="LAYOUT.headerIdentity" class="header-identity">
         <Avatar :icon="glyph" shape="circle" size="large" />
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
