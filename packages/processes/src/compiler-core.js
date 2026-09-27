@@ -3869,18 +3869,27 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, typeId 
       .filter(input => input.prompt)
       .map(input => [input.id || input.path, { ...input }])
   );
+  // One prompt row per addressed value: a policy field keyed `field:<path>`
+  // addresses the same value as the construction input carrying that path,
+  // so it merges into that input instead of adding a second row.
+  const keyOfConstructionPath = path => {
+    const input = normalizedConstruction.inputs.find(candidate => (candidate.id || candidate.path) === path);
+    return input ? (input.id || input.path) : null;
+  };
   for (const field of policyFields) {
     const key = field.id || field.path;
-    const constructionField = normalizedConstruction.inputs.find(input => (input.id || input.path) === key);
+    const constructionKey = keyOfConstructionPath(field.path) || key;
+    const constructionField = normalizedConstruction.inputs.find(input => (input.id || input.path) === constructionKey);
     if (constructionContract(domain, typeId)?.derived && !constructionField) continue;
     const merged = constructionField
       ? mergeConstructionInput(constructionField, field)
       : {
-          ...(fieldsById.get(key) || {}),
-          ...field
+          ...(fieldsById.get(constructionKey) || {}),
+          ...field,
+          ...(constructionKey !== key ? { id: constructionKey } : {})
         };
-    if (merged.prompt || !constructionField) fieldsById.set(key, { ...merged });
-    else fieldsById.delete(key);
+    if (merged.prompt || !constructionField) fieldsById.set(constructionKey, { ...merged, ...(constructionKey !== key ? { id: constructionKey } : {}) });
+    else fieldsById.delete(constructionKey);
   }
   const fields = [...fieldsById.values()].map(field => normalizeConstructionInput(field, domain));
   return {

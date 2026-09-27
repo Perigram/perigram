@@ -886,15 +886,21 @@ function parentTypesForChildrenKey(bundle = null, typeId = '', key = '') {
 // Hierarchy materialization: the pool instances that are children of one
 // parent instance through the type's declared children edges. Every edge
 // contributes the instances of its declared child types whose
-// `lineage[lineageKey]` resolves to the parent id. Pure over the bundle
-// type record and pool — HierarchyTable and InstancePicker's hierarchical
-// mode consume this one matcher so trees and pickers never disagree.
+// `lineage[lineageKey]` resolves to the parent id — references match in
+// both stored shapes, the `{ id }` ref and the normalized id. Pure over the
+// bundle type record and pool — HierarchyTable and InstancePicker's
+// hierarchical mode consume this one matcher so trees and pickers never
+// disagree.
 export function childrenOfParent(type = null, pool = {}, parentId = null) {
   const children = [];
+  const parentKey = parentId === null || parentId === undefined ? '' : String(parentId);
+  if (!parentKey) return children;
   for (const declaration of Object.values(type?.edges?.children || {})) {
     for (const childTypeId of declaration?.types || []) {
       for (const instance of Object.values(pool[childTypeId] || {})) {
-        if (instance.lineage?.[lineageKeyOfEdge(declaration)]?.id === parentId) {
+        const ref = instance.lineage?.[lineageKeyOfEdge(declaration)];
+        const value = ref?.id ?? ref;
+        if (value !== null && value !== undefined && String(value) === parentKey) {
           children.push(instance);
         }
       }

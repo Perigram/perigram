@@ -750,6 +750,29 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.actions.t.state).toMatchObject({ from: 'state1', to: 'parentState' });
   });
 
+  it('prompts one row per construction input path, never a field-echo duplicate', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      producerOutputs: producerOutputRecords([['make_gadget', 'gadget']]),
+      processNodes: {
+        make_gadget: { id: 'make_gadget', kind: 'cts.construct', typeId: 'gadget', producerOutputId: 'make_gadget:entity', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+      },
+      graph: { nodes: [{ id: 'make_gadget', type: 'processNode', data: { refId: 'make_gadget' } }], edges: [] }
+    }, {
+      ...domain,
+      entities: [...domain.entities, { type: 'gadget' }],
+      construction: {
+        ...domain.construction,
+        gadget: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [{ id: 'data.code', path: 'data.code', type: 'string', required: true, prompt: true }] }
+      }
+    });
+    const fields = compiled.actions.make_gadget.inputPolicy.fields;
+    // The derived `field:<path>` echo addresses the same value as the
+    // construction input: one typed row, not a second json-typed row.
+    expect(fields.length).toBe(1);
+    expect(fields[0]).toMatchObject({ path: 'data.code', type: 'string' });
+  });
+
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
     // Org-authored lifecycles stay traversable: the declared machine is the
     // whole contract — its own states, transitions, and entry — with no
