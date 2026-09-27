@@ -933,7 +933,10 @@ const {
 });
 
 const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = useProcessDesignerPalette({
-  groups: designer.paletteGroups,
+  // A getter, not the array: capability and type-catalog loads replace
+  // designer.paletteGroups after mount, and the palette must follow without
+  // a remount (the async-loaded case the composable resolves reactively).
+  groups: () => designer.paletteGroups,
   query: paletteQuery,
   context: contextPalette,
   searchText: paletteSearchText,
