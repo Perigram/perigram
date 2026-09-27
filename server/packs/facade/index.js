@@ -11,13 +11,50 @@
 // once rode beside it are deleted.
 import { facadeDomain } from '~/packages/facade/src/index.js';
 import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
+import { bakeCassetteDesign } from '~/server/features/cassettes/bake.js';
+import { instanceServiceResolver } from '~/server/features/instances/service.js';
 import { solveNestingValue } from '~/server/features/nesting/solve-value.js';
 import { convertArtifact } from '~/server/features/artifact-conversions/operations.js';
+
+// cassette-design constructs through the generic §13 service with one
+// pack-bound construction mode: `bake` (the OCCS evaluator runs at
+// construction — see server/features/cassettes/bake.js). The explicit
+// registration wins over the resolver so the generic `genericCreate` mode
+// is not offered for a type whose records are meaningless unbaked. The
+// service entry forwards every method to the resolved generic service at
+// call time: this module is imported through the declaration composition
+// chain before the instances feature finishes evaluating, so resolving at
+// module scope would read an uninitialized binding.
+const forwardCassetteDesign = method => (...args) => instanceServiceResolver('cassette-design')[method](...args);
+const cassetteDesignService = {
+  list: forwardCassetteDesign('list'),
+  getById: forwardCassetteDesign('getById'),
+  create: forwardCassetteDesign('create'),
+  patch: forwardCassetteDesign('patch'),
+  processUpdate: forwardCassetteDesign('processUpdate'),
+  remove: forwardCassetteDesign('remove')
+};
 
 export const facadePack = {
   id: 'facade',
   label: 'Facade fabrication',
   domain: facadeDomain,
+
+  instanceServices: {
+    'cassette-design': cassetteDesignService
+  },
+  processLists: {
+    'cassette-design': (filters, auth) => instanceServiceResolver('cassette-design').processList(filters, auth)
+  },
+  processReads: {
+    'cassette-design': (id, auth) => instanceServiceResolver('cassette-design').processGetById(id, auth)
+  },
+  processCapabilities: {
+    'cassette-design': { processUpdate: true, delete: true, archive: false }
+  },
+  constructionHandlers: {
+    'cassette-design': { bake: bakeCassetteDesign }
+  },
 
   commandHandlers: {
     saveCassetteTemplate,

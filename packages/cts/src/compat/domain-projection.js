@@ -271,14 +271,25 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   }
   for (const type of types) {
     // Derived types synthesize no construction: operator-produced
-    // outputs are not constructible from a dialog.
+    // outputs are not constructible from a dialog. A payload-less type
+    // whose construction is fully operator-shaped (declared construct
+    // operators, SPEC §8) constructs through its operators only — the
+    // generic row create is not offered for records that are meaningless
+    // unoperated (cassette-design bakes; a bare row would carry no
+    // geometry).
     if (type.derived) continue;
     const constructOperators = Object.values(type.operators || {}).filter(operator => operator.species === 'construct');
     const labelByType = new Map(entities.map(entity => [entity.type, entity.label]));
     const protocols = type.payload ? payloadProtocolModes(type) : [];
     construction[type.id] = {
-      modes: [...protocols, ...(!type.payload ? ['genericCreate'] : []), ...constructOperators.map(operator => operator.id)],
-      defaultMode: type.payload ? protocols[0] : 'genericCreate',
+      modes: [
+        ...protocols,
+        ...(!type.payload && !constructOperators.length ? ['genericCreate'] : []),
+        ...constructOperators.map(operator => operator.id)
+      ],
+      defaultMode: type.payload
+        ? protocols[0]
+        : (constructOperators[0]?.id || 'genericCreate'),
       inputs: [
         // A type whose rows name themselves (an identifier-flagged string
         // field) has no separate Name input — the row IS the name. Types

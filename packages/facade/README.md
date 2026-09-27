@@ -12,6 +12,36 @@ session; the legacy entity/workflow/construction tables that rode beside
 these declarations are deleted. What remains here is the whole of the
 facade domain in the type system.
 
+## The cassette-design type and the bake construction
+
+`cassette-design` is the production drawing: one concrete piece baked from
+a parametric cassette template at a fixed set of parameter values. It is
+a pack type, not org-authorable vocabulary, for one reason: org types
+carry data shape and lifecycle, but baking is evaluation semantics — the
+OCCS graph tree evaluated once at construction through the same pure
+evaluator the template editor uses
+(`evaluateOccsCassetteTemplate` in `utils/occs/evaluate.js`). The template
+is the reusable library record; the cassette-design is what orders,
+nesting inputs, and per-piece traceability reference.
+
+- Class `item`; fields: `template` (`ref`, accepts `cassette`),
+  `parameters` (the applied values, json), `geometry` (the baked
+  evaluation — polygons, layer data, resolved dimensions — json). Records
+  live in the §13 per-class collections through the generic instance
+  service; the pack registers no bespoke storage.
+- Construction is exactly one mode: `bake`. The type declares the `bake`
+  operator (construct species, template ref input), the domain
+  construction contract names the mode, and the pack mount binds the
+  handler (`bakeCassetteDesign` in
+  `server/features/cassettes/bake.js`): load the template instance, read
+  its OCCS payload, evaluate with the row's parameter values, and create
+  the cassette-design through the generic instance create with the baked
+  geometry. Bake-time means bake-time: template edits after construction
+  never propagate to production pieces.
+- Only OCCS parametric templates bake. STANDARD templates (the DXF import
+  pipeline) carry their own geometry and are referenced directly, not
+  baked.
+
 ## Modules
 
 - `src/pack.js` — the browser-safe declaration data: `facadeFileTypes`

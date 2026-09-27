@@ -30,6 +30,25 @@ add a typed `file` input (accept/capture attrs) to the generated create
 dialog; `editor` constructs a blank instance whose first editor save
 fills the payload.
 
+## The table-import surface
+
+`xlsx-workbook` binds the `table-import` editor surface: opening a
+workbook's detail opens the import mapper — the workbook's purpose is to
+become typed instances, so the import IS the authoring act on that data.
+The mapper parses the payload client-side (the same SheetJS read the
+workbook preview uses), walks sheet/header-row/range, maps columns to the
+target type's declared fields (identifier, field leaves, quantity), and
+constructs through the instances batch transport
+(`POST /api/instances/:type/batch` — the contract lives in
+[server/features/instances/README.md](../../server/features/instances/README.md)),
+with the workbook recorded as each row's provenance source. For
+pack types with a bespoke construction mode the batch route runs that
+mode's handler (`cassette-design` rows bake from a template ref plus
+parameter columns — see
+[packages/facade](../../packages/facade/README.md)). `csv-table` keeps
+the csv editor (it edits in place); its import path rides the same batch
+transport when needed.
+
 ## Editor bindings
 
 The pack binds the text and csv editors (`edit` mode) to their types; the

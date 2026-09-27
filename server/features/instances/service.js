@@ -282,6 +282,13 @@ function instanceService(typeId) {
     if (staticDeclaration.payload) {
       return [...new Set([].concat(staticDeclaration.payload.creation || ['upload']).map(String))];
     }
+    // A payload-less type whose construction is fully operator-shaped
+    // (declared construct operators) mirrors the view projection: the
+    // operator modes are the constructible ones, genericCreate is not
+    // offered for records that are meaningless unoperated.
+    const constructOperators = Object.values(staticDeclaration.operators || {})
+      .filter(operator => operator?.species === 'construct');
+    if (constructOperators.length) return constructOperators.map(operator => operator.id);
     return ['genericCreate'];
   })();
   // Shared construct body: the §3 document build common to every

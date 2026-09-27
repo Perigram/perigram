@@ -26,6 +26,10 @@ const genericInstanceTypes = new Set([
   // tech-drawing catalogue types whose legacy feature directories are gone:
   // system instances live as §3 documents served by the generic machinery
   'pen-template', 'layer-standard',
+  // pack production type served by the generic machinery with one
+  // pack-bound construction mode (bake); its handler lives in the
+  // cassettes feature
+  'cassette-design',
 ]);
 const classifiedDeclarations = [...frameworkTypes, ...composeSystemDeclarations()]
   .filter(declaration => !genericInstanceTypes.has(declaration.id));
