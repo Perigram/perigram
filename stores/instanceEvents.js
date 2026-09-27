@@ -73,7 +73,7 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
     }
 
     function connect() {
-        if (process.server || running) return;
+        if (typeof window === 'undefined' || running) return;
         running = true;
         const activeRunId = ++runId;
         error.value = null;
@@ -89,6 +89,7 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
     }
 
     function disconnect() {
+        if (typeof window === 'undefined') return;
         runId++;
         running = false;
         if (timer) clearTimeout(timer);
