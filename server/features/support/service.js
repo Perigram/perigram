@@ -50,7 +50,7 @@ export async function getUserConversationContext(auth, recipientUserId = null) {
             kind: 'support',
             conversationKey: supportConversationKey(userId),
             participants: [userId],
-            match: legacySupportMatch(userId),
+            match: { conversationKey: supportConversationKey(userId) },
             recipient: null
         };
     }
@@ -79,7 +79,7 @@ export function getAdminSupportContext(customerId) {
         kind: 'support',
         conversationKey: supportConversationKey(customerId),
         participants: [customerId],
-        match: legacySupportMatch(customerId)
+        match: { conversationKey: supportConversationKey(customerId) }
     };
 }
 
@@ -1089,15 +1089,7 @@ function matchesInstanceQuery(option, query) {
 
 function normalizeInstanceOptionType(type) {
     if (typeof type !== 'string') return '';
-    const value = type.trim();
-    const aliases = {
-        sheetDesign: 'sheet_design',
-        cassetteTemplate: 'cassette',
-        entityRevision: 'entity_revision',
-        penTemplate: 'pen_template',
-        layerStandard: 'layer_standard'
-    };
-    return aliases[value] || value;
+    return type.trim();
 }
 
 function isInstanceOptionTypeAllowed(auth = {}, type) {
@@ -1410,14 +1402,6 @@ function conversationLabel(conversation) {
         || '';
 }
 
-function legacySupportMatch(userId) {
-    return {
-        $or: [
-            { conversationKey: supportConversationKey(userId) },
-            { userId, conversationKey: { $exists: false } }
-        ]
-    };
-}
 
 function messageProjection() {
     return {

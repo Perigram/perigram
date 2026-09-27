@@ -3,7 +3,7 @@ const itemSourceId = (item = {}) => item.item_id ?? item.itemId ?? item.id;
 const mergeCounts = (...groups) => {
   const counts = new Map();
   groups.flat().forEach((item) => {
-    const cassetteId = item.cassetteId?.toString?.() || item.cassetteId || item.cassetteDesignId;
+    const cassetteId = item.cassetteId?.toString?.() || item.cassetteId;
     if (!cassetteId) return;
     const current = counts.get(cassetteId) || { cassetteId, count: 0 };
     current.count += Number(item.count || 0);

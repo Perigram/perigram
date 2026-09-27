@@ -277,7 +277,7 @@ export function cassettesForNestingResult(result = {}) {
     const placedItems = layout.placed_items || layout.items || [];
     placedItems.forEach(placedItem => {
       const source = itemsById.get(itemSourceId(placedItem)?.toString()) || placedItem;
-      const cassetteId = source.cassette_id || source.cassetteId || placedItem.cassette_id || placedItem.cassetteDesignId;
+      const cassetteId = source.cassette_id || source.cassetteId || placedItem.cassette_id;
       if (!cassetteId) return;
       const key = cassetteId.toString();
       const current = counts.get(key) || { cassetteId: key, count: 0 };
@@ -296,7 +296,7 @@ export function cassetteCompositionForLayout(result = {}, layout = {}) {
   const counts = new Map();
   for (const placedItem of layout.placed_items || layout.items || []) {
     const source = itemsById.get(itemSourceId(placedItem)?.toString()) || placedItem;
-    const cassetteDesignId = source.cassette_id || source.cassetteId || placedItem.cassette_id || placedItem.cassetteDesignId;
+    const cassetteDesignId = source.cassette_id || source.cassetteId || placedItem.cassette_id;
     if (!cassetteDesignId) continue;
     const id = cassetteDesignId.toString();
     counts.set(id, (counts.get(id) || 0) + 1);
@@ -307,7 +307,7 @@ export function cassetteCompositionForLayout(result = {}, layout = {}) {
 }
 
 export function compositionHash(composition = []) {
-  const value = composition.map(item => [String(item.cassetteDesignId), Number(item.count || 0)]);
+  const value = composition.map(item => [String(item.cassetteId), Number(item.count || 0)]);
   return `sha256:${crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 }
 

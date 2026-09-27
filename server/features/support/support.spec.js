@@ -357,32 +357,6 @@ describe('support communication service', () => {
     ]);
   });
 
-  it('normalizes frontend instance type aliases before validating sent refs', async () => {
-    mocks.repository.insert.mockImplementation(async (record) => record);
-    mocks.cassettesService.list.mockResolvedValue([
-      {
-        toJSON: () => ({
-          _id: 'cassette-1',
-          identity: { name: 'Cassette 1' },
-          data: {}
-        })
-      }
-    ]);
-
-    const message = await supportService.sendUserMessage(auth, {
-      message: 'Alias',
-      instanceRefs: [{ type: 'cassetteTemplate', id: 'cassette-1' }]
-    });
-
-    expect(message.instanceRefs).toEqual([
-      expect.objectContaining({
-        type: 'cassette',
-        id: 'cassette-1',
-        label: 'Cassette 1'
-      })
-    ]);
-  });
-
   it('allows attachment-only messages when at least one ref survives validation', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     mocks.cassettesService.list.mockResolvedValue([
