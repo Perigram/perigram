@@ -1,13 +1,16 @@
 import * as conversionService from './service.js';
 
-export async function convertArtifact({ entities = {}, parameters = {}, auth }) {
+// The command handler stays domain-free: the mounted pack's override
+// supplies the declared conversion catalog and entity-target executors
+// (see server/packs/facade). Without a pack, no conversions are known.
+export async function convertArtifact({ entities = {}, parameters = {}, auth }, { conversions = [] } = {}) {
   const converted = await conversionService.convertArtifact({
     artifact: entities.artifact,
     conversionId: parameters.conversion,
     name: parameters.name,
     layerMapping: parameters.layerMapping,
     parameters: parameters.parameters
-  }, auth);
+  }, auth, { conversions });
   const id = converted.entity._id?.toString?.() || String(converted.entity._id);
   return {
     entities: [{ type: converted.type, id, entity: converted.entity }],

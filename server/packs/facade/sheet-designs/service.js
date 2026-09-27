@@ -1,22 +1,22 @@
 import crypto from 'node:crypto';
 import * as repository from './repository.js';
-import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
+import { createProcessUpdateHandler } from '../../../features/_template/process-update-handler.js';
 import { createError } from 'h3';
 import {
   inheritLineage,
   createData,
   createAttachment
-} from '../../core/blocks/index.js';
-import { createTransitionAuth, stateService } from '../../core/machines/service.js';
-import { mapLineageQuery } from '../../utils/query.js';
-import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+} from '../../../core/blocks/index.js';
+import { createTransitionAuth, stateService } from '../../../core/machines/service.js';
+import { mapLineageQuery } from '../../../utils/query.js';
+import { hasLineagePermission, getLineageFilter } from '../../../utils/permissions.js';
 import { ObjectId } from 'mongodb';
-import { toFlexibleId } from '../../utils/objectid.js';
+import { toFlexibleId } from '../../../utils/objectid.js';
 import { SheetDesign } from './model.js';
-import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
-import { generateLayeredDxf } from '../../utils/dxf-writer.js';
-import * as filesService from '../files/service.js';
-import * as instanceRevisionsService from '../instance-revisions/service.js';
+import { serializeForAccess, serializeManyForAccess } from '../../../utils/entity-redaction.js';
+import { generateLayeredDxf } from '../../../utils/dxf-writer.js';
+import * as filesService from '../../../features/files/service.js';
+import * as instanceRevisionsService from '../../../features/instance-revisions/service.js';
 
 /**
  * Sheet Designs Service - v24 Standardized

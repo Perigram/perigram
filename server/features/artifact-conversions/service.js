@@ -1,14 +1,25 @@
 import { createError } from 'h3';
 import { createInstanceRef, createProvenance } from '../../core/blocks/index.js';
-import { getArtifactConversion } from '~/packages/facade/src/index.js';
 import * as artifactsService from '../artifacts/service.js';
-import * as cassettesService from '../cassettes/service.js';
 import * as filesService from '../files/service.js';
 
-export async function convertArtifact({ artifact, conversionId, name, layerMapping, parameters } = {}, auth = {}) {
+// The conversion capability is pack-agnostic machinery: the mounted packs
+// supply the declared conversion catalog (id, label, sourceKinds, target)
+// plus the entity-target executors through the command handler override
+// (see server/packs/facade). This module owns the generic halves — source
+// verification and artifact-to-artifact copying — and imports no domain
+// code: removing the facade pack removes every cassette conversion
+// without breaking this feature.
+export async function convertArtifact(
+  { artifact, conversionId, name, layerMapping, parameters } = {},
+  auth = {},
+  { conversions = [] } = {}
+) {
   if (!artifact?._id) throw createError({ statusCode: 400, message: 'Artifact is required' });
-  const conversion = getArtifactConversion(conversionId);
-  if (!conversion) throw createError({ statusCode: 400, message: `Unknown artifact conversion: ${conversionId}` });
+  const conversion = conversions.find(entry => entry.id === conversionId) || null;
+  if (!conversion) {
+    throw createError({ statusCode: 400, message: `Unknown artifact conversion: ${conversionId}` });
+  }
   if (!conversion.sourceKinds.includes(artifact.data?.type)) {
     throw createError({ statusCode: 400, message: `${conversion.label} does not accept ${artifact.data?.type || 'this'} artifacts` });
   }
@@ -16,18 +27,8 @@ export async function convertArtifact({ artifact, conversionId, name, layerMappi
   if (conversion.target.kind === 'artifact') {
     return await convertToArtifact(artifact, conversion, name, auth);
   }
-  if (conversion.target.kind === 'entity' && conversion.target.typeId === 'cassette') {
-    const template = await cassettesService.importFromArtifact(
-      artifact._id,
-      name,
-      auth.userId,
-      auth.organizationId,
-      auth.role,
-      auth,
-      layerMapping || null,
-      parameters || null
-    );
-    return { type: 'cassette', entity: template };
+  if (conversion.target.kind === 'entity' && typeof conversion.run === 'function') {
+    return await conversion.run({ artifact, name, layerMapping, parameters }, auth);
   }
 
   throw createError({ statusCode: 400, message: `Unsupported artifact conversion target: ${conversion.id}` });

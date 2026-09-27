@@ -36,6 +36,14 @@ const classifiedDeclarations = [...frameworkTypes, ...composeSystemDeclarations(
 const FEATURE_DIRECTORY_ALIASES = new Map([
   ['entity-revisions', 'instance-revisions']
 ]);
+// Pack-owned feature implementations: declared features that live inside
+// their pack module (the pack is the deletion unit) instead of the
+// framework features directory. check-arch accepts either home.
+const PACK_OWNED_FEATURES = new Map([
+  ['cassettes', 'packs/facade/cassettes'],
+  ['nesting', 'packs/facade/nesting'],
+  ['sheet-designs', 'packs/facade/sheet-designs']
+]);
 const ENTITY_FEATURES = classifiedDeclarations.map(declaration => (
   FEATURE_DIRECTORY_ALIASES.get(entityTypeToFeature(declaration.id)) || entityTypeToFeature(declaration.id)
 ));
@@ -142,6 +150,14 @@ directories.forEach(feature => {
 });
 
 features.forEach(feature => {
+  const packOwned = PACK_OWNED_FEATURES.get(feature);
+  if (packOwned) {
+    if (!fs.existsSync(path.join('./server', packOwned))) {
+      console.error(`❌ Declared pack-owned feature is missing: ${feature} (expected server/${packOwned})`);
+      errors++;
+    }
+    return;
+  }
   const dir = path.join(FEATURES_DIR, feature);
   if (!fs.existsSync(dir)) {
     console.error(`❌ Declared entity feature is missing: ${feature}`);

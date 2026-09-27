@@ -238,8 +238,11 @@ Lineage remains construct-only or an explicit structural move. The native
 species record and these field ports survive resolution, validation, and
 execution unchanged.
 
-The type catalog projects one construct item per constructible type/mode and
-declared construct operator. Species cards have no operation switch: the
+Construction modes never project palette items, and registry types (pack
+or organization-declared) are never palette entries: the palette is
+operation vocabulary, not a type catalog. A process binds a type by
+dropping the unbound `construct` operation and wiring its Type pin to a
+class or type-reference node. Species cards have no operation switch: the
 binding channel owns the type, the species owns the operation. There is no
 `Join producer paths` palette item; same-type stream combination is ordinary
 typed collection composition.

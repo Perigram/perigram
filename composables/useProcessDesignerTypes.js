@@ -1,5 +1,5 @@
 import { reactive, ref } from 'vue';
-import { compileTreeDeclarations, createProcessDesignerContract, typeCatalogPaletteGroups } from '~/packages/processes/src/index.js';
+import { compileTreeDeclarations, createProcessDesignerContract } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, projectDomainFromView, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import { clearTypeMigrationSteps, declarationPostFailure } from '~/utils/processDesignerTypeMigrations.js';
@@ -91,31 +91,25 @@ export function useProcessDesignerTypes({
 
   // One joint: rebuild the designer option lists from the registry view.
   // The services group and editor registry come from the mounted pack's
-  // operator registrations (SPEC §8/§21). The type catalog lives inside the
-  // Types group (SPEC §20/§21 L2): declaration authoring first, then one
-  // bound construct variant per constructible registry type per declared
-  // construction mode, plus one per declared construct operator.
-  function paletteWithTypeCatalog(contract) {
-    const catalogItems = typeCatalogPaletteGroups(ctsTypeView())[0]?.items || [];
-    return contract.paletteGroups.map(group => (
-      group.id === 'types' ? { ...group, items: [...group.items, ...catalogItems] } : group
-    ));
-  }
+  // operator registrations (SPEC §8/§21). The palette is operation
+  // vocabulary only: registry types (pack or organization-declared) are
+  // never palette entries — construction happens through the unbound
+  // `construct` operation plus a Type pin wire to a class or
+  // type-reference node, so construction modes never project items and
+  // declaring a type never changes the palette.
 
   function refreshDesignerFromTypes() {
     const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities, {
       editors: packContent.editors
     });
     Object.assign(designer, refreshed);
-    designer.paletteGroups = paletteWithTypeCatalog(refreshed);
   }
 
   const designerContract = createProcessDesignerContract(ctsProjectedDomain(), null, {
     editors: packContent.editors
   });
   Object.assign(designer, {
-    ...designerContract,
-    paletteGroups: paletteWithTypeCatalog(designerContract)
+    ...designerContract
   });
 
   // The tree is LIVE authoring state, not a draft-to-apply detour: in-tree

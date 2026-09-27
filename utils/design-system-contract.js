@@ -178,8 +178,8 @@ export const DESIGN_SYSTEM_PRIMITIVES = [
 
 
 export const DESIGN_SYSTEM_ENTITY_CONTRACTS = [
-  ['sheetDesign', 'sheet_design', 'production', 'entities.sheetDesign', 'design', 'createMockSheetDesign', 'hidden', true, ['server/features/sheet-designs/README.md']],
-  ['cassette', 'cassette', 'production', 'entities.cassette', 'cassette', 'createMockCassette', 'interactive', true, ['components/entities/Cassette/README.md', 'server/features/cassettes/README.md']],
+  ['sheetDesign', 'sheet_design', 'production', 'entities.sheetDesign', 'design', 'createMockSheetDesign', 'hidden', true, ['server/packs/facade/sheet-designs/README.md']],
+  ['cassette', 'cassette', 'production', 'entities.cassette', 'cassette', 'createMockCassette', 'interactive', true, ['components/entities/Cassette/README.md', 'server/packs/facade/cassettes/README.md']],
   ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true, ['components/entities/EntityRevision/README.md', 'server/features/instance-revisions/README.md']],
   ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false, ['server/features/instances/README.md']],
   ['layerStandard', 'layer_standard', 'master', 'entities.layerStandard', 'standard', 'createMockLayerStandard', 'hidden', false, ['server/features/instances/README.md']],

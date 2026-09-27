@@ -9,8 +9,7 @@ import {
   PROCESS_DESIGNER_PALETTE_GROUPS,
   TYPE_AUTHORING_PALETTE_ITEMS,
   declarationNodePorts,
-  servicesPaletteGroups,
-  typeCatalogPaletteGroups
+  servicesPaletteGroups
 } from './designer.js';
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { createTypeRegistry, projectDomainFromView, resolveCtsRecord, frameworkTypes } from '../../cts/src/index.js';
@@ -40,25 +39,14 @@ function assertTypedPorts(item, ports) {
 
 describe('palette trace', () => {
   const domain = projectedDomain();
-  const typeView = domain.entities
-    .filter(entity => domain.construction?.[entity.type])
-    .map(entity => ({
-      id: entity.type,
-      class: entity.blocks.includes('specs') ? 'item' : 'file',
-      label: entity.type,
-      icon: 'pi pi-box',
-      description: entity.type,
-      constructible: true,
-      via: 'genericCreate',
-      constructOperators: []
-    }));
 
   // Canvas-surface items (class/field/state/reference) carry no operation
-  // kind; every kind-bearing item is traced.
+  // kind; every kind-bearing item is traced. The palette is operation
+  // vocabulary only — registry types never project palette entries, so
+  // there is no type-catalog surface to trace.
   const operationItems = [
     ...servicesPaletteGroups(domain.serviceContracts || {}).flatMap(group => group.items),
-    ...PROCESS_DESIGNER_PALETTE_GROUPS.flatMap(group => group.items),
-    ...typeCatalogPaletteGroups(typeView).flatMap(group => group.items)
+    ...PROCESS_DESIGNER_PALETTE_GROUPS.flatMap(group => group.items)
   ].filter(item => item.kind);
 
   it('every palette operation item resolves typed ports against the projected domain', () => {
@@ -79,30 +67,6 @@ describe('palette trace', () => {
       const lowered = resolveCtsRecord(record, domain);
       expect(getProcessNodeDefinition(lowered.kind), `${item.id} -> ${lowered.kind}`).not.toBeNull();
     }
-  });
-
-  it('lists one palette item per construction mode — operator-shaped construction never double-lists', () => {
-    // Operator-constructed types (cassette-design): the declared operators
-    // ARE the modes, so the operator loop must not add a second listing.
-    const operatorShaped = typeCatalogPaletteGroups([{
-      id: 'cassette-design', class: 'item', label: 'Cassette design', icon: 'pi pi-clone',
-      description: 'item type', constructible: true, via: 'upload', modes: ['upload', 'bake', 'convertDxf'],
-      constructOperators: ['bake', 'convertDxf']
-    }]);
-    expect(operatorShaped[0].items.map(item => item.id)).toEqual([
-      'cassette-design',
-      'cassette-design:bake',
-      'cassette-design:convertDxf'
-    ]);
-
-    // A type whose operators are NOT modes (payload-less types with extra
-    // declared operators) still lists every construct variant once.
-    const extraOperator = typeCatalogPaletteGroups([{
-      id: 'thing', class: 'item', label: 'Thing', icon: 'pi pi-box',
-      description: 'item type', constructible: true, via: 'genericCreate', modes: ['genericCreate'],
-      constructOperators: ['special']
-    }]);
-    expect(extraOperator[0].items.map(item => item.id)).toEqual(['thing', 'thing:special']);
   });
 
   it('pin carriers expose exactly the Type pin while unbound and derived sockets when bound', () => {

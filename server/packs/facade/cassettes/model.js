@@ -1,4 +1,4 @@
-import { BaseEntity } from '../../core/blocks/index.js';
+import { BaseEntity } from '../../../core/blocks/index.js';
 
 /**
  * Cassette Template Entity - v24 Absolute Final

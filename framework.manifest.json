@@ -254,7 +254,7 @@
       {
         "componentPath": "components/entities/SheetDesign/SheetDesignCard.vue",
         "docs": [
-          "server/features/sheet-designs/README.md"
+          "server/packs/facade/sheet-designs/README.md"
         ],
         "fieldPaths": [],
         "group": "production",
@@ -269,7 +269,7 @@
         "componentPath": "components/entities/Cassette/CassetteCard.vue",
         "docs": [
           "components/entities/Cassette/README.md",
-          "server/features/cassettes/README.md"
+          "server/packs/facade/cassettes/README.md"
         ],
         "fieldPaths": [],
         "group": "production",
@@ -1192,7 +1192,7 @@
         "attachments",
         "data"
       ],
-      "collection": "items",
+      "collection": "files",
       "lineage": {},
       "type": "cassette-design"
     },

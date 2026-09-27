@@ -68,9 +68,9 @@ export const facadeFileTypes = [
     // vocabulary — all three constructions are evaluation/extraction
     // semantics org-authored types cannot express. Records live in the §13
     // per-class collections; the pack binds the construction handlers (see
-    // server/features/cassettes/cassette-design-construction.js).
+    // server/packs/facade/cassettes/cassette-design-construction.js).
     id: 'cassette-design',
-    class: 'item',
+    class: 'file',
     scope: 'system',
     version: 1,
     payload: {

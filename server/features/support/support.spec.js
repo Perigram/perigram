@@ -25,8 +25,6 @@ const mocks = vi.hoisted(() => ({
     getById: vi.fn(),
     list: vi.fn()
   },
-  cassetteDesignsService: { list: vi.fn() },
-  cassettesService: { list: vi.fn() },
   artifactsService: { list: vi.fn() },
   catalogsService: { list: vi.fn() },
   librariesService: { list: vi.fn() },
@@ -36,7 +34,6 @@ const mocks = vi.hoisted(() => ({
   nestingRunsService: { list: vi.fn() },
   remnantsService: { list: vi.fn() },
   requisitionsService: { list: vi.fn() },
-  sheetDesignsService: { list: vi.fn() },
   sheetsService: { list: vi.fn() },
   materialsService: { list: vi.fn() },
   warehousesService: { list: vi.fn() },
@@ -51,8 +48,6 @@ vi.mock('~/server/features/connections/service.js', () => ({
   publish: mocks.connectionsPublish,
   registerTopicAuthorizer: vi.fn()
 }));
-vi.mock('~/server/features/cassette-designs/service.js', () => mocks.cassetteDesignsService);
-vi.mock('~/server/features/cassettes/service.js', () => mocks.cassettesService);
 vi.mock('~/server/features/artifacts/service.js', () => mocks.artifactsService);
 vi.mock('~/server/features/catalogs/service.js', () => mocks.catalogsService);
 vi.mock('~/server/features/libraries/service.js', () => mocks.librariesService);
@@ -63,7 +58,6 @@ vi.mock('~/server/features/material-piles/service.js', () => mocks.materialPiles
 vi.mock('~/server/features/nesting-runs/service.js', () => mocks.nestingRunsService);
 vi.mock('~/server/features/remnants/service.js', () => mocks.remnantsService);
 vi.mock('~/server/features/requisitions/service.js', () => mocks.requisitionsService);
-vi.mock('~/server/features/sheet-designs/service.js', () => mocks.sheetDesignsService);
 vi.mock('~/server/features/sheets/service.js', () => mocks.sheetsService);
 vi.mock('~/server/features/materials/service.js', () => mocks.materialsService);
 vi.mock('~/server/features/warehouses/service.js', () => mocks.warehousesService);
@@ -281,9 +275,14 @@ describe('support communication service', () => {
 
 
   it('loads concrete options for generated readable instance sources', async () => {
-    mocks.sheetDesignsService.list.mockResolvedValue([
-      { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
-    ]);
+    mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
+      processGetById: vi.fn(async () => null),
+      processList: vi.fn(async () => (type === 'sheet_design'
+        ? [
+            { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
+          ]
+        : []))
+    }));
     const processAuth = {
       ...auth,
       process: { active: true },
@@ -303,7 +302,8 @@ describe('support communication service', () => {
 
     const options = await supportService.listInstanceOptions(processAuth, 'sheet_design', 'alpha');
 
-    expect(mocks.sheetDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {});
+    // Registry-resolved loaders (CTS §13 processList) — one seam for every
+    // type, no per-feature imports in the framework.
     expect(options).toEqual([
       {
         type: 'sheet_design',
@@ -321,22 +321,44 @@ describe('support communication service', () => {
 
   it('keeps cassette preview fields in compact chat instance snapshots', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
-    mocks.cassettesService.list.mockResolvedValue([
-      {
-        toJSON: () => ({
-          _id: 'cassette-1',
-          identity: { name: 'Iklya 1' },
-          lineage: { organizationId: 'org-1' },
-          data: {
-            type: 'STANDARD',
-            definition: { params: { A: 1 } },
-            revisions: { geometry: null }
+    mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
+      processGetById: vi.fn(async () => (type === 'cassette'
+        ? {
+            _id: 'cassette-1',
+            identity: { name: 'Iklya 1' },
+            lineage: { organizationId: 'org-1' },
+            data: {
+              type: 'STANDARD',
+              definition: { params: { A: 1 } },
+              revisions: { geometry: null }
+            }
           }
-        })
-      }
-    ]);
+        : null)),
+      processList: vi.fn(async () => (type === 'cassette'
+        ? [
+            {
+              _id: 'cassette-1',
+              identity: { name: 'Iklya 1' },
+              lineage: { organizationId: 'org-1' },
+              data: {
+                type: 'STANDARD',
+                definition: { params: { A: 1 } },
+                revisions: { geometry: null }
+              }
+            }
+          ]
+        : []))
+    }));
 
-    const message = await supportService.sendUserMessage(auth, {
+    const message = await supportService.sendUserMessage({
+      ...auth,
+      process: { active: true, lineageBindings: [] },
+      screens: [{
+        id: 'library_detail',
+        sources: [{ id: 'cassette', typeId: 'cassette', mode: 'list' }]
+      }],
+      effectivePermissions: {}
+    }, {
       message: 'Preview',
       instanceRefs: [{ type: 'cassette', id: 'cassette-1' }]
     });
@@ -359,17 +381,24 @@ describe('support communication service', () => {
 
   it('allows attachment-only messages when at least one ref survives validation', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
-    mocks.cassettesService.list.mockResolvedValue([
-      {
-        toJSON: () => ({
-          _id: 'cassette-1',
-          identity: { name: 'Iklya 1' },
-          data: {}
-        })
-      }
-    ]);
+    mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
+      processGetById: vi.fn(async () => (type === 'cassette'
+        ? { _id: 'cassette-1', identity: { name: 'Iklya 1' }, data: {} }
+        : null)),
+      processList: vi.fn(async () => (type === 'cassette'
+        ? [{ _id: 'cassette-1', identity: { name: 'Iklya 1' }, data: {} }]
+        : []))
+    }));
 
-    const message = await supportService.sendUserMessage(auth, {
+    const message = await supportService.sendUserMessage({
+      ...auth,
+      process: { active: true, lineageBindings: [] },
+      screens: [{
+        id: 'library_detail',
+        sources: [{ id: 'cassette', typeId: 'cassette', mode: 'list' }]
+      }],
+      effectivePermissions: {}
+    }, {
       message: '   ',
       instanceRefs: [{ type: 'cassette', id: 'cassette-1' }]
     });
@@ -561,11 +590,13 @@ describe('support communication service', () => {
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async () => (type === 'cassette'
         ? null
-        : { toJSON: () => ({ _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }) }))
+        : { toJSON: () => ({ _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }) })),
+      processList: vi.fn(async () => (type === 'cassette'
+        ? [
+            { _id: 'cassette-1', identity: { name: 'Iklya' }, lineage: { organizationId: 'org-1', libraryId: 'library-1' }, data: {} }
+          ]
+        : []))
     }));
-    mocks.cassettesService.list.mockResolvedValue([
-      { toJSON: () => ({ _id: 'cassette-1', identity: { name: 'Iklya' }, lineage: { organizationId: 'org-1', libraryId: 'library-1' }, data: {} }) }
-    ]);
 
     const context = await supportService.getInstanceConversationContext({
       ...auth,

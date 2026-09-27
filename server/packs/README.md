@@ -22,10 +22,16 @@ service bindings stay in the mount modules.
 - `facade/` — the facade pack: cassette (OCCS file + cassette-designer editor),
   sheet design, facade design file types, the nesting solver service
   (`nesting.solve` → the `solveNestingValue` command handler, the V→V
-  boundary in `server/features/nesting/`), and the `cassette-design`
+  boundary in the pack's `nesting/` module), and the `cassette-design`
   production type whose `upload`/`bake`/`convertDxf` construction handlers
-  (`server/features/cassettes/cassette-design-construction.js`) produce
-  per-piece records with extractable geometry. Declaration data lives in
+  produce per-piece records with extractable geometry. The pack is the
+  implementation home, not a binding manifest: `cassettes/`, `nesting/`,
+  and `sheet-designs/` live inside this module with their repositories,
+  services, and specs — removing the pack removes the domain's code, not
+  just its registry mounts. The core framework imports none of it:
+  `artifact-conversions` and `generateAttachment` receive their facade
+  executors as pack-registered handler overrides, and support's type
+  lists resolve through the registry. Declaration data lives in
   `packages/facade/src/pack.js`; the pack requires `tech-drawing`
   (pen/layer references resolve through the composed view, never by
   importing it).

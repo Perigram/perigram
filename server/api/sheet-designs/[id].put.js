@@ -1,6 +1,6 @@
 import { defineEventHandler, getRouterParam, readBody } from 'h3';
 import { requireAuth } from '../../utils/permissions.js';
-import * as sheetDesignsService from '../../features/sheet-designs/service.js';
+import * as sheetDesignsService from '~/server/packs/facade/sheet-designs/service.js';
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);

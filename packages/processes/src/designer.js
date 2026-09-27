@@ -848,40 +848,6 @@ export function servicesPaletteGroups(serviceContracts = {}) {
 // variant per declared construct operator (the org-authored `via`). One
 // group beside the declaration items, labeled by the item's class in the
 // description.
-export function typeCatalogPaletteGroups(types = []) {
-  const items = [];
-  for (const entry of types) {
-    if (!entry?.constructible) continue;
-    // One construct variant per construction mode (SPEC §20/§4): the
-    // default mode keeps the plain type label, additional modes get
-    // `· mode` suffixes — the artifact-era protocol picker, now the
-    // palette listing. `via` carries the actual default (protocols for
-    // payload types, genericCreate for payload-less).
-    const modes = (entry.modes && entry.modes.length ? entry.modes : [entry.via || 'genericCreate']);
-    for (const mode of modes) {
-      items.push(paletteItem(mode === modes[0] ? entry.id : `${entry.id}:${mode}`, 'cts.construct', {
-        label: mode === modes[0] ? (entry.label || entry.id) : `${entry.label || entry.id} · ${mode}`,
-        icon: entry.icon,
-        description: entry.description || entry.id,
-        preset: { typeId: entry.id, construction: { mode } }
-      }));
-    }
-    for (const operatorId of entry.constructOperators || []) {
-      // Operator-shaped construction already rides `modes` (the projection
-      // lists declared construct operators as the constructible modes):
-      // one item per mode, never a second listing of the same construct.
-      if (modes.includes(operatorId)) continue;
-      items.push(paletteItem(`${entry.id}:${operatorId}`, 'cts.construct', {
-        label: `${entry.label || entry.id} · ${operatorId}`,
-        icon: entry.icon,
-        description: entry.description || entry.id,
-        preset: { typeId: entry.id, construction: { mode: operatorId } }
-      }));
-    }
-  }
-  return items.length ? [{ id: 'types', items: Object.freeze(items) }] : [];
-}
-
 export function createProcessDesignerContract(domain = {}, capabilities = null, options = {}) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));

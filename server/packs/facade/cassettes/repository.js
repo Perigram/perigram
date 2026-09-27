@@ -1,5 +1,5 @@
-import { connectDB } from '../../db/mongo.js';
-import { toFlexibleId } from '../../utils/objectid.js';
+import { connectDB } from '../../../db/mongo.js';
+import { toFlexibleId } from '../../../utils/objectid.js';
 
 const COLLECTION = 'cassettes';
 
