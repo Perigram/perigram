@@ -3,7 +3,7 @@
     <section
       v-for="column in columns"
       :key="column.value"
-      :class="[LAYOUT.boardColumn, columnClasses(column)]"
+      :class="columnClasses(column)"
       :aria-label="column.display.label"
       @dragover="onDragOver($event, column)"
       @dragleave="onDragLeave($event, column)"
@@ -81,21 +81,23 @@
 <script setup>
 // The state board: the projection whose columns are the type's served
 // state vocabulary and whose cards are the loaded instances grouped by
-// their flat state. Column membership moves only through the authored
-// machine — a card may drop into a column only when a contract edge
-// (stateTransitionsByType over the producer workflows) leads there from
-// its current state, and the drop dispatches through the same
-// state-service transition channel the detail header's buttons use.
-// While a drag is live every machine-legal target column carries the
-// dashed target hairline and the hovered receiver steps up to the
-// content surface, so legality is visible before the drop. Ordering
+// their flat state. Column membership moves only through the machine:
+// a card may drop into a column only when the machine leads there from
+// its current state — legality starts from the contract edges
+// (stateTransitionsByType) and is replaced, at dragstart, by the
+// machine-authority resolver the host provides (the state service's
+// per-instance transitions, the same source the detail header's
+// buttons dispatch through), because the compiled contract copy can lag
+// the served machine. Machine-legal target lanes paint the content
+// surface instead of the subtle well (the token replaces the well —
+// never a second background utility) while a drag is live. Ordering
 // belongs to the column: each lane sorts its own cards through the same
-// sortKeys contract and shared comparator the region sort uses, with a
-// per-type-and-state persisted preference. Column bodies are bounded
-// and scroll independently, so the board fits its container instead of
-// growing the page. Native HTML5 drag is the desktop affordance; the
-// card's ellipsis menu and the opened record's transition strip remain
-// the accessible and touch paths.
+// sortKeys contract and shared comparator, with a per-type-and-state
+// persisted preference. Column bodies are bounded and scroll
+// independently, and dragging into the rail's edge zone auto-scrolls
+// toward hidden columns. Native HTML5 drag is the desktop affordance;
+// the card's ellipsis menu and the opened record's transition strip
+// remain the accessible and touch paths.
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Card from 'primevue/card';
@@ -129,8 +131,18 @@ const props = defineProps({
   // Per-type state policy map from the compiled process contract: the
   // column vocabulary, in authored order.
   statePolicy: { type: Object, default: null },
-  // Authored machine edges (stateTransitionsByType): the legal-move map.
-  stateTransitions: { type: Array, default: null }
+  // Authored machine edges (stateTransitionsByType): the instant
+  // legal-move map from the compiled contract copy.
+  stateTransitions: { type: Array, default: null },
+  // The machine-authority resolver (the state service's per-instance
+  // transitions — the same source the detail header's buttons dispatch
+  // through): fetched for the dragged card at dragstart. The compiled
+  // contract copy can lag the served machine (vocabulary seeded without
+  // wired action records still serves transitions through overrides or
+  // default machines), so the served answer replaces the contract one
+  // the moment it arrives. Null in hosts without a state service (the
+  // showcase) — there the contract edges are the whole truth.
+  resolveTransitions: { type: Function, default: null }
 });
 
 const emit = defineEmits(['open', 'run', 'transition']);
@@ -215,41 +227,62 @@ const cardMenuItems = computed(() => props.actions.map(action => {
   };
 }));
 
-// Drag-and-drop: the dragged card's current state plus the contract
-// edges decide which columns receive — every legal target steps up from
-// the subtle well to the content surface while the drag is live, the
-// hovered receiver adds overlay elevation, and illegal lanes show no
-// affordance at all. A card whose state has no outgoing edges is not
-// draggable at all: a machine that authored vocabulary without
-// transitions (states, no update actions) renders a read-only board,
-// and dead drag gestures would read as breakage. The drop is never
-// optimistic — the machine executor owns the mutation and the pool
-// reconciles through the shared entity event, so a refused or failed
-// move leaves the card where the machine last put it.
+// Drag-and-drop: legality comes from the contract edges immediately and
+// from the machine authority (resolveTransitions) the moment its
+// dragstart fetch lands — the served answer wins because it is the same
+// machine the transition buttons dispatch through. A machine-legal
+// target lane paints the content surface instead of the subtle well
+// (the token replaces the well — an appended second background utility
+// would lose stylesheet order and never show); illegal lanes keep the
+// well. A card is draggable when either source offers moves from its
+// state, so a served machine with no contract copy still drags. The
+// drop is never optimistic — the machine executor owns the mutation and
+// the pool reconciles through the shared entity event, so a refused or
+// failed move leaves the card where the machine last put it.
 const draggedInstance = ref(null);
 const dropValue = ref('');
 const rowEl = ref(null);
-const edgeTo = (from, to) => (props.stateTransitions || [])
+const contractEdges = computed(() => props.stateTransitions || []);
+const servedTransitions = ref(null);
+const activeTransitions = computed(() => servedTransitions.value || contractEdges.value);
+const edgeTo = (from, to) => activeTransitions.value
   .find(edge => edge.from === from && edge.to === to) || null;
-const movable = instance => (props.stateTransitions || [])
-  .some(edge => edge.from === instance?.state);
+const movable = instance => (props.resolveTransitions ? true : contractEdges.value
+  .some(edge => edge.from === instance?.state));
 const legalTargets = computed(() => {
   const from = draggedInstance.value?.state;
   if (!from) return new Set();
-  return new Set((props.stateTransitions || []).filter(edge => edge.from === from).map(edge => edge.to));
+  return new Set(activeTransitions.value.filter(edge => edge.from === from).map(edge => edge.to));
 });
 function columnClasses(column) {
-  if (!draggedInstance.value || !legalTargets.value.has(column.value)) return null;
-  return dropValue.value === column.value ? LAYOUT.boardColumnReceiving : LAYOUT.boardColumnTarget;
+  if (!draggedInstance.value || !legalTargets.value.has(column.value)) return LAYOUT.boardColumn;
+  return LAYOUT.boardColumnTarget;
 }
 function onDragStart(event, instance) {
   draggedInstance.value = instance;
+  servedTransitions.value = null;
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', String(instance?.id || ''));
+  if (props.resolveTransitions) {
+    Promise.resolve(props.resolveTransitions(instance))
+      .then(actions => {
+        if (draggedInstance.value !== instance) return;
+        servedTransitions.value = (Array.isArray(actions) ? actions : [])
+          .filter(action => action?.to)
+          .map(action => ({
+            from: instance.state,
+            to: action.to,
+            region: action.region || null,
+            intent: action.intent || null
+          }));
+      })
+      .catch(() => {});
+  }
 }
 function onDragEnd() {
   draggedInstance.value = null;
   dropValue.value = '';
+  servedTransitions.value = null;
   edgeZone.value = 0;
 }
 function onDragOver(event, column) {

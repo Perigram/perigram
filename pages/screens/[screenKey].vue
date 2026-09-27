@@ -19,6 +19,7 @@
         :on-run="runGeneratedAction"
         :on-transition="runRuntimeTransition"
         :on-transition-applied="applyTransitionSnapshot"
+        :on-fetch-transitions="fetchTransitions"
         :runtime-transitions="runtimeTransitions"
         @instance-mounted="loadRuntimeTransitions"
         :on-open="openInstance"
@@ -211,6 +212,19 @@ async function loadRuntimeTransitions(instance = {}) {
   } catch {
     runtimeTransitions.value = {};
   }
+}
+
+// Board drags resolve legality through the machine authority — the same
+// state-service fetch the header's transition buttons use — because the
+// compiled contract copy can lag the served machine (override or
+// default machines serve transitions the producer copy never carried).
+async function fetchTransitions(instance = {}) {
+  const typeId = instance.type || screen.value?.typeId || '';
+  const id = String(instance._id || instance.id || '');
+  if (!typeId || !id) return [];
+  const actions = await stateController.fetchActions(typeId, id);
+  return actions.filter(action => action.to)
+    .map(action => ({ to: action.to, intent: action.intent || null, region: action.region || null }));
 }
 
 async function runRuntimeTransition(payload = {}) {

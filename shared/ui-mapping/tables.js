@@ -248,12 +248,14 @@ export const LAYOUT = Object.freeze({
   boardRow: 'flex w-full items-start gap-4 overflow-x-auto pb-1',
   boardColumn: 'flex w-72 shrink-0 flex-col gap-2 rounded-panel bg-subtle p-3',
   boardColumnScroll: 'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1 max-h-[var(--ck-board-column-max-height)]',
-  // Drop affordance stays on the surface ladder — no invented borders:
-  // while a drag is live every machine-legal target well steps up to the
-  // content surface, and the hovered receiver adds overlay elevation
-  // (the sanctioned "this receives" step: surface, then shadow).
-  boardColumnTarget: 'bg-content',
-  boardColumnReceiving: 'bg-content shadow-overlay',
+  // The drop-target state REPLACES the well token — never appends a
+  // second background utility (the pair is unordered in the generated
+  // stylesheet, so the idle well would win and the state would never
+  // show). One step on the surface ladder is the whole signal: a
+  // machine-legal target lane paints the content surface instead of the
+  // subtle well while a drag is live; the pointer's drop cursor carries
+  // the hover.
+  boardColumnTarget: 'flex w-72 shrink-0 flex-col gap-2 rounded-panel bg-content p-3',
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',

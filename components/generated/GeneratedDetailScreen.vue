@@ -8,6 +8,7 @@
     :on-run="runAction"
     :on-transition="runRuntimeTransition"
     :on-transition-applied="applyTransitionSnapshot"
+    :on-fetch-transitions="fetchBoardTransitions"
     :runtime-transitions="runtimeTransitions"
     @instance-mounted="loadRuntimeTransitions"
     :on-open="openInstance"
@@ -102,6 +103,18 @@ function applyTransitionSnapshot(updated = {}) {
   const id = String(updated._id || updated.id || '');
   if (!typeKey || !id) return;
   instances.upsertRecord?.(typeKey, updated);
+}
+
+// Board drags resolve legality through the machine authority — the same
+// state-service fetch the header's transition buttons use — because the
+// compiled contract copy can lag the served machine.
+async function fetchBoardTransitions(instance = {}) {
+  const typeId = instance.type || props.screen?.typeId || '';
+  const id = String(instance._id || instance.id || '');
+  if (!typeId || !id) return [];
+  const actions = await stateController.fetchActions(typeId, id);
+  return actions.filter(action => action.to)
+    .map(action => ({ to: action.to, intent: action.intent || null, region: action.region || null }));
 }
 
 async function runRuntimeTransition(payload = {}) {

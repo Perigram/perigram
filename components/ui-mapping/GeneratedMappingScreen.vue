@@ -16,6 +16,7 @@
             :openable="openable"
             :instance-actions="instanceActionsByType"
             :patchable="patchable"
+            :resolve-transitions="onFetchTransitions"
             embedded
             @run="openAction"
             @transition="executeTransition"
@@ -35,6 +36,7 @@
       :openable="openable"
       :instance-actions="instanceActionsByType"
       :patchable="patchable"
+      :resolve-transitions="onFetchTransitions"
       @run="openAction"
       @transition="executeTransition"
       @open="openInstance"
@@ -173,6 +175,10 @@ const props = defineProps({
   // The app fetches per opened instance and owns dispatch; the generator
   // only renders them as header transition buttons.
   runtimeTransitions: { type: Object, default: null },
+  // Machine-authority transition resolver for board drags:
+  // `async (instance) => [{ to, intent, region }]` over the host's state
+  // service — the same machine the transition buttons dispatch through.
+  onFetchTransitions: { type: Function, default: null },
   spacingScale: { type: Number, default: 1 }
 });
 

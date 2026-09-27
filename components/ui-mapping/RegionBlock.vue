@@ -115,6 +115,7 @@
         :bundle="bundle"
         :state-policy="node.statePolicy"
         :state-transitions="node.stateTransitions"
+        :resolve-transitions="resolveTransitions"
         @open="emitOpen"
         @run="emitRun"
         @transition="payload => emit('transition', payload)"
@@ -266,6 +267,7 @@
         :bundle="bundle"
         :state-policy="node.statePolicy"
         :state-transitions="node.stateTransitions"
+        :resolve-transitions="resolveTransitions"
         @open="emitOpen"
         @run="emitRun"
         @transition="payload => emit('transition', payload)"
@@ -469,7 +471,10 @@ const props = defineProps({
   instanceActions: { type: Object, default: null },
   // Whether the detail affordances may persist edits (the engine binds
   // this to the presence of an onPatch executor).
-  patchable: { type: Boolean, default: false }
+  patchable: { type: Boolean, default: false },
+  // Machine-authority transition resolver for board drags (the host's
+  // state service): passed through to the board projection.
+  resolveTransitions: { type: Function, default: null }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch']);
