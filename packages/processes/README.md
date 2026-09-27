@@ -257,7 +257,11 @@ wire (the upstream producer's output state, derived from the wiring's
 status windows at compile), the to-state is the node's target. No wildcard
 or enumerated from-state ever enters the machine; the transition inspector
 authors no from-state, and at execution the status engine validates the
-operated instance's current state against exactly those declared edges. A producer whose type carries none of these
+operated instance's current state against exactly those declared edges.
+The same arrival state is projected onto the exposed (manifest) action as
+`state.from`, so generated surfaces scope the button to the states the
+transition actually leaves; the execution channel and the manifest carry
+one arrival fact, and a button is never offered in its own target state. A producer whose type carries none of these
 compiles NO machine: instances of such types are stateless, creation writes
 no status, and the status runtime refuses transitions for them. No
 synthesized CREATED lifecycle exists — a state nobody declared is not
