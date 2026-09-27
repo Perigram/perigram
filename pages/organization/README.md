@@ -101,9 +101,11 @@ Document and canvas commands render in the shell's floating PrimeVue
 [components/shared](../../components/shared/README.md)), matching the shell
 used by the cassette and sheet-design editors; the palette and
 inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
-The graph palette is the type catalog by class (File types, Items,
-Groups, Processes — dragging a type drops a bound construct) followed by
-the operation, value, and list groups. Its framework
+The graph palette is operation vocabulary followed by
+the operation, value, and list groups: registry types (pack or
+organization-declared) are never palette entries — a process binds a type
+by dropping the unbound `construct` operation and wiring its Type pin to a
+class or type-reference node. Its framework
 metadata comes from `createProcessDesignerContract(projectDomainFromView(...))`;
 the route supplies the CTS-projected domain as the active domain
 implementation rather than importing separate CNC field/construction
