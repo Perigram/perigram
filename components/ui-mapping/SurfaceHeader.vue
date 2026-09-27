@@ -136,10 +136,12 @@ const trail = computed(() => {
 // compiled twin never doubles it.
 const transitionActions = computed(() => props.actions
   .filter(action => action?.__runtime && action?.state?.to));
-const transitionTargets = computed(() => new Set(transitionActions.value.map(action => action.state.to)));
+// Status transitions render only through the machine-scoped runtime set
+// (their target depends on the opened instance's current state); a
+// contract status action never joins the generic run menu.
 const manualActions = computed(() => props.actions
   .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
-  .filter(action => !action?.state?.to || !transitionTargets.value.has(action.state.to)));
+  .filter(action => !(action?.actionKind === 'updateInstance' && action?.state?.to)));
 const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS_INLINE));
 const overflowActions = computed(() => manualActions.value
   .filter(action => !inlineActions.value.includes(action)));

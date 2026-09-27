@@ -642,12 +642,12 @@ export function stateDisplayFor(policyByValue = null, value = '') {
   };
 }
 
-// The per-instance action kinds surface may offer without a
-// form context: status transitions (updateInstance with a declared
-// target), deletion, and instance-scoped commands. Plain updateInstance
-// (the edit form), creates, relation link/unlink (owner-scoped), and
-// event-triggered actions belong to their own surfaces.
-const INSTANCE_ACTION_KINDS = Object.freeze(['updateInstance', 'deleteInstance', 'runCommand']);
+// The per-instance action kinds the type-level contract may offer without a
+// form or instance context: deletion and instance-scoped commands. Status
+// transitions are per-instance machine facts (their legal target depends on
+// the opened instance's current state), so they never ride this type-level
+// set — the state service's machine-scoped transitions own them.
+const INSTANCE_ACTION_KINDS = Object.freeze(['deleteInstance', 'runCommand']);
 
 // resolveInstanceActions(actions, typeId): the per-instance quick-action
 // set for one collection type, from the compiled action map. Pure over
@@ -656,8 +656,7 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
   if (!typeId) return [];
   return Object.values(actions).filter(action => action?.typeId === typeId
     && INSTANCE_ACTION_KINDS.includes(action?.actionKind)
-    && action?.trigger?.mode === 'manual'
-    && (action?.actionKind !== 'updateInstance' || action?.state?.to));
+    && action?.trigger?.mode === 'manual');
 }
 
 // planActionLaunch(action): how a screen launches one manual action —

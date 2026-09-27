@@ -680,8 +680,10 @@ describe('per-instance quick actions', () => {
     a_other: { id: 'a_other', actionKind: 'deleteInstance', typeId: 'sheet', trigger: { mode: 'manual' } }
   };
 
-  it('keeps only manual per-instance transitions, deletions, and commands for the type', () => {
-    expect(resolveInstanceActions(actions, 'document').map(action => action.id)).toEqual(['a_transition', 'a_delete']);
+  it('keeps only manual per-instance deletions and commands for the type', () => {
+    // Status transitions are per-instance machine facts, not type-level
+    // actions, so they never ride this set.
+    expect(resolveInstanceActions(actions, 'document').map(action => action.id)).toEqual(['a_delete']);
     expect(resolveInstanceActions(actions, 'sheet').map(action => action.id)).toEqual(['a_other']);
   });
 
