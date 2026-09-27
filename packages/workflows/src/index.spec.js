@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyWorkflowTransitionState, createWorkflowState, getPrimaryState, getRegionState, normalizeWorkflow, validateTransition } from './index.js';
+import { applyWorkflowTransitionState, createWorkflowState, getPrimaryState, getRegionState, normalizeWorkflow, resolveWorkflowStatePath, validateTransition } from './index.js';
 
 const workflow = {
   schemaVersion: 2,
@@ -348,4 +348,12 @@ describe('recursive workflow state trees', () => {
     expect(next.active).toEqual({ main: 'PRODUCTION.cutting', qa: 'APPROVED' });
     expect(next.primary).toBe('PRODUCTION.cutting');
   });
+});
+
+it('resolves a parent name to its region entry after a normalize round trip', () => {
+  const compiled = JSON.parse(JSON.stringify(normalizeWorkflow(nestedWorkflow)));
+  const region = normalizeWorkflow(compiled).regions.main;
+  expect(resolveWorkflowStatePath(region, 'PRODUCTION')).toBe('PRODUCTION.queued');
+  expect(resolveWorkflowStatePath(region, 'queued')).toBe('PRODUCTION.queued');
+  expect(resolveWorkflowStatePath(region, 'mystery')).toBeNull();
 });
