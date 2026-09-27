@@ -25,9 +25,18 @@ substitutes a global entity list for that scoped contract.
 ## Action Visibility
 
 Generated surfaces resolve action visibility against the instance's primary
-state through `actionAppliesToEntity` (`action-visibility.js`). The primary
-state is read from the flat wire `state` string (SPEC §7); the `states.main`
-axis map and the legacy `status` block are older DTO shapes. An action
+state through `actionAppliesToEntity` (`action-visibility.js`). The value
+read is the flat wire `state` string (SPEC §7), falling back to the older
+`states.main` axis map and, for legacy docs, the `status` block; it is
+only the state *value*. The state's icon/severity/label resolve from the
+compiled producer workflow's state definitions (`statePolicyByType` →
+`stateDisplayFor`, [shared/ui-mapping](../../shared/ui-mapping/README.md));
+lifecycle evidence (actors, attachments, snapshots, notes) lives on
+`status.lifecycle` and `status_events`
+([server/core/machines](../../server/core/machines/README.md)); nested
+states are dotted region paths in the compiled workflow, resolved by
+`resolveWorkflowStatePath`.
+An action
 applies when its `typeId` matches (and, for creates, its `parentTypeId`),
 and its authored `state.from` — when present — equals the current state. An
 action whose `state.to` already equals the current state is suppressed as a
