@@ -137,7 +137,7 @@ const openActorChat = (event) => {
   supportChatTarget.value = {
     userId,
     name: actorName(event),
-    draftEntityRefs: resolvedTargetId.value
+    draftInstanceRefs: resolvedTargetId.value
       ? [{
           type: props.typeId,
           id: resolvedTargetId.value,

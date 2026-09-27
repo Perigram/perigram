@@ -9,7 +9,7 @@ import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalSt
 export function openInstanceChat({ type = '', id = '', name = '' } = {}) {
   if (!type || !id) return;
   const chatTarget = useSupportChatTarget();
-  chatTarget.value = { entityKey: `entity:${type}:${id}`, name: String(name || '') };
+  chatTarget.value = { instanceKey: `instance:${type}:${id}`, name: String(name || '') };
   const supportDialog = useSupportDialog();
   supportDialog.value = true;
 }

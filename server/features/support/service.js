@@ -12,14 +12,14 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import * as repository from './repository.js';
 import { MESSAGE_SENDER } from './const.js';
 
-const ENTITY_REF_LIMIT = 6;
-const ENTITY_OPTION_LIMIT = 20;
+const INSTANCE_REF_LIMIT = 6;
+const INSTANCE_OPTION_LIMIT = 20;
 const MESSAGE_PAGE_DEFAULT = 50;
 const MESSAGE_PAGE_MAX = 100;
 const ATTACHMENT_KINDS = ['audio'];
 const ATTACHMENT_DURATION_MAX_SECONDS = 600;
 const scopedList = (service) => (auth, filters) => service.list(auth.userId, auth.organizationId, auth.role, auth, filters);
-const ENTITY_OPTION_LOADERS = {
+const INSTANCE_OPTION_LOADERS = {
     artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
     cassette: scopedList(cassettesService),
     sheet_design: scopedList(sheetDesignsService),
@@ -33,8 +33,8 @@ const ENTITY_OPTION_LOADERS = {
  * §13 — see the instances README), so org-authored types are pickable,
  * resolvable, and recipient-checkable without a hand-registered loader.
  */
-function entityOptionLoaderFor(type) {
-    const featureLoader = ENTITY_OPTION_LOADERS[type];
+function instanceOptionLoaderFor(type) {
+    const featureLoader = INSTANCE_OPTION_LOADERS[type];
     if (featureLoader) return featureLoader;
     const service = getAppRegistry().getInstanceService(type);
     if (!service?.processList) return null;
@@ -185,24 +185,24 @@ function notifyInboxParticipants(participants = [], conversationKey) {
 }
 
 /**
- * Entity-linked conversations. A message may be linked to one entity through
- * the auth-scoped registry read; `conversationKey: 'entity:<type>:<id>'`
- * scopes its own thread, while the stored `entityPath` (organization root,
- * every lineage-binding ancestor, then the linked entity, each with a
+ * Instance-linked conversations. A message may be linked to one instance through
+ * the auth-scoped registry read; `conversationKey: 'instance:<typeId>:<instanceId>'`
+ * scopes its own thread, while the stored `instancePath` (organization root,
+ * every lineage-binding ancestor, then the linked instance, each with a
  * display name) lets any ancestor view compose all descendant messages.
  */
-export function entityConversationKey(type, id) {
-    return `entity:${type}:${id}`;
+export function instanceConversationKey(type, id) {
+    return `instance:${type}:${id}`;
 }
 
-export function parseEntityKey(entityKey = '') {
-    const parts = String(entityKey || '').split(':');
-    if (parts.length !== 3 || parts[0] !== 'entity' || !parts[1] || !parts[2]) return null;
-    return { type: normalizeEntityOptionType(parts[1]), id: parts[2] };
+export function parseInstanceKey(instanceKey = '') {
+    const parts = String(instanceKey || '').split(':');
+    if (parts.length !== 3 || parts[0] !== 'instance' || !parts[1] || !parts[2]) return null;
+    return { type: normalizeInstanceOptionType(parts[1]), id: parts[2] };
 }
 
-function entityDto(entity = null) {
-    return entity?.toJSON ? entity.toJSON() : entity;
+function instanceDto(instance = null) {
+    return instance?.toJSON ? instance.toJSON() : instance;
 }
 
 function instanceIdOf(dto = null) {
@@ -210,7 +210,7 @@ function instanceIdOf(dto = null) {
     return value ? String(value) : '';
 }
 
-function entityName(dto = null, type = '') {
+function instanceName(dto = null, type = '') {
     return dto?.identity?.name || dto?.identity?.serial || dto?.identity?.uid || instanceIdOf(dto) || type;
 }
 
@@ -222,7 +222,7 @@ function organizationIdOf(dto = null, scopedAuth = {}) {
 /**
  * Distinguishes "exists but grants deny" from "not found": the registry read
  * throwing 403 (or returning null after a permission error) proves the
- * entity exists while a 404/null proves it does not.
+ * instance exists while a 404/null proves it does not.
  */
 async function registryReadDenied(scopedAuth, type, id) {
     try {
@@ -235,7 +235,7 @@ async function registryReadDenied(scopedAuth, type, id) {
     }
 }
 
-async function fetchLinkedEntity(scopedAuth, type, id) {
+async function fetchLinkedInstance(scopedAuth, type, id) {
     if (!type || !id) return null;
     try {
         const service = getAppRegistry().getInstanceService(type);
@@ -246,76 +246,76 @@ async function fetchLinkedEntity(scopedAuth, type, id) {
     }
 }
 
-export async function getEntityConversationContext(auth, entityKey = '') {
+export async function getInstanceConversationContext(auth, instanceKey = '') {
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    const parsed = parseEntityKey(entityKey);
-    if (!parsed) throw createError({ statusCode: 400, message: 'Invalid entity conversation key' });
-    const scopedAuth = await resolveEntityOptionAuth(auth);
-    let entity = await fetchLinkedEntity(scopedAuth, parsed.type, parsed.id);
-    if (!entity) {
-        // Child entities (cassettes, nesting runs, sheet designs) deny direct
+    const parsed = parseInstanceKey(instanceKey);
+    if (!parsed) throw createError({ statusCode: 400, message: 'Invalid instance conversation key' });
+    const scopedAuth = await resolveInstanceOptionAuth(auth);
+    let instance = await fetchLinkedInstance(scopedAuth, parsed.type, parsed.id);
+    if (!instance) {
+        // Child instances (cassettes, nesting runs, sheet designs) deny direct
         // registry reads but stay readable through their scoped list sources.
         // Unlike the picker (first source per type), context validation unions
         // EVERY generated source of the type, so parent-scoped child lists
         // count too.
-        const sources = scopedEntityOptionSources(scopedAuth)
+        const sources = scopedInstanceOptionSources(scopedAuth)
             .filter(source => source.typeId === parsed.type);
-        const loader = entityOptionLoaderFor(parsed.type);
+        const loader = instanceOptionLoaderFor(parsed.type);
         const scoped = sources.length
-            ? await loadEntityOptionsForSources(scopedAuth, parsed.type, sources).catch(() => [])
+            ? await loadInstanceOptionsForSources(scopedAuth, parsed.type, sources).catch(() => [])
             : [];
         // The unfiltered org-scope list is the final pool: org members can
-        // discuss any org entity, including standalone children whose
+        // discuss any org instance, including standalone children whose
         // lineage never linked them to a readable parent.
         const orgWide = loader ? await loader(scopedAuth, {}).catch(() => []) : [];
         const seen = new Set();
         const candidates = [...scoped, ...orgWide].filter(candidate => {
-            const dto = entityDto(candidate);
+            const dto = instanceDto(candidate);
             const id = String(dto?._id || dto?.id || '');
             if (!id || seen.has(id)) return false;
             seen.add(id);
             return true;
         });
         const dto = candidates
-            .map(candidate => entityDto(candidate))
+            .map(candidate => instanceDto(candidate))
             .find(dto => String(dto?._id || dto?.id || '') === String(parsed.id));
-        if (dto) entity = dto;
+        if (dto) instance = dto;
     }
-    if (!entity && await registryReadDenied(scopedAuth, parsed.type, parsed.id)) {
-        // Grants can deny reads on entities the org process still owns
-        // (standalone children, gray-lineage test entities) — the registry
+    if (!instance && await registryReadDenied(scopedAuth, parsed.type, parsed.id)) {
+        // Grants can deny reads on instances the org process still owns
+        // (standalone children, gray-lineage test instances) — the registry
         // read answers "exists, denied" rather than "not found". Chat
         // admits those with a bare link and an organization-only path;
         // unreadable lineage simply never climbs.
-        entity = {
+        instance = {
             _id: parsed.id,
             identity: { name: parsed.id },
             lineage: { organizationId: scopedAuth.organizationId }
         };
     }
-    if (!entity) throw createError({ statusCode: 403, message: 'Forbidden' });
-    const dto = entityDto(entity);
+    if (!instance) throw createError({ statusCode: 403, message: 'Forbidden' });
+    const dto = instanceDto(instance);
     return {
-        kind: 'entity',
-        conversationKey: entityConversationKey(parsed.type, parsed.id),
+        kind: 'instance',
+        conversationKey: instanceConversationKey(parsed.type, parsed.id),
         typeId: parsed.type,
         instanceId: parsed.id,
-        entityName: entityName(dto, parsed.type),
-        entity: dto,
+        instanceName: instanceName(dto, parsed.type),
+        instance: dto,
         participants: [String(auth.userId)],
-        match: { conversationKey: entityConversationKey(parsed.type, parsed.id) },
+        match: { conversationKey: instanceConversationKey(parsed.type, parsed.id) },
         organizationId: organizationIdOf(dto, scopedAuth)
     };
 }
 
 /**
  * Ancestor chain for a linked message: organization root first, then every
- * lineage-binding ancestor, then the linked entity. Aggregated reads match
+ * lineage-binding ancestor, then the linked instance. Aggregated reads match
  * any path entry, so a top-level chat composes all descendant messages.
  */
-async function buildEntityPath(scopedAuth, type, entity) {
-    const dto = entityDto(entity);
-    const path = [{ type, id: instanceIdOf(dto), name: entityName(dto, type) }];
+async function buildInstancePath(scopedAuth, type, instance) {
+    const dto = instanceDto(instance);
+    const path = [{ type, id: instanceIdOf(dto), name: instanceName(dto, type) }];
     const bindings = scopedAuth.process?.lineageBindings || [];
     let currentType = type;
     let currentDto = dto;
@@ -324,38 +324,38 @@ async function buildEntityPath(scopedAuth, type, entity) {
         const parentId = binding ? String(currentDto?.lineage?.[binding.lineageKey] || '') : '';
         if (!binding || !parentId) break;
         if (path.some(entry => entry.type === binding.parentTypeId && entry.id === parentId)) break;
-        const parent = await fetchLinkedEntity(scopedAuth, binding.parentTypeId, parentId);
+        const parent = await fetchLinkedInstance(scopedAuth, binding.parentTypeId, parentId);
         if (!parent) break;
-        const parentDto = entityDto(parent);
+        const parentDto = instanceDto(parent);
         path.unshift({
             type: binding.parentTypeId,
             id: parentId,
-            name: entityName(parentDto, binding.parentTypeId)
+            name: instanceName(parentDto, binding.parentTypeId)
         });
         currentType = binding.parentTypeId;
         currentDto = parentDto;
     }
     const organizationId = organizationIdOf(dto, scopedAuth);
     if (organizationId && !(path[0].type === 'organization' && path[0].id === String(organizationId))) {
-        const org = await fetchLinkedEntity(scopedAuth, 'organization', organizationId);
+        const org = await fetchLinkedInstance(scopedAuth, 'organization', organizationId);
         path.unshift({
             type: 'organization',
             id: String(organizationId),
-            name: org ? entityName(entityDto(org)) : 'organization'
+            name: org ? instanceName(instanceDto(org)) : 'organization'
         });
     }
     return path;
 }
 
 /**
- * Match for an entity thread view: the entity's own key when narrowed, or
- * any message whose entityPath contains the entity when children compose
+ * Match for an instance thread view: the instance's own key when narrowed, or
+ * any message whose instancePath contains the instance when children compose
  * the view.
  */
-export function entityConversationMatch(context, includeChildren = true) {
+export function instanceConversationMatch(context, includeChildren = true) {
     if (!includeChildren) return context.match;
     return {
-        entityPath: { $elemMatch: { type: context.typeId, id: context.instanceId } }
+        instancePath: { $elemMatch: { type: context.typeId, id: context.instanceId } }
     };
 }
 
@@ -384,95 +384,95 @@ export async function listUserConversations(auth) {
             ? repository.findGroupsByParticipant(userId, auth.organizationId)
             : Promise.resolve([])
     ]);
-    const personMessages = messages.filter(message => message.conversationKind !== 'entity');
+    const personMessages = messages.filter(message => message.conversationKind !== 'instance');
     const summaries = await buildConversationSummaries(personMessages, auth, { groups: groups.map(groupDTO) });
-    const entityRows = await entityConversationSummaries(messages, auth);
-    return [...entityRows, ...summaries];
+    const instanceRows = await instanceConversationSummaries(messages, auth);
+    return [...instanceRows, ...summaries];
 }
 
 /**
- * Entity chat inbox rows, emitted in both groupings: top-level rows (every
- * message rolls up to the highest entity below the organization root, so
- * lower entities surface as one top-entity chat) and per-entity leaf rows
+ * Instance chat inbox rows, emitted in both groupings: top-level rows (every
+ * message rolls up to the highest instance below the organization root, so
+ * lower instances surface as one top-instance chat) and per-instance leaf rows
  * (`isLeafRow`) for the flat view. The client switches between them; unread
  * counts key on each row's own conversation key, and shell totals count the
  * top-level rows only.
  */
-async function entityConversationSummaries(messages, auth) {
-    const entityMessages = messages.filter(message => message.conversationKind === 'entity' && message.entityLink);
-    if (!entityMessages.length) return [];
+async function instanceConversationSummaries(messages, auth) {
+    const instanceMessages = messages.filter(message => message.conversationKind === 'instance' && message.instanceLink);
+    if (!instanceMessages.length) return [];
 
     // Rollup nodes are the top-level nodes of the lineage hierarchy trees:
     // each message joins at the ancestor whose type carries no non-organization
-    // parent binding. The walk uses live lineage (entity lineage keys plus
-    // the compiled bindings), never the stored entityPath, which can be
+    // parent binding. The walk uses live lineage (instance lineage keys plus
+    // the compiled bindings), never the stored instancePath, which can be
     // degraded when ancestors failed to resolve at send time.
-    const scopedAuth = await resolveEntityOptionAuth(auth);
-    const entityCache = new Map();
+    const scopedAuth = await resolveInstanceOptionAuth(auth);
+    const instanceCache = new Map();
     const entryByMessage = new WeakMap();
     const rollupEntryFor = async (message) => {
         if (!entryByMessage.has(message)) {
-            entryByMessage.set(message, await topLevelEntityFor(scopedAuth, message, entityCache));
+            entryByMessage.set(message, await topLevelInstanceFor(scopedAuth, message, instanceCache));
         }
         return entryByMessage.get(message);
     };
 
     const byKey = new Map();
     const leafByKey = new Map();
-    for (const message of entityMessages) {
+    for (const message of instanceMessages) {
         const entry = await rollupEntryFor(message);
-        const key = entityConversationKey(entry.type, entry.id);
+        const key = instanceConversationKey(entry.type, entry.id);
         if (!byKey.has(key)) {
-            byKey.set(key, entitySummaryRow(entry, message, { isEntityRoot: entry.type === 'organization' }));
+            byKey.set(key, instanceSummaryRow(entry, message, { isInstanceRoot: entry.type === 'organization' }));
         }
-        const link = message.entityLink;
-        const leafKey = entityConversationKey(link.type, link.id);
+        const link = message.instanceLink;
+        const leafKey = instanceConversationKey(link.type, link.id);
         // Entities that are their own top level already carry a top row; no
         // duplicate leaf row.
         if (leafKey !== key && !byKey.has(leafKey) && !leafByKey.has(leafKey)) {
-            leafByKey.set(leafKey, entitySummaryRow(link, message, { isLeafRow: true }));
+            leafByKey.set(leafKey, instanceSummaryRow(link, message, { isLeafRow: true }));
         }
     }
 
     const rows = [...byKey.values(), ...leafByKey.values()];
-    await applyEntityUnreadCounts(rows, entityMessages, auth, rollupEntryFor);
+    await applyInstanceUnreadCounts(rows, instanceMessages, auth, rollupEntryFor);
     await applyConversationPrefsAndReads(rows, auth);
     return rows.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
 }
 
-async function topLevelEntityFor(scopedAuth, message, cache) {
+async function topLevelInstanceFor(scopedAuth, message, cache) {
     const bindings = scopedAuth.process?.lineageBindings || [];
     const parentBindingFor = (type) => bindings.find(binding => (
         binding.childTypeId === type
         && binding.parentTypeId !== 'organization'
         && binding.lineageKey
     ));
-    const cachedEntity = async (type, id) => {
+    const cachedInstance = async (type, id) => {
         const cacheKey = `${type}:${id}`;
         if (!cache.has(cacheKey)) {
-            cache.set(cacheKey, await fetchLinkedEntity(scopedAuth, type, id));
+            cache.set(cacheKey, await fetchLinkedInstance(scopedAuth, type, id));
         }
         return cache.get(cacheKey);
     };
 
-    let type = message.entityLink.type;
-    let id = String(message.entityLink.id);
-    let name = message.entityLink.name || id;
+    let type = message.instanceLink.type;
+    let id = String(message.instanceLink.id);
+    let name = message.instanceLink.name || id;
     const seen = new Set([`${type}:${id}`]);
     while (true) {
         const binding = parentBindingFor(type);
         if (!binding) break;
-        const entity = entityDto(await cachedEntity(type, id));
-        const parentId = entity?.lineage?.[binding.lineageKey]
-            ? String(entity.lineage[binding.lineageKey])
+        const instance = instanceDto(await cachedInstance(type, id));
+        const parentId = instance?.lineage?.[binding.lineageKey]
+            ? String(instance.lineage[binding.lineageKey])
             : '';
 
         if (!parentId) break;
         const parentKey = `${binding.parentTypeId}:${parentId}`;
         if (seen.has(parentKey)) break;
-        const parent = await cachedEntity(binding.parentTypeId, parentId);
+        const parent = await cachedInstance(binding.parentTypeId, parentId);
         if (!parent) break;
-        const parentDto = entityDto(parent);
+        const parentDto = instanceDto(parent);
         seen.add(parentKey);
         type = binding.parentTypeId;
         id = parentId;
@@ -481,15 +481,15 @@ async function topLevelEntityFor(scopedAuth, message, cache) {
     return { type, id, name };
 }
 
-function entitySummaryRow(entry, message, flags = {}) {
+function instanceSummaryRow(entry, message, flags = {}) {
     return {
-        conversationKey: entityConversationKey(entry.type, entry.id),
-        conversationKind: 'entity',
+        conversationKey: instanceConversationKey(entry.type, entry.id),
+        conversationKind: 'instance',
         typeId: entry.type,
         instanceId: entry.id,
-        entityName: entry.name || entry.id,
+        instanceName: entry.name || entry.id,
         lastMessage: message.message,
-        entityRefs: message.entityRefs || [],
+        instanceRefs: message.instanceRefs || [],
         attachment: message.attachment || null,
         senderUserId: message.senderUserId,
         timestamp: message.timestamp,
@@ -498,17 +498,17 @@ function entitySummaryRow(entry, message, flags = {}) {
     };
 }
 
-async function applyEntityUnreadCounts(rows, entityMessages, auth, rollupEntryFor) {
+async function applyInstanceUnreadCounts(rows, instanceMessages, auth, rollupEntryFor) {
     const reads = await repository.findReadStates(auth.userId, rows.map(row => row.conversationKey));
     const readsByKey = new Map(reads.map(read => [read.conversationKey, read.lastReadAt]));
     const rowByKey = new Map(rows.map(row => [row.conversationKey, row]));
-    for (const message of entityMessages) {
+    for (const message of instanceMessages) {
         if (message.senderUserId === auth.userId) continue;
         const entry = await rollupEntryFor(message);
-        const link = message.entityLink;
+        const link = message.instanceLink;
         const targets = new Set([
-            entityConversationKey(entry.type, entry.id),
-            entityConversationKey(link.type, link.id)
+            instanceConversationKey(entry.type, entry.id),
+            instanceConversationKey(link.type, link.id)
         ]);
         for (const key of targets) {
             const row = rowByKey.get(key);
@@ -553,36 +553,36 @@ export async function notifyTyping(auth, conversationKey = null) {
     });
 }
 
-export async function listEntityOptions(auth, type, query = '', recipientUserId = null) {
-    const scopedAuth = await resolveEntityOptionAuth(auth);
+export async function listInstanceOptions(auth, type, query = '', recipientUserId = null) {
+    const scopedAuth = await resolveInstanceOptionAuth(auth);
     if (!scopedAuth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    const normalizedType = normalizeEntityOptionType(type);
-    if (!isEntityOptionTypeAllowed(scopedAuth, normalizedType)) {
-        throw createError({ statusCode: 400, message: 'Unsupported entity type' });
+    const normalizedType = normalizeInstanceOptionType(type);
+    if (!isInstanceOptionTypeAllowed(scopedAuth, normalizedType)) {
+        throw createError({ statusCode: 400, message: 'Unsupported instance type' });
     }
 
     const normalizedQuery = query.toString().trim().toLowerCase();
-    const entities = await loadEntityOptions(scopedAuth, normalizedType);
-    const options = entities
-        .map(entity => normalizeEntityOption(normalizedType, entity))
-        .filter(option => option.value && matchesEntityQuery(option, normalizedQuery))
-        .slice(0, ENTITY_OPTION_LIMIT);
+    const instances = await loadInstanceOptions(scopedAuth, normalizedType);
+    const options = instances
+        .map(instance => normalizeInstanceOption(normalizedType, instance))
+        .filter(option => option.value && matchesInstanceQuery(option, normalizedQuery))
+        .slice(0, INSTANCE_OPTION_LIMIT);
 
     if (!recipientUserId || recipientUserId === scopedAuth.userId || normalizedType === 'user') return options;
 
     const recipientAuth = await resolveConversationParticipantAuth(scopedAuth, recipientUserId).catch(() => null);
     if (!recipientAuth) return options;
 
-    const recipientIds = await listReadableEntityIds(recipientAuth, normalizedType);
+    const recipientIds = await listReadableInstances(recipientAuth, normalizedType);
     return options.map(option => ({
         ...option,
         recipientHasAccess: recipientIds.has(option.value)
     }));
 }
 
-export async function listEntityOptionTypes(auth = {}) {
-    const scopedAuth = await resolveEntityOptionAuth(auth);
-    return scopedEntityOptionTypes(scopedAuth).map(source => ({
+export async function listInstanceOptionTypes(auth = {}) {
+    const scopedAuth = await resolveInstanceOptionAuth(auth);
+    return scopedInstanceOptionTypes(scopedAuth).map(source => ({
         value: source.typeId,
         label: source.label || source.typeId,
         labelKey: source.labelKey || null,
@@ -592,10 +592,10 @@ export async function listEntityOptionTypes(auth = {}) {
 }
 
 export async function sendUserMessage(auth, body = {}) {
-    const context = body?.entity?.type || body?.entity?.id
-        ? await getEntityConversationContext(auth, entityConversationKey(
-            normalizeEntityOptionType(body.entity.type),
-            body.entity.id
+    const context = body?.instance?.type || body?.instance?.id
+        ? await getInstanceConversationContext(auth, instanceConversationKey(
+            normalizeInstanceOptionType(body.instance.type),
+            body.instance.id
         ))
         : body?.conversationKey?.startsWith('group:')
             ? await getGroupConversationContext(auth, body.conversationKey.slice('group:'.length))
@@ -605,7 +605,7 @@ export async function sendUserMessage(auth, body = {}) {
         sender: MESSAGE_SENDER.USER,
         senderUserId: auth.userId,
         message: body.message,
-        entityRefs: body.entityRefs,
+        instanceRefs: body.instanceRefs,
         attachment: body.attachment,
         parentMessageId: body.parentMessageId,
         auth,
@@ -624,19 +624,19 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
         sender: MESSAGE_SENDER.SUPPORT,
         senderUserId: auth.userId,
         message: body.message,
-        entityRefs: body.entityRefs,
+        instanceRefs: body.instanceRefs,
         attachment: body.attachment,
         auth
     });
 }
 
-async function insertMessage({ context, sender, senderUserId, message, entityRefs, attachment, parentMessageId, auth, recipientUserId = null }) {
-    const refs = await normalizeInstanceRefs(entityRefs, auth, { recipientUserId });
+async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachment, parentMessageId, auth, recipientUserId = null }) {
+    const refs = await normalizeInstanceRefs(instanceRefs, auth, { recipientUserId });
     const normalizedAttachment = normalizeAttachment(attachment);
     const text = normalizeMessage(message, refs, normalizedAttachment);
     const parent = await resolveParentMessage(auth, context, parentMessageId);
-    const entityFields = context.kind === 'entity'
-        ? await resolveEntityMessageFields(auth, context)
+    const instanceFields = context.kind === 'instance'
+        ? await resolveInstanceMessageFields(auth, context)
         : {};
     const inserted = await repository.insert({
         userId: context.kind === 'support' ? context.participants[0] : null,
@@ -646,10 +646,10 @@ async function insertMessage({ context, sender, senderUserId, message, entityRef
         sender,
         senderUserId,
         message: text,
-        entityRefs: refs,
+        instanceRefs: refs,
         ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}),
         ...(parent ? { parent } : {}),
-        ...entityFields,
+        ...instanceFields,
         timestamp: new Date()
     }, messageProjection());
     notifyConversationEvent(context, inserted);
@@ -658,8 +658,8 @@ async function insertMessage({ context, sender, senderUserId, message, entityRef
 
 /**
  * Reply quotes carry the parent conversationKey check as "same thread or same
- * entity family": in an aggregated view the parent may be linked to a child
- * entity while the reply itself links to the composed entity.
+ * instance family": in an aggregated view the parent may be linked to a child
+ * instance while the reply itself links to the composed instance.
  */
 async function resolveParentMessage(auth, context, parentMessageId = '') {
     const id = String(parentMessageId || '').trim();
@@ -667,10 +667,10 @@ async function resolveParentMessage(auth, context, parentMessageId = '') {
     const parentMessage = await repository.findById(id);
     if (!parentMessage) throw createError({ statusCode: 400, message: 'Parent message not found' });
     const sameConversation = parentMessage.conversationKey === context.conversationKey;
-    const sameEntityFamily = parentMessage.conversationKind === 'entity'
-        && context.kind === 'entity'
+    const sameInstanceFamily = parentMessage.conversationKind === 'instance'
+        && context.kind === 'instance'
         && String(parentMessage.organizationId || '') === String(context.organizationId || '');
-    if (!sameConversation && !sameEntityFamily) {
+    if (!sameConversation && !sameInstanceFamily) {
         throw createError({ statusCode: 400, message: 'Parent message must belong to the same conversation' });
     }
     const senderName = await resolveUserName(parentMessage.senderUserId);
@@ -688,7 +688,7 @@ async function resolveUserName(userId = '') {
     if (!userId) return '';
     try {
         const user = await usersService.getById(userId);
-        return entityDto(user)?.identity?.name || '';
+        return instanceDto(user)?.identity?.name || '';
     } catch {
         return '';
     }
@@ -699,12 +699,12 @@ function messageSnippet(message = {}) {
     return text ? text.slice(0, 140) : '';
 }
 
-async function resolveEntityMessageFields(auth, context) {
-    const scopedAuth = await resolveEntityOptionAuth(auth);
-    const entityPath = await buildEntityPath(scopedAuth, context.typeId, context.entity);
+async function resolveInstanceMessageFields(auth, context) {
+    const scopedAuth = await resolveInstanceOptionAuth(auth);
+    const instancePath = await buildInstancePath(scopedAuth, context.typeId, context.instance);
     return {
-        entityLink: entityPath[entityPath.length - 1],
-        entityPath,
+        instanceLink: instancePath[instancePath.length - 1],
+        instancePath,
         organizationId: context.organizationId
     };
 }
@@ -715,13 +715,13 @@ async function resolveEntityMessageFields(auth, context) {
  * list refreshes, and support-channel messages also ping the admin topic.
  */
 function notifyConversationEvent(context, message) {
-    if (context.kind === 'entity') {
+    if (context.kind === 'instance') {
         // Aggregated ancestor views subscribe to their own conversation
-        // topic, so the message fans out along the whole entity path; the
+        // topic, so the message fans out along the whole instance path; the
         // org topic pings every member inbox for the summary refresh.
         const keys = new Set([context.conversationKey]);
-        for (const entry of message.entityPath || []) {
-            keys.add(entityConversationKey(entry.type, entry.id));
+        for (const entry of message.instancePath || []) {
+            keys.add(instanceConversationKey(entry.type, entry.id));
         }
         for (const key of keys) {
             connectionsService.publish(`conversation:${key}`, {
@@ -762,9 +762,9 @@ connectionsService.registerTopicAuthorizer('conversation:', async (auth, topic) 
     return Boolean(context);
 });
 
-function normalizeMessage(message, entityRefs = [], attachment = null) {
+function normalizeMessage(message, instanceRefs = [], attachment = null) {
     const text = typeof message === 'string' ? message.trim() : '';
-    if (!text && !entityRefs.length && !attachment) {
+    if (!text && !instanceRefs.length && !attachment) {
         throw createError({ statusCode: 400, message: 'Message is required' });
     }
     return text;
@@ -797,30 +797,30 @@ function normalizeAttachment(attachment) {
     };
 }
 
-async function normalizeInstanceRefs(entityRefs = [], auth = {}, options = {}) {
-    if (!Array.isArray(entityRefs)) return [];
-    const scopedAuth = await resolveEntityOptionAuth(auth);
-    const allowedTypes = new Set(scopedEntityOptionTypes(scopedAuth).map(source => source.typeId));
-    const normalized = entityRefs
+async function normalizeInstanceRefs(instanceRefs = [], auth = {}, options = {}) {
+    if (!Array.isArray(instanceRefs)) return [];
+    const scopedAuth = await resolveInstanceOptionAuth(auth);
+    const allowedTypes = new Set(scopedInstanceOptionTypes(scopedAuth).map(source => source.typeId));
+    const normalized = instanceRefs
         .map(ref => ({
-            type: normalizeEntityOptionType(ref?.type),
+            type: normalizeInstanceOptionType(ref?.type),
             id: ref?.id?.toString?.().trim?.() || '',
             label: typeof ref?.label === 'string' ? ref.label.trim() : ''
         }))
         .filter(ref => ref.type && ref.id)
-        .slice(0, ENTITY_REF_LIMIT);
+        .slice(0, INSTANCE_REF_LIMIT);
 
     const refs = [];
     for (const ref of normalized) {
         if (!allowedTypes.has(ref.type)) continue;
-        const readableOptions = await listEntityOptions(scopedAuth, ref.type, ref.id, options.recipientUserId || null);
+        const readableOptions = await listInstanceOptions(scopedAuth, ref.type, ref.id, options.recipientUserId || null);
         const option = readableOptions.find(item => item.value?.toString?.() === ref.id || item.value === ref.id);
         if (option) {
             refs.push({
                 type: ref.type,
                 id: ref.id,
                 label: option.label,
-                entity: compactEntitySnapshot(ref.type, option.entity),
+                instance: compactInstanceSnapshot(ref.type, option.instance),
                 chatOnlyForRecipient: option.recipientHasAccess === false
             });
         }
@@ -847,7 +847,7 @@ async function buildConversationSummaries(messages, auth, options = {}) {
                 groupId: group ? group._id : undefined,
                 groupCreatorId: group ? group.origin?.userId : undefined,
                 lastMessage: message.message,
-                entityRefs: message.entityRefs || [],
+                instanceRefs: message.instanceRefs || [],
                 attachment: message.attachment || null,
                 senderUserId: message.senderUserId,
                 timestamp: message.timestamp,
@@ -867,7 +867,7 @@ async function buildConversationSummaries(messages, auth, options = {}) {
             groupId: group._id,
             groupCreatorId: group.origin?.userId,
             lastMessage: '',
-            entityRefs: [],
+            instanceRefs: [],
             senderUserId: '',
             timestamp: null,
             unreadCount: 0
@@ -934,7 +934,7 @@ async function applyConversationPrefsAndReads(rows, auth) {
 
 export async function updateConversationPrefs(auth, body = {}) {
     const conversationKey = String(body.conversationKey || '');
-    if (!/^(support|direct|group|entity):/.test(conversationKey)) {
+    if (!/^(support|direct|group|instance):/.test(conversationKey)) {
         throw createError({ statusCode: 400, message: 'Invalid conversationKey' });
     }
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
@@ -963,7 +963,7 @@ async function addReachableUserConversations(conversations, auth) {
             conversationKind: 'direct',
             participants: [auth.userId, userId].sort(),
             lastMessage: '',
-            entityRefs: [],
+            instanceRefs: [],
             timestamp: null,
             unreadCount: 0,
             participant: dto
@@ -1002,8 +1002,8 @@ async function resolveConversationParticipant(summary, auth) {
 
 export async function getConversationContextByKey(auth, conversationKey) {
     if (!conversationKey) throw createError({ statusCode: 400, message: 'Conversation key is required' });
-    if (conversationKey.startsWith('entity:')) {
-        return await getEntityConversationContext(auth, conversationKey);
+    if (conversationKey.startsWith('instance:')) {
+        return await getInstanceConversationContext(auth, conversationKey);
     }
     if (conversationKey === supportConversationKey(auth.userId)) {
         return await getUserConversationContext(auth, null);
@@ -1030,7 +1030,7 @@ function userConversationsMatch(userId, organizationId = null) {
             { userId, conversationKey: { $exists: false } },
             { conversationKind: 'direct', participants: userId },
             { conversationKind: 'group', participants: userId },
-            ...(organizationId ? [{ conversationKind: 'entity', organizationId }] : [])
+            ...(organizationId ? [{ conversationKind: 'instance', organizationId }] : [])
         ]
     };
 }
@@ -1042,20 +1042,20 @@ function adminSupportConversationsMatch() {
     };
 }
 
-async function loadEntityOptions(auth, type) {
-    const loader = entityOptionLoaderFor(type);
+async function loadInstanceOptions(auth, type) {
+    const loader = instanceOptionLoaderFor(type);
     if (!loader) return [];
 
     if (auth.process?.active && type !== 'user') {
-        const sources = scopedEntityOptionTypes(auth).filter(source => source.typeId === type);
-        if (sources.length) return await loadEntityOptionsForSources(auth, type, sources);
+        const sources = scopedInstanceOptionTypes(auth).filter(source => source.typeId === type);
+        if (sources.length) return await loadInstanceOptionsForSources(auth, type, sources);
     }
 
-    return dedupeEntities(await loader(auth, {}));
+    return dedupeInstances(await loader(auth, {}));
 }
 
-async function loadEntityOptionsForSources(auth, type, sources = []) {
-    const loader = entityOptionLoaderFor(type);
+async function loadInstanceOptionsForSources(auth, type, sources = []) {
+    const loader = instanceOptionLoaderFor(type);
     if (!loader || !sources.length) return [];
 
     const results = [];
@@ -1065,29 +1065,29 @@ async function loadEntityOptionsForSources(auth, type, sources = []) {
             results.push(...await loader(auth, filters));
         }
     }
-    return dedupeEntities(results);
+    return dedupeInstances(results);
 }
 
-function normalizeEntityOption(type, entity) {
-    const dto = entity?.toJSON ? entity.toJSON() : entity;
+function normalizeInstanceOption(type, instance) {
+    const dto = instance?.toJSON ? instance.toJSON() : instance;
     const value = dto?._id?.toString?.() || dto?._id || dto?.id || '';
     const label = dto?.identity?.name || dto?.identity?.serial || dto?.identity?.uid || value;
     return {
         type,
         value,
         label,
-        entity: dto
+        instance: dto
     };
 }
 
-function matchesEntityQuery(option, query) {
+function matchesInstanceQuery(option, query) {
     if (!query) return true;
-    return [option.label, option.value, option.entity?.identity?.uid, option.entity?.identity?.serial]
+    return [option.label, option.value, option.instance?.identity?.uid, option.instance?.identity?.serial]
         .filter(Boolean)
         .some(value => value.toString().toLowerCase().includes(query));
 }
 
-function normalizeEntityOptionType(type) {
+function normalizeInstanceOptionType(type) {
     if (typeof type !== 'string') return '';
     const value = type.trim();
     const aliases = {
@@ -1100,17 +1100,17 @@ function normalizeEntityOptionType(type) {
     return aliases[value] || value;
 }
 
-function isEntityOptionTypeAllowed(auth = {}, type) {
+function isInstanceOptionTypeAllowed(auth = {}, type) {
     if (!type) return false;
     if (type === 'user') return true;
-    return scopedEntityOptionSources(auth).some(source => source.typeId === type);
+    return scopedInstanceOptionSources(auth).some(source => source.typeId === type);
 }
 
-function scopedEntityOptionTypes(auth = {}) {
-    return dedupeSources(scopedEntityOptionSources(auth));
+function scopedInstanceOptionTypes(auth = {}) {
+    return dedupeSources(scopedInstanceOptionSources(auth));
 }
 
-function scopedEntityOptionSources(auth = {}) {
+function scopedInstanceOptionSources(auth = {}) {
     if (auth.process?.active) {
         const sources = [];
         for (const screen of auth.screens || []) {
@@ -1136,14 +1136,14 @@ function scopedEntityOptionSources(auth = {}) {
         return sources;
     }
 
-    return Object.keys(ENTITY_OPTION_LOADERS)
+    return Object.keys(INSTANCE_OPTION_LOADERS)
         .filter(typeId => typeId !== 'user')
         .map(typeId => ({ typeId, label: typeId }));
 }
 
 /**
  * Mirrors the client-side `artifactCreatorForAction` detection: a
- * createEntity action whose inputs carry an upload/capture/editor creator.
+ * createInstance action whose inputs carry an upload/capture/editor creator.
  * Compiled manifests carry attachment kinds as the expanded
  * `[{ kind, creation }]` array; unknown shapes score no creator credit
  * instead of throwing (a malformed manifest must not take down messaging).
@@ -1152,7 +1152,7 @@ function hasArtifactCreatorAction(auth = {}) {
     return (auth.roleAssignments?.actions || []).some(action => (
         // The manifest speaks the projected UI-contract kinds beside the
         // legacy exposure fields; both identify creates.
-        ['createEntity', 'createInstance'].includes(action?.actionKind)
+        ['createInstance', 'createInstance'].includes(action?.actionKind)
         && [...(action.inputPolicy?.fields || []), ...(action.construction?.inputs || [])]
             .some(field => field?.creator?.typeId && userCreatableAttachmentKinds(field.creator.attachmentKinds))
     ));
@@ -1228,7 +1228,7 @@ function resolveFilterPlaceholders(value, scope = {}) {
         return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveFilterPlaceholders(item, scope)]));
     }
     if (value === '$screen.instanceId' || value === '$screen.scope.instanceId') {
-        return resolveScopeEntityId(scope) || value;
+        return resolveScopeInstanceId(scope) || value;
     }
     return value;
 }
@@ -1237,13 +1237,13 @@ async function expandParentScopedFilters(auth, filters = {}, source = {}) {
     const parentType = source.screenTypeId;
     if (!parentType) return [];
 
-    const parentSources = scopedEntityOptionSources(auth).filter(item => item.typeId === parentType);
+    const parentSources = scopedInstanceOptionSources(auth).filter(item => item.typeId === parentType);
     if (!parentSources.length) return [];
 
-    const parentEntities = await loadEntityOptionsForSources(auth, parentType, parentSources).catch(() => []);
+    const parentEntities = await loadInstanceOptionsForSources(auth, parentType, parentSources).catch(() => []);
     const parentIds = parentEntities
-        .map(entity => {
-            const dto = entity?.toJSON ? entity.toJSON() : entity;
+        .map(instance => {
+            const dto = instance?.toJSON ? instance.toJSON() : instance;
             return dto?._id?.toString?.() || dto?._id || dto?.id || null;
         })
         .filter(Boolean);
@@ -1260,7 +1260,7 @@ async function expandParentScopedFilters(auth, filters = {}, source = {}) {
     return expansions;
 }
 
-function resolveScopeEntityId(scope = {}) {
+function resolveScopeInstanceId(scope = {}) {
     if (scope.instanceId) return scope.instanceId;
     for (const [key, value] of Object.entries(scope || {})) {
         if (key.endsWith('Id') && value) return value;
@@ -1289,29 +1289,29 @@ function hasUnresolvedScreenScope(value) {
     return typeof value === 'string' && value.startsWith('$screen.');
 }
 
-function dedupeEntities(entities = []) {
+function dedupeInstances(instances = []) {
     const byId = new Map();
-    for (const entity of entities) {
-        const dto = entity?.toJSON ? entity.toJSON() : entity;
+    for (const instance of instances) {
+        const dto = instance?.toJSON ? instance.toJSON() : instance;
         const id = dto?._id?.toString?.() || dto?._id || dto?.id;
         if (!id || byId.has(id)) continue;
-        byId.set(id, entity);
+        byId.set(id, instance);
     }
     return [...byId.values()];
 }
 
-async function listReadableEntityIds(auth, type) {
-    const entities = await loadEntityOptions(auth, type).catch(() => []);
-    return new Set(entities
-        .map(entity => {
-            const dto = entity?.toJSON ? entity.toJSON() : entity;
+async function listReadableInstances(auth, type) {
+    const instances = await loadInstanceOptions(auth, type).catch(() => []);
+    return new Set(instances
+        .map(instance => {
+            const dto = instance?.toJSON ? instance.toJSON() : instance;
             return dto?._id?.toString?.() || dto?._id || dto?.id || null;
         })
         .filter(Boolean));
 }
 
-function compactEntitySnapshot(type, entity) {
-    const dto = entity?.toJSON ? entity.toJSON() : entity;
+function compactInstanceSnapshot(type, instance) {
+    const dto = instance?.toJSON ? instance.toJSON() : instance;
     if (!dto || typeof dto !== 'object') return null;
 
     const snapshot = {
@@ -1373,7 +1373,7 @@ async function resolveConversationParticipantAuth(requesterAuth = {}, participan
     });
 }
 
-async function resolveEntityOptionAuth(auth = {}) {
+async function resolveInstanceOptionAuth(auth = {}) {
     if (!auth?.userId) return auth;
     if (auth.process?.active || Array.isArray(auth.screens) || auth.effectivePermissions) return auth;
     const resolved = await resolveProcessAuth(auth);
@@ -1430,10 +1430,10 @@ function messageProjection() {
         conversationKey: 1,
         conversationKind: 1,
         participants: 1,
-        entityRefs: 1,
+        instanceRefs: 1,
         attachment: 1,
-        entityLink: 1,
-        entityPath: 1,
+        instanceLink: 1,
+        instancePath: 1,
         parent: 1,
         organizationId: 1
     };

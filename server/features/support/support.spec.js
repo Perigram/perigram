@@ -126,7 +126,7 @@ describe('support communication service', () => {
         conversationKind: 'direct',
         participants: ['user-a', 'user-b'],
         message: 'new',
-        entityRefs: [{ type: 'queue', id: 'queue-1', label: 'Queue 1' }],
+        instanceRefs: [{ type: 'queue', id: 'queue-1', label: 'Queue 1' }],
         senderUserId: 'user-b',
         timestamp: new Date('2026-06-27T10:00:00.000Z')
       },
@@ -157,7 +157,7 @@ describe('support communication service', () => {
 
     expect(conversations.find(item => item.conversationKey === 'direct:user-a:user-b')).toMatchObject({
       lastMessage: 'new',
-      entityRefs: [{ type: 'queue', id: 'queue-1', label: 'Queue 1' }],
+      instanceRefs: [{ type: 'queue', id: 'queue-1', label: 'Queue 1' }],
       unreadCount: 1,
       participant: { _id: 'user-b' }
     });
@@ -273,14 +273,14 @@ describe('support communication service', () => {
       }]
     };
 
-    await expect(supportService.listEntityOptionTypes(processAuth)).resolves.toEqual([
+    await expect(supportService.listInstanceOptionTypes(processAuth)).resolves.toEqual([
       { value: 'queue', label: 'My Queues', labelKey: null, sourceId: 'queue', screenKey: 'queue_screen' },
       { value: 'external_record', label: 'Readable External Records', labelKey: null, sourceId: 'external_record', screenKey: 'queue_screen' }
     ]);
   });
 
 
-  it('loads concrete options for generated readable entity sources', async () => {
+  it('loads concrete options for generated readable instance sources', async () => {
     mocks.sheetDesignsService.list.mockResolvedValue([
       { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
     ]);
@@ -301,7 +301,7 @@ describe('support communication service', () => {
       }]
     };
 
-    const options = await supportService.listEntityOptions(processAuth, 'sheet_design', 'alpha');
+    const options = await supportService.listInstanceOptions(processAuth, 'sheet_design', 'alpha');
 
     expect(mocks.sheetDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {});
     expect(options).toEqual([
@@ -309,7 +309,7 @@ describe('support communication service', () => {
         type: 'sheet_design',
         value: 'sheet-1',
         label: 'Sheet Alpha',
-        entity: { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
+        instance: { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
       }
     ]);
   });
@@ -319,7 +319,7 @@ describe('support communication service', () => {
 
 
 
-  it('keeps cassette preview fields in compact chat entity snapshots', async () => {
+  it('keeps cassette preview fields in compact chat instance snapshots', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     mocks.cassettesService.list.mockResolvedValue([
       {
@@ -338,14 +338,14 @@ describe('support communication service', () => {
 
     const message = await supportService.sendUserMessage(auth, {
       message: 'Preview',
-      entityRefs: [{ type: 'cassette', id: 'cassette-1' }]
+      instanceRefs: [{ type: 'cassette', id: 'cassette-1' }]
     });
 
-    expect(message.entityRefs).toEqual([
+    expect(message.instanceRefs).toEqual([
       expect.objectContaining({
         type: 'cassette',
         id: 'cassette-1',
-        entity: expect.objectContaining({
+        instance: expect.objectContaining({
           _id: 'cassette-1',
           data: expect.objectContaining({
             type: 'STANDARD',
@@ -357,7 +357,7 @@ describe('support communication service', () => {
     ]);
   });
 
-  it('normalizes frontend entity type aliases before validating sent refs', async () => {
+  it('normalizes frontend instance type aliases before validating sent refs', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     mocks.cassettesService.list.mockResolvedValue([
       {
@@ -371,10 +371,10 @@ describe('support communication service', () => {
 
     const message = await supportService.sendUserMessage(auth, {
       message: 'Alias',
-      entityRefs: [{ type: 'cassetteTemplate', id: 'cassette-1' }]
+      instanceRefs: [{ type: 'cassetteTemplate', id: 'cassette-1' }]
     });
 
-    expect(message.entityRefs).toEqual([
+    expect(message.instanceRefs).toEqual([
       expect.objectContaining({
         type: 'cassette',
         id: 'cassette-1',
@@ -397,11 +397,11 @@ describe('support communication service', () => {
 
     const message = await supportService.sendUserMessage(auth, {
       message: '   ',
-      entityRefs: [{ type: 'cassette', id: 'cassette-1' }]
+      instanceRefs: [{ type: 'cassette', id: 'cassette-1' }]
     });
 
     expect(message.message).toBe('');
-    expect(message.entityRefs).toEqual([
+    expect(message.instanceRefs).toEqual([
       expect.objectContaining({
         type: 'cassette',
         id: 'cassette-1',
@@ -476,7 +476,7 @@ describe('support communication service', () => {
       screens: [],
       roleAssignments: {
         actions: [{
-          actionKind: 'createEntity',
+          actionKind: 'createInstance',
           construction: {
             inputs: [{
               creator: {
@@ -495,10 +495,10 @@ describe('support communication service', () => {
 
     const message = await supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
-      entityRefs: [{ type: 'artifact', id: 'artifact-1' }]
+      instanceRefs: [{ type: 'artifact', id: 'artifact-1' }]
     });
 
-    expect(message.entityRefs).toEqual([
+    expect(message.instanceRefs).toEqual([
       expect.objectContaining({
         type: 'artifact',
         id: 'artifact-1',
@@ -523,10 +523,10 @@ describe('support communication service', () => {
     const message = await supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
       message: 'no artifacts here',
-      entityRefs: [{ type: 'artifact', id: 'artifact-1' }]
+      instanceRefs: [{ type: 'artifact', id: 'artifact-1' }]
     });
 
-    expect(message.entityRefs).toEqual([]);
+    expect(message.instanceRefs).toEqual([]);
   });
 
   it('tolerates non-array attachment-kind shapes on creator actions instead of failing', async () => {
@@ -537,7 +537,7 @@ describe('support communication service', () => {
       screens: [],
       roleAssignments: {
         actions: [{
-          actionKind: 'createEntity',
+          actionKind: 'createInstance',
           typeId: 'artifact',
           construction: {
             inputs: [{ id: 'artifact', creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' } }]
@@ -553,35 +553,35 @@ describe('support communication service', () => {
     // Regression: a manifest whose creator kinds were not expanded by the
     // compiler must degrade to "no creator credit", not throw a 500 that
     // takes down type-ids, instance-options, and every message send.
-    await expect(supportService.listEntityOptionTypes(auth)).resolves.toEqual([]);
+    await expect(supportService.listInstanceOptionTypes(auth)).resolves.toEqual([]);
     await expect(supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
       message: 'unexpanded kinds must not break sends'
     })).resolves.toBeTruthy();
   });
-  it('resolves entity conversation contexts through the scoped registry read', async () => {
+  it('resolves instance conversation contexts through the scoped registry read', async () => {
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async (id) => (type === 'project' && id === 'project-1'
         ? { toJSON: () => ({ _id: 'project-1', identity: { name: 'Facade Alpha' }, lineage: { organizationId: 'org-1' } }) }
         : null))
     }));
 
-    const context = await supportService.getEntityConversationContext(auth, 'entity:project:project-1');
+    const context = await supportService.getInstanceConversationContext(auth, 'instance:project:project-1');
 
     expect(context).toMatchObject({
-      kind: 'entity',
-      conversationKey: 'entity:project:project-1',
+      kind: 'instance',
+      conversationKey: 'instance:project:project-1',
       typeId: 'project',
-      entityName: 'Facade Alpha',
+      instanceName: 'Facade Alpha',
       organizationId: 'org-1'
     });
-    await expect(supportService.getEntityConversationContext(auth, 'entity:project:missing'))
+    await expect(supportService.getInstanceConversationContext(auth, 'instance:project:missing'))
       .rejects.toMatchObject({ statusCode: 403 });
-    await expect(supportService.getEntityConversationContext(auth, 'entity:project'))
+    await expect(supportService.getInstanceConversationContext(auth, 'instance:project'))
       .rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('resolves child-entity contexts through the scoped option window', async () => {
+  it('resolves child-instance contexts through the scoped option window', async () => {
     // Direct registry reads deny cassettes; the scoped list window the
     // picker browses still returns them, and the chat context follows it.
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
@@ -593,7 +593,7 @@ describe('support communication service', () => {
       { toJSON: () => ({ _id: 'cassette-1', identity: { name: 'Iklya' }, lineage: { organizationId: 'org-1', libraryId: 'library-1' }, data: {} }) }
     ]);
 
-    const context = await supportService.getEntityConversationContext({
+    const context = await supportService.getInstanceConversationContext({
       ...auth,
       process: { active: true, lineageBindings: [] },
       screens: [{
@@ -601,30 +601,30 @@ describe('support communication service', () => {
         sources: [{ id: 'cassette', typeId: 'cassette', mode: 'list' }]
       }],
       effectivePermissions: {}
-    }, 'entity:cassette:cassette-1');
+    }, 'instance:cassette:cassette-1');
 
     expect(context).toMatchObject({
-      kind: 'entity',
-      conversationKey: 'entity:cassette:cassette-1',
-      entityName: 'Iklya'
+      kind: 'instance',
+      conversationKey: 'instance:cassette:cassette-1',
+      instanceName: 'Iklya'
     });
   });
 
-  it('composes aggregated entity views through the entity path', () => {
+  it('composes aggregated instance views through the instance path', () => {
     const context = {
       typeId: 'organization',
       instanceId: 'org-1',
-      match: { conversationKey: 'entity:organization:org-1' }
+      match: { conversationKey: 'instance:organization:org-1' }
     };
-    expect(supportService.entityConversationMatch(context, true)).toEqual({
-      entityPath: { $elemMatch: { type: 'organization', id: 'org-1' } }
+    expect(supportService.instanceConversationMatch(context, true)).toEqual({
+      instancePath: { $elemMatch: { type: 'organization', id: 'org-1' } }
     });
-    expect(supportService.entityConversationMatch(context, false)).toEqual({
-      conversationKey: 'entity:organization:org-1'
+    expect(supportService.instanceConversationMatch(context, false)).toEqual({
+      conversationKey: 'instance:organization:org-1'
     });
   });
 
-  it('links messages to entities with an ancestry path rooted at the organization', async () => {
+  it('links messages to instances with an ancestry path rooted at the organization', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     const table = {
       'queue:queue-1': { _id: 'queue-1', identity: { name: 'Queue 1' }, lineage: { organizationId: 'org-1', projectId: 'project-1' } },
@@ -637,33 +637,33 @@ describe('support communication service', () => {
         return dto ? { toJSON: () => dto } : null;
       })
     }));
-    const entityAuth = {
+    const instanceAuth = {
       ...auth,
       process: { active: true, lineageBindings: [
         { childTypeId: 'queue', parentTypeId: 'project', lineageKey: 'projectId' }
       ] }
     };
 
-    const message = await supportService.sendUserMessage(entityAuth, {
-      entity: { type: 'queue', id: 'queue-1' },
+    const message = await supportService.sendUserMessage(instanceAuth, {
+      instance: { type: 'queue', id: 'queue-1' },
       message: 'nested update'
     });
 
-    expect(message.conversationKey).toBe('entity:queue:queue-1');
-    expect(message.conversationKind).toBe('entity');
-    expect(message.entityLink).toEqual({ type: 'queue', id: 'queue-1', name: 'Queue 1' });
-    expect(message.entityPath).toEqual([
+    expect(message.conversationKey).toBe('instance:queue:queue-1');
+    expect(message.conversationKind).toBe('instance');
+    expect(message.instanceLink).toEqual({ type: 'queue', id: 'queue-1', name: 'Queue 1' });
+    expect(message.instancePath).toEqual([
       { type: 'organization', id: 'org-1', name: 'Org1' },
       { type: 'project', id: 'project-1', name: 'Facade Alpha' },
       { type: 'queue', id: 'queue-1', name: 'Queue 1' }
     ]);
     expect(message.organizationId).toBe('org-1');
     expect(mocks.connectionsPublish).toHaveBeenCalledWith(
-      'conversation:entity:organization:org-1',
+      'conversation:instance:organization:org-1',
       expect.objectContaining({ type: 'message' })
     );
     expect(mocks.connectionsPublish).toHaveBeenCalledWith(
-      'conversation:entity:queue:queue-1',
+      'conversation:instance:queue:queue-1',
       expect.objectContaining({ type: 'message' })
     );
     expect(mocks.connectionsPublish).toHaveBeenCalledWith(
@@ -672,12 +672,12 @@ describe('support communication service', () => {
     );
   });
 
-  it('denormalizes quoted parents and accepts replies across the composed entity family', async () => {
+  it('denormalizes quoted parents and accepts replies across the composed instance family', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     mocks.repository.findById.mockResolvedValue({
       _id: 'parent-1',
-      conversationKey: 'entity:queue:queue-1',
-      conversationKind: 'entity',
+      conversationKey: 'instance:queue:queue-1',
+      conversationKind: 'instance',
       organizationId: 'org-1',
       senderUserId: 'user-b',
       message: 'Original point that is long enough to quote',
@@ -694,7 +694,7 @@ describe('support communication service', () => {
     }));
 
     const message = await supportService.sendUserMessage({ ...auth, process: { active: true, lineageBindings: [] } }, {
-      entity: { type: 'organization', id: 'org-1' },
+      instance: { type: 'organization', id: 'org-1' },
       message: 'replying at the top level',
       parentMessageId: 'parent-1'
     });
@@ -707,24 +707,24 @@ describe('support communication service', () => {
 
     mocks.repository.findById.mockResolvedValue({
       _id: 'parent-2',
-      conversationKey: 'entity:queue:queue-9',
-      conversationKind: 'entity',
+      conversationKey: 'instance:queue:queue-9',
+      conversationKind: 'instance',
       organizationId: 'org-other',
       senderUserId: 'user-b',
       message: 'elsewhere',
       timestamp: new Date('2026-09-16T10:00:00.000Z')
     });
     await expect(supportService.sendUserMessage({ ...auth, process: { active: true, lineageBindings: [] } }, {
-      entity: { type: 'organization', id: 'org-1' },
+      instance: { type: 'organization', id: 'org-1' },
       message: 'cross-family reply',
       parentMessageId: 'parent-2'
     })).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('joins entity chats at the top-level nodes of the lineage trees', async () => {
+  it('joins instance chats at the top-level nodes of the lineage trees', async () => {
     // Live lineage: the queue carries projectId; the walk climbs to the
     // project whose type has no non-organization parent binding, even when
-    // the stored entityPath is degraded.
+    // the stored instancePath is degraded.
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async (id) => {
         const table = {
@@ -739,11 +739,11 @@ describe('support communication service', () => {
     }));
     mocks.repository.findConversationMessages.mockResolvedValue([
       {
-        conversationKey: 'entity:queue:queue-1',
-        conversationKind: 'entity',
+        conversationKey: 'instance:queue:queue-1',
+        conversationKind: 'instance',
         organizationId: 'org-1',
-        entityLink: { type: 'queue', id: 'queue-1', name: 'Queue 1' },
-        entityPath: [
+        instanceLink: { type: 'queue', id: 'queue-1', name: 'Queue 1' },
+        instancePath: [
           { type: 'organization', id: 'org-1', name: 'Org1' },
           { type: 'queue', id: 'queue-1', name: 'Queue 1' }
         ],
@@ -752,11 +752,11 @@ describe('support communication service', () => {
         timestamp: new Date('2026-09-16T10:00:00.000Z')
       },
       {
-        conversationKey: 'entity:organization:org-1',
-        conversationKind: 'entity',
+        conversationKey: 'instance:organization:org-1',
+        conversationKind: 'instance',
         organizationId: 'org-1',
-        entityLink: { type: 'organization', id: 'org-1', name: 'Org1' },
-        entityPath: [{ type: 'organization', id: 'org-1', name: 'Org1' }],
+        instanceLink: { type: 'organization', id: 'org-1', name: 'Org1' },
+        instancePath: [{ type: 'organization', id: 'org-1', name: 'Org1' }],
         message: 'org-level',
         senderUserId: 'user-b',
         timestamp: new Date('2026-09-16T11:00:00.000Z')
@@ -771,24 +771,24 @@ describe('support communication service', () => {
     // The queue message climbs its live lineage to the project (top-level
     // type); the org-linked message keeps the organization row; the queue
     // stays available as a Detailed leaf row.
-    const entityRows = conversations.filter(item => item.conversationKind === 'entity');
-    expect(entityRows).toEqual([
+    const instanceRows = conversations.filter(item => item.conversationKind === 'instance');
+    expect(instanceRows).toEqual([
       expect.objectContaining({
-        conversationKey: 'entity:organization:org-1',
-        isEntityRoot: true,
-        entityName: 'Org1',
+        conversationKey: 'instance:organization:org-1',
+        isInstanceRoot: true,
+        instanceName: 'Org1',
         unreadCount: 1
       }),
       expect.objectContaining({
-        conversationKey: 'entity:project:project-1',
+        conversationKey: 'instance:project:project-1',
         typeId: 'project',
-        entityName: 'P1',
+        instanceName: 'P1',
         unreadCount: 1
       }),
       expect.objectContaining({
-        conversationKey: 'entity:queue:queue-1',
+        conversationKey: 'instance:queue:queue-1',
         isLeafRow: true,
-        entityName: 'Queue 1',
+        instanceName: 'Queue 1',
         unreadCount: 1
       })
     ]);
@@ -941,14 +941,14 @@ describe('support communication service', () => {
         { id: 'work_orders', typeId: 'work_order', mode: 'list', label: 'Work Orders' }
       ]);
 
-      const options = await supportService.listEntityOptions(processAuth, 'work_order', 'one');
+      const options = await supportService.listInstanceOptions(processAuth, 'work_order', 'one');
 
       expect(options).toEqual([
-        { type: 'work_order', value: 'wo-1', label: 'WO One', entity: wo1 }
+        { type: 'work_order', value: 'wo-1', label: 'WO One', instance: wo1 }
       ]);
     });
 
-    it('resolves the entity context through the scoped source pool when the direct registry read misses', async () => {
+    it('resolves the instance context through the scoped source pool when the direct registry read misses', async () => {
       const wo1 = ctsDto('work_order', 'wo-1', 'WO One');
       registryWith({
         work_order: {
@@ -960,13 +960,13 @@ describe('support communication service', () => {
         { id: 'work_orders', typeId: 'work_order', mode: 'list' }
       ]);
 
-      await expect(supportService.getEntityConversationContext(processAuth, 'entity:work_order:wo-1'))
+      await expect(supportService.getInstanceConversationContext(processAuth, 'instance:work_order:wo-1'))
         .resolves.toMatchObject({
-          kind: 'entity',
+          kind: 'instance',
           typeId: 'work_order',
           instanceId: 'wo-1',
-          entityName: 'WO One',
-          conversationKey: 'entity:work_order:wo-1'
+          instanceName: 'WO One',
+          conversationKey: 'instance:work_order:wo-1'
         });
     });
 
@@ -986,21 +986,21 @@ describe('support communication service', () => {
       mocks.repository.insert.mockImplementation(async (record) => record);
 
       await supportService.sendUserMessage(processAuth, {
-        entity: { type: 'panel', id: 'panel-9' },
+        instance: { type: 'panel', id: 'panel-9' },
         message: 'child update'
       });
 
       const record = mocks.repository.insert.mock.calls[0][0];
-      expect(record.entityLink).toMatchObject({ type: 'panel', id: 'panel-9', name: 'Panel Nine' });
-      expect(record.entityPath.map(entry => `${entry.type}:${entry.id}`))
+      expect(record.instanceLink).toMatchObject({ type: 'panel', id: 'panel-9', name: 'Panel Nine' });
+      expect(record.instancePath.map(entry => `${entry.type}:${entry.id}`))
         .toEqual(['organization:org-1', 'work_order:wo-1', 'panel:panel-9']);
 
-      const parentContext = await supportService.getEntityConversationContext(processAuth, 'entity:work_order:wo-1');
-      expect(supportService.entityConversationMatch(parentContext, true)).toEqual({
-        entityPath: { $elemMatch: { type: 'work_order', id: 'wo-1' } }
+      const parentContext = await supportService.getInstanceConversationContext(processAuth, 'instance:work_order:wo-1');
+      expect(supportService.instanceConversationMatch(parentContext, true)).toEqual({
+        instancePath: { $elemMatch: { type: 'work_order', id: 'wo-1' } }
       });
-      expect(supportService.entityConversationMatch(parentContext, false)).toEqual({
-        conversationKey: 'entity:work_order:wo-1'
+      expect(supportService.instanceConversationMatch(parentContext, false)).toEqual({
+        conversationKey: 'instance:work_order:wo-1'
       });
     });
 
@@ -1020,7 +1020,7 @@ describe('support communication service', () => {
         { id: 'work_orders', typeId: 'work_order', mode: 'list' }
       ]);
 
-      const options = await supportService.listEntityOptions(processAuth, 'work_order', '', 'user-b');
+      const options = await supportService.listInstanceOptions(processAuth, 'work_order', '', 'user-b');
 
       expect(options.find(option => option.value === 'wo-1')?.recipientHasAccess).toBe(true);
     });

@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
-const TOKEN_PATTERN = /\{\{entity:([^:}]+):([^}]+)\}\}/g;
+const TOKEN_PATTERN = /\{\{instance:([^:}]+):([^}]+)\}\}/g;
 
 const props = defineProps({
   message: { type: Object, required: true },
@@ -17,7 +17,7 @@ const { t } = useI18n();
 
 const refsByKey = computed(() => {
   const refs = new Map();
-  for (const ref of props.message.entityRefs || []) {
+  for (const ref of props.message.instanceRefs || []) {
     if (ref?.type && ref?.id) refs.set(`${ref.type}:${ref.id}`, ref);
   }
   return refs;
@@ -34,7 +34,7 @@ const parts = computed(() => {
     const typeId = match[1];
     const id = match[2];
     result.push({
-      type: 'entity',
+      type: 'instance',
       typeId,
       id,
       ref: refsByKey.value.get(`${typeId}:${id}`) || { type: typeId, id }
@@ -45,8 +45,8 @@ const parts = computed(() => {
   return result.length ? result : [{ type: 'text', value: text }];
 });
 
-const trailingRefs = computed(() => (props.message.entityRefs || [])
-  .filter(ref => ref?.type && ref?.id && !props.message.message?.includes(`{{entity:${ref.type}:${ref.id}}}`)));
+const trailingRefs = computed(() => (props.message.instanceRefs || [])
+  .filter(ref => ref?.type && ref?.id && !props.message.message?.includes(`{{instance:${ref.type}:${ref.id}}}`)));
 
 const voiceMessage = computed(() => props.message.attachment?.kind === 'audio');
 
@@ -77,9 +77,9 @@ const withLinks = (text) => {
 };
 
 const refNeedsHydration = (ref = {}) => {
-  if (!ref.entity || typeof ref.entity !== 'object') return true;
+  if (!ref.instance || typeof ref.instance !== 'object') return true;
   if (ref.type === 'cassette') {
-    const data = ref.entity.data || {};
+    const data = ref.instance.data || {};
     return !data.type && !data.definition && !data.geometry && !data.layerData && !data.polygonParts;
   }
   return false;
@@ -129,7 +129,7 @@ const canFetchRef = (ref = {}) => {
         v-else
         :type="part.typeId"
         :id="part.id"
-        :entity="part.ref.entity || null"
+        :entity="part.ref.instance || null"
         :fetch="canFetchRef(part.ref)"
         :allow-detail-route="!(viewerUserId && message.senderUserId && message.senderUserId !== viewerUserId && part.ref.chatOnlyForRecipient)"
         class="max-w-full"
@@ -140,7 +140,7 @@ const canFetchRef = (ref = {}) => {
       :key="`${ref.type}-${ref.id}`"
       :type="ref.type"
       :id="ref.id"
-      :entity="ref.entity || null"
+      :entity="ref.instance || null"
       :fetch="canFetchRef(ref)"
       :allow-detail-route="!(viewerUserId && message.senderUserId && message.senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
       class="max-w-full"
