@@ -1,7 +1,7 @@
 # COMPONENT: Support Chat
 
 Support chat is a capability module backed by the `supportMessages`
-collection. It is not a v24 entity module, but API routes still delegate message
+collection. It is not a v24 instance module, but API routes still delegate message
 normalization and conversation selection to `service.js`, while `repository.js`
 owns raw MongoDB access. Realtime delivery rides the shared connections layer
 ([connections feature](../connections/README.md)): message and read events
@@ -17,13 +17,16 @@ Messages have a deterministic `conversationKey`:
 | User to support | `support:<userId>` | The customer user id |
 | User to user | `direct:<sorted-user-id-a>:<sorted-user-id-b>` | Both user ids, sorted |
 | Group chat | `group:<chatGroupId>` | The persisted group's member ids |
-| Entity chat | `entity:<typeId>:<instanceId>` | The sender (org-scoped read) |
+| Instance chat | `instance:<typeId>:<instanceId>` | The sender (org-scoped read) |
 
 Legacy support messages without `conversationKey` remain readable through the
 support-channel match for the same `userId`. New writes always persist
 `conversationKey`, `conversationKind`, `participants`, `senderUserId`,
-`message`, `entityRefs`, `timestamp`, and optionally `attachment` (see
-[Voice Messages](#voice-messages)).
+`message`, `instanceRefs`, `timestamp`, and optionally `attachment` (see
+[Voice Messages](#voice-messages)). The instance vocabulary is one-way:
+`server/scripts/migrate-instance-chat-vocabulary.js` rewrites persisted
+`entity:` keys, kinds, fields, `{{entity:}}` tokens, and ref snapshots to
+the instance spellings (dry-run by default, `--apply` to persist).
 
 ### Inbox Preferences and Read Marks
 
@@ -82,26 +85,26 @@ unread counts from messages sent after `lastReadAt` by another sender.
 The Chats inbox starts a direct thread explicitly through its user picker,
 rather than pre-creating empty conversations for every reachable organization
 user.
-Conversation summaries include the last message's `entityRefs` so the inbox can
-render entity chips in message previews.
+Conversation summaries include the last message's `instanceRefs` so the inbox can
+render instance chips in message previews.
 The app-shell badge owns unread notification counts; individual drawer rows do
 not show message/unread counts.
 
-## Inline Entity References
+## Inline Instance References
 
-Chat messages can carry structured `entityRefs`:
+Chat messages can carry structured `instanceRefs`:
 
 ```json
 [{ "type": "project", "id": "..." }]
 ```
 
-`SupportMessageContent.vue` renders inline `{{entity:type:id}}` tokens as
+`SupportMessageContent.vue` renders inline `{{instance:type:id}}` tokens as
 `InstanceInlineRef` chips for legacy/token-authored text and also renders
-structured refs from `message.entityRefs[]`. The chat composer stores selected
-entities only in `entityRefs`; it does not inject attachment tokens into the
+structured refs from `message.instanceRefs[]`. The chat composer stores selected
+instances only in `instanceRefs`; it does not inject attachment tokens into the
 message body.
 
-Entity ref types come from readable generated screen sources in the current
+Instance ref types come from readable generated screen sources in the current
 `auth.screens` process manifest. `GET /api/support/instance-types` is therefore a
 generated-scope endpoint, not a hardcoded chat allowlist, and includes any
 non-`single` source whose requirement is satisfied at read level or stronger.
@@ -121,31 +124,31 @@ loader to be pickable or linkable in chats. Chat option lists use those generate
 filters when they are concrete. Because the current endpoint is keyed by
 `type` rather than `sourceId`, each attachment type uses the first readable
 generated source exposed by `instance-types`; support does not union multiple
-generated sources of the same entity type behind one picker row. For
+generated sources of the same instance type behind one picker row. For
 detail-child list sources that still depend
 on `$screen.instanceId` /
 `$screen.scope.instanceId`, the support service expands the child query across the
-sender's readable parent entities for that screen instead of falling back to an
+sender's readable parent instances for that screen instead of falling back to an
 unbounded organization-wide list. Generated detail `single` sources are not
 used as attachment-option loaders, so a detail route cannot widen a picker past
-the process list windows that actually expose that entity type.
+the process list windows that actually expose that instance type.
 
 For direct chats, the instance-options endpoint also evaluates the recipient's
 resolved process auth and marks options that the recipient cannot read through
 their own access contract. The composer renders those as chat-only warnings.
-When such a ref is sent, the stored `entityRefs[]` entry keeps a compact entity
+When such a ref is sent, the stored `instanceRefs[]` entry keeps a compact instance
 snapshot plus `chatOnlyForRecipient=true`, so the recipient can still inspect
-that entity inside chat without gaining generated-screen access.
+that instance inside chat without gaining generated-screen access.
 Cassette snapshots must retain preview-driving fields such as `data.type` and
 `data.definition`, because direct-chat inline cards render from the stored
 snapshot instead of refetching protected cassette endpoints.
 Message writes drop unsupported or unreadable refs instead of accepting
-arbitrary ids. Incoming refs normalize common frontend/entity-surface aliases
+arbitrary ids. Incoming refs normalize common frontend/instance-surface aliases
 such as `cassetteTemplate`, `sheetDesign`, and `entityRevision` to their
 canonical backend snake-case types before that validation step, so
 status-history drafts and other UI-local relation refs do not disappear on
 send. Messages may contain
-only attachments; an empty body is valid as long as at least one entity ref
+only attachments; an empty body is valid as long as at least one instance ref
 survives write-time validation.
 
 ### Artifact Refs
@@ -164,48 +167,48 @@ offer "create artifact" and reference the freshly created artifact, without
 widening artifact reads past the process windows: option loading still goes
 through the scoped artifacts list service.
 
-## Entity-Linked Chats
+## Instance-Linked Chats
 
-Messages may be linked to one entity (`entity: { type, id }` on send). The
-server resolves the entity through the auth-scoped registry read
-(`processGetById`), persists `entityLink {type,id,name}`, and walks the
-lineage bindings upward to persist `entityPath [{type,id,name}]` with the
-organization root first, every ancestor, then the linked entity. Entity
+Messages may be linked to one instance (`instance: { type, id }` on send). The
+server resolves the instance through the auth-scoped registry read
+(`processGetById`), persists `instanceLink {type,id,name}`, and walks the
+lineage bindings upward to persist `instancePath [{type,id,name}]` with the
+organization root first, every ancestor, then the linked instance. Instance
 messages also carry `organizationId`, which scopes the inbox query and the
-organization-topic fanout. Chats over entities are composed views, not
+organization-topic fanout. Chats over instances are composed views, not
 separate threads:
 
-- Narrow view: `GET /api/support/messages?entity=<type>:<id>&includeChildren=0`
-  matches the entity's own conversation key.
+- Narrow view: `GET /api/support/messages?instance=<type>:<id>&includeChildren=0`
+  matches the instance's own conversation key.
 - Composed view (default): `includeChildren=1` matches any message whose
-  `entityPath` contains the entity, so a top-level chat lists the top entity
+  `instancePath` contains the instance, so a top-level chat lists the top instance
   plus every descendant message.
 
-Authorization resolves the entity through the process-scoped registry read,
+Authorization resolves the instance through the process-scoped registry read,
 falling back to every generated source of the type and, finally, to the
-exists-but-denied registry answer (403 vs 404): entities the org process
+exists-but-denied registry answer (403 vs 404): instances the org process
 owns but whose grants deny reads still admit chats with a bare link and an
-organization-only path. Truly unknown entities yield `403`. Realtime
-fanout publishes the message event to every `conversation:entity:*` topic
-along the entity path (aggregated views stay live through one subscription)
+organization-only path. Truly unknown instances yield `403`. Realtime
+fanout publishes the message event to every `conversation:instance:*` topic
+along the instance path (aggregated views stay live through one subscription)
 plus one `org:<id>` inbox ping. The user inbox query includes
-`{ conversationKind: 'entity', organizationId }` so org-mates see each
-other's entity messages. Inbox entity chats ship in both groupings: top-level rows and per-entity
+`{ conversationKind: 'instance', organizationId }` so org-mates see each
+other's instance messages. Inbox instance chats ship in both groupings: top-level rows and per-instance
 `isLeafRow` rows for the detailed view — the client switches between them,
 and shell unread totals count top-level rows only. Rollup nodes are the top-level
 nodes of the lineage hierarchy trees: each message joins at the ancestor
 whose type carries no non-organization parent binding. The walk uses live
-lineage (entity lineage keys plus the compiled bindings through the registry
-read), never the stored entityPath, which can be degraded when ancestors
+lineage (instance lineage keys plus the compiled bindings through the registry
+read), never the stored instancePath, which can be degraded when ancestors
 failed to resolve at send time.
 Names denormalize into the path so quotes and inbox rows never join.
 
 ### Replies
 
 A send may carry `parentMessageId`. The parent must share the conversation
-key or, for entity messages, the same organization (an aggregated view can
-reply to a message linked to a child entity); the composer links the reply
-to the same entity the quoted message belongs to. The reply persists a
+key or, for instance messages, the same organization (an aggregated view can
+reply to a message linked to a child instance); the composer links the reply
+to the same instance the quoted message belongs to. The reply persists a
 denormalized `parent { _id, senderUserId, senderName, snippet, attachment?,
 timestamp }` quote (text clipped to 140 characters; voice messages carry
 their attachment descriptor), so rendering and inbox previews never need the
@@ -238,15 +241,15 @@ can render a voice-message chip.
 | `DELETE /api/support/groups/:id` | Deletes a group chat (creator or admin). |
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
 | `POST /api/support/prefs` | Saves per-user conversation preferences (`{ conversationKey, pinned?, archived? }`); returns the saved `{ pinned, archived }`. |
-| `GET /api/support/instance-types` | Returns generated-screen entity source types readable by the current user. |
-| `GET /api/support/instance-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
+| `GET /api/support/instance-types` | Returns generated-screen instance source types readable by the current user. |
+| `GET /api/support/instance-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable instance options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
 | `POST /api/support/typing` | Ephemeral typing signal; authorized like a read, published to the conversation topic, never persisted. |
 | `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. |
 | `GET /api/support/messages?recipientUserId=<id>` | REST snapshot of a direct user conversation. |
 | `GET /api/support/messages?conversationKey=group:<id>` | REST snapshot of a group conversation. |
 | `GET /api/support/messages?limit=<n>&before=<iso>` | Lazy history page: the `n` newest messages older than the cursor, ascending, plus `hasMore`. |
-| `GET /api/support/messages?entity=<type>:<id>&includeChildren=<0|1>` | Entity thread view: composed subtree (default) or the entity's own messages. |
-| `POST /api/support/messages` | Send support, direct (`recipientUserId`), group (`conversationKey`), or entity (`entity {type,id}`) message; optional `parentMessageId` reply quote. Publishes `message`/`read`/inbox events through the connections layer. |
+| `GET /api/support/messages?instance=<type>:<id>&includeChildren=<0|1>` | Instance thread view: composed subtree (default) or the instance's own messages. |
+| `POST /api/support/messages` | Send support, direct (`recipientUserId`), group (`conversationKey`), or instance (`instance {type,id}`) message; optional `parentMessageId` reply quote. Publishes `message`/`read`/inbox events through the connections layer. |
 | `GET /api/support/admin/:user_id` | REST snapshot of the admin support conversation. |
 | `POST /api/support/admin/:user_id` | Admin reply to a customer support conversation. |
 | `GET /api/support/admin/chatlist` | Admin support-thread list snapshot; excludes direct user conversations. Refreshes via the `admin-support` connections topic. |
