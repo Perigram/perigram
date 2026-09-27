@@ -118,7 +118,7 @@ consume the template directly. Both endpoints return the created template DTO.
 
 ### Update Operations
 - The generated designer mounts persist through the instance transport
-  (see [components/generated/README.md](../../../components/generated/README.md)):
+  (see [components/generated/README.md](../../../../components/generated/README.md)):
   the OCCS document is the file payload, and the designer emits its document
   to the mounting surface. The legacy direct-REST designer path died with the
   cassette manager. These routes remain for the pack-internal pipeline
@@ -151,5 +151,5 @@ status, so a role granted cassette writes in `NEW` can create or Save As a
 template through the cassette entity endpoint.
 
 ## Related
-- [instance-revisions](../instance-revisions/README.md) - Immutable source revision snapshots.
-- [artifact-conversions](../artifact-conversions/README.md) - DXF-source artifact to cassette conversion.
+- [instance-revisions](../../../features/instance-revisions/README.md) - Immutable source revision snapshots.
+- [artifact-conversions](../../../features/artifact-conversions/README.md) - DXF-source artifact to cassette conversion.

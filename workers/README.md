@@ -15,7 +15,7 @@ registered beside a live enqueue site.
 | nesting | HTTP solver | `workers/nesting/worker_service.py` | Pure FastAPI 2D nesting solver called synchronously by the `solveNestingValue` command through `NESTING_WORKER_URL`. |
 
 The nesting service is not a task executor: the app-side
-`nesting.solve` V→V command (`server/features/nesting/solve-value.js`,
+`nesting.solve` V→V command (`server/packs/facade/nesting/solve-value.js`,
 mounted by the facade pack) validates inputs, calls the solver over HTTP,
 and maps results — there is no `task_runs` round trip.
 

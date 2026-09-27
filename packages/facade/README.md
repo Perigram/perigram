@@ -24,14 +24,14 @@ evaluator the template editor uses
 is the reusable library record; the cassette-design is what orders,
 nesting inputs, and per-piece traceability reference.
 
-- Class `item`; fields: `template` (`ref`, accepts `cassette`), `source`
+- Class `file` (it carries the uploaded DXF payload, like cassette itself); fields: `template` (`ref`, accepts `cassette`), `source`
   (`ref`, accepts `dxf-source`), `parameters` (the applied values, json),
   `geometry` (the baked/extracted evaluation — polygons, layer data,
   resolved dimensions — json), plus a DXF payload trait. Records live in
   the §13 per-class collections through the generic instance service; the
   pack registers no bespoke storage.
 - Construction is exactly three modes, all pack-bound
-  (`server/features/cassettes/cassette-design-construction.js`):
+  (`server/packs/facade/cassettes/cassette-design-construction.js`):
   **`upload`** — a DXF payload (the upload protocol's file) whose layers
   use the canonical OCCS vocabulary (`cut.outer` carries the nesting
   contour, other layers map by their own names); **`bake`** — an OCCS
@@ -77,9 +77,9 @@ declared products per the value universe, never json-parked), values out
 (layouts and a summary; the solver's raw layout payload is the one
 true-external Json escape). The signature's field names match the
 `solveNestingValue` handler's parameter sockets exactly, and the pack
-mount binds the handler (`server/features/nesting/solve-value.js`)
+mount binds the handler (`server/packs/facade/nesting/solve-value.js`)
 beside it. See
-[server/features/nesting/README.md](../../server/features/nesting/README.md)
+[server/packs/facade/nesting README](../../server/packs/facade/nesting/README.md)
 for the boundary contract.
 
 ## Related

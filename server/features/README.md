@@ -28,10 +28,19 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifact-templates`, `artifacts`, `cassettes`, `instance-revisions`, `organizations`, `process-definitions`, `sheet-designs`, `users` |
-| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `nesting`, `notifications`, `sessions`, `states`, `support`, `system-settings`, `workflow-overrides` |
+| Entity modules | `artifact-templates`, `artifacts`, `instance-revisions`, `organizations`, `process-definitions`, `users` |
+| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `notifications`, `sessions`, `states`, `support`, `system-settings`, `workflow-overrides` |
 
-Types without a feature module — the documents/tech-drawing/facade pack
+This directory is framework-only: domain implementations (the facade
+fabrication domain — cassettes, nesting, sheet designs) live under their
+pack module, [server/packs/facade](../packs/facade/), so the pack is the
+actual deletion unit and no framework feature imports domain code. The
+REST surfaces of pack-owned features keep their stable URLs
+(`/api/cassettes`, `/api/sheet-designs`) as thin route files that import
+the pack implementations; `check-arch` accepts the pack-owned feature
+directories beside the framework ones.
+
+Types without a feature module — the documents/tech-drawing pack
 types and every org-authored type — are served entirely by the generic
 instance machinery ([instances](./instances/README.md)); check-arch keeps
 their names on the generic list so no feature directory is expected. The
@@ -91,8 +100,6 @@ services must not self-register through hidden globals.
 
 | Module | Entity | Key lineage fields |
 |---|---|---|
-| `cassettes` | OCCS cassette templates (the cassette file type's service) | `organizationId`, `libraryId` |
-| `sheet-designs` | Sheet design layouts (the sheet-design file type's service) | `organizationId`, `runId` |
 | `artifacts` | Generated files (DXF/SVG/PDF) | mirrors parent lineage |
 | `artifact-templates` | Organization-owned DXF/PDF generation layouts | `organizationId` |
 | `organizations` | Tenant root | — |

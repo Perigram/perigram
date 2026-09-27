@@ -23,7 +23,7 @@ Load these only when the task needs them:
 - `docs/specs/Cassette spec/MIGRATION_FROM_V0_1.md` for legacy graph migration.
 - `docs/specs/Cassette spec/LAYERS.md` and
   `docs/specs/Cassette spec/layers.json` for layer semantics.
-- `server/features/cassettes/README.md`,
+- `server/packs/facade/cassettes/README.md`,
   `server/features/parametric-cassettes/README.md`, and
   `components/README.md` for app integration points.
 
