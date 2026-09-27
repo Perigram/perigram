@@ -366,8 +366,9 @@ surface concerns:
   and its `fallbackPaths`, so stored-shape variants of one renderable
   source all preview) renders that value through `DrawingCanvas`
   in the same band when no payload exists — the declared preview channel
-  (cassette geometry, including raw layer/polygon parts) never depends
-  on an uploaded payload.
+  (cassette geometry, raw layer/polygon parts, and the OCCS template
+  document, which renders through the canvas's `occs-cassette` source)
+  never depends on an uploaded payload.
   Payload-less instances without a declared preview keep the
   deterministic per-instance inline SVG
   (seeded hue) built

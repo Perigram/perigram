@@ -291,7 +291,8 @@ bundle only direct fields derive. Pure over the type record and bundle.
 `resolveActionButton(action, { statePolicy })` → `{ component, tone, icon,
 iconOnly, confirm, hidden }` from a fixed table: `createInstance` →
 primary + icon-only (`+`), `deleteInstance` → danger + confirmation +
-icon-only (trash), relation link/unlink → text/icon presentations,
+icon-only (trash), plain `updateInstance` → secondary + icon-only
+(pencil), relation link/unlink → text/icon presentations,
 event-triggered actions → hidden. Icon-only is the obvious-action
 channel: the caption stays the tooltip and accessible name, and menus
 keep full labels. Status-transition actions (`state.to`) carry the target
@@ -425,8 +426,10 @@ same key resolution `childrenOfParent` uses, so scoping and nesting never
 disagree — both stored reference shapes
 matching; the tree-table projection applies the same structural rule over
 the loaded pool through `hierarchyRootInstances` (an instance whose
-declared parent is loaded rides nested, never duplicated at the top
-level, while a child whose parent is absent stays a visible root); maps
+declared parent link is stamped rides nested, never duplicated at the
+top level — whether or not the parent record is loaded in this pool,
+mirroring this source-level rule; an instance with no parent stamp at
+all stays a visible root); maps
 regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
 action records, the per-region `dataState` (see Data states), the

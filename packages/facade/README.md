@@ -17,14 +17,15 @@ facade domain in the type system.
 The cassette type's declared preview channel walks its renderable stored
 shapes in order: the baked geometry preview (`data.geometry.preview`)
 first, then the raw layer/polygon parts uploaded templates store
-(`data.layerData`, `data.polygonParts`) as `previewSource`
-`fallbackPaths`. Generated card previews therefore render whichever
-construction path baked the record — OCCS-payload cassettes preview
-through the payload channel, legacy baked records through the declared
-one — without a cassette-specific branch in any generator surface (the
-shared canvas's geometry normalizer accepts the parts lists handed as
-the geometry value; see
-[instance-display](../../utils/instance-shape.js) and
+(`data.layerData`, `data.polygonParts`), then the OCCS template document
+(`data.definition` — the graph-tree definition the cassette designer
+edits, rendered through the canvas's `occs-cassette` source). Generated
+card previews therefore render whichever construction path baked the
+record — OCCS-payload cassettes preview through the payload channel,
+legacy baked records and parametric templates through the declared
+one — without a cassette-specific branch in any generator surface
+(the OCCS-definition detector is single-homed in
+[utils/drawingPreview.js](../../utils/drawingPreview.js); see
 [components/shared/README.md](../../components/shared/README.md)).
 
 ## The cassette-design type and the bake construction

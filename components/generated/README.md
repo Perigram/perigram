@@ -259,12 +259,14 @@ Discord-style operational shell:
   headers match row heights. The brand header is its own panel and
   carries the wrap control: wrapped, the sidebar becomes an icon rail
   (brand mark, chats and calls first — the same order the expanded menu
-  leads with — then one icon per top-level panel, avatar) and the
+  leads with — then one icon per top-level panel, the organizations
+  icon, avatar) and the
   wordmark returns on expand; the wrapped state persists with the
   workspace layout (`sidebarCollapsed` in the home workspace state). The
   Calls flyout (`CommunicationMenu`) lives outside the wrapped/expanded
   branches so both the wrapped icon and the expanded row toggle the same
-  popup. The Communication
+  popup; the wrapped organizations icon opens the organization overview
+  (context switching stays in the account menu). The Communication
   is two entries in that PanelMenu: Chats is a plain entry opening the
   chats workspace page, and Calls is always present — it toggles the
   shared `CommunicationMenu` popup flyout (see

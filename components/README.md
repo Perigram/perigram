@@ -400,8 +400,9 @@ That resolver prefers screen/region `labelKey`, then domain entity label keys,
 and only humanizes ids as a last fallback. Generic process action labels must
 not display English verbs such as `Create` or raw target statuses such as
 `DELETED`. Obvious actions render icon-only on instance surfaces — create is
-the plus glyph, delete the trash — with the localized label (create: the
-entity name) carried as the tooltip and accessible name; menu rows keep full
+the plus glyph, delete the trash, plain edit the pencil — with the localized
+label (create: the entity name) carried as the tooltip and accessible name;
+menu rows and state-transition buttons keep full
 labels. Status-mutating update actions resolve their target state's icon and
 severity from the compiled state policy (the same flat vocabulary
 `InstanceState` uses), so transition buttons carry the authored state icon.

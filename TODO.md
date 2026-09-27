@@ -11,12 +11,21 @@ obvious actions icon-only with the localized label as tooltip/accessible
 name: the ui-mapping resolver gained an `iconOnly` outcome channel
 (`createInstance` → `+`, `deleteInstance` → trash; menus keep labels;
 `ActionButton.vue` renders it), and the legacy `GeneratedActionButton.vue`
-defaults to icon-only for create/delete. Delete severity (danger) was
-already present and is kept. State-changing buttons resolve their target
-state's icon/severity from the compiled state policy (legacy button now
-goes through `useStatePolicy`/`stateDisplayFor`; the mapping table adds
-the swap-glyph fallback so transitions are always iconned). Contract:
-`shared/ui-mapping` Actions section, `components/README.md` label rules.
+defaults to icon-only for create/delete/plain-edit. Delete severity
+(danger) was already present and is kept. State-changing buttons resolve
+their target state's icon/severity from the compiled state policy (legacy
+button now goes through `useStatePolicy`/`stateDisplayFor`; the mapping
+table adds the swap-glyph fallback so transitions are always iconned).
+Contract: `shared/ui-mapping` Actions section, `components/README.md`
+label rules.
+
+### Agent Notes (2026-09-27, second pass — live verification)
+
+The first test round ran against a STALE dev server (the app container
+had started before the merge landed; `docker restart cutkit_app_dev`
+fixed it). Verified live after the restart with a throwaway repro org.
+Second-pass addition: plain edit renders icon-only (pencil) in both
+families.
 
 - [x] In wrapped home sidebar (panelmenu) need to preserve order: chats and calls (missing now)
   first
@@ -24,10 +33,17 @@ the swap-glyph fallback so transitions are always iconned). Contract:
 ### Agent Notes (2026-09-27)
 
 Implemented. The wrapped icon rail now leads with Chats and Calls (the
-same order the expanded PanelMenu leads with), then the type-panel icons.
-The Calls flyout (`CommunicationMenu`) moved outside the wrapped/expanded
-branches so the wrapped Calls icon toggles the same popup the expanded
-row does.
+same order the expanded PanelMenu leads with), then the type-panel icons,
+then an organizations icon (opens the organization overview). The Calls
+flyout (`CommunicationMenu`) moved outside the wrapped/expanded branches
+so the wrapped Calls icon toggles the same popup the expanded row does.
+The first test round ran against the stale dev server (restarted since).
+
+### Agent Notes (2026-09-27, second pass — root cause found in live data)
+
+The Organizations PanelMenu panel and the Calls entry were present in
+the code all along; the test round saw a stale server. Verified live
+after `docker restart cutkit_app_dev`.
 
 - [x] In top-level hierarchy table, I see flat table with all top-level and child entities in one
   pile. Agents tried to fix for zero success. 
@@ -46,6 +62,18 @@ ride nested under their parents and never repeat at the top level, while
 a child whose parent is absent stays a visible root. This is the
 projection-level guarantee that holds even for pre-aggregated pools.
 
+### Agent Notes (2026-09-27, second pass — real mechanism found)
+
+Reproduced with the org's real data (`t-3ccnopv0ti` → `t-uth93vgdab`):
+the pile was on the CHILD-type list screen. Its pool holds only children,
+and the first-pass filter required the parent record to be loaded — so
+parented children still rendered as top-level rows. `hierarchyRootInstances`
+now treats a stamped parent link (declared edge `lineageKey` set) as
+nested regardless of parent load, mirroring the documented source-scoping
+rule. Verified against the live data: 13 children, 4 parented → 9
+top-level rows, 4 hidden. Instances with NO parent stamp legitimately
+stay top-level (they were created outside the parent-scoped flow).
+
 - [x] In bottom user avatar in homepage, need his name and organization
 
 ### Agent Notes (2026-09-27)
@@ -53,6 +81,9 @@ projection-level guarantee that holds even for pre-aggregated pools.
 Implemented. The sidebar footer trigger shows the active organization's
 name under the user's name (resolved from `userOrganizations` by
 `userData.organizationId`); the wrapped rail keeps the avatar alone.
+The first round's "not fixed" was the stale dev server: verified live
+after restart that `/api/auth/organizations` returns the org docs and
+the footer/panel resolve from them.
 
 - [x] In state popup, need to reverse events order (latest is on top)
 
@@ -75,16 +106,23 @@ delete confirmation. The single default-group host now lives in
 `layouts/app.vue`; ChatSupport no longer mounts one. (The mapping
 screen's `uiMappingConfirm` group host is unchanged.)
 
+### Agent Notes (2026-09-27, second pass)
+
+The "not fixed" round ran against the stale dev server (the layout host
+was not live). After `docker restart cutkit_app_dev` the tree has exactly
+one default-group host.
+
 - [x] Pane header should be a bit smaller, tab headers stripe should fill it's height (including
   pane controls on right). Close tab button should appear only on hover. 
 
 ### Agent Notes (2026-09-27)
 
 Implemented across `GeneratedWorkspaceTabs` + the three pane hosts. The
-pane header row is one compact fixed-height (`h-9`) stripe owning a
+pane header row is one compact fixed-height (`h-8`) stripe owning a
 single hairline across its full width — tab list and right-side pane
 controls; the TabList stretches to fill the height (pt) and drops its
-own border so the line is not doubled. The per-tab close control
+own border so the line is not doubled, and the small add/menu buttons
+exactly fill the 2rem height. The per-tab close control
 reveals on tab hover/focus via named-group utilities (`invisible
 group-hover/workspace-tab:visible`), reserving its space so labels do
 not shift.
@@ -94,8 +132,8 @@ not shift.
 ### Agent Notes (2026-09-27)
 
 Implemented through the declared-vocabulary chain: the facade pack's
-cassette `previewSource` row now declares `fallbackPaths:
-['data.layerData', 'data.polygonParts']` beside
+cassette `previewSource` row declares `fallbackPaths`
+(`data.layerData`, `data.polygonParts`, `data.definition`) beside
 `data.geometry.preview`; the CTS registry carries `fallbackPaths` on the
 served `previewSource` record; `dtoToScreenInstance` resolves the first
 non-empty path; and the shared geometry normalizer accepts the baked
@@ -103,6 +141,19 @@ parts handed as the geometry value. Generated card previews therefore
 render legacy baked cassettes (layer/polygon parts) in addition to
 geometry-preview and OCCS-payload records — no cassette-specific branch
 in any generator surface.
+
+### Agent Notes (2026-09-27, second pass — measured against the live data)
+
+Part of the first round ran on the stale server (the served bundle
+carried no `fallbackPaths` until `docker restart cutkit_app_dev`).
+Then measured the org's 60 cassettes: 59 carry NO renderable source at
+all (blank records from create flows that never saved content — the
+placeholder art is the honest surface for them), 1 carries
+`data.geometry.preview` (previews). The OCCS template document channel
+(`data.definition` → canvas `occs-cassette` source, detector
+single-homed in `utils/drawingPreview.js`) was added so parametric
+templates render too. If blank cassettes should not exist, that is a
+creation-flow question, not a preview one.
 
 - [ ] Galleries are weird: it appears for data that doesn't have visual fields (images, previews
   idk), and has no fields listed (probably it's ok if previews are there); also probably can have
@@ -134,7 +185,9 @@ panel in the home PanelMenu lists the user's organizations (active
 checked; selecting another switches context and opens the overview).
 NOT implemented: profile/settings as popups — the account popover keeps
 its Profile route entry; a settings surface does not exist yet and needs
-its own design pass.
+its own design pass. The same-tab create path was verified live only at
+the code level; the "not fixed" test round ran against the stale dev
+server.
 
 - [ ] Item page should be opened in popup, and surfaceheader (? or in appropriate place) needs slot
   (?) for injecting back button when opened in tab from other page, and close/expand buttons for
@@ -179,6 +232,17 @@ state. Deletes wired from several states stay unscoped (server runtime
 still guards); deletes compile no machine edges — that derivation stays
 update-only. Requires recompiling the organization's process to take
 effect.
+
+### Agent Notes (2026-09-27, second pass — proven against the org's own authoring)
+
+Copied the org's authored draft (three `cts.remove` nodes for the FILE
+type, each fed from a different `cts.transition` result) into a
+throwaway org and activated it: the compiled manifest carries
+`state.from` = `state1` / `new` / `BOI` respectively — exactly the
+per-state scoping authored. The org's CURRENTLY ACTIVE process contains
+no delete nodes at all; **the draft with the deletes must be activated
+for the buttons to scope** (activation recompiles through the fixed
+pipeline).
 
 - [ ] Need new visual system for nodes:
   - [ ] 
