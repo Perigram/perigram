@@ -22,7 +22,14 @@ hand-written services.
   `lineage.organizationId` for the legacy block vocabulary, and that
   projection is owned by this service boundary (`toDto`/`create`) and
   nowhere else. `migrate-instance-tenancy.js` backfills the slot and
-  strips the legacy lineage key one-way.
+  strips the legacy lineage key one-way. The wire `identity.name` is the
+  same kind of boundary projection: it carries the stored name when one
+  was set explicitly (wire rename), else the declared identifier field's
+  value resolved through the one canonical law (`normalizeType` — an
+  explicit `identifier` flag wins, else the minted first string field;
+  the same identity `titleFor` resolves client-side), so wire-block
+  consumers such as chats, pickers, and inline refs render the
+  identifier value instead of the raw instance id.
 - Type migration executor (`migrations.js`): runs a covered `migrate` step
   set against the type's persisted instances when
   [cts-types](../cts-types/README.md) lands a breaking redefinition.
