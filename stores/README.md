@@ -115,7 +115,9 @@ process vocabulary; none may gain new consumers.
   refresh hint: polls `/api/instance-events` by cursor and bridges returned
   changes into the browser-local event bus, and (via the connections org
   topic) re-hydrates auth once, debounced, when the server publishes a
-  registry/process `contractChanged` marker. Browser-local
+  registry/process `contractChanged` marker. The app layout connects the
+  store for a signed-in user and disconnects on sign-out, beside the calls
+  and support-chat connections. Browser-local
   instance mutation snapshots publish through the same store. Successful
   mutations publish a complete instance snapshot to the browser-local
   `utils/instance-events.js` contract used by shared stores and generated screens.

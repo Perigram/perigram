@@ -114,6 +114,17 @@ preference implementation.
 
 ---
 
+## useScreenSourceSync
+
+`useScreenSourceSync(screenGetter, reload)` reconciles a generated surface
+with the shared instance-event contract: a change (local optimistic mutation,
+outbox replay, or a server-published event) for one of the screen's source
+types triggers one debounced source reload. The instances store's
+reconciliation listener has already upserted or invalidated the pool record,
+and stale list observations refetch through the normal read path. The routed
+generated screen page and the workspace detail pane both mount it; the legacy
+`useGeneratedScreen` keeps its own listener of the same shape.
+
 ## useStateController
 
 Direct bridge to the State Machine Engine. Used internally by `useEntity.changeStatus()`.

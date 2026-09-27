@@ -201,7 +201,9 @@ surface concerns:
   the entries page through a standalone Paginator over `pageSlice`.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
-  and the instance pool's lineage, shown on group surfaces.
+  and the instance pool's lineage, shown on group surfaces. The tree
+  re-derives from the reactive pool, so reconciliation (a new child, a
+  moved parent) re-nests it in place instead of waiting for a remount.
 - `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
   (when nested), Avatar identity with title and a `type · id` muted
   subtitle, placed actions, the Edit toggle (rendered only on patchable
