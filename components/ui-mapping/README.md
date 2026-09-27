@@ -184,8 +184,10 @@ surface concerns:
   `sortKeys` contract through the shared comparator before the grid
   mounts; the DataView itself renders no header). The card identity is a link button
   when the screen has an `onOpen` handler, and the type's per-instance
-  quick actions (resolveInstanceActions: transitions, deletion,
-  instance-scoped commands) render as one shared ellipsis menu per card
+  quick actions (resolveInstanceActions: deletion and instance-scoped
+  commands — status transitions are per-instance machine facts served by
+  the state service, never a type-level action) render as one shared
+  ellipsis menu per card
   that re-emits through the region run contract with that card as
   instance context — confirmation and dispatch stay upstream.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
