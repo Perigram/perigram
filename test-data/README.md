@@ -49,10 +49,14 @@ knowledge. Instances carry the wire's one flat `state` string (SPEC §7 —
 type records carry no state vocabulary); the compiled contract carries the
 per-type state display policy (`statePolicy`) exactly as
 `statePolicyByType` derives it from compiled producer workflows, so the
-fixtures exercise the same state-surface channel live hydration serves.
+fixtures exercise the same state-surface channel live hydration serves,
+plus the authored machine edges (`stateTransitions`, as
+`stateTransitionsByType` derives them) that the board projection reads
+as its legal-move contract — the process-class watch jobs render as a
+board; the item-class keepers keep their non-board projections.
 The random world (`ui-mapping-random.js`) follows the same split: state
 vocabularies are generated beside the types and served through the
-contract.
+contract, with a linear chain of edges per vocabulary.
 
 ## Usage
 

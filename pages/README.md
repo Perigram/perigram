@@ -44,9 +44,10 @@ contract vocabulary (`typeList`/`instanceDetail`/`home` plus `typeId`) and
 render through the UI generator (`composeScreen` +
 [components/ui-mapping](../components/ui-mapping/README.md)) with the client
 bundle and projected action contract carried by auth hydration; the
-contract also carries the per-type state display policy
-(`statePolicyByType` over the hydration payload's compiled producer
-workflows — the flat state vocabulary's one client-side source, see
+contract also carries the per-type state display policy and the authored
+machine edges (`statePolicyByType` / `stateTransitionsByType` over the
+hydration payload's compiled producer workflows — the flat state
+vocabulary's one client-side source, see
 [shared/ui-mapping](../shared/ui-mapping/README.md)). The
 instances store (`stores/instances.js`) loads the referenced collections
 (row-slot mapping, lineage/reference normalization, per-source data states

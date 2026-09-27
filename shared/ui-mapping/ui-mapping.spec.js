@@ -41,6 +41,8 @@ import {
   planActionLaunch,
   childrenOfParent,
   statePolicyByType,
+  stateTransitionsByType,
+  hasStateVocabulary,
   stateDisplayFor,
   stateSegmentsOf
 } from './index.js';
@@ -137,6 +139,66 @@ describe('field control resolution', () => {
       listLayouts: [{ match: { type: 'probe' }, layout: 'timeline' }]
     });
     expect(mapping.resolveListLayout({ id: 'probe', class: 'item', fields: plain.fields })).toBe('timeline');
+  });
+
+  it('boards process-class collections over a served state vocabulary', () => {
+    const process = { id: 'watch_job', class: 'process', fields: {
+      note: { base: 'string', max: 400 }
+    } };
+    const proseFields = { body: { base: 'string', max: 400 } };
+    // The contract data that earns the board: the process class, a
+    // vocabulary spanning at least BOARD_MIN_COLUMNS values, and no
+    // containment — each missing signal falls back to the shape default.
+    expect(resolveListLayout(process, { stateful: true })).toBe('board');
+    expect(resolveListLayout(process, { stateful: false })).toBe('timeline');
+    // Containment opts out of the board (the tree projection owns
+    // lineage); the prose shape keeps its chronological read.
+    expect(resolveListLayout(process, { stateful: true, hierarchical: true })).toBe('timeline');
+    expect(resolveListLayout({ ...process, class: 'item' }, { stateful: true })).toBe('timeline');
+    expect(hasStateVocabulary({ queued: {}, running: {} })).toBe(true);
+    expect(hasStateVocabulary({ queued: {} })).toBe(false);
+    expect(hasStateVocabulary(null)).toBe(false);
+    // The board wins on specificity over the shape signals it overlaps
+    // (a stateful process type that also reads chronological still
+    // boards — the machine is the collection's structure), but an
+    // authored override entry still outranks the default table.
+    expect(resolveListLayout({ id: 'log', class: 'process', fields: proseFields }, { stateful: true })).toBe('board');
+    const mapping = createUiMapping({
+      listLayouts: [{ match: { type: 'log' }, layout: 'timeline' }]
+    });
+    expect(mapping.resolveListLayout({ id: 'log', class: 'process', fields: proseFields }, { stateful: true })).toBe('timeline');
+  });
+
+  it('derives the machine edges as the board legal-move contract', () => {
+    const producerOutputs = {
+      job_a: {
+        typeId: 'watch_job',
+        workflow: {
+          regions: {
+            lifecycle: {
+              states: { queued: {}, running: {}, done: { isTerminal: true } },
+              transitions: [
+                { from: 'queued', to: 'running', intent: 'start' },
+                { from: 'running', to: 'done' },
+                { from: 'running', to: 'done', intent: 'duplicate-edge-loses' },
+                { from: '', to: 'running' },
+                { to: 'done' },
+                null
+              ]
+            }
+          }
+        }
+      },
+      job_b: { typeId: 'watch_job' },
+      bare: { typeId: 'widget' }
+    };
+    expect(stateTransitionsByType(producerOutputs)).toEqual({
+      watch_job: [
+        { from: 'queued', to: 'running', region: 'lifecycle', intent: 'start' },
+        { from: 'running', to: 'done', region: 'lifecycle', intent: null }
+      ]
+    });
+    expect(stateTransitionsByType({})).toEqual({});
   });
 
   it('resolves prose, meters, sliders, and carousels from shape', () => {
