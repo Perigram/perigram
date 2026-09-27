@@ -97,10 +97,12 @@ surface concerns:
   their native sorting. The region header stays one line (label, count,
   controls, actions), wrapping only when the opened controls or the
   action cluster demand it. The
-  card-grid and board projections add an in-place sort control (select + order
+  card-grid projection adds an in-place sort control (select + order
   toggle unfolding beside the sort button; the persisted per-type sort
   preference survives the move; table projections keep native column
-  sorting, so the control renders only for card grids and boards).
+  sorting, so the control renders only for card grids — the board sorts
+  per column inside BoardCollection, each lane on its own persisted
+  per-type-and-state preference over the same sortKeys contract).
   The projection switch is the one layout-shaped user view state,
   persisted per type beside sort and filters
   (`utils/ui-projection-preference.js`): a collection whose type serves
@@ -168,10 +170,20 @@ surface concerns:
   sit on the content surface. Membership moves only through the
   authored machine: a card may drop into a column only when a contract
   edge (`stateTransitionsByType`, carried on the region node) leads
-  there from its current state; the drop emits the `transition` channel
+  there from its current state; while a drag is live every machine-legal
+  target column carries the dashed target hairline and the hovered
+  receiver steps up to the content surface, so legality is visible
+  before the drop. The drop emits the `transition` channel
   (the state-service executor the detail header shares), never an
   optimistic local move — the machine owns the mutation and the pool
-  reconciles through the shared entity event. Stale states outside the
+  reconciles through the shared entity event. Ordering belongs to the
+  column: each lane carries its own `SortControl` over the composed
+  `sortKeys` contract with a persisted per-type-and-state preference
+  (`board-column:` scopes through `utils/ui-sort-preference.js`).
+  Column bodies are bounded (`max-h-board-column`) and scroll
+  independently — the board fits its container instead of growing the
+  page, and the same flex contract lets lanes fill bounded hosts
+  (workspace panes). Stale states outside the
   vocabulary degrade to neutral columns that admit no drops. Native
   HTML5 drag is the desktop affordance; the per-card ellipsis menu and
   the opened record's transition strip remain the accessible and touch

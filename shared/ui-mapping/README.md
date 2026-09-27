@@ -424,7 +424,10 @@ handwritten.
   `utils/instance-shape.js` (through the instances store) maps entity collections onto the
   instance pool.
 - Showcase: [pages/test/ui-mapping.vue](../../pages/test/ui-mapping.vue)
-  mounts the generated screen engine over synthetic compiler output.
+  mounts the generated screen engine over synthetic compiler output; its
+  board drops execute through an optimistic state-override executor (the
+  lab owns no state service), so drag-to-move is demonstrable end to end
+  and rerolling the seed resets the world.
 - Materialization: [components/ui-mapping/README.md](../../components/ui-mapping/README.md)
   — the SFC registry and the generated screen engine.
 - Fixtures: [test-data/ui-mapping-fixtures.js](../../test-data/ui-mapping-fixtures.js)
