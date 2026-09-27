@@ -363,17 +363,22 @@ overflow menu.
 `composeScreen(screen, contract, bundle, pool, options)` (in `screen.js`)
 projects one compiled screen contract into a pure region tree — no Vue.
 It resolves
-sources (`mode: 'single'` by `scope.instanceId` with first-instance
-fallback; `mode: 'list'` unscoped, or scoped by
+sources (`mode: 'single'` by `scope.instanceId` — the screen's own scoped
+instance is explicit: an id that is not in the pool is a missing detail,
+never a guess at the first loaded record, and a detail source renders its
+resolved instance or nothing, never the whole type; sources of another
+type, such as relation/lineage origins, keep the first-instance fallback;
+`mode: 'list'` unscoped, or scoped by
 `relation: { sourceId, key }` / `lineage: { sourceId, key }` against the
-origin source's instance, or scoped by the compiler-emitted flat
+origin source's instance — references match in both stored shapes, the
+`{ id }` ref and the normalized id — or scoped by the compiler-emitted flat
 `filters` map — the inferred child-region shape — whose `$screen.*`
 placeholders resolve against the screen scope: the flat map normalizes
 into the canonical instance-filter tree
 ([shared/instance-filters](../instance-filters/README.md)) and evaluates
 over the pool (bare keys read as lineage keys — the total client default;
-unresolved placeholder values drop as no-ops, mirroring the server
-transport), maps
+an unresolved `$screen` placeholder means the pinned scope is unknown, so
+the source resolves no instances instead of the whole type), maps
 regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
 action records, the per-region `dataState` (see Data states), the
