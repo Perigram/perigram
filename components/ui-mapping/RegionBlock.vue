@@ -131,6 +131,21 @@
         :bundle="bundle"
         @open="emitOpen"
       />
+      <GanttCollection
+        v-else-if="listLayout === 'gantt'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :openable="openable"
+        :state-policy="node.statePolicy"
+        @open="emitOpen"
+      />
+      <CalendarCollection
+        v-else-if="listLayout === 'calendar'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :openable="openable"
+        @open="emitOpen"
+      />
       <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" :state-policy="node.statePolicy" />
       <div v-else :class="LAYOUT.stackTight">
         <SurfaceBody
@@ -281,6 +296,21 @@
         :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        @open="emitOpen"
+      />
+      <GanttCollection
+        v-else-if="listLayout === 'gantt'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :openable="openable"
+        :state-policy="node.statePolicy"
+        @open="emitOpen"
+      />
+      <CalendarCollection
+        v-else-if="listLayout === 'calendar'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :openable="openable"
         @open="emitOpen"
       />
       <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" :state-policy="node.statePolicy" />
@@ -448,6 +478,8 @@ import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
 import CardGrid from './CardGrid.vue';
 import BoardCollection from './BoardCollection.vue';
+import GanttCollection from './GanttCollection.vue';
+import CalendarCollection from './CalendarCollection.vue';
 import CarouselGrid from './CarouselGrid.vue';
 import TimelineCollection from './TimelineCollection.vue';
 import StatGrid from './StatGrid.vue';

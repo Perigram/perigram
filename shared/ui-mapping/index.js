@@ -219,6 +219,7 @@ export function createUiMapping(overrides = {}) {
     const longTexts = fields.filter(isLongText);
     const percents = scalars.filter(descriptor => descriptor.base === 'quantity' && descriptor.unit === 'percent');
     const quantities = scalars.filter(descriptor => descriptor.base === 'quantity' || descriptor.base === 'number');
+    const instants = fields.filter(descriptor => descriptor.base === 'instant');
     // The retired declaration-era states signal folded into the constant:
     // type records carry no state vocabulary (SPEC §7), so shape analysis
     // no longer tightens the prose bound by statefulness.
@@ -226,7 +227,14 @@ export function createUiMapping(overrides = {}) {
     return Object.freeze({
       fieldCount: fields.length,
       scalarCount: scalars.length,
+      instantCount: instants.length,
       hasMedia: Boolean(typeRecord.payload),
+      // Temporal structure: two instants declare an interval (durational
+      // — the gantt), one declares a schedule (the calendar). Durational
+      // outranks chronological in the matcher — an interval is the
+      // stronger structure than a prose stream.
+      durational: instants.length >= 2,
+      scheduled: instants.length === 1,
       chronological: longTexts.length >= 1 && scalars.length <= 3 + chronologySignal,
       statlike: !typeRecord.payload && scalars.length >= 2
         && percents.length + quantities.length >= Math.max(2, scalars.length - 1),
@@ -251,7 +259,11 @@ export function createUiMapping(overrides = {}) {
     const entry = pickEntry(listLayoutEntries, {
       type: typeRecord.id || null,
       class: typeRecord.class || null,
-      shape: shape.chronological ? 'chronological' : shape.statlike ? 'statlike' : null,
+      shape: shape.durational ? 'durational'
+        : shape.chronological ? 'chronological'
+          : shape.statlike ? 'statlike'
+            : shape.scheduled ? 'scheduled'
+              : null,
       hierarchical: hierarchical ? true : false,
       stateful: stateful ? true : null,
       boardable: typeRecord.class === 'process' && stateful && !hierarchical ? true : null,
@@ -620,6 +632,21 @@ export function statePolicyByType(producerOutputs = {}) {
     }
   }
   return byType;
+}
+
+// temporalFieldsFor(type): the temporal projection's field derivation —
+// declared instants in declaration order are the interval for durational
+// types (first start, second end) and the lone instant is the schedule
+// date for scheduled types. Pure over the type record; null when the
+// type declares no instants.
+export function temporalFieldsFor(typeRecord = {}) {
+  const instants = Object.entries(typeRecord.fields || {})
+    .filter(([, descriptor]) => descriptor.base === 'instant');
+  if (!instants.length) return null;
+  return Object.freeze({
+    start: instants[0][0],
+    end: instants[1]?.[0] || null
+  });
 }
 
 // hasStateVocabulary(statePolicy): the board projection's `stateful`

@@ -74,6 +74,12 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
   'components/shared/DesignerSocketHandle.vue': ['data-driven', [':style="processSocketHandleStyle(socket)"']],
   'components/shared/InstanceInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
+  'components/ui-mapping/GanttCollection.vue': ['data-driven', [
+    ':style="tickStyle(tick)"',
+    ':style="todayStyle"',
+    ':style="barStyle(row.bar)"',
+    ':style="pointStyle(row.point)"'
+  ]],
 });
 
 const REGISTERED_PRIMITIVE_PATHS = new Set(DESIGN_SYSTEM_PRIMITIVES.map(primitive => primitive.componentPath));

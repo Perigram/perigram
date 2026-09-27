@@ -81,11 +81,19 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
 // through the override splice — the extension mechanism stays intact.
 export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { boardable: true }, layout: 'board' },
+  // Durational beats chronological: two declared instants form an
+  // interval, the stronger temporal structure — prose shape on top of
+  // an interval still gantts.
+  { match: { shape: 'durational' }, layout: 'gantt' },
   { match: { shape: 'chronological' }, layout: 'timeline' },
   { match: { shape: 'statlike' }, layout: 'stats' },
   { match: { class: 'file', size: 'large' }, layout: 'carousel' },
   { match: { class: 'file' }, layout: 'card-grid' },
   { match: { hierarchical: true }, layout: 'tree-table' },
+  // Scheduled (exactly one instant, no stronger shape): appointment-like
+  // collections lay out as the month grid; temporal shape beats size the
+  // way chronology already does.
+  { match: { shape: 'scheduled' }, layout: 'calendar' },
   { match: { size: 'small' }, layout: 'list' },
   { match: {}, layout: 'table' }
 ]);
@@ -99,7 +107,7 @@ export const BOARD_MIN_COLUMNS = 2;
 
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
-export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'tree-table', 'card-grid', 'carousel', 'timeline', 'stats', 'list', 'board']);
+export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'tree-table', 'card-grid', 'carousel', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
 
 // Collection thresholds live with the other design-system budgets so
 // materializations carry no magic numbers: tables paginate past
@@ -151,7 +159,9 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   'tree-table': 1,
   timeline: 2,
   'card-grid': 4,
-  board: 4
+  board: 4,
+  gantt: 2,
+  calendar: 3
 });
 
 // Density x hierarchy: how much information the screen carries picks the
@@ -265,6 +275,24 @@ export const LAYOUT = Object.freeze({
   // subtle well while a drag is live; the pointer's drop cursor carries
   // the hover.
   boardColumnTarget: 'flex w-72 shrink-0 flex-col gap-2 rounded-panel bg-content p-3',
+  // Temporal projections. The gantt row pairs a fixed identity cell with
+  // a relative track (a subtle well); bars are data-driven geometry —
+  // absolutely positioned by their instant values (left/width ride the
+  // inline data-driven exception) and painted by the state severity
+  // token classes, never raw colors. The calendar grid is a plain
+  // 7-column grid of day wells; the today cell steps up to the content
+  // surface the same way a board's receiving lane does.
+  ganttStack: 'flex w-full min-w-0 flex-col gap-2',
+  ganttAxisRow: 'flex min-w-0 items-center gap-2',
+  ganttIdentity: 'flex w-44 min-w-0 shrink-0 items-center gap-1',
+  ganttAxisSpacer: 'w-44 shrink-0',
+  ganttTrack: 'relative h-5 min-w-0 flex-1 rounded-panel bg-subtle',
+  ganttBar: 'absolute inset-y-1 rounded-ui',
+  calendarStack: 'flex w-full min-w-0 flex-col gap-2',
+  calendarHead: 'flex min-w-0 items-center justify-between gap-2',
+  calendarGrid: 'grid w-full min-w-0 grid-cols-7 gap-1',
+  calendarCell: 'flex min-h-20 flex-col gap-1 rounded-panel bg-subtle p-1.5',
+  calendarCellToday: 'flex min-h-20 flex-col gap-1 rounded-panel bg-content p-1.5',
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',

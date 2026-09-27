@@ -61,7 +61,7 @@
             </div>
           </template>
           <template #content>
-            <div v-if="scalarFields.length" :class="LAYOUT.stackTight">
+            <div v-if="scalarFields.length" :class="spacing ? spacing.stackTight : LAYOUT.stackTight">
               <div v-for="field in visibleFieldsFor(instance)" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
                 <FieldControl
@@ -111,7 +111,7 @@
 // toward hidden columns. Native HTML5 drag is the desktop affordance;
 // the card's ellipsis menu and the opened record's transition strip
 // remain the accessible and touch paths.
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
@@ -162,6 +162,11 @@ const props = defineProps({
 const emit = defineEmits(['open', 'run', 'transition']);
 
 const { te, t } = useI18n();
+// The screen's spacing coefficient (density): the facts rhythm follows
+// the same injected scale every other projection consumes, so compact
+// screens and the showcase slider shrink board cards with everything
+// else.
+const spacing = inject('uiMappingSpacing', null);
 
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 // Facts follow the card-grid budget (cardFactCount over CARD_FACT_SCALE:

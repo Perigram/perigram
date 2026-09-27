@@ -237,8 +237,9 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-type-designer-statenode-vue` | `components/type-designer/StateNode.vue` | derived usage | compliant |
 | `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (1) |
 | `ui-components-ui-mapping-actionbutton-vue` | `components/ui-mapping/ActionButton.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-boardcollection-vue` | `components/ui-mapping/BoardCollection.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-boardcollection-vue` | `components/ui-mapping/BoardCollection.vue` | derived usage | remove:important-override (3) |
 | `ui-components-ui-mapping-breadcrumbtrail-vue` | `components/ui-mapping/BreadcrumbTrail.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-calendarcollection-vue` | `components/ui-mapping/CalendarCollection.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-cardgrid-vue` | `components/ui-mapping/CardGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-carouselgrid-vue` | `components/ui-mapping/CarouselGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-chipsinput-vue` | `components/ui-mapping/ChipsInput.vue` | derived usage | compliant |
@@ -246,6 +247,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-enumselect-vue` | `components/ui-mapping/EnumSelect.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fieldcontrol-vue` | `components/ui-mapping/FieldControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fileuploadcontrol-vue` | `components/ui-mapping/FileUploadControl.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-ganttcollection-vue` | `components/ui-mapping/GanttCollection.vue` | derived usage | replace:chrome (7); narrowly-allowlist:inline-data-driven (4) |
 | `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-hierarchytable-vue` | `components/ui-mapping/HierarchyTable.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
 | `ui-components-ui-mapping-hierarchytree-vue` | `components/ui-mapping/HierarchyTree.vue` | derived usage | compliant |

@@ -43,6 +43,7 @@ import {
   statePolicyByType,
   stateTransitionsByType,
   hasStateVocabulary,
+  temporalFieldsFor,
   stateDisplayFor,
   stateSegmentsOf
 } from './index.js';
@@ -167,6 +168,45 @@ describe('field control resolution', () => {
       listLayouts: [{ match: { type: 'log' }, layout: 'timeline' }]
     });
     expect(mapping.resolveListLayout({ id: 'log', class: 'process', fields: proseFields }, { stateful: true })).toBe('timeline');
+  });
+
+  it('gantts intervals, calendars schedules, and yields to stronger shapes', () => {
+    const interval = { class: 'item', fields: {
+      title: { base: 'string' },
+      from: { base: 'instant' },
+      until: { base: 'instant' }
+    } };
+    const scheduled = { class: 'item', fields: {
+      title: { base: 'string' },
+      when: { base: 'instant' },
+      seats: { base: 'number' },
+      place: { base: 'string' }
+    } };
+    // Two instants declare an interval — the gantt, even when the type
+    // would also read chronological (the interval is the stronger
+    // structure); a prose type with one instant stays the timeline.
+    expect(resolveListLayout(interval, {})).toBe('gantt');
+    expect(resolveListLayout({ class: 'item', fields: { note: { base: 'string', max: 400 }, when: { base: 'instant' } } }, {})).toBe('timeline');
+    // A lone instant on an otherwise plain type schedules the calendar;
+    // temporal shape beats size the way chronology already does (a
+    // handful of scheduled entries still grids), and a narrow type
+    // override still outranks it.
+    expect(resolveListLayout(scheduled, {})).toBe('calendar');
+    expect(resolveListLayout(scheduled, { size: 'small' })).toBe('calendar');
+    const mapping = createUiMapping({
+      listLayouts: [{ match: { type: 'visit' }, layout: 'table' }]
+    });
+    expect(mapping.resolveListLayout({ ...scheduled, id: 'visit' }, {})).toBe('table');
+  });
+
+  it('derives temporal fields in declaration order', () => {
+    expect(temporalFieldsFor({ fields: {
+      title: { base: 'string' },
+      from: { base: 'instant' },
+      until: { base: 'instant' }
+    } })).toEqual({ start: 'from', end: 'until' });
+    expect(temporalFieldsFor({ fields: { when: { base: 'instant' } } })).toEqual({ start: 'when', end: null });
+    expect(temporalFieldsFor({ fields: { title: { base: 'string' } } })).toBe(null);
   });
 
   it('derives the machine edges as the board legal-move contract', () => {
