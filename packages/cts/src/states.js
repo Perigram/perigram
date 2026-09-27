@@ -1,9 +1,7 @@
-// Flat state vocabularies (SPEC §7). A state is a string value authored
-// in the process graph as a state node and supplied through sockets; a
-// type declares nothing about states. There are no axes, no nesting, and
-// no parents. This module owns the one vocabulary shape shared by draft
-// state-node projection and the compiled contract: a frozen map of
-// value -> { terminal?, policy? }.
+// Flat state value vocabulary (SPEC §7): a state value is one flat string.
+// Nesting is structural — authored by wiring a state node into another state
+// node and compiled by the process compiler — and is never encoded in this
+// value map (see packages/processes/README.md, CTS SPEC §7).
 
 function normalizePolicy(policy = {}) {
   if (policy == null) return null;
@@ -22,8 +20,8 @@ export function normalizeStatePolicy(policy) {
   return normalizePolicy(policy);
 }
 
-// One flat segment: a state value never carries a path separator, because
-// there are no paths — no parents, no axes, no derived configuration.
+// One flat segment: a value never carries a path separator; structure is
+// authored wiring, not a separator in the value.
 export function normalizeStateVocabulary(vocabulary = {}) {
   if (!vocabulary || typeof vocabulary !== 'object' || Array.isArray(vocabulary)) {
     throw new Error('state vocabulary must be an object keyed by value');
