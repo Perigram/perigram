@@ -13,8 +13,12 @@ WORKDIR /src
 FROM base as build
 
 COPY --link package.json package-lock.json ./
-# CI runner host: registry.npmjs.org resolves to a broken IPv6 path (read hangs,
-# ETIMEDOUT); force IPv4-first resolution for npm.
+# CI: registry.npmjs.org is provider-blocked on runner hosts (Штаб coordination
+# 2026-09-27); build-time fetches go through the LAN hiddify relay. forgejo and
+# LAN/NetBird ranges stay direct via NO_PROXY.
+ENV HTTP_PROXY=http://192.168.0.100:12334 \
+    HTTPS_PROXY=http://192.168.0.100:12334 \
+    NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
 RUN npm ci
 
