@@ -10,7 +10,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent } from '~/packages/cts/src/index.js';
+import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, normalizeType } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
@@ -121,6 +121,28 @@ function wireFieldsSplit(fields = {}, declaration = {}) {
   return { data, specs };
 }
 
+// The declared identifier key through the one canonical law (normalizeType):
+// an explicit `identifier` flag wins, else the minted first string field.
+function identifierKeyOf(declaration = {}) {
+  if (!declaration?.id || !declaration?.class) return null;
+  try {
+    const normalized = normalizeType(declaration);
+    const entry = Object.entries(normalized.fields || {}).find(([, descriptor]) => descriptor?.identifier === true);
+    return entry ? entry[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+// Wire identity name precedence: explicit stored name (wire rename), then
+// the declared identifier field's value. Empty strings are absent.
+function wireIdentityName(doc = {}, declaration = {}) {
+  if (doc.name != null && doc.name !== '') return String(doc.name);
+  const key = identifierKeyOf(declaration);
+  const value = key ? (doc.fields || {})[key] : null;
+  return typeof value === 'string' && value !== '' ? value : null;
+}
+
 // One flat state string (SPEC §7): the initial value arrives from the
 // creating process's construct socket or the caller; no declaration owns
 // an initial and nothing synthesizes one.
@@ -132,14 +154,22 @@ function initialStateFor(supplied = {}) {
 function toDto(doc, declaration = {}) {
   if (!doc) return null;
   const { data, specs } = wireFieldsSplit(doc.fields || {}, declaration);
-  // §3 tenancy slot projects back into the wire lineage block.
+  // §3 tenancy slot projects back into the wire lineage block; the wire
+  // identity name projects the declared identifier field's value (the
+  // SPEC §4 law through normalizeType: an explicit flag wins, else the
+  // minted first string field) — the same identity titleFor resolves
+  // client-side, so wire-block consumers (chats, pickers, refs) render
+  // the identifier value instead of the raw id. An explicit stored name
+  // (wire rename) stays authoritative; malformed declarations resolve no
+  // key instead of failing the read.
   const lineage = { ...(doc.lineage || {}) };
   if (doc.organizationId != null) lineage.organizationId = doc.organizationId;
+  const wireName = wireIdentityName(doc, declaration);
   return {
     _id: String(doc._id),
     type: doc.type,
     typeVersion: doc.typeVersion,
-    identity: { uid: doc._id.toString(), ...(doc.name != null ? { name: doc.name } : {}) },
+    identity: { uid: doc._id.toString(), ...(wireName != null ? { name: wireName } : {}) },
     state: typeof doc.state === 'string' && doc.state ? doc.state : null,
     lineage,
     relations: doc.relations || {},
@@ -265,14 +295,17 @@ function instanceService(typeId) {
     const payload = payloadFromWire(draft, declaration);
     const provenance = provenanceFromWire(draft);
     const now = new Date().toISOString();
+    // §3: the row is one flat fields map (data/specs split is wire-only)
+    const fields = { ...(draft.data || {}), ...(draft.specs || {}) };
     const doc = {
       _id: new ObjectId(),
       type: typeId,
       typeVersion: declaration.version || 1,
       organizationId: tenancyId == null ? null : toFlexibleId(tenancyId),
-      name: draft.identity?.name ?? null,
-      // §3: the row is one flat fields map (data/specs split is wire-only)
-      fields: { ...(draft.data || {}), ...(draft.specs || {}) },
+      // The stored name is the wire identity name when given, else the
+      // declared identifier field's value (same precedence toDto reads).
+      name: draft.identity?.name ?? wireIdentityName({ fields }, declaration),
+      fields,
       state: initialStateFor(draft),
       lineage: wireLineage,
       ...(draft.relations ? { relations: draft.relations } : {}),

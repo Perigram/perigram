@@ -27,7 +27,11 @@ vi.mock('../cts-types/repository.js', () => ({
       }
       : typeId === 'gallery'
         ? { id: 'gallery', class: 'file', version: 1, payload: { mime: ['image/*'], maxSize: 1024 }, fields: { name: { base: 'string' } } }
-        : null
+        : typeId === 'label'
+        ? { id: 'label', class: 'item', version: 1, fields: { code: { base: 'string', identifier: true }, note: { base: 'string' } }, states: { main: { initial: 'new', states: { new: {} } } } }
+        : typeId === 'memo'
+          ? { id: 'memo', class: 'item', version: 1, fields: { title: { base: 'string' }, body: { base: 'string' } }, states: { main: { initial: 'new', states: { new: {} } } } }
+          : null
   )),
   // org-1 declares the panel-under-bin hierarchy (SPEC §6 children edge,
   // no authored lineageKey -> stamped 'binId' at edge normalize)
@@ -447,5 +451,50 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     const blank = await sketch.constructionHandlers.editor({ identity: { name: 'Field notes' } }, { userId: 'u-1', organizationId: 'org-1' });
     expect(blank.type).toBe('sketch');
     expect(blank.attachments).toBeUndefined();
+  });
+
+  describe('wire identity projects the declared identifier field', () => {
+    it('derives the stored name from the flagged identifier field on create', async () => {
+      const coll = stubCollection();
+      const service = instanceServiceResolver('label'); // code is flagged identifier
+
+      const dto = await service.create({ data: { code: 'LB-42', note: 'first' }, lineage: {} }, 'user-1', 'org-1');
+
+      const stored = coll.insertOne.mock.calls[0][0];
+      expect(stored.name).toBe('LB-42');
+      expect(dto.identity).toMatchObject({ name: 'LB-42' });
+    });
+
+    it('keeps an explicit wire identity name authoritative over the derived one', async () => {
+      const coll = stubCollection();
+      const service = instanceServiceResolver('label');
+
+      const dto = await service.create({ identity: { name: 'Custom title' }, data: { code: 'LB-1' }, lineage: {} }, 'user-1', 'org-1');
+
+      expect(coll.insertOne.mock.calls[0][0].name).toBe('Custom title');
+      expect(dto.identity).toMatchObject({ name: 'Custom title' });
+    });
+
+    it('uses the minted first string field when the declaration flags no identifier', async () => {
+      const coll = stubCollection();
+      const service = instanceServiceResolver('memo'); // no flag: title is minted
+
+      const dto = await service.create({ data: { title: 'Weekly note', body: 'text' }, lineage: {} }, 'user-1', 'org-1');
+
+      expect(coll.insertOne.mock.calls[0][0].name).toBe('Weekly note');
+      expect(dto.identity).toMatchObject({ name: 'Weekly note' });
+    });
+
+    it('heals existing nameless rows through the identifier field on read', async () => {
+      const coll = stubCollection();
+      coll.find.mockReturnValue({ sort: () => ({ limit: () => ({ toArray: async () => [
+        { _id: new ObjectId(), type: 'label', typeVersion: 1, organizationId: 'org-1', name: null, fields: { code: 'LB-7' }, states: { main: 'new' }, lineage: {}, relations: {} }
+      ] }) }) });
+      const service = instanceServiceResolver('label');
+
+      const rows = await service.list({}, 'user-1', 'org-1');
+
+      expect(rows[0].identity).toMatchObject({ uid: rows[0]._id, name: 'LB-7' });
+    });
   });
 });
