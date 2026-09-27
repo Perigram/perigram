@@ -105,7 +105,7 @@ All entity-related components MUST use these patterns:
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 | Entity dropdowns | `<InstanceSelect>` / `<InstanceMultiSelect>` with explicit `type-id` |
-| Compact contextual canvas/workspace actions | Shared `MotionDock` (GSAP magnification from `composables/useMotion.js`) |
+| Floating designer toolbar (document + canvas commands) | PrimeVue `Toolbar` inside `DesignerWorkspace` (shared shell contract in `components/shared/README.md`) |
 
 workbench and organization workflow overrides page. It normalizes flat legacy
 workflows into a `regions` contract, edits the selected region's states and
