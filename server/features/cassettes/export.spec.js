@@ -19,7 +19,7 @@ vi.mock('./repository.js', () => ({
   findDesignByTemplateId: vi.fn(),
   updateById: vi.fn()
 }));
-vi.mock('../parametric-cassettes/service.js', () => ({
+vi.mock('./evaluation.js', () => ({
   evaluateTemplate: evaluateTemplateMock,
   generateSimpleDxf: generateSimpleDxfMock
 }));

@@ -1019,7 +1019,6 @@
         "runId": "Nesting run",
         "sheetDesignId": "Sheet design",
         "templateId": "Cassette template",
-        "cassetteDesignId": "Cassette design",
         "catalogId": "Catalog",
         "warehouseId": "Warehouse",
         "requisitionId": "Requisition",
@@ -1939,7 +1938,6 @@
     "sheetDesign": "Sheet Design",
     "cassette": "Cassette",
     "library": "Library",
-    "cassetteDesign": "Cassette Design",
     "cassetteTemplate": "Cassette Template",
     "cassetteInstance": "Cassette Instance",
     "entityRevision": "Entity Revision",
@@ -2470,13 +2468,6 @@
     "notFound": "Sheet design not found",
     "noSheetDesigns": "No sheet designs yet",
     "runNestingFirst": "Run nesting from a project queue to generate sheet layouts."
-  },
-  "cassetteDesign": {
-    "configure": "Configure design",
-    "createFromTemplate": "Create design",
-    "createdFromTemplate": "Cassette design was created.",
-    "createFromTemplateFailed": "Failed to create cassette design.",
-    "downloadDxf": "Download DXF"
   },
   "nestingRun": {
     "sheetDesigns": "Sheet designs"

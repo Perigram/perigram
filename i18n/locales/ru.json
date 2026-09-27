@@ -1019,7 +1019,6 @@
         "runId": "Запуск раскроя",
         "sheetDesignId": "Дизайн листа",
         "templateId": "Шаблон кассеты",
-        "cassetteDesignId": "Дизайн кассеты",
         "catalogId": "Каталог",
         "warehouseId": "Склад",
         "requisitionId": "Заявка",
@@ -1939,7 +1938,6 @@
     "sheetDesign": "Дизайн листа",
     "cassette": "Кассета",
     "library": "Библиотека",
-    "cassetteDesign": "Дизайн кассеты",
     "cassetteTemplate": "Шаблон кассеты",
     "cassetteInstance": "Экземпляр кассеты",
     "entityRevision": "Ревизия сущности",
@@ -2470,13 +2468,6 @@
     "notFound": "Дизайн листа не найден",
     "noSheetDesigns": "Дизайнов листов пока нет",
     "runNestingFirst": "Запустите раскрой из очереди проекта, чтобы получить раскладки листов."
-  },
-  "cassetteDesign": {
-    "configure": "Настроить дизайн",
-    "createFromTemplate": "Создать дизайн",
-    "createdFromTemplate": "Дизайн кассеты создан.",
-    "createFromTemplateFailed": "Не удалось создать дизайн кассеты.",
-    "downloadDxf": "Скачать DXF"
   },
   "nestingRun": {
     "sheetDesigns": "Дизайны листов"

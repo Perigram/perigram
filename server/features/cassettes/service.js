@@ -316,7 +316,7 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
   const template = await getById(id, userId, userOrg, userRole, userPermissions);
 
   if (template.data?.type === 'PARAMETRIC') {
-    const { evaluateTemplate, generateSimpleDxf } = await import('../parametric-cassettes/service.js');
+    const { evaluateTemplate, generateSimpleDxf } = await import('./evaluation.js');
     const { polygons, nestingPolygons, layerData } = await evaluateTemplate(id, dimensions || {});
     return layerData?.length
       ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : polygons })

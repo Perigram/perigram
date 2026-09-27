@@ -10,14 +10,6 @@ import { connectDB } from './mongo.js';
  * Index definitions for all collections
  */
 const INDEXES = {
-  facades: [
-    { keys: { 'lineage.organizationId': 1, 'lineage.projectId': 1 }, options: { name: 'lineage_org_project_idx' } }
-  ],
-  facade_patterns: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
-    { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } }
-  ],
-
   // Cassettes Collection
   cassettes: [
     { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } },

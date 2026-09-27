@@ -1,11 +1,11 @@
 /**
- * Parametric Cassettes Service
- * Handles geometry generation and baking of parametric templates into DXF files.
+ * Cassette template evaluation: resolves a PARAMETRIC cassette's OCCS
+ * construction definition into geometry (see the feature README's
+ * evaluation contract) and renders simple polygon DXF output for export.
  */
 
 import { createError } from 'h3';
-import * as repository from './repository.js';
-import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
+import { findById } from './repository.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
 
 let evaluationChain = Promise.resolve();
@@ -61,7 +61,7 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
   // Tables
   add(0, 'SECTION');
   add(2, 'TABLES');
-  
+
   // LTYPE
   add(0, 'TABLE');
   add(2, 'LTYPE');
@@ -86,7 +86,7 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
   add(5, '2');
   add(100, 'AcDbSymbolTable');
   add(70, 2);
-  
+
   add(0, 'LAYER');
   add(5, '11');
   add(100, 'AcDbSymbolTableRecord');
@@ -95,7 +95,7 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
   add(70, 0);
   add(62, 7);
   add(6, 'Continuous');
-  
+
   add(0, 'LAYER');
   add(5, '12');
   add(100, 'AcDbSymbolTableRecord');
@@ -104,7 +104,7 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
   add(70, 0);
   add(62, 1); // Red
   add(6, 'Continuous');
-  
+
   add(0, 'ENDTAB');
 
   // STYLE
@@ -146,7 +146,7 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
   // Blocks
   add(0, 'SECTION');
   add(2, 'BLOCKS');
-  
+
   add(0, 'BLOCK');
   add(5, '21');
   add(100, 'AcDbEntity');
@@ -197,7 +197,7 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
 
     const layer = idx === 0 ? nestingLayer : internalLayer;
     const handle = (handleCount++).toString(16).toUpperCase();
-    
+
     add(0, 'LWPOLYLINE');
     add(5, handle);
     add(100, 'AcDbEntity');
@@ -205,7 +205,7 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
     add(100, 'AcDbPolyline');
     add(90, coords.length);
     add(70, 1); // Closed
-    
+
     for (const [x, y] of coords) {
       add(10, x);
       add(20, y);
@@ -236,22 +236,12 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
   return lines.join('\n');
 }
 
-function calculateArea(vertices) {
-  let area = 0;
-  for (let i = 0; i < vertices.length; i++) {
-    const j = (i + 1) % vertices.length;
-    area += vertices[i][0] * vertices[j][1];
-    area -= vertices[j][0] * vertices[i][1];
-  }
-  return Math.abs(area) / 2;
-}
-
 /**
  * Evaluate a parametric cassette and return its boundary coordinates
  */
 export async function evaluateTemplate(cassetteId, dimensions) {
   return runWithEvaluationLock(async () => {
-    const template = await repository.findTemplateById(cassetteId);
+    const template = await findById(cassetteId);
     if (!template) throw new Error('Template not found');
 
     const definitionData = resolveTemplateDefinition(template);
