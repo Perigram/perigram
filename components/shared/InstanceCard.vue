@@ -41,7 +41,7 @@
                     <template v-else>
                         <slot name="before-identity" />
                         <div class="flex min-w-0 items-center gap-2">
-                            <i v-if="instanceConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                            <i v-if="instanceConfig.icon" :class="instanceConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
                             <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
                         </div>
                     </template>
@@ -83,7 +83,7 @@
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />
                             <div class="flex min-w-0 items-center gap-2">
-                                <i v-if="instanceConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                                <i v-if="instanceConfig.icon" :class="instanceConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
                                 <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
                             </div>
                         </div>
@@ -149,7 +149,7 @@
                     />
                 </div>
                 <div class="flex min-w-0 items-center gap-2">
-                    <i v-if="instanceConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                    <i v-if="instanceConfig.icon" :class="instanceConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
                     <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
                 </div>
                 <TraceChain
