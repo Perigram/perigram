@@ -40,8 +40,11 @@ const buildNodes = (instance, seen = new Set()) => {
   };
 };
 
-const tree = buildNodes(props.root);
-const nodes = tree ? [tree] : [];
+// The tree re-derives from the pool: reconciliation upserts and
+// invalidations flow through the reactive instance pool, so an open detail
+// surface nests new children without a remount.
+const tree = computed(() => buildNodes(props.root));
+const nodes = computed(() => (tree.value ? [tree.value] : []));
 const collectKeys = node => [node.key, ...(node.children || []).flatMap(collectKeys)];
-const expandedKeys = Object.fromEntries((tree ? collectKeys(tree) : []).map(key => [key, true]));
+const expandedKeys = computed(() => Object.fromEntries((tree.value ? collectKeys(tree.value) : []).map(key => [key, true])));
 </script>

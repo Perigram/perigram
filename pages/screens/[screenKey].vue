@@ -42,6 +42,7 @@ import Tag from 'primevue/tag';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
+import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
@@ -155,6 +156,7 @@ async function reload() {
   }
 }
 watch([screen, processBundle], () => reload(), { immediate: true });
+useScreenSourceSync(() => screen.value, reload);
 
 // Action dispatch: the projected manifest action id is the execution
 // contract id — the run API resolves the rest server-side. Runs flow

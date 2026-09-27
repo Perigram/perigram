@@ -35,6 +35,7 @@ import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
+import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
 import { statePolicyByType } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
@@ -146,6 +147,7 @@ async function reload() {
 defineExpose({ reload });
 
 watch(() => props.screen, reload, { immediate: true });
+useScreenSourceSync(() => props.screen, reload);
 
 async function runAction(action, data = {}, context = {}) {
   const scope = props.screen?.scope || {};

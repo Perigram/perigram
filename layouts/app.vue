@@ -182,6 +182,7 @@
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
     import { useSupportChatStore } from '~/stores/supportChat'
+    import { useEntityEventsStore } from '~/stores/instanceEvents'
     import { useNavigationStore } from '~/stores/navigation'
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
     import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
@@ -193,6 +194,7 @@
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
     const supportChatStore = useSupportChatStore()
+    const entityEventsStore = useEntityEventsStore()
     const callsStore = useCallsStore()
     const navStore = useNavigationStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
@@ -240,9 +242,11 @@
         if (isSet) {
             supportChatStore.connect()
             callsStore.connect()
+            entityEventsStore.connect()
         } else {
             supportChatStore.disconnect()
             callsStore.disconnect()
+            entityEventsStore.disconnect()
         }
     }, { immediate: true })
 
