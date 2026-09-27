@@ -1850,6 +1850,8 @@
     "sortLabel": "Сортировка",
     "sortOrderLabel": "Изменить порядок сортировки",
     "moreActions": "Ещё действия",
+    "projectionBoard": "Показать как доску",
+    "projectionTable": "Показать как таблицу",
     "new": "Создать",
     "stateHistory": "История состояний",
     "filters": "Фильтры",

@@ -38,6 +38,16 @@
           :fields="builderFields"
           @update:model-value="value => (builderFilter = value)"
         />
+        <Button
+          v-if="projectionSwitchable"
+          :icon="listLayout === 'board' ? 'pi pi-list' : 'pi pi-objects-column'"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="listLayout === 'board' ? $t('uiMapping.projectionTable') : $t('uiMapping.projectionBoard')"
+          @click="toggleProjection"
+        />
         <SortControl
           v-if="sortToggleAvailable"
           :options="sortOptions"
@@ -175,6 +185,16 @@
           :model-value="builderFilter"
           :fields="builderFields"
           @update:model-value="value => (builderFilter = value)"
+        />
+        <Button
+          v-if="projectionSwitchable"
+          :icon="listLayout === 'board' ? 'pi pi-list' : 'pi pi-objects-column'"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="listLayout === 'board' ? $t('uiMapping.projectionTable') : $t('uiMapping.projectionBoard')"
+          @click="toggleProjection"
         />
         <SortControl
           v-if="sortToggleAvailable"
@@ -416,6 +436,7 @@ import {
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
+import { loadProjectionPreference, storeProjectionPreference } from '~/utils/ui-projection-preference.js';
 import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
@@ -525,13 +546,41 @@ const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stac
 const { localizedTypeLabel } = useLocalizedTypeLabel();
 const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? localizedTypeLabel(region.type) : region.id);
 const regionLabel = computed(() => regionLabelFor(props.node));
-const listLayout = computed(() => resolveListLayout(props.node.type, {
+// The derived list layout — the resolver's contract decision over shape,
+// class, hierarchy, size, and the served state vocabulary. The projection
+// switch below is the user's view-state override inside a bounded pair,
+// never a second derivation.
+const derivedListLayout = computed(() => resolveListLayout(props.node.type, {
   hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length),
   stateful: hasStateVocabulary(props.node.statePolicy),
   size: props.node.instances.length <= SMALL_LIST_AT
     ? 'small'
     : props.node.instances.length > 12 ? 'large' : null
 }));
+// The projection switch rides the same persisted-view-state seam as sort
+// and filters: a stateful collection (a served vocabulary spanning at
+// least BOARD_MIN_COLUMNS values) whose derived layout is a structural
+// collection (table, tree-table) may board, and a derived board may
+// table back. Shape-specialized projections (timeline, stats, carousel,
+// the handful list) never switch — the board would fight their shape.
+// A stored preference for a non-switchable collection is ignored.
+const projectionSwitchable = computed(() => hasStateVocabulary(props.node.statePolicy)
+  && ['table', 'tree-table', 'board'].includes(derivedListLayout.value));
+const projectionScope = computed(() => `list-projection:${props.node.typeId || ''}`);
+const projectionPreference = ref(loadProjectionPreference(projectionScope.value));
+watch(projectionScope, scope => {
+  projectionPreference.value = loadProjectionPreference(scope);
+});
+const toggleProjection = () => {
+  const next = listLayout.value === 'board' ? 'table' : 'board';
+  projectionPreference.value = next;
+  storeProjectionPreference(projectionScope.value, next);
+};
+const listLayout = computed(() => {
+  if (projectionPreference.value === 'board' && projectionSwitchable.value) return 'board';
+  if (projectionPreference.value === 'table' && derivedListLayout.value === 'board') return 'table';
+  return derivedListLayout.value;
+});
 const coveredRelationKeys = computed(() => props.node.childRegions
   .map(child => child.relationKey)
   .filter(Boolean));
