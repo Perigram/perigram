@@ -35,7 +35,7 @@ describe('classLifecycleOf', () => {
     ];
     const lifecycle = classLifecycleOf(nodes, edges, 'cls');
     expect(lifecycle.nesting).toEqual([
-      { edgeId: 't1', child: 'draft', parent: 'done' }
+      { edgeId: 't1', parent: 'draft', child: 'done' }
     ]);
   });
 

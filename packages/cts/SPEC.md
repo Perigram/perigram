@@ -291,12 +291,13 @@ create and transition operations.
 StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severity? } }
 ```
 
-- A state is a flat string value. There are no axis names, no parent
-  markers, and no derived path configuration: no `main`, no `parent` key,
-  no labeled nesting edges.
+- A state is a flat string value.
 - Nesting is declared by wiring: a state node's `state` input accepts
-  another state node, and that wire nests the source inside the target.
-  The wired node's own value is what operations receive.
+  another state node; the wire's source is the parent and the receiving
+  (target) state is its child. A parent state is itself a leaf — targeting
+  it lands on the parent, never on an implicit initial child — so a
+  parent-to-child transition is a real edge. The wired node's own value is
+  what operations receive.
 - The initial state of a created instance is authored at the create
   operation: the construct node's `state` input socket carries the value
   (wired from a state node, or an authored default). No declaration owns

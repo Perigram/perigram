@@ -255,11 +255,11 @@ edge is the concrete state-to-state pair declared by the wiring — the
 from-state is the arrival state of instances on the transition's entity
 wire (the upstream producer's output state, derived from the wiring's
 status windows at compile), the to-state is the node's target. A state node
-wired into another state node's state input nests inside it, so the compiled
-machine is a recursive tree with one initial child per parent and canonical
-dotted paths; the entry is the initial child of the authored construct
-default, and a transition whose arrival leaf equals its target leaf is a
-no-op and compiles no edge. No wildcard
+wired into another state node's state input becomes that state's child (the
+wire's source is the parent), so the compiled machine is a recursive tree
+with canonical dotted paths. A parent state is itself a leaf: targeting it
+lands on the parent, not an implicit initial child, so a parent-to-child
+transition is a real edge. No wildcard
 or enumerated from-state ever enters the machine; the transition inspector
 authors no from-state, and at execution the status engine validates the
 operated instance's current state against exactly those declared edges.

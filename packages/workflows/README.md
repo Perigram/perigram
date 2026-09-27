@@ -76,13 +76,15 @@ second copy of the declaration as flat dotted enum values.
 ```
 
 Transition lookup walks the active leaf's ancestor paths from most-specific
-to least-specific. The first declared transition wins. A target child enters
-its ancestors; a target state with children enters that state's initial child;
-leaving a parent exits the complete descendant configuration. Creation enters
-the region's configured initial leaf. `resolveWorkflowStatePath` accepts a
-canonical dotted path or a local state name, resolving the latter to the one
-canonical path that carries it. These rules are owned here; the CTS
-projection supplies the recursive tree and canonical paths.
+to least-specific. The first declared transition wins. A target is entered as
+a leaf: entering a parent state lands on the parent itself — parents are
+leaves, never an implicit initial child — while a nested child is entered by
+targeting it explicitly. Leaving a parent exits the complete descendant
+configuration. Creation enters the region's configured initial leaf.
+`resolveWorkflowStatePath` accepts a canonical dotted path or a local state
+name, resolving the latter to the one canonical path that carries it. These
+rules are owned here; the CTS projection supplies the recursive tree and
+canonical paths.
 
 Workflow states may declare lifecycle payload schemas:
 
