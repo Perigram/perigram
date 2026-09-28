@@ -300,7 +300,7 @@ describe('support communication service', () => {
       }]
     };
 
-    const options = await supportService.listInstanceOptions(processAuth, 'sheet_design', 'alpha');
+    const options = await supportService.listEntityOptions(processAuth, 'sheet_design', 'alpha');
 
     // Registry-resolved loaders (CTS §13 processList) — one seam for every
     // type, no per-feature imports in the framework.
@@ -946,7 +946,7 @@ describe('support communication service', () => {
         { id: 'work_orders', typeId: 'work_order', mode: 'list', label: 'Work Orders' }
       ]);
 
-      const options = await supportService.listInstanceOptions(processAuth, 'work_order', 'one');
+      const options = await supportService.listEntityOptions(processAuth, 'work_order', 'one');
 
       expect(options).toEqual([
         { type: 'work_order', value: 'wo-1', label: 'WO One', instance: wo1 }
@@ -1025,7 +1025,7 @@ describe('support communication service', () => {
         { id: 'work_orders', typeId: 'work_order', mode: 'list' }
       ]);
 
-      const options = await supportService.listInstanceOptions(processAuth, 'work_order', '', 'user-b');
+      const options = await supportService.listEntityOptions(processAuth, 'work_order', '', 'user-b');
 
       expect(options.find(option => option.value === 'wo-1')?.recipientHasAccess).toBe(true);
     });
