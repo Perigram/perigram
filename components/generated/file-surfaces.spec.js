@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedCassetteDesignerWorkspacePage' } }));
 vi.mock('~/components/generated/GeneratedCassetteDesignerAction.vue', () => ({ default: { name: 'GeneratedCassetteDesignerAction' } }));
-vi.mock('~/components/generated/GeneratedEditorPageAction.vue', () => ({ default: { name: 'GeneratedEditorPageAction' } }));
 vi.mock('~/components/SheetDesignEditor.vue', () => ({ default: { name: 'SheetDesignEditor' } }));
 vi.mock('~/components/artifacts/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
 vi.mock('~/components/artifacts/ArtifactTextEditor.vue', () => ({ default: { name: 'ArtifactTextEditor' } }));
@@ -60,7 +59,7 @@ describe('file surface registry', () => {
 
   it('binds sheet design to the editing workspace page', () => {
     const surface = resolveFileSurface(packEditorBindings, 'sheet-design');
-    expect(surface.action).toBeTruthy();
+    expect(surface.action).toBe('generic');
     expect(surface.workspacePage).toMatchObject({ labelKey: 'sheetDesign.editor' });
     expect(surface.workspacePage.props({ entity: { id: 'sd-1' } }, 'sheet-design'))
       .toEqual({ design: { id: 'sd-1' } });
@@ -68,8 +67,9 @@ describe('file surface registry', () => {
 
   it('derives editor action rows from the bindings', () => {
     const actions = new Map(fileEditorActions());
-    for (const typeId of ['cassette', 'sheet-design', 'sketch', 'text-document', 'csv-table', 'xlsx-workbook']) {
-      expect(actions.get(typeId)?.component, typeId).toBeTruthy();
+    expect(actions.get('cassette')?.action?.name).toBe('GeneratedCassetteDesignerAction');
+    for (const typeId of ['sheet-design', 'sketch', 'text-document', 'csv-table', 'xlsx-workbook']) {
+      expect(actions.get(typeId)?.action, typeId).toBe('generic');
     }
   });
 
@@ -144,7 +144,7 @@ describe('file surface registry', () => {
     // the defaulted derivations.
     expect(resolveFileSurface(undefined, 'cassette').surface).toBe('cassette-designer');
     expect(fileWorkspacePages().map(row => row.typeId)).toContain('sketch');
-    expect(new Map(fileEditorActions()).get('text-document')?.component).toBeTruthy();
+    expect(new Map(fileEditorActions()).get('text-document')?.action).toBe('generic');
   });
 
   it('returns null for unknown types and unregistered surfaces', () => {
