@@ -196,7 +196,8 @@ const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || pro
 
 // Toolbar items are plain data (icon class + label + handlers); the shared
 // Toolbar items are plain data (icon class + label + handlers) rendered
-// through DesignerToolbarItems.
+// through DesignerToolbarItems; a boolean `pressed` item is the same
+// button outlined, never a different control family.
 function toggle(panel) {
   panels[panel] = !panels[panel];
 }

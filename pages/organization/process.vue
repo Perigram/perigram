@@ -50,7 +50,13 @@
           <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
           <template #zoom-pane>
-            <LaneBands :bands="laneBands" :corridors="laneCorridors" :width="laneExtentWidth" />
+            <LaneBands
+              :bands="laneBands"
+              :corridors="laneCorridors"
+              :left="laneExtent.left"
+              :right="laneExtent.right"
+              :zoom="designerViewport?.zoom || 1"
+            />
           </template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
@@ -1037,17 +1043,15 @@ const documentDockItems = computed(() => [
   }
 ]);
 // Lanes — the authorization surface, canonical in
-// components/process-designer README "Lanes": bands derive from grant
-// records and are never stored; an effect renders in its primary (first)
-// grant's lane; declarations get the band above the pool; grantless
-// effects get an implicit unlabeled lane. Placement writes the grant:
-// dropping an effect in a lane assigns that role (dropping it in the
-// implicit lane clears grants) — lane authoring replaced the
-// inspector's role editor.
+// components/process-designer README "Lanes". ONLY effects participate
+// (they alone carry access): one lane per role in fixed order plus an
+// implicit unlabeled lane for grantless effects, hairline separators
+// spanning the nodes' horizontal domain. Every other node is
+// free-placeable and unaffected. Placement writes the grant: dropping an
+// effect in a lane assigns that role (implicit lane clears grants).
 const definitionsHidden = ref(false);
 const LANE_ROW_HEIGHT = 170;
 const LANE_MIN_HEIGHT = 150;
-const DECLARATION_COLUMN_PITCH = 260;
 // lg operation card width (DesignerNodeCard `w-72`) — the corridor column.
 const LANE_CORRIDOR_WIDTH = 288;
 
@@ -1061,19 +1065,13 @@ function effectPrimaryRoleId(node) {
   return record?.access?.grants?.[0]?.roleId || null;
 }
 
-// Membership + band geometry. Reads role/grant/counts only — never node
-// positions — so band layout cannot oscillate with the arrangement it
-// produces.
+// Band geometry. Reads role/grant/counts only — never node positions —
+// so band layout cannot oscillate with the arrangement it produces.
 const laneModel = computed(() => {
   const roleIds = Object.keys(organizationRoles.value);
   const byPrimary = new Map(roleIds.map(roleId => [roleId, []]));
   const unassigned = [];
-  const declarations = [];
   for (const node of nodes.value) {
-    if (DECLARATION_NODE_TYPES.includes(node.type)) {
-      declarations.push(node.id);
-      continue;
-    }
     if (node.type !== 'processNode' || !isEffectNode(node)) continue;
     const roleId = effectPrimaryRoleId(node);
     if (roleId && byPrimary.has(roleId)) byPrimary.get(roleId).push(node.id);
@@ -1081,24 +1079,12 @@ const laneModel = computed(() => {
   }
   const bands = [];
   let top = 0;
-  if (declarations.length || roleIds.length) {
-    const rows = Math.max(1, Math.ceil(declarations.length / 3));
-    bands.push({
-      id: 'declarations',
-      kind: 'declaration',
-      label: '',
-      top,
-      height: Math.max(LANE_MIN_HEIGHT, rows * LANE_ROW_HEIGHT)
-    });
-    top += bands[0].height;
-  }
   for (const roleId of roleIds) {
     const members = byPrimary.get(roleId) || [];
-    const label = organizationRoles.value[roleId]?.label || '';
     bands.push({
       id: `role:${roleId}`,
       kind: 'role',
-      label,
+      label: organizationRoles.value[roleId]?.label || '',
       top,
       height: Math.max(LANE_MIN_HEIGHT, members.length * LANE_ROW_HEIGHT)
     });
@@ -1114,7 +1100,7 @@ const laneModel = computed(() => {
     });
     top += bands[bands.length - 1].height;
   }
-  return { bands, byPrimary, unassigned, declarations, totalHeight: top };
+  return { bands, byPrimary, unassigned, totalHeight: top };
 });
 
 const laneBands = computed(() => laneModel.value.bands);
@@ -1123,7 +1109,7 @@ const laneBands = computed(() => laneModel.value.bands);
 // spanning every lane the effect is granted to (the operation is one
 // record — never cloned, its wires never duplicated).
 const laneCorridors = computed(() => {
-  const roleBands = laneModel.value.bands.filter(band => band.kind === 'role' && band.id.startsWith('role:'));
+  const roleBands = laneModel.value.bands;
   const corridors = [];
   for (const node of nodes.value) {
     if (node.type !== 'processNode' || !isEffectNode(node)) continue;
@@ -1139,37 +1125,31 @@ const laneCorridors = computed(() => {
   return corridors;
 });
 
-const laneExtentWidth = computed(() => {
-  const xs = nodes.value.map(node => node.position?.x).filter(Number.isFinite);
-  const min = xs.length ? Math.min(...xs) - 320 : 0;
-  const max = xs.length ? Math.max(...xs) + 640 : 2400;
-  return Math.max(2400, max - min);
+// Bands span the nodes' horizontal domain — from the leftmost node's
+// column to the rightmost node's right edge.
+const laneExtent = computed(() => {
+  const extents = nodes.value
+    .map(node => ({ left: node.position?.x, right: (node.position?.x || 0) + (node.dimensions?.width || LANE_CORRIDOR_WIDTH) }))
+    .filter(item => Number.isFinite(item.left));
+  if (!extents.length) return { left: 0, right: 2400 };
+  const pad = 24;
+  return {
+    left: Math.min(...extents.map(item => item.left)) - pad,
+    right: Math.max(...extents.map(item => item.right)) + pad
+  };
 });
 
-// The lane arrangement: x order is preserved, members stack in their
-// authored y order inside their band, declarations fill the declaration
-// band's grid. Positions are presentation state.
+// The lane arrangement of EFFECT nodes: x order is preserved, members
+// stack in their authored y order inside their band. Every other node
+// keeps its authored position.
 function applyLaneProjection() {
-  const { bands, byPrimary, unassigned, declarations } = laneModel.value;
-  const declarationBand = bands.find(band => band.kind === 'declaration');
-  const roleBands = bands.filter(band => band.kind === 'role');
+  const { bands, byPrimary, unassigned } = laneModel.value;
   const laneOf = new Map();
-  for (const [roleId, memberIds] of byPrimary) {
-    const band = roleBands.find(candidate => candidate.id === `role:${roleId}`);
+  for (const [roleId] of byPrimary) {
+    const band = bands.find(candidate => candidate.id === `role:${roleId}`);
     if (band) laneOf.set(roleId, band);
   }
   const positioned = new Map();
-  if (declarationBand) {
-    declarations
-      .map(id => nodes.value.find(node => node.id === id))
-      .filter(Boolean)
-      .sort((left, right) => left.position.y - right.position.y || left.position.x - right.position.x)
-      .forEach((node, index) => {
-        const column = index % 3;
-        const row = Math.floor(index / 3);
-        positioned.set(node.id, { x: 40 + column * DECLARATION_COLUMN_PITCH, y: declarationBand.top + 20 + row * LANE_ROW_HEIGHT });
-      });
-  }
   const stackInto = (memberIds, band) => {
     if (!band) return;
     memberIds
@@ -1181,27 +1161,22 @@ function applyLaneProjection() {
       });
   };
   for (const [roleId, memberIds] of byPrimary) stackInto(memberIds, laneOf.get(roleId));
-  if (unassigned.length) stackInto(unassigned, roleBands.find(candidate => candidate.id === 'unassigned'));
+  if (unassigned.length) stackInto(unassigned, bands.find(candidate => candidate.id === 'unassigned'));
   nodes.value = nodes.value.map(node => (
     positioned.has(node.id) ? { ...node, position: { ...positioned.get(node.id) } } : node
   ));
 }
 
 // Re-project when the authorization shape changes (roles, primary
-// grants, node counts) — not on drags: a position edit survives until
+// grants, effect counts) — not on drags: a position edit survives until
 // membership itself changes.
 const laneSignature = computed(() => JSON.stringify({
   roles: Object.keys(organizationRoles.value),
   grants: nodes.value
     .filter(node => node.type === 'processNode' && isEffectNode(node))
-    .map(node => [node.id, effectPrimaryRoleId(node)]),
-  declarations: nodes.value.filter(node => DECLARATION_NODE_TYPES.includes(node.type)).map(node => node.id),
-  hidden: definitionsHidden.value
+    .map(node => [node.id, effectPrimaryRoleId(node)])
 }));
-watch(laneSignature, () => {
-  applyLaneProjection();
-  syncDefinitionsHidden();
-});
+watch(laneSignature, () => applyLaneProjection());
 
 // Placement writes the grant (node UI contract "Lanes"): dropping an
 // effect in a role lane assigns that role; dropping it in the implicit
@@ -1217,8 +1192,7 @@ function onNodeDragStop({ node } = {}) {
     candidate.kind === 'role' && centerY >= candidate.top && centerY < candidate.top + candidate.height
   ));
   if (!band) {
-    // Dropped outside every lane (e.g. the declaration band): membership
-    // is unchanged; only restack.
+    // Dropped outside every lane: membership is unchanged; only restack.
     applyLaneProjection();
     return;
   }
