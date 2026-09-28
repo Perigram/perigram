@@ -224,44 +224,32 @@
                         <div class="flex min-w-0 items-center gap-1">
                             <h2 class="m-0 min-w-0 truncate text-section-heading">
                                 <!-- The thread title opens the entity popup
-                                     (user card for direct threads, instance
-                                     card for instance threads); the popup's
-                                     open action is the expand into a home
-                                     pane. -->
-                                <InstanceInlineRef
+                                     (the shared dialog surface): the user's
+                                     directory page on direct threads, the
+                                     compiled detail screen on instance
+                                     threads; the popup's expand action opens
+                                     the home pane. The label is the display
+                                     name — never an id. -->
+                                <Button
                                     v-if="activeConversation.conversationKind === 'direct' && activeRecipientUserId"
-                                    type="user"
-                                    :id="activeRecipientUserId"
+                                    link
+                                    class="!p-0 text-left"
+                                    data-testid="chat-header-entity"
+                                    :aria-label="conversationLabel(activeConversation)"
+                                    @click="openEntityPopup({ typeId: 'user', instanceId: activeRecipientUserId })"
                                 >
-                                    <template #trigger="{ toggle }">
-                                        <Button
-                                            link
-                                            class="!p-0 text-left"
-                                            data-testid="chat-header-entity"
-                                            :aria-label="conversationLabel(activeConversation)"
-                                            @click="toggle"
-                                        >
-                                            {{ conversationLabel(activeConversation) }}
-                                        </Button>
-                                    </template>
-                                </InstanceInlineRef>
-                                <InstanceInlineRef
+                                    {{ conversationLabel(activeConversation) }}
+                                </Button>
+                                <Button
                                     v-else-if="activeConversation.conversationKind === 'instance' && activeConversation.instanceId"
-                                    :type="activeConversation.typeId"
-                                    :id="String(activeConversation.instanceId)"
+                                    link
+                                    class="!p-0 text-left"
+                                    data-testid="chat-header-entity"
+                                    :aria-label="conversationLabel(activeConversation)"
+                                    @click="openEntityPopup({ typeId: activeConversation.typeId, instanceId: String(activeConversation.instanceId) })"
                                 >
-                                    <template #trigger="{ toggle }">
-                                        <Button
-                                            link
-                                            class="!p-0 text-left"
-                                            data-testid="chat-header-entity"
-                                            :aria-label="conversationLabel(activeConversation)"
-                                            @click="toggle"
-                                        >
-                                            {{ conversationLabel(activeConversation) }}
-                                        </Button>
-                                    </template>
-                                </InstanceInlineRef>
+                                    {{ conversationLabel(activeConversation) }}
+                                </Button>
                                 <template v-else>{{ conversationLabel(activeConversation) }}</template>
                             </h2>
                             <Button
@@ -965,7 +953,6 @@ import DatePicker from 'primevue/datepicker'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
@@ -981,6 +968,7 @@ import { useInstancesStore } from '~/stores/instances'
 import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js'
 import { openInstanceChat } from '~/utils/instance-chat.js'
+import { useEntityPopup } from '~/composables/useEntityPopup'
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
@@ -1012,6 +1000,7 @@ const confirm = useConfirm()
 const toast = useToast()
 const supportDialog = useSupportDialog()
 const chatTarget = useSupportChatTarget()
+const { open: openEntityPopup } = useEntityPopup()
 const authStore = useAuthStore()
 const supportChatStore = useSupportChatStore()
 

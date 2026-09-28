@@ -74,6 +74,10 @@
         <ChatSupportDialog v-model:visible="supportDialog" :label="t('support.chatTitle')">
             <ChatSupport />
         </ChatSupportDialog>
+        <!-- The entity popup: the shared dialog surface for inspecting a
+             record from floating chrome (chat headers) without leaving the
+             current route; its expand action opens the home pane. -->
+        <EntityPopup />
         <nav
             v-if="authStore.userIsSet"
             class="fixed inset-x-0 bottom-0 z-[998] border-t [border-color:var(--ck-chrome-border)] bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-overlay md:hidden"
@@ -179,6 +183,7 @@
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'
     import ChatSupportDialog from '~/components/shared/ChatSupportDialog.vue';
+    import EntityPopup from '~/components/shared/EntityPopup.vue'
     import ChatSupport from '~/components/ChatSupport.vue'
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
