@@ -1,10 +1,4 @@
 <template>
-  <!-- Left-anchored timeline: the app renders no #opposite column, and
-       PrimeVue's always-rendered empty opposite (flex:1) both wastes half
-       the row and lets wide unbreakable content push the separator —
-       items' left borders drifted out of alignment. The pt hides the
-       empty opposite so the marker line anchors at the left edge and the
-       content column owns the full width. -->
   <Timeline :value="page" class="w-full" :pt="timelinePt">
     <template #content="{ item }">
       <div :class="LAYOUT.stackTight">
@@ -71,9 +65,7 @@ defineEmits(['open']);
 
 const { te, t } = useI18n();
 
-// Left-anchoring (see the template note): the app's timeline is a list
-// projection with no opposite column — the empty one PrimeVue always
-// renders is display:none'd so the marker line anchors at the left edge.
+// No #opposite column: hide PrimeVue's always-rendered empty one.
 const timelinePt = { eventOpposite: { style: { display: 'none' } } };
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
