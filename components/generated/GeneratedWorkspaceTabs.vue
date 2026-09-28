@@ -15,7 +15,7 @@
           class="group/workspace-tab flex max-w-56 min-w-24 items-center !py-0 !px-2"
         >
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
-          <span class="min-w-0 truncate text-label">{{ tabLabel(tab) }}</span>
+          <span class="min-w-0 truncate text-body">{{ tabLabel(tab) }}</span>
           <InstanceState
             v-if="tab.kind === 'instance'"
             :instance="tab.instance"
@@ -31,7 +31,7 @@
             rounded
             size="small"
             severity="secondary"
-            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-full !w-6"
+            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-full !w-8"
             :aria-label="$t('common.close')"
             @click.stop="$emit('close-tab', tab.key)"
           />
@@ -45,7 +45,7 @@
         rounded
         size="small"
         severity="secondary"
-        class="!h-full !w-6"
+        class="!h-full !w-8"
         :aria-label="$t('project.newTab')"
         @click.stop="$emit('add')"
       />
