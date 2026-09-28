@@ -1,5 +1,5 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="lg" :title="data.purpose || data.summary || ''">
+  <DesignerNodeCard :selected="selected" size="lg" :shape="populationShape" :title="data.purpose || data.summary || ''">
     <!-- Label-dominant header: the label is the primary read, the species
          glyph rides the trailing corner, and the whole header row carries
          the node-spec tooltip (the per-node `?` affordance is gone —
@@ -57,9 +57,9 @@
     </div>
 
     <div v-if="socketRows.length" class="-mx-2.5 mt-2 flex flex-col">
-      <!-- One-sided rows render without their empty opposite cell, and row
-           labels render on the SELECTED node only (quiet-card policy, node
-           UI contract): unselected cards show handles alone. -->
+      <!-- One-sided rows render without their empty opposite cell; row
+           labels ALWAYS render — quiet cards keep their sockets named
+           (owner corrective 2026-09-28, node UI contract). -->
       <div v-for="row in socketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" :wired="row.input.connected" side="left" :title="socketTitle(row.input)" />
@@ -121,6 +121,17 @@ const { t } = useI18n();
 
 const record = computed(() => props.data.processNodeRecord || props.data);
 const opKind = computed(() => operationKindOf(record.value || {}));
+// The BPMN population shape (node UI contract): verbs (effect species)
+// are task rectangles, nouns (the data plane — sources, values,
+// collections, reads/projections) are folded-corner data objects, and
+// the control species keep the neutral default frame — their shape is
+// the reserved gateway slot pending the control-species fate decision.
+const populationShape = computed(() => {
+  const kind = opKind.value || '';
+  if (kind.startsWith('effect.')) return 'task';
+  if (kind.startsWith('control.')) return '';
+  return 'data';
+});
 const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || []));
 const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || []));
 const dataInputs = computed(() => inputSpecs.value.filter(input => input.role === 'data'));

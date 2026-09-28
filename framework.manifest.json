@@ -664,6 +664,7 @@
         "--ck-signal-quantity": "#d39700",
         "--ck-signal-reference": "var(--ck-entity-tone-output)",
         "--ck-signal-structure": "var(--ck-entity-tone-system)",
+        "--ck-signal-structure-muted": "color-mix(in srgb, var(--ck-signal-structure) 55%, var(--p-text-muted-color))",
         "--ck-signal-temporal": "var(--ck-entity-tone-output)",
         "--ck-signal-value": "var(--ck-entity-tone-system)",
         "--ck-status-danger": "var(--p-red-600)",
@@ -774,6 +775,7 @@
           "quantity": "var(--ck-signal-quantity)",
           "reference": "var(--ck-signal-reference)",
           "structure": "var(--ck-signal-structure)",
+          "structure-muted": "var(--ck-signal-structure-muted)",
           "temporal": "var(--ck-signal-temporal)",
           "value": "var(--ck-signal-value)"
         },
@@ -918,6 +920,7 @@
             "quantity": "var(--ck-signal-quantity)",
             "reference": "var(--ck-signal-reference)",
             "structure": "var(--ck-signal-structure)",
+            "structure-muted": "var(--ck-signal-structure-muted)",
             "temporal": "var(--ck-signal-temporal)",
             "value": "var(--ck-signal-value)"
           },

@@ -124,6 +124,7 @@ export const designTokens = {
         entity: 'var(--ck-signal-entity)',
         reference: 'var(--ck-signal-reference)',
         structure: 'var(--ck-signal-structure)',
+        'structure-muted': 'var(--ck-signal-structure-muted)',
         data: 'var(--ck-signal-data)',
         quantity: 'var(--ck-signal-quantity)',
         decision: 'var(--ck-signal-decision)',
@@ -177,6 +178,11 @@ export const cssVariableTokens = {
     '--ck-signal-entity': 'var(--ck-entity-tone-command)',
     '--ck-signal-reference': 'var(--ck-entity-tone-output)',
     '--ck-signal-structure': 'var(--ck-entity-tone-system)',
+    // The declaration WIRE/frame tone: the structure family demuted toward
+    // the muted ink so declaration-heavy graphs (16+ wires against 1 event
+    // wire on real orgs) never out-shout the event chain — the primacy
+    // contract's one derived canvas tone (hue stays full only on handles).
+    '--ck-signal-structure-muted': 'color-mix(in srgb, var(--ck-signal-structure) 55%, var(--p-text-muted-color))',
     '--ck-signal-data': 'var(--ck-entity-tone-material)',
     '--ck-signal-quantity': '#d39700',
     '--ck-signal-decision': 'var(--ck-accent-500)',

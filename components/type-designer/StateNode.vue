@@ -1,5 +1,5 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="sm">
+  <DesignerNodeCard :selected="selected" size="sm" :shape="shape">
     <div class="flex items-center gap-1.5">
       <i :class="[terminal ? 'pi pi-circle-fill' : 'pi pi-circle', flagTone]" aria-hidden="true" />
       <InputText
@@ -28,7 +28,11 @@ import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
-  selected: { type: Boolean, default: false }
+  selected: { type: Boolean, default: false },
+  // Population shape passthrough (node UI contract): the process canvas
+  // renders this family as the dashed declaration vocabulary; the type
+  // canvas passes nothing and keeps the neutral default frame.
+  shape: { type: String, default: '' }
 });
 
 defineEmits(['rename']);

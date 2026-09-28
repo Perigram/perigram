@@ -1,5 +1,5 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="md" >
+  <DesignerNodeCard :selected="selected" size="md" shape="declaration">
     <div class="flex items-center gap-1.5">
       <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle">
         <i :class="type?.icon || 'pi pi-database'" aria-hidden="true"></i>
