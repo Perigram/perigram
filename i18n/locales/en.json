@@ -2573,6 +2573,9 @@
     "frameAll": "Frame all nodes",
     "frameSelection": "Frame selected nodes",
     "resetZoom": "Reset zoom",
+    "lanes": "Lanes",
+    "hideDefinitions": "Hide definitions",
+    "laneDefinitions": "Definitions",
     "paletteGroups": {
       "entities": "Types",
       "values": "Values",

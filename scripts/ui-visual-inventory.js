@@ -73,7 +73,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   ]],
   'components/shared/blocks/DataBlock.vue': ['data-driven', [':style="{ backgroundColor: row.swatch }"']],
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
-  'components/shared/DesignerSocketHandle.vue': ['data-driven', [':style="processSocketHandleStyle(socket, wired)"']],
+  'components/shared/DesignerSocketHandle.vue': ['data-driven', [':style="processSocketHandleStyle(socket)"']],
   'components/shared/InstanceInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
   'components/ui-mapping/GanttCollection.vue': ['data-driven', [
     ':style="tickStyle(tick)"',

@@ -24,10 +24,12 @@ function socketBase(port = {}) {
 }
 
 // The socket grammar (canonical contract: components/process-designer
-// README, "Node UI contract"). Shape encodes WHAT KIND of thing a socket
-// deals in; color encodes the payload family. The two are orthogonal and
-// access (Item/List/Tree) is deliberately neither — a socket accepts all
-// three and access stays a runtime/hover fact.
+// README, "Node UI contract"). `processSocketKind` classifies a port for
+// COLOR resolution (events resolve to the primary accent, declaration
+// bindings to the structure family); the handle MARK is one uniform
+// filled circle for every kind — shape encodes nothing. Access
+// (Item/List/Tree) is deliberately neither — a socket accepts all three
+// and access stays a runtime/hover fact.
 export function processSocketKind(port = {}) {
   if (port.plane === 'declaration') return 'declaration';
   if ((port.role && port.role !== 'data') || port.type?.base === 'event') return 'event';
@@ -49,19 +51,10 @@ export function processSocketColor(port = {}) {
   return `var(--ck-signal-${processSocketTone(port)})`;
 }
 
-// Handle paint by shape channel (node UI contract): data = filled dot,
-// declaration = filled diamond, status = filled square, event = RING —
-// an outline ring is a MANUAL trigger (the effect runs by hand), a filled
-// ring (colored band around a card-colored hole) is WIRED (the trigger
-// fires automatically). `wired` is the card's connected-input fact; it
-// only discriminates the ring, every other kind stays filled.
-export function processSocketHandleStyle(port = {}, wired = false) {
+// Handle paint: the payload-family color on the one uniform filled
+// circle. Every socket renders the same mark; a manual trigger is simply
+// an event socket with no wire attached.
+export function processSocketHandleStyle(port = {}) {
   const color = processSocketColor(port);
-  if (processSocketKind(port) === 'event' && !wired) {
-    return { backgroundColor: 'transparent', borderColor: color, borderWidth: '2px' };
-  }
-  if (processSocketKind(port) === 'event') {
-    return { backgroundColor: color, borderColor: color, boxShadow: 'inset 0 0 0 3px var(--p-content-background)' };
-  }
   return { backgroundColor: color, borderColor: color };
 }

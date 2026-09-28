@@ -33,4 +33,14 @@ describe('process designer socket tones', () => {
       borderColor: 'var(--ck-signal-reference)'
     });
   });
+
+  it('paints every socket as the same filled mark — no rings, no variants', () => {
+    expect(processSocketHandleStyle({ role: 'event', type: { base: 'event' } })).toEqual({
+      backgroundColor: 'var(--p-primary-color)',
+      borderColor: 'var(--p-primary-color)'
+    });
+    expect(processSocketHandleStyle({ type: { base: 'status' }, wired: true })).toEqual(
+      processSocketHandleStyle({ type: { base: 'status' } })
+    );
+  });
 });
