@@ -176,6 +176,13 @@
           @open-instance="openMobileInstance"
           @refresh="$emit('refresh')"
         />
+        <!-- The default home may carry no type sections (no definition or
+             one that no longer compiles): the same open-content prompt the
+             desktop panes render keeps mobile home non-empty. -->
+        <div v-else class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted">
+          <i class="pi pi-folder-open" aria-hidden="true" />
+          <span>{{ $t('project.openSomething') }}</span>
+        </div>
       </div>
     </div>
 

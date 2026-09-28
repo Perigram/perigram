@@ -206,6 +206,7 @@
     import { useNavigationStore } from '~/stores/navigation'
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
     import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
+    import { resolveDefaultHomeScreen, resolveProcessEntryRoute } from '~/utils/process-navigation.js'
     import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js'
 
     const router = useRouter()
@@ -291,9 +292,12 @@
         if (!route.path.startsWith('/screens/')) return null
         const rawKey = route.params.screenKey
         const screenKey = Array.isArray(rawKey) ? rawKey.join('/') : rawKey
+        // Home is the default screen: unresolved keys carry the home
+        // fallback so the workspace chrome (hidden desktop header, bounded
+        // viewport) matches what the screens route renders.
         return authStore.screenManifest.find(screen => (
             screen.screenKey === screenKey || screen.id === screenKey
-        )) || null
+        )) || resolveDefaultHomeScreen(authStore.screenManifest)
     })
     const isGeneratedWorkspaceRoute = computed(() => Boolean(
         resolveGeneratedScreenOverload(activeGeneratedScreen.value)
@@ -312,19 +316,13 @@
     ))
     const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
     const isFlushMobileSurface = computed(() => isAccountRoute.value || isChatsRoute.value)
-    const processOperationalScreens = computed(() => authStore.screenManifest
-        .filter(screen => screen.kind !== 'system')
-        .filter(screen => typeof screen.route === 'string' && screen.route.startsWith('/screens/')))
-    const homeRoute = computed(() => {
-        if (authStore.processActive) {
-            const home = processOperationalScreens.value.find(screen => screen.template === 'home' && screen.route)
-            if (home?.route) return home.route
-            const hub = processOperationalScreens.value.find(screen => screen.route && screen.template !== 'instanceDetail' && (screen.placement || 'hub') === 'hub')
-            if (hub?.route) return hub.route
-            return '/screens'
-        }
-        return '/'
-    })
+    // The home tab follows the entry ladder: compiled home, first hub, or
+    // the default home route — never a non-screen destination (the landing
+    // redirects authenticated users away).
+    const homeRoute = computed(() => resolveProcessEntryRoute({
+        screens: authStore.screenManifest,
+        navigation: authStore.navigationManifest
+    }))
 
     const closeMobileTransientSurfaces = () => {
         supportDialog.value = false

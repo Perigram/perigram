@@ -237,8 +237,15 @@ designer tree.
 ## Home Workspace
 
 `GeneratedHomeWorkspace.vue` renders the generated `home` template as a
-Discord-style operational shell:
-
+Discord-style operational shell. It is also the default screen: when the
+compiled manifest carries no home screen (no active definition, or one that
+no longer compiles), the screens route feeds it the sourceless default home
+contract (`defaultHomeScreen` in
+[pages/README.md](../../pages/README.md)) and every
+definition-independent surface keeps working — the communication entries,
+the profile/account footer, the pane area with its empty-tab prompt — while
+type panels and sections simply stay absent because they derive entirely
+from the compiled manifest.
 - Desktop (`md` and up) is a fixed two-column bounded workspace: a sidebar and
   the recursive pane area. Mobile renders the screen selected in the
   app-shell bottom bar — the shared mobile home tab state

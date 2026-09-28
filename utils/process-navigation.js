@@ -20,8 +20,38 @@ export function resolveVisibleScreens(screens = [], permissions = {}) {
   });
 }
 
-export function resolveProcessEntryRoute({ processActive = false, screens = [], navigation = [] } = {}) {
-  if (!processActive) return null;
+// The default home screen: what stands in when the compiled manifest
+// carries no home — no active definition, one that no longer compiles
+// (auth hydration degrades that to "no active process"), or an org without
+// navigable screens. Sourceless on purpose: the home workspace renders its
+// definition-independent surfaces (chats, calls, profile) from an empty
+// contract; the manifest only ever ADDS type sections. Canonical contract:
+// pages/README.md (Public Entry).
+export function defaultHomeScreen() {
+  const screenKey = 'home';
+  return {
+    id: screenKey,
+    screenKey,
+    label: 'Home',
+    kind: 'home',
+    template: 'home',
+    placement: 'home',
+    route: '/screens/home',
+    sourceRoute: '/screens/home',
+    sources: [],
+    regions: [],
+    actions: []
+  };
+}
+
+// The home screen a route renders when its key resolves to nothing: the
+// compiled home when one exists, otherwise the sourceless default.
+export function resolveDefaultHomeScreen(screens = []) {
+  return composeEffectiveScreens(screens).find(screen => screen.template === 'home')
+    || defaultHomeScreen();
+}
+
+export function resolveProcessEntryRoute({ screens = [], navigation = [] } = {}) {
   const effectiveScreens = processOperationalScreens(composeEffectiveScreens(screens));
   const home = effectiveScreens.find(screen => screen.template === 'home' && screen.route);
   if (home) return home.route;
@@ -30,7 +60,7 @@ export function resolveProcessEntryRoute({ processActive = false, screens = [], 
   const navigable = effectiveScreens.find(screen => screen.route && !isDetailScreenTemplate(screen.template));
   if (navigable) return navigable.route;
   const navItem = (navigation || []).find(item => item?.route?.startsWith('/screens/'));
-  return navItem?.route || '/screens';
+  return navItem?.route || defaultHomeScreen().route;
 }
 
 export function composeEffectiveScreens(screens = []) {

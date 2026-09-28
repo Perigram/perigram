@@ -66,19 +66,21 @@ const valueProps = computed(() => [
 
 async function redirectIfAuthenticated() {
   if (authStore.userIsSet) {
-    if (authStore.processActive) {
-      const processRoute = resolveProcessEntryRoute({
-        processActive: authStore.processActive,
-        screens: authStore.screenManifest,
-        navigation: authStore.navigationManifest
-      });
-      await navigateTo(processRoute);
+    // Orgless users have no workspace yet; their entry point is the
+    // profile page where organization creation lives.
+    const hasOrganization = Boolean(authStore.userData?.organizationId) || authStore.memberships.length > 0;
+    if (!hasOrganization) {
+      await navigateTo('/profile');
       return;
     }
-    // Orgless users have no generated workspace yet; their entry point is
-    // the profile page where organization creation lives.
-    const hasOrganization = Boolean(authStore.userData?.organizationId) || authStore.memberships.length > 0;
-    await navigateTo(hasOrganization ? '/organization' : '/profile');
+    // The home screen is the default screen: the entry ladder ends at
+    // /screens/home, so a missing or broken active definition still lands
+    // organization members on the workspace's definition-independent
+    // surfaces (see pages/README.md).
+    await navigateTo(resolveProcessEntryRoute({
+      screens: authStore.screenManifest,
+      navigation: authStore.navigationManifest
+    }));
   }
 }
 
