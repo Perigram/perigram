@@ -199,7 +199,10 @@ action strips never carry stateless field-edit `updateInstance` actions
 (`isFieldEditAction`): detail fields are inline-editable on their own,
 state-carrying updates are transitions and stay, and the editing
 affordance of an editor-bound type is its editor action (file-edit
-glyph).
+glyph). The ui-mapping record header (`SurfaceHeader`) drops
+`updateInstance` from its run menu the same way — editor-bound types
+render the editor action instead of the edit-mode toggle, which stays
+only for inline field surfaces without an editor.
 
 The `sketch-editor` surface mounts `SketchEditor` and the
 `text-editor`/`csv-editor` surfaces mount `ArtifactTextEditor` — each
