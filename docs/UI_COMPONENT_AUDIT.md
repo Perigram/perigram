@@ -128,7 +128,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-calls-callfloatingwindow-vue` | `components/calls/CallFloatingWindow.vue` | derived usage | centralize:layout (4); replace:chrome (7) |
 | `ui-components-calls-callpanel-vue` | `components/calls/CallPanel.vue` | derived usage | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-calls-callprejoin-vue` | `components/calls/CallPrejoin.vue` | derived usage | replace:chrome (5) |
-| `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5); replace:inline-visual (1) |
+| `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-calls-callworkspacepage-vue` | `components/calls/CallWorkspacePage.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
 | `ui-components-calls-incomingcalls-vue` | `components/calls/IncomingCalls.vue` | derived usage | replace:chrome (5) |
 | `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (35); narrowly-allowlist:inline-data-driven (2) |

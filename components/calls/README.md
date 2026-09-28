@@ -9,18 +9,34 @@ enters the main bundle).
 - `CallPanel.vue` orchestrates the call: pre-join → connected stages, the
   room event wiring (tracks, mute, speaking levels, connection quality,
   reconnection), speaker/grid layouts with pinning and screen-share
-  spotlight, the reaction bar (data-channel events, floating badges through
-  the `riseAndFade` motion pattern), raise-hand, mid-call device settings,
-  and mic/camera/share/leave controls.
-- `CallPrejoin.vue` owns device enumeration, live camera preview, a
-  microphone level meter, and mic/cam pre-toggles carried into the join.
+  spotlight, raise-hand, mid-call device settings, and mic/camera/share/
+  leave controls. The panel is a **bounded videocall surface**: the stage
+  owns every pixel of height, the root never page-scrolls (only the grid
+  and the film strip scroll inside their own boxes), and all controls live
+  in one docked bar below the stage — a wrapped header can never eat the
+  video area. A connection that drops while the panel stays mounted
+  returns to the pre-join stage instead of stranding an empty stage with a
+  disabled dock.
+- `CallPrejoin.vue` owns device enumeration (plain PrimeVue `Select`; the
+  shared `InstanceSelect` is the entity picker and must not be reused for
+  device lists), live camera preview, a bare microphone-activity dot, and
+  mic/cam pre-toggles carried into the join. It shows no room ids — the
+  caller is identified by the surface that opened the call.
 - `CallTile.vue` renders one participant or screen-share track: video or
-  Avatar fallback, speaking level dot, mute/hand/quality badges, and pin.
+  Avatar fallback, speaking level dot, mute/hand badges, and pin. The
+  identity chip is the single name owner; the no-video fallback is the
+  avatar alone. The connection-quality glyph appears only for degraded
+  links (`fair`/`poor`/`lost`) — a healthy connection is the silent
+  default. The chip truncates, so long display names cannot overflow a
+  tile.
 - `CallWorkspacePage.vue` is the pane-hosted call surface used by the home
   workspace: the `CallPanel` stage plus the call's own conversation thread
   (`ChatSupport` embedded and pinned through its `conversation-key` prop,
   meet-style stage + chat), with a pop-out control that hands the live call
-  to the shell's floating window and closes the tab. It is responsive to
+  to the shell's floating window and closes the tab. The stage mounts
+  full-bleed (no wrapper padding) so the panel's dock hairline spans the
+  pane and the video keeps maximum area; the pop-out floats over the stage
+  top-right like the tile pin control. It is responsive to
   the pane width through a
   container query: wide panes render the chat as a fixed side rail; narrow
   or split panes stack it below the stage at two-fifths of the call
@@ -35,6 +51,23 @@ enters the main bundle).
 - `CallFloatingWindow.vue` is the absolute floating call window: a draggable
   fixed panel above the app that hosts a popped-out `CallPanel`. Docking
   returns the call to a home workspace tab.
+
+## Panel chrome
+
+The control dock is one structural bar: a `border-chrome-border` hairline
+on top, no painted background, icon-only PrimeVue buttons (rounded, text,
+secondary; leave is the single danger button). This follows the flat
+surface ladder owned by
+[components/README.md](../README.md#visual-tokens): call surfaces are
+structural chrome and paint nothing; `bg-content` stays on chips over
+media (tile identity chips, the reconnecting pill). The dock's inner row
+is `w-max` with auto margins inside an `overflow-x-auto` bar, so it
+centers when it fits and scrolls — never wraps — when the pane is narrow.
+Reactions open from a dock button through a PrimeVue `Popover`; floating
+reaction badges ride the `riseAndFade` motion pattern over the stage.
+Status is shown only where it changes behavior: a reconnecting pill while
+the room re-connects, degraded-quality glyphs on tiles. There is no
+participant-count subtitle and no header row.
 
 ## Call line state machine
 
@@ -77,7 +110,9 @@ workspace tab is the default (navigating home when the caller lives on
 another route); organizations without a generated home workspace fall back
 to the floating window, and mobile keeps the full-screen dialog. Accepted
 invites and docked calls are parked as `pendingTabRoom` and consumed by
-the home workspace's watcher.
+the home workspace's watcher. The mobile and chat-hosted full-screen call
+dialogs bound their content with the `h-preview-dialog` dimension token
+(the full-dialog height), never the chat-height token.
 
 ## Media plumbing
 
@@ -108,7 +143,8 @@ the home workspace's watcher.
 - Grid view is a self-fitting masonry: `repeat(auto-fit, minmax(min(100%,
   14rem), 1fr))` with fixed-aspect 16:9 cells, so the participant count and
   the pane width choose the column count together and the grid never
-  produces collapsed columns.
+  produces collapsed columns. The grid is also the only vertical scroller
+  in the panel.
 - Screen shares render `object-contain`; cameras `object-cover`.
   `CallPanel` itself carries no chat — app chat owns messaging; the panel
   only emits `closed` so hosts can tear the surface down. Recording/egress
