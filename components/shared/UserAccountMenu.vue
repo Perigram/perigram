@@ -236,7 +236,7 @@ async function uploadAvatar(event) {
   avatarBusy.value = true;
   try {
     const form = new FormData();
-    form.append('avatar', file);
+    form.append('file', file);
     await $fetch(`/api/users/${authStore.userData.userId || authStore.userData.id}/avatar`, { method: 'PUT', body: form });
     await authStore.setUser();
   } catch (error) {
