@@ -592,9 +592,9 @@ composed instance thread). Bounded/flush editor hosts expose the same entry
 
 ### `EntityPopup.vue` (with `useEntityPopup`)
 The shared entity popup: the standard centered `StandardDialog` (size
-`xl`, bounded scroll body) hosting the entity's real detail surface —
-the directory page (with the generated organization overview for the
-active org) for `user`/`organization`
+`md` for directory profiles, `xl` for instance detail screens; bounded
+scroll body) hosting the entity's real detail surface — the directory
+profile for `user`/`organization`
 ([components/directory](../directory/README.md)), and the compiled detail
 screen through the generator host
 ([components/generated](../generated/README.md)) for instance types.
