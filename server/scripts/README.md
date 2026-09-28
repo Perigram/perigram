@@ -39,7 +39,7 @@ reads. Tech-drawing catalogue instances migrate into §3 documents through
 | `migrate-process-transition-role-access.js` | Separating process-role transition authority | Removes compiled workflow `access.permissions` from transitions that already carry `processRoleIds`. Dry-run; `--apply` persists. |
 | `migrate-organization-owner-admins.js` | Tenant safety | Marks one active membership per organization as `owner: true` and materializes permanent org/user admin recovery grants. Idempotent. |
 | `migrate-call-channels-to-groups.js` | Adopting unified support groups | Migrates the retired livekit `call_channels` collection into support `chat_groups` and drops it. Dry-run; `--apply` persists. |
-| `migrate-cutkit-extensions-to-perigram.js` | CutKit → Perigram rename | Renames persisted `extensions.cutkit` authoring keys to `extensions.perigram` at any document depth in every non-system collection. Supports `--dry-run`. |
+| `migrate-cutkit-extensions-to-perigram.js` | CutKit → Perigram rename | Renames persisted `extensions.cutkit` authoring keys to `extensions.perigram` at any document depth in every non-system collection, and inside GridFS file contents (JSON documents rewritten under their original id; binary files are skipped). Supports `--dry-run`. |
 
 ## Retired
 
