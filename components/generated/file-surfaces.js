@@ -1,5 +1,6 @@
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
 import TableImportSurface from '~/components/generated/TableImportSurface.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
@@ -8,6 +9,7 @@ import { facadeEditors } from '@perigram/facade';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { useInstancesStore } from '~/stores/instances';
 import { unref } from 'vue';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 
@@ -18,22 +20,17 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  * app's editor presentations. Process data never selects components — the
  * surface id does.
  *
- * A surface record may carry:
- * - `detail`: the generated detail-body overload presentation
- *   (`component`, `props` adapter, `ownsActionSurface`);
- * - `action`: the card/detail editor-action button component;
+ * Every editor surface is a WORKSPACE PAGE: editors never embed inside
+ * generated instance detail chrome. A surface record carries:
  * - `workspacePage`: the pane workspace-page presentation
- *   (`labelKey`, `icon`, `component`, `props`);
- * - `forcesIdentity`: the editor owns its surface so the generated detail
- *   keeps the identity block even without an action component.
+ *   (`labelKey`, `icon`, `component`, `props` — the props adapter receives
+ *   the page record and the bound type id);
+ * - `action`: the card/detail editor-action button component that opens
+ *   the page (the cassette designer keeps its own action component for its
+ *   dialog persistence flows).
  */
 export const fileSurfaceRegistry = {
   'cassette-designer': {
-    detail: {
-      component: GeneratedCassetteDesignerWorkspacePage,
-      ownsActionSurface: true,
-      props: ({ entity }) => ({ cassette: entity })
-    },
     action: GeneratedCassetteDesignerAction,
     workspacePage: {
       labelKey: 'cassette.designerTitle',
@@ -43,51 +40,57 @@ export const fileSurfaceRegistry = {
     }
   },
   'sheet-design-editor': {
-    detail: {
+    action: GeneratedEditorPageAction,
+    workspacePage: {
+      labelKey: 'sheetDesign.editor',
+      icon: 'pi pi-pencil',
       component: SheetDesignEditor,
-      ownsActionSurface: true,
-      props: ({ entity, canEditSheetDesign }) => ({ design: entity, editable: canEditSheetDesign })
-    },
-    forcesIdentity: true
+      props: page => ({ design: page.entity })
+    }
   },
   'sketch-editor': {
-    detail: {
+    action: GeneratedEditorPageAction,
+    workspacePage: {
+      labelKey: 'sketch.editorTitle',
+      icon: 'pi pi-pencil',
       component: SketchEditor,
-      ownsActionSurface: true,
-      props: ({ entity, typeId }) => ({ persistence: sketchInstancePersistence(entity, typeId) })
-    },
-    forcesIdentity: true
+      props: (page, typeId) => ({ persistence: sketchInstancePersistence(page.entity, typeId) })
+    }
   },
   'text-editor': {
-    detail: {
+    action: GeneratedEditorPageAction,
+    workspacePage: {
+      labelKey: 'editors.text',
+      icon: 'pi pi-pencil',
       component: ArtifactTextEditor,
-      ownsActionSurface: true,
-      props: ({ entity, typeId }) => ({
-        persistence: textInstancePersistence(entity, typeId, 'text'),
+      props: (page, typeId) => ({
+        persistence: textInstancePersistence(page.entity, typeId, 'text'),
         format: 'text'
       })
-    },
-    forcesIdentity: true
+    }
   },
   'csv-editor': {
-    detail: {
+    action: GeneratedEditorPageAction,
+    workspacePage: {
+      labelKey: 'editors.csv',
+      icon: 'pi pi-pencil',
       component: ArtifactTextEditor,
-      ownsActionSurface: true,
-      props: ({ entity, typeId }) => ({
-        persistence: textInstancePersistence(entity, typeId, 'csv'),
+      props: (page, typeId) => ({
+        persistence: textInstancePersistence(page.entity, typeId, 'csv'),
         format: 'csv'
       })
-    },
-    forcesIdentity: true
+    }
   },
   // The workbook's editor is the import mapper: parse the payload
   // client-side, map columns onto a target type's declared vocabulary,
   // construct through the instances batch transport.
   'table-import': {
-    detail: {
+    action: GeneratedEditorPageAction,
+    workspacePage: {
+      labelKey: 'tableImport.title',
+      icon: 'pi pi-table',
       component: TableImportSurface,
-      ownsActionSurface: true,
-      props: ({ entity, typeId }) => ({ entity, typeId })
+      props: (page, typeId) => ({ entity: page.entity, typeId })
     }
   }
 };
@@ -113,6 +116,15 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       const form = new FormData();
       form.append('file', new File([text], filename, { type: mimeType }));
       return await $fetch(`/api/instances/${encodeURIComponent(typeId)}/${encodeURIComponent(instanceId)}/payload`, { method: 'PUT', body: form });
+    },
+    rename: async (name) => {
+      const trimmed = String(name || '').trim();
+      if (!trimmed) return null;
+      return await useInstancesStore().mutateDirect(useInstancesStore().canonicalTypeKey(typeId), 'PATCH', {
+        id: instanceId,
+        body: { identity: { name: trimmed } },
+        meta: { change: 'updated', reason: 'editor-rename' }
+      });
     }
   };
 }
@@ -126,7 +138,8 @@ export function sketchInstancePersistence(entity = {}, typeId = 'sketch') {
   return {
     title: base.title,
     loadScene: base.load,
-    saveScene: (sceneText, filename) => base.save(sceneText, filename)
+    saveScene: (sceneText, filename) => base.save(sceneText, filename),
+    rename: base.rename
   };
 }
 
@@ -142,7 +155,8 @@ export function textInstancePersistence(entity = {}, typeId = '', format = 'text
     title: base.title,
     extension: markdown ? '.md' : '.csv',
     loadText: base.load,
-    saveText: base.save
+    saveText: base.save,
+    rename: base.rename
   };
 }
 
@@ -211,37 +225,16 @@ export function resolveFileSurface(editors = activeEditorBindings(), typeId = ''
     typeId,
     surface: editor.surface,
     modes: [...(editor.modes || [])],
-    detail: surface.detail || null,
     action: surface.action || null,
-    workspacePage: surface.workspacePage || null,
-    forcesIdentity: Boolean(surface.forcesIdentity)
+    workspacePage: surface.workspacePage || null
   };
-}
-
-/**
- * Derive generated instance-detail overload rows for every bound file type:
- * one row per editor binding whose surface has a detail presentation.
- */
-export function fileDetailOverloads(editors = activeEditorBindings()) {
-  return (editors || [])
-    .map(editor => {
-      const surface = resolveFileSurface(editors, editor.type);
-      return surface?.detail
-        ? {
-            typeId: editor.type,
-            component: surface.detail.component,
-            ownsActionSurface: Boolean(surface.detail.ownsActionSurface),
-            props: context => surface.detail.props({ ...context, typeId: editor.type })
-          }
-        : null;
-    })
-    .filter(Boolean);
 }
 
 /**
  * Derive registered workspace-page rows for every bound file type whose
  * surface has a pane presentation. Page ids are the surface ids, so
- * persisted pane state stays stable.
+ * persisted pane state stays stable; the props adapter receives the page
+ * record and the bound type id (one surface may serve several types).
  */
 export function fileWorkspacePages(editors = activeEditorBindings()) {
   return (editors || [])
@@ -254,7 +247,7 @@ export function fileWorkspacePages(editors = activeEditorBindings()) {
             labelKey: surface.workspacePage.labelKey,
             icon: surface.workspacePage.icon,
             component: surface.workspacePage.component,
-            props: surface.workspacePage.props
+            props: page => surface.workspacePage.props(page, editor.type)
           }
         : null;
     })
@@ -262,15 +255,15 @@ export function fileWorkspacePages(editors = activeEditorBindings()) {
 }
 
 /**
- * Derive editor-action rows: every bound file type resolves its action
- * component and identity policy from the surface registry.
+ * Derive editor-action rows: every bound file type resolves the action
+ * component that opens its editor page.
  */
 export function fileEditorActions(editors = activeEditorBindings()) {
   return (editors || [])
     .map((editor) => {
       const surface = resolveFileSurface(editors, editor.type);
-      return surface
-        ? [editor.type, { component: surface.action || null, forceIdentity: surface.forcesIdentity }]
+      return surface?.action
+        ? [editor.type, { component: surface.action }]
         : null;
     })
     .filter(Boolean);

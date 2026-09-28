@@ -116,8 +116,8 @@ backstop for changes made outside this screen. Successful `createEntity`
 actions additionally open the created entity
 (resolved through `created-instance-open.js`: while the manifest carries a
 compiled home screen the created entity opens — or reuses — a home-workspace
-tab, whose pane body mounts the type's editor surface through the
-file-surface overload when no detail screen exists; orgs without a home
+tab, whose pane body mounts the type's editor workspace page when no
+detail screen exists; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
 fallback is a success toast with the created name). A mapped
 mutation response is either a bare shape-preserving data tree (zero failures)
@@ -162,11 +162,17 @@ contract. It combines two halves:
   (`packEditorBindings`) remains as the explicit fallback for contexts
   without a fetched view — module-scope evaluation, unit specs, and
   pre-auth shells.
-- **The fixed surface registry** — surface id → app presentations. Each
-  surface record may carry the detail-body overload component (with its props
-  adapter and `ownsActionSurface`), the card/detail editor-action component,
-  and the workspace-page presentation (label key, icon, component, props).
-  Process data never selects components; the surface id does.
+- **The fixed surface registry** — surface id → app presentations. Every
+  editor surface is a WORKSPACE PAGE: the record carries the pane
+  workspace-page presentation (label key, icon, component, props — the
+  props adapter receives the page record and the bound type id, because
+  one surface may serve several types) and the card/detail editor-action
+  component that opens the page (`GeneratedEditorPageAction` for every
+  surface except the cassette designer, which keeps its own action
+  component for its dialog persistence flows). Editors never embed in
+  generated instance detail chrome — the instance detail of an editor
+  bound type is the ordinary read surface, and the editor opens as a pane
+  tab. Process data never selects components; the surface id does.
 
 Two editor-binding guards live here: `validateEditorBindings(bindings,
 registry)` throws naming the binding when a surface id is absent from the
@@ -179,24 +185,23 @@ a payload-bearing file class) is enforced at the pack composition seam
 documented in the
 [cts-types README](../../server/features/cts-types/README.md).
 
-`overloads.js`, `instance-editor-action.js`, and `workspace-pages.js` derive
+`instance-editor-action.js` and `workspace-pages.js` derive
 their file-type rows (cassette, sheet-design, sketch, text-document,
-csv-table) from the pack editor
+csv-table, xlsx-workbook) from the pack editor
 bindings through this registry instead of hand-maintained entity-keyed
 maps. Rows key by the CTS type id — the projected entity key — so legacy
 pre-projection keys (`sheet_design`, `facade`, `facade_pattern`) no
-longer resolve an editor surface (abandoned data, SPEC §19). Editor
-surfaces with `ownsActionSurface: true` (cassette-designer,
-sheet-design-editor, sketch-editor, text-editor, csv-editor) suppress
-the generated action surface; the sheet-design editor receives the
-caller's resolved write grant through its props adapter and degrades to
-view-only without it.
+longer resolve an editor surface (abandoned data, SPEC §19). The
+sheet-design editor resolves its own write grant internally and degrades
+to view-only without it; the generated action surface of editor-bound
+types renders normally on their read details.
 
 The `sketch-editor` surface mounts `SketchEditor` and the
 `text-editor`/`csv-editor` surfaces mount `ArtifactTextEditor` — each
 with an instance-backed persistence contract (payload download URL for
 loads, `PUT /api/instances/:type/:id/payload` for saves, which records
-an immutable content revision per save; the helper is generic over the
+an immutable content revision per save, and `rename(name)` through the
+revisioned instance identity patch; the helper is generic over the
 type id). Text documents edit as markdown through the PrimeVue `Editor`
 rich text surface (see
 [components/artifacts/README.md](../artifacts/README.md)); the csv
@@ -236,9 +241,9 @@ non-scrolling surface (see
 [components/artifacts/README.md](../artifacts/README.md)); the payload
 download stays the escape hatch. The type records come from
 `useFileTypeView()` ([composables/README.md](../../composables/README.md)),
-the organization-scoped cached read of the served type view. Editor
-overloads keep owning their surfaces — the preview panel renders only when
-no editor overload is present.
+the organization-scoped cached read of the served type view. Editor-bound
+types keep this read preview in their details — the editors themselves
+open as workspace pages.
 
 The cassette designer surfaces (`GeneratedCassetteDesignerAction`,
 `GeneratedCassetteDesignerWorkspacePage`) run `CassetteDesignerV2` with
@@ -396,12 +401,14 @@ from the compiled manifest.
   normalized to one at load, and closing a pane's last tab closes the
   pane — except the workspace's last pane, which resets to a fresh empty
   tab: IDE-style file tabs, wheel-scrollable tab strips, split
-  right/down, pane-local close, registered workspace pages (for example the
-  cassette designer), and screen panes (`GeneratedScreenPane`): type
+  right/down, pane-local close, registered workspace pages (every editor
+  surface — cassette designer, sheet layout editor, sketch, text/csv,
+  table import — plus chats and calls), and screen panes
+  (`GeneratedScreenPane`): type
   screens through the shared type host, instance-bound detail screens
   through the detail host (`GeneratedDetailScreen`) with the instance id
-  in the screen scope. Workspace overloads (project, editor-backed
-  detail types) keep the legacy renderer inside the pane, exactly like
+  in the screen scope. The artifact detail overload keeps the legacy
+  renderer inside the pane, exactly like
   the routed page. There is no Explorer header or project
   action strip; collection creation belongs to sidebar sections and
   entity operations belong to the detail screens' own action surfaces.

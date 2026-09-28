@@ -40,9 +40,14 @@ the domain attachment kind instead of accepting component names.
   persistence adapter carries the file `extension` (`.md` for instance
   documents, `.txt` for legacy plain-text artifacts) and the save mime.
   The editor is a document surface, not a flush canvas editor: it owns
-  its own pane padding.
+  its own pane padding, and its document chrome is one `ActionToolbar`
+  row — display name, rename (through the persistence `rename` seam),
+  save — matching the shared designer document contract.
 - `SketchEditor.vue` owns the SKETCH editing surface: perfect-freehand pen
-  plus line/rect/ellipse/eraser tools, undo/redo, an optional background
+  plus line/rect/ellipse/eraser tools, undo/redo and the standard zoom
+  cluster (both through `composables/useSnapshotHistory.js` and a
+  center-zooming viewBox), rename through the persistence seam, an
+  optional background
   image (uploaded to the `sketches` bucket, referenced from the scene JSON),
   and an optional origin entity reference persisted to
   `data.metadata.origin` through `PUT /api/artifacts/:id`. Scene data is

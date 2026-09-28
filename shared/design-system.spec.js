@@ -739,7 +739,6 @@ describe('Design system manifest', () => {
 
   it('keeps sheet layout editing on semantic layer and bounded snap contracts', () => {
     const editor = fs.readFileSync(path.join(REPO_ROOT, 'components/SheetDesignEditor.vue'), 'utf8');
-    const generatedDetail = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedInstanceDetail.vue'), 'utf8');
     const relationBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceRelationsBlock.vue'), 'utf8');
 
     expect(editor).toContain('applyLayerPens');
@@ -747,8 +746,6 @@ describe('Design system manifest', () => {
     expect(editor).toContain('clampSheetPlacement');
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
-    expect(generatedDetail).toContain(':show-identity="showIdentity || forceIdentityForEditor"');
-    expect(generatedDetail).toContain('instanceEditorForcesIdentity(props.typeId)');
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
 

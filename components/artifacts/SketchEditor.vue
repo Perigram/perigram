@@ -1,5 +1,5 @@
 <template>
-    <div class="flex min-h-0 flex-1 flex-col gap-3">
+    <div class="flex h-full min-h-0 flex-1 flex-col gap-3">
         <ActionToolbar :title="editorTitle" :level="2">
             <template #actions>
                 <SelectButton
@@ -22,8 +22,12 @@
                     class="w-24"
                     :aria-label="$t('sketch.strokeWidth')"
                 />
+                <Button icon="pi pi-pencil" severity="secondary" text rounded size="small" :aria-label="$t('common.rename')" @click="openRename" />
                 <Button icon="pi pi-undo" severity="secondary" text rounded size="small" :aria-label="$t('sketch.undo')" :disabled="!canUndo" @click="undo" />
                 <Button icon="pi pi-refresh" severity="secondary" text rounded size="small" :aria-label="$t('sketch.redo')" :disabled="!canRedo" @click="redo" />
+                <Button icon="pi pi-search-minus" severity="secondary" text rounded size="small" :aria-label="$t('drawing.zoomOut')" @click="zoomOut" />
+                <Button icon="pi pi-search-plus" severity="secondary" text rounded size="small" :aria-label="$t('drawing.zoomIn')" @click="zoomIn" />
+                <Button icon="pi pi-times-circle" severity="secondary" text rounded size="small" :aria-label="$t('drawing.resetView')" @click="resetZoom" />
                 <Button icon="pi pi-trash" severity="danger" text rounded size="small" :aria-label="$t('sketch.clear')" :disabled="!scene.strokes.length && !scene.background" @click="clearScene" />
                 <Button :label="$t('common.save')" icon="pi pi-check" size="small" :loading="saving" :disabled="!dirty" @click="save" />
             </template>
@@ -92,7 +96,7 @@
             <svg
                 ref="svgEl"
                 class="h-full w-full touch-none select-none"
-                :viewBox="`0 0 ${SKETCH_VIEWBOX.width} ${SKETCH_VIEWBOX.height}`"
+                :viewBox="viewBoxStr"
                 preserveAspectRatio="xMidYMid meet"
                 @pointerdown="pointerDown"
                 @pointermove="pointerMove"
@@ -130,6 +134,18 @@
             </svg>
             <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" class="absolute inset-0" />
         </div>
+        <Popover ref="renameMenu">
+            <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
+                <InputText
+                    v-model="renameDraft"
+                    :placeholder="$t('common.rename')"
+                    class="w-full"
+                    :aria-label="$t('common.rename')"
+                    @keydown.enter.stop.prevent="applyRename"
+                />
+                <Button icon="pi pi-check" :label="$t('common.save')" size="small" :disabled="!renameDraft.trim()" @click="applyRename" />
+            </div>
+        </Popover>
     </div>
 </template>
 
@@ -138,12 +154,14 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import Button from 'primevue/button';
 import ColorPicker from 'primevue/colorpicker';
 import InputText from 'primevue/inputtext';
+import Popover from 'primevue/popover';
 import Select from '~/components/shared/InstanceSelect.vue';
 import SelectButton from 'primevue/selectbutton';
 import { useI18n } from 'vue-i18n';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import { useSnapshotHistory } from '~/composables/useSnapshotHistory.js';
 import { artifactSurfaces } from '~/utils/artifact-ui.js';
 import { SKETCH_TOOLS, SKETCH_VIEWBOX, parseScene, strokeToSvgPath, strokesAtPoint } from '~/utils/sketch.js';
 
@@ -154,7 +172,7 @@ const props = defineProps({
   // artifact-backed and instance-backed hosts.
   persistence: { type: Object, required: true }
 });
-const emit = defineEmits(['saved']);
+const emit = defineEmits(['saved', 'refresh']);
 const { t } = useI18n();
 
 const loading = ref(true);
@@ -169,10 +187,28 @@ const svgEl = ref(null);
 const backgroundInput = ref(null);
 const originEntity = ref(props.persistence.origin?.value || null);
 const originDraft = ref({ typeId: '', instanceId: '' });
-const editorTitle = computed(() => props.persistence.title || t('sketch.editorTitle'));
-const undoStack = [];
-const redoStack = [];
+const editorTitle = computed(() => localTitle.value || props.persistence.title || t('sketch.editorTitle'));
+const localTitle = ref('');
+const renameMenu = ref(null);
+const renameDraft = ref('');
 
+function openRename() {
+    renameDraft.value = editorTitle.value;
+    renameMenu.value?.show?.();
+}
+
+async function applyRename() {
+    const name = renameDraft.value.trim();
+    renameMenu.value?.hide?.();
+    if (!name || name === editorTitle.value || typeof props.persistence.rename !== 'function') return;
+    try {
+        await props.persistence.rename(name);
+        localTitle.value = name;
+        emit('refresh');
+    } catch (error) {
+        console.error('Failed to rename sketch:', error);
+    }
+}
 const toolOptions = computed(() => SKETCH_TOOLS.map(value => ({ value, label: t(`sketch.tools.${value}`) })));
 const sizeOptions = computed(() => [
     { label: t('sketch.sizes.thin'), value: 2 },
@@ -183,33 +219,49 @@ const typeIdOptions = computed(() => artifactSurfaces
     .map(surface => ({ label: t(`entities.${surface.key}`), value: surface.key }))
     .filter(option => option.label !== `entities.${option.value}`));
 
-const canUndo = computed(() => undoStack.length > 0);
-const canRedo = computed(() => redoStack.length > 0);
 const cursorClass = computed(() => (tool.value === 'eraser' ? 'cursor-crosshair' : 'cursor-crosshair'));
 
 const snapshot = () => JSON.stringify({ background: scene.background, strokes: scene.strokes });
-const pushHistory = () => {
-    undoStack.push(snapshot());
-    if (undoStack.length > 50) undoStack.shift();
-    redoStack.length = 0;
-    dirty.value = true;
-};
 const applySnapshot = (entry) => {
     const restored = JSON.parse(entry);
     scene.background = restored.background;
     scene.strokes = restored.strokes;
     dirty.value = true;
 };
+const undoHistory = useSnapshotHistory({ snapshot, apply: applySnapshot });
+const canUndo = computed(() => undoHistory.canUndo.value);
+const canRedo = computed(() => undoHistory.canRedo.value);
+const pushHistory = () => {
+    undoHistory.commit();
+    dirty.value = true;
+};
+
+// Zoom: the viewBox narrows around the scene center (see
+// composables/useSnapshotHistory for the shared history contract).
+const viewZoom = ref(1);
+const viewBoxSize = computed(() => ({
+    width: SKETCH_VIEWBOX.width * viewZoom.value,
+    height: SKETCH_VIEWBOX.height * viewZoom.value
+}));
+const viewBoxStr = computed(() => {
+    const { width, height } = viewBoxSize.value;
+    return `${(SKETCH_VIEWBOX.width - width) / 2} ${(SKETCH_VIEWBOX.height - height) / 2} ${width} ${height}`;
+});
+const zoomIn = () => { viewZoom.value = Math.max(0.2, viewZoom.value / 1.25); };
+const zoomOut = () => { viewZoom.value = Math.min(8, viewZoom.value * 1.25); };
+const resetZoom = () => { viewZoom.value = 1; };
 
 const toViewBoxPoint = (event) => {
     const rect = svgEl.value?.getBoundingClientRect();
     if (!rect) return [0, 0];
-    const scale = Math.min(rect.width / SKETCH_VIEWBOX.width, rect.height / SKETCH_VIEWBOX.height);
-    const offsetX = (rect.width - SKETCH_VIEWBOX.width * scale) / 2;
-    const offsetY = (rect.height - SKETCH_VIEWBOX.height * scale) / 2;
+    const scale = Math.min(rect.width / viewBoxSize.value.width, rect.height / viewBoxSize.value.height);
+    const offsetX = (rect.width - viewBoxSize.value.width * scale) / 2;
+    const offsetY = (rect.height - viewBoxSize.value.height * scale) / 2;
+    const originX = (SKETCH_VIEWBOX.width - viewBoxSize.value.width) / 2;
+    const originY = (SKETCH_VIEWBOX.height - viewBoxSize.value.height) / 2;
     return [
-        (event.clientX - rect.left - offsetX) / scale,
-        (event.clientY - rect.top - offsetY) / scale
+        (event.clientX - rect.left - offsetX) / scale + originX,
+        (event.clientY - rect.top - offsetY) / scale + originY
     ];
 };
 
@@ -303,17 +355,9 @@ const clearOrigin = () => {
     dirty.value = true;
 };
 
-const undo = () => {
-    if (!undoStack.length) return;
-    redoStack.push(snapshot());
-    applySnapshot(undoStack.pop());
-};
+const undo = () => undoHistory.undo();
 
-const redo = () => {
-    if (!redoStack.length) return;
-    undoStack.push(snapshot());
-    applySnapshot(redoStack.pop());
-};
+const redo = () => undoHistory.redo();
 
 const save = async () => {
     saving.value = true;

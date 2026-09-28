@@ -1,4 +1,4 @@
-const detailActionSurfaceOwners = new Set(['cassette', 'queue', 'sheet_design']);
+const detailActionSurfaceOwners = new Set(['queue']);
 
 export function generatedInstanceDetailOwnsActionSurface(typeId = '') {
   return detailActionSurfaceOwners.has(typeId);

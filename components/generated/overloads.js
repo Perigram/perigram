@@ -1,12 +1,10 @@
 import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspace.vue';
 import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
-import { fileDetailOverloads } from '~/components/generated/file-surfaces.js';
 
-// File-type detail bodies (cassette, sheet-design, sketch) derive from the
-// pack editor bindings through
-// the file-surface registry — the type id is the projected entity key.
-// The artifact row stays static: artifacts are the framework file
-// service (SPEC §13), not a pack type.
+// The artifact detail overload: artifacts are the framework file service
+// (SPEC §13) with their own read/manage detail surface. Editors are NOT
+// detail overloads — they register workspace pages through the
+// file-surface registry and open as pane tabs.
 export const generatedScreenOverloads = [
   {
     template: 'home',
@@ -19,8 +17,7 @@ export const generatedInstanceDetailOverloads = [
     typeId: 'artifact',
     component: ArtifactDetail,
     props: ({ entity }) => ({ artifact: entity })
-  },
-  ...fileDetailOverloads()
+  }
 ];
 
 export function resolveGeneratedScreenOverload(screen = {}) {

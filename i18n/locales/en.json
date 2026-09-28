@@ -2174,6 +2174,10 @@
     "groupCall": "Group call",
     "directCall": "Direct call"
   },
+  "editors": {
+    "text": "Text Editor",
+    "csv": "CSV Editor"
+  },
   "sketch": {
     "editorTitle": "Sketch",
     "tool": "Tool",
@@ -2572,6 +2576,7 @@
     },
     "frameAll": "Frame all nodes",
     "frameSelection": "Frame selected nodes",
+    "selectionActions": "Selection actions",
     "resetZoom": "Reset zoom",
     "lanes": "Lanes",
     "hideDefinitions": "Hide definitions",
@@ -3311,6 +3316,7 @@
     "resetView": "Reset view"
   },
   "tableImport": {
+    "title": "Table Import",
     "sheet": "Sheet",
     "headerRow": "Header row",
     "headerRowN": "Row {n}",

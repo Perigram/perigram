@@ -11,6 +11,12 @@
         @focusin="handleDesignerFocus"
         @wheel.capture="handleDesignerWheel"
       >
+      <template #toolbar>
+        <span class="flex min-w-0 items-center gap-2 text-supporting">
+          <i class="pi pi-sitemap shrink-0 text-muted" aria-hidden="true" />
+          <span class="truncate">{{ activeName || $t('processDesigner.title') }}</span>
+        </span>
+      </template>
       <ClientOnly>
         <VueFlow
           v-model:nodes="nodes"
@@ -48,6 +54,20 @@
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
       </ClientOnly>
+
+      <!-- Selection speed dial: the quiet-card policy keeps nodes free of
+           per-node chrome, so selection actions float beside the last
+           selected node instead. -->
+      <SpeedDial
+        v-if="selectionDialStyle"
+        :model="selectionDialItems"
+        direction="up-right"
+        :style="selectionDialStyle"
+        class="absolute z-30"
+        button-icon="pi pi-ellipsis-v"
+        :aria-label="$t('processDesigner.selectionActions')"
+        :tooltip-options="{ event: 'hover', position: 'left' }"
+      />
 
       <div
         v-if="contextPalette.open"
@@ -547,6 +567,7 @@ import { SelectionMode, VueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
+import SpeedDial from 'primevue/speeddial';
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
@@ -831,7 +852,8 @@ const {
   zoomCanvasOut,
   resetCanvasZoom,
   fitInitialCanvas,
-  snapshotViewport
+  snapshotViewport,
+  designerViewport
 } = useProcessDesignerCanvas({
   nodes,
   edges,
@@ -1182,8 +1204,36 @@ function toggleDefinitionsHidden() {
   syncDefinitionsHidden();
 }
 
-const canvasDockItems = computed(() => [
+// Selection speed dial: delete and frame float beside the last selected
+// node while a node selection exists; edge selections keep keyboard
+// delete (an edge has no anchor box to sit beside).
+const selectionDialItems = computed(() => [
   {
+    icon: 'pi pi-crosshairs',
+    label: t('processDesigner.frameSelection'),
+    command: () => frameSelectedNodes()
+  },
+  {
+    icon: 'pi pi-trash',
+    label: t('common.delete'),
+    command: () => deleteGraphSelection()
+  }
+]);
+const selectionDialStyle = computed(() => {
+  const selected = selectedGraphNodes();
+  const node = (selected.length ? selected[selected.length - 1] : null)
+    || (selectedNodeId.value ? nodes.value.find(candidate => candidate.id === selectedNodeId.value) : null);
+  if (!node?.position) return null;
+  const viewport = designerViewport?.value || { x: 0, y: 0, zoom: 1 };
+  const zoom = Number(viewport.zoom) || 1;
+  const anchorX = Number(node.position.x || 0) * zoom + Number(viewport.x || 0)
+    + Number(node.dimensions?.width || 180) * zoom;
+  const anchorY = Number(node.position.y || 0) * zoom + Number(viewport.y || 0)
+    + Number(node.dimensions?.height || 60) * zoom;
+  return { left: `${Math.round(anchorX + 8)}px`, top: `${Math.round(anchorY - 8)}px` };
+});
+
+const canvasDockItems = computed(() => [  {
     icon: 'pi pi-bars',
     label: t('processDesigner.lanes'),
     pressed: lanesView.value,

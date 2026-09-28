@@ -511,15 +511,15 @@ add an outer ring or second outline. Socket handles render at a compact 12px
 with an invisible grab pad, and wires draw at 2px, so starting a connection
 stays easy at any zoom.
 
-The canvas uses its own token-backed work surface behind two side drawers.
-The palette and inspector are non-modal, non-dismissable PrimeVue `Drawer`
-panels with Aura drawer chrome; canvas clicks never close them,
-`closeOnEscape` is disabled so canvas Escape still clears graph selection,
-and the header close button plus the toolbar toggles own visibility. Each
-drawer scrolls its own content, and either can be closed independently to
-recover the full canvas. The floating PrimeVue `Toolbar` (shared
+The canvas uses its own token-backed work surface behind the shared
+`DesignerWorkspace` rails (see
+[shared components](../shared/README.md)): palette and inspector are
+non-modal overlay rails the toolbar toggles own; canvas clicks never close
+them, and canvas Escape still clears graph selection. The floating
+PrimeVue `Toolbar` (shared
 `DesignerWorkspace` chrome) owns the process lifecycle in its document group
-(open, rename, save, apply) and the view controls in its canvas group
+(open, rename, save, apply), shows the draft name through the workspace
+`toolbar` identity slot, and the view controls in its canvas group
 (zoom out, zoom in, frame all, frame selection, reset zoom, the Lanes
 toggle, and the definitions visibility toggle), every item
 icon-only with its label as tooltip and accessible name. There is no
@@ -528,6 +528,12 @@ Apply saves, validates, and activates as one operation, while the result
 remains visible as feedback on the canvas. The process Folder opens a
 click-anchored Popover using the shared `InstanceSelect` value event
 directly.
+
+Selection actions follow the quiet-card policy: nodes carry no per-node
+chrome, so while a node selection exists a PrimeVue `SpeedDial` floats
+beside the last selected node (anchored through the canvas viewport
+transform) carrying delete and frame selection. Edge selections keep the
+keyboard bindings.
 
 New Draft starts from an empty graph. Save on an active process is the
 explicit copy-to-draft operation; saving an ordinary draft updates that

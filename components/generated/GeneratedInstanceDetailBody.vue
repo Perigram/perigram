@@ -25,8 +25,6 @@
 import { computed } from 'vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import GeneratedFilePreview from '~/components/generated/GeneratedFilePreview.vue';
-import { useAuthStore } from '~/stores/auth';
-import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 
 const props = defineProps({
@@ -43,20 +41,11 @@ const props = defineProps({
 
 defineEmits(['refresh']);
 
-const authStore = useAuthStore();
 const detailOverload = computed(() => resolveGeneratedInstanceDetailOverload(props.typeId));
 const detailActions = computed(() => uniqueActions(props.actions));
-const canEditSheetDesign = computed(() => hasPermissionGrant({
-  permissions: authStore.activePermissions,
-  feature: 'sheet_designs',
-  level: 'write',
-  entity: props.entity,
-  typeId: 'sheet_design'
-}));
 const detailOverloadProps = computed(() => detailOverload.value?.props?.({
   entity: props.entity,
   screenKey: props.screenKey,
-  canEditSheetDesign: canEditSheetDesign.value,
   mode: props.mode
 }) || {});
 const bodyClass = computed(() => {
