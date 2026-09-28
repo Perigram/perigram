@@ -144,9 +144,17 @@ watch ignores — a path predicate, because chokidar v4 leaks glob-ignored
 nested file events), because worktree `tsconfig.json` checkouts otherwise
 trip Vite's "changed tsconfig file detected" cache-clear/full-reload loop;
 the reload storm then stalls the vite-node SSR module bridge past its 60s
-timeout and surfaces as `500: Request timeout after 60000ms for type:
+timeout and surfaces as `500: Request timeout for 60000ms for type:
 module` for anyone testing against the dev server while an agent session
-runs.
+runs. The per-environment dev watcher ignores (`vite.environments.*`) are
+attached only when the config is evaluated for development: a user-level
+`environments` object present during a production build deroutes the vite 7
+SSR environment's build output (the server bundle and its style sidecars
+land next to the client chunks, and nitro fails with `Could not load
+.nuxt/dist/server/server.mjs`/`styles.mjs`). This broke the first
+production build after the dev-watch fix landed (2026-09-27 `staging`
+deploy) because nothing between the two had run a production build — dev
+and the guards never exercise the SSR bundle emit.
 
 ## Progressive Web App
 
