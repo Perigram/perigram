@@ -21,8 +21,8 @@ Nuxt layout shells for public and authenticated app surfaces.
   hides the header and bounds the viewport exactly like a compiled home;
   the bottom bar's home tab navigates the entry ladder
   (`resolveProcessEntryRoute`) and never routes to a non-screen destination.
-  The floating desktop chat launcher is hidden on that route because the
-  sidebar's Chats entry opens the same shared popup. The header's user control
+  The floating desktop chat launcher is hidden on that route because chats
+  are a main-panel tab there. The header's user control
   is the shared `UserAccountMenu` component on every other route, and the
   mobile bottom panel renders the same component for its profile button.
 
@@ -75,14 +75,16 @@ before route changes so popovers, menus, and chat do not overlap the
 destination.
 
 The authenticated user control opens a PrimeVue popover and always renders the organization section when at
-least one membership is available. That section contains organization switching only and resolves names from
+least one membership is available. That section contains organization entries only and resolves names from
 canonical organization identity. Billing, team management, and process design
 remain children of `/organization`; administrative organization functions are
-not duplicated elsewhere in the account popover. Clicking the active
-organization opens its overview, while clicking another membership switches
-context before opening that overview. Organization creation lives in the
-profile settings popup (its Organizations section: all memberships, switch
-in place, create entry) — never in the popover itself; an orgless account
+not duplicated elsewhere in the account popover. Every entry — popover and
+the profile settings popup's Organizations section alike — opens the
+organization's in-home pane (the directory surface; see
+[components/directory](../components/directory/README.md)); context
+switching stays in that pane's own member actions. Organization creation lives in the
+profile settings popup (its Organizations section: all memberships, one
+pane-open entry each, create entry) — never in the popover itself; an orgless account
 creates its first organization there or from the overview's orgless shell. The
 floating desktop chat launcher is hidden on `/chats` because the full inbox is
 already present. The launcher is viewport-anchored (`fixed bottom-8

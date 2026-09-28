@@ -551,10 +551,11 @@ the thread opens (desktop drawer, mobile `/chats` target). The thread kind
 follows the support conversation contract at the seam itself: a `user` target
 opens the **direct** 1:1 conversation (the inbox-listed thread, matching
 status-history actor chat); every other type opens the composed instance
-thread. The shared desktop chat popup (`ChatSupportDialog`) is the one
-sanctioned raw-Dialog home and renders bottom-right — the token-sized,
-non-modal drawer card; every chat-opening action lands there on desktop, never
-a centered or center-pane surface.
+thread. Popup-originated threads (comments and chat actions, the floating
+launcher) render in the shared bottom-right chat popup
+(`ChatSupportDialog`: the token-sized, non-modal drawer card), whose expand
+action pins the conversation as a home-workspace pane tab; the sidebar
+PanelMenu's Chats entry opens that general chats pane tab directly.
 
 ### `InstanceCard.vue` popup identity slot
 The popover's identity block — type label, status surface, icon+name row, and
@@ -714,17 +715,16 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   selectors, not workflow-state selectors.
 - **`UserAccountMenu.vue`**: The single shared account control: a PrimeVue
   popover whose account group carries the profile settings trigger, the
-  theme toggle, and logout; the organizations group switches context and
-  opens the organization overview (the account-control contract —
-  active-org click opens, other memberships switch first — is owned by
+  theme toggle, and logout; the organizations group opens every
+  membership's in-home pane (the directory surface — the account-control
+  contract is owned by
   [layouts/README.md](../../layouts/README.md); nothing else routes away).
   The profile settings dialog hosts the personal surface — avatar
   (upload/remove through the user avatar API), language, notifications —
-  and the Organizations section, which follows the same
-  account-control contract as the popover: every membership entry closes
-  the dialog and opens the organization overview (switching context first
-  when it is not the active organization), plus the create-organization
-  entry (the only popover-external home of organization creation).
+  and the Organizations section, whose entries follow the same contract:
+  close the dialog and open the organization's in-home pane, plus the
+  create-organization entry (the only popover-external home of
+  organization creation).
   The trigger is customizable through the scoped `#trigger` slot (default
   is the round avatar button), and callers inject leading actions through
   the scoped `#items` slot (receives the popover's `hide`, so an injected
