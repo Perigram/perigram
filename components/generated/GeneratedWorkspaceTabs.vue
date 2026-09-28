@@ -75,13 +75,10 @@ defineEmits(['select', 'close-tab', 'add', 'refresh']);
 const { t } = useI18n();
 const registry = useRegistryStore();
 
-// The tab strip fills the pane header's fixed compact height (24px): the
-// viewport and the tab row stretch to 100%, tab labels render at the
-// small text size (a 16px default drowned in the stripe), and the stripe
-// controls (close, add, pane menu) carry !h-6 !w-6 to fill the stripe
-// exactly — the PrimeVue small default (32px) would overflow and clip.
-// The pane header row owns the single hairline under the whole stripe
-// (tabs + pane controls), so the tablist's own border is dropped.
+// The tab strip fills the pane header's fixed height (24px); the stripe
+// controls (close, add, pane menu) stretch to fill it exactly. The pane
+// header row owns the single hairline under the whole stripe, so the
+// tablist's own border is dropped.
 const tabListPt = {
   root: { style: { height: '100%' } },
   tabList: { style: { height: '100%', alignItems: 'stretch', borderWidth: 0 } }
