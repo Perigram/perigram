@@ -141,9 +141,9 @@ rail still use `WorkspaceLanes`.
 The shared designer-canvas card vocabulary. `DesignerNodeCard` is the one
 node-card frame every canvas card composes — size ladder (`sm` declaration
 leaves, `md` type/class cards, `lg` operation cards), selection border,
-uniform padding, and the population border (operation cards pass
-`primary` for the strong-ink border; every other card keeps the quiet
-content border). The card body is deliberately colorless chrome.
+uniform padding, and the population surface (operation cards pass
+`primary` for the primary-tinted surface; every other card keeps the
+plain content surface). The card border is chrome.
 `DesignerSocketHandle` is the one typed
 socket handle: ONE uniform filled circle — color (the
 payload family, from the port spec through
@@ -171,7 +171,10 @@ feature designers supply only their controls through named slots:
 `toolbar` for document actions and selection tools, `palette` for
 creation/search controls, the default slot for the interactive canvas or
 viewport, `inspector` for the selected item configuration, and `support` for a
-secondary preview, tree, or diagnostics. Do not add page-local breakpoint grids,
+secondary preview, tree, or diagnostics. Toolbar item lists (start and
+canvas groups) render through `DesignerToolbarItems` — one icon-only
+geometry for plain buttons and pressed ToggleButtons alike, label as
+tooltip/accessible name. Do not add page-local breakpoint grids,
 viewport-height calculations, independent lane scrolling, or a second
 floating palette/inspector/dock to a designer; a designer may position
 feature-local handles and popovers inside its default-slot canvas. Slot

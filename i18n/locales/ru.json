@@ -2578,9 +2578,7 @@
     "frameSelection": "Показать выбранные узлы",
     "selectionActions": "Действия с выделением",
     "resetZoom": "Сбросить масштаб",
-    "lanes": "Дорожки",
     "hideDefinitions": "Скрыть описания",
-    "laneDefinitions": "Описания",
     "paletteGroups": {
       "entities": "Типы",
       "values": "Значения",
@@ -2940,7 +2938,6 @@
     "entity": "Сущность",
     "service": "Сервис",
     "joinResultProducer": "Итоговый выход производителя",
-    "actionRoles": "Роли действия",
     "entityAccess": "Доступ к данным сущности",
     "entityAccessHelp": "Доступ к сущностям {type} и их полям.",
     "canView": "Могут просматривать сущности",

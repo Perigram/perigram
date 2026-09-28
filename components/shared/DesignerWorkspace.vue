@@ -69,48 +69,10 @@
       </div>
       <Toolbar :aria-label="$t('designer.toolbar')" class="pointer-events-auto max-w-full overflow-x-auto p-1 gap-1">
         <template #start>
-          <template v-for="(item, index) in toolbarStartItems" :key="index">
-            <Divider v-if="item.separator" layout="vertical" />
-            <ToggleButton
-              v-else-if="typeof item.pressed === 'boolean'"
-              v-tooltip.bottom="item.label"
-              :model-value="item.pressed"
-              :on-icon="item.icon"
-              :off-icon="item.icon"
-              on-label=""
-              off-label=""
-              size="small"
-              :disabled="item.disabled"
-              :aria-label="item.label"
-              @update:model-value="value => item.onClick?.(value, $event)"
-            />
-            <OverlayBadge v-else-if="item.attention">
-              <Button v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
-            </OverlayBadge>
-            <Button v-else v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
-          </template>
+          <DesignerToolbarItems :items="toolbarStartItems" />
         </template>
         <template v-if="canvasItems.length" #end>
-          <template v-for="(item, index) in canvasItems" :key="index">
-            <Divider v-if="item.separator" layout="vertical" />
-            <ToggleButton
-              v-else-if="typeof item.pressed === 'boolean'"
-              v-tooltip.bottom="item.label"
-              :model-value="item.pressed"
-              :on-icon="item.icon"
-              :off-icon="item.icon"
-              on-label=""
-              off-label=""
-              size="small"
-              :disabled="item.disabled"
-              :aria-label="item.label"
-              @update:model-value="value => item.onClick?.(value, $event)"
-            />
-            <OverlayBadge v-else-if="item.attention">
-              <Button v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
-            </OverlayBadge>
-            <Button v-else v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
-          </template>
+          <DesignerToolbarItems :items="canvasItems" />
         </template>
       </Toolbar>
     </div>
@@ -154,16 +116,13 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Button from 'primevue/button';
-import Divider from 'primevue/divider';
-import OverlayBadge from 'primevue/overlaybadge';
-import ToggleButton from 'primevue/togglebutton';
 import Toolbar from 'primevue/toolbar';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
+import DesignerToolbarItems from './DesignerToolbarItems.vue';
 
 defineOptions({ inheritAttrs: false });
 
@@ -236,28 +195,8 @@ const toolbarStartItems = computed(() => [...panelDockItems.value, ...props.docu
 const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0 || Boolean(slots.toolbar));
 
 // Toolbar items are plain data (icon class + label + handlers); the shared
-// props mapping below keeps every rendered button one vocabulary: the label
-// is the accessible name, `loading` swaps the icon for the PrimeVue spinner,
-// and `pressed` switches to the outlined variant with aria-pressed.
-// Toolbar items are plain data (icon class + label + handlers); the shared
-// props mapping below keeps every rendered button one vocabulary: the label
-// is the accessible name and `loading` swaps the icon for the PrimeVue
-// spinner. Items carrying a boolean `pressed` render as PrimeVue
-// ToggleButtons (the preset's own toggled state); everything else is a
-// plain icon button.
-function toolbarButtonProps(item) {
-  return {
-    icon: item.icon,
-    severity: 'secondary',
-    variant: 'text',
-    size: 'small',
-    disabled: item.disabled,
-    loading: item.loading,
-    'aria-label': item.label,
-    ...(item.hasPopup ? { 'aria-haspopup': 'dialog' } : {})
-  };
-}
-
+// Toolbar items are plain data (icon class + label + handlers) rendered
+// through DesignerToolbarItems.
 function toggle(panel) {
   panels[panel] = !panels[panel];
 }

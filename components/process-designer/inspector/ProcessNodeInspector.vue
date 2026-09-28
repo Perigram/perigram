@@ -1,16 +1,8 @@
 <template>
   <div>
     <div v-if="isEffect" class="flex flex-col gap-2">
-      <label>{{ $t('processDesigner.actionRoles') }}</label>
-      <MultiSelect
-        :model-value="grantRoleIds"
-        :options="roleOptions"
-        option-label="label"
-        option-value="value"
-        display="chip"
-        class="w-full"
-        @update:model-value="value => $emit('update-grant-roles', value)"
-      />
+      <!-- Role assignment is lane placement (node UI contract "Lanes");
+           this panel owns only the per-grant access LEVELS. -->
       <div
         v-for="(grant, index) in grants"
         :key="grant.roleId"
@@ -234,7 +226,6 @@ const props = defineProps({
   artifactKindOptions: { type: Array, default: () => [] },
   designer: { type: Object, default: () => ({}) },
   grants: { type: Array, default: () => [] },
-  grantRoleIds: { type: Array, default: () => [] },
   accessDetail: { type: String, default: '' },
   effectiveAccess: { type: Array, default: () => [] },
   inputs: { type: Array, default: () => [] },
@@ -245,7 +236,6 @@ const props = defineProps({
 
 const emit = defineEmits([
   'sync',
-  'update-grant-roles',
   'update-grant-level',
   'update-construction-mode',
   'update-artifact-kinds',

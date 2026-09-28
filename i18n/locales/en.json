@@ -2578,9 +2578,7 @@
     "frameSelection": "Frame selected nodes",
     "selectionActions": "Selection actions",
     "resetZoom": "Reset zoom",
-    "lanes": "Lanes",
     "hideDefinitions": "Hide definitions",
-    "laneDefinitions": "Definitions",
     "paletteGroups": {
       "entities": "Types",
       "values": "Values",
@@ -2940,7 +2938,6 @@
     "entity": "Entity",
     "service": "Service",
     "joinResultProducer": "Resulting producer output",
-    "actionRoles": "Action roles",
     "entityAccess": "Entity data access",
     "entityAccessHelp": "Access to {type} entities and fields.",
     "canView": "Can view entities",
