@@ -2286,9 +2286,9 @@ const loadNewChatUsers = async () => {
 }
 
 // Directory search over the new-chat picker: the typed query searches
-// users by name (see server/features/directory/README.md) and keeps only
-// direct-thread-reachable results — the server admits direct
-// conversations for shared-organization (or own) recipients only.
+// users by name (see server/features/directory/README.md) across every
+// organization — direct threads are open between any two accounts, and
+// the picker lists every match except the caller's own entry.
 const newChatSearch = ref('')
 const newChatDirectoryOptions = ref([])
 const newChatSearching = ref(false)
@@ -2317,7 +2317,7 @@ watch(newChatSearch, (value) => {
             if (seq !== newChatSearchSeq) return
             const entries = (response?.groups || []).flatMap(group => group.results || [])
             newChatDirectoryOptions.value = entries
-                .filter(entry => entry.directory?.sharesOrganization || entry.directory?.isSelf)
+                .filter(entry => !entry.directory?.isSelf)
                 .map(entry => ({
                     type: 'user',
                     value: entry._id,

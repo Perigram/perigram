@@ -54,9 +54,10 @@ export async function getUserConversationContext(auth, recipientUserId = null) {
 
     const recipient = await usersService.getById(recipientUserId);
     if (!recipient) throw createError({ statusCode: 404, message: 'User not found' });
-    if (recipientUserId !== userId && !auth.isAdmin && !sharesOrganization(auth, recipient)) {
-        throw createError({ statusCode: 403, message: 'Forbidden' });
-    }
+    // Direct threads are open between any two accounts: directory
+    // discovery stays name-only (emails never leak), and the direct
+    // conversation itself is the contact channel — the recipient merely
+    // has to exist.
 
     const participants = recipientUserId === userId
         ? [String(userId)]
@@ -1386,19 +1387,6 @@ async function resolveInstanceOptionAuth(auth = {}) {
     const resolved = await resolveProcessAuth(auth);
     if (resolved?.process?.active || Array.isArray(resolved?.screens) || resolved?.effectivePermissions) return resolved;
     return auth;
-}
-
-function sharesOrganization(auth = {}, recipient) {
-    const authOrgIds = new Set((auth.memberships || [])
-        .map(membership => membership.organizationId?.toString?.() || membership.organizationId)
-        .filter(Boolean));
-    if (auth.organizationId) authOrgIds.add(auth.organizationId.toString());
-
-    const recipientOrgIds = (recipient.memberships || recipient.data?.memberships || [])
-        .map(membership => membership.organizationId?.toString?.() || membership.organizationId)
-        .filter(Boolean);
-
-    return recipientOrgIds.some(orgId => authOrgIds.has(orgId));
 }
 
 function supportConversationKey(userId) {

@@ -253,7 +253,6 @@ const canChat = computed(() => Boolean(
   props.typeId === 'user'
   && entry.value
   && !entry.value.directory?.isSelf
-  && entry.value.directory?.sharesOrganization
 ));
 const canManagePartnerships = computed(() => Boolean(
   props.typeId === 'organization'
