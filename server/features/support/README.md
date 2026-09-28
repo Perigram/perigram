@@ -64,8 +64,10 @@ org `lineage`, plus a `participants` user-id list) and owns the derived
 [livekit feature](../livekit/README.md).
 
 - `POST /api/support/groups` creates one (`{ name, participantIds }`);
-  participants must be organization-reachable users and the creator is
-  always included. Creation pings every participant's inbox topic.
+  participants are user-scope — any existing account may join, unknown ids
+  are rejected rather than silently dropped, and the creator is always
+  included. The group itself stays homed in the creator's organization
+  lineage. Creation pings every participant's inbox topic.
 - `DELETE /api/support/groups/:id` removes one; the creating member or an
   admin may delete.
 - Group conversations appear in the user's inbox through
