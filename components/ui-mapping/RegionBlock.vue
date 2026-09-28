@@ -499,6 +499,13 @@ const emit = defineEmits(['run', 'transition', 'open', 'patch']);
 const emitOpen = instance => emit('open', instance);
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
+
+// The list Panel's one compact toolbar row: no panel-owned padding —
+// the host pads the pane.
+const panelPt = {
+  contentWrapper: { class: 'min-w-0' },
+  header: { class: 'flex min-w-0 flex-1 items-center gap-2 !py-1 !px-0' }
+};
 const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
 
 // The containment cross-cut's data: a region whose type someone's children
