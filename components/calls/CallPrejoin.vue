@@ -1,22 +1,21 @@
 <template>
-    <div class="flex h-full min-h-0 flex-col items-center justify-center gap-6 p-4">
-        <div class="flex flex-col items-center gap-2 text-center">
-            <h2 class="m-0 text-section-heading">{{ $t('call.prejoin.title') }}</h2>
-            <p class="m-0 text-body text-muted">{{ room }}</p>
-        </div>
+    <div class="flex h-full min-h-0 flex-col items-center justify-center gap-6 overflow-y-auto p-4">
+        <h2 class="m-0 text-section-heading">{{ $t('call.prejoin.title') }}</h2>
 
-        <div class="relative flex h-64 w-full max-w-md items-center justify-center overflow-hidden rounded-ui bg-subtle md:h-80">
+        <div class="relative flex h-64 w-full max-w-md items-center justify-center overflow-hidden rounded-ui bg-subtle">
             <video ref="previewEl" class="h-full w-full object-cover" :class="{ 'opacity-0': !cameraReady }" autoplay playsinline muted />
             <div v-if="!cameraReady" class="absolute inset-0 flex flex-col items-center justify-center gap-3">
                 <Avatar icon="pi pi-user" shape="circle" class="bg-primary text-primary-contrast" />
                 <span class="text-supporting">{{ cameraError ? $t('call.prejoin.cameraUnavailable') : $t('call.prejoin.cameraOff') }}</span>
             </div>
+            <!-- Bare mic-activity dot: the level meter is a pre-join sanity
+                 signal, not prose. -->
             <span
-                class="absolute bottom-2 left-2 flex items-center gap-2 rounded-ui bg-content px-2 py-1"
+                class="absolute bottom-2 left-2 flex items-center rounded-ui bg-content px-2 py-1"
                 :class="{ 'opacity-0': !micLevel }"
+                :aria-label="$t('call.prejoin.micLevel')"
             >
                 <span class="h-2 w-2 rounded-ui bg-status-success" />
-                <span class="text-supporting">{{ $t('call.prejoin.micLevel') }}</span>
             </span>
         </div>
 
@@ -50,7 +49,6 @@
                 :label="$t('call.prejoin.join')"
                 icon="pi pi-phone"
                 rounded
-                :loading="joining"
                 @click="join"
             />
         </div>
@@ -61,12 +59,8 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import Select from '~/components/shared/InstanceSelect.vue';
+import Select from 'primevue/select';
 
-const props = defineProps({
-    room: { type: String, required: true },
-    joining: { type: Boolean, default: false }
-});
 const emit = defineEmits(['join']);
 
 const previewEl = ref(null);

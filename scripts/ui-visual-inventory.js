@@ -62,6 +62,7 @@ export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
 
 export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/calls/CallPanel.vue': ['data-driven', [':style="{ left: `${reaction.left}%` }"']],
+  'components/calls/CallTile.vue': ['data-driven', [':style="hugAspect ? { aspectRatio: String(tile.aspect) } : null"']],
   'components/CassetteDesignerV2.vue': ['data-driven', [
     ':style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"',
     ':style="workpieceAccentStyle(row.id)"'

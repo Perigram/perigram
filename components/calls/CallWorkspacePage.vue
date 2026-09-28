@@ -1,10 +1,11 @@
 <template>
   <div class="call-workspace h-full min-h-0">
     <div class="call-workspace__layout flex h-full min-h-0 w-full flex-col overflow-hidden">
-      <div class="call-workspace__stage relative flex min-h-0 min-w-0 flex-1 flex-col p-3">
+      <div class="call-workspace__stage relative flex min-h-0 min-w-0 flex-1 flex-col">
         <!-- Pop out: close this tab and keep the call in the shell's
-             absolute floating window instead. -->
-        <div class="absolute top-1 right-1 z-10">
+             absolute floating window instead. Sits over the stage like
+             the tile pin control. -->
+        <div class="absolute top-2 right-2 z-10">
           <Button
             icon="pi pi-window-maximize"
             severity="secondary"

@@ -15,9 +15,10 @@
             @loadedmetadata="reportAspect"
             @resize="reportAspect"
         />
-        <div v-if="!tile.hasVideo" class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <!-- No-video fallback is the avatar only: the identity chip below
+             is the single name owner on every tile. -->
+        <div v-if="!tile.hasVideo" class="absolute inset-0 flex items-center justify-center">
             <Avatar :label="tile.name?.charAt(0).toUpperCase() || '?'" shape="circle" class="bg-primary text-primary-contrast" />
-            <span class="text-label">{{ tile.name || tile.identity }}</span>
         </div>
 
         <span
@@ -25,11 +26,13 @@
             class="absolute top-2 left-2 h-2.5 w-2.5 rounded-ui bg-status-success"
             :aria-label="$t('call.speaking')"
         />
-        <span class="absolute bottom-2 left-2 flex items-center gap-2 rounded-ui bg-content px-2 py-1">
-            <span class="text-supporting">{{ tile.name || tile.identity }}</span>
+        <span class="absolute bottom-2 left-2 flex min-w-0 max-w-full items-center gap-2 rounded-ui bg-content px-2 py-1">
+            <span class="min-w-0 truncate text-supporting">{{ tile.name || tile.identity }}</span>
             <i v-if="tile.muted" class="pi pi-microphone-slash text-muted" :aria-label="$t('call.muted')" />
             <i v-if="tile.handRaised" class="pi pi-thumbs-up-fill text-status-warning" :aria-label="$t('call.handRaised')" />
-            <i class="pi pi-wifi" :class="qualityClass" :aria-label="$t(`call.quality.${tile.quality || 'unknown'}`)" />
+            <!-- A healthy connection is the silent default; the quality
+                 glyph appears only when it degrades. -->
+            <i v-if="degradedQuality" class="pi pi-wifi" :class="qualityClass" :aria-label="$t(`call.quality.${tile.quality}`)" />
         </span>
 
         <Button
@@ -56,6 +59,8 @@ const props = defineProps({
 });
 const emit = defineEmits(['toggle-pin', 'video', 'aspect']);
 
+const degradedQuality = computed(() => ['fair', 'poor', 'lost'].includes(props.tile.quality));
+
 const qualityClass = computed(() => {
     if (props.tile.quality === 'excellent' || props.tile.quality === 'good') return 'text-status-success';
     if (props.tile.quality === 'fair') return 'text-status-warning';
@@ -70,7 +75,7 @@ const hugAspect = computed(() => props.spotlight && props.tile.isScreen && Numbe
 
 const tileClass = computed(() => {
     if (hugAspect.value) return 'h-auto max-h-full w-auto max-w-full';
-    if (props.spotlight) return 'h-full min-h-36 w-full';
+    if (props.spotlight) return 'h-full w-full';
     return 'aspect-video';
 });
 

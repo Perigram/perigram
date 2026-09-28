@@ -44,7 +44,7 @@
         size="full"
         :show-default-footer="false"
     >
-        <div class="flex h-support-chat flex-col">
+        <div class="flex h-preview-dialog flex-col">
             <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
         </div>
     </StandardDialog>

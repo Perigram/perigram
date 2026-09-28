@@ -1,78 +1,10 @@
 <template>
-    <div class="call-panel relative flex h-full min-h-0 flex-col gap-3 overflow-y-auto">
-        <ActionToolbar :subtitle="statusText" :level="2">
-            <template #actions>
-                <SelectButton
-                    :model-value="layout"
-                    :options="layoutOptions"
-                    option-value="value"
-                    option-label="label"
-                    size="small"
-                    :allow-empty="false"
-                    :aria-label="$t('call.layout')"
-                    @update:model-value="value => layout = value"
-                />
-                <Button
-                    icon="pi pi-cog"
-                    severity="secondary"
-                    text
-                    rounded
-                    size="small"
-                    :aria-label="$t('call.settings')"
-                    @click="settingsVisible = true"
-                />
-                <Button
-                    :icon="handRaised ? 'pi pi-thumbs-up-fill text-status-warning' : 'pi pi-thumbs-up'"
-                    severity="secondary"
-                    text
-                    rounded
-                    size="small"
-                    :aria-label="$t('call.hand')"
-                    :disabled="!connected"
-                    @click="toggleHand"
-                />
-                <Button
-                    :icon="sharing ? 'pi pi-stop-circle text-status-danger' : 'pi pi-desktop'"
-                    severity="secondary"
-                    text
-                    rounded
-                    size="small"
-                    :aria-label="sharing ? $t('call.shareStop') : $t('call.share')"
-                    :disabled="!connected"
-                    @click="toggleShare"
-                />
-                <Button
-                    :icon="micEnabled ? 'pi pi-microphone' : 'pi pi-microphone-slash'"
-                    severity="secondary"
-                    text
-                    rounded
-                    size="small"
-                    :aria-label="$t('call.toggleMic')"
-                    :disabled="!connected"
-                    @click="toggleMic"
-                />
-                <Button
-                    :icon="cameraEnabled ? 'pi pi-video' : 'pi pi-video-off'"
-                    severity="secondary"
-                    text
-                    rounded
-                    size="small"
-                    :aria-label="$t('call.toggleCamera')"
-                    :disabled="!connected"
-                    @click="toggleCamera"
-                />
-                <Button
-                    icon="pi pi-phone"
-                    severity="danger"
-                    rounded
-                    size="small"
-                    :label="$t('call.leave')"
-                    :disabled="!connected"
-                    @click="leave"
-                />
-            </template>
-        </ActionToolbar>
-
+    <!-- Bounded videocall surface (contract: components/calls/README.md):
+         the stage owns every pixel of height and the panel never
+         page-scrolls — only the grid and the film strip scroll inside
+         their own boxes. All controls live in one docked bar below the
+         stage, so a wrapped header can never eat the video area. -->
+    <div class="call-panel relative flex h-full min-h-0 flex-col overflow-hidden">
         <StateBlock v-if="stage === 'failed'" state="error" :message="error">
             <template #action>
                 <Button :label="$t('call.retry')" severity="secondary" size="small" @click="stage = 'prejoin'" />
@@ -80,77 +12,170 @@
         </StateBlock>
         <CallPrejoin
             v-else-if="stage === 'prejoin'"
-            :room="room"
-            :joining="stage === 'connecting'"
             @join="join"
         />
         <StateBlock v-else-if="stage === 'connecting'" state="loading" :message="$t('call.connecting')" />
 
         <template v-else>
-            <div v-if="reconnecting" class="absolute inset-x-0 top-0 z-10 flex justify-center p-2">
-                <span class="rounded-ui bg-content px-3 py-1 text-supporting">{{ $t('call.reconnecting') }}</span>
-            </div>
-
-            <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
-                <!-- Spotlight: screen shares keep their source proportions
-                     (CallTile hugs the live video aspect, capped by the stage
-                     box); cameras fill the stage. -->
-                <div class="flex min-h-0 flex-1 items-center justify-center">
-                    <CallTile
-                        v-if="spotlightTile"
-                        :key="`spotlight-${spotlightTile.identity}-${spotlightTile.isScreen}`"
-                        :tile="spotlightTile"
-                        spotlight
-                        @toggle-pin="togglePin"
-                        @video="el => attachTile(spotlightTile, el)"
-                        @aspect="ratio => patchTileAspect(spotlightTile, ratio)"
-                    />
+            <div class="relative flex min-h-0 flex-1 flex-col">
+                <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+                    <!-- Spotlight: screen shares keep their source proportions
+                         (CallTile hugs the live video aspect, capped by the stage
+                         box); cameras fill the stage. -->
+                    <div class="flex min-h-0 min-w-0 flex-1 items-center justify-center">
+                        <CallTile
+                            v-if="spotlightTile"
+                            :key="`spotlight-${spotlightTile.identity}-${spotlightTile.isScreen}`"
+                            :tile="spotlightTile"
+                            spotlight
+                            @toggle-pin="togglePin"
+                            @video="el => attachTile(spotlightTile, el)"
+                            @aspect="ratio => patchTileAspect(spotlightTile, ratio)"
+                        />
+                    </div>
+                    <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-1">
+                        <CallTile
+                            v-for="tile in stripTiles"
+                            :key="`strip-${tile.identity}-${tile.isScreen}`"
+                            :tile="tile"
+                            class="call-strip-tile w-40 shrink-0"
+                            @toggle-pin="togglePin"
+                            @video="el => attachTile(tile, el)"
+                            @aspect="ratio => patchTileAspect(tile, ratio)"
+                        />
+                    </div>
                 </div>
-                <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-1">
+                <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-min content-start gap-3 overflow-y-auto">
                     <CallTile
-                        v-for="tile in stripTiles"
-                        :key="`strip-${tile.identity}-${tile.isScreen}`"
+                        v-for="tile in tiles"
+                        :key="`grid-${tile.identity}-${tile.isScreen}`"
                         :tile="tile"
-                        class="call-strip-tile w-40 shrink-0"
                         @toggle-pin="togglePin"
                         @video="el => attachTile(tile, el)"
                         @aspect="ratio => patchTileAspect(tile, ratio)"
                     />
                 </div>
-            </div>
-            <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-min content-start gap-3 overflow-y-auto">
-                <CallTile
-                    v-for="tile in tiles"
-                    :key="`grid-${tile.identity}-${tile.isScreen}`"
-                    :tile="tile"
-                    @toggle-pin="togglePin"
-                    @video="el => attachTile(tile, el)"
-                    @aspect="ratio => patchTileAspect(tile, ratio)"
-                />
+
+                <div v-if="reconnecting" class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-2">
+                    <span class="rounded-ui bg-content px-3 py-1 text-supporting">{{ $t('call.reconnecting') }}</span>
+                </div>
+
+                <div class="pointer-events-none absolute inset-0 overflow-hidden">
+                    <span
+                        v-for="reaction in reactions"
+                        :key="reaction.id"
+                        :ref="el => registerReactionEl(reaction.id, el)"
+                        class="absolute bottom-6 text-metric"
+                        :style="{ left: `${reaction.left}%` }"
+                        :aria-label="reaction.emoji"
+                    >{{ reaction.emoji }}</span>
+                </div>
             </div>
 
-            <div class="pointer-events-none absolute inset-0 overflow-hidden">
-                <span
-                    v-for="reaction in reactions"
-                    :key="reaction.id"
-                    :ref="el => registerReactionEl(reaction.id, el)"
-                    class="absolute bottom-6 text-metric"
-                    :style="{ left: `${reaction.left}%` }"
-                    :aria-label="reaction.emoji"
-                >{{ reaction.emoji }}</span>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-1">
-                <Button
-                    v-for="emoji in REACTION_EMOJIS"
-                    :key="emoji"
-                    :label="emoji"
-                    text
-                    rounded
-                    size="small"
-                    :aria-label="$t('call.react', { emoji })"
-                    @click="sendReaction(emoji)"
-                />
+            <!-- Control dock: one structural bar (hairline top border, no
+                 painted background — the flat surface ladder keeps call
+                 chrome structural; bg-content stays on chips over media).
+                 The inner row is w-max with auto margins, so it centers
+                 when it fits and scrolls instead of wrapping when it
+                 does not — controls never fold into a second row that
+                 would eat the stage. -->
+            <div class="flex h-12 shrink-0 items-center overflow-x-auto">
+                <div class="mx-auto flex w-max items-center gap-1 px-2">
+                    <Button
+                        :icon="micEnabled ? 'pi pi-microphone' : 'pi pi-microphone-slash'"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('call.toggleMic')"
+                        :disabled="!connected"
+                        @click="toggleMic"
+                    />
+                    <Button
+                        :icon="cameraEnabled ? 'pi pi-video' : 'pi pi-video-off'"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('call.toggleCamera')"
+                        :disabled="!connected"
+                        @click="toggleCamera"
+                    />
+                    <Button
+                        :icon="sharing ? 'pi pi-stop-circle text-status-danger' : 'pi pi-desktop'"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="sharing ? $t('call.shareStop') : $t('call.share')"
+                        :disabled="!connected"
+                        @click="toggleShare"
+                    />
+                    <Button
+                        :icon="handRaised ? 'pi pi-thumbs-up-fill text-status-warning' : 'pi pi-thumbs-up'"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('call.hand')"
+                        :disabled="!connected"
+                        @click="toggleHand"
+                    />
+                    <span class="inline-flex shrink-0">
+                        <Button
+                            icon="pi pi-face-smile"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('call.reactions')"
+                            :disabled="!connected"
+                            @click="toggleReactionPicker"
+                        />
+                        <Popover ref="reactionPicker">
+                            <div class="flex items-center gap-1" @click="hideReactionPicker">
+                                <Button
+                                    v-for="emoji in REACTION_EMOJIS"
+                                    :key="emoji"
+                                    :label="emoji"
+                                    text
+                                    rounded
+                                    size="small"
+                                    :aria-label="$t('call.react', { emoji })"
+                                    @click="sendReaction(emoji)"
+                                />
+                            </div>
+                        </Popover>
+                    </span>
+                    <SelectButton
+                        :model-value="layout"
+                        :options="layoutOptions"
+                        option-value="value"
+                        option-label="label"
+                        size="small"
+                        :allow-empty="false"
+                        :aria-label="$t('call.layout')"
+                        @update:model-value="value => layout = value"
+                    />
+                    <Button
+                        icon="pi pi-cog"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('call.settings')"
+                        @click="settingsVisible = true"
+                    />
+                    <Button
+                        icon="pi pi-phone"
+                        severity="danger"
+                        rounded
+                        size="small"
+                        :aria-label="$t('call.leave')"
+                        :disabled="!connected"
+                        @click="leave"
+                    />
+                </div>
             </div>
 
             <!-- Remote audio sink: subscribed mic and screen-share audio
@@ -186,9 +211,10 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import Button from 'primevue/button';
+import Popover from 'primevue/popover';
+import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import { useI18n } from 'vue-i18n';
-import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import CallPrejoin from '~/components/calls/CallPrejoin.vue';
@@ -219,7 +245,8 @@ const settingsVisible = ref(false);
 const pinnedIdentities = reactive(new Set());
 const tiles = reactive([]);
 const reactions = reactive([]);
-const deviceId = ref({ audioinput: '', videoinput: '', videooutput: '' });
+const reactionPicker = ref(null);
+const deviceId = ref({ audioinput: '', videoinput: '', audiooutput: '' });
 const audioInputs = ref([]);
 const videoInputs = ref([]);
 const audioOutputs = ref([]);
@@ -236,11 +263,13 @@ const layoutOptions = computed(() => [
     { value: 'grid', label: t('call.layoutGrid') }
 ]);
 
-const statusText = computed(() => {
-    if (stage.value === 'failed') return t('call.failed');
-    if (stage.value !== 'connected' && !connected.value) return t('call.connecting');
-    return t('call.participants', { count: new Set(tiles.map(tile => tile.identity)).size });
-});
+const toggleReactionPicker = (event) => {
+    reactionPicker.value?.toggle(event);
+};
+
+const hideReactionPicker = () => {
+    reactionPicker.value?.hide();
+};
 
 const tileKey = (identity, isScreen) => `${identity}:${isScreen ? 'screen' : 'camera'}`;
 
@@ -508,6 +537,10 @@ const bindRoomEvents = (room) => {
             connected.value = false;
             reconnecting.value = false;
             teardownMedia();
+            // A dropped connection while the panel stays mounted returns to
+            // the pre-join stage instead of stranding an empty stage with a
+            // disabled dock; deliberate leaves unmount the panel anyway.
+            if (stage.value === 'connected') stage.value = 'prejoin';
         })
         .on(LiveKit.RoomEvent.DataReceived, (payload, participant) => {
             receiveCallEvent(participant.identity, participant.name, payload);
