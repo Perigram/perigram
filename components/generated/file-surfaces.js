@@ -218,8 +218,9 @@ function activeEditorBindings() {
  * list when the organization type view has been fetched, with the pack
  * bindings as the documented fallback.
  */
-export function resolveFileSurface(editors = activeEditorBindings(), typeId = '') {
-  const editor = (editors || []).find(item => item?.type === typeId && fileSurfaceRegistry[item.surface]);
+export function resolveFileSurface(editors, typeId = '') {
+  const bindings = editors == null ? activeEditorBindings() : editors;
+  const editor = (bindings || []).find(item => item?.type === typeId && fileSurfaceRegistry[item.surface]);
   if (!editor) return null;
   const surface = fileSurfaceRegistry[editor.surface];
   return {

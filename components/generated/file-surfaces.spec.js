@@ -147,6 +147,11 @@ describe('file surface registry', () => {
     expect(new Map(fileEditorActions()).get('text-document')?.action).toBe('generic');
   });
 
+  it('treats null editors as the active binding set', () => {
+    // The editor action resolves its surface with no explicit list.
+    expect(resolveFileSurface(null, 'cassette')?.surface).toBe('cassette-designer');
+  });
+
   it('returns null for unknown types and unregistered surfaces', () => {
     expect(resolveFileSurface(packEditorBindings, 'queue')).toBeNull();
     expect(resolveFileSurface([{ type: 'x', surface: 'no-such-surface', modes: ['edit'] }], 'x')).toBeNull();
