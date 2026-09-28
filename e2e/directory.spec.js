@@ -141,7 +141,6 @@ test.describe('directory, invitations, partnerships', () => {
     await composer.press('Enter');
     await app.page.waitForTimeout(1500);
 
-    const me = await (await app.request.get('/api/auth/me')).json();
     const conversations = await (await app.request.get('/api/support/conversations')).json();
     const directThread = (conversations || []).find(conversation => (
       conversation.conversationKind === 'direct'
