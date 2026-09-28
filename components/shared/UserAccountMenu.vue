@@ -73,10 +73,39 @@
           @update:model-value="toggleNotifications"
         />
       </div>
+      <Divider class="m-0" />
+      <!-- The organizations section is the settings-side management face:
+           every membership with switch-in-place, plus the one create
+           entry (organization creation lives here, not in the popover —
+           layouts/README.md owns the account-control contract). -->
+      <section class="flex flex-col gap-2">
+        <span class="text-muted text-supporting">{{ t('profile.myOrganizations') }}</span>
+        <Button
+          v-for="org in authStore.userOrganizations"
+          :key="org._id?.toString() || org.id?.toString()"
+          :label="org.identity?.name || org.name || org.identity?.uid || org._id?.toString()"
+          :icon="(org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building'"
+          text
+          severity="secondary"
+          size="small"
+          class="w-full !justify-start"
+          :loading="switchingTo === (org._id?.toString() || org.id?.toString())"
+          @click="switchToOrganization(org)"
+        />
+        <Button
+          :label="t('auth.createOrg')"
+          icon="pi pi-plus"
+          text
+          severity="secondary"
+          size="small"
+          class="w-full !justify-start"
+          @click="openCreateOrg"
+        />
+      </section>
     </div>
   </StandardDialog>
-  <!-- Organization creation lives with the account (the organizations
-       group's own entry): no standalone profile route exists. -->
+  <!-- Organization creation is opened from the settings popup's
+      organizations section: no standalone profile route exists. -->
   <StandardDialog
     v-model:visible="createOrgVisible"
     :header="t('auth.createOrg')"
@@ -125,6 +154,7 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
+import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
 import ToggleSwitch from 'primevue/toggleswitch';
@@ -164,6 +194,25 @@ const toggleNotifications = async (value) => {
 const createOrgVisible = ref(false);
 const creatingOrg = ref(false);
 const orgForm = reactive({ name: '', email: '' });
+const switchingTo = ref('');
+
+function openCreateOrg() {
+  orgForm.email = authStore.userData.email || '';
+  createOrgVisible.value = true;
+}
+
+// Settings-side switching stays in place: the workspace rehydrates its
+// process data behind the open dialog; the check marks follow the store.
+async function switchToOrganization(org) {
+  const organizationId = org?._id?.toString() || org?.id?.toString();
+  if (!organizationId || organizationId === authStore.userData.organizationId?.toString()) return;
+  switchingTo.value = organizationId;
+  try {
+    await authStore.switchOrganization(organizationId);
+  } finally {
+    switchingTo.value = '';
+  }
+}
 const createOrganization = async () => {
   creatingOrg.value = true;
   try {
@@ -216,34 +265,29 @@ const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon')
 const menuItems = computed(() => {
   const items = [];
 
-  // The organizations group always renders — switching entries when the
-  // user has organizations, the create entry always (an orgless account
-  // creates its first organization right here).
-  items.push({
-    label: t('profile.myOrganizations'),
-    items: [
-      ...authStore.userOrganizations.map(org => ({
+  // The organizations group always renders for members: switching entries
+  // that open the overview (the layouts README account-control contract —
+  // the active org opens directly, another membership switches context
+  // first). Organization creation lives in the settings popup; an orgless
+  // account renders no group at all (its entry surface is the settings
+  // organizations section or the overview's orgless shell).
+  if (authStore.userOrganizations.length) {
+    items.push({
+      label: t('profile.myOrganizations'),
+      items: authStore.userOrganizations.map(org => ({
         label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
         icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
-        // Switching stays in place: the workspace rehydrates its process
-        // data; nothing routes away.
         command: async () => {
           const organizationId = org._id?.toString() || org.id?.toString();
-          if (organizationId && organizationId !== authStore.userData.organizationId?.toString()) {
+          if (!organizationId) return;
+          if (organizationId !== authStore.userData.organizationId?.toString()) {
             await authStore.switchOrganization(organizationId);
           }
+          router.push('/organization');
         }
-      })),
-      {
-        label: t('auth.createOrg'),
-        icon: 'pi pi-plus',
-        command: () => {
-          orgForm.email = authStore.userData.email || '';
-          createOrgVisible.value = true;
-        }
-      }
-    ]
-  });
+      }))
+    });
+  }
 
   items.push({
     label: authStore.userData.name || t('common.user'),

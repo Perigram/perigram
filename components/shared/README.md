@@ -728,11 +728,16 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   raw JSON editors. Entity type helper text is shown only for `instanceId`
   selectors, not workflow-state selectors.
 - **`UserAccountMenu.vue`**: The single shared account control: a PrimeVue
-  popover whose account group LEADS with the inline profile surface —
-  avatar (upload/remove through the user avatar API), name, active
-  organization — followed by the theme toggle and logout; the
-  organizations group switches context IN PLACE (the workspace rehydrates;
-  nothing routes away — no Profile or Organization route entries remain).
+  popover whose account group carries the profile settings trigger, the
+  theme toggle, and logout; the organizations group switches context and
+  opens the organization overview (the account-control contract —
+  active-org click opens, other memberships switch first — is owned by
+  [layouts/README.md](../../layouts/README.md); nothing else routes away).
+  The profile settings dialog hosts the personal surface — avatar
+  (upload/remove through the user avatar API), language, notifications —
+  and the Organizations section: every membership with switch-in-place and
+  the create-organization entry (the only popover-external home of
+  organization creation).
   The trigger is customizable through the scoped `#trigger` slot (default
   is the round avatar button), and callers inject leading actions through
   the scoped `#items` slot (receives the popover's `hide`, so an injected

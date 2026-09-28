@@ -80,7 +80,10 @@ canonical organization identity. Billing, team management, and process design
 remain children of `/organization`; administrative organization functions are
 not duplicated elsewhere in the account popover. Clicking the active
 organization opens its overview, while clicking another membership switches
-context before opening that overview. The
+context before opening that overview. Organization creation lives in the
+profile settings popup (its Organizations section: all memberships, switch
+in place, create entry) — never in the popover itself; an orgless account
+creates its first organization there or from the overview's orgless shell. The
 floating desktop chat launcher is hidden on `/chats` because the full inbox is
 already present. The launcher is viewport-anchored (`fixed bottom-8
 right-8`, desktop-only) through its plain wrapper element, never through
