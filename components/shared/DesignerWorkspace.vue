@@ -58,17 +58,14 @@
       data-designer-toolbar
       class="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3"
     >
-      <!-- Document identity rides the toolbar line, left-anchored and
-           truncated, while the command toolbar stays centered. -->
-      <div
-        v-if="$slots.toolbar"
-        class="pointer-events-auto absolute left-3 top-0 flex min-w-0 max-w-[45%] items-center overflow-hidden"
-        data-designer-document
-      >
-        <slot name="toolbar" />
-      </div>
+      <!-- The document name rides the toolbar line itself (its start
+           group) — there is no separate identity slot or floating chip. -->
       <Toolbar :aria-label="$t('designer.toolbar')" class="pointer-events-auto max-w-full overflow-x-auto p-1 gap-1">
         <template #start>
+          <span
+            v-if="documentTitle"
+            class="min-w-0 max-w-64 shrink truncate px-1 text-supporting"
+          >{{ documentTitle }}</span>
           <DesignerToolbarItems :items="toolbarStartItems" />
         </template>
         <template v-if="canvasItems.length" #end>
@@ -135,6 +132,10 @@ const props = defineProps({
   // Document commands (open/load, rename, save...) rendered after the
   // workspace-owned panel toggles in the toolbar start group.
   documentItems: { type: Array, default: () => [] },
+  // The document name rendered as the toolbar start group's leading
+  // text — the toolbar is the one identity surface, there is no
+  // separate label chip.
+  documentTitle: { type: String, default: '' },
   // Canvas commands (zoom cluster, content operations) rendered as the
   // toolbar end group.
   canvasItems: { type: Array, default: () => [] }

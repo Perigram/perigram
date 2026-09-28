@@ -400,10 +400,12 @@ typography — chrome, never data.
 Lanes are not a view mode — they are permanent and they ARE role
 assignment, and they apply ONLY to effect nodes: effects are the one
 population that carries access. Bands render as a TRUE BACKGROUND layer
-(beneath nodes and wires, never covering them) — untitled hairline
-separators only, no fills — spanning the canvas's horizontal node
-domain (from the leftmost node's column to the rightmost's). One
-horizontal lane per role in the role list's fixed order
+(beneath nodes and wires, never covering them) — hairline separators
+only, no fills — spanning the canvas's horizontal node domain (from the
+leftmost node's column to the rightmost's). Lane titles are the
+organization's own role names at label size, counter-scaled against the
+canvas zoom so they render at absolute screen size. One horizontal lane
+per role in the role list's fixed order
 (empty roles keep their lane — seeing who has what is the point), plus
 an implicit unlabeled lane at the bottom for grantless effects.
 
@@ -532,8 +534,7 @@ non-modal overlay rails the toolbar toggles own; canvas clicks never close
 them, and canvas Escape still clears graph selection. The floating
 PrimeVue `Toolbar` (shared
 `DesignerWorkspace` chrome) owns the process lifecycle in its document group
-(open, rename, save, apply), shows the draft name through the workspace
-`toolbar` identity slot, and the view controls in its canvas group
+(open, rename, save, apply) and the view controls in its canvas group
 (zoom out, zoom in, frame all, frame selection, reset zoom, and the
 definitions visibility toggle), every item
 icon-only with its label as tooltip and accessible name. There is no

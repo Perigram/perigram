@@ -168,10 +168,13 @@ Shared full-height shell for operational designers — the home of the
 operational-designer chrome contract. It owns full-height sizing, responsive
 lane placement, scroll containment, and narrow-screen panel overlays;
 feature designers supply only their controls through named slots:
-`toolbar` for document actions and selection tools, `palette` for
+`palette` for
 creation/search controls, the default slot for the interactive canvas or
 viewport, `inspector` for the selected item configuration, and `support` for a
-secondary preview, tree, or diagnostics. Toolbar item lists (start and
+secondary preview, tree, or diagnostics. The document name is the
+`documentTitle` string prop, rendered as the toolbar start group's
+leading text — the toolbar is the one identity surface; there is no
+separate identity slot or floating label chip. Toolbar item lists (start and
 canvas groups) render through `DesignerToolbarItems` — one icon-only
 geometry for every item; a boolean-pressed item is the same button
 outlined with an aria-pressed state, label as
