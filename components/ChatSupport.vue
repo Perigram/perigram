@@ -966,6 +966,7 @@ import { useInstancesStore } from '~/stores/instances'
 import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js'
 import { openInstanceChat } from '~/utils/instance-chat.js'
+import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
@@ -2496,12 +2497,17 @@ const closeChat = () => {
 }
 
 const openChatsPage = () => {
-    // Expand opens the full-page inbox (/chats) pinned to nothing — chats
-    // live in the shared bottom-right popup on desktop, and the expand
-    // action is the one sanctioned step up to the bounded full-page
-    // surface (the mobile target).
+    // Expand opens the chat inside the home framework: a workspace tab
+    // pinned to the active conversation (or the general chats tab from the
+    // inbox) — the step up from the bottom-right popup.
+    const target = activeConversation.value
+        ? {
+            conversationKey: activeConversationKey.value || '',
+            label: conversationLabel(activeConversation.value)
+        }
+        : {};
     closeChat();
-    navigateTo('/chats');
+    if (!openChatInWorkspaceTab(target)) navigateTo('/chats');
 }
 
 const openDirectTarget = async () => {

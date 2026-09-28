@@ -163,6 +163,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { useBrowserNotifications } from '~/composables/useBrowserNotifications';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js';
 
@@ -202,22 +203,15 @@ function openCreateOrg() {
   createOrgVisible.value = true;
 }
 
-// Settings-side organization entries match the account-control contract:
-// the active organization opens its overview directly, another membership
-// switches context first — and the popup closes so the outcome is visible.
+// Settings-side organization entries follow the account-control contract:
+// every membership opens the organization's in-home pane (the directory
+// surface); the popup closes so the pane is visible. Context switching
+// stays in that pane's own member actions.
 async function switchToOrganization(org) {
   const organizationId = org?._id?.toString() || org?.id?.toString();
   if (!organizationId) return;
-  switchingTo.value = organizationId;
-  try {
-    if (organizationId !== authStore.userData.organizationId?.toString()) {
-      await authStore.switchOrganization(organizationId);
-    }
-  } finally {
-    switchingTo.value = '';
-  }
   profileVisible.value = false;
-  router.push('/organization');
+  openInstanceInWorkspace({ typeId: 'organization', instanceId: organizationId });
 }
 const createOrganization = async () => {
   creatingOrg.value = true;
@@ -271,12 +265,12 @@ const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon')
 const menuItems = computed(() => {
   const items = [];
 
-  // The organizations group always renders for members: switching entries
-  // that open the overview (the layouts README account-control contract —
-  // the active org opens directly, another membership switches context
-  // first). Organization creation lives in the settings popup; an orgless
-  // account renders no group at all (its entry surface is the settings
-  // organizations section or the overview's orgless shell).
+  // The organizations group always renders for members: every entry opens
+  // the organization's in-home pane (the directory surface — the
+  // layouts README account-control contract). Organization creation lives
+  // in the settings popup; an orgless account renders no group at all
+  // (its entry surface is the settings organizations section or the
+  // overview's orgless shell).
   if (authStore.userOrganizations.length) {
     items.push({
       label: t('profile.myOrganizations'),
@@ -284,13 +278,10 @@ const menuItems = computed(() => {
         label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
         icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
         orgId: org._id?.toString() || org.id?.toString(),
-        command: async () => {
+        command: () => {
           const organizationId = org._id?.toString() || org.id?.toString();
           if (!organizationId) return;
-          if (organizationId !== authStore.userData.organizationId?.toString()) {
-            await authStore.switchOrganization(organizationId);
-          }
-          router.push('/organization');
+          openInstanceInWorkspace({ typeId: 'organization', instanceId: organizationId });
         }
       }))
     });

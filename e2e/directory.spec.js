@@ -75,20 +75,22 @@ test.describe('directory, invitations, partnerships', () => {
     record('directory organization search', { organizationName });
   });
 
-  test('account popover organization entry opens the overview', async ({ app }) => {
+  test('account popover organization entry opens the in-home org pane', async ({ app }) => {
     const me = await (await app.request.get('/api/auth/me')).json();
     const organizationName = me.organizationData?.name || '';
     expect(organizationName, 'e2e session must carry an active organization name').toBeTruthy();
 
-    // The home sidebar's account popover: clicking the active organization
-    // opens its overview (layouts README account-control contract — the
-    // entry never dead-ends on a silent switch).
+    // The home sidebar's account popover: clicking an organization opens
+    // its in-home directory pane (layouts README account-control
+    // contract) — the org pane never routes away.
     await app.gotoClient('/');
     await app.page.locator('[data-testid="user-menu-trigger"]:visible').first().click();
     await app.page.locator(`[data-account-org="${me.organizationId}"]`).click();
-    await expect(app.page).toHaveURL(/\/organization\/?$/);
+    await app.page.locator('[data-directory-surface]').waitFor({ timeout: 15000 });
+    await expect(app.page.locator('[data-directory-surface]')).toContainText(organizationName);
+    await expect(app.page).not.toHaveURL(/\/organization\/?$/);
     await app.expectCleanRuntime();
-    record('account popover org entry -> overview', { url: app.page.url() });
+    record('account popover org entry -> in-home pane', { organizationId: String(me.organizationId) });
   });
 
   test('inviting an existing user completes in a single handshake', async ({ app }) => {
