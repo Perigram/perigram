@@ -563,6 +563,15 @@ variants render it in the expansion popover action row. The entry routes
 through `utils/instance-chat.js`, so the surface the card lives on decides how
 the thread opens (desktop drawer, mobile `/chats` target).
 
+### `InstanceCard.vue` popup identity slot
+The popover's identity block — type label, status surface, icon+name row, and
+the forced trace — is a replaceable `#popup-identity` slot with the generic
+chrome as its default. Cards with a directory-grade face (`UserCard`,
+`OrganizationCard`) override it with their avatar-forward header and own the
+whole block; overriding cards are responsible for any status surface they
+still need (the party types carry none). The expanded body, footer slot, and
+action row remain common chrome.
+
 ### `InstanceChatPanel.vue` (detail-page conversation rail)
 The instance detail page's own conversation — the one place a thread renders
 in place instead of opening the shared popup. It has two homes: the legacy
