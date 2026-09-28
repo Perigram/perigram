@@ -49,10 +49,19 @@ export function processSocketColor(port = {}) {
   return `var(--ck-signal-${processSocketTone(port)})`;
 }
 
-// Every handle is FILLED — shape alone distinguishes kinds, no outline or
-// border tricks: data = filled circle, declaration = filled diamond,
-// event = filled rounded square (primary), status = filled rounded square.
-export function processSocketHandleStyle(port = {}) {
+// Handle paint by shape channel (node UI contract): data = filled dot,
+// declaration = filled diamond, status = filled square, event = RING —
+// an outline ring is a MANUAL trigger (the effect runs by hand), a filled
+// ring (colored band around a card-colored hole) is WIRED (the trigger
+// fires automatically). `wired` is the card's connected-input fact; it
+// only discriminates the ring, every other kind stays filled.
+export function processSocketHandleStyle(port = {}, wired = false) {
   const color = processSocketColor(port);
+  if (processSocketKind(port) === 'event' && !wired) {
+    return { backgroundColor: 'transparent', borderColor: color, borderWidth: '2px' };
+  }
+  if (processSocketKind(port) === 'event') {
+    return { backgroundColor: color, borderColor: color, boxShadow: 'inset 0 0 0 3px var(--p-content-background)' };
+  }
   return { backgroundColor: color, borderColor: color };
 }
