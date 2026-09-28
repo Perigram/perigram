@@ -191,7 +191,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-chatsupportdialog-vue` | `components/shared/ChatSupportDialog.vue` | derived usage | centralize:layout (1); replace:inline-visual (1) |
 | `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | compliant |
 | `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |
-| `ui-components-shared-designernodecard-vue` | `components/shared/DesignerNodeCard.vue` | derived usage | replace:chrome (5) |
+| `ui-components-shared-designernodecard-vue` | `components/shared/DesignerNodeCard.vue` | derived usage | replace:chrome (8) |
 | `ui-components-shared-designersockethandle-vue` | `components/shared/DesignerSocketHandle.vue` | derived usage | narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (5); replace:chrome (24); compliant:scoped-layout |

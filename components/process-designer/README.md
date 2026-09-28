@@ -329,7 +329,7 @@ construction, not per-card styling.
 |---|---|---|
 | Socket & wire color | transported payload family (on SOCKETS; wires encode layer, below) | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
 | Socket shape | what the socket deals in | ring = event/trigger (an OUTLINE ring is a manual trigger — the effect runs by hand; a FILLED ring is wired — the trigger fires automatically); filled dot = value/instance data; diamond = declaration binding; filled square = state/status |
-| Wire styling | edge LAYER — primacy (the BPMN inversion) | the EVENT chain is the primary flow: solid, the canvas's strongest ink (`var(--p-text-color)`, theme-adaptive), 2.5px, arrowed; data wires are associations: thin (1.5px) dashed in muted ink (`var(--p-text-muted-color)`); declaration bindings stay dashed mid-tone (the structure family). The payload-family hue lives on SOCKET HANDLES only — wires never carry it. Selected overrides to primary 3px. |
+| Wire styling | edge LAYER — primacy (the BPMN inversion) | the EVENT chain is the primary flow: solid, the canvas's strongest ink (`var(--p-text-color)`, theme-adaptive), 2.5px, arrowed with a compact closed arrowhead (12px, matched to the wire ink — never a chunky 18px wedge); data wires are associations: thin (1.5px) dashed in muted ink (`var(--p-text-muted-color)`); declaration bindings are the second association layer — thin (1.5px) dashed in the muted structure mix (`color-mix` of the structure tone toward the muted ink), demoted below the event chain so a declaration-heavy graph cannot out-shout the primary flow. The full payload-family hue lives on SOCKET HANDLES only — wires never carry it. Selected overrides to primary 3px. |
 | Wire geometry | chrome (BPMN readability) | smoothstep with a ~14px corner radius; arrowheads render on the CONTROL layer only (`markerEnd` on event wires) — data and declaration wires carry no markers, so the event chain is the only directed flow |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
@@ -344,15 +344,20 @@ The payload-family hue lives on SOCKET HANDLES
 card's status sockets, and a field card's typed output carry the same
 tones they carry on operation nodes. WIRES carry no payload hue — their
 styling encodes the LAYER (the primacy inversion): the strongest ink is
-the event chain, data reads as a muted association, declarations stay
-mid-tone dashed. One contract, one home per channel: hue on handles,
-primacy on wires.
+the event chain, data reads as a muted association, and declarations
+are the muted structure dashed family — thinner than the event chain
+and no louder than data, because on real graphs declaration wires
+outnumber every other layer (the owner's active definition carries 16
+declaration wires against 1 event wire; at the old 2px full-saturation
+structure tone the "secondary" layer owned the canvas). One contract,
+one home per channel: hue on handles, primacy on wires.
 
 **Cards**
 
 | Channel | Encodes | Values |
 |---|---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation |
+| Card shape | the node's BPMN population | verb (effect species) = task rectangle — sharp corners; noun (data plane: sources, values, collections, reads/projections) = folded-corner data object (top-right fold); vocabulary (the declaration family) = dashed frame in the declaration-wire tone; control species keep the neutral default frame — the reserved gateway slot, no shape until the control-species fate decision |
 | Card surface & border | chrome only | neutral background; the selected border is the single card state — an unselected node is a diagram element, the selected node is the authoring surface |
 | Species corner glyph | the node's species family | a small glyph in the header's trailing corner marks verb/species families on operation cards; the label leads (label-dominant header) |
 | Trigger ring | an effect's derived trigger mode | a ring on the effect card's left edge at the event socket row — outline = manual, filled = wired (the socket shape channel applied at card scale; the derived mode is never authored) |
