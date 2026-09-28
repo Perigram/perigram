@@ -455,6 +455,26 @@ every stage rewrites the Node UI contract section before code.
   above the pool; hide-definitions toggle
 - [x] Lanes B: placement-writes-grants — lane crossing edits the grant
   record, membership always re-derived from grants
+
+### Agent Notes (2026-09-28 — chrome quieting round)
+
+Four owner corrections on `agent/canvas-lines-20260928`, all
+live-verified: (1) the pressed-toolbar ToggleButton override rendered
+as filled gray CIRCLES (radius 9999) among transparent 6px buttons —
+pressed items are now the same icon-only Button outlined with
+aria-pressed (`DesignerToolbarItems` is one control family; the
+ToggleButton import is gone); (2) lane bands lost their fills —
+hairline separators only; (3) bands span the nodes' horizontal domain
+(leftmost column to rightmost edge + 24px pad) instead of an arbitrary
+2400px strip; (4) lane titles render at label size and COUNTER-SCALE
+by the canvas zoom — floating chrome stays at absolute screen size
+(measured: the dial and PrimeVue tooltips already were; the lane
+titles were the one thing scaling, 16px→64px at 4×). Plus the owner
+directive that nodes outside the access model are lane-free:
+declarations left the band system entirely (no declaration band, no
+grid projection) — only effects are banded; every other node keeps its
+authored position. Verified: free nodes at authored coordinates,
+effects in grant lanes, labels 20px at any zoom.
 - [ ] Auto-arrangement: derived-position diagram view, Tidy command,
   hand-rolled layered pass (dagre only if defeated)
 - [ ] Decide control-species fate (if/fork/joins): target model or cut —
