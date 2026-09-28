@@ -1,12 +1,12 @@
 <template>
-  <span v-if="splittable || closeable" class="inline-flex shrink-0">
+  <span v-if="splittable || closeable" class="inline-flex shrink-0 self-stretch items-stretch">
     <Button
       icon="pi pi-ellipsis-v"
       text
       rounded
       size="small"
       severity="secondary"
-      class="!h-6 !w-6"
+      class="!h-full !w-6"
       :aria-label="$t('common.more')"
       @click.stop="toggle"
     />
