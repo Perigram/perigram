@@ -28,9 +28,6 @@
       />
     </div>
   </StandardPage>
-  <StandardPage v-else>
-    <StateBlock state="error" :message="$t('generatedScreen.notFound')" />
-  </StandardPage>
 </template>
 
 <script setup>
@@ -54,6 +51,7 @@ import { isCreateAction } from '~/components/generated/action-visibility.js';
 import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
+import { resolveDefaultHomeScreen } from '~/utils/process-navigation.js';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 definePageMeta({
@@ -94,8 +92,12 @@ const isGeneratedScreen = computed(() => (
 
 const screen = computed(() => {
   const base = authStore.screenManifest.find(item => item.screenKey === screenKey.value)
-    || synthesizedDetailScreen(screenKey.value);
-  if (!base) return null;
+    || synthesizedDetailScreen(screenKey.value)
+    // Home is the default screen: an unresolvable key (no active
+    // definition, one that no longer compiles, a stale bookmark) renders
+    // the home workspace instead of an error surface. Canonical contract:
+    // pages/README.md (Public Entry).
+    || resolveDefaultHomeScreen(authStore.screenManifest);
   return {
     ...base,
     scope: {

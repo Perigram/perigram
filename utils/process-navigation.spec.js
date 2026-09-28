@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeEffectiveScreens, processOperationalScreens, resolveProcessEntryRoute, resolveVisibleScreens } from './process-navigation.js';
+import { composeEffectiveScreens, defaultHomeScreen, processOperationalScreens, resolveDefaultHomeScreen, resolveProcessEntryRoute, resolveVisibleScreens } from './process-navigation.js';
 
 describe('process navigation', () => {
   it('keeps assignment-scoped screens visible when the matching scoped grant exists', () => {
@@ -122,7 +122,6 @@ describe('process navigation', () => {
 
   it('uses generated process home as the authenticated entry route', () => {
     expect(resolveProcessEntryRoute({
-      processActive: true,
       screens: [{
         id: 'home_user',
         screenKey: 'home_user',
@@ -142,7 +141,6 @@ describe('process navigation', () => {
 
   it('does not use legacy project route for active processes without project screens', () => {
     expect(resolveProcessEntryRoute({
-      processActive: true,
       screens: [{
         id: 'auto_queue',
         screenKey: 'auto_queue',
@@ -156,7 +154,6 @@ describe('process navigation', () => {
 
   it('ignores organization system screens when choosing the active process entry route', () => {
     expect(resolveProcessEntryRoute({
-      processActive: true,
       screens: [{
         id: 'organization_overview',
         screenKey: 'organization_overview',
@@ -165,7 +162,7 @@ describe('process navigation', () => {
         placement: 'hub',
         kind: 'system'
       }]
-    })).toBe('/screens');
+    })).toBe(defaultHomeScreen().route);
   });
 
   it('keeps only operational generated screens in process mode hub lists', () => {
@@ -186,13 +183,39 @@ describe('process navigation', () => {
     }]).map(screen => screen.screenKey)).toEqual(['auto_cassette']);
   });
 
-  it('returns no process route when there is no active process', () => {
+  it('falls back to the default home route without an active process', () => {
     expect(resolveProcessEntryRoute({
-      processActive: false,
       screens: [{
         route: '/screens/home_user',
         template: 'home'
       }]
-    })).toBeNull();
+    })).toBe('/screens/home_user');
+    expect(resolveProcessEntryRoute({
+      screens: [{
+        route: '/organization',
+        template: 'organizationOverview',
+        kind: 'system'
+      }]
+    })).toBe('/screens/home');
+  });
+
+  it('resolves the compiled home screen as the default, the sourceless contract otherwise', () => {
+    const compiledHome = {
+      id: 'home_user',
+      screenKey: 'home_user',
+      route: '/screens/home_user',
+      template: 'home',
+      placement: 'home'
+    };
+    expect(resolveDefaultHomeScreen([compiledHome])).toEqual(compiledHome);
+    expect(resolveDefaultHomeScreen([])).toEqual(defaultHomeScreen());
+    expect(defaultHomeScreen()).toMatchObject({
+      screenKey: 'home',
+      template: 'home',
+      route: '/screens/home',
+      sources: [],
+      regions: [],
+      actions: []
+    });
   });
 });
