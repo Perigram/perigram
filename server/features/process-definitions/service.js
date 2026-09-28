@@ -76,12 +76,17 @@ export async function list(auth) {
   const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
   // Summaries only: the list is a picker surface. Shipping full records
   // (graph + persisted compiled snapshots) made the response megabytes once
-  // activations accumulated; full data loads per id on selection.
+  // activations accumulated; full data loads per id on selection. The
+  // `states.main` field stays: the designer's initial-pick ranks
+  // ACTIVE/DRAFT/ARCHIVED on it, and without it a draft-only organization
+  // falls through to whichever summary sorts first (an archived empty
+  // process beat the real draft).
   return raws.map(raw => ({
     _id: raw._id,
     identity: raw.identity ? { ...raw.identity } : {},
     status: raw.status ? structuredClone(raw.status) : {},
-    lineage: raw.lineage ? { ...raw.lineage } : {}
+    lineage: raw.lineage ? { ...raw.lineage } : {},
+    states: raw.states ? { ...raw.states } : {}
   }));
 }
 
