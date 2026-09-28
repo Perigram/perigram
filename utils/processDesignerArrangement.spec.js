@@ -136,6 +136,68 @@ describe('arrangeProcessGraph', () => {
     expect(signA).not.toBe(0);
   });
 
+  it('pulls a pred-less source up to its first consumer\'s column', () => {
+    const nodes = [
+      processNode('all', 0, 0),
+      processNode('getField', 0, 0),
+      processNode('filter', 0, 0),
+      processNode('create', 0, 0),
+      processNode('literal', 0, 0),
+      processNode('transition', 0, 0)
+    ];
+    const result = arrange({
+      nodes,
+      edges: [
+        { source: 'all', target: 'getField' },
+        { source: 'getField', target: 'filter' },
+        { source: 'filter', target: 'create' },
+        { source: 'literal', target: 'transition' },
+        { source: 'create', target: 'transition', role: 'control' }
+      ],
+      effects: ['create', 'transition'],
+      bandOfNodeId: new Map([['create', BAND_A], ['transition', BAND_B]])
+    });
+    // transition waits for create (layer 3); the literal must not strand
+    // at column 0 behind three empty columns — it joins create's column,
+    // adjacent to its consumer.
+    expect(result.get('literal').x).toBe(result.get('create').x);
+    expect(result.get('literal').x).toBeGreaterThan(0);
+  });
+
+  it('places a fan-out secondary at the median between its consumers', () => {
+    const nodes = [processNode('src', 0, 0), processNode('eA', 0, 0), processNode('eB', 0, 0)];
+    const result = arrange({
+      nodes,
+      edges: [
+        { source: 'src', target: 'eA' },
+        { source: 'src', target: 'eB' }
+      ],
+      effects: ['eA', 'eB'],
+      bandOfNodeId: new Map([['eA', BAND_A], ['eB', BAND_B]])
+    });
+    const y = result.get('src').y;
+    const top = result.get('eA').y;
+    const bottom = result.get('eB').y;
+    expect(y).toBeGreaterThan(top);
+    expect(y).toBeLessThan(bottom);
+    expect(y - top).toBeLessThan(bottom - top);
+    expect(bottom - y).toBeLessThan(bottom - top);
+  });
+
+  it('spreads same-column secondaries clear of each other', () => {
+    const nodes = [processNode('s1', 0, 0), processNode('s2', 0, 0), processNode('eff', 0, 0)];
+    const result = arrange({
+      nodes,
+      edges: [
+        { source: 's1', target: 'eff' },
+        { source: 's2', target: 'eff' }
+      ],
+      effects: ['eff'],
+      bandOfNodeId: new Map([['eff', BAND_A]])
+    });
+    expect(Math.abs(result.get('s1').y - result.get('s2').y)).toBeGreaterThanOrEqual(150);
+  });
+
   it('stacks secondary nodes near their downstream effect consumer', () => {
     const nodes = [
       processNode('src', 0, 0),
@@ -237,5 +299,37 @@ describe('arrangeProcessGraph', () => {
       ))
     });
     expect([...second]).toEqual([...first]);
+  });
+
+  it('is idempotent on a fan-out graph with a deep chain', () => {
+    const input = {
+      nodes: [
+        processNode('all', 1200, 1800), processNode('getField', 300, 1900),
+        processNode('filter', 2000, 1750), processNode('literal', 0, 1500),
+        processNode('create', 500, 50), processNode('transition', 900, 420),
+        processNode('command', 1500, 100)
+      ],
+      edges: [
+        { source: 'all', target: 'getField' },
+        { source: 'getField', target: 'filter' },
+        { source: 'filter', target: 'create' },
+        { source: 'literal', target: 'transition' },
+        { source: 'getField', target: 'transition' },
+        { source: 'all', target: 'command' },
+        { source: 'create', target: 'transition', role: 'control' }
+      ],
+      effects: ['create', 'transition', 'command'],
+      bandOfNodeId: new Map([['create', BAND_A], ['command', BAND_A], ['transition', BAND_B]])
+    };
+    const first = arrange(input);
+    const fedBack = input.nodes.map(node => (
+      first.has(node.id) ? { ...node, position: first.get(node.id) } : node
+    ));
+    const second = arrange({ ...input, nodes: fedBack });
+    expect([...second]).toEqual([...first]);
+    const third = arrange({ ...input, nodes: input.nodes.map(node => (
+      second.has(node.id) ? { ...node, position: second.get(node.id) } : node
+    )) });
+    expect([...third]).toEqual([...first]);
   });
 });

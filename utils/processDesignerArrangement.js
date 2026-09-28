@@ -7,7 +7,7 @@
 const COLUMN_PITCH = 420;
 const LANE_ROW_HEIGHT = 170;
 const LANE_ROW_INSET = 24;
-const SECONDARY_PITCH = 150;
+const SECONDARY_GAP = 150;
 const DECLARATION_PITCH = 120;
 const BARYCENTER_MAX_SWEEPS = 12;
 
@@ -56,6 +56,21 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     return value;
   };
   for (const node of nodes) if (!isDeclaration(node)) depth(node.id);
+
+  // Pull pred-less nodes toward their first consumer: longest-path
+  // layering strands a fresh source at the leftmost column even when its
+  // only consumer sits far right, producing long edges over empty
+  // columns. A pred-less node never depends on another node's layer, so
+  // one pass settles every pull.
+  for (const node of nodes) {
+    if (isDeclaration(node)) continue;
+    const id = node.id;
+    if ((predecessors.get(id) || []).length) continue;
+    const successorLayers = (successors.get(id) || []).map(next => layer.get(next));
+    if (!successorLayers.length) continue;
+    const cap = Math.min(...successorLayers) - 1;
+    if (cap > layer.get(id)) layer.set(id, cap);
+  }
 
   const columns = new Map();
   for (const node of nodes) if (!isDeclaration(node)) columns.set(node.id, layer.get(node.id));
@@ -110,15 +125,37 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     for (const id of members) y.set(id, rowY(id));
   }
 
-  // y for secondary process nodes: stack near the nearest effect
-  // downstream; a node with no downstream effect keeps its authored y.
-  const downstreamAnchor = id => {
+  // y for secondary process nodes: the median of the EFFECT rows they
+  // touch — direct effect neighbors plus the nearest upstream and
+  // downstream effects through secondary chains. Effect rows never
+  // depend on secondaries, so the targets are constants: the placement
+  // is idempotent by construction (drifting medians came from letting
+  // secondaries watch other secondaries). Same-column cards spread to
+  // clear each other and the fixed effect rows; a node touching no
+  // effect keeps its authored y.
+  const neighborsOf = new Map();
+  for (const edge of processEdges) {
+    for (const [from, to] of [[edge.source, edge.target], [edge.target, edge.source]]) {
+      if (!neighborsOf.has(from)) neighborsOf.set(from, []);
+      neighborsOf.get(from).push(to);
+    }
+  }
+  const authoredY = id => Math.round(byId.get(id).position?.y || 0);
+  const medianOf = values => {
+    if (!values.length) return null;
+    const sorted = [...values].sort((left, right) => left - right);
+    const middle = sorted.length >> 1;
+    return sorted.length % 2 ? sorted[middle] : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
+  };
+  // Nearest effect along a direction, walking through non-effect nodes;
+  // ties resolve to the leftmost layer, then id.
+  const nearestEffect = (id, walk) => {
     const queue = [[id, 0]];
     const seen = new Set([id]);
     let best = null;
     while (queue.length) {
       const [current, hops] = queue.shift();
-      for (const next of successors.get(current) || []) {
+      for (const next of walk.get(current) || []) {
         if (seen.has(next)) continue;
         seen.add(next);
         if (effects.has(next)) {
@@ -134,23 +171,39 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     }
     return best?.id || null;
   };
-  const anchorGroups = new Map();
+  const effectAnchorsY = id => {
+    const anchors = new Set();
+    for (const other of neighborsOf.get(id) || []) if (effects.has(other)) anchors.add(other);
+    const downstream = nearestEffect(id, successors);
+    const upstream = nearestEffect(id, predecessors);
+    if (downstream) anchors.add(downstream);
+    if (upstream) anchors.add(upstream);
+    return [...anchors].map(other => y.get(other));
+  };
+  const columnItems = new Map();
   for (const node of nodes) {
-    if (isDeclaration(node) || effects.has(node.id)) continue;
-    const anchor = downstreamAnchor(node.id);
-    if (!anchor) continue;
-    if (!anchorGroups.has(anchor)) anchorGroups.set(anchor, []);
-    anchorGroups.get(anchor).push(node.id);
+    if (isDeclaration(node)) continue;
+    const column = layer.get(node.id);
+    if (!columnItems.has(column)) columnItems.set(column, { fixed: [], movable: [] });
+    columnItems.get(column)[effects.has(node.id) ? 'fixed' : 'movable'].push(node.id);
   }
-  for (const [anchor, memberIds] of anchorGroups) {
-    memberIds.sort((left, right) => byAuthoredY(byId, left, right));
-    memberIds.forEach((id, index) => {
-      y.set(id, Math.round(rowY(anchor) + (index - (memberIds.length - 1) / 2) * SECONDARY_PITCH));
-    });
-  }
-  for (const node of nodes) {
-    if (isDeclaration(node) || effects.has(node.id) || y.has(node.id)) continue;
-    y.set(node.id, Math.round(node.position?.y || 0));
+  for (const column of [...columnItems.keys()].sort((left, right) => left - right)) {
+    const { fixed, movable } = columnItems.get(column);
+    const items = [
+      ...fixed.map(id => ({ id, fixed: true, target: y.get(id) })),
+      ...movable.map(id => ({ id, fixed: false, target: medianOf(effectAnchorsY(id)) ?? authoredY(id) }))
+    ].sort((left, right) => left.target - right.target
+      || byAuthoredY(byId, left.id, right.id));
+    let cursor = null;
+    for (const item of items) {
+      if (item.fixed) {
+        cursor = y.get(item.id);
+        continue;
+      }
+      const placed = cursor === null ? item.target : Math.max(item.target, cursor + SECONDARY_GAP);
+      y.set(item.id, Math.round(placed));
+      cursor = placed;
+    }
   }
 
   // Declarations never flow: a cluster anchors one column left of the
@@ -195,10 +248,9 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   const nodeY = id => y.get(id) ?? Math.round(byId.get(id).position?.y || 0);
   for (const [anchor, memberIds] of declarationGroups) {
     memberIds.sort((left, right) => byAuthoredY(byId, left, right));
-    // Half a secondary pitch off the secondary stack: declarations and
-    // secondaries anchored to the same node interleave instead of
-    // colliding.
-    const interleave = SECONDARY_PITCH / 2;
+    // Half a secondary gap off the secondary positions: declarations and
+    // secondaries sharing a column interleave instead of colliding.
+    const interleave = SECONDARY_GAP / 2;
     memberIds.forEach((id, index) => {
       columns.set(id, layer.get(anchor) - 1);
       y.set(id, Math.round(nodeY(anchor) + (index - (memberIds.length - 1) / 2) * DECLARATION_PITCH + interleave));
