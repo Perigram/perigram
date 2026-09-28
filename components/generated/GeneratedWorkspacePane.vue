@@ -54,23 +54,18 @@
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
     data-empty-workspace-pane
   >
-    <div data-pane-header class="flex h-6 shrink-0 items-stretch border-b border-chrome-border">
-      <GeneratedWorkspaceTabs
-        :tabs="tabs"
-        active-key=""
-        @select="$emit('select-tab', $event)"
-        @close-tab="$emit('close-tab', $event)"
-        @add="$emit('add-tab', $event)"
-        @refresh="$emit('refresh')"
-      />
-      <div class="flex shrink-0 items-center pr-1">
-        <GeneratedWorkspacePaneMenu
-          :splittable="splittable"
-          :closeable="closeable"
-          @split="$emit('split', $event)"
-          @close="$emit('close')"
-        />
-      </div>
+    <GeneratedPaneHeader
+      :tabs="tabs"
+      :active-key=""""
+      :closeable="closeable"
+      :splittable="splittable"
+      @refresh="$emit('refresh')"
+      @select-tab="$emit('select-tab', $event)"
+      @close-tab="$emit('close-tab', $event)"
+      @add="$emit('add-tab', $event)"
+      @split="orientation => $emit('split', orientation)"
+      @close="$emit('close')"
+    />
     </div>
     <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted">
       <i class="pi pi-folder-open" aria-hidden="true" />
@@ -88,8 +83,7 @@
 import GeneratedInstanceFile from '~/components/generated/GeneratedInstanceFile.vue';
 import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
 import GeneratedScreenPane from '~/components/generated/GeneratedScreenPane.vue';
-import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
-import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
+import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 
 defineProps({
   item: { type: Object, default: null },

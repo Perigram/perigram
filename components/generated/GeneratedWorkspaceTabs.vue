@@ -31,7 +31,7 @@
             rounded
             size="small"
             severity="secondary"
-            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-6 !w-6"
+            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-full !w-6"
             :aria-label="$t('common.close')"
             @click.stop="$emit('close-tab', tab.key)"
           />
@@ -45,7 +45,7 @@
         rounded
         size="small"
         severity="secondary"
-        class="!h-6 !w-6"
+        class="!h-full !w-6"
         :aria-label="$t('project.newTab')"
         @click.stop="$emit('add')"
       />
