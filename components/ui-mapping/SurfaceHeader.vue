@@ -5,7 +5,21 @@
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
            page, a popup with a back stack) injects its back affordance
-           here, ahead of the identity block. -->
+           here, ahead of the identity block. The `navigation` prop is
+           the same affordance as data for hosts that mount the screen
+           as a component (the mobile item popup). -->
+      <Button
+        v-if="navigation"
+        :icon="navigation.icon || 'pi pi-arrow-left'"
+        :aria-label="navigation.label"
+        :title="navigation.label"
+        size="small"
+        severity="secondary"
+        text
+        rounded
+        class="shrink-0 self-start"
+        @click="navigation.command"
+      />
       <slot name="navigation" />
       <div :class="LAYOUT.headerIdentity" class="header-identity">
         <Avatar :icon="glyph" shape="circle" size="large" />
@@ -110,7 +124,11 @@ const props = defineProps({
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // The region's per-type state policy map (contract.statePolicy[typeId]).
-  statePolicy: { type: Object, default: null }
+  statePolicy: { type: Object, default: null },
+  // Host-injected contextual back affordance as data (the template
+  // `#navigation` slot is the same channel for direct hosts):
+  // `{ icon, label, command }`.
+  navigation: { type: Object, default: null }
 });
 
 const emit = defineEmits(['run', 'transition', 'toggle-edit']);

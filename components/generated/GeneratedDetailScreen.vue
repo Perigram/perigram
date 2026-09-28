@@ -11,6 +11,7 @@
     :on-fetch-transitions="fetchBoardTransitions"
     :on-load-type="loadTypeIntoPool"
     :runtime-transitions="runtimeTransitions"
+    :navigation="navigation"
     @instance-mounted="loadRuntimeTransitions"
     :on-open="openInstance"
     :on-patch="runPatch"
@@ -42,7 +43,11 @@ import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
 import { statePolicyByType, stateTransitionsByType } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
-  screen: { type: Object, required: true }
+  screen: { type: Object, required: true },
+  // Host-injected contextual back affordance for the record header
+  // (`{ icon, label, command }`): the mobile item popup feeds its back
+  // button through SurfaceHeader's navigation channel.
+  navigation: { type: Object, default: null }
 });
 
 const emit = defineEmits(['open-instance']);

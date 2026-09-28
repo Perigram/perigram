@@ -39,6 +39,7 @@
       :patchable="patchable"
       :resolve-transitions="onFetchTransitions"
       :load-type="onLoadType"
+      :navigation="navigation"
       @run="openAction"
       @transition="executeTransition"
       @open="openInstance"
@@ -185,6 +186,10 @@ const props = defineProps({
   // rows): `async (typeId) => screenInstance[]` over the host's instance
   // store.
   onLoadType: { type: Function, default: null },
+  // Host-injected contextual back affordance for the detail record
+  // header (`{ icon, label, command }` — SurfaceHeader's navigation
+  // channel, threaded through RegionBlock to the depth-0 header).
+  navigation: { type: Object, default: null },
   spacingScale: { type: Number, default: 1 }
 });
 

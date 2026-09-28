@@ -165,8 +165,8 @@
          bar — the shared mobile home tab state over the sidebar tree's
          root types (chats is the bar's own route tab). The typeList
          screen renders through the same CTS render contract as the
-         desktop panes; instance opens follow the routed surface
-         contract: the compiled detail screen route. -->
+         desktop panes; instance opens mount the ITEM POPUP below —
+         nothing routes away from the shell on mobile. -->
     <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden" data-home-workspace-mobile>
       <div class="min-h-0 flex-1 overflow-y-auto p-4">
         <GeneratedTypeScreen
@@ -179,12 +179,48 @@
       </div>
     </div>
 
+    <!-- The mobile item page: the compiled detail surface in a dialog.
+         Close is the dialog's own affordance (and the record header's
+         back button — the navigation channel); expand routes to the
+         full detail screen when the popup's bounds are not enough. -->
+    <StandardDialog
+      v-model:visible="mobileDetailVisible"
+      size="full"
+      :show-default-footer="false"
+    >
+      <template #header>
+        <div class="flex w-full min-w-0 items-center justify-between gap-2 pr-6">
+          <span class="min-w-0 truncate text-label">{{ mobileDetailTitle }}</span>
+          <Button
+            icon="pi pi-external-link"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('common.expand')"
+            :title="$t('common.expand')"
+            @click="expandMobileDetail"
+          />
+        </div>
+      </template>
+      <div class="max-h-[70vh] overflow-y-auto">
+        <GeneratedDetailScreen
+          v-if="mobileDetailScreen"
+          :screen="mobileDetailScreen"
+          :navigation="mobileDetailNavigation"
+          @open-instance="openMobileInstance"
+        />
+      </div>
+    </StandardDialog>
+
   </div>
 </template>
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import GeneratedDetailScreen from '~/components/generated/GeneratedDetailScreen.vue';
 import Avatar from 'primevue/avatar';
 import PanelMenu from 'primevue/panelmenu';
 import { useI18n } from 'vue-i18n';
@@ -678,14 +714,51 @@ const mobileTypeScreen = computed(() => (
   mobileHomeTabs.value.find(tab => tab.key === mobileHomeTabKey.value)?.screen || null
 ));
 
-// Mobile instance opens follow the routed surface contract: the compiled
-// detail screen route is the instance surface outside the desktop panes.
+// Mobile instance opens mount the ITEM POPUP: the compiled detail
+// screen in a dialog, in place — the record header's back button (the
+// SurfaceHeader navigation channel) and the dialog's own close dismiss
+// it, and the expand control routes to the full detail screen when the
+// popup's bounds are not enough.
+const mobileDetail = ref(null);
+const mobileDetailVisible = ref(false);
+const mobileDetailScreen = computed(() => {
+  if (!mobileDetail.value) return null;
+  const base = resolveDetailScreen({
+    screens: authStore.screenManifest || [],
+    typeId: mobileDetail.value.typeId
+  });
+  if (!base) return null;
+  return {
+    ...base,
+    scope: {
+      ...(base.scope || {}),
+      instanceId: mobileDetail.value.instanceId,
+      [`${mobileDetail.value.typeId}Id`]: mobileDetail.value.instanceId
+    }
+  };
+});
+const mobileDetailTitle = computed(() => (
+  mobileDetail.value ? instanceLabelOf(mobileDetail.value.typeId, mobileDetail.value.instanceId) : ''
+));
+const mobileDetailNavigation = computed(() => (mobileDetailVisible.value
+  ? { icon: 'pi pi-arrow-left', label: t('common.back'), command: () => { mobileDetailVisible.value = false; } }
+  : null));
+
 function openMobileInstance(instance = {}) {
+  if (!instance?.type || !instance?.id) return;
+  mobileDetail.value = { typeId: instance.type, instanceId: instance.id };
+  mobileDetailVisible.value = true;
+}
+
+function expandMobileDetail() {
+  const current = mobileDetail.value;
+  if (!current) return;
   const route = detailRouteForInstance({
-    entity: { _id: instance.id },
-    typeId: instance.type,
+    entity: { _id: current.instanceId },
+    typeId: current.typeId,
     manifest: authStore.screenManifest
   });
+  mobileDetailVisible.value = false;
   if (route) navigateTo(route);
 }
 
