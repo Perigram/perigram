@@ -1,5 +1,5 @@
 <template>
-  <div :class="['flex flex-col gap-6 p-4', bounded ? 'max-h-[70vh] overflow-y-auto' : 'h-full overflow-y-auto']" data-directory-surface>
+  <div :class="['flex flex-col gap-6 p-4', bounded ? '' : 'h-full overflow-y-auto']" data-directory-surface>
     <div v-if="loading">
       <StateBlock loading />
     </div>
@@ -7,8 +7,8 @@
       <StateBlock :message="$t('common.notAvailable')" />
     </div>
     <template v-else>
-      <!-- Identity header -->
-      <div class="flex items-start gap-4">
+      <!-- Identity header (the generated overview carries its own) -->
+      <div v-if="!overviewScreen" class="flex items-start gap-4">
         <Avatar
           :image="avatarUrl"
           :label="!avatarUrl ? (entry.identity?.name || '?').charAt(0).toUpperCase() : null"
@@ -57,21 +57,31 @@
 
       <!-- Organization surface -->
       <template v-else>
-        <Panel v-if="detailedFields.length" :header="$t('organization.details')">
-          <DataBlock type-id="organization" :entity="detailed" :fields="detailedFields" />
-        </Panel>
-        <!-- Read-level organization facts beyond the display contract: the
-             field-access policy admits type/email/phone at read level, and
-             DataBlock filters anything the caller's grant hides. -->
-        <Panel v-else-if="hasOrganizationFacts" :header="$t('organization.details')">
-          <DataBlock type-id="organization" :entity="factSource" :fields="ORGANIZATION_FACTS" />
-        </Panel>        <Panel v-if="partnership" :header="$t('partnerships.title')">
-          <div class="flex items-center gap-2 py-2">
-            <Tag :value="$t(`partnerships.status.${partnership.status}`)" :severity="partnershipSeverity" />
-            <small v-if="partnership.direction === 'incoming'" class="text-muted">{{ $t('partnerships.incoming') }}</small>
-            <small v-else class="text-muted">{{ $t('partnerships.outgoing') }}</small>
-          </div>
-        </Panel>
+        <!-- The active organization renders its real page: the generated
+             overview (identity header + management entries) from the
+             hydrated manifest — the pane is the organization page. -->
+        <GeneratedOrganizationOverview
+          v-if="overviewScreen"
+          :screen="overviewScreen"
+        />
+        <template v-else>
+          <Panel v-if="detailedFields.length" :header="$t('organization.details')">
+            <DataBlock type-id="organization" :entity="detailed" :fields="detailedFields" />
+          </Panel>
+          <!-- Read-level organization facts beyond the display contract: the
+               field-access policy admits type/email/phone at read level, and
+               DataBlock filters anything the caller's grant hides. -->
+          <Panel v-else-if="hasOrganizationFacts" :header="$t('organization.details')">
+            <DataBlock type-id="organization" :entity="factSource" :fields="ORGANIZATION_FACTS" />
+          </Panel>
+          <Panel v-if="partnership" :header="$t('partnerships.title')">
+            <div class="flex items-center gap-2 py-2">
+              <Tag :value="$t(`partnerships.status.${partnership.status}`)" :severity="partnershipSeverity" />
+              <small v-if="partnership.direction === 'incoming'" class="text-muted">{{ $t('partnerships.incoming') }}</small>
+              <small v-else class="text-muted">{{ $t('partnerships.outgoing') }}</small>
+            </div>
+          </Panel>
+        </template>
       </template>
 
       <!-- Action row: the surface owns its actions — panes and dialogs have
@@ -176,6 +186,7 @@ import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { openInstanceChat } from '~/utils/instance-chat.js';
@@ -258,6 +269,15 @@ const isActiveOrganization = computed(() =>
   props.typeId === 'organization'
   && Boolean(activeOrganizationId.value)
   && String(entry.value?._id) === String(activeOrganizationId.value));
+// The active organization's real page: the generated overview screen the
+// manifest carries (system-screens entries included). Non-active orgs
+// (member or stranger) render the directory facts instead.
+const overviewScreen = computed(() => {
+  if (props.typeId !== 'organization' || !isActiveOrganization.value) return null;
+  return authStore.screenManifest.find(screen => (
+    screen.kind === 'system' && screen.template === 'organizationOverview'
+  )) || null;
+});
 const canInvite = computed(() => Boolean(
   props.typeId === 'user'
   && entry.value

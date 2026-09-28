@@ -137,7 +137,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
 | `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
 | `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (21); remove:state (7); remove:important-override (10); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (2) |
-| `ui-components-directory-directorydetailsurface-vue` | `components/directory/DirectoryDetailSurface.vue` | derived usage | replace:chrome (5); remove:state (1) |
+| `ui-components-directory-directorydetailsurface-vue` | `components/directory/DirectoryDetailSurface.vue` | derived usage | replace:chrome (5); remove:state (1); remove:important-override (6) |
 | `ui-components-entities-artifact-artifactcard-vue` | `components/entities/Artifact/ArtifactCard.vue` | derived usage | compliant |
 | `ui-components-entities-artifact-artifactdetail-vue` | `components/entities/Artifact/ArtifactDetail.vue` | derived usage | centralize:layout (1) |
 | `ui-components-entities-artifacttemplate-artifacttemplatecard-vue` | `components/entities/ArtifactTemplate/ArtifactTemplateCard.vue` | derived usage | compliant |
@@ -167,6 +167,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedpaneheader-vue` | `components/generated/GeneratedPaneHeader.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedregion-vue` | `components/generated/GeneratedRegion.vue` | derived usage | compliant |
 | `ui-components-generated-generatedscreen-vue` | `components/generated/GeneratedScreen.vue` | derived usage | centralize:layout (1); remove:important-override (5) |
+| `ui-components-generated-generatedscreenhost-vue` | `components/generated/GeneratedScreenHost.vue` | derived usage | remove:important-override (2) |
 | `ui-components-generated-generatedscreenpane-vue` | `components/generated/GeneratedScreenPane.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedtypescreen-vue` | `components/generated/GeneratedTypeScreen.vue` | derived usage | remove:important-override (4) |
 | `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (3) |
@@ -196,8 +197,9 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-designersockethandle-vue` | `components/shared/DesignerSocketHandle.vue` | derived usage | narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (5); replace:chrome (24); compliant:scoped-layout |
+| `ui-components-shared-drawerpopup-vue` | `components/shared/DrawerPopup.vue` | derived usage | centralize:layout (1); replace:chrome (1); remove:important-override (1); replace:inline-visual (1) |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (10) |
-| `ui-components-shared-entitypopup-vue` | `components/shared/EntityPopup.vue` | derived usage | centralize:layout (1) |
+| `ui-components-shared-entitypopup-vue` | `components/shared/EntityPopup.vue` | derived usage | replace:chrome (3) |
 | `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
 | `ui-components-shared-filterbuilder-vue` | `components/shared/FilterBuilder.vue` | derived usage | remove:important-override (2) |
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
@@ -286,7 +288,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (11); replace:inline-visual (1) |
 | `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | replace:chrome (8); remove:state (1); compliant:scoped-layout |
-| `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | remove:important-override (7) |
+| `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | compliant |
 | `ui-pages-screens-index-vue` | `pages/screens/index.vue` | derived usage | compliant |
 | `ui-pages-terms-and-conditions-vue` | `pages/terms-and-conditions.vue` | derived usage | replace:chrome (2) |
 | `ui-pages-test-ui-lab-vue` | `pages/test/ui-lab.vue` | derived usage | replace:chrome (12) |

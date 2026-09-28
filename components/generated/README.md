@@ -5,6 +5,14 @@ load arbitrary Vue component names from process data; the manifest selects fixed
 screen templates, sources, regions, surfaces, and action ids, and the app
 renderer maps those contracts to registered Vue surfaces.
 
+`GeneratedScreenHost.vue` is the single home of the compiled-screen wiring
+for the ui-mapping generator: bundle/contract projection, instance-pool
+hydration (`useScreenSourceSync` + source states), process action runs
+(create-open through the workspace-open seam), and runtime state-machine
+transitions. The routed screens page and floating hosts (the shared
+entity popup) render compiled screens through it — the generator surface
+is never wired twice.
+
 The manifest vocabulary is the projected UI contract, everywhere: screens and
 actions key their target by `typeId`, actions by `id` (with `parentTypeId`
 for parent context), templates are `typeList`/`instanceDetail`/`home`, and
