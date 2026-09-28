@@ -157,8 +157,9 @@ test.describe('directory, invitations, partnerships', () => {
     await composer.press('Enter');
     await app.page.waitForTimeout(1500);
 
-    const conversations = await (await app.request.get('/api/support/conversations')).json();
-    const directThread = (conversations || []).find(conversation => (
+    const conversationsResponse = await (await app.request.get('/api/support/conversations')).json();
+    const conversations = conversationsResponse?.data || [];
+    const directThread = conversations.find(conversation => (
       conversation.conversationKind === 'direct'
       && (conversation.participants || []).map(String).includes(String(inviteeIdValue))
     ));
