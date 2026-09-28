@@ -418,15 +418,18 @@ the effective-access summary stays. An effect granted to several roles
 corridor across its other granted lanes at the node's column — the
 operation is one record, never cloned, its wires never duplicated.
 
-Every node that does not participate in the access model —
-declarations, values, sources, collections, reads, control — is
-unaffected by lanes and free-placeable anywhere. The lane arrangement
+Effects and state declarations are the PRIMARY populations — they carry
+the access/workflow story and are always visible. Every other node —
+classes, fields, type references, and the non-effect process nodes
+(reads such as Get field, values/math, collections, control) — is
+SECONDARY: unaffected by lanes, free-placeable anywhere, and grouped
+under the secondary visibility toggle, which hides them (nodes and
+their wires) without deleting anything; `hidden` is runtime state and
+never persists. The lane arrangement
 of effects is a projection: x order is preserved, members stack in
 their authored y order inside their band, membership always re-derives
 from grants, and position is presentation state — never authorization
-by itself. The definitions toggle hides the declaration family — nodes
-and their wires — without deleting anything; `hidden` is runtime state
-and never persists. Left-to-right is the reading canon.
+by itself. Left-to-right is the reading canon.
 
 ### Card behavior details
 
@@ -536,7 +539,7 @@ PrimeVue `Toolbar` (shared
 `DesignerWorkspace` chrome) owns the process lifecycle in its document group
 (open, rename, save, apply) and the view controls in its canvas group
 (zoom out, zoom in, frame all, frame selection, reset zoom, and the
-definitions visibility toggle), every item
+secondary visibility toggle), every item
 icon-only with its label as tooltip and accessible name. There is no
 standalone Validate control:
 Apply saves, validates, and activates as one operation, while the result
