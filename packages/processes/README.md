@@ -1133,8 +1133,13 @@ compiled action's status window (`state.from`, carried through the manifest
 projection), and the client's action filter, so a transition's button
 appears exactly in the states its wiring declares and the status engine
 validates the operated instance against exactly those edges. Unscoped state
-value tokens satisfy any bound type in machine vocabulary seeding, the same
-rule the binding check applies.
+value tokens bind through their entry wires: the wire from a state token
+into a construct or transition of a type is the token's type binding (the
+same rule the designer's connection gate applies), so machine vocabulary
+seeding follows the wires — a shared vocabulary must be wired where it is
+meant and never leaks into another type's machine (one type's board lanes
+never carry another type's states). A scoped state record binds by its
+authored `typeId` with no wire.
 
 A process whose grants infer zero stations compiles to zero screens:
 authoring is delta-only (there is no screen create verb), so with no

@@ -1676,26 +1676,45 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   // machine for every producer of their type — terminal flags ride the
   // records; nothing else supplies states.
   const stateRecordsByType = new Map();
-  const unscopedStateRecords = [];
   for (const record of Object.values(process.ctsTypes || {})) {
     if (record?.kind !== 'state' || !record.value) continue;
-    // A state node is a value token (SPEC §7): unscoped records satisfy
-    // any bound type — the same rule the binding check applies. An
-    // unscoped token that validation accepts is machine vocabulary for
-    // every producer, or validation accepts what compilation drops.
-    if (!record.typeId) {
-      unscopedStateRecords.push(record);
-      continue;
-    }
+    if (!record.typeId) continue;
     const list = stateRecordsByType.get(record.typeId) || [];
     list.push(record);
     stateRecordsByType.set(record.typeId, list);
+  }
+  // Unscoped state value tokens bind through their ENTRY WIRES (SPEC §7):
+  // the wire from a state token into a construct or transition of a type is
+  // the token's type binding — the same rule the designer's connection gate
+  // applies. An unscoped token seeds exactly the producers its wires feed,
+  // never every producer (a shared vocabulary must be wired where it is
+  // meant). The wire is identified structurally — state record node into a
+  // process-node record — because normalization carries handles, not
+  // declaration labels.
+  const ctsRecordsByGraphNode = new Map((process.graph?.nodes || []).map(node => [
+    String(node.id),
+    (process.ctsTypes || {})[String(node.data?.refId || node.id)]
+  ]));
+  const processRecordsByGraphNode = new Map((process.graph?.nodes || []).map(node => [
+    String(node.id),
+    (process.processNodes || {})[String(node.data?.refId || node.id)]
+  ]));
+  for (const edge of process.graph?.edges || []) {
+    const state = ctsRecordsByGraphNode.get(String(edge.source));
+    if (!state || state.kind !== 'state' || !state.value || state.typeId) continue;
+    const target = processRecordsByGraphNode.get(String(edge.target));
+    if (!target) continue;
+    const targetType = target?.typeId || target?.targetTypeId || '';
+    if (!targetType) continue;
+    const list = stateRecordsByType.get(targetType) || [];
+    if (!list.some(record => record.id === state.id)) list.push(state);
+    stateRecordsByType.set(targetType, list);
   }
   for (const output of Object.values(process.producerOutputs || {})) {
     // A custom-authored lifecycle is the contract as written: vocabulary
     // seeding never replaces it.
     if (output.lifecycle?.mode === 'custom') continue;
-    const records = [...(stateRecordsByType.get(output.typeId) || []), ...unscopedStateRecords];
+    const records = stateRecordsByType.get(output.typeId) || [];
     if (!records.length) continue;
     // A declared vocabulary replaces the fallback machine entirely: no
     // synthesized CREATED — the draft's records are the whole vocabulary
