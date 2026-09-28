@@ -114,6 +114,20 @@ roots), 5 carry null stamps, 4 none. The org's 60 cassettes: 57 carry no
 organization stamp at all (invisible to every org-scoped list), the
 visible ones carry no renderable source (see previews).
 
+### Agent Notes (2026-09-28, sixth pass — the FILE cross-cut)
+
+Owner follow-up: the tree-table nests correctly now, but the CHILD-type
+panel/screen ("FILE") rendered EMPTY — the source-level roots-only rule
+filtered every stamped child, and all 12 were stamped. The contract is
+replaced (owner accepted "composed well"): an unscoped list of a
+child-capable type composes the CONTAINMENT CROSS-CUT — every instance
+lists with its declared parent context (`incomingChildrenEdges` /
+`parentRefOf` in shared/ui-mapping; `ParentRef.vue` token on table
+identity cells and card subtitles; RegionBlock lazily overlays parent
+types through the same `loadType` seam). Nesting stays owned by the
+parent surface's tree projection. Browser-verified: the FILE screen
+composes 12 cards carrying parent chips (NEUE, STR, REAL TEST…).
+
 - [x] In bottom user avatar in homepage, need his name and organization
 
 ### Agent Notes (2026-09-27)
@@ -188,6 +202,15 @@ reveals on tab hover/focus via named-group utilities (`invisible
 group-hover/workspace-tab:visible`), reserving its space so labels do
 not shift.
 
+### Agent Notes (2026-09-28, second pass — the 28px mismatch)
+
+The owner tightened the stripe h-8 → h-7 (28px) in 26ecdffd, but the
+stripe buttons stayed PrimeVue `small` (32px): close/add/pane-menu
+overflowed the stripe and clipped against the pane section's
+`overflow-hidden`. Fixed in `agent/todo-implement-all-20260928`: every
+stripe control carries `!h-7 !w-7`. Browser-verified: all three
+controls measure exactly 28px, aligned to the stripe, nothing clipped.
+
 - [x] Need to fix previews (exactly I can't see cassette preview in card)
 
 ### Agent Notes (2026-09-27)
@@ -222,6 +245,21 @@ Re-verified the served bundle after the server restart: the cassette
 `previewSource` carries all three fallbacks live; the OCCS-definition
 channel renders through the canvas occs-cassette source
 (`PreviewBox`), detector single-homed in `utils/drawingPreview.js`.
+
+### Agent Notes (2026-09-28, fourth pass — the actual mechanism)
+
+Editor-created cassettes kept their drawing in the UPLOADED GridFS
+file, and that file was authored before the CutKit → Perigram rename:
+`extensions.cutkit.graphTree`, which the occs viewer never reads (it
+reads `extensions.perigram.graphTree`) — so CAS showed the placeholder
+icon "although it worked a week ago". The rename migration only
+covered Mongo documents, never file contents. Fixed on
+`agent/todo-implement-all-20260928`: the migration now rewrites JSON
+GridFS contents under their original id (binary skipped), applied to
+the dev db (8 files, 13 docs; CAS now carries `perigram`).
+Browser-verified: the CAS card renders 17 svg paths of geometry.
+Blank cassettes render the new quiet type-glyph band (authored
+`depiction.glyph`, no MIME strings).
 
 - [ ] Galleries are weird: it appears for data that doesn't have visual fields (images, previews
   idk), and has no fields listed (probably it's ok if previews are there); also probably can have
