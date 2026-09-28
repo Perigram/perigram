@@ -12,6 +12,7 @@
           :key="item.label"
           :label="item.label"
           :icon="item.icon"
+          :data-account-org="item.orgId"
           text
           severity="secondary"
           size="small"
@@ -277,6 +278,7 @@ const menuItems = computed(() => {
       items: authStore.userOrganizations.map(org => ({
         label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
         icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
+        orgId: org._id?.toString() || org.id?.toString(),
         command: async () => {
           const organizationId = org._id?.toString() || org.id?.toString();
           if (!organizationId) return;
