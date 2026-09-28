@@ -67,10 +67,10 @@ const valueProps = computed(() => [
 async function redirectIfAuthenticated() {
   if (authStore.userIsSet) {
     // Orgless users have no workspace yet; their entry point is the
-    // profile page where organization creation lives.
+    // organization page, which owns orgless onboarding (creation).
     const hasOrganization = Boolean(authStore.userData?.organizationId) || authStore.memberships.length > 0;
     if (!hasOrganization) {
-      await navigateTo('/profile');
+      await navigateTo('/organization');
       return;
     }
     // The home screen is the default screen: the entry ladder ends at
