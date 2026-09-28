@@ -26,9 +26,12 @@ into these panes through the shared workspace-open seam.
 - Membership rows render only organizations the viewer can themselves
   resolve (cross-tenant org names are not readable) and open them through
   the workspace-open seam — never a route.
-- The organization surface renders read-level facts (type, email, phone,
-  created) with a directory-card fallback so non-member organizations are
-  not blank; the fact rows are access-filtered per field.
+- The active organization renders its real page in the pane: the
+  generated organization overview (identity header + management entries)
+  from the hydrated manifest. Non-active organizations keep the
+  directory facts — read-level rows (type, email, phone, created) with a
+  directory-card fallback so non-member organizations are not blank; the
+  fact rows are access-filtered per field.
 - The surface owns its action row because panes/dialogs have no page-level
   action chrome: user chat (the direct 1:1 thread — open to any non-self
   recipient) / invite (routes into team management with
