@@ -26,7 +26,9 @@ redirect gate for authenticated users.
   vocabulary appears in its URL — the per-user `home_<userId>` key stays the
   manifest identity. `/home` is the screens route's alias (`pages:extend` in
   `nuxt.config.js`); the screens renderer's fallback resolves the unresolvable
-  key to the home screen, and a stale `/screens/home*` URL replaces to
+  key to the home screen, the app layout resolves `/home` to the manifest
+  home screen for its workspace chrome (hidden desktop header, bounded
+  viewport), and a stale `/screens/home*` URL replaces to
   `/home` instead of rendering a second home surface.
 - The home screen is the default screen (canonical contract):
   `resolveProcessEntryRoute`/`resolveDefaultHomeScreen` in
