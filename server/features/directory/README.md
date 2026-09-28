@@ -37,9 +37,12 @@ collection.
 - `search(auth, { q, types })` — authenticated callers only. Query is
   normalized (trimmed, lowercased); queries shorter than 2 characters
   return empty groups. `types` defaults to `['user', 'organization']`.
-  Results are capped at 10 per type and caller-relative ranked: the
-  caller's own organizations and users they share an organization with
-  sort ahead of strangers, then by name. Delegates to
+  Results are capped at 10 per type and caller-relative ranked
+  deterministically: the caller's own organizations and users they share
+  an organization with are resolved from their memberships and always
+  lead the list ahead of name-matched strangers (the ranking happens
+  before the cap, so same-named strangers cannot crowd the caller's own
+  entries out). Delegates to
   `usersService.directorySearch(q)` / `organizationsService.directorySearch(q)`
   and projects matching entities into directory cards.
 - `getEntry(auth, type, id)` — single directory card plus flags for one
