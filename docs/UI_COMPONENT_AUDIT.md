@@ -160,7 +160,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
-| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (6); remove:important-override (2) |
+| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (3); remove:important-override (2) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
@@ -168,10 +168,10 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedregion-vue` | `components/generated/GeneratedRegion.vue` | derived usage | compliant |
 | `ui-components-generated-generatedscreen-vue` | `components/generated/GeneratedScreen.vue` | derived usage | centralize:layout (1); remove:important-override (5) |
 | `ui-components-generated-generatedscreenhost-vue` | `components/generated/GeneratedScreenHost.vue` | derived usage | remove:important-override (2) |
-| `ui-components-generated-generatedscreenpane-vue` | `components/generated/GeneratedScreenPane.vue` | derived usage | replace:chrome (3) |
+| `ui-components-generated-generatedscreenpane-vue` | `components/generated/GeneratedScreenPane.vue` | derived usage | compliant |
 | `ui-components-generated-generatedtypescreen-vue` | `components/generated/GeneratedTypeScreen.vue` | derived usage | remove:important-override (4) |
-| `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (3) |
-| `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | replace:chrome (3) |
+| `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | compliant |
+| `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | compliant |
 | `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | remove:important-override (2) |
 | `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | remove:important-override (6) |
 | `ui-components-generated-tableimportsurface-vue` | `components/generated/TableImportSurface.vue` | derived usage | replace:chrome (1) |
