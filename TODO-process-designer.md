@@ -618,6 +618,25 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-28 tidy corrective: packed lane rows
+
+Owner report: "how it gets arranged by Y is still strange." Root cause:
+the row model inherited from the old stacking projection gave every
+band member a UNIQUE row — with column-derived x, a simple same-lane
+chain rendered as a descending staircase. Replaced with packed rows:
+columns process left-to-right, a member takes the free row of its band
+nearest the median row of its already-placed same-band flow neighbors
+(a sequence continues level; an unanchored member takes the lowest free
+row), so same-column members stack and rows are reused across columns —
+review→approve→archive now reads as one horizontal line while an
+unrelated same-column card yields to the row below. The pre-packing
+barycenter sweep machinery is deleted (the inline row targeting IS the
+barycenter; the sweep oscillation risk dies with it). First-fit packing
+alone was not enough — it gave the row to whichever card walked first;
+the chain-vs-isolated collision was caught on the scratch harness
+(/tmp/opencode/tidy-packing.mjs). Spec 17 cases; double-feedback
+idempotence verified on the chain graph.
+
 ### Agent Notes — 2026-09-28 lanes: explicit placement only
 
 Owner report: the automatic in-lane Y restack "breaks your system a lot

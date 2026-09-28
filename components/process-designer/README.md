@@ -454,10 +454,13 @@ the draft dirty like any drag. The pass is the pure helper
   source does not strand at the left edge behind empty columns.
   Columns read left-to-right along the event chain and the data spine
   alike.
-- **Effects: y = lane row.** One row per member inside its band (band
-  geometry unchanged); member order per band comes from barycenter
-  sweeps over flow-connected effects, initialized from the authored y
-  order, so cross-lane wires cross as little as the heuristic achieves.
+- **Effects: y = lane row, packed.** Columns process left-to-right; a
+  member takes the free row of its band nearest the median row of its
+  already-placed same-band flow neighbors, so a sequence continues
+  level and reads horizontally while same-column members stack
+  (parallel branches stack, chains flow level — the BPMN reading). A
+  member with no placed same-band neighbor takes the lowest free row.
+  Band geometry stays grant-derived.
 - **Secondary process nodes: y at their neighbors' median.** They take
   their flow column; their y is the median of their flow neighbors' y,
   spread within the column so cards clear each other and the fixed
