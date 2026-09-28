@@ -550,7 +550,7 @@ export async function notifyTyping(auth, conversationKey = null) {
     });
 }
 
-export async function listInstanceOptions(auth, type, query = '', recipientUserId = null) {
+export async function listEntityOptions(auth, type, query = '', recipientUserId = null) {
     const scopedAuth = await resolveInstanceOptionAuth(auth);
     if (!scopedAuth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
     const normalizedType = normalizeInstanceOptionType(type);
@@ -821,7 +821,7 @@ async function normalizeInstanceRefs(instanceRefs = [], auth = {}, options = {})
     };
     for (const ref of normalized) {
         if (!allowedTypes.has(ref.type)) continue;
-        const readableOptions = await listInstanceOptions(scopedAuth, ref.type, ref.id, options.recipientUserId || null);
+        const readableOptions = await listEntityOptions(scopedAuth, ref.type, ref.id, options.recipientUserId || null);
         const option = readableOptions.find(item => item.value?.toString?.() === ref.id || item.value === ref.id);
         if (option) {
             refs.push({
