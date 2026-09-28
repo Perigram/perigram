@@ -551,7 +551,10 @@ the thread opens (desktop drawer, mobile `/chats` target). The thread kind
 follows the support conversation contract at the seam itself: a `user` target
 opens the **direct** 1:1 conversation (the inbox-listed thread, matching
 status-history actor chat); every other type opens the composed instance
-thread.
+thread. The shared desktop chat popup (`ChatSupportDialog`) is the one
+sanctioned raw-Dialog home and renders bottom-right — the token-sized,
+non-modal drawer card; every chat-opening action lands there on desktop, never
+a centered or center-pane surface.
 
 ### `InstanceCard.vue` popup identity slot
 The popover's identity block — type label, status surface, icon+name row, and
@@ -717,9 +720,11 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   [layouts/README.md](../../layouts/README.md); nothing else routes away).
   The profile settings dialog hosts the personal surface — avatar
   (upload/remove through the user avatar API), language, notifications —
-  and the Organizations section: every membership with switch-in-place and
-  the create-organization entry (the only popover-external home of
-  organization creation).
+  and the Organizations section, which follows the same
+  account-control contract as the popover: every membership entry closes
+  the dialog and opens the organization overview (switching context first
+  when it is not the active organization), plus the create-organization
+  entry (the only popover-external home of organization creation).
   The trigger is customizable through the scoped `#trigger` slot (default
   is the round avatar button), and callers inject leading actions through
   the scoped `#items` slot (receives the popover's `hide`, so an injected

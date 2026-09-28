@@ -277,8 +277,10 @@ from the compiled manifest.
   branches so both the wrapped icon and the expanded row toggle the same
   popup; the wrapped organizations icon opens the organization overview
   (context switching stays in the account menu). The Communication
-  is two entries in that PanelMenu: Chats is a plain entry opening the
-  chats workspace page, and Calls is always present — it toggles the
+  is two entries in that PanelMenu: Chats opens the shared bottom-right
+  chat popup on desktop (mobile navigates to the bounded `/chats` route —
+  chats are never a center pane), and Calls is always present — it toggles
+  the
   shared `CommunicationMenu` popup flyout (see
   [components/shared/README.md](../../components/shared/README.md))
   that lists every direct/group conversation and rings it, and carries
