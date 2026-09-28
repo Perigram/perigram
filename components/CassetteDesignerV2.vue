@@ -1268,8 +1268,6 @@ const layerRows = computed(() => drawingLayers.value.map(layer => {
     pen
   };
 }));
-const canUndo = designerHistory.canUndo;
-const canRedo = designerHistory.canRedo;
 const onboardingSteps = computed(() => [
   {
     id: 'document',
@@ -1344,6 +1342,9 @@ const resetDesignerHistory = () => designerHistory.reset();
 
 const undoDesignerChange = () => designerHistory.undo();
 const redoDesignerChange = () => designerHistory.redo();
+
+const canUndo = designerHistory.canUndo;
+const canRedo = designerHistory.canRedo;
 
 const isEditableKeyboardTarget = (target) => {
   const tagName = target?.tagName?.toLowerCase?.();
