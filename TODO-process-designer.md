@@ -529,27 +529,27 @@ positional ever persists as authorization.
 
 ### V1 — geometry, rings, de-fluff (one contract rewrite)
 
-- [ ] Smoothstep edges: delete the `decorateEdge` normalization that
+- [x] Smoothstep edges: delete the `decorateEdge` normalization that
   forces bezier (a leftover from the per-kind node components) and set
   `defaultEdgeOptions = { type: 'smoothstep' }` with a ~12-16px corner
   radius. Declaration-wire matching and connection inference key on
   role/label/endpoints, not geometry (verified 2026-09-27); the
   transpiler already round-trips `edge.type`.
-- [ ] Arrowheads on the control layer only (`markerEnd` on event wires) —
+- [x] Arrowheads on the control layer only (`markerEnd` on event wires) —
   data and declaration wires carry no markers.
-- [ ] Socket shape channel: ring = event/trigger (outline ring = manual,
+- [x] Socket shape channel: ring = event/trigger (outline ring = manual,
   filled = wired/automatic), filled dot = data, diamond = declaration
   binding, square = status — resolves the BPMN circle-event collision
   without breaking the channel table.
-- [ ] Trigger ring on effect cards' left edge: the derived trigger mode
+- [x] Trigger ring on effect cards' left edge: the derived trigger mode
   becomes visible language (the one honest event token — it lives on the
   verb, where the fact lives).
-- [ ] Species corner glyph + label-dominant header on task cards.
-- [ ] De-fluff: card-header hover tooltip replaces the per-node `?`
+- [x] Species corner glyph + label-dominant header on task cards.
+- [x] De-fluff: card-header hover tooltip replaces the per-node `?`
   affordance; `CtsTypeNode` hint line removed; meta rows (`v1`, editor
   tag, field/state counts) to hover; socket row labels hidden on
   unselected nodes; drop the one-sided socket-grid placeholder cells.
-- [ ] Rewrite the Node UI contract section for all of the above.
+- [x] Rewrite the Node UI contract section for all of the above.
 
 ### V2 — the primacy inversion
 
@@ -601,6 +601,22 @@ positional ever persists as authorization.
   speak of `ctsTransition` declaration nodes; none exist — the
   declaration palette is class/field/state/typeReference and state→state
   wires are `nested`. Fix in the V1 docs pass.
+
+### Agent Notes — 2026-09-28 V1 + docs debt landed
+
+V1 landed on `agent/todo-implement-all-20260928` (docs-first: the Node UI
+contract was rewritten before the code). Live-verified on the org's
+active draft: 29 smoothstep edges / 0 bezier, control-layer markers,
+quiet cards (no `?`, no hint lines, no socket labels on unselected
+nodes), ring sockets on event rows (outline manual / filled wired via
+the card's connected-input fact through DesignerSocketHandle's `wired`
+prop). The docs-debt pass is done in the same commit family: the three
+`ctsTransition`-declaration passages in
+components/process-designer/README.md now state the real model (states
+are the declaration nodes; transitions are `cts.transition` process
+nodes; state→state wires are `nested`). Remaining P5: V2 primacy
+inversion, Lanes A/B, auto-arrangement, and the control-species fate
+decision.
 
 ### Adjacent track (record references — separate from the canvas)
 
