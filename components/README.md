@@ -186,9 +186,15 @@ single hairline spans the whole stripe — tab list and the right-side pane
 controls alike: each entity tab carries its compact
 lifecycle status and a close affordance that appears only on tab hover or
 focus (its space stays reserved so labels do not shift), followed by a
-standalone add-tab control. Every control in the stripe — close, add, and
-the pane menu — exactly fills the stripe height (28px), so no control
-overflows or clips against the stripe's edges.
+standalone add-tab control. The stripe is SINGLE-HOMED in
+`components/generated/GeneratedPaneHeader.vue`: every pane host mounts
+that one component — the row, its height (24px), and the control fill
+are defined once, never pasted into hosts (a host pasting its own
+header row is a defect even when visually identical). Every control in
+the stripe — close, add, and
+the pane menu — fills the stripe height through stretch (`h-full`), the
+tab labels render at the text-label role size, and no control overflows
+or clips against the stripe's edges.
 Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
 hidden, matching an IDE file-tab strip.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
