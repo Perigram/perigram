@@ -36,7 +36,7 @@ async function registerInvitedUser(page) {
 }
 
 test.describe('directory, invitations, partnerships', () => {
-  test('global search finds users and organizations and opens their pages', async ({ app }) => {
+  test('directory search stays in contextual homes and the picker keeps direct-thread reach', async ({ app }) => {
     const { context, credentials } = await registerInvitedUser(app.page);
     app.trackCleanup(async () => { await context.dispose(); });
 
