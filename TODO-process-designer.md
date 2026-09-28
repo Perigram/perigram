@@ -553,8 +553,10 @@ positional ever persists as authorization.
 
 ### V2 — the primacy inversion
 
-- [ ] Event wires: solid, dark, 2.5-3px, arrowed — the primary flow.
-- [ ] Data wires: thin, light, dashed (BPMN data association).
+- [ ] Event wires: solid, `var(--p-text-color)` (the canvas's strongest
+  ink, theme-adaptive), 2.5-3px, arrowed — the primary flow.
+- [ ] Data wires: thin, dashed, `var(--p-text-muted-color)` — the
+  payload-family `--ck-signal-*` hue lives on socket handles only.
 - [ ] Declaration wires: dashed mid-tone, unchanged family.
 - [ ] Payload-family hue survives on socket handles only; wire styling
   encodes layer; selected stays primary.

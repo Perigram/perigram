@@ -321,7 +321,8 @@ every stage rewrites the Node UI contract section before code.
   trigger rings on effect cards; species corner glyphs; de-fluff pass
   (hover tooltips, quiet unselected cards)
 - [ ] V2: primacy inversion — event wires become the primary flow
-  (solid/dark/arrowed), data wires thin dashed, hue retreats to sockets
+  (solid, `--p-text-color`, arrowed), data wires thin dashed
+  (`--p-text-muted-color`), hue retreats to sockets
 - [ ] Lanes A: role lanes projected from grant records; declaration band
   above the pool; hide-definitions toggle
 - [ ] Lanes B: placement-writes-grants — lane crossing edits the grant
