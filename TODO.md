@@ -128,6 +128,19 @@ types through the same `loadType` seam). Nesting stays owned by the
 parent surface's tree projection. Browser-verified: the FILE screen
 composes 12 cards carrying parent chips (NEUE, STR, REAL TEST…).
 
+### Agent Notes (2026-09-28, seventh pass — owner correction: flat class screens)
+
+Owner direction after reviewing the cross-cut: a CLASS table displays
+that class's instances, never the hierarchy — "Hierarchy in PanelMenu
+sidebar is enough." The class-screen tree projection is CUT
+(`02e0877a`): `resolveListLayout` loses the `hierarchical` option and
+the tree-table entry, `HierarchyTable.vue` and `hierarchyRootInstances`
+are deleted, and containment navigation belongs to the workspace
+explorer (which nests instances under parents through `childrenOfParent`
+— the one matcher, also used by the pickers). Browser-verified: FIRST
+renders one flat DataTable (19 rows, Record/Status/STR/NUM); FILE keeps
+the cross-cut cards with parent chips; the sidebar explorer still nests.
+
 - [x] In bottom user avatar in homepage, need his name and organization
 
 ### Agent Notes (2026-09-27)
