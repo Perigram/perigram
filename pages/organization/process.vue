@@ -42,14 +42,15 @@
           @connect-start="beginSocketConnection"
           @connect-end="endSocketConnection"
           @connect="onConnect"
+          @node-drag-stop="onNodeDragStop"
         >
           <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
           <template #node-ctsClass="props"><ClassNode v-bind="props" /></template>
           <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
           <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
-          <template v-if="lanesView" #zoom-pane>
-            <LaneBands :bands="laneBands" :width="laneExtentWidth" />
+          <template #zoom-pane>
+            <LaneBands :bands="laneBands" :corridors="laneCorridors" :width="laneExtentWidth" />
           </template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
@@ -226,7 +227,6 @@
                   :artifact-kind-options="artifactUploadKindOptions"
                   :designer="designer"
                   :grants="selectedProcessNodeGrants"
-                  :grant-role-ids="selectedProcessNodeGrantRoleIds"
                   :access-detail="selectedProcessNodeAccessDetail"
                   :effective-access="selectedProcessNodeEffectiveAccess"
                   :inputs="processNodeInputs(selectedProcessNode)"
@@ -239,7 +239,6 @@
                   :format-preview-path="formatPreviewPath"
                   :format-preview-items="formatPreviewItems"
                   @sync="syncNodeData"
-                  @update-grant-roles="updateSelectedProcessNodeGrantRoles"
                   @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
                   @update-construction-mode="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
                   @update-artifact-kinds="value => { updateArtifactCreationKinds(selectedProcessNode, value); syncNodeData(); }"
@@ -1037,16 +1036,20 @@ const documentDockItems = computed(() => [
     loading: applyingProcess.value
   }
 ]);
-// Lanes (view) — the projection model is canonical in
-// components/process-designer README "Lanes (view)": bands derive from
-// grant records and are never stored; an effect renders in its primary
-// (first) grant's lane; declarations get the band above the pool;
-// grantless effects get an implicit unlabeled lane at the bottom.
-const lanesView = ref(false);
+// Lanes — the authorization surface, canonical in
+// components/process-designer README "Lanes": bands derive from grant
+// records and are never stored; an effect renders in its primary (first)
+// grant's lane; declarations get the band above the pool; grantless
+// effects get an implicit unlabeled lane. Placement writes the grant:
+// dropping an effect in a lane assigns that role (dropping it in the
+// implicit lane clears grants) — lane authoring replaced the
+// inspector's role editor.
 const definitionsHidden = ref(false);
 const LANE_ROW_HEIGHT = 170;
 const LANE_MIN_HEIGHT = 150;
 const DECLARATION_COLUMN_PITCH = 260;
+// lg operation card width (DesignerNodeCard `w-72`) — the corridor column.
+const LANE_CORRIDOR_WIDTH = 288;
 
 function isEffectNode(node) {
   const record = draft.value?.data?.processNodes?.[node.data?.refId];
@@ -1083,7 +1086,7 @@ const laneModel = computed(() => {
     bands.push({
       id: 'declarations',
       kind: 'declaration',
-      label: t('processDesigner.laneDefinitions'),
+      label: '',
       top,
       height: Math.max(LANE_MIN_HEIGHT, rows * LANE_ROW_HEIGHT)
     });
@@ -1114,20 +1117,38 @@ const laneModel = computed(() => {
   return { bands, byPrimary, unassigned, declarations, totalHeight: top };
 });
 
-const laneBands = computed(() => (lanesView.value ? laneModel.value.bands : []));
+const laneBands = computed(() => laneModel.value.bands);
+
+// Multi-role records paint a corridor: the column of the node's card
+// spanning every lane the effect is granted to (the operation is one
+// record — never cloned, its wires never duplicated).
+const laneCorridors = computed(() => {
+  const roleBands = laneModel.value.bands.filter(band => band.kind === 'role' && band.id.startsWith('role:'));
+  const corridors = [];
+  for (const node of nodes.value) {
+    if (node.type !== 'processNode' || !isEffectNode(node)) continue;
+    const grants = draft.value?.data?.processNodes?.[node.data?.refId]?.access?.grants || [];
+    const grantedBands = grants
+      .map(grant => roleBands.find(band => band.id === `role:${grant.roleId}`))
+      .filter(Boolean);
+    if (grantedBands.length < 2) continue;
+    const top = Math.min(...grantedBands.map(band => band.top));
+    const bottom = Math.max(...grantedBands.map(band => band.top + band.height));
+    corridors.push({ id: node.id, x: node.position?.x || 0, width: LANE_CORRIDOR_WIDTH, top, height: bottom - top });
+  }
+  return corridors;
+});
 
 const laneExtentWidth = computed(() => {
-  if (!lanesView.value) return 0;
   const xs = nodes.value.map(node => node.position?.x).filter(Number.isFinite);
   const min = xs.length ? Math.min(...xs) - 320 : 0;
   const max = xs.length ? Math.max(...xs) + 640 : 2400;
   return Math.max(2400, max - min);
 });
 
-// One-shot in-memory arrangement: x order is preserved, members stack in
-// their authored y order inside their band, declarations fill the
-// declaration band's grid. Positions are presentation state — nothing
-// here ever writes a grant (that is the Lanes B authoring stage).
+// The lane arrangement: x order is preserved, members stack in their
+// authored y order inside their band, declarations fill the declaration
+// band's grid. Positions are presentation state.
 function applyLaneProjection() {
   const { bands, byPrimary, unassigned, declarations } = laneModel.value;
   const declarationBand = bands.find(band => band.kind === 'declaration');
@@ -1167,8 +1188,8 @@ function applyLaneProjection() {
 }
 
 // Re-project when the authorization shape changes (roles, primary
-// grants, node counts) — not on drags: position edits inside the lanes
-// view survive until membership itself changes.
+// grants, node counts) — not on drags: a position edit survives until
+// membership itself changes.
 const laneSignature = computed(() => JSON.stringify({
   roles: Object.keys(organizationRoles.value),
   grants: nodes.value
@@ -1178,16 +1199,38 @@ const laneSignature = computed(() => JSON.stringify({
   hidden: definitionsHidden.value
 }));
 watch(laneSignature, () => {
-  if (lanesView.value) applyLaneProjection();
+  applyLaneProjection();
   syncDefinitionsHidden();
 });
 
-function toggleLanesView() {
-  lanesView.value = !lanesView.value;
-  if (lanesView.value) {
+// Placement writes the grant (node UI contract "Lanes"): dropping an
+// effect in a role lane assigns that role; dropping it in the implicit
+// lane clears its grants. The lane IS the assignment — the inspector
+// keeps only per-grant levels.
+function onNodeDragStop({ node } = {}) {
+  if (!node || node.type !== 'processNode' || !isEffectNode(node)) return;
+  const band = laneModel.value.bands.find(candidate => (
+    candidate.kind === 'role' && node.position.y >= candidate.top && node.position.y < candidate.top + candidate.height
+  ));
+  if (!band) {
+    // Dropped outside every lane (e.g. the declaration band): membership
+    // is unchanged; only restack.
     applyLaneProjection();
-    nextTick(frameAllNodes);
+    return;
   }
+  const roleId = band.id === 'unassigned' ? null : band.id.slice('role:'.length);
+  const record = draft.value?.data?.processNodes?.[node.data?.refId];
+  if (!record) return;
+  const previous = record.access?.grants || [];
+  if ((previous[0]?.roleId || null) === roleId) {
+    applyLaneProjection();
+    return;
+  }
+  const level = (roleId && previous.find(grant => grant.roleId === roleId)?.level) || record.access?.level || 'write';
+  record.access = normalizeDesignerAccess(
+    roleId ? { level, grants: [{ roleId, level }] } : { level: 'write', grants: [] }
+  );
+  syncNodeData();
 }
 
 // The definitions toggle hides the declaration family (nodes and their
@@ -1233,12 +1276,7 @@ const selectionDialStyle = computed(() => {
   return { left: `${Math.round(anchorX + 8)}px`, top: `${Math.round(anchorY - 8)}px` };
 });
 
-const canvasDockItems = computed(() => [  {
-    icon: 'pi pi-bars',
-    label: t('processDesigner.lanes'),
-    pressed: lanesView.value,
-    onClick: toggleLanesView
-  },
+const canvasDockItems = computed(() => [
   {
     icon: 'pi pi-eye-slash',
     label: t('processDesigner.hideDefinitions'),
@@ -1458,20 +1496,6 @@ const selectedProcessNodeEffectiveAccess = computed(() => {
     .sort((left, right) => left.label.localeCompare(right.label));
 });
 const selectedProcessNodeGrants = computed(() => (selectedProcessNode.value?.access?.grants || []).filter(grant => grant.roleId));
-const selectedProcessNodeGrantRoleIds = computed(() => [
-  ...new Set((selectedProcessNodeGrants.value || []).map(grant => grant.roleId).filter(Boolean))
-]);
-function updateSelectedProcessNodeGrantRoles(roleIds = []) {
-  const node = selectedProcessNode.value;
-  if (!node) return;
-  const current = node.access?.grants || [];
-  const kept = current.filter(grant => roleIds.includes(grant.roleId));
-  const added = roleIds
-    .filter(roleId => !kept.some(grant => grant.roleId === roleId))
-    .map(roleId => ({ roleId, level: isOpKind(node, 'effect.deleteEntity') ? 'admin' : 'write' }));
-  node.access = { ...(node.access || {}), grants: [...kept, ...added] };
-  syncNodeData();
-}
 function updateSelectedProcessNodeGrantLevel(index, level) {
   const node = selectedProcessNode.value;
   if (!node) return;

@@ -678,6 +678,7 @@
         "--ck-support-chat-height": "31.25rem",
         "--ck-support-chat-message-max": "85%",
         "--ck-support-chat-width": "25rem",
+        "--ck-surface-primary": "color-mix(in srgb, var(--p-primary-color) 7%, var(--p-content-background))",
         "--ck-surface-raised": "var(--p-content-background)",
         "--ck-swatch-size": "2.625rem",
         "--ck-table-action-column-width": "3rem"
@@ -699,6 +700,7 @@
           "primary": "var(--p-primary-color)",
           "primaryContrast": "var(--p-primary-contrast-color)",
           "primaryInk": "var(--ck-primary-ink)",
+          "primarySurface": "var(--ck-surface-primary)",
           "processCanvas": "var(--ck-process-canvas-background)",
           "raised": "var(--ck-surface-raised)",
           "selection": "var(--ck-selection-background)",
@@ -908,6 +910,7 @@
             "contrast": "var(--p-primary-contrast-color)",
             "ink": "var(--ck-primary-ink)"
           },
+          "primary-surface": "var(--ck-surface-primary)",
           "process-canvas": "var(--ck-process-canvas-background)",
           "signal": {
             "data": "var(--ck-signal-data)",

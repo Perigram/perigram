@@ -61,6 +61,7 @@ export const designTokens = {
         chromeBorder: 'var(--ck-chrome-border)',
         subtle: 'var(--ck-subtle-background)',
         raised: 'var(--ck-surface-raised)',
+        primarySurface: 'var(--ck-surface-primary)',
         borderSubtle: 'var(--ck-border-subtle)',
         selection: 'var(--ck-selection-background)'
     },
@@ -152,6 +153,9 @@ export const cssVariableTokens = {
     '--ck-chrome-border': 'var(--p-content-border-color)',
     '--ck-subtle-background': 'var(--p-surface-200)',
     '--ck-surface-raised': 'var(--p-content-background)',
+    // The operation-card tint: the primary accent at a whisper over the
+    // content surface — population primacy without border noise.
+    '--ck-surface-primary': 'color-mix(in srgb, var(--p-primary-color) 7%, var(--p-content-background))',
     '--ck-border-subtle': 'var(--p-content-border-color)',
     '--ck-selection-background': 'color-mix(in srgb, var(--p-accent-color) 20%, transparent)',
     // Scrollbars ride the theme through the PrimeVue text color, which
@@ -277,6 +281,7 @@ export const tailwindThemeExtension = {
         },
         content: designTokens.color.content,
         'content-border': designTokens.color.contentBorder,
+        'primary-surface': designTokens.color.primarySurface,
         page: designTokens.color.page,
         'process-canvas': designTokens.color.processCanvas,
         chrome: designTokens.color.chrome,
