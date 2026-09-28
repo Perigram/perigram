@@ -995,12 +995,11 @@ const accessLevelOptions = [
   { label: t('processDesigner.accessWrite'), value: 'write' },
   { label: t('processDesigner.accessAdmin'), value: 'admin' }
 ];
-// Smoothstep geometry is chrome (BPMN readability): one corner radius
-// everywhere. Declaration-wire matching and connection inference key on
-// role/label/endpoints, never geometry.
+// Wire geometry is chrome: bezier everywhere (the V1 smoothstep cut was
+// reverted by owner direction). Declaration-wire matching and connection
+// inference key on role/label/endpoints, never geometry.
 const defaultEdgeOptions = {
-  type: 'smoothstep',
-  pathOptions: { borderRadius: 14 }
+  type: 'default'
 };
 
 const activeName = computed(() => draft.value?.identity?.name || '');
@@ -1049,6 +1048,11 @@ const LANE_ROW_HEIGHT = 170;
 const LANE_MIN_HEIGHT = 150;
 // lg operation card width (DesignerNodeCard `w-72`) — the corridor column.
 const LANE_CORRIDOR_WIDTH = 288;
+// The arranged (content-hugging) band geometry Tidy produced — adopted for
+// rendering while it matches the current band set; the count-based sizes
+// below are the fallback before any arrangement or after membership
+// changes. Membership itself always re-derives from grants.
+const arrangedBands = ref(null);
 
 function isEffectNode(node) {
   const record = draft.value?.data?.processNodes?.[node.data?.refId];
@@ -1068,8 +1072,8 @@ function effectPrimaryRoleId(node) {
   return record?.access?.grants?.[0]?.roleId || null;
 }
 
-// Band geometry. Reads role/grant/counts only — never node positions —
-// so band layout cannot oscillate with the arrangement it produces.
+// Band geometry: arranged (content-hugging) when fresh, count-based
+// fallback otherwise. Membership reads grants only.
 const laneModel = computed(() => {
   const roleIds = Object.keys(organizationRoles.value);
   const byPrimary = new Map(roleIds.map(roleId => [roleId, []]));
@@ -1103,7 +1107,17 @@ const laneModel = computed(() => {
     });
     top += bands[bands.length - 1].height;
   }
-  return { bands, byPrimary, unassigned, totalHeight: top };
+  const arranged = arrangedBands.value;
+  if (arranged && arranged.map(band => band.id).join('|') === bands.map(band => band.id).join('|')) {
+    bands.forEach((band, index) => {
+      band.top = arranged[index].top;
+      band.height = arranged[index].height;
+    });
+  }
+  const totalHeight = bands.length
+    ? bands[bands.length - 1].top + bands[bands.length - 1].height
+    : 0;
+  return { bands, byPrimary, unassigned, totalHeight };
 });
 
 const laneBands = computed(() => laneModel.value.bands);
@@ -1181,9 +1195,10 @@ function laneOfEffect(node) {
 }
 
 // Slot the dropped card into the lane it now belongs to: the free band
-// row nearest the drop y, keeping the drop x. Cards already in the lane
-// keep their positions; a crowded lane leaves the card where the author
-// dropped it.
+// row nearest the drop y, keeping the drop x and clamped inside the lane
+// — a card never crosses a divider. Cards already in the lane keep their
+// positions; a crowded lane clamps the card to the band interior at the
+// drop point.
 function slotIntoLane(node, band) {
   const members = nodes.value.filter(candidate => (
     candidate.id !== node.id
@@ -1196,14 +1211,25 @@ function slotIntoLane(node, band) {
     return { top, bottom: top + (member.dimensions?.height || 140) };
   });
   const cardHeight = node.dimensions?.height || 140;
+  const minY = band.top + 24;
+  const maxY = band.top + band.height - 24 - cardHeight;
+  if (maxY < minY) return;
   const free = [];
   for (let index = 0; index <= members.length; index += 1) {
     const y = band.top + 24 + index * LANE_ROW_HEIGHT;
+    if (y < minY || y > maxY) continue;
     if (occupied.every(range => y + cardHeight <= range.top || y >= range.bottom)) free.push(y);
   }
-  if (!free.length) return;
+  const droppedY = node.position.y;
+  if (!free.length) {
+    const y = Math.min(maxY, Math.max(minY, droppedY));
+    nodes.value = nodes.value.map(candidate => (
+      candidate.id === node.id ? { ...candidate, position: { x: candidate.position.x, y } } : candidate
+    ));
+    return;
+  }
   const y = free.reduce((nearest, candidate) => (
-    Math.abs(candidate - node.position.y) < Math.abs(nearest - node.position.y) ? candidate : nearest
+    Math.abs(candidate - droppedY) < Math.abs(nearest - droppedY) ? candidate : nearest
   ), free[0]);
   nodes.value = nodes.value.map(candidate => (
     candidate.id === node.id ? { ...candidate, position: { x: candidate.position.x, y } } : candidate
@@ -1225,8 +1251,9 @@ function toggleSecondaryHidden() {
 }
 
 // Tidy (node UI contract "Auto-arrangement"): the pure layered pass run
-// destructively — it writes positions only, so lane grants and every
-// authored record survive it unchanged.
+// destructively — it writes positions and the content-hugging band
+// geometry only, so lane grants and every authored record survive it
+// unchanged.
 function tidyCanvas() {
   const { bands, byPrimary, unassigned } = laneModel.value;
   const bandOfNodeId = new Map();
@@ -1239,13 +1266,14 @@ function tidyCanvas() {
   const effectIds = new Set(nodes.value
     .filter(node => node.type === 'processNode' && isEffectNode(node))
     .map(node => node.id));
-  const positions = arrangeProcessGraph({
+  const { positions, bands: geometry } = arrangeProcessGraph({
     nodes: nodes.value,
     edges: edges.value,
     effectIds,
     bands,
     bandOfNodeId
   });
+  arrangedBands.value = geometry;
   if (!positions.size) return;
   nodes.value = nodes.value.map(node => (
     positions.has(node.id) ? { ...node, position: positions.get(node.id) } : node
@@ -1980,8 +2008,7 @@ function decorateEdge(edge = {}) {
   const layer = WIRE_STYLES[edgeLayer(edge)] || WIRE_STYLES.value;
   const decorated = {
     ...edge,
-    type: 'smoothstep',
-    pathOptions: { borderRadius: 14 },
+    type: 'default',
     animated: selected,
     style: {
       stroke: selected ? 'var(--p-primary-color)' : layer.stroke,
@@ -2475,7 +2502,7 @@ function onConnect(connection) {
     }
     const declarationEdge = {
       ...connection,
-      type: 'smoothstep',
+      type: 'default',
       role: 'type',
       label: legality === 'declares' ? (sourceNode.type === 'ctsField' ? 'field' : 'state')
         : legality === 'binds' ? 'type'
@@ -2505,7 +2532,7 @@ function onConnect(connection) {
   edges.value.push(decorateEdge({
     ...connection,
     id: mintId('edge'),
-    type: 'smoothstep',
+    type: 'default',
     role: compatibility.source?.role === 'data' ? 'data' : 'control',
     data: { kind: compatibility.source?.role || 'data' }
   }));

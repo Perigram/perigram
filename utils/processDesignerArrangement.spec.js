@@ -15,7 +15,7 @@ function declarationNode(id, type, x, y) {
   return { id, type, position: { x, y } };
 }
 
-function arrange({ nodes, edges, effects, bands = [BAND_A, BAND_B], bandOfNodeId }) {
+function arrangeFull({ nodes, edges, effects, bands = [BAND_A, BAND_B], bandOfNodeId }) {
   return arrangeProcessGraph({
     nodes,
     edges,
@@ -23,6 +23,10 @@ function arrange({ nodes, edges, effects, bands = [BAND_A, BAND_B], bandOfNodeId
     bands,
     bandOfNodeId
   });
+}
+
+function arrange(options) {
+  return arrangeFull(options).positions;
 }
 
 describe('arrangeProcessGraph', () => {
@@ -182,9 +186,9 @@ describe('arrangeProcessGraph', () => {
     expect(result.get('literal').x).toBeGreaterThan(0);
   });
 
-  it('places a fan-out secondary at the median between its consumers', () => {
+  it('clamps a fan-out secondary into its anchor band', () => {
     const nodes = [processNode('src', 0, 0), processNode('eA', 0, 0), processNode('eB', 0, 0)];
-    const result = arrange({
+    const result = arrangeFull({
       nodes,
       edges: [
         { source: 'src', target: 'eA' },
@@ -193,13 +197,62 @@ describe('arrangeProcessGraph', () => {
       effects: ['eA', 'eB'],
       bandOfNodeId: new Map([['eA', BAND_A], ['eB', BAND_B]])
     });
-    const y = result.get('src').y;
-    const top = result.get('eA').y;
-    const bottom = result.get('eB').y;
-    expect(y).toBeGreaterThan(top);
-    expect(y).toBeLessThan(bottom);
-    expect(y - top).toBeLessThan(bottom - top);
-    expect(bottom - y).toBeLessThan(bottom - top);
+    const bandA = result.bands.find(band => band.id === BAND_A.id);
+    const src = result.positions.get('src');
+    expect(src.y).toBeGreaterThanOrEqual(bandA.top);
+    expect(src.y + 140).toBeLessThanOrEqual(bandA.top + bandA.height);
+  });
+
+  it('hugs band bounds to content and never crosses a divider', () => {
+    const nodes = [
+      processNode('eA1', 0, 0), processNode('eA2', 0, 0), processNode('eB1', 0, 0),
+      processNode('src', 0, 0), processNode('helper', 0, 0),
+      declarationNode('cls', 'ctsClass', 0, 0)
+    ];
+    const bandC = { id: 'role:c', kind: 'role', label: 'C', top: 0, height: 0 };
+    const result = arrangeFull({
+      nodes,
+      edges: [
+        { source: 'eA1', target: 'eA2', role: 'control' },
+        { source: 'src', target: 'eA1' },
+        { source: 'helper', target: 'eB1' },
+        { source: 'cls', target: 'eA1', role: 'type' }
+      ],
+      effects: ['eA1', 'eA2', 'eB1'],
+      bands: [BAND_A, bandC, BAND_B],
+      bandOfNodeId: new Map([['eA1', BAND_A], ['eA2', BAND_A], ['eB1', BAND_B]])
+    });
+    // Empty role keeps the minimum height; bands stack in role order.
+    const bandA = result.bands[0];
+    const empty = result.bands[1];
+    const bandB = result.bands[2];
+    expect(empty.height).toBe(150);
+    expect(bandA.top).toBe(0);
+    expect(empty.top).toBe(bandA.top + bandA.height);
+    expect(bandB.top).toBe(empty.top + empty.height);
+    // Every arranged node sits fully inside exactly one band (card
+    // heights: 140 process, 96 declaration) — nothing crosses a divider.
+    const cardHeightOf = node => (node.type === 'processNode' ? 140 : 96);
+    for (const node of nodes) {
+      const point = result.positions.get(node.id);
+      const inside = result.bands.filter(band => (
+        point.y >= band.top && point.y + cardHeightOf(node) <= band.top + band.height
+      ));
+      expect(inside).toHaveLength(1);
+    }
+    // Content hugging: height exceeds its content bottom by at most the
+    // padding (24), never a long empty tail.
+    for (const band of [bandA, bandB]) {
+      const members = nodes.filter(node => {
+        const point = result.positions.get(node.id);
+        return point.y >= band.top && point.y + cardHeightOf(node) <= band.top + band.height;
+      });
+      const contentBottom = Math.max(...members.map(node => (
+        result.positions.get(node.id).y - band.top + cardHeightOf(node)
+      )));
+      expect(band.height).toBeGreaterThanOrEqual(contentBottom);
+      expect(band.height - contentBottom).toBeLessThanOrEqual(24);
+    }
   });
 
   it('spreads same-column secondaries clear of each other', () => {
@@ -308,15 +361,16 @@ describe('arrangeProcessGraph', () => {
       effects: ['a1', 'a2', 'b1', 'b2'],
       bandOfNodeId: new Map([['a1', BAND_A], ['a2', BAND_A], ['b1', BAND_B], ['b2', BAND_B]])
     };
-    const first = arrange(input);
-    expect(arrange(input)).toEqual(first);
-    const second = arrange({
+    const first = arrangeFull(input);
+    expect(arrangeFull(input)).toEqual(first);
+    const second = arrangeFull({
       ...input,
       nodes: input.nodes.map(node => (
-        first.has(node.id) ? { ...node, position: first.get(node.id) } : node
+        first.positions.has(node.id) ? { ...node, position: first.positions.get(node.id) } : node
       ))
     });
-    expect([...second]).toEqual([...first]);
+    expect([...second.positions]).toEqual([...first.positions]);
+    expect(second.bands).toEqual(first.bands);
   });
 
   it('is idempotent on a fan-out graph with a deep chain', () => {
