@@ -6,7 +6,10 @@
            hide so they can close it before opening another surface. -->
       <slot name="items" :hide="hide" />
       <section v-for="group in menuItems" :key="group.label" class="flex flex-col gap-1">
-        <small class="px-2 text-muted">{{ group.label }}</small>
+        <!-- The account group's identity IS its header — the avatar row
+             carries name and organization, so no text label repeats
+             above it. -->
+        <small v-if="!group.account" class="px-2 text-muted">{{ group.label }}</small>
         <!-- The account group leads with the inline profile surface:
              avatar, name, active organization — nothing routes away. -->
         <div v-if="group.account" class="flex items-center gap-2 px-2 py-1">

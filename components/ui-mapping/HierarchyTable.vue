@@ -1,7 +1,7 @@
 <template>
   <div :class="[LAYOUT.scrollX, 'ck-collection-rows']">
     <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10" :pt="tablePt">
-    <Column>
+    <Column expander>
       <template #body="{ node }">
         <div class="flex items-center gap-2">
           <i :class="node.data.icon" class="text-muted" />
