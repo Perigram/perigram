@@ -87,6 +87,7 @@ import { useAuthStore } from '~/stores/auth';
 import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import {
   isGeneratedSurfaceAction,
+  isFieldEditAction,
   resolveGeneratedEntityActions,
   resolveScopedGeneratedActions
 } from '~/components/generated/action-visibility.js';
@@ -156,6 +157,7 @@ const resolvedBodyActions = computed(() => resolveGeneratedEntityActions({
 )));
 const headerActionIds = computed(() => resolvedActions.value
   .filter(isGeneratedSurfaceAction)
+  .filter(action => !isFieldEditAction(action))
   .filter(action => !generatedInstanceDetailConsumesAction(props.typeId, action))
   .map(action => action.id));
 </script>

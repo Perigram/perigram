@@ -104,7 +104,7 @@ import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue'
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
-import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isFieldEditAction, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import { generatedInstanceDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
 import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
@@ -201,6 +201,7 @@ const tabActionIds = computed(() => resolvedEntries.value
   .map(entry => authStore.actionManifest.find(action => action.id === entry.id))
   .filter(action => action && !detailChildActionIds.value.includes(action.id))
   .filter(isGeneratedSurfaceAction)
+  .filter(action => !isFieldEditAction(action))
   .filter(action => generatedActionRendersAt(action, ['entity', 'relation']))
   .filter(action => !generatedInstanceDetailConsumesAction(props.item?.type, action))
   .map(action => action.id));
