@@ -110,16 +110,20 @@ export async function createGroup(auth, body = {}) {
     if (!name) throw createError({ statusCode: 400, message: 'Group name is required' });
     if (!auth.organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
 
-    const requestedIds = (Array.isArray(body?.participantIds) ? body.participantIds : [])
+    const requestedIds = [...new Set((Array.isArray(body?.participantIds) ? body.participantIds : [])
         .map(item => item?.toString?.().trim() || '')
-        .filter(Boolean);
-    const reachable = await usersService.list(auth.userId, auth.organizationId, auth.role, auth)
-        .catch(() => []);
-    const reachableIds = new Set(reachable.map(user => {
-        const dto = user?.toJSON ? user.toJSON() : user;
-        return dto?._id?.toString?.() || dto?._id || dto?.id;
-    }).filter(Boolean));
-    const participants = [...new Set([String(auth.userId), ...requestedIds.filter(id => reachableIds.has(id))])];
+        .filter(Boolean))];
+    // Group participants are user-scope: any existing account may join
+    // (the group itself stays homed in the creator's organization
+    // lineage). Unknown ids are rejected, never silently dropped.
+    const resolvedIds = [];
+    for (const id of requestedIds) {
+        if (id === String(auth.userId)) continue;
+        const participant = await usersService.getById(id).catch(() => null);
+        if (!participant) throw createError({ statusCode: 400, message: 'Unknown participants' });
+        resolvedIds.push(id);
+    }
+    const participants = [String(auth.userId), ...resolvedIds];
 
     const status = createStatus('ACTIVE', auth.userId, { note: 'Chat group created' });
     const created = await repository.insertGroup({

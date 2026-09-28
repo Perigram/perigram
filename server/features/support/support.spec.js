@@ -799,11 +799,12 @@ describe('support communication service', () => {
     ]);
   });
 
-  it('creates group chats with the creator plus reachable participants', async () => {
-    mocks.usersService.list.mockResolvedValue([
-      { toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} }) },
-      { toJSON: () => ({ _id: 'user-c', identity: { name: 'User C' }, data: {} }) }
-    ]);
+  it('creates group chats with the creator plus any existing participants', async () => {
+    mocks.usersService.getById.mockImplementation(async id => (
+      ['user-b', 'user-outsider'].includes(String(id))
+        ? { toJSON: () => ({ _id: String(id), identity: { name: `User ${id}` }, data: {} }) }
+        : null
+    ));
     mocks.repository.insertGroup.mockImplementation(async doc => ({ ...doc, _id: 'group-1' }));
 
     const group = await supportService.createGroup(auth, { name: 'Workshop', participantIds: ['user-b', 'user-outsider'] });
@@ -811,12 +812,14 @@ describe('support communication service', () => {
     expect(group).toMatchObject({
       _id: 'group-1',
       identity: { name: 'Workshop' },
-      participants: ['user-a', 'user-b']
+      participants: ['user-a', 'user-b', 'user-outsider']
     });
     expect(mocks.repository.insertGroup).toHaveBeenCalledWith(expect.objectContaining({
       lineage: { organizationId: 'org-1' },
-      participants: ['user-a', 'user-b']
+      participants: ['user-a', 'user-b', 'user-outsider']
     }));
+    await expect(supportService.createGroup(auth, { name: 'Workshop', participantIds: ['user-ghost'] }))
+      .rejects.toMatchObject({ statusCode: 400 });
     await expect(supportService.createGroup(auth, { name: '   ' })).rejects.toMatchObject({ statusCode: 400 });
     await expect(supportService.createGroup({ ...auth, organizationId: null }, { name: 'X' })).rejects.toMatchObject({ statusCode: 400 });
   });

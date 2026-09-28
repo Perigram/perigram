@@ -67,6 +67,7 @@ test.describe('directory, invitations, partnerships', () => {
     await app.page.waitForTimeout(1500);
 
     const conversationsResponse = await (await app.request.get('/api/support/conversations')).json();
+    const me = await (await app.request.get('/api/auth/me')).json();
     const conversations = conversationsResponse?.data || [];
     const directThread = conversations.find(conversation => (
       conversation.conversationKind === 'direct'
@@ -77,7 +78,20 @@ test.describe('directory, invitations, partnerships', () => {
     await app.expectCleanRuntime();
     record('cross-org DM from picker', { conversationKey: directThread.conversationKey });
 
-    const me = await (await app.request.get('/api/auth/me')).json();
+    // Group participants are user-scope too: a group carrying the
+    // cross-org persona is created and listed (org scope is org scope,
+    // user scope is user scope).
+    const group = await (await app.request.post('/api/support/groups', {
+      data: { name: `E2E Global Group ${Date.now()}`, participantIds: [found._id] }
+    })).json();
+    expect((group?.participants || []).map(String)).toEqual(expect.arrayContaining([String(me.userId), String(found._id)]));
+    const groupsListed = await (await app.request.get('/api/support/conversations')).json();
+    expect((groupsListed?.data || []).some(conversation => conversation.groupId === group._id)).toBeTruthy();
+    app.trackCleanup(async () => {
+      await app.request.delete(`/api/support/groups/${group._id}`, { failOnStatusCode: false });
+    });
+    record('cross-org group participant', { groupId: String(group._id) });
+
     const organizationName = me.organizationData?.name || '';
     expect(organizationName, 'e2e session must carry an active organization name').toBeTruthy();
     const orgSearch = await app.request.get('/api/directory/search', {
