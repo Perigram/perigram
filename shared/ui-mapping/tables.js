@@ -411,7 +411,10 @@ export const ACTION_ENTRIES = Object.freeze([
   { match: { actionKind: 'link' }, component: 'Button', tone: 'text', icon: 'pi pi-link' },
   { match: { actionKind: 'unlink' }, component: 'Button', tone: 'text', icon: 'pi pi-times', inline: true },
   { match: { actionKind: 'updateInstance', stateTarget: true }, component: 'Button', tone: 'state', icon: 'pi pi-arrow-right-arrow-left' },
-  { match: { actionKind: 'updateInstance' }, component: 'Button', tone: 'secondary', icon: 'pi pi-pencil', iconOnly: true },
+  // Stateless updates are the field-edit form: fields edit inline on
+  // detail surfaces and editor-bound types open their editor, so the
+  // bulk form never renders as a browse-surface action.
+  { match: { actionKind: 'updateInstance' }, hidden: true },
   { match: {}, component: 'Button', tone: 'secondary' }
 ]);
 

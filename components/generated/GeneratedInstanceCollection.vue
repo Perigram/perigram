@@ -178,7 +178,7 @@ import { titleFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
-import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isFieldEditAction, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useRegistryStore } from '~/stores/registry';
@@ -319,6 +319,7 @@ function entityActionsFor(entity) {
   return resolvedActions.value.filter(action => (
     isGeneratedSurfaceAction(action) &&
     generatedActionRendersAt(action, ['entity', 'relation']) &&
+    !isFieldEditAction(action) &&
     !parentBoundCreateAppliesToTypeId(action, props.typeId)
     && actionAppliesToEntity(action, entity, props.typeId)
   ));

@@ -34,6 +34,8 @@ import DesignerDialog from '~/components/shared/DesignerDialog.vue';
 import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import { useInstancesStore } from '~/stores/instances';
+import { useAuthStore } from '~/stores/auth';
+import { hasPermissionGrant } from '#shared/access-control.js';
 
 // The generic editor action: opens the type's registered editor workspace
 // page. Hosts may hand over a ui-mapping instance record (flat `id`) — the
@@ -54,9 +56,24 @@ const emit = defineEmits(['open-page', 'refresh']);
 
 const { t, te } = useI18n();
 const instances = useInstancesStore();
+const authStore = useAuthStore();
 const dialogVisible = ref(false);
 
-const surface = computed(() => (props.typeId ? resolveFileSurface(null, props.typeId) : null));
+// Write gate: the editor action renders only when some write-level grant
+// admits the type (the shared evaluator applies the entity/typeId
+// predicates; server transports stay fail-closed regardless).
+const canEditType = computed(() => {
+  const permissions = authStore.activePermissions || {};
+  return Object.keys(permissions).some(feature => hasPermissionGrant({
+    permissions,
+    feature,
+    level: 'write',
+    entity: props.entity,
+    typeId: props.typeId
+  }));
+});
+
+const surface = computed(() => (props.typeId && canEditType.value ? resolveFileSurface(null, props.typeId) : null));
 const actionLabel = computed(() => (
   surface.value?.workspacePage?.labelKey && te(surface.value.workspacePage.labelKey)
     ? t(surface.value.workspacePage.labelKey)

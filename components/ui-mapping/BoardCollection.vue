@@ -255,7 +255,9 @@ function openCardMenu(event, instance) {
   menuInstance.value = instance;
   cardMenu.value?.toggle(event);
 }
-const cardMenuItems = computed(() => props.actions.map(action => {
+const cardMenuItems = computed(() => props.actions
+  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden)
+  .map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
   return {
     label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),

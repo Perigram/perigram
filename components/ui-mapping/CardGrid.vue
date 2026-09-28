@@ -163,6 +163,7 @@ const stateMatches = (action = {}, instance = null) => {
 
 const cardMenuItems = computed(() => props.actions
   .filter(action => stateMatches(action, menuInstance.value))
+  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden)
   .map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
   return {
