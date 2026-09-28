@@ -540,7 +540,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { SelectionMode, VueFlow } from '@vue-flow/core';
+import { MarkerType, SelectionMode, VueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
@@ -970,7 +970,13 @@ const accessLevelOptions = [
   { label: t('processDesigner.accessWrite'), value: 'write' },
   { label: t('processDesigner.accessAdmin'), value: 'admin' }
 ];
-const defaultEdgeOptions = { type: 'default' };
+// Smoothstep geometry is chrome (BPMN readability): one corner radius
+// everywhere. Declaration-wire matching and connection inference key on
+// role/label/endpoints, never geometry.
+const defaultEdgeOptions = {
+  type: 'smoothstep',
+  pathOptions: { borderRadius: 14 }
+};
 
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
@@ -1672,24 +1678,38 @@ const WIRE_PATTERNS = {
   control: '2 4'
 };
 
+// Arrowheads render on the CONTROL layer only — the event chain is the
+// one directed flow on the canvas; data and declaration wires carry no
+// markers (node UI contract).
+function controlMarker(stroke) {
+  return {
+    type: MarkerType.ArrowClosed,
+    color: stroke,
+    width: 18,
+    height: 18
+  };
+}
+
 function decorateEdge(edge = {}) {
   const selected = edge.selected === true || edge.id === selectedEdgeId.value;
-  const type = edge.type === 'smoothstep' || edge.type === 'step' ? 'default' : (edge.type || 'default');
   const sourcePort = sourcePortForEdge(edge);
   const pattern = WIRE_PATTERNS[edge.role] || '';
+  const stroke = selected
+    ? 'var(--p-primary-color)'
+    // Declaration bindings transport a TYPE, not data — the structure
+    // tone is their payload family.
+    : edge.role === 'type' ? 'var(--ck-signal-structure)' : processSocketColor(sourcePort);
   return {
     ...edge,
-    type,
+    type: 'smoothstep',
+    pathOptions: { borderRadius: 14 },
     animated: selected,
     style: {
-      stroke: selected
-        ? 'var(--p-primary-color)'
-        // Declaration bindings transport a TYPE, not data — the structure
-        // tone is their payload family.
-        : edge.role === 'type' ? 'var(--ck-signal-structure)' : processSocketColor(sourcePort),
+      stroke,
       strokeWidth: selected ? 3 : 2,
       ...(pattern ? { strokeDasharray: pattern } : {})
-    }
+    },
+    ...(edge.role === 'control' ? { markerEnd: controlMarker(stroke) } : {})
   };
 }
 
@@ -2177,7 +2197,7 @@ function onConnect(connection) {
     }
     const declarationEdge = {
       ...connection,
-      type: 'default',
+      type: 'smoothstep',
       role: 'type',
       label: legality === 'declares' ? (sourceNode.type === 'ctsField' ? 'field' : 'state')
         : legality === 'binds' ? 'type'
@@ -2207,7 +2227,7 @@ function onConnect(connection) {
   edges.value.push(decorateEdge({
     ...connection,
     id: mintId('edge'),
-    type: 'default',
+    type: 'smoothstep',
     role: compatibility.source?.role === 'data' ? 'data' : 'control',
     data: { kind: compatibility.source?.role || 'data' }
   }));

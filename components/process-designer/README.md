@@ -324,8 +324,9 @@ construction, not per-card styling.
 | Channel | Encodes | Values |
 |---|---|---|
 | Socket & wire color | transported payload family | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
-| Socket shape | what the socket deals in | filled circle = value/instance data; filled diamond = declaration binding; filled rounded square in the primary accent = event; filled rounded square = state/status |
+| Socket shape | what the socket deals in | ring = event/trigger (an OUTLINE ring is a manual trigger — the effect runs by hand; a FILLED ring is wired — the trigger fires automatically); filled dot = value/instance data; diamond = declaration binding; filled square = state/status |
 | Wire pattern | edge role — what kind of connection | solid = data flow; dashed = declaration binding (`role: 'type'`); dotted = control/event trigger |
+| Wire geometry | chrome (BPMN readability) | smoothstep with a ~14px corner radius; arrowheads render on the CONTROL layer only (`markerEnd` on event wires) — data and declaration wires carry no markers, so the event chain is the only directed flow |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
 
@@ -347,22 +348,42 @@ read structure-toned and dashed.
 | Channel | Encodes | Values |
 |---|---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation |
-| Card surface & border | chrome only | neutral background; the selected border is the single card state |
+| Card surface & border | chrome only | neutral background; the selected border is the single card state — an unselected node is a diagram element, the selected node is the authoring surface |
+| Species corner glyph | the node's species family | a small glyph in the header's trailing corner marks verb/species families on operation cards; the label leads (label-dominant header) |
+| Trigger ring | an effect's derived trigger mode | a ring on the effect card's left edge at the event socket row — outline = manual, filled = wired (the socket shape channel applied at card scale; the derived mode is never authored) |
 
-Card concern (what a node does) is carried by the icon and label only —
-the card body is deliberately colorless so sockets and wires own every
+Card concern (what a node does) is carried by the label first (with the
+icon), the body deliberately colorless so sockets and wires own every
 hue on the canvas.
 
 ### Arrangement
 
-Top to bottom: the header (neutral icon chip + label — no divider);
-inline configuration (only species that author values in place); the
-socket rail (labeled rows, inputs left / outputs right, every handle
-centered on the outer node rail); the event section (effects only: event
-sockets, no trigger chrome). Sections separate by spacing
+Top to bottom: the header (neutral icon chip + label — no divider, with
+the species corner glyph on operations); inline configuration (only
+species that author values in place); the socket rail (inputs left /
+outputs right, every handle centered on the outer node rail — row labels
+render on the SELECTED node only, unselected cards show the handles
+without their text); the event section (effects only: event sockets with
+the trigger ring). Sections separate by spacing
 alone (`mt-2`/`mt-3`, row `py-1.5`) — there are deliberately **no
 dividers**: separator lines would form a third visual system competing
-with stripes and wires while encoding nothing.
+with stripes and wires while encoding nothing. Socket rows are one-sided
+by construction: a row with only an input or only an output renders
+without its empty opposite cell.
+
+### Quiet-card policy (de-fluff)
+
+Unselected cards are diagram elements; the canvas speaks through wire and
+socket channels, not per-node chrome:
+
+- The per-node `?` affordance is gone — the card header's hover/focus
+  tooltip carries the node spec summary (element type, access,
+  qualifier, description) that the `?` used to surface.
+- `CtsTypeNode` renders no hint line.
+- Class-card meta rows (scope version tag, editor tag, field/state
+  counts) live in the header tooltip, not the card face.
+- Socket row labels render on the selected node only (see Arrangement).
+- One-sided socket rows drop their placeholder cells.
 
 Deliberately meaningless: card background, handle size (fixed 12px),
 typography — chrome, never data.

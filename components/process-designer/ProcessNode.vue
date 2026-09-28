@@ -1,15 +1,14 @@
 <template>
   <DesignerNodeCard :selected="selected" size="lg" :title="data.purpose || data.summary || ''">
-    <div class="flex items-center gap-1.5">
+    <!-- Label-dominant header: the label is the primary read, the species
+         glyph rides the trailing corner, and the whole header row carries
+         the node-spec tooltip (the per-node `?` affordance is gone —
+         quiet-card policy, node UI contract). -->
+    <div v-tooltip.bottom="nodeSpecTooltip" class="flex items-center gap-1.5">
+      <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
       <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-supporting">
         <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
       </span>
-      <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
-      <i
-        v-tooltip.right="nodeSpecTooltip"
-        class="pi pi-question-circle nowheel cursor-help text-muted"
-        :aria-label="$t('processDesigner.nodeSpec')"
-      />
     </div>
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
@@ -58,10 +57,13 @@
     </div>
 
     <div v-if="socketRows.length" class="-mx-2.5 mt-2 flex flex-col">
-      <div v-for="row in socketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
+      <!-- One-sided rows render without their empty opposite cell, and row
+           labels render on the SELECTED node only (quiet-card policy, node
+           UI contract): unselected cards show handles alone. -->
+      <div v-for="row in socketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
-          <span class="block truncate text-supporting">{{ row.input.label }}</span>
+          <DesignerSocketHandle :socket="row.input" :wired="row.input.connected" side="left" :title="socketTitle(row.input)" />
+          <span v-if="selected" class="block truncate text-supporting">{{ row.input.label }}</span>
           <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
             <TypedValueControl
               :base="row.input.base"
@@ -73,27 +75,25 @@
             />
           </div>
         </div>
-        <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
-          <span class="block truncate text-supporting">{{ row.output.label }}</span>
+          <span v-if="selected" class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
-        <div v-else></div>
       </div>
     </div>
 
+    <!-- The event section's trigger ring IS the effect's left-edge ring
+         (node UI contract): outline = manual trigger, filled = wired. -->
     <div v-if="eventSocketRows.length" class="-mx-2.5 mt-3">
-      <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
+      <div v-for="row in eventSocketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
-          <span class="block truncate text-supporting">{{ row.input.label }}</span>
+          <DesignerSocketHandle :socket="row.input" :wired="row.input.connected" side="left" :title="socketTitle(row.input)" />
+          <span v-if="selected" class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
-        <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
-          <span class="block truncate text-supporting">{{ row.output.label }}</span>
+          <span v-if="selected" class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
-        <div v-else></div>
       </div>
     </div>
   </DesignerNodeCard>
@@ -129,8 +129,9 @@ const eventInputs = computed(() => inputSpecs.value.filter(input => input.role !
 const eventOutputs = computed(() => outputSpecs.value.filter(output => output.role !== 'data'));
 const socketRows = computed(() => alignSockets(dataInputs.value, dataOutputs.value, 'data'));
 
-// The "?" tooltip: what the node does + what its sockets expect and output
-// (SPEC §8/§20 vocabulary, presentation only).
+// The header tooltip (quiet-card policy): what the node does + what its
+// sockets expect and output — the node-spec summary the removed `?`
+// affordance used to surface (SPEC §8/§20 vocabulary, presentation only).
 const nodeSpecTooltip = computed(() => {
   const sections = [nodeSpecSummary(record.value, formatProcessType)];
   if (dataInputs.value.length) {
@@ -286,7 +287,7 @@ function updateStatusInputDefault(id, value) {
 function socketClass(item, side) {
   return [
     'relative min-w-0 py-1.5',
-    side === 'left' ? 'pl-3' : 'pr-3 text-right'
+    side === 'left' ? 'pl-3' : 'ml-auto pr-3 text-right'
   ];
 }
 

@@ -7,9 +7,6 @@
       <strong class="min-w-0 flex-1 truncate text-label">{{ type?.label || typeId }}</strong>
       <Tag :value="type?.class || ''" severity="secondary" />
     </div>
-    <div class="mt-2 flex flex-col gap-1">
-      <span class="text-supporting text-muted">{{ $t('processDesigner.typeBindingHint') }}</span>
-    </div>
     <DesignerSocketHandle :socket="inputSpec" side="left" handle-id="input:declare" />
     <DesignerSocketHandle :socket="outputSpec" side="right" handle-id="output:type" />
   </DesignerNodeCard>
