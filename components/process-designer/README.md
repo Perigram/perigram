@@ -110,8 +110,10 @@ record access, roles, screens, and panel state:
   factories) are the shared pure helpers.
 
 Per-kind inspector sections live in [`inspector/`](./inspector/).
-`ProcessNodeInspector.vue` owns effect authorization, construction, declared
-edge selection, transition reference, and pure output inspection. It does not
+`ProcessNodeInspector.vue` owns effect construction, declared
+edge selection, transition reference, pure output inspection, and the
+per-grant access LEVELS (role assignment itself is lane placement —
+see "Lanes"). It does not
 expose packet matching or transport transforms. `DeclarationInspector.vue`
 authors class, field, state (including initial/terminal), transition, operator,
 and type-reference records. `DeclarationEdgeInspector.vue` authors typed edge
@@ -353,8 +355,8 @@ channel: hue on handles, cargo on wires.
 | Channel | Encodes | Values |
 |---|---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation |
-| Card border | population primacy | OPERATIONS (the effect species: create, mutate, transition, remove, command) render with the strong-ink border — they are the primary nodes; every other node (values, sources, collections, reads, control, the declaration family) keeps the quiet content border — secondary nodes are surface |
-| Card surface & border | chrome only | neutral background for every card; the selected border is the single card state — selection overrides the population border — an unselected node is a diagram element, the selected node is the authoring surface |
+| Card surface | population primacy | OPERATIONS (the effect species: create, mutate, transition, remove, command) render the primary-tinted surface (`--ck-surface-primary`, a whisper of the primary accent over the content surface) — they are the primary nodes; every other node (values, sources, collections, reads, control, the declaration family) keeps the plain content surface — secondary nodes are surface |
+| Card border | chrome + selection | the quiet content border for every card; the selected border is the single card state — an unselected node is a diagram element, the selected node is the authoring surface |
 
 Card concern (what a node does) is carried by the label first (with the
 icon); the header carries no extra glyph chrome.
@@ -393,24 +395,34 @@ socket channels, not per-node chrome:
 Deliberately meaningless: card background, handle size (fixed 12px),
 typography — chrome, never data.
 
-### Lanes (view)
+### Lanes (view → the authorization surface)
 
-The Lanes toggle in the toolbar's canvas group reorganizes the pool by
-authorization, not by stored layout. Lane bands are DERIVED from grant
-records on every render and are never stored: one horizontal lane per
-organization role in the role list's fixed order (empty roles keep their
-lane — seeing who has what is the point), the declaration band above the
-pool, and an implicit unlabeled lane at the bottom for grantless effects.
-An effect node renders in its PRIMARY (first) grant's lane; secondary
-nodes (values, sources, collections, reads, control) keep their authored
-positions as pool context. Applying lanes is a one-shot in-memory
-arrangement: x order is preserved, members stack in their authored y
-order inside the band, and membership re-derives from grants whenever
-they change — position is presentation state and never authorization
-(placement-writes-grants is the Lanes B authoring stage). The
-definitions toggle hides the declaration family — nodes and their wires
-— without deleting anything; `hidden` is runtime state and never
-persists. Left-to-right is the reading canon.
+Lanes are not a view mode — they are permanent and they ARE role
+assignment. The bands render as a TRUE BACKGROUND layer (beneath nodes
+and wires, never covering them), derived from grant records on every
+render and never stored: one horizontal lane per organization role in
+the role list's fixed order (empty roles keep their lane; lane titles
+are the organization's own role names — the canvas adds no labels of
+its own), the declaration band above the pool, and an implicit
+unlabeled lane at the bottom for grantless effects.
+
+Placement writes the grant: dropping an effect node in a role lane
+makes that role its grant; dropping it in the implicit lane clears its
+grants. This replaces the inspector's role assignment editor — grant
+LEVELS per role stay inspector-owned (a lane cannot express them), and
+the effective-access summary stays. An effect granted to several roles
+(stored records) renders in its primary lane with a translucent
+corridor painted across its other granted lanes at the node's column —
+the operation is one record, never cloned, its wires never duplicated.
+Secondary nodes (values, sources, collections, reads, control) keep
+their authored positions as pool context.
+
+The lane arrangement is a projection: x order is preserved, members
+stack in their authored y order inside their band, membership always
+re-derives from grants, and position is presentation state — never
+authorization by itself. The definitions toggle hides the declaration
+family — nodes and their wires — without deleting anything; `hidden`
+is runtime state and never persists. Left-to-right is the reading canon.
 
 ### Card behavior details
 
@@ -520,8 +532,8 @@ PrimeVue `Toolbar` (shared
 `DesignerWorkspace` chrome) owns the process lifecycle in its document group
 (open, rename, save, apply), shows the draft name through the workspace
 `toolbar` identity slot, and the view controls in its canvas group
-(zoom out, zoom in, frame all, frame selection, reset zoom, the Lanes
-toggle, and the definitions visibility toggle), every item
+(zoom out, zoom in, frame all, frame selection, reset zoom, and the
+definitions visibility toggle), every item
 icon-only with its label as tooltip and accessible name. There is no
 standalone Validate control:
 Apply saves, validates, and activates as one operation, while the result
