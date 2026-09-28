@@ -66,11 +66,11 @@ richer facts only when the DTO carries them.
   [partnerships feature](../server/features/partnerships/README.md).
 
 The app shell global search (`components/shared/GlobalSearch.vue`) is the
-entry surface: a search trigger in the desktop header and beside the profile
-control in the mobile bottom bar open a debounced dialog over
-`GET /api/directory/search` whose rows navigate to these pages. The
-generated home workspace hides the desktop header, so search is reachable
-from every other app route.
+entry surface: a search trigger in the desktop header, beside the profile
+control in the mobile bottom bar, and in the generated home workspace's
+sidebar (the home shell hides the desktop header), opening a debounced
+dialog over `GET /api/directory/search` whose rows navigate to these
+pages.
 
 ## Authenticated Areas
 

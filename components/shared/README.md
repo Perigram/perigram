@@ -434,8 +434,9 @@ round search button as fallback) opens a bounded dialog that debounces
 navigating to the static directory pages `/users/:id` and
 `/organizations/:id`. Result rows never render emails or technical ids; the
 only context line is the shared-organization name the caller already knows.
-The desktop header carries the default trigger and the mobile bottom bar
-injects its own icon trigger.
+The desktop header carries the default trigger, the mobile bottom bar and
+the generated home workspace sidebar (beside the wordmark, or first icon of
+the wrapped rail) inject their own triggers.
 
 ### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.

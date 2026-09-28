@@ -265,9 +265,12 @@ from the compiled manifest.
   `PanelMenu`, header labels passthrough'd to line-height 1 so panel
   headers match row heights. The brand header is its own panel and
   carries the wrap control: wrapped, the sidebar becomes an icon rail
-  (brand mark, chats and calls first — the same order the expanded menu
-  leads with — then one icon per top-level panel, avatar) and the
-  wordmark returns on expand; the wrapped state persists with the
+  (brand mark, directory search, chats and calls first — the same order
+  the expanded menu leads with — then one icon per top-level panel,
+  avatar) and the wordmark returns on expand; beside the wordmark the
+  header carries the directory-search trigger, because the home shell
+  hides the desktop header that otherwise hosts it. The wrapped state
+  persists with the
   workspace layout (`sidebarCollapsed` in the home workspace state). The
   Calls flyout (`CommunicationMenu`) lives outside the wrapped/expanded
   branches so both the wrapped icon and the expanded row toggle the same
