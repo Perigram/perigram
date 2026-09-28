@@ -13,17 +13,23 @@ export async function search(auth, { q = '', types = DIRECTORY_TYPES } = {}) {
 
   const requested = normalizeTypes(types);
   const groups = await Promise.all(requested.map(async (type) => {
-    const entities = type === 'user'
+    // Caller-relative ranking is deterministic, not a post-limit sort: the
+    // caller's own organizations (and users sharing one) are resolved
+    // directly from their memberships and always lead the capped list,
+    // ahead of name-matched strangers.
+    const related = type === 'user'
+      ? await relatedUsers(auth)
+      : await relatedOrganizations(auth);
+    const relatedMatches = related.filter(entity => nameMatches(entity, query))
+      .map(entity => projectCard(type, entity, auth));
+    const strangerMatches = (type === 'user'
       ? await usersService.directorySearch(query, SEARCH_RESULT_LIMIT)
-      : await organizationsService.directorySearch(query, SEARCH_RESULT_LIMIT);
-    const cards = entities.map(entity => projectCard(type, entity, auth));
-    // Caller-relative ranking: the caller's own organizations and users
-    // they share an organization with sort ahead of strangers, so capped
-    // result lists keep the most relevant entries.
+      : await organizationsService.directorySearch(query, SEARCH_RESULT_LIMIT))
+      .filter(entity => !related.some(relatedEntity => sameId(relatedEntity, entity)))
+      .map(entity => projectCard(type, entity, auth));
     return {
       type,
-      results: cards.sort((a, b) => directoryRelevance(b) - directoryRelevance(a)
-        || String(a.identity.name).localeCompare(String(b.identity.name)))
+      results: [...relatedMatches, ...strangerMatches].slice(0, SEARCH_RESULT_LIMIT)
     };
   }));
   return { query, groups };
@@ -68,11 +74,30 @@ function projectCard(type, entity, auth) {
   return card;
 }
 
-function directoryRelevance(card) {
-  if (card.type === 'user') {
-    return card.directory?.isSelf || card.directory?.sharesOrganization ? 1 : 0;
+async function relatedUsers(auth) {
+  try {
+    return await usersService.list(auth.userId, auth.organizationId, auth.role, auth);
+  } catch {
+    return [];
   }
-  return card.directory?.isMember ? 1 : 0;
+}
+
+async function relatedOrganizations(auth) {
+  const ids = [...organizationIdsOfAuth(auth)];
+  if (!ids.length) return [];
+  try {
+    return await organizationsService.getByIds(ids);
+  } catch {
+    return [];
+  }
+}
+
+function nameMatches(entity, query) {
+  return String(entity.identity?.name || '').toLowerCase().includes(query);
+}
+
+function sameId(a, b) {
+  return String(a._id || a.id || '') === String(b._id || b.id || '');
 }
 
 function userSharesOrganization(entity, auth) {
