@@ -430,12 +430,14 @@ readable.
 The app shell's global search over the directory feature: a trigger slot
 (mirroring the `UserAccountMenu` trigger contract — receives `toggle`/`hide`,
 round search button as fallback) opens a bounded dialog that debounces
-`GET /api/directory/search` and renders grouped People/Organizations rows
-navigating to the static directory pages `/users/:id` and
-`/organizations/:id`. Result rows never render emails or technical ids; the
-only context line is the shared-organization name the caller already knows.
-The desktop header carries the default trigger, the mobile bottom bar and
-the generated home workspace sidebar (beside the wordmark, or first icon of
+`GET /api/directory/search` and renders grouped People/Organizations rows.
+Result rows open the entity inside the home workspace through the
+workspace-open seam (`openInstanceInWorkspace` — pane tab on desktop, the
+home dialog on mobile); directory results never navigate to a standalone
+route, and rows never render emails or technical ids — the only context
+line is the shared-organization name the caller already knows. The desktop
+header carries the default trigger, the mobile bottom bar and the
+generated home workspace sidebar (beside the wordmark, or first icon of
 the wrapped rail) inject their own triggers.
 
 ### `InstanceInlineRef.vue`
@@ -499,12 +501,13 @@ When an `entityContext` provider is present, `InstanceInlineRef` resolves the
 entity from that context before calling the API. This keeps workbench fixture
 and project-local previews from requesting protected entities already loaded in
 the surrounding surface.
-For the framework party types (`user`, `organization`), the detail route falls
-back to the static directory pages (`/users/:id`, `/organizations/:id`) when
-no generated detail screen matches or no process is active, so those popovers
-always expose an open action. Static directory routes navigate directly: only
-generated detail routes may open through the home workspace fast path, or the
-workspace hijack would swallow the navigation.
+For the framework party types (`user`, `organization`), the open action has no
+generated route and no standalone page: it routes through the workspace-open
+seam, so user/org popovers open the directory surface as a home pane tab on
+desktop or the home dialog on mobile (see
+[components/directory](../directory/README.md)). Card popovers honor the same
+path through the `instanceInlineOpenDetail` inject, so every open action obeys
+the everything-inside-home rule.
 When the active generated screen manifest exposes a detail route for the
 reference type, `InstanceInlineRef` provides that route to the expanded inline
 entity-card popover. The popover footer renders an icon-only open action that

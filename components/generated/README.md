@@ -257,7 +257,11 @@ from the compiled manifest.
   `GeneratedTypeScreen` (the
   same generator contract as the desktop panes); instance opens on
   mobile follow the routed surface contract: the compiled detail screen
-  route. Type surfaces carry the runtime transition channel the routed
+  route. Types with no compiled detail screen but a registered
+  entity-bound workspace page (`user`, `organization` — the directory
+  surface, [components/directory](../directory/README.md)) open as the
+  bounded home dialog instead: mobile has no panes, and entity detail
+  still never routes away from home. Type surfaces carry the runtime transition channel the routed
   page has: board drops and any served machine transition dispatch
   through the state service, and drag legality resolves through the same
   per-instance fetch — the contract copy alone never gates moves.

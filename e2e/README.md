@@ -47,12 +47,13 @@ noise.
 - `directory.spec.js`: directory discovery, targeted invitations, and
   partnerships against a real second account registered through the public
   signup API with its own request context. Covers name-only user search
-  (cards carry no email), the global-search UI navigating to
-  `/users/:id`, the single-handshake invite (accept creates the active
-  membership directly and the organization-side invitation list reports
-  `accepted`), and the partnership lifecycle (request → 409 duplicate →
-  partner-side accept → active on `/organization/partners` and the
-  organization page). Writes the step outcomes to
+  (cards carry no email), the global-search UI opening the user inside the
+  home workspace (pane tab on desktop, no route change), the
+  single-handshake invite (accept creates the active membership directly
+  and the organization-side invitation list reports consumption), and the
+  partnership lifecycle (request → 409 duplicate → partner-side accept →
+  active on `/organization/partners` and the in-home organization
+  surface). Writes the step outcomes to
   `test-results/directory-acceptance.json` as the durable artifact.
 - `process-generated-screen.spec.js`: verifies the generic instance
   transport serves generated-screen collections (`/api/instances/cassette`;

@@ -59,10 +59,13 @@ collection.
 ## Client Surfaces
 
 - The app shell global search ([components/shared](../../../components/shared/README.md))
-  queries `search`; result rows navigate to the static directory pages
-  `/users/:id` and `/organizations/:id` ([pages](../../../pages/README.md)).
-- Inline user/organization refs fall back to those static pages when no
-  generated detail screen exists.
+  queries `search`; result rows open the entity inside the home workspace
+  through the workspace-open seam — never a standalone route.
+- User/organization detail renders as the in-home directory surface
+  ([components/directory](../../../components/directory/README.md)): an
+  entity-bound workspace-page pane tab on desktop, the bounded home dialog
+  on mobile. Inline user/organization ref popovers keep the compact
+  preview and open into those panes through the same seam.
 
 ## Related
 

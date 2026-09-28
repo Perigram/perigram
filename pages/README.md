@@ -42,35 +42,26 @@ redirect gate for authenticated users.
   where organization creation lives; the landing is not a dead end for
   orgless accounts.
 
-## Directory Pages and Global Search
+## Directory Surfaces (in-home)
 
-`pages/users/[id].vue` and `pages/organizations/[id].vue` are the static
-directory detail routes for arbitrary users and organizations (not just the
-caller's own). Both load the directory card from
-`GET /api/directory/:type/:id` (name-level, caller-relative flags — see
-[the directory feature](../server/features/directory/README.md)) and the
-grant-redacted DTO from the ordinary feature detail endpoint, which may be
-empty when the caller holds no grant; the page merges the two and shows
-richer facts only when the DTO carries them.
+User and organization detail has **no standalone routes**: entity detail
+lives inside the generated home workspace. `DirectoryDetailSurface.vue`
+([components/directory](../components/directory/README.md)) renders as an
+entity-bound workspace-page pane tab on desktop (registered beside the
+editor pages in the workspace-page registry) and as the bounded dialog the
+home workspace opens on mobile viewports. Both load the directory card
+from `GET /api/directory/:type/:id` (name-level, caller-relative flags)
+plus the grant-redacted DTO from the ordinary feature detail endpoint,
+which may be empty when the caller holds no grant.
 
-- The user page offers chat for other users, the profile link for self, and
-  an invite action that routes into team management with
-  `?invite=<userId>` preselecting the target — role selection stays owned by
-  the organization team page. Membership rows render only organizations the
-  viewer can themselves resolve; cross-tenant organization names are not
-  readable and must not degrade into id chips.
-- The organization page offers members the overview entry (switching
-  organization context first when it is not the active one) and offers
-  `organizations:admin` callers of another organization the partnership
-  actions (request / accept / decline / terminate) through the
-  [partnerships feature](../server/features/partnerships/README.md).
-
-The app shell global search (`components/shared/GlobalSearch.vue`) is the
-entry surface: a search trigger in the desktop header, beside the profile
-control in the mobile bottom bar, and in the generated home workspace's
-sidebar (the home shell hides the desktop header), opening a debounced
-dialog over `GET /api/directory/search` whose rows navigate to these
-pages.
+Entry points all route through the shared workspace-open seam
+(`openInstanceInWorkspace`): the app-shell global search results, the open
+action in user/org inline-ref popovers, membership rows inside the
+surface, and partner rows on the partners management page. The surface
+owns its action row (user chat / invite / self profile; organization
+overview entry, context switch, partnership lifecycle) because panes and
+dialogs have no page-level action chrome; only sanctioned management
+routes (`/profile`, `/organization*`) ever receive navigation.
 
 ## Authenticated Areas
 
