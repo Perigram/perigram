@@ -2,6 +2,31 @@
 
 ## UI
 
+- [x] Kanban of a parents table showed the CHILD type's state lanes (empty)
+  — machine vocabulary seeding leaked unscoped state tokens into every
+  producer
+
+### Agent Notes (2026-09-28)
+
+Root cause in the compiler: `compileWorkflows` seeded every UNSCOPED
+state record into EVERY producer's machine, so all four of the org's
+producers carried the union vocabulary (`parentState, parentState.state1,
+new, BOI, Boo, io`) — the parents board laned the child/cassette states
+with no matching instances. The designer's binding model is the WIRE: an
+unscoped state token wired (entry) into a construct/transition of a type
+binds to that type — the same rule the connection gate applies. The
+compile now identifies state-record→process-node wires structurally
+(normalization carries handles, not declaration labels) and seeds only
+the wired types; scoped records keep their typeId binding; an unwired
+unscoped token seeds nothing. Pinned by
+`packages/processes/src/machine-vocabulary.spec.js` (502 processes
+tests green). Verified live after restart: FIRST's vocabulary is
+`parentState, parentState.state1`; FILE's is `state1, new, BOI`;
+cassette `Boo`; cassette-design `io` — and the parents board renders
+only ParentState/State1 lanes with the parent cards grouped. (The
+paired capitalized/cowercase duplicate lanes are the org's legacy
+state-value case drift — stale columns keep those instances visible.)
+
 - [x] Generated buttons in instances: severities (for delete), icon-only for obvious (delete, new -> "+"), icon for changing state btns
 
 ### Agent Notes (2026-09-27)
