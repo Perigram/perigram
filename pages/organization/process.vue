@@ -38,9 +38,9 @@
           @connect="onConnect"
         >
           <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
-          <template #node-ctsClass="props"><ClassNode v-bind="props" /></template>
-          <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
-          <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-ctsClass="props"><ClassNode v-bind="props" shape="declaration" /></template>
+          <template #node-ctsField="props"><FieldNode v-bind="props" shape="declaration" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-ctsState="props"><StateNode v-bind="props" shape="declaration" @rename="value => renameDeclarationNode(props, value)" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
@@ -1671,25 +1671,27 @@ function decorateEdges(items = []) {
 // Wire styling encodes the edge LAYER — the BPMN primacy inversion
 // (node UI contract in components/process-designer/README.md): the EVENT
 // chain is the primary flow (the canvas's strongest ink, solid, arrowed,
-// 2.5px); data wires are associations (thin, dashed, muted ink); the
+// 2.5px); data wires are associations (thin, dashed, muted ink);
+// declaration wires are the second association layer — thin, dashed, in
+// the demuted structure tone, because on real graphs they outnumber every
+// other layer and at full saturation they owned the canvas. The
 // payload-family hue lives on SOCKET HANDLES, never on wires.
 const WIRE_STYLES = {
   control: { stroke: 'var(--p-text-color)', strokeWidth: 2.5 },
   data: { stroke: 'var(--p-text-muted-color)', strokeWidth: 1.5, strokeDasharray: '5 4' },
-  // Declaration bindings transport a TYPE, not data — the structure tone
-  // is their mid-tone dashed family.
-  type: { stroke: 'var(--ck-signal-structure)', strokeWidth: 2, strokeDasharray: '6 4' }
+  type: { stroke: 'var(--ck-signal-structure-muted)', strokeWidth: 1.5, strokeDasharray: '4 3' }
 };
 
 // Arrowheads render on the CONTROL layer only — the event chain is the
 // one directed flow on the canvas; data and declaration wires carry no
-// markers (node UI contract).
+// markers. The head is COMPACT (12px) and matched to the wire ink: an
+// 18px wedge on a 2.5px wire reads as a chunky blob, not a flow token.
 function controlMarker(stroke) {
   return {
     type: MarkerType.ArrowClosed,
     color: stroke,
-    width: 18,
-    height: 18
+    width: 12,
+    height: 12
   };
 }
 
