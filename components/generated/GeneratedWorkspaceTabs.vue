@@ -12,7 +12,7 @@
           :key="tab.key"
           :value="tab.key"
           as="div"
-          class="group/workspace-tab flex max-w-56 min-w-28 items-center !py-0 !px-2.5"
+          class="group/workspace-tab flex max-w-56 min-w-24 items-center !py-0 !px-2"
         >
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>

@@ -7,6 +7,38 @@
       <slot name="items" :hide="hide" />
       <section v-for="group in menuItems" :key="group.label" class="flex flex-col gap-1">
         <small class="px-2 text-muted">{{ group.label }}</small>
+        <!-- The account group leads with the inline profile surface:
+             avatar, name, active organization — nothing routes away. -->
+        <div v-if="group.account" class="flex items-center gap-2 px-2 py-1">
+          <Avatar
+            :image="authStore.userData.avatarUrl || null"
+            :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
+            shape="circle"
+            size="large"
+            class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+          />
+          <div class="flex min-w-0 flex-1 flex-col">
+            <span class="truncate text-label">{{ authStore.userData.name || $t('common.user') }}</span>
+            <span v-if="activeOrganizationName" class="truncate text-supporting text-muted">{{ activeOrganizationName }}</span>
+          </div>
+          <div class="flex shrink-0 items-center gap-1">
+            <label class="p-button p-component p-button-text p-button-secondary p-button-rounded p-button-sm cursor-pointer overflow-hidden" :title="$t('common.upload')" :aria-label="$t('common.upload')">
+              <input type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
+              <i class="pi pi-camera" aria-hidden="true" />
+            </label>
+            <Button
+              v-if="authStore.userData.avatarUrl"
+              icon="pi pi-trash"
+              text
+              rounded
+              size="small"
+              severity="danger"
+              :aria-label="$t('common.delete')"
+              :loading="avatarBusy"
+              @click="removeAvatar"
+            />
+          </div>
+        </div>
         <Button
           v-for="item in group.items"
           :key="item.label"
@@ -72,12 +104,13 @@ const menuItems = computed(() => {
       items: authStore.userOrganizations.map(org => ({
         label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
         icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
+        // Switching stays in place: the workspace rehydrates its process
+        // data; nothing routes away.
         command: async () => {
           const organizationId = org._id?.toString() || org.id?.toString();
           if (organizationId && organizationId !== authStore.userData.organizationId?.toString()) {
             await authStore.switchOrganization(organizationId);
           }
-          router.push('/organization');
         }
       }))
     });
@@ -85,16 +118,13 @@ const menuItems = computed(() => {
 
   items.push({
     label: authStore.userData.name || t('common.user'),
+    // The inline account surface (avatar/name/org) leads this group.
+    account: true,
     items: [
       {
         label: t('common.toggleTheme'),
         icon: themeIcon.value,
         command: toggleTheme
-      },
-      {
-        label: t('nav.profile'),
-        icon: 'pi pi-user',
-        command: () => router.push('/profile')
       },
       {
         label: t('nav.logout'),
@@ -109,6 +139,45 @@ const menuItems = computed(() => {
 
   return items;
 });
+
+const activeOrganizationName = computed(() => {
+  const activeId = authStore.userData?.organizationId?.toString();
+  if (!activeId) return '';
+  const active = (authStore.userOrganizations || []).find(organization =>
+    (organization._id?.toString() || organization.id?.toString()) === activeId);
+  return active?.identity?.name || active?.name || '';
+});
+
+const avatarBusy = ref(false);
+
+async function uploadAvatar(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) return;
+  event.target.value = '';
+  avatarBusy.value = true;
+  try {
+    const form = new FormData();
+    form.append('avatar', file);
+    await $fetch(`/api/users/${authStore.userData.userId || authStore.userData.id}/avatar`, { method: 'PUT', body: form });
+    await authStore.setUser();
+  } catch (error) {
+    console.error('Failed to upload avatar:', error);
+  } finally {
+    avatarBusy.value = false;
+  }
+}
+
+async function removeAvatar() {
+  avatarBusy.value = true;
+  try {
+    await $fetch(`/api/users/${authStore.userData.userId || authStore.userData.id}/avatar`, { method: 'DELETE' });
+    await authStore.setUser();
+  } catch (error) {
+    console.error('Failed to remove avatar:', error);
+  } finally {
+    avatarBusy.value = false;
+  }
+}
 
 function toggle(event) {
   menu.value?.toggle(event);
