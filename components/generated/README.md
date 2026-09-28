@@ -206,9 +206,10 @@ only for inline field surfaces without an editor. Browse surfaces hide
 the stateless field-edit form through the ui-mapping action matcher's
 `hidden` channel (tables, boards, card menus, and generated collection
 cards), and the editor action itself renders only under a write-level
-grant — the shared evaluator checks every feature's grants against the
-entity and type id, and the server transports stay fail-closed behind
-it.
+grant — it resolves the same feature the server's instance transports
+gate (`resolveTypeFeature`: field-policy feature, else the class
+collection) and checks it through the shared evaluator with the entity
+and type id; the server stays fail-closed behind it.
 
 The `sketch-editor` surface mounts `SketchEditor` and the
 `text-editor`/`csv-editor` surfaces mount `ArtifactTextEditor` — each
