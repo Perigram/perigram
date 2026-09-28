@@ -2578,7 +2578,7 @@
     "frameSelection": "Показать выбранные узлы",
     "selectionActions": "Действия с выделением",
     "resetZoom": "Сбросить масштаб",
-    "hideDefinitions": "Скрыть описания",
+    "hideSecondary": "Скрыть второстепенные",
     "paletteGroups": {
       "entities": "Типы",
       "values": "Значения",

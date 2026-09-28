@@ -2578,7 +2578,7 @@
     "frameSelection": "Frame selected nodes",
     "selectionActions": "Selection actions",
     "resetZoom": "Reset zoom",
-    "hideDefinitions": "Hide definitions",
+    "hideSecondary": "Hide secondary",
     "paletteGroups": {
       "entities": "Types",
       "values": "Values",

@@ -287,7 +287,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | replace:chrome (3); replace:inline-visual (1) |
 | `ui-pages-organization-partners-vue` | `pages/organization/partners.vue` | derived usage | replace:chrome (9); compliant:scoped-layout |
-| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (10); replace:inline-visual (2) |
+| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (11); replace:inline-visual (2) |
 | `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | replace:chrome (8); remove:state (1); compliant:scoped-layout |
 | `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | compliant |

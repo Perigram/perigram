@@ -1043,7 +1043,7 @@ const documentDockItems = computed(() => [
 // spanning the nodes' horizontal domain. Every other node is
 // free-placeable and unaffected. Placement writes the grant: dropping an
 // effect in a lane assigns that role (implicit lane clears grants).
-const definitionsHidden = ref(false);
+const secondaryHidden = ref(false);
 const LANE_ROW_HEIGHT = 170;
 const LANE_MIN_HEIGHT = 150;
 // lg operation card width (DesignerNodeCard `w-72`) — the corridor column.
@@ -1052,6 +1052,14 @@ const LANE_CORRIDOR_WIDTH = 288;
 function isEffectNode(node) {
   const record = draft.value?.data?.processNodes?.[node.data?.refId];
   return Boolean(record) && String(operationKindOf(record) || '').startsWith('effect.');
+}
+
+// The visibility grouping (node UI contract "Lanes"): effects and state
+// declarations are primary and always visible; classes, fields, type
+// references, and every non-effect process node are secondary.
+function isSecondaryNode(node) {
+  if (DECLARATION_NODE_TYPES.includes(node.type)) return node.type !== 'ctsState';
+  return node.type === 'processNode' && !isEffectNode(node);
 }
 
 function effectPrimaryRoleId(node) {
@@ -1205,18 +1213,18 @@ function onNodeDragStop({ node } = {}) {
   syncNodeData();
 }
 
-// The definitions toggle hides the declaration family (nodes and their
-// wires) without deleting anything; `hidden` is runtime state and is
-// stripped before serialization.
-function syncDefinitionsHidden() {
+// The secondary toggle hides the secondary group (nodes and their wires)
+// without deleting anything; `hidden` is runtime state and is stripped
+// before serialization.
+function syncSecondaryHidden() {
   nodes.value = nodes.value.map(node => (
-    DECLARATION_NODE_TYPES.includes(node.type) ? { ...node, hidden: definitionsHidden.value } : node
+    isSecondaryNode(node) ? { ...node, hidden: secondaryHidden.value } : { ...node, hidden: false }
   ));
 }
 
-function toggleDefinitionsHidden() {
-  definitionsHidden.value = !definitionsHidden.value;
-  syncDefinitionsHidden();
+function toggleSecondaryHidden() {
+  secondaryHidden.value = !secondaryHidden.value;
+  syncSecondaryHidden();
 }
 
 // Selection speed dial: delete and frame float beside the last selected
@@ -1251,9 +1259,9 @@ const selectionDialStyle = computed(() => {
 const canvasDockItems = computed(() => [
   {
     icon: 'pi pi-eye-slash',
-    label: t('processDesigner.hideDefinitions'),
-    pressed: definitionsHidden.value,
-    onClick: toggleDefinitionsHidden
+    label: t('processDesigner.hideSecondary'),
+    pressed: secondaryHidden.value,
+    onClick: toggleSecondaryHidden
   },
   { separator: true },
   {
@@ -1860,9 +1868,10 @@ function addNode(item, position = nextNodePosition()) {
       type,
       position,
       selected: true,
-      // A declaration authored while definitions are hidden stays hidden
-      // with its family (runtime state, stripped before serialization).
-      ...(definitionsHidden.value ? { hidden: true } : {}),
+      // A secondary declaration authored while the secondary group is
+      // hidden stays hidden (runtime state, stripped before
+      // serialization); states are primary and never seed hidden.
+      ...(secondaryHidden.value && type !== 'ctsState' ? { hidden: true } : {}),
       data: {
         refId: id,
         ...(type === 'ctsClass'
@@ -1888,6 +1897,11 @@ function addNode(item, position = nextNodePosition()) {
     Object.assign(record, createProcessNode(refId, processNodeKind));
     Object.assign(record, clonePalettePreset(item.preset));
     syncProcessNode(record);
+  }
+  // A secondary process node (non-effect) authored while the secondary
+  // group is hidden stays hidden with its group.
+  if (secondaryHidden.value && type === 'processNode' && !String(operationKindOf(record) || '').startsWith('effect.')) {
+    node.hidden = true;
   }
   nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), enrichNodeData(node)];
   edges.value = edges.value.map(edge => decorateEdge({ ...edge, selected: false }));
