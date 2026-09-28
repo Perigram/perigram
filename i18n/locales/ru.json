@@ -2579,6 +2579,7 @@
     "selectionActions": "Действия с выделением",
     "resetZoom": "Сбросить масштаб",
     "hideSecondary": "Скрыть второстепенные",
+    "tidy": "Упорядочить граф",
     "paletteGroups": {
       "entities": "Типы",
       "values": "Значения",

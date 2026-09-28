@@ -2579,6 +2579,7 @@
     "selectionActions": "Selection actions",
     "resetZoom": "Reset zoom",
     "hideSecondary": "Hide secondary",
+    "tidy": "Tidy graph",
     "paletteGroups": {
       "entities": "Types",
       "values": "Values",

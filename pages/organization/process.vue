@@ -626,6 +626,7 @@ import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
 import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
 import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
+import { arrangeProcessGraph } from '~/utils/processDesignerArrangement.js';
 import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
@@ -1227,6 +1228,35 @@ function toggleSecondaryHidden() {
   syncSecondaryHidden();
 }
 
+// Tidy (node UI contract "Auto-arrangement"): the pure layered pass run
+// destructively — it writes positions only, so lane grants and every
+// authored record survive it unchanged.
+function tidyCanvas() {
+  const { bands, byPrimary, unassigned } = laneModel.value;
+  const bandOfNodeId = new Map();
+  for (const [roleId, memberIds] of byPrimary) {
+    const band = bands.find(candidate => candidate.id === `role:${roleId}`);
+    if (band) for (const id of memberIds) bandOfNodeId.set(id, band);
+  }
+  const unassignedBand = bands.find(candidate => candidate.id === 'unassigned');
+  if (unassignedBand) for (const id of unassigned) bandOfNodeId.set(id, unassignedBand);
+  const effectIds = new Set(nodes.value
+    .filter(node => node.type === 'processNode' && isEffectNode(node))
+    .map(node => node.id));
+  const positions = arrangeProcessGraph({
+    nodes: nodes.value,
+    edges: edges.value,
+    effectIds,
+    bands,
+    bandOfNodeId
+  });
+  if (!positions.size) return;
+  nodes.value = nodes.value.map(node => (
+    positions.has(node.id) ? { ...node, position: positions.get(node.id) } : node
+  ));
+  frameAllNodes();
+}
+
 // Selection speed dial: delete and frame float beside the last selected
 // node while a node selection exists; edge selections keep keyboard
 // delete (an edge has no anchor box to sit beside).
@@ -1262,6 +1292,11 @@ const canvasDockItems = computed(() => [
     label: t('processDesigner.hideSecondary'),
     pressed: secondaryHidden.value,
     onClick: toggleSecondaryHidden
+  },
+  {
+    icon: 'pi pi-objects-column',
+    label: t('processDesigner.tidy'),
+    onClick: tidyCanvas
   },
   { separator: true },
   {
