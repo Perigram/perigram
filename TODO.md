@@ -445,10 +445,10 @@ Plan of record (decisions, stage detail, acceptance):
 [`TODO-process-designer.md`](./TODO-process-designer.md) §P5. Docs-first:
 every stage rewrites the Node UI contract section before code.
 
-- [ ] V1: smoothstep edges + control-only arrowheads; ring sockets and
+- [x] V1: smoothstep edges + control-only arrowheads; ring sockets and
   trigger rings on effect cards; species corner glyphs; de-fluff pass
   (hover tooltips, quiet unselected cards)
-- [ ] V2: primacy inversion — event wires become the primary flow
+- [x] V2: primacy inversion — event wires become the primary flow
   (solid, `--p-text-color`, arrowed), data wires thin dashed
   (`--p-text-muted-color`), hue retreats to sockets
 - [ ] Lanes A: role lanes projected from grant records; declaration band
@@ -459,5 +459,22 @@ every stage rewrites the Node UI contract section before code.
   hand-rolled layered pass (dagre only if defeated)
 - [ ] Decide control-species fate (if/fork/joins): target model or cut —
   reserves the gateway diamond slot
-- [ ] Docs debt: reconcile the stale transition-node claims (no
+- [x] Docs debt: reconcile the stale transition-node claims (no
   `ctsTransition` node exists; state→state wires are `nested`)
+
+### Agent Notes (2026-09-28 — V2 made real + node shape populations)
+
+Owner review found the V2 landing visually inverted on real data:
+declaration wires (16-19 per graph vs 0-1 event wires) rendered at 2px
+full-saturation structure violet and owned the canvas, and the 18px
+arrowhead read as a chunky blob. Landed on
+`agent/canvas-primacy-20260928`: declaration layer demoted to 1.5px
+dashed in a new derived `--ck-signal-structure-muted` token (hue stays
+on socket handles), control arrowhead compacted to 12px, and the P5
+node SHAPE populations — verbs = task rectangles, nouns = folded-corner
+data objects, vocabulary = dashed frames in the declaration-wire tone,
+control species keep the neutral frame (reserved gateway slot). Full
+detail and live measurements: §P5 agent notes in
+[`TODO-process-designer.md`](./TODO-process-designer.md). Token-level
+changes need a dev-container restart (HMR does not re-evaluate the
+Tailwind theme/CSS variable declarations). Lanes A remains next.
