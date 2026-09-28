@@ -425,11 +425,16 @@ classes, fields, type references, and the non-effect process nodes
 SECONDARY: unaffected by lanes, free-placeable anywhere, and grouped
 under the secondary visibility toggle, which hides them (nodes and
 their wires) without deleting anything; `hidden` is runtime state and
-never persists. The lane arrangement
-of effects is a projection: x order is preserved, members stack in
-their authored y order inside their band, membership always re-derives
-from grants, and position is presentation state — never authorization
-by itself. Left-to-right is the reading canon.
+never persists. Lane arrangement is never automatic: stored positions are
+authoritative in the edit view, so loading a draft, editing grants in
+the inspector, nudging a card inside its own lane, and role-list
+changes never move anything (a role change can leave a card visually
+outside its derived band — re-drop it or run Tidy). The one automatic
+placement is the lane-changing drop itself: it writes the grant and
+slots the card into the target lane's free row nearest the drop,
+keeping the drop x. Membership always re-derives from grants, and
+position is presentation state — never authorization by itself.
+Left-to-right is the reading canon; Tidy owns bulk arrangement.
 
 ### Auto-arrangement (Tidy)
 

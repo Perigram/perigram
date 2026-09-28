@@ -618,6 +618,23 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-28 lanes: explicit placement only
+
+Owner report: the automatic in-lane Y restack "breaks your system a lot
+— only placing something INTO a lane should trigger explicit
+placement." The restack was the Lanes A one-shot projection (whole-band
+re-sort on any lane-signature change and on EVERY same-lane drop stop)
+— a pre-tidy remnant that fought the edit-view contract. Deleted
+(`applyLaneProjection` + its watch). Lane arrangement is now never
+automatic: stored positions are authoritative; loads, inspector grant
+edits, role-list changes, and same-lane nudges move nothing. The one
+automatic placement is the lane-changing drop: grant write + slot the
+dropped card into the target lane's free row nearest the drop (drop x
+kept; crowded lane leaves the card where dropped). Tidy owns bulk
+arrangement. Side effect accepted: a draft authored before lanes loads
+with effects at their stored positions even when they sit outside their
+derived bands — re-drop or Tidy seats them.
+
 ### Agent Notes — 2026-09-28 tidy corrective: pull-up + effect-anchored medians
 
 Owner report: "VERY long edges, no visible reason — does force even
