@@ -104,16 +104,18 @@ OrderList, destructive actions confirm through ConfirmDialog with Toast
 feedback, and large media collections lay out as a carousel. Spec-row
 values are click-to-edit via Inplace.
 
-`resolveListLayout(type, { hierarchical, size, stateful })` → `'table' |
-'tree-table' | 'card-grid' | 'timeline' | 'stats' | 'list' | 'board' |
+`resolveListLayout(type, { size, stateful })` → `'table' |
+'card-grid' | 'timeline' | 'stats' | 'list' | 'board' |
 'gantt' | 'calendar'` from one
 matcher table over `analyzeTypeShape(type)`: prose-dominant types are
 chronological (timeline), percent/quantity-dominant types are
 statlike (StatGrid cards with the `text-metric` role), media types get
-card grids, lineage-holding collections get tree tables, handful-sized
+card grids, handful-sized
 sets render as a bare stacked list, and the default is the generated
 columnar table — no hand-picked type ids anywhere and no authored
-override channel (display derivation replaced it). The temporal shapes:
+override channel (display derivation replaced it). A class's list
+surface is always flat: containment never projects onto the class
+screen — hierarchy is navigation (the workspace explorer owns it). The temporal shapes:
 a type declaring two instants is durational (an interval — the gantt,
 outranking chronology because an interval is the stronger structure)
 and a lone instant with no stronger shape schedules the calendar
@@ -125,13 +127,13 @@ vocabulary spans at least `BOARD_MIN_COLUMNS` values (`stateful`, from
 collections as state lanes, because the authored workflow machine is
 that collection's structure; the entry rides a derived `boardable`
 candidate signal at one-key specificity so a narrow type override still
-outranks it through the override splice. Containment opts a type out of
-the derived board default (the tree projection owns lineage), but not
-out of boarding: the app-side projection switch — persisted user view
+outranks it through the override splice. The app-side projection switch —
+persisted user view
 state on the sort/filter seam, see
 [components/ui-mapping](../../components/ui-mapping/README.md)) — offers
-the board for any stateful structural collection. Tree materialization
-(HierarchyTable, InstancePicker's hierarchical mode) matches children
+the board for any stateful structural collection. Hierarchy
+materialization (InstancePicker's hierarchical mode, the workspace
+explorer) matches children
 through `childrenOfParent(type, pool, parentId)`: every children edge
 contributes the pool instances of its declared child types whose
 `lineage[edge.lineageKey]` points at the parent — the declared storage
@@ -423,12 +425,9 @@ list of a type that can be someone's child (a declared children edge
 names it) composes the containment cross-cut: every instance of the type
 lists WITH its declared parent context visible (`incomingChildrenEdges`
 resolves the parent ref; materializations render the parent chip), never
-a bare flat pile — nesting itself stays owned by the parent surface,
-where the tree-table projection applies the same structural rule over
-the loaded pool through `hierarchyRootInstances` (an instance whose
-declared parent link is stamped rides nested, never duplicated at the
-top level — whether or not the parent record is loaded in this pool;
-an instance with no parent stamp at all stays a visible root); maps
+a bare flat pile — class surfaces never nest at all, and containment
+navigation is the workspace explorer's (the sidebar nests instances
+under their parents through the same `childrenOfParent` matcher); maps
 regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
 action records, the per-region `dataState` (see Data states), the

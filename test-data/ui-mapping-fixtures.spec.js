@@ -85,7 +85,10 @@ describe('hydration four breaks the previous skeleton', () => {
     expect(childKinds).toEqual(['folder:1', 'document:4']);
     expect(main.childRegions[0].instances[0].id).toBe('folder-a1aialpha');
     expect(main.childRegions[1].instances.every(document => document.lineage.documents?.id === 'folder-a1ai')).toBe(true);
-    expect(resolveListLayout(bundle.types.find(type => type.id === 'folder'), { hierarchical: true })).toBe('tree-table');
+    // Class screens stay flat by contract: a folder type (containment
+    // edges and all) resolves the plain columnar table — hierarchy is
+    // navigation (the workspace explorer), never a class projection.
+    expect(resolveListLayout(bundle.types.find(type => type.id === 'folder'))).toBe('table');
   });
 
   it('composes document, sheet, and job details from relation scopes', () => {

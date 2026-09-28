@@ -691,7 +691,7 @@ the shared row-surface recipe rounds rows by clipping them —
 official `rowClass` channel — beside the layout-only scoped
 `border-collapse: separate` block with a `0.25rem` row gap and a muted
 transparent header band: the generated collection tables
-(`CollectionTable`, `HierarchyTable`), the legacy
+(`CollectionTable`), the legacy
 `GeneratedInstanceCollection`, and the organization users tables
 register it. Surface paint belongs to the preset — one owner per
 concern. Rows are rounded, never outlined or ringed: the surface step

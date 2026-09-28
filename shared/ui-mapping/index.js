@@ -248,17 +248,17 @@ export function createUiMapping(overrides = {}) {
     });
   }
 
-  // resolveListLayout(typeRecord, { hierarchical, size, stateful }):
-  // shape-derived only — the authored list-layout override channel is
-  // gone (display derivation replaced it); the matcher table over
-  // `analyzeTypeShape` decides. `stateful` is the caller's derived
-  // signal that the region's served state vocabulary spans enough
-  // values to board (hasStateVocabulary); it composes with the process
-  // class and flat collections into the `boardable` candidate signal.
-  // `hierarchical` emits false (never null) so containment is explicit.
+  // resolveListLayout(typeRecord, { size, stateful }): shape-derived
+  // only — the authored list-layout override channel is gone (display
+  // derivation replaced it); the matcher table over `analyzeTypeShape`
+  // decides. `stateful` is the caller's derived signal that the region's
+  // served state vocabulary spans enough values to board
+  // (hasStateVocabulary); it composes with the process class and flat
+  // collections into the `boardable` candidate signal. A class's list
+  // surface is always flat — containment is navigation (the workspace
+  // explorer), never a class-screen projection.
   function resolveListLayout(typeRecord = {}, options = {}) {
     const shape = analyzeTypeShape(typeRecord);
-    const hierarchical = options.hierarchical === true;
     const stateful = options.stateful === true;
     const entry = pickEntry(listLayoutEntries, {
       type: typeRecord.id || null,
@@ -268,9 +268,8 @@ export function createUiMapping(overrides = {}) {
           : shape.statlike ? 'statlike'
             : shape.scheduled ? 'scheduled'
               : null,
-      hierarchical: hierarchical ? true : false,
       stateful: stateful ? true : null,
-      boardable: typeRecord.class === 'process' && stateful && !hierarchical ? true : null,
+      boardable: typeRecord.class === 'process' && stateful ? true : null,
       size: options.size === 'small' ? 'small' : options.size === 'large' ? 'large' : null
     });
     return entry.layout;
@@ -797,7 +796,6 @@ export function estimateRegionWeight(node = {}) {
     return facts + structural * 2 + Math.ceil(relationRefs / 4);
   }
   const layout = resolveListLayout(node.type || {}, {
-    hierarchical: Boolean(Object.keys(node.type?.edges?.children || {}).length),
     stateful: hasStateVocabulary(node.statePolicy)
   });
   const perRow = ROW_WEIGHT_BY_LAYOUT[layout] || 1;
@@ -1003,9 +1001,9 @@ export function parentRefOf(instance = {}, edges = []) {
 // contributes the instances of its declared child types whose
 // `lineage[lineageKey]` resolves to the parent id — references match in
 // both stored shapes, the `{ id }` ref and the normalized id. Pure over the
-// bundle type record and pool — HierarchyTable and InstancePicker's
-// hierarchical mode consume this one matcher so trees and pickers never
-// disagree.
+// bundle type record and pool — InstancePicker's hierarchical mode and
+// the workspace explorer consume this one matcher so pickers and
+// navigation trees never disagree.
 export function childrenOfParent(type = null, pool = {}, parentId = null) {
   const children = [];
   const parentKey = parentId === null || parentId === undefined ? '' : String(parentId);
@@ -1024,38 +1022,11 @@ export function childrenOfParent(type = null, pool = {}, parentId = null) {
   return children;
 }
 
-// The structural roots of a hierarchy projection: an instance whose
-// declared parent link (any type's children edge, matched by its declared
-// lineage key) is set rides nested under that parent — never duplicated
-// at the top level — whether or not the parent record is loaded in this
-// pool (an unloaded parent is reachable through its own screen; showing
-// the child as a root here would duplicate it the moment the parent
-// loads). A child with no parent stamp at all stays a visible root. This
-// mirrors composeScreen's source-level root scoping so the two never
-// disagree.
-export function hierarchyRootInstances(instances = [], bundle = null, pool = {}) {
-  const edges = [];
-  for (const parentType of bundle?.types || []) {
-    for (const declaration of Object.values(parentType?.edges?.children || {})) {
-      const key = lineageKeyOfEdge(declaration);
-      if (!key) continue;
-      edges.push({ key, childTypes: declaration?.types || [] });
-    }
-  }
-  if (!edges.length) return instances;
-  const nested = new Set();
-  for (const edge of edges) {
-    for (const childTypeId of edge.childTypes) {
-      for (const instance of Object.values(pool[childTypeId] || {})) {
-        const ref = instance?.lineage?.[edge.key];
-        const value = ref?.id ?? ref;
-        if (value !== null && value !== undefined && value !== '') nested.add(instance.id);
-      }
-    }
-  }
-  if (!nested.size) return instances;
-  return instances.filter(instance => !nested.has(instance.id));
-}
+// (The class-screen tree projection and `hierarchyRootInstances` are
+// gone by owner direction: a class's list surface shows that class's
+// instances, flat — containment navigation is the workspace explorer's
+// job. `childrenOfParent` above stays: the explorer and the pickers
+// resolve nesting through it.)
 
 export const defaultMapping = createUiMapping();
 export const resolveFieldControl = defaultMapping.resolveFieldControl;

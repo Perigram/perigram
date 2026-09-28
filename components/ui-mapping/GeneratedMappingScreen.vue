@@ -181,8 +181,9 @@ const props = defineProps({
   // `async (instance) => [{ to, intent, region }]` over the host's state
   // service — the same machine the transition buttons dispatch through.
   onFetchTransitions: { type: Function, default: null },
-  // Lazy child-type loader for hierarchical collections:
-  // `async (typeId) => screenInstance[]` over the host's instance store.
+  // Lazy type loader for the containment cross-cut (parent-context
+  // rows): `async (typeId) => screenInstance[]` over the host's instance
+  // store.
   onLoadType: { type: Function, default: null },
   spacingScale: { type: Number, default: 1 }
 });

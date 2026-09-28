@@ -54,7 +54,8 @@ const buildNode = (instance, seen = new Set()) => {
   const nextSeen = new Set([...seen, instance.id]);
   const type = typeRecordOf(instance.type);
   // Children resolve through the shared hierarchy matcher (declared
-  // lineageKey, never the edge's map key) — same matcher as HierarchyTable.
+  // lineageKey, never the edge's map key) — the same matcher the
+  // workspace explorer nests through.
   const children = childrenOfParent(type, props.pool, instance.id)
     .filter(child => !nextSeen.has(child.id));
   return {

@@ -309,9 +309,9 @@ async function runGeneratedPatch({ instance, patch } = {}) {
 // screen (auto_<type>_detail) with the instance id in the route scope.
 // Types without a paired detail screen in the user manifest stay
 // non-navigable (silent no-op — the generator emits, the route decides).
-// Lazy child-type loader for the hierarchy projection: loads the child
+// Lazy type loader for the containment cross-cut: loads the requested
 // type through the shared store (org-scoped, access-checked) and returns
-// its projected pool rows for nesting.
+// its projected pool rows.
 async function loadTypeIntoPool(typeId = '') {
   const key = instances.canonicalTypeKey(typeId);
   if (!key) return [];
