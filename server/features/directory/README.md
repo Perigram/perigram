@@ -59,8 +59,9 @@ collection.
 ## Client Surfaces
 
 - The app shell global search ([components/shared](../../../components/shared/README.md))
-  queries `search`; result rows open the entity inside the home workspace
-  through the workspace-open seam — never a standalone route.
+  queries `search`; result rows open the directory popup in place, and the
+  popup's open action expands the entity inside the home workspace through
+  the workspace-open seam — never a standalone route.
 - User/organization detail renders as the in-home directory surface
   ([components/directory](../../../components/directory/README.md)): an
   entity-bound workspace-page pane tab on desktop, the bounded home dialog

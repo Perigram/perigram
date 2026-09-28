@@ -431,10 +431,14 @@ The app shell's global search over the directory feature: a trigger slot
 (mirroring the `UserAccountMenu` trigger contract — receives `toggle`/`hide`,
 round search button as fallback) opens a bounded dialog that debounces
 `GET /api/directory/search` and renders grouped People/Organizations rows.
-Result rows open the entity inside the home workspace through the
-workspace-open seam (`openInstanceInWorkspace` — pane tab on desktop, the
-home dialog on mobile); directory results never navigate to a standalone
-route, and rows never render emails or technical ids — the only context
+A result row opens the directory popup in place — a `Popover` anchored at
+the row (at the first row for the Enter key path) presenting the
+avatar-forward directory face (large avatar or organization mark, name,
+shared-organization line / type tag) with a chat action (users, never self)
+and one open action that routes through the workspace-open seam
+(`openInstanceInWorkspace` — pane tab on desktop, the home dialog on
+mobile). Directory results never navigate to a standalone route, and rows
+never render emails or technical ids — the only context
 line is the shared-organization name the caller already knows. The desktop
 header carries the default trigger, the mobile bottom bar and the
 generated home workspace sidebar (beside the wordmark, or first icon of

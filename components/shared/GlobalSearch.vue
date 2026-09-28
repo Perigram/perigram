@@ -39,10 +39,11 @@
           <button
             v-for="entry in group.results"
             :key="`${entry.type}-${entry._id}`"
+            :ref="el => setRowEl(`${entry.type}-${entry._id}`, el)"
             type="button"
             class="flex w-full items-center gap-3 rounded-[var(--p-border-radius-md)] border-0 bg-transparent p-2 text-left cursor-pointer hover:bg-subtle"
             :data-directory-result="`${entry.type}:${entry._id}`"
-            @click="openResult(entry)"
+            @click="openResult(entry, $event)"
           >
             <Avatar
               v-if="entry.type === 'user'"
@@ -66,6 +67,57 @@
     </div>
   </StandardDialog>
 
+  <!-- The in-place result popup: the avatar-forward directory face plus
+       chat and open actions, anchored at the clicked row (the first row
+       for the Enter key path). The open action expands through the
+       workspace-open seam; nothing navigates to a route. -->
+  <Popover ref="resultOp" append-to="body">
+    <div class="w-[min(28rem,calc(100vw-3rem))]" data-testid="directory-result-popup">
+      <div class="flex flex-col gap-3 p-4">
+        <div class="flex items-start gap-4">
+          <Avatar
+            v-if="selected?.type === 'user'"
+            :image="selected?.data?.avatarUrl || null"
+            :label="!selected?.data?.avatarUrl ? (selected?.identity?.name || '?').charAt(0).toUpperCase() : null"
+            shape="circle"
+            size="xlarge"
+            class="shrink-0 [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+          />
+          <span v-else class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-subtle">
+            <i class="pi pi-building text-section-heading" aria-hidden="true" />
+          </span>
+          <div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
+            <span class="truncate text-label">{{ selected?.identity?.name }}</span>
+            <span v-if="selected?.type === 'user' && selected?.directory?.sharesOrganization" class="truncate text-supporting text-muted">{{ activeOrganizationName }}</span>
+            <div v-if="selected?.type === 'organization' && selected?.data?.type" class="mt-1">
+              <Tag :value="selected.data.type" severity="secondary" />
+            </div>
+          </div>
+        </div>
+        <Divider class="m-0" />
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            v-if="selected?.type === 'user' && !selected?.directory?.isSelf"
+            icon="pi pi-comments"
+            text
+            size="small"
+            :aria-label="$t('support.openChat')"
+            @click="chatWithSelected"
+          />
+          <Button
+            :label="$t('common.open')"
+            icon="pi pi-external-link"
+            text
+            size="small"
+            :aria-label="$t('common.open')"
+            data-testid="directory-popup-open"
+            @click="openSelected"
+          />
+        </div>
+      </div>
+    </div>
+  </Popover>
+
   <!-- The customizable trigger, mirroring the UserAccountMenu trigger slot
        contract (receives toggle/hide). The search icon button is the
        fallback. -->
@@ -83,18 +135,21 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
+import Divider from 'primevue/divider';
+import Popover from 'primevue/popover';
 import Tag from 'primevue/tag';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useAuthStore } from '~/stores/auth';
-import { requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
+import { requestCloseMobileTransientSurfaces, MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
+import { openInstanceChat } from '~/utils/instance-chat.js';
 
 const props = defineProps({
   autofocus: { type: Boolean, default: true }
@@ -108,6 +163,14 @@ const query = ref('');
 const groups = ref([]);
 const searching = ref(false);
 const input = ref();
+const resultOp = ref();
+const selected = ref(null);
+const rowEls = new Map();
+
+function setRowEl(key, el) {
+  if (el) rowEls.set(key, el);
+  else rowEls.delete(key);
+}
 
 const trimmedQuery = computed(() => query.value.trim());
 const totalResults = computed(() => groups.value.reduce((sum, group) => sum + group.results.length, 0));
@@ -169,21 +232,60 @@ function reset() {
   query.value = '';
   groups.value = [];
   searching.value = false;
+  closeResultPopup();
+  selected.value = null;
 }
 
 function focusInput() {
   if (props.autofocus) input.value?.$el?.focus?.();
 }
 
-function openResult(entry) {
+function openResult(entry, event) {
+  selected.value = entry;
+  resultOp.value?.toggle(event);
+}
+
+// The Enter key path anchors the popup at the first result row — the same
+// surface a pointer click gets, never a navigation. PrimeVue's toggle only
+// reads `currentTarget`, so the keyboard anchor is that row element.
+function openFirstResult() {
+  const first = resultGroups.value[0]?.results[0];
+  if (!first) return;
+  const anchor = rowEls.get(`${first.type}-${first._id}`);
+  if (!anchor) return;
+  selected.value = first;
+  resultOp.value?.toggle({ currentTarget: anchor, target: anchor }, anchor);
+}
+
+// The open action expands the record inside the home workspace — pane tab
+// on desktop, the home dialog on mobile; never a standalone route.
+function openSelected() {
+  const entry = selected.value;
+  if (!entry) return;
   visible.value = false;
-  // Directory results open inside the home workspace — pane tab on
-  // desktop, the home dialog on mobile; never a standalone route.
   openInstanceInWorkspace({ typeId: entry.type, instanceId: entry._id });
 }
 
-function openFirstResult() {
-  const first = resultGroups.value[0]?.results[0];
-  if (first) openResult(first);
+function chatWithSelected() {
+  const entry = selected.value;
+  if (!entry) return;
+  visible.value = false;
+  openInstanceChat({
+    type: 'user',
+    id: entry._id,
+    name: entry.identity?.name || ''
+  });
 }
+
+function closeResultPopup() {
+  resultOp.value?.hide?.();
+}
+
+onMounted(() => {
+  window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeResultPopup);
+});
+
+onUnmounted(() => {
+  window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeResultPopup);
+});
 </script>
