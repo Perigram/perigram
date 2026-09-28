@@ -1,3 +1,5 @@
+import { CLASS_COLLECTIONS } from '#packages/cts/src/index.js';
+
 const COMMON_READ_FIELDS = [
   '_id',
   'identity.*',
@@ -121,4 +123,16 @@ export function normalizeFieldAccessTypeId(typeId = '') {
 
 export function getEntityFieldAccessPolicy(typeId) {
   return fieldAccessPolicies[normalizeFieldAccessTypeId(typeId)] || null;
+}
+
+// The client twin of the server's instance-feature resolution (the
+// transports gate per class-collection feature; a field policy may pin a
+// type to another feature): field-policy feature, else the type's class
+// collection, else the type id. Callers pass the bundle type record for
+// its class.
+export function resolveTypeFeature(typeId = '', typeRecord = null) {
+  const policy = getEntityFieldAccessPolicy(typeId);
+  if (policy?.feature) return policy.feature;
+  const collection = typeRecord?.class ? CLASS_COLLECTIONS[typeRecord.class] : null;
+  return collection || typeId;
 }

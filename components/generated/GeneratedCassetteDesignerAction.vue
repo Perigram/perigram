@@ -38,6 +38,7 @@ import DesignerDialog from '~/components/shared/DesignerDialog.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCassetteDesignerPersistence } from '~/composables/useCassetteDesignerPersistence.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { resolveTypeFeature } from '#shared/field-access-policies.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -58,7 +59,7 @@ const currentTemplate = ref(null);
 const entity = computed(() => currentTemplate.value || props.entity);
 const canEdit = computed(() => hasPermissionGrant({
   permissions: activePermissions.value,
-  feature: 'cassettes',
+  feature: resolveTypeFeature('cassette'),
   level: 'write',
   entity: props.entity,
   typeId: 'cassette'

@@ -170,6 +170,7 @@ import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { useSnapshotHistory } from '~/composables/useSnapshotHistory.js';
 import CassetteEditorDialog from '~/components/CassetteEditorDialog.vue';
 import { useInstancesStore } from '~/stores/instances';
@@ -285,10 +286,10 @@ const { pens, systemPens } = storeToRefs(pensStore);
 // detail-host adapter to compute one, and degrades to view-only without it.
 const editable = computed(() => hasPermissionGrant({
   permissions: authStore.activePermissions,
-  feature: 'sheet_designs',
+  feature: resolveTypeFeature('sheet-design'),
   level: 'write',
   entity: props.design,
-  typeId: 'sheet_design'
+  typeId: 'sheet-design'
 }));
 
 const svgRef = ref(null);
