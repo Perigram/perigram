@@ -250,7 +250,6 @@ import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/cha
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
-import GeneratedDetailScreen from '~/components/generated/GeneratedDetailScreen.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
