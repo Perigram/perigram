@@ -1026,13 +1026,13 @@ pure lineage nesting. One tap on an entity adds the ref and closes the
 picker; an inline create entry runs the generated create flow
 (upload-creator dialog, typed prompt dialog, or direct execution) and the
 created entity attaches to the draft like any picked ref. The paperclip
-trigger stays disabled while the home screen exposes no list sections. The composer loads attachment types from
-`/api/support/type-ids`, which derives them from the user's generated
-screen source manifest at read access rather than a fixed chat list. Concrete
-attachment choices resolve through `/api/support/instance-options` when the
-backend has a scoped list service for that entity type, and direct chats also
-receive recipient-access metadata so the draft can warn when an attached entity
-will be visible only inside chat. Selected attachments stay in structured
+trigger stays disabled while the home screen exposes no list sections. The
+picker browses the same compiled home-screen list sources the sidebar
+renders (uncapped, user-available window) with the Tree's built-in search;
+recipient-access metadata is not fetched there — the support service
+derives it on send and on draft hydration, so the draft warns about
+chat-only entities from the stored refs. Selected attachments stay in
+structured
 `entityRefs` and render as removable draft chips before send; any text preview
 must not duplicate ordinary textarea text. Status-history actor chat actions
 preseed the current entity into that draft. The composer must not inject
@@ -1075,7 +1075,7 @@ and all placeholders stay neutral (subtle surface, muted ink) instead of
 primary. The grouping switch narrows entity chats to their top-level nodes
 (entities with no resolvable lineage ancestors) and back to every entity
 chat. Child-entity threads (cassettes, nesting runs, sheet designs) resolve
-through the same scoped option window the attachment picker browses when
+server-side through the support service's scoped list resolution when
 direct registry reads deny them. Entity thread titles are the open-entity
 link (a home-workspace tab on desktop, detail route on mobile); beside the
 title sits the children-messages toggle — default off (the entity's own

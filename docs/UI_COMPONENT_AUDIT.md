@@ -187,7 +187,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
 | `ui-components-shared-actiontoolbar-vue` | `components/shared/ActionToolbar.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
-| `ui-components-shared-chatattachmentpicker-vue` | `components/shared/ChatAttachmentPicker.vue` | derived usage | compliant |
+| `ui-components-shared-chatattachmentpicker-vue` | `components/shared/ChatAttachmentPicker.vue` | derived usage | remove:important-override (3) |
 | `ui-components-shared-chatsupportdialog-vue` | `components/shared/ChatSupportDialog.vue` | derived usage | centralize:layout (1); replace:inline-visual (1) |
 | `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | compliant |
 | `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |

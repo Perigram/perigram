@@ -524,23 +524,31 @@ so the shared entity popover shows the immutable revision summary and source
 relationship.
 
 ### `ChatAttachmentPicker.vue`
-The chat composer's attachment surface: a Popover hosting PrimeVue `Tree`,
-both unmodified Aura. No `pt`, padding, border, or background overrides.
-Home-screen sections are the roots; their children list the
-section's generated create entries right beside the entity entries — and
-every entity entry repeats the pattern through its type's detail-screen
-child creates, so creation lives inside the hierarchy at every level (never
-behind a second popup). Entities expand through pure lineage nesting
-(`linkedExplorerChildSources` list fetches; relation links are deliberately
-skipped so the tree stays a hierarchy); lazy loading is node-driven
+The chat composer's attachment surface: a Popover hosting PrimeVue
+`Tree`, both unmodified Aura. No `pt`, padding, border, or background
+overrides. Home-screen sections are the roots and load through the SAME
+compiled home-screen list sources the home sidebar's PanelMenu renders —
+the instances store's `listInstances` with the source's resolved filters —
+so the picker browses the full user-available window (shared observation
+cache, no option-list cap) instead of a capped options endpoint; entities
+expand through pure lineage nesting (`linkedExplorerChildSources` list
+fetches; relation links are deliberately skipped so the tree stays a
+hierarchy). Search is the Tree's built-in lenient filter over loaded node
+labels. The section's generated create entries list right beside the
+entity entries — and every entity repeats the pattern through its type's
+detail-screen child creates, so creation lives inside the hierarchy at
+every level (never behind a second popup). Lazy loading is node-driven
 (`@node-expand` carries the section/entity payload directly, so loads are
 never routed by key-prefix parsing). Rows select; chevrons only expand.
 Tapping an entity selects it and closes the picker; tapping a create entry
 runs the generated flow in the host and attaches the created entity. Each
-open resets the tree (sections re-expand and their option lists reload),
-because option lists are recipient-scoped per conversation. The host owns
-the draft `entityRefs` and the create-action flows; the picker only emits
-`select`/`create-action`.
+open resets the tree (sections re-expand and their lists reload) so the
+tree reflects the current workspace pool. Recipient chat-only visibility
+is NOT computed here: the support service derives it on send and on draft
+hydration through the instance-options endpoint (see
+[support feature](../../../server/features/support/README.md)). The host
+owns the draft `entityRefs` and the create-action flows; the picker only
+emits `select`/`create-action`.
 
 ### `InstanceCard.vue` (chat entry)
 Every card variant carries the composed instance-chat entry: full cards render
@@ -591,10 +599,10 @@ crops to one line, with text spans carrying the ellipsis. Text
 parts parse http(s) URLs into safe anchors (`noopener`, inherit-colored so
 both bubble sides stay readable); trailing punctuation peels off the link and
 stays text. Chat
-composers must source supported ref types from the support
-type-ids endpoint, which derives choices from readable generated screen
-sources, and concrete refs from the support instance-options endpoint instead of
-manual ids. Chat message refs may also carry compact entity snapshots plus
+composers source attachable entities from the same compiled screen list
+sources the home sidebar renders (the attachment picker tree), never
+manual ids; the support instance-options endpoint stays the server-side
+validation and hydration channel for those refs. Chat message refs may also carry compact entity snapshots plus
 chat-only recipient metadata; `SupportMessageContent` passes those snapshots
 into `InstanceInlineRef` so popovers stay usable inside chat even when the
 recipient lacks ordinary entity read access, while generated detail-route

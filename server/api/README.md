@@ -93,10 +93,11 @@ Routes are grouped into sub-directories corresponding to features:
   conversations. Group chats are created and deleted through
   `POST/DELETE /support/groups`. Conversation-list routes return unread
   counts from `supportConversationReads`. Messages may include structured
-  inline `entityRefs` selected from readable generated-screen entity types and
-  concrete readable entity options when a scoped list service exists. The
-  instance-options route also accepts `recipientUserId` for direct-chat warning
-  metadata. The shared chat message component renders both inline tokens and
+  inline `entityRefs` picked from the same compiled screen list sources the
+  home sidebar renders; the instance-options route remains the server-side
+  validation and hydration channel for those refs (see
+  [support feature](../features/support/README.md)). The shared chat message
+  component renders both inline tokens and
   structured refs. Initial state loads over these REST routes; message, read,
   and inbox events arrive over the connections stream.
 - `workflow-overrides/`: Authenticated organization-owned lifecycle override

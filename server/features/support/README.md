@@ -105,18 +105,20 @@ Instance ref types come from readable generated screen sources in the current
 generated-scope endpoint, not a hardcoded chat allowlist, and includes any
 non-`single` source whose requirement is satisfied at read level or stronger.
 The support service resolves the sender through the active process runtime
-before deriving those sources, so chat attachment pickers use the same
+before deriving those sources, so ref validation uses the same
 generated auth window as the rest of the app instead of the raw session auth.
 Composer UIs should localize those returned type ids on the client instead of
 showing raw backend values such as `cassette` or `sheet_design`.
-Concrete picker options are resolved separately through
-`GET /api/support/instance-options` through one per-type loader seam:
+`GET /api/support/instance-options` is the server-side ref resolution channel:
+message-write validation, draft hydration, create-prompt field options, and
+conversation-context resolution all read instance options through one
+per-type loader seam:
 framework/pack types use their feature list services (artifact, cassette,
 sheet_design, user), and every other type — org-authored CTS types —
 resolves its scoped list through the registry-resolved per-class instance
 service (`processList`, CTS SPEC §13; see
 [instances](../instances/README.md)), so no type needs a hand-registered
-loader to be pickable or linkable in chats. Chat option lists use those generated source
+loader to be pickable or linkable in chats. Option loads use those generated source
 filters when they are concrete. Because the current endpoint is keyed by
 `type` rather than `sourceId`, each attachment type uses the first readable
 generated source exposed by `instance-types`; support does not union multiple
@@ -128,6 +130,9 @@ sender's readable parent instances for that screen instead of falling back to an
 unbounded organization-wide list. Generated detail `single` sources are not
 used as attachment-option loaders, so a detail route cannot widen a picker past
 the process list windows that actually expose that instance type.
+The chat attachment picker tree itself does not browse this endpoint: it
+loads the same compiled home-screen list sources the home sidebar renders
+(see [ChatAttachmentPicker](../../../components/shared/README.md)).
 
 For direct chats, the instance-options endpoint also evaluates the recipient's
 resolved process auth and marks options that the recipient cannot read through
