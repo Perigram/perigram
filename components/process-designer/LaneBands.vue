@@ -1,16 +1,16 @@
 <template>
   <div class="pointer-events-none absolute inset-0 -z-10 overflow-visible" aria-hidden="true">
     <div
-      v-for="(band, bandIndex) in bands"
+      v-for="band in bands"
       :key="band.id"
-      class="absolute left-0 border-t"
-      :class="[
-        bandIndex % 2 === 0 ? 'bg-subtle' : '',
-        band.kind === 'declaration' ? 'border-chrome-border' : 'border-content-border'
-      ]"
-      :style="{ top: `${band.top}px`, height: `${band.height}px`, width: `${width}px` }"
+      class="absolute border-t border-content-border"
+      :style="{ top: `${band.top}px`, left: `${left}px`, width: `${Math.max(0, right - left)}px` }"
     >
-      <span v-if="band.label" class="absolute left-3 top-1.5 text-supporting text-muted">{{ band.label }}</span>
+      <span
+        v-if="band.label"
+        class="absolute left-3 top-1.5 text-label text-muted"
+        :style="labelStyle"
+      >{{ band.label }}</span>
     </div>
     <div
       v-for="corridor in corridors"
@@ -22,15 +22,24 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
+
 // Lane bands for the process canvas (canonical contract:
-// components/process-designer README, "Lanes"). Rendered through Vue
-// Flow's zoom-pane slot at a negative z-index: a TRUE BACKGROUND layer
-// beneath edges and nodes (their computed z-indexes start at 0), never
-// covering them. Pure projection — the page derives bands and corridors
-// from grant records; this component only paints.
-defineProps({
+// components/process-designer README, "Lanes"): hairline separators only
+// (no fills), spanning the nodes' horizontal domain, rendered through Vue
+// Flow's zoom-pane slot at a negative z-index — a background layer beneath
+// edges and nodes. Lane titles render at ABSOLUTE size: they counter-scale
+// by the canvas zoom so they never blow up or shrink away.
+const props = defineProps({
   bands: { type: Array, default: () => [] },
   corridors: { type: Array, default: () => [] },
-  width: { type: Number, default: 0 }
+  left: { type: Number, default: 0 },
+  right: { type: Number, default: 0 },
+  zoom: { type: Number, default: 1 }
 });
+
+const labelStyle = computed(() => ({
+  transform: `scale(${1 / (props.zoom || 1)})`,
+  transformOrigin: 'left top'
+}));
 </script>
