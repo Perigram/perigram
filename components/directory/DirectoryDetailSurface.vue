@@ -104,17 +104,12 @@
           />
         </template>
         <template v-else>
+          <!-- The pane IS the organization view: management surfaces are
+               reached through the home shell's organization entries, not
+               route-away buttons from the pane. Switching context
+               rehydrates the workspace in place. -->
           <Button
-            v-if="entry.directory?.isMember && isActiveOrganization"
-            :label="$t('profile.viewOrganization')"
-            icon="pi pi-arrow-right"
-            severity="secondary"
-            outlined
-            size="small"
-            @click="navigateTo('/organization')"
-          />
-          <Button
-            v-else-if="entry.directory?.isMember"
+            v-if="entry.directory?.isMember && !isActiveOrganization"
             :label="$t('profile.switchOrganization')"
             icon="pi pi-arrow-right-arrow-left"
             severity="secondary"
@@ -346,7 +341,6 @@ async function switchToOrganization() {
   switching.value = true;
   try {
     await authStore.switchOrganization(entry.value?._id);
-    navigateTo('/organization');
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
   } finally {

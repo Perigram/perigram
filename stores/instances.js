@@ -228,19 +228,34 @@ export const useInstancesStore = defineStore('instances', () => {
     const key = `${typeKey}:ref:${id}`;
     if (pending.has(key)) return pending.get(key);
     const request = $fetch(endpointsFor(typeKey).list(), { query: { _id: id }, ...fetchOptions })
-      .then(response => {
+      .then(async response => {
         const match = collectionItems(response).find(dto => dtoIds(dto).includes(String(id))) || null;
-        if (match) upsertRecord(typeKey, match);
-        return match;
+        if (match) {
+          upsertRecord(typeKey, match);
+          return match;
+        }
+        // Framework party types are directory-visible beyond the caller's
+        // memberships: the directory card is the cross-tenant fallback
+        // (name-level only — see server/features/directory/README.md).
+        return directoryFallback(typeKey, id, fetchOptions);
       })
       .catch(err => {
         if (!silent) console.error(`[instances] Failed to resolve ${typeKey} ${id}:`, err);
         error.value = err?.data?.message || err?.message || String(err);
-        return null;
+        return directoryFallback(typeKey, id, fetchOptions);
       })
       .finally(() => pending.delete(key));
     pending.set(key, request);
     return request;
+  }
+
+  async function directoryFallback(typeKey = '', id = '', fetchOptions = {}) {
+    const type = canonicalTypeKey(typeKey);
+    if (!['user', 'organization'].includes(type)) return null;
+    const entry = await $fetch(`/api/directory/${type}/${encodeURIComponent(String(id))}`, fetchOptions)
+      .catch(() => null);
+    if (entry?._id) upsertRecord(type, entry);
+    return entry?._id ? entry : null;
   }
 
   // -- mutations -----------------------------------------------------------

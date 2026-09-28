@@ -429,12 +429,17 @@ readable.
 ### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
 When only an id is provided, it resolves the DTO through the entity store's
-access-filtered optional-reference lookup, resolves the matching design-system
+access-filtered optional-reference lookup (with a directory-card fallback for
+the framework party types, so cross-tenant users and organizations still
+resolve to their name-level card), resolves the matching design-system
 entity card, and renders that card with
 `variant="inline"`. The referenced entity card owns the click/keyboard popover
 and reuses its canonical body inside that popover; `interactive: false`
 renders the inline card non-expandable for non-interactive rows such as
-explorer entries and static summaries. In generated surfaces,
+explorer entries and static summaries. A caller-hosted `#trigger` scoped
+slot (receives `toggle`) swaps the caller's chrome — chat thread headers,
+for example — for the collapsed chip while keeping the same standalone
+popup: card face, actions, and the expand/open entry. In generated surfaces,
 the popover action row is access-aware: `InstanceInlineRef` resolves the
 referenced entity's generated detail-screen actions, forwards them to
 `InstanceCard`, and invokes the surrounding generated screen's action executor
@@ -563,7 +568,11 @@ thread. Popup-originated threads (comments and chat actions, the floating
 launcher) render in the shared bottom-right chat popup
 (`ChatSupportDialog`: the token-sized, non-modal drawer card), whose expand
 action pins the conversation as a home-workspace pane tab; the sidebar
-PanelMenu's Chats entry opens that general chats pane tab directly.
+PanelMenu's Chats entry opens that general chats pane tab directly. The
+thread header's title is the entity popup trigger for its subject — the
+user card on direct threads, the instance card on instance threads — with
+the popup's open action as the expand into a home pane; group headers
+carry member chips inline.
 
 ### `InstanceCard.vue` popup identity slot
 The popover's identity block — type label, status surface, icon+name row, and

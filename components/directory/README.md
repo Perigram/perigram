@@ -29,8 +29,10 @@ into these panes through the shared workspace-open seam.
 - The surface owns its action row because panes/dialogs have no page-level
   action chrome: user chat (the direct 1:1 thread — open to any non-self
   recipient) / invite (routes into team management with
-  `?invite=`) / self profile; organization overview entry, context switch,
-  and the partnership lifecycle actions (see
+  `?invite=`) / self profile; organization context switching (the pane
+  itself is the organization view — management surfaces are reached
+  through the home shell's organization entries, never route-away
+  buttons) and the partnership lifecycle actions (see
   [partnerships](../../server/features/partnerships/README.md)).
 - Management destinations (profile, organization overview, team
   management) are the sanctioned organization/system routes; entity detail
