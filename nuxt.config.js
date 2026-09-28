@@ -130,10 +130,17 @@ export default defineNuxtConfig({
                 ignored: [WORKTREE_WATCH_IGNORE]
             }
         },
-        environments: {
-            client: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } },
-            ssr: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } }
-        },
+        // The per-environment dev watchers above are attached only for
+        // dev: a user-level `environments` object present during a
+        // production build deroutes the vite 7 SSR build output and nitro
+        // ENOENTs on .nuxt/dist/server/{server,styles}.mjs. Contract and
+        // failure history: Development notes in the root README.
+        ...(process.env.NODE_ENV === 'development' ? {
+            environments: {
+                client: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } },
+                ssr: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } }
+            }
+        } : {}),
         css: {
             preprocessorOptions: {
                 scss: {
