@@ -55,7 +55,6 @@
               :corridors="laneCorridors"
               :left="laneExtent.left"
               :right="laneExtent.right"
-              :zoom="designerViewport?.zoom || 1"
             />
           </template>
         </VueFlow>
@@ -1084,7 +1083,6 @@ const laneModel = computed(() => {
     bands.push({
       id: `role:${roleId}`,
       kind: 'role',
-      label: organizationRoles.value[roleId]?.label || '',
       top,
       height: Math.max(LANE_MIN_HEIGHT, members.length * LANE_ROW_HEIGHT)
     });

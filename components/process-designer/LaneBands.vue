@@ -5,13 +5,7 @@
       :key="band.id"
       class="absolute border-t border-content-border"
       :style="{ top: `${band.top}px`, left: `${left}px`, width: `${Math.max(0, right - left)}px` }"
-    >
-      <span
-        v-if="band.label"
-        class="absolute left-3 top-1.5 text-label text-muted"
-        :style="labelStyle"
-      >{{ band.label }}</span>
-    </div>
+    />
     <div
       v-for="corridor in corridors"
       :key="`corridor:${corridor.id}`"
@@ -22,24 +16,17 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-
 // Lane bands for the process canvas (canonical contract:
-// components/process-designer README, "Lanes"): hairline separators only
-// (no fills), spanning the nodes' horizontal domain, rendered through Vue
-// Flow's zoom-pane slot at a negative z-index — a background layer beneath
-// edges and nodes. Lane titles render at ABSOLUTE size: they counter-scale
-// by the canvas zoom so they never blow up or shrink away.
-const props = defineProps({
+// components/process-designer README, "Lanes"): untitled hairline
+// separators spanning the nodes' horizontal domain, rendered through Vue
+// Flow's zoom-pane slot at a negative z-index — a background layer
+// beneath edges and nodes that never covers them. Pure projection — the
+// page derives bands and corridors from grant records; this component
+// only paints.
+defineProps({
   bands: { type: Array, default: () => [] },
   corridors: { type: Array, default: () => [] },
   left: { type: Number, default: 0 },
-  right: { type: Number, default: 0 },
-  zoom: { type: Number, default: 1 }
+  right: { type: Number, default: 0 }
 });
-
-const labelStyle = computed(() => ({
-  transform: `scale(${1 / (props.zoom || 1)})`,
-  transformOrigin: 'left top'
-}));
 </script>

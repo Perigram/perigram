@@ -400,14 +400,10 @@ typography — chrome, never data.
 Lanes are not a view mode — they are permanent and they ARE role
 assignment, and they apply ONLY to effect nodes: effects are the one
 population that carries access. Bands render as a TRUE BACKGROUND layer
-(beneath nodes and wires, never covering them) — hairline separators
-only, no fills — spanning the canvas's horizontal node domain (from the
-leftmost node's column to the rightmost's). Lane titles are the
-organization's own role names at label size, rendered at ABSOLUTE size —
-counter-scaled against the canvas zoom like every floating chrome
-(selection dial, tooltips): never inflated or shrunk by the pane
-transform. The canvas adds no labels
-of its own. One horizontal lane per role in the role list's fixed order
+(beneath nodes and wires, never covering them) — untitled hairline
+separators only, no fills — spanning the canvas's horizontal node
+domain (from the leftmost node's column to the rightmost's). One
+horizontal lane per role in the role list's fixed order
 (empty roles keep their lane — seeing who has what is the point), plus
 an implicit unlabeled lane at the bottom for grantless effects.
 
