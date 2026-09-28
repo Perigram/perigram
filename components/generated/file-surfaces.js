@@ -34,7 +34,7 @@ export const fileSurfaceRegistry = {
     action: GeneratedCassetteDesignerAction,
     workspacePage: {
       labelKey: 'cassette.designerTitle',
-      icon: 'pi pi-pencil',
+      icon: 'pi pi-file-edit',
       component: GeneratedCassetteDesignerWorkspacePage,
       props: page => ({ cassette: page.entity, cassettes: page.cassettes || [] })
     }
@@ -43,7 +43,7 @@ export const fileSurfaceRegistry = {
     action: GeneratedEditorPageAction,
     workspacePage: {
       labelKey: 'sheetDesign.editor',
-      icon: 'pi pi-pencil',
+      icon: 'pi pi-file-edit',
       component: SheetDesignEditor,
       props: page => ({ design: page.entity })
     }
@@ -52,7 +52,7 @@ export const fileSurfaceRegistry = {
     action: GeneratedEditorPageAction,
     workspacePage: {
       labelKey: 'sketch.editorTitle',
-      icon: 'pi pi-pencil',
+      icon: 'pi pi-file-edit',
       component: SketchEditor,
       props: (page, typeId) => ({ persistence: sketchInstancePersistence(page.entity, typeId) })
     }
@@ -61,7 +61,7 @@ export const fileSurfaceRegistry = {
     action: GeneratedEditorPageAction,
     workspacePage: {
       labelKey: 'editors.text',
-      icon: 'pi pi-pencil',
+      icon: 'pi pi-file-edit',
       component: ArtifactTextEditor,
       props: (page, typeId) => ({
         persistence: textInstancePersistence(page.entity, typeId, 'text'),
@@ -73,7 +73,7 @@ export const fileSurfaceRegistry = {
     action: GeneratedEditorPageAction,
     workspacePage: {
       labelKey: 'editors.csv',
-      icon: 'pi pi-pencil',
+      icon: 'pi pi-file-edit',
       component: ArtifactTextEditor,
       props: (page, typeId) => ({
         persistence: textInstancePersistence(page.entity, typeId, 'csv'),

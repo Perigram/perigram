@@ -53,7 +53,7 @@ describe('file surface registry', () => {
   it('binds the cassette type to the cassette designer presentations', () => {
     const surface = resolveFileSurface(packEditorBindings, 'cassette');
     expect(surface.action).toBeTruthy();
-    expect(surface.workspacePage).toMatchObject({ labelKey: 'cassette.designerTitle', icon: 'pi pi-pencil' });
+    expect(surface.workspacePage).toMatchObject({ labelKey: 'cassette.designerTitle', icon: 'pi pi-file-edit' });
     expect(surface.workspacePage.props({ entity: { id: 'c-1' }, cassettes: [{ id: 'c-2' }] }, 'cassette'))
       .toEqual({ cassette: { id: 'c-1' }, cassettes: [{ id: 'c-2' }] });
   });

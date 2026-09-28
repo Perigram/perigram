@@ -2,7 +2,7 @@
   <Button
     v-if="canEdit"
     :label="menuItem ? $t('common.edit') : undefined"
-    icon="pi pi-pencil"
+    icon="pi pi-file-edit"
     text
     :rounded="!menuItem"
     size="small"

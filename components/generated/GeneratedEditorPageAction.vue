@@ -2,7 +2,7 @@
   <Button
     v-if="surface"
     :label="menuItem ? actionLabel : undefined"
-    icon="pi pi-pencil"
+    icon="pi pi-file-edit"
     text
     :rounded="!menuItem"
     :class="menuItem ? 'w-full justify-start' : null"
