@@ -260,7 +260,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-parentref-vue` | `components/ui-mapping/ParentRef.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-previewbox-vue` | `components/ui-mapping/PreviewBox.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-quantityinput-vue` | `components/ui-mapping/QuantityInput.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | replace:chrome (1); remove:important-override (2) |
+| `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | replace:chrome (1); remove:important-override (1) |
 | `ui-components-ui-mapping-regiondatastate-vue` | `components/ui-mapping/RegionDataState.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-sortcontrol-vue` | `components/ui-mapping/SortControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statetag-vue` | `components/ui-mapping/StateTag.vue` | derived usage | compliant |
