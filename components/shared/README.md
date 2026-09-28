@@ -562,33 +562,15 @@ whole block; overriding cards are responsible for any status surface they
 still need (the party types carry none). The expanded body, footer slot, and
 action row remain common chrome.
 
-### `InstanceChatPanel.vue` (detail-page conversation rail)
-The instance detail page's own conversation — the one place a thread renders
-in place instead of opening the shared popup. It has two homes: the legacy
-renderer's detail column (`GeneratedInstanceDetail` provides `InstancePage`'s
-**sidebar slot**, so it is a sticky rail beside the body from the two-track
-breakpoint up and stacks below the body as a full-width section under that
-breakpoint) and the ui-mapping generator's routed detail surface
-(`GeneratedMappingScreen` mounts it after the composed body — plain
-org-authored CTS detail routes have no legacy overload). It is not a
-section appended to the main column: that buried the thread under the whole
-body, made it undiscoverable, and put it last in reading order.
-
-A PrimeVue text Button (Aura owns its focus/hover/press states; the icon is
-stable across states and `aria-expanded` carries the state) toggles a bounded
-`ChatSupport` in `embedded thread-only` mode pinned to `entity:<type>:<id>`, so
-the page gets the composed conversation without the inbox or back navigation.
-It starts collapsed so detail pages stay quiet until the operator opens the
-thread; the expanded host is bounded by the `h-support-chat` dimension token
-(`supportChatHeight`), never a page-local height, and paints no container
-chrome — the thread's own surface is the surface.
-
-`GeneratedInstanceDetail` mounts it in the `v-else-if` (abstract) branch only.
-Bounded hosts must NOT mount it: their `flush` frame is `h-full` and
-non-scrolling, so an in-flow rail has no track and collapses to nothing. Those
-hosts expose the same thread through the shared chat popup
-(`utils/instance-chat.js`) from their own chrome, matching `InstanceCard`
-and `InstanceInlineRef`.
+### Detail-surface conversation entry
+The record header owns the conversation affordance — there is no embedded
+comments section. `SurfaceHeader` (ui-mapping detail routes) and
+`GeneratedInstanceDetail`'s `InstancePage` actions both carry the composed
+instance-chat entry: an icon-only chat button routing through
+`utils/instance-chat.js`, the same seam as `InstanceCard` popovers and pane
+strips (a user-typed record opens the direct thread; every other type the
+composed instance thread). Bounded/flush editor hosts expose the same entry
+from their own chrome.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while

@@ -20,11 +20,10 @@ Composition flow
 tree and materializes it with
 `RegionBlock` → `SurfaceBody` →
 `FieldControl` / `InstanceChip` / `PreviewBox` / `ActionButton`. A routed
-detail surface additionally mounts the shared instance conversation rail
-(`InstanceChatPanel`, keyed to the composed non-list region's opened
-instance) after the body — the generator's detail routes are the
-org-authored CTS types' detail pages, and the rail is app-level chrome
-the composition root owns, not a materialization decision. Region
+detail surface's record header (`SurfaceHeader`) carries the composed
+instance-chat entry — the same `utils/instance-chat.js` seam every
+instance surface uses — instead of any embedded comments section; the
+thread opens through the shared chat popup. Region
 actions run through `ActionButton`; actions with construction inputs open
 `type-labels.js` is the single label seam for generator surfaces: the
 design-system entity contracts (`entities.*` locale keys) win for pack
