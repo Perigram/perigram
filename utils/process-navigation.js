@@ -1,4 +1,5 @@
 import { isDetailScreenTemplate } from '~/components/generated/action-visibility.js';
+import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
 
 import {
   actionToLevel,
@@ -36,8 +37,8 @@ export function defaultHomeScreen() {
     kind: 'home',
     template: 'home',
     placement: 'home',
-    route: '/screens/home',
-    sourceRoute: '/screens/home',
+    route: HOME_SCREEN_ROUTE,
+    sourceRoute: HOME_SCREEN_ROUTE,
     sources: [],
     regions: [],
     actions: []
@@ -88,7 +89,7 @@ export function processOperationalScreens(screens = []) {
     screen
     && screen.kind !== 'system'
     && typeof screen.route === 'string'
-    && screen.route.startsWith('/screens/')
+    && (screen.route.startsWith('/screens/') || screen.route === HOME_SCREEN_ROUTE)
   ));
 }
 

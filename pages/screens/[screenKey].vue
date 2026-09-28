@@ -52,6 +52,7 @@ import { resolveCreatedInstanceOpen } from '~/components/generated/created-insta
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 import { resolveDefaultHomeScreen } from '~/utils/process-navigation.js';
+import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 definePageMeta({
@@ -106,6 +107,13 @@ const screen = computed(() => {
     }
   };
 });
+// Home serves at the stable shell route; a stale /screens/home* URL
+// replaces to it instead of rendering a second home surface.
+watch(() => screen.value?.template, template => {
+  if (template === 'home' && process.client && route.path !== HOME_SCREEN_ROUTE) {
+    navigateTo(HOME_SCREEN_ROUTE, { replace: true });
+  }
+}, { immediate: true });
 const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const processActions = computed(() => authStore.processPayload?.actions || {});
 // The flat state vocabulary's display policy (SPEC §7): derived from the

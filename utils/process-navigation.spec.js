@@ -125,7 +125,7 @@ describe('process navigation', () => {
       screens: [{
         id: 'home_user',
         screenKey: 'home_user',
-        route: '/screens/home_user',
+        route: '/home',
         template: 'home',
         placement: 'home'
       }, {
@@ -136,7 +136,7 @@ describe('process navigation', () => {
         placement: 'hub',
         typeId: 'cassette'
       }]
-    })).toBe('/screens/home_user');
+    })).toBe('/home');
   });
 
   it('does not use legacy project route for active processes without project screens', () => {
@@ -186,24 +186,24 @@ describe('process navigation', () => {
   it('falls back to the default home route without an active process', () => {
     expect(resolveProcessEntryRoute({
       screens: [{
-        route: '/screens/home_user',
+        route: '/home',
         template: 'home'
       }]
-    })).toBe('/screens/home_user');
+    })).toBe('/home');
     expect(resolveProcessEntryRoute({
       screens: [{
         route: '/organization',
         template: 'organizationOverview',
         kind: 'system'
       }]
-    })).toBe('/screens/home');
+    })).toBe('/home');
   });
 
   it('resolves the compiled home screen as the default, the sourceless contract otherwise', () => {
     const compiledHome = {
       id: 'home_user',
       screenKey: 'home_user',
-      route: '/screens/home_user',
+      route: '/home',
       template: 'home',
       placement: 'home'
     };
@@ -212,7 +212,7 @@ describe('process navigation', () => {
     expect(defaultHomeScreen()).toMatchObject({
       screenKey: 'home',
       template: 'home',
-      route: '/screens/home',
+      route: '/home',
       sources: [],
       regions: [],
       actions: []
