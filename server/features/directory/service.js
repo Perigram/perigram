@@ -16,9 +16,14 @@ export async function search(auth, { q = '', types = DIRECTORY_TYPES } = {}) {
     const entities = type === 'user'
       ? await usersService.directorySearch(query, SEARCH_RESULT_LIMIT)
       : await organizationsService.directorySearch(query, SEARCH_RESULT_LIMIT);
+    const cards = entities.map(entity => projectCard(type, entity, auth));
+    // Caller-relative ranking: the caller's own organizations and users
+    // they share an organization with sort ahead of strangers, so capped
+    // result lists keep the most relevant entries.
     return {
       type,
-      results: entities.map(entity => projectCard(type, entity, auth))
+      results: cards.sort((a, b) => directoryRelevance(b) - directoryRelevance(a)
+        || String(a.identity.name).localeCompare(String(b.identity.name)))
     };
   }));
   return { query, groups };
@@ -61,6 +66,13 @@ function projectCard(type, entity, auth) {
     };
   }
   return card;
+}
+
+function directoryRelevance(card) {
+  if (card.type === 'user') {
+    return card.directory?.isSelf || card.directory?.sharesOrganization ? 1 : 0;
+  }
+  return card.directory?.isMember ? 1 : 0;
 }
 
 function userSharesOrganization(entity, auth) {
