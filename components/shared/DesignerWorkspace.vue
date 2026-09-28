@@ -62,7 +62,7 @@
       data-designer-toolbar
       class="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3"
     >
-      <Toolbar :aria-label="$t('designer.toolbar')" class="pointer-events-auto max-w-full overflow-x-auto">
+      <Toolbar :aria-label="$t('designer.toolbar')" class="pointer-events-auto max-w-full overflow-x-auto p-1 gap-1">
         <template #start>
           <template v-for="(item, index) in toolbarStartItems" :key="index">
             <Divider v-if="item.separator" layout="vertical" />
@@ -212,8 +212,8 @@ function toolbarButtonProps(item) {
     icon: item.icon,
     severity: 'secondary',
     variant: item.pressed ? 'outlined' : 'text',
-    rounded: true,
     disabled: item.disabled,
+    size: 'small',
     loading: item.loading,
     'aria-label': item.label,
     ...(typeof item.pressed === 'boolean' ? { 'aria-pressed': item.pressed } : {}),

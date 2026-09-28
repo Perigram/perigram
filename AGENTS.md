@@ -204,3 +204,15 @@ unstaged files.
 - Unless absolutely needed, DO NOT add any labels or messages that need to "describe" UI element or action. UI needs to be self-explanatory. 
 - Unless absolutely needed, DO NOT expose ID or other technical information that belongs to code only, unless it's absolutely needed for
   debugging or administration. 
+
+### UNSLOP EVERYTHING YOU SEE
+
+- If you meet obvious slop, fix it immediately. Most of times it's duplications: one thing lives in
+  2-3-10 places because previous agents failed to find existing place and wrote their own new
+  implementations. Your side quest is to fix, centralize, deduplicate, and make docs match reality. 
+  Before doing it, check top-level project architecture to decide where thing should live.
+- Remove slop docs and comments that bloat codebase. Previous agents often left comments on "why
+  they removed something" and "what it's no more" which no one gives fuck about. Remove this slop
+  when you see it. Also remove verbose explanations of obvious things that give zero value. I need
+  only concrete conventional docs that describe software, not a place for agents to release their
+  graphomania. 

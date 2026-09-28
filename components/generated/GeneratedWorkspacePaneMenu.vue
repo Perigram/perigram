@@ -3,7 +3,6 @@
     <Button
       icon="pi pi-ellipsis-v"
       text
-      rounded
       size="small"
       severity="secondary"
       class="!h-full !w-10"

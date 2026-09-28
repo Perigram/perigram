@@ -105,7 +105,7 @@
               <button
                 type="button"
                 data-testid="user-menu-trigger"
-                :class="['flex w-full items-center rounded-ui border border-chrome-border text-left transition-colors hover:bg-content', sidebarCollapsed ? 'justify-center p-1' : 'gap-2 p-1.5']"
+                :class="['flex w-full items-center rounded-ui border border-chrome-border border-round text-left transition-colors hover:bg-content', sidebarCollapsed ? 'justify-center p-1' : 'gap-2 p-1.5']"
                 :aria-label="$t('nav.profile')"
                 @click="toggle"
               >

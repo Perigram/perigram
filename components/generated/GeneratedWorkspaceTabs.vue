@@ -31,7 +31,7 @@
             rounded
             size="small"
             severity="secondary"
-            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-full !w-10"
+            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-6 !w-6"
             :aria-label="$t('common.close')"
             @click.stop="$emit('close-tab', tab.key)"
           />
@@ -42,7 +42,6 @@
       <Button
         icon="pi pi-plus"
         text
-        rounded
         size="small"
         severity="secondary"
         class="!h-full !w-10"
