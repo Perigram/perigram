@@ -243,7 +243,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-type-designer-statenode-vue` | `components/type-designer/StateNode.vue` | derived usage | compliant |
 | `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (1) |
 | `ui-components-ui-mapping-actionbutton-vue` | `components/ui-mapping/ActionButton.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-boardcollection-vue` | `components/ui-mapping/BoardCollection.vue` | derived usage | remove:important-override (3) |
+| `ui-components-ui-mapping-boardcollection-vue` | `components/ui-mapping/BoardCollection.vue` | derived usage | remove:important-override (4) |
 | `ui-components-ui-mapping-breadcrumbtrail-vue` | `components/ui-mapping/BreadcrumbTrail.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-calendarcollection-vue` | `components/ui-mapping/CalendarCollection.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-cardgrid-vue` | `components/ui-mapping/CardGrid.vue` | derived usage | compliant |

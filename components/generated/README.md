@@ -202,7 +202,13 @@ affordance of an editor-bound type is its editor action (file-edit
 glyph). The ui-mapping record header (`SurfaceHeader`) drops
 `updateInstance` from its run menu the same way — editor-bound types
 render the editor action instead of the edit-mode toggle, which stays
-only for inline field surfaces without an editor.
+only for inline field surfaces without an editor. Browse surfaces hide
+the stateless field-edit form through the ui-mapping action matcher's
+`hidden` channel (tables, boards, card menus, and generated collection
+cards), and the editor action itself renders only under a write-level
+grant — the shared evaluator checks every feature's grants against the
+entity and type id, and the server transports stay fail-closed behind
+it.
 
 The `sketch-editor` surface mounts `SketchEditor` and the
 `text-editor`/`csv-editor` surfaces mount `ArtifactTextEditor` — each
