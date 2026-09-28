@@ -6,7 +6,7 @@
       rounded
       size="small"
       severity="secondary"
-      class="!h-7 !w-7"
+      class="!h-6 !w-6"
       :aria-label="$t('common.more')"
       @click.stop="toggle"
     />

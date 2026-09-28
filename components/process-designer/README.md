@@ -327,9 +327,9 @@ construction, not per-card styling.
 
 | Channel | Encodes | Values |
 |---|---|---|
-| Socket & wire color | transported payload family | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
+| Socket & wire color | transported payload family (on SOCKETS; wires encode layer, below) | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
 | Socket shape | what the socket deals in | ring = event/trigger (an OUTLINE ring is a manual trigger — the effect runs by hand; a FILLED ring is wired — the trigger fires automatically); filled dot = value/instance data; diamond = declaration binding; filled square = state/status |
-| Wire pattern | edge role — what kind of connection | solid = data flow; dashed = declaration binding (`role: 'type'`); dotted = control/event trigger |
+| Wire styling | edge LAYER — primacy (the BPMN inversion) | the EVENT chain is the primary flow: solid, the canvas's strongest ink (`var(--p-text-color)`, theme-adaptive), 2.5px, arrowed; data wires are associations: thin (1.5px) dashed in muted ink (`var(--p-text-muted-color)`); declaration bindings stay dashed mid-tone (the structure family). The payload-family hue lives on SOCKET HANDLES only — wires never carry it. Selected overrides to primary 3px. |
 | Wire geometry | chrome (BPMN readability) | smoothstep with a ~14px corner radius; arrowheads render on the CONTROL layer only (`markerEnd` on event wires) — data and declaration wires carry no markers, so the event chain is the only directed flow |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
@@ -338,14 +338,15 @@ Access (Item/List/Tree) is deliberately **not** a socket visual: one
 socket accepts all three, access is a property of what travels the wire,
 and it stays a runtime and hover fact.
 
-A wire takes its color from its source socket
+The payload-family hue lives on SOCKET HANDLES
 (`processDesignerSocketTone` is the one mapping — see
-[utils](../../utils/README.md)), so one contract reads one tone end-to-end:
-a class card's `type` output, a state card's status sockets, and a field
-card's typed output carry the same tones they carry on operation nodes.
-Color never encodes role and pattern never encodes type — the two channels
-are orthogonal. Declaration bindings transport a TYPE, not data, so they
-read structure-toned and dashed.
+[utils](../../utils/README.md)): a class card's `type` output, a state
+card's status sockets, and a field card's typed output carry the same
+tones they carry on operation nodes. WIRES carry no payload hue — their
+styling encodes the LAYER (the primacy inversion): the strongest ink is
+the event chain, data reads as a muted association, declarations stay
+mid-tone dashed. One contract, one home per channel: hue on handles,
+primacy on wires.
 
 **Cards**
 
@@ -364,11 +365,11 @@ hue on the canvas.
 
 Top to bottom: the header (neutral icon chip + label — no divider, with
 the species corner glyph on operations); inline configuration (only
-species that author values in place); the socket rail (inputs left /
-outputs right, every handle centered on the outer node rail — row labels
-render on the SELECTED node only, unselected cards show the handles
-without their text); the event section (effects only: event sockets with
-the trigger ring). Sections separate by spacing
+species that author values in place); the socket rail (labeled rows,
+inputs left / outputs right, every handle
+centered on the outer node rail — labels render on every node: a socket
+without its name is unreadable chrome); the event section (effects only:
+event sockets with the trigger ring). Sections separate by spacing
 alone (`mt-2`/`mt-3`, row `py-1.5`) — there are deliberately **no
 dividers**: separator lines would form a third visual system competing
 with stripes and wires while encoding nothing. Socket rows are one-sided
@@ -386,8 +387,10 @@ socket channels, not per-node chrome:
 - `CtsTypeNode` renders no hint line.
 - Class-card meta rows (scope version tag, editor tag, field/state
   counts) live in the header tooltip, not the card face.
-- Socket row labels render on the selected node only (see Arrangement).
 - One-sided socket rows drop their placeholder cells.
+- Socket row LABELS always render — quiet cards keep their sockets
+  named (owner direction 2026-09-28: labels disappearing from unselected
+  nodes made the canvas unreadable).
 
 Deliberately meaningless: card background, handle size (fixed 12px),
 typography — chrome, never data.

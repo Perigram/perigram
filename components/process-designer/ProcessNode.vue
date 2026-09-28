@@ -63,7 +63,7 @@
       <div v-for="row in socketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" :wired="row.input.connected" side="left" :title="socketTitle(row.input)" />
-          <span v-if="selected" class="block truncate text-supporting">{{ row.input.label }}</span>
+          <span class="block truncate text-supporting">{{ row.input.label }}</span>
           <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
             <TypedValueControl
               :base="row.input.base"
@@ -77,7 +77,7 @@
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
-          <span v-if="selected" class="block truncate text-supporting">{{ row.output.label }}</span>
+          <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
       </div>
     </div>
@@ -88,11 +88,11 @@
       <div v-for="row in eventSocketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" :wired="row.input.connected" side="left" :title="socketTitle(row.input)" />
-          <span v-if="selected" class="block truncate text-supporting">{{ row.input.label }}</span>
+          <span class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
-          <span v-if="selected" class="block truncate text-supporting">{{ row.output.label }}</span>
+          <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
       </div>
     </div>
