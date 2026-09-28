@@ -86,6 +86,21 @@ rule. Verified against the live data: 13 children, 4 parented → 9
 top-level rows, 4 hidden. Instances with NO parent stamp legitimately
 stay top-level (they were created outside the parent-scoped flow).
 
+### Agent Notes (2026-09-28, fourth pass — the actual deliverable)
+
+The real gap was that the PARENT tree-table never loaded children at
+all: its region source loads only the parent type, so the "hierarchy
+table" could never nest anything. `HierarchyTable` now lazy-loads the
+declared child types through a `loadType` seam (app hosts pass a loader
+over the instance store; the generator stays pure), merges them over the
+region pool, and expands roots once children are known — ONE containment
+tree, browser-verified: level-1 parent rows with nested level-2 child
+rows. Data notes for this org: the 4 "parented" children reference
+DELETED parent ids (orphans — they surface on their own type screen as
+roots), 5 carry null stamps, 4 none. The org's 60 cassettes: 57 carry no
+organization stamp at all (invisible to every org-scoped list), the
+visible ones carry no renderable source (see previews).
+
 - [x] In bottom user avatar in homepage, need his name and organization
 
 ### Agent Notes (2026-09-27)
@@ -220,12 +235,9 @@ Same-tab creation implemented: `resolveCreatedInstanceOpen` now prefers
 the home-workspace tab whenever the manifest carries a compiled `home`
 screen (orgs without one keep the routed detail destination); the routed
 screen page dispatches through `openInstanceInWorkspace` for the
-workspace target. Organizations implemented: a trailing Organizations
-panel in the home PanelMenu lists the user's organizations (active
-checked); selecting another switches context IN PLACE — nothing routes
-away from home (third pass removed the overview navigation; the wrapped
-rail's org icon opens an in-place switching popover).
-Browser-verified.
+workspace target. Organizations: REMOVED from the PanelMenu and the wrapped rail per owner
+directive (fourth pass). Switching lives in the footer account menu; the
+footer names the active organization. Browser-verified.
 NOT implemented: profile/settings as popups — the account popover keeps
 its Profile route entry; a settings surface does not exist yet and needs
 its own design pass. The same-tab create path was verified live only at

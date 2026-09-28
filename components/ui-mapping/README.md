@@ -265,14 +265,19 @@ surface concerns:
   declared children edge names it) lists only root instances — children
   ride nested under their parents, never duplicated at the top level.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
-  the collection's structural roots plus their lineage descendants
-  nested as expandable rows — `hierarchyRootInstances` (shared mapping
-  contract) drops any instance whose declared parent is loaded in the
-  pool, so children ride nested under their parents and never repeat at
-  the top level — with the same generated columns and the same
-  row-surface treatment as `CollectionTable` (clipped rounded content
-  rows, hairline gaps, muted transparent header band). Row identities
-  are link buttons under the same `onOpen` navigation contract.
+  the ONE containment view — the collection's structural roots plus
+  their lineage descendants nested as expandable rows (roots expand once
+  their children are known; deeper levels start collapsed). Children of
+  the declared edges that are not in the region pool load lazily through
+  the `loadType` seam (`async (typeId) => screenInstance[]`, provided by
+  the app host that owns the instance store; without a loader the tree
+  renders pool rows only). `hierarchyRootInstances` (shared mapping
+  contract) drops any instance whose declared parent link is stamped, so
+  children ride nested under their parents and never repeat at the top
+  level. Columns and row surfaces match `CollectionTable` (clipped
+  rounded content rows, hairline gaps, muted transparent header band);
+  row identities are link buttons under the same `onOpen` navigation
+  contract.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
   cards lay out in the shared `ResponsiveGrid` primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside panels),

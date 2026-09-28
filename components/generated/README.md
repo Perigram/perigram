@@ -259,8 +259,7 @@ Discord-style operational shell:
   headers match row heights. The brand header is its own panel and
   carries the wrap control: wrapped, the sidebar becomes an icon rail
   (brand mark, chats and calls first — the same order the expanded menu
-  leads with — then one icon per top-level panel, the organizations
-  icon, avatar) and the
+  leads with — then one icon per top-level panel, avatar) and the
   wordmark returns on expand; the wrapped state persists with the
   workspace layout (`sidebarCollapsed` in the home workspace state). The
   Calls flyout (`CommunicationMenu`) lives outside the wrapped/expanded
@@ -279,11 +278,9 @@ Discord-style operational shell:
   `IncomingCalls` ring cards — only brand-new invites float; ongoing
   calls stay under Calls and in chats. With no active rooms the Calls
   entry renders no rows and nothing expands; it expands automatically
-  when the first room appears. A trailing Organizations panel lists the
-  user's organizations (the active one checked); selecting another
-  switches context and opens the organization overview — organization
-  switching lives in the sidebar because the home shell has no other org
-  surface.
+  when the first room appears. Organization switching stays OUT of the
+  sidebar (owner directive): the account menu in the footer owns it, and
+  the footer names the active organization.
 - Entity navigation is a raw default `PanelMenu` — no item slot, default
   rows, `multiple` panels open — one panel per top-level type from the
   same TYPE hierarchy the render contracts declare: registry containment
