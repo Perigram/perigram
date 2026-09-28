@@ -1,5 +1,8 @@
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+// Cyclic pair: GeneratedEditorPageAction imports resolveFileSurface from
+// here, so the registry reads it through lazy getters (module-init order
+// would otherwise hit an uninitialized binding).
 import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
 import TableImportSurface from '~/components/generated/TableImportSurface.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
@@ -40,7 +43,7 @@ export const fileSurfaceRegistry = {
     }
   },
   'sheet-design-editor': {
-    action: GeneratedEditorPageAction,
+    get action() { return GeneratedEditorPageAction; },
     workspacePage: {
       labelKey: 'sheetDesign.editor',
       icon: 'pi pi-file-edit',
@@ -49,7 +52,7 @@ export const fileSurfaceRegistry = {
     }
   },
   'sketch-editor': {
-    action: GeneratedEditorPageAction,
+    get action() { return GeneratedEditorPageAction; },
     workspacePage: {
       labelKey: 'sketch.editorTitle',
       icon: 'pi pi-file-edit',
@@ -58,7 +61,7 @@ export const fileSurfaceRegistry = {
     }
   },
   'text-editor': {
-    action: GeneratedEditorPageAction,
+    get action() { return GeneratedEditorPageAction; },
     workspacePage: {
       labelKey: 'editors.text',
       icon: 'pi pi-file-edit',
@@ -70,7 +73,7 @@ export const fileSurfaceRegistry = {
     }
   },
   'csv-editor': {
-    action: GeneratedEditorPageAction,
+    get action() { return GeneratedEditorPageAction; },
     workspacePage: {
       labelKey: 'editors.csv',
       icon: 'pi pi-file-edit',
@@ -85,7 +88,7 @@ export const fileSurfaceRegistry = {
   // client-side, map columns onto a target type's declared vocabulary,
   // construct through the instances batch transport.
   'table-import': {
-    action: GeneratedEditorPageAction,
+    get action() { return GeneratedEditorPageAction; },
     workspacePage: {
       labelKey: 'tableImport.title',
       icon: 'pi pi-table',
