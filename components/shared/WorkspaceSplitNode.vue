@@ -67,6 +67,10 @@ const panePanelPt = {
     class: 'h-full min-h-0 min-w-0 flex flex-col overflow-hidden',
     style: { '--p-panel-border-color': 'var(--p-content-border-color)' }
   },
+  // The pane box renders no Panel header — the hosted pane owns its tab
+  // stripe. PrimeVue emits the header element even for an empty slot (a
+  // dead 36px band above every pane), so it is display:none'd.
+  header: { style: { display: 'none' } },
   // Panel's grid container and wrapper default to min-width:auto, so wide
   // tab strips pushed them past the split cell - every layer must be able
   // to shrink below its content for the tablist to overflow and scroll.
