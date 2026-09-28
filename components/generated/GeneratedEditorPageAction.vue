@@ -1,16 +1,15 @@
 <template>
   <Button
     v-if="surface"
-    :label="iconOnly ? undefined : actionLabel"
+    :label="menuItem ? actionLabel : undefined"
     icon="pi pi-file-edit"
     size="small"
     severity="secondary"
-    :outlined="!iconOnly && !menuItem"
-    :rounded="iconOnly"
-    :text="iconOnly || menuItem"
+    :rounded="!menuItem"
+    :text="true"
     :class="menuItem ? 'w-full justify-start whitespace-normal text-left' : null"
     :aria-label="actionLabel"
-    :title="iconOnly ? actionLabel : undefined"
+    :title="menuItem ? undefined : actionLabel"
     @click="openEditor"
   />
   <DesignerDialog
@@ -45,7 +44,6 @@ const props = defineProps({
   entity: { type: Object, default: null },
   typeId: { type: String, default: '' },
   menuItem: { type: Boolean, default: false },
-  iconOnly: { type: Boolean, default: false },
   openInWorkspace: { type: Boolean, default: false }
 });
 
