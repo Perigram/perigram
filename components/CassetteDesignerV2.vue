@@ -32,6 +32,12 @@
     </div>
 
     <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :document-items="documentDockItems" :canvas-items="canvasDockItems">
+      <template #toolbar>
+        <span class="flex min-w-0 items-center gap-2 text-supporting">
+          <i class="pi pi-box shrink-0 text-muted" aria-hidden="true" />
+          <span class="truncate">{{ cassetteNameDraft || $t('cassette.newCassette') }}</span>
+        </span>
+      </template>
 
       <template #palette>
       <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
@@ -745,6 +751,7 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { useSnapshotHistory } from '~/composables/useSnapshotHistory.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
@@ -912,9 +919,6 @@ const visibleLayerNames = ref([]);
 const hiddenLayerNames = ref([]);
 const loadedTemplateId = ref('');
 const persistedTemplateIdOverride = ref('');
-const historyPast = ref([]);
-const historyFuture = ref([]);
-const lastHistorySnapshot = ref('');
 const sessionDraftAvailable = ref(false);
 const onboardingIndex = ref(0);
 const onboardingDismissed = ref(false);
@@ -1270,8 +1274,8 @@ const layerRows = computed(() => drawingLayers.value.map(layer => {
     pen
   };
 }));
-const canUndo = computed(() => historyPast.value.length > 0);
-const canRedo = computed(() => historyFuture.value.length > 0);
+const canUndo = designerHistory.canUndo;
+const canRedo = designerHistory.canRedo;
 const onboardingSteps = computed(() => [
   {
     id: 'document',
@@ -1319,47 +1323,33 @@ const designerSnapshot = () => JSON.stringify({
   tree: cloneDesignerTree()
 });
 
-let suppressHistory = false;
-let suppressAutosave = false;
-let autosaveTimer = null;
-
-const resetDesignerHistory = () => {
-  historyPast.value = [];
-  historyFuture.value = [];
-  lastHistorySnapshot.value = designerSnapshot();
-};
-
 const applyDesignerSnapshot = (snapshot) => {
   try {
     const parsed = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
-    suppressHistory = true;
     cassetteNameDraft.value = parsed.name || t('cassette.newCassette');
     cassetteTree.value = parsed.tree || createCassetteV2GraphTree();
     selectedWorkpieceOverrideId.value = '';
     closeInlineEditor();
-    lastHistorySnapshot.value = designerSnapshot();
   } catch {
-    suppressHistory = false;
+    // A malformed snapshot never partial-applies: state stays untouched.
   }
 };
 
-const undoDesignerChange = () => {
-  if (!canUndo.value) return;
-  const current = designerSnapshot();
-  const previous = historyPast.value[historyPast.value.length - 1];
-  historyPast.value = historyPast.value.slice(0, -1);
-  historyFuture.value = [current, ...historyFuture.value].slice(0, 50);
-  applyDesignerSnapshot(previous);
-};
+// Shared editor history: snapshots are the serialized designer state,
+// applied by restoring name and tree (see composables/useSnapshotHistory).
+const designerHistory = useSnapshotHistory({
+  snapshot: designerSnapshot,
+  apply: applyDesignerSnapshot
+});
 
-const redoDesignerChange = () => {
-  if (!canRedo.value) return;
-  const current = designerSnapshot();
-  const next = historyFuture.value[0];
-  historyFuture.value = historyFuture.value.slice(1);
-  historyPast.value = [...historyPast.value, current].slice(-50);
-  applyDesignerSnapshot(next);
-};
+let suppressHistory = false;
+let suppressAutosave = false;
+let autosaveTimer = null;
+
+const resetDesignerHistory = () => designerHistory.reset();
+
+const undoDesignerChange = () => designerHistory.undo();
+const redoDesignerChange = () => designerHistory.redo();
 
 const isEditableKeyboardTarget = (target) => {
   const tagName = target?.tagName?.toLowerCase?.();
@@ -1588,20 +1578,12 @@ const schedulePreviewRender = (delay = PREVIEW_RENDER_DELAY_MS) => {
 
 watch([cassetteTree, previewMode, previewWorkpieceId, selectedWorkpieceId, selectedRelationId, cassetteNameDraft, selectedTemplateId], () => schedulePreviewRender(), { immediate: true });
 watch([cassetteTree, cassetteNameDraft], () => {
-  const snapshot = designerSnapshot();
-  if (!lastHistorySnapshot.value) {
-    lastHistorySnapshot.value = snapshot;
-    return;
-  }
   if (suppressHistory) {
     suppressHistory = false;
-    lastHistorySnapshot.value = snapshot;
+    designerHistory.sync();
     return;
   }
-  if (snapshot === lastHistorySnapshot.value) return;
-  historyPast.value = [...historyPast.value, lastHistorySnapshot.value].slice(-50);
-  historyFuture.value = [];
-  lastHistorySnapshot.value = snapshot;
+  designerHistory.commit();
 }, { deep: true });
 watch([cassetteTree, cassetteNameDraft, autosaveStorageKey], () => {
   if (!process.client) return;

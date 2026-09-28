@@ -48,27 +48,15 @@ describe('generated overload registry', () => {
     expect(resolveGeneratedScreenOverload([])).toBeNull();
   });
 
-  it('keeps instance detail body overloads in the registry', () => {
+  it('keeps the artifact detail overload as the only instance body overload', () => {
     expect(resolveGeneratedInstanceDetailOverload('artifact')?.component).toBeTruthy();
-    expect(resolveGeneratedInstanceDetailOverload('cassette')?.component).toBeTruthy();
-    expect(resolveGeneratedInstanceDetailOverload('queue')).toBeNull();
-    expect(resolveGeneratedInstanceDetailOverload('sheet-design')?.component).toBeTruthy();
-    expect(resolveGeneratedInstanceDetailOverload('sketch')?.component).toBeTruthy();
-    expect(resolveGeneratedInstanceDetailOverload('text-document')?.component).toBeTruthy();
-    expect(resolveGeneratedInstanceDetailOverload('csv-table')?.component).toBeTruthy();
-    expect(resolveGeneratedInstanceDetailOverload('project')).toBeNull();
+    // Editors are workspace pages, never detail overloads.
+    for (const typeId of ['cassette', 'sheet-design', 'sketch', 'text-document', 'csv-table', 'xlsx-workbook', 'queue', 'project']) {
+      expect(resolveGeneratedInstanceDetailOverload(typeId)).toBeNull();
+    }
   });
 
-  it('derives file-type overload rows from the pack editor bindings', () => {
-    // The projected entity key is the CTS type id; legacy pre-projection
-    // keys no longer resolve an editor surface (abandoned data, SPEC §19).
+  it('does not resolve legacy pre-projection type keys', () => {
     expect(resolveGeneratedInstanceDetailOverload('sheet_design')).toBeNull();
-
-    const cassette = resolveGeneratedInstanceDetailOverload('cassette');
-    expect(cassette.ownsActionSurface).toBe(true);
-    const sheetDesign = resolveGeneratedInstanceDetailOverload('sheet-design');
-    expect(sheetDesign.ownsActionSurface).toBe(true);
-    expect(sheetDesign.props({ entity: { id: 'sd-1' }, canEditSheetDesign: true }))
-      .toEqual({ design: { id: 'sd-1' }, editable: true });
   });
 });

@@ -2174,6 +2174,10 @@
     "groupCall": "Групповой звонок",
     "directCall": "Личный звонок"
   },
+  "editors": {
+    "text": "Редактор текста",
+    "csv": "Редактор CSV"
+  },
   "sketch": {
     "editorTitle": "Скетч",
     "tool": "Инструмент",
@@ -2572,6 +2576,7 @@
     },
     "frameAll": "Показать все узлы",
     "frameSelection": "Показать выбранные узлы",
+    "selectionActions": "Действия с выделением",
     "resetZoom": "Сбросить масштаб",
     "lanes": "Дорожки",
     "hideDefinitions": "Скрыть описания",
@@ -3311,6 +3316,7 @@
     "resetView": "Сбросить вид"
   },
   "tableImport": {
+    "title": "Импорт таблиц",
     "sheet": "Лист",
     "headerRow": "Строка заголовков",
     "headerRowN": "Строка {n}",

@@ -175,6 +175,8 @@ export default defineNuxtConfig({
                 'primevue/menubar',
                 'primevue/divider',
                 'primevue/button',
+                'primevue/togglebutton',
+                'primevue/speeddial',
                 'primevue/select',
                 'primevue/menu',
                 'primevue/avatar',

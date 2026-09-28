@@ -17,10 +17,19 @@
     />
 
     <div
-      v-if="tabActionIds.length || boundedDetail"
+      v-if="tabActionIds.length || boundedDetail || editorActionComponent"
       class="flex shrink-0 flex-wrap items-center justify-end gap-1 border-b border-content-border px-2 py-1"
       data-tab-actions
     >
+      <component
+        :is="editorActionComponent"
+        v-if="editorActionComponent"
+        :entity="item.entity"
+        :type-id="item.type"
+        :open-in-workspace="true"
+        @open-page="page => $emit('open-page', page)"
+        @refresh="refreshFile"
+      />
       <GeneratedActionButton
         v-for="actionId in tabActionIds"
         :key="actionId"
@@ -97,6 +106,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import { generatedInstanceDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
+import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 import { openInstanceChat as openSharedInstanceChat } from '~/utils/instance-chat.js';
 import {
@@ -162,6 +172,7 @@ const detailActionContext = computed(() => ({
   parentTypeId: props.item?.type || ''
 }));
 const detailErrorMessage = computed(() => detailError.value?.data?.message || detailError.value?.message || '');
+const editorActionComponent = computed(() => instanceEditorActionFor(props.item?.type));
 const ownDetailActionIds = computed(() => props.showGeneratedActions
   ? generatedDetailActionIds({
       screens: authStore.screenManifest,

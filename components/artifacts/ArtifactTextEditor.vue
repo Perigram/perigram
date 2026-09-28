@@ -1,5 +1,23 @@
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-2 p-4">
+  <div class="flex h-full min-h-0 flex-1 flex-col gap-2 p-4">
+    <ActionToolbar :title="displayName" :level="2">
+      <template #actions>
+        <Button icon="pi pi-pencil" severity="secondary" text rounded size="small" :aria-label="$t('common.rename')" @click="openRename" />
+        <Button :label="$t('common.save')" icon="pi pi-save" size="small" :loading="saving" :disabled="!dirty" @click="save" />
+      </template>
+    </ActionToolbar>
+    <Popover ref="renameMenu">
+      <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
+        <InputText
+          v-model="renameDraft"
+          :placeholder="$t('common.rename')"
+          class="w-full"
+          :aria-label="$t('common.rename')"
+          @keydown.enter.stop.prevent="applyRename"
+        />
+        <Button icon="pi pi-check" :label="$t('common.save')" size="small" :disabled="!renameDraft.trim()" @click="applyRename" />
+      </div>
+    </Popover>
     <DataTable v-if="isCsv" :value="rows" edit-mode="cell" scrollable scroll-height="flex" size="small" class="min-h-80 flex-1">
       <Column v-for="column in columns" :key="column" :field="column" :header="column">
         <template #editor="{ data, field }"><InputText v-model="data[field]" size="small" /></template>
@@ -20,14 +38,11 @@
         editor-style="flex: 1 1 0; min-height: 12rem"
       />
     </div>
-    <div class="flex justify-end">
-      <Button :label="$t('common.save')" icon="pi pi-save" size="small" :loading="saving" @click="save" />
-    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import * as XLSX from 'xlsx';
 import TurndownService from 'turndown';
 import { marked } from 'marked';
@@ -36,22 +51,48 @@ import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import Editor from 'primevue/editor';
 import InputText from 'primevue/inputtext';
+import Popover from 'primevue/popover';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import 'quill/dist/quill.snow.css';
 
 // Persistence contract, host-supplied: `title`, `loadText()` returning
-// the raw text, `saveText(text, filename)`. `format` selects the csv
-// table surface vs the markdown text document. One editor serves
-// artifact-backed and instance-backed hosts.
+// the raw text, `saveText(text, filename)`, and an optional
+// `rename(name)`. `format` selects the csv table surface vs the markdown
+// text document. One editor serves artifact-backed and instance-backed
+// hosts.
 const props = defineProps({
   persistence: { type: Object, required: true },
   format: { type: String, default: 'text' }
 });
-const emit = defineEmits(['saved']);
+const emit = defineEmits(['saved', 'refresh']);
 const html = ref('');
 const columns = ref([]);
 const rows = ref([]);
 const saving = ref(false);
+const dirty = ref(false);
 const isCsv = computed(() => props.format === 'csv');
+const localTitle = ref('');
+const displayName = computed(() => localTitle.value || props.persistence.title || '');
+const renameMenu = ref(null);
+const renameDraft = ref('');
+
+function openRename() {
+  renameDraft.value = displayName.value;
+  renameMenu.value?.show?.();
+}
+
+async function applyRename() {
+  const name = renameDraft.value.trim();
+  renameMenu.value?.hide?.();
+  if (!name || name === displayName.value || typeof props.persistence.rename !== 'function') return;
+  try {
+    await props.persistence.rename(name);
+    localTitle.value = name;
+    emit('refresh');
+  } catch (error) {
+    console.error('Failed to rename document:', error);
+  }
+}
 const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
 // Quill's document model covers the markdown subset; the formats list
 // keeps the toolbar and the round-trip honest (no colors/aligns that
@@ -82,6 +123,8 @@ onMounted(async () => {
   html.value = text ? marked.parse(text) : '';
 });
 
+watch([html, rows], () => { dirty.value = true; }, { deep: true });
+
 async function save() {
   saving.value = true;
   try {
@@ -89,7 +132,8 @@ async function save() {
     const nextContent = isCsv.value
       ? XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rows.value, { header: columns.value }))
       : turndown.turndown(html.value || '');
-    emit('saved', await props.persistence.saveText(nextContent, `${props.persistence.title || 'document'}${extension}`));
+    emit('saved', await props.persistence.saveText(nextContent, `${displayName.value || 'document'}${extension}`));
+    dirty.value = false;
   } finally { saving.value = false; }
 }
 </script>

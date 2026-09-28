@@ -29,7 +29,7 @@
     :type-id="typeId"
     :show-trace="!embedded"
     :show-header="!embedded"
-    :show-identity="showIdentity || forceIdentityForEditor"
+    :show-identity="showIdentity"
     :trace-exclusions="traceExclusions"
     @refresh="$emit('refresh')"
   >
@@ -58,7 +58,8 @@
       <component
         :is="editorActionComponent"
         v-if="editorActionComponent"
-        :instance="instance"
+        :entity="instance"
+        :type-id="typeId"
         menu-item
         :open-in-workspace="openActionsInWorkspace"
         @open-page="page => $emit('open-page', page)"
@@ -83,7 +84,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import Button from 'primevue/button';
 import { openInstanceChat } from '~/utils/instance-chat.js';
 import { useAuthStore } from '~/stores/auth';
-import { instanceEditorActionFor, instanceEditorForcesIdentity } from '~/components/generated/instance-editor-action.js';
+import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import {
   isGeneratedSurfaceAction,
   resolveGeneratedEntityActions,
@@ -125,7 +126,6 @@ const instanceIdValue = computed(() => {
   return id ? String(id) : '';
 });
 const editorActionComponent = computed(() => instanceEditorActionFor(props.typeId));
-const forceIdentityForEditor = computed(() => instanceEditorForcesIdentity(props.typeId));
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 if (props.flush) {
   provide('displayedEntityContexts', computed(() => [

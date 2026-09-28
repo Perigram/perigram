@@ -118,6 +118,7 @@
             :is="editorActionComponent"
             v-if="editorActionComponent"
             :entity="entity"
+            :type-id="typeId"
             :open-in-workspace="openInWorkspace"
             @open-page="page => $emit('open-page', page)"
             @refresh="$emit('refresh')"

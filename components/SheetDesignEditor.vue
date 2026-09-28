@@ -1,6 +1,12 @@
 <template>
   <DesignerSurface>
     <DesignerWorkspace layout="lanes" class="h-full" :document-items="documentDockItems" :canvas-items="canvasDockItems">
+      <template #toolbar>
+        <span class="flex min-w-0 items-center gap-2 text-supporting">
+          <i class="pi pi-table shrink-0 text-muted" aria-hidden="true" />
+          <span class="truncate">{{ displayName }}</span>
+        </span>
+      </template>
       <div class="relative h-full w-full overflow-hidden">
       <svg
         ref="svgRef"
@@ -103,6 +109,38 @@
         </g>
       </svg>
       </div>
+
+      <Popover ref="dockMenu">
+        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
+          <InputText
+            v-if="dockPopoverPanel === 'rename'"
+            v-model="renameDraft"
+            :placeholder="$t('sheetDesign.sheetDesigns')"
+            class="w-full"
+            :aria-label="$t('common.rename')"
+            @keydown.enter.stop.prevent="applyRename"
+          />
+          <Select
+            v-else-if="dockPopoverPanel === 'open'"
+            :model-value="null"
+            :options="sheetOptions"
+            option-label="label"
+            option-value="value"
+            type-id="sheet-design"
+            :placeholder="$t('sheetDesign.editor')"
+            class="w-full"
+            @update:model-value="value => openDesignById(value)"
+          />
+          <Button
+            v-if="dockPopoverPanel === 'rename'"
+            icon="pi pi-check"
+            :label="$t('common.save')"
+            size="small"
+            :disabled="!renameDraft.trim()"
+            @click="applyRename"
+          />
+        </div>
+      </Popover>
     </DesignerWorkspace>
 
     <StandardDialog v-model:visible="addVisible" :header="$t('sheetDesign.addCassette')" size="md">
@@ -131,10 +169,14 @@ import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Popover from 'primevue/popover';
 import Select from '~/components/shared/InstanceSelect.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { hasPermissionGrant } from '#shared/access-control.js';
+import { useSnapshotHistory } from '~/composables/useSnapshotHistory.js';
 import CassetteEditorDialog from '~/components/CassetteEditorDialog.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
@@ -154,9 +196,24 @@ import {
 
 const documentDockItems = computed(() => [
   {
+    icon: 'pi pi-folder-open',
+    label: t('common.open'),
+    hasPopup: true,
+    disabled: !editable.value,
+    onClick: () => openDockPopover('open')
+  },
+  {
+    icon: 'pi pi-pencil',
+    label: t('common.rename'),
+    hasPopup: true,
+    disabled: !editable.value,
+    onClick: () => openDockPopover('rename')
+  },
+  { separator: true },
+  {
     icon: 'pi pi-save',
     label: t('common.save'),
-    disabled: !props.editable || saving.value,
+    disabled: !editable.value || saving.value,
     loading: saving.value,
     onClick: () => save()
   }
@@ -164,42 +221,81 @@ const documentDockItems = computed(() => [
 
 const canvasDockItems = computed(() => [
   {
+    icon: 'pi pi-undo',
+    label: t('common.undo'),
+    disabled: !canUndo.value,
+    onClick: () => layoutHistory.undo()
+  },
+  {
+    icon: 'pi pi-refresh',
+    label: t('common.redo'),
+    disabled: !canRedo.value,
+    onClick: () => layoutHistory.redo()
+  },
+  { separator: true },
+  {
+    icon: 'pi pi-search-minus',
+    label: t('drawing.zoomOut'),
+    onClick: () => zoomOut()
+  },
+  {
+    icon: 'pi pi-search-plus',
+    label: t('drawing.zoomIn'),
+    onClick: () => zoomIn()
+  },
+  {
+    icon: 'pi pi-times-circle',
+    label: t('drawing.resetView'),
+    onClick: () => resetZoom()
+  },
+  { separator: true },
+  {
     icon: 'pi pi-plus',
     label: t('sheetDesign.addCassette'),
-    disabled: !props.editable,
+    disabled: !editable.value,
     onClick: () => openAddDialog()
   },
   {
     icon: 'pi pi-upload',
     label: t('common.upload'),
-    disabled: !props.editable,
+    disabled: !editable.value,
     onClick: () => { uploadVisible.value = true; }
   },
   {
     icon: 'pi pi-refresh',
     label: t('common.rotate'),
-    disabled: !props.editable || selectedIndex.value < 0,
+    disabled: !editable.value || selectedIndex.value < 0,
     onClick: () => rotateSelected()
   },
   {
     icon: 'pi pi-trash',
     label: t('common.delete'),
-    disabled: !props.editable || selectedIndex.value < 0,
+    disabled: !editable.value || selectedIndex.value < 0,
     onClick: () => removeSelected()
   }
 ]);
 
 const props = defineProps({
-  design: { type: Object, required: true },
-  editable: { type: Boolean, default: false }
+  design: { type: Object, required: true }
 });
-const emit = defineEmits(['saved']);
+const emit = defineEmits(['saved', 'open-page', 'refresh']);
 const { t } = useI18n();
 const toast = useToast();
+const authStore = useAuthStore();
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
 const { standards } = storeToRefs(standardsStore);
 const { pens, systemPens } = storeToRefs(pensStore);
+
+// The editor resolves its own write grant: as a workspace page it has no
+// detail-host adapter to compute one, and degrades to view-only without it.
+const editable = computed(() => hasPermissionGrant({
+  permissions: authStore.activePermissions,
+  feature: 'sheet_designs',
+  level: 'write',
+  entity: props.design,
+  typeId: 'sheet_design'
+}));
 
 const svgRef = ref(null);
 const items = ref([]);
@@ -229,12 +325,21 @@ const toolKerf = computed(() => Math.max(Number(
 ) || 0, 0));
 const boundaryOffset = computed(() => Math.max(Number(solveEffective.value.machine?.boundaryOffset || 0), 0));
 const editorPadding = computed(() => Math.max(sheetWidth.value, sheetHeight.value) * 0.025);
-const editorViewBox = computed(() => [
-  -editorPadding.value,
-  -editorPadding.value,
-  sheetWidth.value + editorPadding.value * 2,
-  sheetHeight.value + editorPadding.value * 2
-].join(' '));
+// Zoom narrows the viewBox around the sheet center; placements stay in
+// sheet coordinates so zooming never rewrites geometry.
+const viewZoom = ref(1);
+const zoomIn = () => { viewZoom.value = Math.max(0.2, viewZoom.value / 1.25); };
+const zoomOut = () => { viewZoom.value = Math.min(8, viewZoom.value * 1.25); };
+const resetZoom = () => { viewZoom.value = 1; };const editorViewBox = computed(() => {
+  const width = (sheetWidth.value + editorPadding.value * 2) * viewZoom.value;
+  const height = (sheetHeight.value + editorPadding.value * 2) * viewZoom.value;
+  return [
+    sheetWidth.value / 2 - width / 2,
+    sheetHeight.value / 2 - height / 2,
+    width,
+    height
+  ].join(' ');
+});
 const majorGridSize = computed(() => {
   const target = Math.max(sheetWidth.value, sheetHeight.value) / 28;
   const scale = 10 ** Math.floor(Math.log10(Math.max(target, 1)));
@@ -274,14 +379,85 @@ onMounted(async () => {
   ]);
 });
 
+// Layout history: snapshots are the serialized placements; a design switch
+// re-baselines instead of undoing across documents.
+const layoutHistory = useSnapshotHistory({
+  snapshot: () => JSON.stringify(placedItems.value),
+  apply: (entry) => {
+    placedItems.value = JSON.parse(entry);
+    selectedIndex.value = -1;
+  }
+});
+const canUndo = layoutHistory.canUndo;
+const canRedo = layoutHistory.canRedo;
+
+// Document identity: a local rename override keeps the bar live until the
+// refreshed DTO arrives.
+const localName = ref('');
+const displayName = computed(() => localName.value || props.design.identity?.name || t('sheetDesign.editor'));
+
 function resetLayout() {
   const state = sheetLayoutState(props.design);
   items.value = state.items;
   placedItems.value = state.placedItems;
   selectedIndex.value = -1;
+  viewZoom.value = 1;
+  localName.value = '';
+  layoutHistory.reset();
 }
 
 watch(() => props.design._id, resetLayout, { immediate: true });
+
+const dockMenu = ref(null);
+const dockPopoverPanel = ref('rename');
+const renameDraft = ref('');
+const sheetOptions = ref([]);
+
+function openDockPopover(panel) {
+  dockPopoverPanel.value = panel;
+  if (panel === 'rename') renameDraft.value = displayName.value;
+  if (panel === 'open' && !sheetOptions.value.length) {
+    instances.listInstances(instances.canonicalTypeKey('sheet-design'), {})
+      .then(designs => {
+        sheetOptions.value = (Array.isArray(designs) ? designs : [])
+          .filter(design => String(design._id) !== String(props.design._id))
+          .map(design => ({
+            label: design.identity?.name || design.identity?.uid || design._id,
+            value: design._id?.toString(),
+            entity: design
+          }));
+      })
+      .catch(() => {});
+  }
+  dockMenu.value?.show?.();
+}
+
+function openDesignById(id) {
+  const option = sheetOptions.value.find(candidate => candidate.value === String(id));
+  dockMenu.value?.hide?.();
+  if (!option?.entity) return;
+  emit('open-page', { pageId: 'sheet-design-editor', entity: option.entity, typeId: 'sheet-design' });
+}
+
+async function applyRename() {
+  const name = renameDraft.value.trim();
+  if (!name || name === displayName.value) {
+    dockMenu.value?.hide?.();
+    return;
+  }
+  try {
+    await instances.mutateDirect(instances.canonicalTypeKey('sheet-design'), 'PATCH', {
+      id: props.design._id,
+      body: { identity: { name } },
+      meta: { change: 'updated', reason: 'sheet-design-rename' }
+    });
+    localName.value = name;
+    emit('refresh');
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+  }
+  dockMenu.value?.hide?.();
+}
 
 function placementKey(placement, index) {
   return placement.id || `${placement.item_id ?? placement.itemId ?? 'item'}-${index}`;
@@ -357,10 +533,11 @@ function sheetPoint(event) {
 }
 
 function startDrag(event, index) {
-  if (!props.editable) return;
+  if (!editable.value) return;
   const pointer = sheetPoint(event);
   const transform = sheetPlacementTransform(placedItems.value[index]);
   selectedIndex.value = index;
+  layoutHistory.commit();
   dragState.value = { index, pointerId: event.pointerId, dx: pointer.x - transform.x, dy: pointer.y - transform.y };
   svgRef.value?.setPointerCapture?.(event.pointerId);
 }
@@ -393,7 +570,8 @@ function finishDrag(event) {
 }
 
 function removePlacement(index) {
-  if (!props.editable || index < 0) return;
+  if (!editable.value || index < 0) return;
+  layoutHistory.commit();
   placedItems.value.splice(index, 1);
   selectedIndex.value = -1;
 }
@@ -403,7 +581,8 @@ function removeSelected() {
 }
 
 function rotateSelected() {
-  if (!props.editable || selectedIndex.value < 0) return;
+  if (!editable.value || selectedIndex.value < 0) return;
+  layoutHistory.commit();
   const rotated = rotateSheetPlacementQuarterTurn({
     items: items.value,
     placements: placedItems.value,
@@ -429,6 +608,7 @@ function addCassette(cassetteEntity) {
   const id = `manual-${cassetteEntity._id}-${Date.now()}-${items.value.length}`;
   const item = cassetteSheetItem(cassetteEntity, id);
   if (!item) return;
+  layoutHistory.commit();
   items.value.push(item);
   const start = clampSheetPlacement({
     x: boundaryOffset.value,

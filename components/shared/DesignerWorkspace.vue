@@ -9,10 +9,6 @@
     ]"
     :data-designer-layout="layout"
   >
-    <header v-if="$slots.toolbar" class="shrink-0">
-      <slot name="toolbar" />
-    </header>
-
     <!-- Lanes: the canvas is the workspace background, edge to edge; palette
          and inspector are floating rails docked over it. Panel visibility is
          workspace-owned: edge chevrons toggle the rails on wide hosts, while
@@ -58,14 +54,35 @@
          group. The wrapper spans the workspace but passes pointer events
          through its empty sides so the canvas stays interactive. -->
     <div
-      v-if="hasToolbarItems"
+      v-if="hasToolbarItems || $slots.toolbar"
       data-designer-toolbar
       class="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3"
     >
+      <!-- Document identity rides the toolbar line, left-anchored and
+           truncated, while the command toolbar stays centered. -->
+      <div
+        v-if="$slots.toolbar"
+        class="pointer-events-auto absolute left-3 top-0 flex min-w-0 max-w-[45%] items-center overflow-hidden"
+        data-designer-document
+      >
+        <slot name="toolbar" />
+      </div>
       <Toolbar :aria-label="$t('designer.toolbar')" class="pointer-events-auto max-w-full overflow-x-auto">
         <template #start>
           <template v-for="(item, index) in toolbarStartItems" :key="index">
             <Divider v-if="item.separator" layout="vertical" />
+            <ToggleButton
+              v-else-if="typeof item.pressed === 'boolean'"
+              v-tooltip.bottom="item.label"
+              :model-value="item.pressed"
+              :on-icon="item.icon"
+              :off-icon="item.icon"
+              on-label=""
+              off-label=""
+              :disabled="item.disabled"
+              :aria-label="item.label"
+              @update:model-value="value => item.onClick?.(value, $event)"
+            />
             <OverlayBadge v-else-if="item.attention">
               <Button v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
             </OverlayBadge>
@@ -75,6 +92,18 @@
         <template v-if="canvasItems.length" #end>
           <template v-for="(item, index) in canvasItems" :key="index">
             <Divider v-if="item.separator" layout="vertical" />
+            <ToggleButton
+              v-else-if="typeof item.pressed === 'boolean'"
+              v-tooltip.bottom="item.label"
+              :model-value="item.pressed"
+              :on-icon="item.icon"
+              :off-icon="item.icon"
+              on-label=""
+              off-label=""
+              :disabled="item.disabled"
+              :aria-label="item.label"
+              @update:model-value="value => item.onClick?.(value, $event)"
+            />
             <OverlayBadge v-else-if="item.attention">
               <Button v-bind="toolbarButtonProps(item)" v-tooltip.bottom="item.label" @click="item.onClick?.($event)" />
             </OverlayBadge>
@@ -126,6 +155,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import OverlayBadge from 'primevue/overlaybadge';
+import ToggleButton from 'primevue/togglebutton';
 import Toolbar from 'primevue/toolbar';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -201,22 +231,27 @@ const panelDockItems = computed(() => [
 
 const toolbarStartItems = computed(() => [...panelDockItems.value, ...props.documentItems]);
 
-const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0);
+const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0 || Boolean(slots.toolbar));
 
 // Toolbar items are plain data (icon class + label + handlers); the shared
 // props mapping below keeps every rendered button one vocabulary: the label
 // is the accessible name, `loading` swaps the icon for the PrimeVue spinner,
 // and `pressed` switches to the outlined variant with aria-pressed.
+// Toolbar items are plain data (icon class + label + handlers); the shared
+// props mapping below keeps every rendered button one vocabulary: the label
+// is the accessible name and `loading` swaps the icon for the PrimeVue
+// spinner. Items carrying a boolean `pressed` render as PrimeVue
+// ToggleButtons (the preset's own toggled state); everything else is a
+// plain icon button.
 function toolbarButtonProps(item) {
   return {
     icon: item.icon,
     severity: 'secondary',
-    variant: item.pressed ? 'outlined' : 'text',
+    variant: 'text',
     rounded: true,
     disabled: item.disabled,
     loading: item.loading,
     'aria-label': item.label,
-    ...(typeof item.pressed === 'boolean' ? { 'aria-pressed': item.pressed } : {}),
     ...(item.hasPopup ? { 'aria-haspopup': 'dialog' } : {})
   };
 }

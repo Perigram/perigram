@@ -29,7 +29,7 @@ export function useProcessDesignerCanvas({
   // nodes stay draggable; mouse hosts keep the Space-activated precision pan.
   const touchPanDrag = ref(false);
   let touchPointerQuery = null;
-  const { fitView, getViewport, setViewport, zoomIn, zoomOut, zoomTo } = useVueFlow();
+  const { fitView, getViewport, setViewport, viewport, zoomIn, zoomOut, zoomTo } = useVueFlow();
 
   onMounted(() => {
     window.addEventListener('keydown', handleCanvasKeydown);
@@ -223,6 +223,7 @@ export function useProcessDesignerCanvas({
     touchPanDrag,
     fitView,
     getViewport,
+    designerViewport: viewport,
     setViewport,
     handleDesignerPointerDown,
     handleDesignerFocus,
