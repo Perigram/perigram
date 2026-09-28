@@ -310,3 +310,25 @@ empty). The current node UI contract lives in
 `DesignerNodeCard`/`DesignerSocketHandle`); a redesign needs concrete
 direction (what the new system must express that the current
 shape/color/size vocabulary does not).
+
+## Canvas / BPMN (process designer)
+
+Plan of record (decisions, stage detail, acceptance):
+[`TODO-process-designer.md`](./TODO-process-designer.md) §P5. Docs-first:
+every stage rewrites the Node UI contract section before code.
+
+- [ ] V1: smoothstep edges + control-only arrowheads; ring sockets and
+  trigger rings on effect cards; species corner glyphs; de-fluff pass
+  (hover tooltips, quiet unselected cards)
+- [ ] V2: primacy inversion — event wires become the primary flow
+  (solid/dark/arrowed), data wires thin dashed, hue retreats to sockets
+- [ ] Lanes A: role lanes projected from grant records; declaration band
+  above the pool; hide-definitions toggle
+- [ ] Lanes B: placement-writes-grants — lane crossing edits the grant
+  record, membership always re-derived from grants
+- [ ] Auto-arrangement: derived-position diagram view, Tidy command,
+  hand-rolled layered pass (dagre only if defeated)
+- [ ] Decide control-species fate (if/fork/joins): target model or cut —
+  reserves the gateway diamond slot
+- [ ] Docs debt: reconcile the stale transition-node claims (no
+  `ctsTransition` node exists; state→state wires are `nested`)
