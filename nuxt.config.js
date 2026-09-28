@@ -41,13 +41,14 @@ export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
 
     // Home serves at the stable shell route '/home' — the canonical
-    // screen-contract constant. It is the screens route's alias: the
-    // screens renderer's documented fallback resolves an unresolvable key
-    // to the (compiled or sourceless) home screen, so the whole screens
-    // renderer serves '/home' without a duplicated page.
+    // screen-contract constant. It is the screens route's alias (matched
+    // by path): the screens renderer's documented fallback resolves an
+    // unresolvable key to the (compiled or sourceless) home screen, so
+    // the whole screens renderer serves '/home' without a duplicated
+    // page.
     hooks: {
         'pages:extend'(pages) {
-            const screensPage = pages.find(page => page.name === 'screens-screenKey');
+            const screensPage = pages.find(page => page.path === '/screens/:screenKey');
             if (screensPage) screensPage.alias = ['/home'];
         }
     },
