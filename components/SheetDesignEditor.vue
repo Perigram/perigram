@@ -1,6 +1,6 @@
 <template>
   <DesignerSurface>
-    <DesignerWorkspace layout="lanes" class="h-full" :document-items="documentDockItems" :document-title="displayName" :canvas-items="canvasDockItems">
+    <DesignerWorkspace layout="lanes" class="h-full" :document-items="documentDockItems" :canvas-items="canvasDockItems">
       <div class="relative h-full w-full overflow-hidden">
       <svg
         ref="svgRef"

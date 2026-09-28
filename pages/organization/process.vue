@@ -4,7 +4,6 @@
       <DesignerWorkspace
         ref="canvasFrame"
         :document-items="documentDockItems"
-        :document-title="activeName || $t('processDesigner.title')"
         :canvas-items="canvasDockItems"
         layout="canvas"
         class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
