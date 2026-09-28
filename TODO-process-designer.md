@@ -618,6 +618,33 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-29 constrained-relaxation rewrite; drop/embracing regression fixed
+
+Owner round: "nodes cover each other, not even trying to relax, evade
+intersections or minimize edge length" + "lane dropping and embracing
+its nodes don't work at all." A 400-graph randomized property harness
+against the previous pass proved the first claim (~60% of random
+graphs had card overlaps: secondaries landing on effect rows,
+declarations outside the collision system) and code reading found the
+second: slotIntoLane bailed whenever a band was tighter than
+inset+card+inset — every empty or single-member lane under count-based
+sizing — so most drops silently no-oped, and embracing only ever
+happened after Tidy. Rewrote y as a true constrained relaxation: every
+card settles to the median of its wired neighbors (flow AND
+declaration wires — the Σ|Δy| short-edge objective once columns are
+fixed), under hard constraints: every node lives in exactly one band
+(effects by grant, others by anchor, anchorless by nearest band) and
+per-column separation guarantees no two cards in a column overlap;
+band heights re-derive from content inside the loop. Separation ALWAYS
+runs after any clamp and the exit requires a no-move iteration, so an
+exit state is overlap-free (the clamp-after-separation ordering caused
+the first residue; islands outside the column grid caused the rest —
+islands now snap to the nearest column). Band heights in the page now
+floor at max(arranged height, live member-effect extent) so drops and
+drags keep bands embracing without a re-tidy. Property harness:
+/tmp/opencode/tidy-props.mjs (no NaN, no same-column overlap, no
+divider crossing, deterministic) — 400/400. Spec 19 cases.
+
 ### Agent Notes — 2026-09-28 lane bounds hug content + bezier revert
 
 Owner round: "not a graph relaxed well with reasonable constraints; lane

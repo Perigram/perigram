@@ -458,29 +458,24 @@ the draft dirty like any drag. The pass is the pure helper
   Columns read left-to-right along the event chain and the data spine
   alike.
 - **Every node lives in exactly one band** — effects by their grant,
-  secondaries and declarations by their anchor node's band — and the
-  whole pass computes in per-band relative coordinates, so no node can
-  cross a lane divider: a band's bounds are its content plus padding,
-  by construction.
-- **Effects: y = lane row, packed.** Columns process left-to-right; a
-  member takes the free row of its band nearest the median row of its
-  already-placed same-band flow neighbors, so a sequence continues
-  level and reads horizontally while same-column members stack
-  (parallel branches stack, chains flow level — the BPMN reading). A
-  member with no placed same-band neighbor takes the lowest free row.
-- **Secondary process nodes: y at their neighbors' median**, spread
-  within the column so cards clear each other and the fixed effect
-  rows; a node touching no effect keeps its authored y.
-- **Declarations never flow**: a cluster anchors one column left of
-  the nearest process node its type wires touch and stacks around it.
-  A declaration island bound to no process node keeps its authored
-  position.
-- **Band geometry is arrangement-derived**: the pass stacks the bands
-  in role order and sizes each to its content extent plus a small
-  padding (empty roles keep the minimum height), returning the
-  geometry beside the positions. The canvas adopts the arranged
-  geometry until membership or roles change re-derive the count-based
-  fallback; membership itself always re-derives from grants.
+  secondaries and declarations by their anchor node's band, and a node
+  with no anchor at all by the band nearest its authored position — so
+  no node can cross a lane divider: a band's bounds are its content
+  plus padding, by construction.
+- **y = constrained relaxation.** Cards settle iteratively: each card
+  moves to the median of its wired neighbors' y (flow and declaration
+  wires alike — minimizing Σ|Δy| along wires, the short-edge/low-
+  crossing objective once columns are fixed), then hard constraints
+  win: clamp inside the band, then per-column separation so no two
+  cards in a column ever overlap, then band heights re-derive from
+  content and the bands restack. The relaxation runs to a stable
+  state (bounded, deterministic, idempotent).
+- **Band geometry is arrangement-derived**: each band sizes to its
+  content extent plus a small padding (empty roles keep the minimum
+  height), and the canvas floors rendered heights by the member
+  effects' live extent so drops and drags keep bands embracing their
+  cards without a re-tidy; membership itself always re-derives from
+  grants.
 
 ### Card behavior details
 
