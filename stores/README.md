@@ -15,6 +15,11 @@ Three cells; every surface derives from them, nothing else caches:
   open surface. All reads flow through it: `fetchInstance` (single endpoint
   with list-and-find fallback, so no expected 403/404 probes),
   `listInstances`, `upsertRecord`/`removeRecord` for event application.
+  Optional-reference lookups (`resolveReadableReference`) fall back to the
+  directory card for the framework party types (`user`, `organization`),
+  so cross-tenant references resolve to their name-level card instead of
+  an id chip (see
+  [the directory feature](../server/features/directory/README.md)).
   Mutations go through it too: `runAction` posts process actions to the
   active-process action endpoint via the offline outbox (idempotent replay),
   and `mutateDirect` serves the framework/party/editor feature endpoints the
