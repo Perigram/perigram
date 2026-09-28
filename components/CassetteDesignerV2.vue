@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :document-items="documentDockItems" :document-title="cassetteNameDraft || $t('cassette.newCassette')" :canvas-items="canvasDockItems">
+    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :document-items="documentDockItems" :canvas-items="canvasDockItems">
 
       <template #palette>
       <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
