@@ -209,6 +209,24 @@ Used by `<StateHistory>` component.
 
 ---
 
+## useSnapshotHistory
+
+Snapshot undo/redo history shared by every editor that owns one (cassette
+designer, sketch, sheet layout). The caller supplies `snapshot()` (a JSON
+string of the edited state) and `apply(entry)` (restore); the composable
+owns the capped past/future stacks and the `canUndo`/`canRedo` gates.
+`commit()` records the pre-mutation baseline (a no-op when nothing
+changed), `sync()` re-baselines without a stack push (draft recovery,
+document switches use `reset()`), and the first post-mount change only
+syncs the baseline so async payload hydration never creates an undo step.
+
+```js
+const history = useSnapshotHistory({ snapshot, apply });
+history.commit(); // at mutation start
+```
+
+---
+
 ## useGeneratedScreen
 
 Generated home sources retain raw access-filtered list results and derive their

@@ -187,8 +187,7 @@ and `DesignerDialog` uses the same surface for dialog entry points.
 `layout="lanes"` is for editors with persistent side panels. The canvas is
 the workspace background, edge to edge — never a boxed panel beside the
 rails — and the row floor keeps the layout visible even when a host breaks
-the bounded-height chain. Document identity (name, template) belongs in the
-`toolbar` slot above the canvas, canvas-level commands render through the
+the bounded-height chain. Canvas-level commands render through the
 floating toolbar's canvas group (`canvas-items` prop), and rail content
 composes as plain
 labeled sections — one-line parameter rows and one-line layer rows —
@@ -204,25 +203,31 @@ and utility items); the **end group** carries canvas and content commands
 (`canvas-items` prop). Every canvas-capable designer exposes the same
 first-level zoom cluster in the canvas group (zoom out, zoom in, reset/fit —
 plus frame selection on graph canvases), undo/redo where the editor owns a
-history, and content operations with the destructive item last in its
-group; DrawingCanvas hides its internal zoom cluster in designer mode and
-exposes the commands for the toolbar instead. The toolbar floats inside a
-full-width positioned wrapper on the exact top line of the panel rails with
-the same 12px canvas inset; the wrapper passes pointer events through its
-empty sides so it never blocks canvas interaction. Popups toggle on click
-and close on confirm, selection, or outside click — pickers and rename
-prompts use `Popover`.
+history (editors share `composables/useSnapshotHistory.js` instead of
+per-component stack code), and content operations with the destructive
+item last in its group; DrawingCanvas hides its internal zoom cluster in
+designer mode and exposes the commands for the toolbar instead. The
+toolbar floats inside a full-width positioned wrapper on the exact top
+line of the panel rails with the same 12px canvas inset; the wrapper
+passes pointer events through its empty sides so it never blocks canvas
+interaction. Document identity (the edited item's display name) rides the
+same top line through the `toolbar` slot, left-anchored and truncated
+beside the centered command toolbar. Popups toggle on click and close on
+confirm, selection, or outside click — pickers and rename prompts use
+`Popover`.
 
 Items are plain data —
 `{ icon, label, onClick, disabled?, loading?, pressed?, attention?, hasPopup?, separator? }`
 with `icon` a PrimeIcon class — rendered by the workspace as icon-only
-PrimeVue buttons: the label is the tooltip (`v-tooltip.bottom`) and the
+PrimeVue controls: the label is the tooltip (`v-tooltip.bottom`) and the
 accessible name, `loading` swaps the icon for PrimeVue's spinner,
-`attention` renders the overlay badge dot, `pressed` toggles the outlined
-variant with `aria-pressed`, and `hasPopup` sets `aria-haspopup="dialog"`
-for popover-hosting items. The former `MotionDock` chrome (proximity
-magnification, animated pill) is retired; `composables/useMotion.js`
-remains the motion library for its non-dock consumers.
+`attention` renders the overlay badge dot, items carrying a boolean
+`pressed` render as PrimeVue `ToggleButton`s (the preset's own toggled
+state, never a hand-rolled outlined button), and `hasPopup` sets
+`aria-haspopup="dialog"` for popover-hosting items. The former
+`MotionDock` chrome (proximity magnification, animated pill) is retired;
+`composables/useMotion.js` remains the motion library for its non-dock
+consumers.
 
 Panel visibility lives inside the toolbar's start group as its leading
 items: the

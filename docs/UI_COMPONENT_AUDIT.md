@@ -155,6 +155,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedcassettedesignerworkspacepage-vue` | `components/generated/GeneratedCassetteDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | compliant |
 | `ui-components-generated-generateddetailscreen-vue` | `components/generated/GeneratedDetailScreen.vue` | derived usage | remove:important-override (2) |
+| `ui-components-generated-generatededitorpageaction-vue` | `components/generated/GeneratedEditorPageAction.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfilepreview-vue` | `components/generated/GeneratedFilePreview.vue` | derived usage | compliant |
 | `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | centralize:layout (1); replace:chrome (1); remove:important-override (12) |
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
@@ -197,7 +198,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-designernodecard-vue` | `components/shared/DesignerNodeCard.vue` | derived usage | replace:chrome (6) |
 | `ui-components-shared-designersockethandle-vue` | `components/shared/DesignerSocketHandle.vue` | derived usage | replace:chrome (1); remove:important-override (7); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (5); replace:chrome (24); compliant:scoped-layout |
+| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (6); replace:chrome (25); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (10) |
 | `ui-components-shared-entitypopup-vue` | `components/shared/EntityPopup.vue` | derived usage | centralize:layout (1) |
 | `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
@@ -285,7 +286,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | replace:chrome (3); replace:inline-visual (1) |
 | `ui-pages-organization-partners-vue` | `pages/organization/partners.vue` | derived usage | replace:chrome (9); compliant:scoped-layout |
-| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (10); replace:inline-visual (1) |
+| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (10); replace:inline-visual (2) |
 | `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | replace:chrome (8); remove:state (1); compliant:scoped-layout |
 | `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | compliant |
