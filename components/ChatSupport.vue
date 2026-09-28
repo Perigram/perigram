@@ -591,28 +591,19 @@
                         />
                     </div>
 
-                    <!-- Instance target strip: lineage drill-down over ALL
-                         children of the current target. Breadcrumb-like pills
-                         walk back up; the chip row is the current level,
-                         exactly one target selected (the composed instance
-                         when no child is drilled). -->
+                    <!-- Instance target strip: lineage drill-down over all
+                         children of the current target. Icon-only breadcrumb
+                         pills walk back up, the chip row is the current
+                         level, and exactly one target is selected — the
+                         composed instance root, the deepest drilled lineage
+                         pill, or a drilled leaf chip. Minimal pill elements
+                         from semantic tokens: segmented PrimeVue chrome
+                         fights the composer density. -->
                     <div
                         v-if="activeConversation.conversationKind === 'instance' && (stripChildren.length || stripTrail.length)"
                         class="flex flex-col gap-1 pb-1"
                         data-testid="instance-target-strip"
                     >
-                        <!-- Instance target strip: dynamic breadcrumbs — the
-                             drilled lineage leads the same strip as icon-only
-                             pills (no text; tapping jumps back to that
-                             level), an angle marks the descent, and the
-                             siblings of the current level follow as chips.
-                             These are chips, not controls — segmented
-                             PrimeVue chrome (SelectButton/Breadcrumb) fights
-                             the composer density, so the strip renders
-                             minimal pill elements from the semantic tokens.
-                             Exactly one target is selected: the composed
-                             instance root, the deepest drilled lineage pill, or
-                             a drilled leaf chip. -->
                         <div class="flex items-center gap-1 overflow-x-auto">
                             <button
                                 type="button"
@@ -1539,11 +1530,9 @@ const handleMessagesScroll = () => {
     if (container.scrollTop <= 60) loadOlderMessages()
 }
 
-// Instance target strip: lineage drill-down. The strip lists ALL children of
-// the current target (composed entity, or the deepest drilled entity);
-// picking a child drills into it (the next message lands there), breadcrumbs
-// of lineage icons walk back up. Children load through the same containment
-// sources the sidebar uses.
+// Instance target strip: picking a child drills into it (the next message
+// lands there); children load through the same containment sources the
+// sidebar uses.
 const stripTrail = ref([])
 const stripChildrenByKey = ref(new Map())
 const stripLoadingKeys = ref(new Set())
@@ -1608,13 +1597,10 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
         })
         const loaded = await Promise.all(sources.map(async source => {
             try {
-                const instances = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
-                return (Array.isArray(instances) ? instances : []).map(entity => ({
+                const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
+                return (Array.isArray(entities) ? entities : []).map(entity => ({
                     key: `${source.typeId}:${stripInstanceId(entity)}`,
                     type: source.typeId,
-                    // Chips must carry the id explicitly: path-derived chips
-                    // already do, and selection (plus the sent instance link)
-                    // compares on it.
                     id: stripInstanceId(entity),
                     name: entity?.identity?.name || entity?.identity?.serial || stripInstanceId(entity) || source.typeId,
                     entity
@@ -1623,10 +1609,6 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
                 return []
             }
         }))
-        // The strip is a tree, not a flat ladder: only the lineage children
-        // of the current target ever become chips — an empty scoped load
-        // means the target has no children, never every child of that type
-        // across all parents.
         let merged = loaded.flat()
         const seen = new Set([targetKey])
         merged = merged.filter(item => {
