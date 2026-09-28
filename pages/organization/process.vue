@@ -1142,48 +1142,11 @@ const laneExtent = computed(() => {
   };
 });
 
-// The lane arrangement of EFFECT nodes: x order is preserved, members
-// stack in their authored y order inside their band. Every other node
-// keeps its authored position.
-function applyLaneProjection() {
-  const { bands, byPrimary, unassigned } = laneModel.value;
-  const laneOf = new Map();
-  for (const [roleId] of byPrimary) {
-    const band = bands.find(candidate => candidate.id === `role:${roleId}`);
-    if (band) laneOf.set(roleId, band);
-  }
-  const positioned = new Map();
-  const stackInto = (memberIds, band) => {
-    if (!band) return;
-    memberIds
-      .map(id => nodes.value.find(node => node.id === id))
-      .filter(Boolean)
-      .sort((left, right) => left.position.y - right.position.y)
-      .forEach((node, index) => {
-        positioned.set(node.id, { x: node.position.x, y: band.top + 24 + index * LANE_ROW_HEIGHT });
-      });
-  };
-  for (const [roleId, memberIds] of byPrimary) stackInto(memberIds, laneOf.get(roleId));
-  if (unassigned.length) stackInto(unassigned, bands.find(candidate => candidate.id === 'unassigned'));
-  nodes.value = nodes.value.map(node => (
-    positioned.has(node.id) ? { ...node, position: { ...positioned.get(node.id) } } : node
-  ));
-}
-
-// Re-project when the authorization shape changes (roles, primary
-// grants, effect counts) — not on drags: a position edit survives until
-// membership itself changes.
-const laneSignature = computed(() => JSON.stringify({
-  roles: Object.keys(organizationRoles.value),
-  grants: nodes.value
-    .filter(node => node.type === 'processNode' && isEffectNode(node))
-    .map(node => [node.id, effectPrimaryRoleId(node)])
-}));
-watch(laneSignature, () => applyLaneProjection());
-
 // Placement writes the grant (node UI contract "Lanes"): dropping an
 // effect in a role lane assigns that role; dropping it in the implicit
-// lane clears its grants. The lane IS the assignment — the inspector
+// lane clears its grants, and the card slots into that lane's free row
+// nearest the drop (the one automatic placement — stored positions are
+// otherwise authoritative). The lane IS the assignment — the inspector
 // keeps only per-grant levels.
 function onNodeDragStop({ node } = {}) {
   if (!node || node.type !== 'processNode' || !isEffectNode(node)) return;
@@ -1194,24 +1157,57 @@ function onNodeDragStop({ node } = {}) {
   const band = laneModel.value.bands.find(candidate => (
     candidate.kind === 'role' && centerY >= candidate.top && centerY < candidate.top + candidate.height
   ));
-  if (!band) {
-    // Dropped outside every lane: membership is unchanged; only restack.
-    applyLaneProjection();
-    return;
-  }
+  if (!band) return;
   const roleId = band.id === 'unassigned' ? null : band.id.slice('role:'.length);
   const record = draft.value?.data?.processNodes?.[node.data?.refId];
   if (!record) return;
   const previous = record.access?.grants || [];
-  if ((previous[0]?.roleId || null) === roleId) {
-    applyLaneProjection();
-    return;
-  }
+  if ((previous[0]?.roleId || null) === roleId) return;
   const level = (roleId && previous.find(grant => grant.roleId === roleId)?.level) || record.access?.level || 'write';
   record.access = normalizeDesignerAccess(
     roleId ? { level, grants: [{ roleId, level }] } : { level: 'write', grants: [] }
   );
+  slotIntoLane(node, band);
   syncNodeData();
+}
+
+// The band an effect belongs to by grants (laneModel's membership
+// semantics: a stale role id falls to the unassigned band).
+function laneOfEffect(node) {
+  const { bands, byPrimary } = laneModel.value;
+  const roleId = effectPrimaryRoleId(node);
+  const bandId = roleId && byPrimary.has(roleId) ? `role:${roleId}` : 'unassigned';
+  return bands.find(candidate => candidate.id === bandId) || null;
+}
+
+// Slot the dropped card into the lane it now belongs to: the free band
+// row nearest the drop y, keeping the drop x. Cards already in the lane
+// keep their positions; a crowded lane leaves the card where the author
+// dropped it.
+function slotIntoLane(node, band) {
+  const members = nodes.value.filter(candidate => (
+    candidate.id !== node.id
+    && candidate.type === 'processNode'
+    && isEffectNode(candidate)
+    && laneOfEffect(candidate) === band
+  ));
+  const occupied = members.map(member => {
+    const top = member.position?.y ?? 0;
+    return { top, bottom: top + (member.dimensions?.height || 140) };
+  });
+  const cardHeight = node.dimensions?.height || 140;
+  const free = [];
+  for (let index = 0; index <= members.length; index += 1) {
+    const y = band.top + 24 + index * LANE_ROW_HEIGHT;
+    if (occupied.every(range => y + cardHeight <= range.top || y >= range.bottom)) free.push(y);
+  }
+  if (!free.length) return;
+  const y = free.reduce((nearest, candidate) => (
+    Math.abs(candidate - node.position.y) < Math.abs(nearest - node.position.y) ? candidate : nearest
+  ), free[0]);
+  nodes.value = nodes.value.map(candidate => (
+    candidate.id === node.id ? { ...candidate, position: { x: candidate.position.x, y } } : candidate
+  ));
 }
 
 // The secondary toggle hides the secondary group (nodes and their wires)
