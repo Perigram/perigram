@@ -188,7 +188,7 @@ lifecycle status and a close affordance that appears only on tab hover or
 focus (its space stays reserved so labels do not shift), followed by a
 standalone add-tab control. The stripe is SINGLE-HOMED in
 `components/generated/GeneratedPaneHeader.vue`: every pane host mounts
-that one component — the row, its height (32px), and the control fill
+that one component — the row, its height (40px), and the control fill
 are defined once, never pasted into hosts (a host pasting its own
 header row is a defect even when visually identical). Every control in
 the stripe — close, add, and
