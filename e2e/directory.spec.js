@@ -60,7 +60,7 @@ test.describe('directory, invitations, partnerships', () => {
     const orgPayload = await orgSearch.json();
     const orgGroup = orgPayload.groups.find(group => group.type === 'organization');
     expect((orgGroup?.results || []).some(entry => entry._id === String(me.organizationId)))
-      .toBeTruthy('directory search must find the active organization by its name');
+      .toBeTruthy();
     record('directory organization search', { organizationName });
 
     // UI: the shell search opens the user's directory page. The generated
