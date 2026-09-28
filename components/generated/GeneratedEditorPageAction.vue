@@ -77,7 +77,11 @@ function openEditor() {
   }
   const mobile = typeof window !== 'undefined'
     && window.matchMedia?.('(max-width: 767px)')?.matches;
-  if (!mobile && openWorkspacePageFromChrome({ pageId: surface.value.surface })) return;
+  if (!mobile && openWorkspacePageFromChrome({
+    pageId: surface.value.surface,
+    entity: props.entity,
+    typeId: props.typeId
+  })) return;
   dialogVisible.value = true;
 }
 </script>

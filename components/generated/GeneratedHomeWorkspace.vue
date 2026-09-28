@@ -1063,9 +1063,9 @@ function openRequestedWorkspaceChat(event) {
 // the page-open seam.
 function openRequestedWorkspacePage(event) {
   event?.preventDefault?.();
-  const { pageId } = event?.detail || {};
+  const { pageId, entity, typeId } = event?.detail || {};
   if (!pageId) return;
-  openWorkspacePage({ pageId });
+  openWorkspacePage({ pageId, entity, typeId });
 }
 
 function openCallTab(room = '', meta = {}) {
