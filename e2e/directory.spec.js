@@ -52,14 +52,16 @@ test.describe('directory, invitations, partnerships', () => {
     record('directory user search', { found: found.identity.name, id: found._id });
 
     const me = await (await app.request.get('/api/auth/me')).json();
+    const organizationName = me.organizationData?.name || '';
+    expect(organizationName, 'e2e session must carry an active organization name').toBeTruthy();
     const orgSearch = await app.request.get('/api/directory/search', {
-      params: { q: 'E2E' }
+      params: { q: organizationName }
     });
     const orgPayload = await orgSearch.json();
     const orgGroup = orgPayload.groups.find(group => group.type === 'organization');
-    expect((orgGroup?.results || []).some(entry => entry.directory?.isMember === true || entry._id === String(me.organizationId)))
-      .toBeTruthy();
-    record('directory organization search', { results: (orgGroup?.results || []).length });
+    expect((orgGroup?.results || []).some(entry => entry._id === String(me.organizationId)))
+      .toBeTruthy('directory search must find the active organization by its name');
+    record('directory organization search', { organizationName });
 
     // UI: the shell search opens the user's directory page. The generated
     // home route owns its own sidebar and hides the desktop header, so the
@@ -84,6 +86,12 @@ test.describe('directory, invitations, partnerships', () => {
   test('inviting an existing user completes in a single handshake', async ({ app }) => {
     const { context, credentials } = await registerInvitedUser(app.page);
     app.trackCleanup(async () => { await context.dispose(); });
+    const inviteeIdValue = await inviteeId(context);
+    // Register the membership cleanup before any assertion: a failure mid
+    // flow must still remove the throwaway member from the organization.
+    app.trackCleanup(async () => {
+      await app.request.delete(`/api/users/${inviteeIdValue}`, { failOnStatusCode: false });
+    });
 
     const me = await (await app.request.get('/api/auth/me')).json();
     const organizationId = String(me.organizationId);
@@ -114,17 +122,12 @@ test.describe('directory, invitations, partnerships', () => {
     expect(membership?.status, 'accepting a targeted invitation makes the membership active directly').toBe('active');
     record('single handshake membership', { status: membership.status });
 
-    // The organization-side listing marks the invitation accepted.
+    // The organization-side active listing consumed the invitation: the
+    // one-time handshake is complete and the member table owns the user.
     const orgInvitations = await (await app.request.get(`/api/organizations/${organizationId}/invitations`)).json();
     const listed = orgInvitations.find(entry => entry._id === invitation._id);
-    expect(listed?.status).toBe('accepted');
-    record('organization sees accepted invitation', { status: listed.status });
-
-    // Cleanup: remove the throwaway member from the organization.
-    const inviteeIdValue = await inviteeId(context);
-    app.trackCleanup(async () => {
-      await app.request.delete(`/api/users/${inviteeIdValue}`, { failOnStatusCode: false });
-    });
+    expect(listed, 'accepted invitation must leave the active list').toBeUndefined();
+    record('organization invitation consumed', { remaining: orgInvitations.length });
 
     // UI: the invited user's profile shows no leftover invitations after accept.
     await app.gotoClient('/profile?tab=organizations');
