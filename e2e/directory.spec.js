@@ -199,8 +199,11 @@ test.describe('directory, invitations, partnerships', () => {
     await expect(app.page.locator('body')).toContainText(partnerOrg.identity?.name);
     await app.expectCleanRuntime();
 
-    // UI: the partner row opens the organization inside the home workspace
-    // (pane tab, no standalone org route).
+    // UI: partner rows open the organization inside the home workspace —
+    // search the partner name and open its row (pane tab, no standalone
+    // org route).
+    await app.page.locator('[data-testid="partner-search-input"]').fill(partnerOrg.identity?.name || 'E2E Partner Org');
+    await app.page.locator(`[data-partner-candidate="${partnerOrg._id}"]`).waitFor({ timeout: 10000 });
     await app.page.locator(`[data-partner-candidate="${partnerOrg._id}"]`).click();
     await app.page.locator('[data-home-workspace]').waitFor({ timeout: 15000 });
     await expect(app.page).not.toHaveURL(/\/organizations\//);
