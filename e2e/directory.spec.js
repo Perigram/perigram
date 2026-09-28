@@ -78,6 +78,13 @@ test.describe('directory, invitations, partnerships', () => {
     await app.expectCleanRuntime();
     record('cross-org DM from picker', { conversationKey: directThread.conversationKey });
 
+    // The chat header opens the counterpart's entity POPUP (user card),
+    // and the popup's open action expands into the in-home user pane.
+    await app.page.locator('[data-testid="chat-header-entity"]').click();
+    await app.page.locator('.p-popover:visible, [data-pc-name="popover"]:visible').first().waitFor({ timeout: 5000 }).catch(() => {});
+    await app.page.locator('body').getByText(credentials.name, { exact: false }).first().waitFor({ timeout: 5000 });
+    record('chat header entity popup', {});
+
     // Group participants are user-scope too: a group carrying the
     // cross-org persona is created and listed (org scope is org scope,
     // user scope is user scope).

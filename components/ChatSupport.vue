@@ -223,20 +223,45 @@
                     <div class="flex min-w-0 flex-1 flex-col">
                         <div class="flex min-w-0 items-center gap-1">
                             <h2 class="m-0 min-w-0 truncate text-section-heading">
-                                <!-- The instance thread title itself is the
-                                     open-instance link; the children-messages
-                                     toggle sits right beside it (inverted:
-                                     default shows the instance's own messages,
-                                     toggling includes the children). -->
-                                <Button
-                                    v-if="activeConversation.conversationKind === 'instance' && activeInstanceDetailRoute"
-                                    link
-                                    class="!p-0 text-left"
-                                    :aria-label="conversationLabel(activeConversation)"
-                                    @click="openInstanceFromThread"
+                                <!-- The thread title opens the entity popup
+                                     (user card for direct threads, instance
+                                     card for instance threads); the popup's
+                                     open action is the expand into a home
+                                     pane. -->
+                                <InstanceInlineRef
+                                    v-if="activeConversation.conversationKind === 'direct' && activeRecipientUserId"
+                                    type="user"
+                                    :id="activeRecipientUserId"
                                 >
-                                    {{ conversationLabel(activeConversation) }}
-                                </Button>
+                                    <template #trigger="{ toggle }">
+                                        <Button
+                                            link
+                                            class="!p-0 text-left"
+                                            data-testid="chat-header-entity"
+                                            :aria-label="conversationLabel(activeConversation)"
+                                            @click="toggle"
+                                        >
+                                            {{ conversationLabel(activeConversation) }}
+                                        </Button>
+                                    </template>
+                                </InstanceInlineRef>
+                                <InstanceInlineRef
+                                    v-else-if="activeConversation.conversationKind === 'instance' && activeConversation.instanceId"
+                                    :type="activeConversation.typeId"
+                                    :id="String(activeConversation.instanceId)"
+                                >
+                                    <template #trigger="{ toggle }">
+                                        <Button
+                                            link
+                                            class="!p-0 text-left"
+                                            data-testid="chat-header-entity"
+                                            :aria-label="conversationLabel(activeConversation)"
+                                            @click="toggle"
+                                        >
+                                            {{ conversationLabel(activeConversation) }}
+                                        </Button>
+                                    </template>
+                                </InstanceInlineRef>
                                 <template v-else>{{ conversationLabel(activeConversation) }}</template>
                             </h2>
                             <Button
@@ -1173,30 +1198,6 @@ const instanceConversationIcon = (conversation) => (
 
 // The instance thread title links into the instance surface: the generated
 // detail route when the process manifest exposes one.
-const activeInstanceDetailRoute = computed(() => {
-    const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'instance' || !conversation.instanceId) return null
-    return detailRouteForInstance({
-        entity: { _id: conversation.instanceId },
-        typeId: conversation.typeId,
-        screenKey: '',
-        manifest: authStore.screenManifest
-    }) || null
-})
-
-// Desktop opens the instance as a home-workspace tab; mobile keeps the detail
-// route.
-const openInstanceFromThread = () => {
-    const conversation = activeConversation.value
-    if (!conversation?.typeId || !conversation.instanceId) return
-    if (typeof window !== 'undefined'
-        && window.matchMedia?.('(max-width: 767px)')?.matches) {
-        if (activeInstanceDetailRoute.value) navigateTo(activeInstanceDetailRoute.value)
-        return
-    }
-    if (openInstanceInWorkspace({ typeId: conversation.typeId, instanceId: String(conversation.instanceId) })) return
-    if (activeInstanceDetailRoute.value) navigateTo(activeInstanceDetailRoute.value)
-}
 
 const groupParticipantIds = computed(() => (
     (activeConversation.value?.participants || []).map(String).filter(Boolean)
