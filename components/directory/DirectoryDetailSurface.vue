@@ -82,13 +82,17 @@
             size="small"
             @click="navigateTo('/profile')"
           />
+          <!-- Direct threads are server-gated to shared-organization (or
+               own) recipients, so the chat action stays within that
+               reach. -->
           <Button
-            v-if="!entry.directory?.isSelf"
+            v-if="canChat"
             icon="pi pi-comments"
             severity="secondary"
             outlined
             size="small"
             :aria-label="$t('support.openChat')"
+            data-testid="directory-user-chat"
             @click="openChat"
           />
           <Button
@@ -244,6 +248,12 @@ const canInvite = computed(() => Boolean(
   && !entry.value.directory?.sharesOrganization
   && activeOrganizationId.value
   && authStore.can('users', 'admin')
+));
+const canChat = computed(() => Boolean(
+  props.typeId === 'user'
+  && entry.value
+  && !entry.value.directory?.isSelf
+  && entry.value.directory?.sharesOrganization
 ));
 const canManagePartnerships = computed(() => Boolean(
   props.typeId === 'organization'

@@ -47,9 +47,8 @@
                     </div>
                 </div>
 
-                <!-- Right: Global search & User -->
+                <!-- Right: User -->
                 <div class="flex items-center gap-2 shrink-0">
-                    <GlobalSearch v-if="authStore.userIsSet" />
                     <div class="relative flex items-center" v-if="authStore.userIsSet">
                         <UserAccountMenu />
                     </div>
@@ -122,18 +121,6 @@
                         </Tab>
                     </TabList>
                 </Tabs>
-                <GlobalSearch v-if="authStore.userIsSet">
-                    <template #trigger="{ toggle }">
-                        <Button
-                            icon="pi pi-search"
-                            text
-                            rounded
-                            severity="secondary"
-                            :aria-label="$t('nav.search')"
-                            @click="toggle"
-                        />
-                    </template>
-                </GlobalSearch>
                 <UserAccountMenu v-if="authStore.userIsSet">
                     <template #trigger="{ toggle }">
                         <Button
@@ -194,7 +181,6 @@
     import ChatSupportDialog from '~/components/shared/ChatSupportDialog.vue';
     import ChatSupport from '~/components/ChatSupport.vue'
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
-    import GlobalSearch from '~/components/shared/GlobalSearch.vue'
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
     import IncomingCalls from '~/components/calls/IncomingCalls.vue'
     import CallFloatingWindow from '~/components/calls/CallFloatingWindow.vue'

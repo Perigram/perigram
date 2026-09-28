@@ -769,28 +769,46 @@
             <template #header>
                 <span>{{ $t('support.newChat') }}</span>
             </template>
-            <Listbox
-                :model-value="null"
-                :options="newChatUsers"
-                option-label="label"
-                option-value="value"
-                filter
-                :filter-placeholder="$t('common.search')"
-                :aria-label="$t('support.newChat')"
-                class="border-0"
-                @update:model-value="openNewChatUser"
-            >
-                <template #option="{ option }">
-                    <div class="flex min-w-0 items-center gap-2">
-                        <Avatar
-                            :label="String(option.label || '?').charAt(0).toUpperCase()"
-                            shape="circle"
-                            class="shrink-0 bg-subtle text-muted"
-                        />
-                        <span class="min-w-0 flex-1 truncate text-label">{{ option.label }}</span>
-                    </div>
-                </template>
-            </Listbox>
+            <div class="flex flex-col gap-3" data-testid="new-chat-picker">
+                <!-- The picker's own search: empty query keeps the
+                     organization-scoped list; a typed query searches the
+                     directory (name-only) with shared-organization users
+                     first — direct threads are only allowed within that
+                     reach, so farther results stay hidden. -->
+                <IconField>
+                    <InputIcon class="pi pi-search" />
+                    <InputText
+                        v-model="newChatSearch"
+                        type="text"
+                        class="w-full"
+                        :placeholder="$t('directory.searchPlaceholder')"
+                        data-testid="new-chat-search"
+                    />
+                </IconField>
+                <div v-if="newChatSearching" class="text-muted text-body">{{ $t('directory.searching') }}</div>
+                <Listbox
+                    v-else
+                    :model-value="null"
+                    :options="newChatOptions"
+                    option-label="label"
+                    option-value="value"
+                    :aria-label="$t('support.newChat')"
+                    class="border-0"
+                    @update:model-value="openNewChatUser"
+                >
+                    <template #option="{ option }">
+                        <div class="flex min-w-0 items-center gap-2">
+                            <Avatar
+                                :image="option.instance?.data?.avatarUrl || null"
+                                :label="!option.instance?.data?.avatarUrl ? String(option.label || '?').charAt(0).toUpperCase() : null"
+                                shape="circle"
+                                class="shrink-0 bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                            />
+                            <span class="min-w-0 flex-1 truncate text-label">{{ option.label }}</span>
+                        </div>
+                    </template>
+                </Listbox>
+            </div>
         </StandardDialog>
                 <StandardDialog
             v-model:visible="groupDialog"
@@ -918,6 +936,8 @@ import Divider from 'primevue/divider'
 import Listbox from 'primevue/listbox'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
 import Select from '~/components/shared/InstanceSelect.vue'
 import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue'
 import Textarea from 'primevue/textarea'
@@ -2251,11 +2271,6 @@ const removeInstanceRef = (targetRef) => {
     instanceRefs.value = instanceRefs.value.filter(ref => !(ref.type === targetRef.type && ref.id === targetRef.id))
 }
 
-const openNewChatDialog = async () => {
-    newChatDialog.value = true
-    await loadNewChatUsers()
-}
-
 const loadNewChatUsers = async () => {
     newChatUsersLoading.value = true
     try {
@@ -2270,9 +2285,63 @@ const loadNewChatUsers = async () => {
     }
 }
 
+// Directory search over the new-chat picker: the typed query searches
+// users by name (see server/features/directory/README.md) and keeps only
+// direct-thread-reachable results — the server admits direct
+// conversations for shared-organization (or own) recipients only.
+const newChatSearch = ref('')
+const newChatDirectoryOptions = ref([])
+const newChatSearching = ref(false)
+let newChatSearchTimer = null
+let newChatSearchSeq = 0
+const newChatOptions = computed(() => {
+    const query = newChatSearch.value.trim()
+    return query.length >= 2 ? newChatDirectoryOptions.value : newChatUsers.value
+})
+
+watch(newChatSearch, (value) => {
+    clearTimeout(newChatSearchTimer)
+    const query = value.trim()
+    if (query.length < 2) {
+        newChatDirectoryOptions.value = []
+        newChatSearching.value = false
+        return
+    }
+    newChatSearching.value = true
+    newChatSearchTimer = setTimeout(async () => {
+        const seq = ++newChatSearchSeq
+        try {
+            const response = await $fetch('/api/directory/search', {
+                query: { q: query, types: 'user' }
+            })
+            if (seq !== newChatSearchSeq) return
+            const entries = (response?.groups || []).flatMap(group => group.results || [])
+            newChatDirectoryOptions.value = entries
+                .filter(entry => entry.directory?.sharesOrganization || entry.directory?.isSelf)
+                .map(entry => ({
+                    type: 'user',
+                    value: entry._id,
+                    label: entry.identity?.name || entry._id,
+                    instance: entry
+                }))
+        } catch {
+            if (seq === newChatSearchSeq) newChatDirectoryOptions.value = []
+        } finally {
+            if (seq === newChatSearchSeq) newChatSearching.value = false
+        }
+    }, 300)
+})
+
+const openNewChatDialog = async () => {
+    newChatDialog.value = true
+    newChatSearch.value = ''
+    newChatDirectoryOptions.value = []
+    await loadNewChatUsers()
+}
+
 const openNewChatUser = (userId) => {
     if (!userId) return
-    const option = newChatUsers.value.find(item => item.value === userId)
+    const option = newChatOptions.value.find(item => item.value === userId)
     activeConversation.value = {
         conversationKey: directConversationKey(currentUserId.value, userId),
         conversationKind: 'direct',

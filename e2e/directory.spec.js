@@ -51,6 +51,17 @@ test.describe('directory, invitations, partnerships', () => {
     expect(JSON.stringify(found)).not.toContain('email', 'directory cards never carry email');
     record('directory user search', { found: found.identity.name, id: found._id });
 
+    // UI: the chats picker's directory search keeps its results within the
+    // direct-thread reach — this persona shares no organization yet, so
+    // the picker lists nothing for their name.
+    await app.gotoClient('/chats');
+    await app.page.locator('button:has(.pi-user-plus)').first().click();
+    await app.page.locator('[data-testid="new-chat-search"]').fill(credentials.name);
+    await app.page.waitForTimeout(1200);
+    await expect(app.page.locator('[data-testid="new-chat-picker"] li')).toHaveCount(0);
+    await app.expectCleanRuntime();
+    record('picker hides unreachable users', {});
+
     const me = await (await app.request.get('/api/auth/me')).json();
     const organizationName = me.organizationData?.name || '';
     expect(organizationName, 'e2e session must carry an active organization name').toBeTruthy();
@@ -62,34 +73,6 @@ test.describe('directory, invitations, partnerships', () => {
     expect((orgGroup?.results || []).some(entry => entry._id === String(me.organizationId)))
       .toBeTruthy();
     record('directory organization search', { organizationName });
-
-    // UI: the shell search opens the user INSIDE the home workspace — a
-    // pane tab, never a standalone route. The search entry is exercised
-    // from a header-bearing route (the home sidebar entry is covered by
-    // the sidebar contract).
-    await app.gotoClient('/profile');
-    await app.page.locator('[data-testid="global-search-trigger"]').first().click();
-    await app.page.locator('[data-testid="global-search-input"]').fill(credentials.name);
-    await app.page.locator(`[data-directory-result="user:${found._id}"]`).waitFor({ timeout: 10000 });
-    await app.page.locator(`[data-directory-result="user:${found._id}"]`).click();
-    // The workspace-open seam navigates home when home is not mounted and
-    // opens the directory pane tab there; the URL never becomes a
-    // /users/:id page route.
-    await app.page.locator('[data-home-workspace]').waitFor({ timeout: 15000 });
-    await expect(app.page).not.toHaveURL(/\/users\//);
-    await expect(app.page.locator('[data-directory-surface]')).toContainText(credentials.name);
-    await app.expectCleanRuntime();
-    record('global search UI -> home pane', { url: app.page.url() });
-
-    // The organization opens in-home too: search row click → pane tab.
-    await app.page.locator('[data-testid="global-search-trigger"]').first().click();
-    await app.page.locator('[data-testid="global-search-input"]').fill(organizationName);
-    await app.page.locator(`[data-directory-result="organization:${me.organizationId}"]`).waitFor({ timeout: 10000 });
-    await app.page.locator(`[data-directory-result="organization:${me.organizationId}"]`).click();
-    await app.page.waitForTimeout(1500);
-    await expect(app.page.locator('[data-directory-surface]')).toContainText(organizationName);
-    await app.expectCleanRuntime();
-    record('organization opens in home', { organizationId: String(me.organizationId) });
   });
 
   test('inviting an existing user completes in a single handshake', async ({ app }) => {
@@ -141,6 +124,32 @@ test.describe('directory, invitations, partnerships', () => {
     // UI: the invited user's profile shows no leftover invitations after accept.
     await app.gotoClient('/profile?tab=organizations');
     await expect(app.page.locator('body')).not.toContainText(credentials.name);
+    await app.expectCleanRuntime();
+
+    // Chats -> new with the now shared-org persona: the picker finds them
+    // by name, selecting opens the DIRECT thread, and the sent message
+    // lands in the inbox-listed conversation (the reported regression:
+    // user messages used to vanish into instance threads).
+    await app.gotoClient('/chats');
+    await app.page.locator('button:has(.pi-user-plus)').first().click();
+    await app.page.locator('[data-testid="new-chat-search"]').fill(credentials.name);
+    const personaOption = app.page.locator(`[data-testid="new-chat-picker"] li:has-text("${credentials.name}")`);
+    await personaOption.first().waitFor({ timeout: 10000 });
+    await personaOption.first().click();
+    const composer = app.page.locator('textarea:visible').last();
+    await composer.fill('directory e2e direct message');
+    await composer.press('Enter');
+    await app.page.waitForTimeout(1500);
+
+    const me = await (await app.request.get('/api/auth/me')).json();
+    const conversations = await (await app.request.get('/api/support/conversations')).json();
+    const directThread = (conversations || []).find(conversation => (
+      conversation.conversationKind === 'direct'
+      && (conversation.participants || []).map(String).includes(String(inviteeIdValue))
+    ));
+    expect(directThread, 'the sent message must create/list the direct conversation').toBeTruthy();
+    expect(String(directThread.lastMessage || '')).toContain('directory e2e direct message');
+    record('direct message from picker', { conversationKey: directThread.conversationKey });
     await app.expectCleanRuntime();
   });
 
