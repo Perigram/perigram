@@ -708,17 +708,21 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   raw JSON editors. Entity type helper text is shown only for `instanceId`
   selectors, not workflow-state selectors.
 - **`UserAccountMenu.vue`**: The single shared account control: a PrimeVue
-  popover with organization switching, theme toggle, profile, and
-  logout, plus a customizable trigger through the `#trigger` slot (default is
-  the round avatar button) and caller-injected leading actions through the
-  scoped `#items` slot (receives the popover's `hide`, so an injected action
-  can close the menu before opening another surface — the mobile app shell
-  uses this for its Add screen shortcut entry). Chats live in the dedicated
-  chats surfaces, not in this menu. The desktop navbar and the mobile bottom
-  panel
-  render it for the avatar/profile buttons, and the generated home workspace
-  sidebar renders the panel-style trigger. It only flips the `theme-mode`
-  cookie; the app layout applies the theme class.
+  popover whose account group LEADS with the inline profile surface —
+  avatar (upload/remove through the user avatar API), name, active
+  organization — followed by the theme toggle and logout; the
+  organizations group switches context IN PLACE (the workspace rehydrates;
+  nothing routes away — no Profile or Organization route entries remain).
+  The trigger is customizable through the scoped `#trigger` slot (default
+  is the round avatar button), and callers inject leading actions through
+  the scoped `#items` slot (receives the popover's `hide`, so an injected
+  action can close the menu before opening another surface — the mobile
+  app shell uses this for its Add screen shortcut entry). Chats live in
+  the dedicated chats surfaces, not in this menu. The desktop navbar and
+  the mobile bottom panel render it for the avatar/profile buttons, and
+  the generated home workspace sidebar renders the panel-style trigger.
+  It only flips the `theme-mode` cookie; the app layout applies the theme
+  class.
 - **`CommunicationMenu.vue`**: The Calls flyout: a popup PrimeVue
   `TieredMenu` listing every direct/group conversation that can be rung,
   toggled by the sidebar PanelMenu's always-present Calls row and anchored

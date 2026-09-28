@@ -228,8 +228,14 @@ action never runs a separate operational node merely to obtain its data output.
 Executable effects are represented only by their `processNode` canvas node.
 Compiler-derived action records are not projected as separate action nodes and
 are removed when the canvas is serialized.
-`validateRoundTrip()` verifies that `definition -> canvas -> definition` does
-not change process semantics before activation. Vue Flow node positions are
+`validateRoundTrip()` verifies round-trip STABILITY before activation: the
+normalized definition is cycled `definition -> canvas -> definition` TWICE,
+and the first-generation result must equal the second. Comparing the raw
+authored input demanded byte-stability of records persisted by older app
+versions, whose canvas nodes legitimately carry data (defaulted glyphs,
+authored severities) the paired records never materialized — a one-time
+normalization that wrongly refused every re-activation of a legacy
+process. Vue Flow node positions are
 presentation data; runtime behavior must come from the semantic records.
 Canvas projection identifies records by both node type and stable semantic
 reference. When a derived action and its executable effect share an id, the

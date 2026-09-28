@@ -227,7 +227,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-tableframe-vue` | `components/shared/TableFrame.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-threeviewport-vue` | `components/shared/ThreeViewport.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-typedsettingsform-vue` | `components/shared/TypedSettingsForm.vue` | derived usage | compliant |
-| `ui-components-shared-useraccountmenu-vue` | `components/shared/UserAccountMenu.vue` | derived usage | replace:chrome (4); remove:important-override (1) |
+| `ui-components-shared-useraccountmenu-vue` | `components/shared/UserAccountMenu.vue` | derived usage | replace:chrome (6); remove:important-override (1) |
 | `ui-components-shared-workspacelanes-vue` | `components/shared/WorkspaceLanes.vue` | derived usage | compliant |
 | `ui-components-shared-workspacesplitnode-vue` | `components/shared/WorkspaceSplitNode.vue` | derived usage | replace:chrome (3); remove:important-override (2) |
 | `ui-components-sheetdesigneditor-vue` | `components/SheetDesignEditor.vue` | derived usage | compliant |

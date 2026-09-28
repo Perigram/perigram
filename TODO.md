@@ -86,6 +86,19 @@ rule. Verified against the live data: 13 children, 4 parented → 9
 top-level rows, 4 hidden. Instances with NO parent stamp legitimately
 stay top-level (they were created outside the parent-scoped flow).
 
+### Agent Notes (2026-09-28, fifth pass — the activation blocker)
+
+THE ORG'S PROCESS COULD NOT BE RE-ACTIVATED AT ALL:
+`validateRoundTrip` compared the raw authored records against the rebuild
+and failed on one-time normalization drift (canvas nodes carry defaulted
+`glyph: null` / authored `severity` the paired records never
+materialized) — "Round-trip changed ctsTypes", every activation refused,
+including every draft derived from the legacy graph. The check now
+verifies SECOND-GENERATION stability (normalize once, then require the
+cycle to be idempotent): legacy processes activate again — verified by
+activating a verbatim clone of the org's own active definition. This also
+unblocks the per-state delete authoring (drafts can compile now).
+
 ### Agent Notes (2026-09-28, fourth pass — the actual deliverable)
 
 The real gap was that the PARENT tree-table never loaded children at
@@ -238,11 +251,14 @@ screen page dispatches through `openInstanceInWorkspace` for the
 workspace target. Organizations: REMOVED from the PanelMenu and the wrapped rail per owner
 directive (fourth pass). Switching lives in the footer account menu; the
 footer names the active organization. Browser-verified.
-NOT implemented: profile/settings as popups — the account popover keeps
-its Profile route entry; a settings surface does not exist yet and needs
-its own design pass. The same-tab create path was verified live only at
-the code level; the "not fixed" test round ran against the stale dev
-server.
+Profile implemented as the inline account surface (fifth pass): the
+account popover leads with avatar (upload/remove via the user avatar
+API), name, and active organization; theme and logout follow; the
+organizations group switches IN PLACE. No Profile or Organization route
+entries remain in the account control. A separate settings surface still
+does not exist (deferred). The same-tab create path was verified live
+only at the code level; the "not fixed" test round ran against the stale
+dev server.
 
 - [ ] Item page should be opened in popup, and surfaceheader (? or in appropriate place) needs slot
   (?) for injecting back button when opened in tab from other page, and close/expand buttons for
