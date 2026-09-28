@@ -6,42 +6,7 @@
            hide so they can close it before opening another surface. -->
       <slot name="items" :hide="hide" />
       <section v-for="group in menuItems" :key="group.label" class="flex flex-col gap-1">
-        <!-- The account group's identity IS its header — the avatar row
-             carries name and organization, so no text label repeats
-             above it. -->
-        <small v-if="!group.account" class="px-2 text-muted">{{ group.label }}</small>
-        <!-- The account group leads with the inline profile surface:
-             avatar, name, active organization — nothing routes away. -->
-        <div v-if="group.account" class="flex items-center gap-2 px-2 py-1">
-          <Avatar
-            :image="authStore.userData.avatarUrl || null"
-            :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
-            shape="circle"
-            size="large"
-            class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-          />
-          <div class="flex min-w-0 flex-1 flex-col">
-            <span class="truncate text-label">{{ authStore.userData.name || $t('common.user') }}</span>
-            <span v-if="activeOrganizationName" class="truncate text-supporting text-muted">{{ activeOrganizationName }}</span>
-          </div>
-          <div class="flex shrink-0 items-center gap-1">
-            <label class="p-button p-component p-button-text p-button-secondary p-button-rounded p-button-sm cursor-pointer overflow-hidden" :title="$t('common.upload')" :aria-label="$t('common.upload')">
-              <input type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
-              <i class="pi pi-camera" aria-hidden="true" />
-            </label>
-            <Button
-              v-if="authStore.userData.avatarUrl"
-              icon="pi pi-trash"
-              text
-              rounded
-              size="small"
-              severity="danger"
-              :aria-label="$t('common.delete')"
-              :loading="avatarBusy"
-              @click="removeAvatar"
-            />
-          </div>
-        </div>
+        <small class="px-2 text-muted">{{ group.label }}</small>
         <Button
           v-for="item in group.items"
           :key="item.label"
@@ -56,6 +21,49 @@
       </section>
     </div>
   </Popover>
+  <!-- Profile settings in a popup: avatar and language only — the
+       popover itself stays a plain menu. -->
+  <StandardDialog
+    v-model:visible="profileVisible"
+    :header="t('nav.profile')"
+    :show-default-footer="false"
+  >
+    <div class="flex w-80 flex-col gap-4">
+      <div class="flex items-center gap-3">
+        <Avatar
+          :image="authStore.userData.avatarUrl || null"
+          :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
+          shape="circle"
+          size="xlarge"
+          class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+        />
+        <div class="flex min-w-0 flex-1 flex-col">
+          <span class="truncate text-label">{{ authStore.userData.name || t('common.user') }}</span>
+          <div class="mt-1 flex items-center gap-1">
+            <label class="p-button p-component p-button-text p-button-secondary p-button-sm cursor-pointer overflow-hidden" :title="t('common.upload')" :aria-label="t('common.upload')">
+              <input type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
+              <i class="pi pi-camera" aria-hidden="true" />
+            </label>
+            <Button
+              v-if="authStore.userData.avatarUrl"
+              icon="pi pi-trash"
+              text
+              rounded
+              size="small"
+              severity="danger"
+              :aria-label="t('common.delete')"
+              :loading="avatarBusy"
+              @click="removeAvatar"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-muted text-supporting">{{ t('profile.language') }}</span>
+        <LanguageSwitcher />
+      </div>
+    </div>
+  </StandardDialog>
   <!-- The customizable trigger: the documented `#trigger` scoped slot
        (receives toggle/hide). The round avatar button is the fallback. -->
   <slot name="trigger" :toggle="toggle" :hide="hide">
@@ -84,6 +92,8 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Popover from 'primevue/popover';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import { useAuthStore } from '~/stores/auth';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js';
 
@@ -93,64 +103,7 @@ const router = useRouter();
 const { t } = useI18n();
 const authStore = useAuthStore();
 const menu = ref(null);
-
-const themeCookie = useCookie('theme-mode');
-const isDarkMode = computed(() => themeCookie.value === 'dark');
-const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon'));
-
-const menuItems = computed(() => {
-  const items = [];
-
-  if (authStore.userOrganizations.length) {
-    items.push({
-      label: t('profile.myOrganizations'),
-      items: authStore.userOrganizations.map(org => ({
-        label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
-        icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
-        // Switching stays in place: the workspace rehydrates its process
-        // data; nothing routes away.
-        command: async () => {
-          const organizationId = org._id?.toString() || org.id?.toString();
-          if (organizationId && organizationId !== authStore.userData.organizationId?.toString()) {
-            await authStore.switchOrganization(organizationId);
-          }
-        }
-      }))
-    });
-  }
-
-  items.push({
-    label: authStore.userData.name || t('common.user'),
-    // The inline account surface (avatar/name/org) leads this group.
-    account: true,
-    items: [
-      {
-        label: t('common.toggleTheme'),
-        icon: themeIcon.value,
-        command: toggleTheme
-      },
-      {
-        label: t('nav.logout'),
-        icon: 'pi pi-sign-out',
-        command: async () => {
-          await authStore.logout();
-          router.push('/auth/login');
-        }
-      }
-    ]
-  });
-
-  return items;
-});
-
-const activeOrganizationName = computed(() => {
-  const activeId = authStore.userData?.organizationId?.toString();
-  if (!activeId) return '';
-  const active = (authStore.userOrganizations || []).find(organization =>
-    (organization._id?.toString() || organization.id?.toString()) === activeId);
-  return active?.identity?.name || active?.name || '';
-});
-
+const profileVisible = ref(false);
 const avatarBusy = ref(false);
 
 async function uploadAvatar(event) {
@@ -181,6 +134,59 @@ async function removeAvatar() {
     avatarBusy.value = false;
   }
 }
+
+const themeCookie = useCookie('theme-mode');
+const isDarkMode = computed(() => themeCookie.value === 'dark');
+const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon'));
+
+const menuItems = computed(() => {
+  const items = [];
+
+  if (authStore.userOrganizations.length) {
+    items.push({
+      label: t('profile.myOrganizations'),
+      items: authStore.userOrganizations.map(org => ({
+        label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
+        icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
+        // Switching stays in place: the workspace rehydrates its process
+        // data; nothing routes away.
+        command: async () => {
+          const organizationId = org._id?.toString() || org.id?.toString();
+          if (organizationId && organizationId !== authStore.userData.organizationId?.toString()) {
+            await authStore.switchOrganization(organizationId);
+          }
+        }
+      }))
+    });
+  }
+
+  items.push({
+    label: authStore.userData.name || t('common.user'),
+    items: [
+      {
+        label: t('nav.profile'),
+        icon: 'pi pi-user',
+        command: () => { profileVisible.value = true; }
+      },
+      {
+        label: t('common.toggleTheme'),
+        icon: themeIcon.value,
+        command: toggleTheme
+      },
+      {
+        label: t('nav.logout'),
+        icon: 'pi pi-sign-out',
+        command: async () => {
+          await authStore.logout();
+          router.push('/auth/login');
+        }
+      }
+    ]
+  });
+
+  return items;
+});
+
 
 function toggle(event) {
   menu.value?.toggle(event);
