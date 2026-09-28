@@ -152,7 +152,7 @@
     </template>
   </div>
 
-  <Panel v-else-if="node.surfaceKind === 'list'" class="w-full !border-0" :pt="{ contentWrapper: { class: 'min-w-0' } }">
+  <Panel v-else-if="node.surfaceKind === 'list'" class="w-full !border-0" :pt="panelPt">
     <template #header>
       <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
