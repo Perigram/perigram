@@ -9,7 +9,19 @@
     :show-default-footer="false"
   >
     <template #header>
-      <span class="min-w-0 truncate text-label">{{ title }}</span>
+      <div class="flex w-full min-w-0 items-center justify-between gap-2 pr-6">
+        <span class="min-w-0 truncate text-label">{{ title }}</span>
+        <Button
+          icon="pi pi-external-link"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('common.expand')"
+          :title="$t('common.expand')"
+          @click="expand"
+        />
+      </div>
     </template>
     <div class="max-h-[70vh] overflow-y-auto">
       <DirectoryDetailSurface
@@ -28,21 +40,6 @@
         <StateBlock :message="$t('common.notAvailable')" />
       </div>
     </div>
-    <template #footer>
-      <Button
-        :label="$t('common.expand')"
-        icon="pi pi-external-link"
-        text
-        severity="secondary"
-        @click="expand"
-      />
-      <Button
-        :label="$t('common.close')"
-        text
-        severity="secondary"
-        @click="close"
-      />
-    </template>
   </StandardDialog>
 </template>
 
