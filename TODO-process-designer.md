@@ -618,6 +618,29 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-28 lane bounds hug content + bezier revert
+
+Owner round: "not a graph relaxed well with reasonable constraints; lane
+vertical bounds should be its nodes + little padding — now it doesn't
+even cover their nodes; node can't cross lane divider. Also, make wires
+bezier again." The relaxation reading is right: the pass is a
+constrained relaxation (every card settles at the median of its
+neighbors subject to lane bounds and no-overlap), and the missing
+constraints were the bounds themselves. Reworked the y pass to run in
+per-band RELATIVE coordinates: every node belongs to exactly one band
+(effects by grant; secondaries and declarations by their anchor
+effect's band), bands stack in role order and size to their content
+extent + 24px padding (empty roles keep the 150px minimum), so a node
+crossing a divider is impossible by construction and lane bounds hug
+their content. The pass now returns `{ positions, bands }`; the canvas
+adopts the arranged geometry until the band set changes (count-based
+fallback otherwise — membership stays grant-derived). The lane-changing
+drop clamps its slot inside the lane. Bezier wires: the V1 smoothstep
+cut is reverted by owner direction (decorate normalizes stored edges,
+no migration). Spec 18 cases incl. divider-crossing and content-hugging
+geometry; harness re-verified (chain stays level, no long-edge
+regressions).
+
 ### Agent Notes — 2026-09-28 tidy corrective: packed lane rows
 
 Owner report: "how it gets arranged by Y is still strange." Root cause:

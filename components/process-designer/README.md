@@ -332,7 +332,7 @@ construction, not per-card styling.
 | Socket color | transported payload family | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
 | Socket mark | the connection point (nothing else) | ONE uniform filled circle for every socket — color is the only socket channel. There is no shape vocabulary: no rings, diamonds, squares, or dot/outline variants. A trigger's manual-vs-wired state reads from whether a wire is attached, which a wire shows by existing. |
 | Wire line style | WHAT TRAVELS on the wire | solid = instances (entity payloads — the data spine between operations); dashed = values; dotted = events — the one wire family allowed color (`var(--p-primary-color)`); declaration bindings keep the demuted structure dashed family (`--ck-signal-structure-muted`) as the second association layer. Selected overrides to primary 3px. |
-| Wire geometry | chrome (readability) | smoothstep with a ~14px corner radius; NO markers anywhere — no arrowheads on any layer. Direction reads from the reading canon: handles on the left are inputs, handles on the right are outputs. |
+| Wire geometry | chrome (readability) | bezier (owner direction 2026-09-28, reverting the V1 smoothstep cut); NO markers anywhere — no arrowheads on any layer. Direction reads from the reading canon: handles on the left are inputs, handles on the right are outputs. |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
 
@@ -428,13 +428,16 @@ their wires) without deleting anything; `hidden` is runtime state and
 never persists. Lane arrangement is never automatic: stored positions are
 authoritative in the edit view, so loading a draft, editing grants in
 the inspector, nudging a card inside its own lane, and role-list
-changes never move anything (a role change can leave a card visually
-outside its derived band — re-drop it or run Tidy). The one automatic
-placement is the lane-changing drop itself: it writes the grant and
-slots the card into the target lane's free row nearest the drop,
-keeping the drop x. Membership always re-derives from grants, and
-position is presentation state — never authorization by itself.
-Left-to-right is the reading canon; Tidy owns bulk arrangement.
+changes never move anything. Band bounds hug their arranged content
+plus a small padding — after Tidy the canvas renders the arranged
+geometry, and no node can cross a lane divider; before any arrangement,
+or after membership changes, bands fall back to count-based sizing. The
+one automatic placement is the lane-changing drop itself: it writes the
+grant and slots the card into the target lane's free row nearest the
+drop, keeping the drop x and clamped inside the lane. Membership always
+re-derives from grants, and position is presentation state — never
+authorization by itself. Left-to-right is the reading canon; Tidy owns
+bulk arrangement.
 
 ### Auto-arrangement (Tidy)
 
@@ -454,22 +457,30 @@ the draft dirty like any drag. The pass is the pure helper
   source does not strand at the left edge behind empty columns.
   Columns read left-to-right along the event chain and the data spine
   alike.
+- **Every node lives in exactly one band** — effects by their grant,
+  secondaries and declarations by their anchor node's band — and the
+  whole pass computes in per-band relative coordinates, so no node can
+  cross a lane divider: a band's bounds are its content plus padding,
+  by construction.
 - **Effects: y = lane row, packed.** Columns process left-to-right; a
   member takes the free row of its band nearest the median row of its
   already-placed same-band flow neighbors, so a sequence continues
   level and reads horizontally while same-column members stack
   (parallel branches stack, chains flow level — the BPMN reading). A
   member with no placed same-band neighbor takes the lowest free row.
-  Band geometry stays grant-derived.
-- **Secondary process nodes: y at their neighbors' median.** They take
-  their flow column; their y is the median of their flow neighbors' y,
-  spread within the column so cards clear each other and the fixed
-  effect rows. A node with no flow neighbors keeps its authored y.
-- **Declaration nodes: no column of their own.** A declaration cluster
-  anchors one column left of the nearest process node its type wires
-  touch and stacks around it; a declaration island bound to no process
-  node keeps its authored position — the pass moves only what it can
-  arrange.
+- **Secondary process nodes: y at their neighbors' median**, spread
+  within the column so cards clear each other and the fixed effect
+  rows; a node touching no effect keeps its authored y.
+- **Declarations never flow**: a cluster anchors one column left of
+  the nearest process node its type wires touch and stacks around it.
+  A declaration island bound to no process node keeps its authored
+  position.
+- **Band geometry is arrangement-derived**: the pass stacks the bands
+  in role order and sizes each to its content extent plus a small
+  padding (empty roles keep the minimum height), returning the
+  geometry beside the positions. The canvas adopts the arranged
+  geometry until membership or roles change re-derive the count-based
+  fallback; membership itself always re-derives from grants.
 
 ### Card behavior details
 
