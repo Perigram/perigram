@@ -69,17 +69,6 @@
             :title="node.label"
             @click="openTypeScreen(node.data.screen)"
           />
-          <Button
-            v-if="authStore.userOrganizations && authStore.userOrganizations.length"
-            icon="pi pi-building"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('profile.myOrganizations')"
-            :title="$t('profile.myOrganizations')"
-            @click="event => wrappedOrgs?.toggle(event)"
-          />
         </nav>
 
         <!-- Expanded navigation is one raw PanelMenu: two communication
@@ -106,24 +95,6 @@
              sidebar branches so the wrapped rail reaches it too. -->
         <CommunicationMenu ref="callsFlyout" @start-call="startCallFromConversation" />
 
-        <!-- Wrapped-rail organization switching: the same in-place rows
-             the expanded panel lists, in a popover anchored at the icon.
-             Nothing routes away from home. -->
-        <Popover ref="wrappedOrgs">
-          <div class="flex w-56 flex-col gap-1 p-2">
-            <Button
-              v-for="organization in authStore.userOrganizations"
-              :key="organization._id || organization.id"
-              :label="organization.identity?.name || organization.name || organization.identity?.uid || String(organization._id || organization.id || '')"
-              :icon="(organization._id?.toString() || organization.id?.toString()) === authStore.userData?.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building'"
-              text
-              severity="secondary"
-              size="small"
-              class="w-full !justify-start"
-              @click="selectWrappedOrganization(organization)"
-            />
-          </div>
-        </Popover>
 
         <!-- Profile is its own bottom panel: the account trigger shows the
              user's actual name in the unwrapped state, the avatar alone in
@@ -215,7 +186,6 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
-import Popover from 'primevue/popover';
 import PanelMenu from 'primevue/panelmenu';
 import { useI18n } from 'vue-i18n';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
@@ -289,16 +259,6 @@ const paneTree = ref(defaultLeaf('pane-1'));
 const sidebarCollapsed = ref(false);
 const expandedKeys = ref({});
 const callsFlyout = ref(null);
-const wrappedOrgs = ref(null);
-
-// Wrapped-rail org switching happens in place: switch context and close
-// the popover; the workspace rehydrates its process data.
-async function selectWrappedOrganization(organization = {}) {
-  const id = organization._id?.toString() || organization.id?.toString();
-  wrappedOrgs.value?.hide?.();
-  if (!id || id === authStore.userData?.organizationId?.toString()) return;
-  await authStore.switchOrganization(id);
-}
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const openedScreenRefs = ref([]);
@@ -468,38 +428,8 @@ const visibleTypes = computed(() => {
 // workspace item for the #item slot.
 const sidebarMenuModel = computed(() => [
   ...communicationPanelModels(),
-  ...explorerNodes.value.map(node => typePanelItem(node)),
-  ...organizationPanelModels()
+  ...explorerNodes.value.map(node => typePanelItem(node))
 ]);
-
-// Organization switching lives in the sidebar itself (the home workspace
-// has no other org surface): one trailing panel lists the user's
-// organizations — the active one checked; selecting another switches
-// context IN PLACE (the workspace reloads its process data; nothing
-// routes away from home). The panel header expands the list only.
-function organizationPanelModels() {
-  const organizations = authStore.userOrganizations || [];
-  if (!organizations.length) return [];
-  return [{
-    key: 'organizations',
-    label: t('profile.myOrganizations'),
-    icon: 'pi pi-building',
-    headerClass: 'text-muted',
-    items: organizations.map(organization => {
-      const id = organization._id?.toString() || organization.id?.toString();
-      const active = Boolean(id) && id === authStore.userData?.organizationId?.toString();
-      return {
-        key: `organization:${id || 'unknown'}`,
-        icon: active ? 'pi pi-check text-status-success' : 'pi pi-building',
-        label: organization.identity?.name || organization.name || organization.identity?.uid || id,
-        class: 'text-muted',
-        command: async () => {
-          if (id && !active) await authStore.switchOrganization(id);
-        }
-      };
-    })
-  }];
-}
 
 // Menu selection follows the active pane's selected tab: a type screen
 // selects its type panel, an instance/detail/page tab selects its entity

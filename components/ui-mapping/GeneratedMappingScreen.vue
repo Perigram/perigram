@@ -17,6 +17,7 @@
             :instance-actions="instanceActionsByType"
             :patchable="patchable"
             :resolve-transitions="onFetchTransitions"
+            :load-type="onLoadType"
             embedded
             @run="openAction"
             @transition="executeTransition"
@@ -37,6 +38,7 @@
       :instance-actions="instanceActionsByType"
       :patchable="patchable"
       :resolve-transitions="onFetchTransitions"
+      :load-type="onLoadType"
       @run="openAction"
       @transition="executeTransition"
       @open="openInstance"
@@ -179,6 +181,9 @@ const props = defineProps({
   // `async (instance) => [{ to, intent, region }]` over the host's state
   // service — the same machine the transition buttons dispatch through.
   onFetchTransitions: { type: Function, default: null },
+  // Lazy child-type loader for hierarchical collections:
+  // `async (typeId) => screenInstance[]` over the host's instance store.
+  onLoadType: { type: Function, default: null },
   spacingScale: { type: Number, default: 1 }
 });
 

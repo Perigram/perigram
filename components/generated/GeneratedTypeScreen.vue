@@ -9,6 +9,7 @@
     :on-open="openInstance"
     :on-transition="runRuntimeTransition"
     :on-fetch-transitions="fetchBoardTransitions"
+    :on-load-type="loadTypeIntoPool"
   />
 </template>
 
@@ -120,6 +121,15 @@ async function runAction(action, data = {}, context = {}) {
 
 function openInstance(instance) {
   if (instance?.type && instance?.id) emit('open-instance', instance);
+}
+
+// Lazy child-type loader for the hierarchy projection: loads the child
+// type through the shared store and returns its projected pool rows.
+async function loadTypeIntoPool(typeId = '') {
+  const key = instances.canonicalTypeKey(typeId);
+  if (!key) return [];
+  await instances.listInstances(key);
+  return Object.values(instances.instancePool?.[key] || {});
 }
 
 // Runtime transitions on type surfaces dispatch exactly like the routed

@@ -9,6 +9,7 @@
     :on-transition="runRuntimeTransition"
     :on-transition-applied="applyTransitionSnapshot"
     :on-fetch-transitions="fetchBoardTransitions"
+    :on-load-type="loadTypeIntoPool"
     :runtime-transitions="runtimeTransitions"
     @instance-mounted="loadRuntimeTransitions"
     :on-open="openInstance"
@@ -205,6 +206,15 @@ async function runAction(action, data = {}, context = {}) {
 
 function openInstance(instance) {
   if (instance?.type && instance?.id) emit('open-instance', instance);
+}
+
+// Lazy child-type loader for the hierarchy projection: loads the child
+// type through the shared store and returns its projected pool rows.
+async function loadTypeIntoPool(typeId = '') {
+  const key = instances.canonicalTypeKey(typeId);
+  if (!key) return [];
+  await instances.listInstances(key);
+  return Object.values(instances.instancePool?.[key] || {});
 }
 
 // Detail edit patches persist through the generic instance update

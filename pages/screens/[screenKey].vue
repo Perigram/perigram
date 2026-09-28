@@ -20,6 +20,7 @@
         :on-transition="runRuntimeTransition"
         :on-transition-applied="applyTransitionSnapshot"
         :on-fetch-transitions="fetchTransitions"
+        :on-load-type="loadTypeIntoPool"
         :runtime-transitions="runtimeTransitions"
         @instance-mounted="loadRuntimeTransitions"
         :on-open="openInstance"
@@ -306,6 +307,16 @@ async function runGeneratedPatch({ instance, patch } = {}) {
 // screen (auto_<type>_detail) with the instance id in the route scope.
 // Types without a paired detail screen in the user manifest stay
 // non-navigable (silent no-op — the generator emits, the route decides).
+// Lazy child-type loader for the hierarchy projection: loads the child
+// type through the shared store (org-scoped, access-checked) and returns
+// its projected pool rows for nesting.
+async function loadTypeIntoPool(typeId = '') {
+  const key = instances.canonicalTypeKey(typeId);
+  if (!key) return [];
+  await instances.listInstances(key);
+  return Object.values(instances.instancePool?.[key] || {});
+}
+
 function openInstance(instance) {
   if (!instance?.type || !instance?.id) return;
   const detailKey = `auto_${instance.type}_detail`;

@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
@@ -60,7 +60,12 @@ const props = defineProps({
   bundle: { type: Object, default: null },
   // Per-type state policy map: the status column exists exactly when the
   // compiled process authored a state vocabulary for the type.
-  statePolicy: { type: Object, default: null }
+  statePolicy: { type: Object, default: null },
+  // Lazy child loading: `async (typeId) => screenInstance[]`. The tree is
+  // ONE containment view — parents come from the region source, children
+  // of the declared edges load through this seam when absent from the
+  // pool. The app owns the fetch (store); the generator stays pure.
+  loadType: { type: Function, default: null }
 });
 
 defineEmits(['open']);
@@ -78,6 +83,46 @@ const tablePt = {
 };
 
 const { te, t } = useI18n();
+
+// Declared child types of the region type: the containment edges the tree
+// renders, resolved from the bundle (never guessed from lineage spelling).
+const childTypeIds = computed(() => {
+  const ids = new Set();
+  for (const declaration of Object.values(props.type?.edges?.children || {})) {
+    for (const childTypeId of declaration?.types || []) ids.add(childTypeId);
+  }
+  return [...ids];
+});
+
+// Locally loaded children overlay the provided pool: the region source
+// carries the parents, the edges name the child types, and the loader
+// fills them once per type. Loaded rows are plain pool entries — nesting
+// and root scoping read them exactly like pool rows.
+const loadedChildren = ref({});
+const effectivePool = computed(() => {
+  const overlay = Object.fromEntries(Object.entries(loadedChildren.value)
+    .map(([typeId, byId]) => [typeId, { ...(props.pool[typeId] || {}), ...byId }]));
+  return { ...props.pool, ...overlay };
+});
+
+async function ensureChildTypes() {
+  if (!props.loadType) return;
+  for (const childTypeId of childTypeIds.value) {
+    if (props.pool[childTypeId] && Object.keys(props.pool[childTypeId]).length) continue;
+    if (loadedChildren.value[childTypeId]) continue;
+    try {
+      const rows = await props.loadType(childTypeId);
+      loadedChildren.value = {
+        ...loadedChildren.value,
+        [childTypeId]: Object.fromEntries((rows || []).filter(Boolean).map(row => [row.id, row]))
+      };
+    } catch {
+      loadedChildren.value = { ...loadedChildren.value, [childTypeId]: {} };
+    }
+  }
+}
+onMounted(ensureChildTypes);
+watch(() => [props.type?.id, props.loadType], ensureChildTypes);
 
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 const identityOf = instance => titleFor(instance, typesById.value[instance.type], { unnamedLabel: t('common.unnamed') });
@@ -100,10 +145,11 @@ const buildNode = (instance, seen = new Set()) => {
   if (seen.has(instance.id)) return null;
   const nextSeen = new Set([...seen, instance.id]);
   const type = typesById.value[instance.type];
-  // Children resolve through the shared hierarchy matcher: every children
-  // edge contributes instances whose lineage carries the edge's DECLARED
-  // lineageKey pointing here — never the edge's map key.
-  const children = childrenOfParent(type, props.pool, instance.id)
+  // Children resolve through the shared hierarchy matcher over the
+  // effective pool (region pool + lazily loaded child rows): every
+  // children edge contributes instances whose lineage carries the edge's
+  // DECLARED lineageKey pointing here — never the edge's map key.
+  const children = childrenOfParent(type, effectivePool.value, instance.id)
     .filter(child => !nextSeen.has(child.id));
   return {
     key: instance.id,
@@ -118,16 +164,15 @@ const buildNode = (instance, seen = new Set()) => {
   };
 };
 
-// Top-level rows are the structural roots: an instance whose declared
-// parent is loaded in the pool rides nested under it, never repeated at
-// the top level (the projection-level guarantee beside composeScreen's
-// source-level root scoping — pre-aggregated pools still render one
-// containment tree, not a flat pile).
-const nodes = computed(() => hierarchyRootInstances(props.instances, props.bundle, props.pool)
+const nodes = computed(() => hierarchyRootInstances(props.instances, props.bundle, effectivePool.value)
   .map(instance => buildNode(instance))
   .filter(Boolean));
 const collectKeys = node => [node.key, ...node.children.flatMap(collectKeys)];
-const expandedKeys = computed(() => Object.fromEntries(nodes.value.flatMap(collectKeys).map(key => [key, true])));
+// Roots expand once their children are known — the tree is the point of
+// this projection; deeper levels start collapsed.
+const expandedKeys = computed(() => Object.fromEntries(nodes.value
+  .flatMap(node => [node.key, ...node.children.map(child => child.key)])
+  .map(key => [key, true])));
 </script>
 
 <style scoped>

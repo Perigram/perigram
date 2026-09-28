@@ -82,6 +82,7 @@
         @open="emitOpen"
       />
       <HierarchyTable
+        :load-type="loadType"
         v-else-if="listLayout === 'tree-table'"
         :instances="filteredInstances"
         :type="node.type"
@@ -249,6 +250,7 @@
         @open="emitOpen"
       />
       <HierarchyTable
+        :load-type="loadType"
         v-else-if="listLayout === 'tree-table'"
         :instances="filteredInstances"
         :type="node.type"
@@ -494,6 +496,10 @@ const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
+  // Lazy child-type loader for the hierarchy projection (see
+  // HierarchyTable): `async (typeId) => screenInstance[]`, owned by the
+  // app host that owns the instance store.
+  loadType: { type: Function, default: null },
   depth: { type: Number, default: 0 },
   embedded: { type: Boolean, default: false },
   // Collection identities render as links when an instance-open handler
