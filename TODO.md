@@ -453,7 +453,7 @@ every stage rewrites the Node UI contract section before code.
   (`--p-text-muted-color`), hue retreats to sockets
 - [x] Lanes A: role lanes projected from grant records; declaration band
   above the pool; hide-definitions toggle
-- [ ] Lanes B: placement-writes-grants — lane crossing edits the grant
+- [x] Lanes B: placement-writes-grants — lane crossing edits the grant
   record, membership always re-derived from grants
 - [ ] Auto-arrangement: derived-position diagram view, Tidy command,
   hand-rolled layered pass (dagre only if defeated)
@@ -496,3 +496,30 @@ agent notes in [`TODO-process-designer.md`](./TODO-process-designer.md).
 Finding recorded there: activating a draft in the same request that
 created its role strips grant roleIds (org-config roles cache race) —
 needs its own task.
+
+### Agent Notes (2026-09-28 — lanes become the authorization surface)
+
+Owner round: "Primary border is awful" (operations now carry the
+primary-tinted surface `--ck-surface-primary`, borders uniform);
+"lanes should not cover canvas" (bands render at a negative z-index in
+the zoom-pane — a true background under nodes and wires, verified z
+-10 vs node z 0); the invented "Definitions" band label removed as
+sloP (lane titles are the org's own role names); "toggle buttons
+layouts are weird" (the merged chrome rendered pressed items as labeled
+61px ToggleButton chips — extracted `DesignerToolbarItems` with one
+icon-only 32×35 geometry for plain and toggled items alike, start/end
+duplication removed). Owner directive: "lanes should not be removable,
+it should replace role assignment in inspector" — the Lanes toggle is
+GONE, bands are permanent, and dropping an effect in a lane WRITES its
+grant (implicit lane clears grants; the inspector's role multiselect is
+deleted, per-grant levels stay; multi-role records paint a corridor
+across their lanes — no cloned nodes, no duplicated wires). Verified
+end-to-end live: drag construct → Admin lane → PATCH carries
+`[{roleId:'role_admin'}]` → draft stores it; corridor collapses.
+Two fixes found on the way: process-definition LIST summaries lacked
+`states.main`, so draft-only orgs opened an archived empty process
+instead of their draft (projection fixed); lane-drop membership reads
+the node CENTER (position is top-left — the corner lands a band above
+the drop). Deviation from the Lanes B plan text: extra roles are NOT
+inspector-editable anymore (the owner replaced role assignment
+outright); corridors display stored multi-grant records only.
