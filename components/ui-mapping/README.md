@@ -285,9 +285,16 @@ surface concerns:
   instance context — confirmation and dispatch stay upstream.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
   marker-per-entry with identity (link button under the `onOpen`
-  contract), inline scalar facts, and the type's
+  contract, trimmed at the timeline column's edge — the same bounded
+  identity-link recipe the tables use: `min-w-0 max-w-full` with a
+  truncating label, never an overflowing row), inline scalar facts, and
+  the type's
   primary long-text (or first structural) field as the entry body,
-  selected by type matcher (log entries). Past the shared page budget
+  selected by type matcher (log entries). The timeline is LEFT-ANCHORED:
+  the app renders no `#opposite` column, and the empty one PrimeVue
+  always renders is display:none'd through pt — otherwise it eats half
+  the row and wide unbreakable content pushes the separator, drifting
+  items' left borders out of alignment. Past the shared page budget
   the entries page through a standalone Paginator over `pageSlice`.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges

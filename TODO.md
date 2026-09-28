@@ -249,6 +249,19 @@ overflowed the stripe and clipped against the pane section's
 stripe control carries `!h-7 !w-7`. Browser-verified: all three
 controls measure exactly 28px, aligned to the stripe, nothing clipped.
 
+### Agent Notes (2026-09-28, third pass — the 24px rebuild)
+
+Owner follow-up: the 28px stripe still read too large and its content
+too small — the tab label rendered at the 16px body default (measured:
+label 24px line in a 28px strip) with 14px icons, so everything swam.
+All four pane hosts (GeneratedScreenPane, GeneratedInstanceFile,
+GeneratedWorkspacePage, and the empty-pane branch) rebuild the stripe at
+**h-6 (24px)**: tab labels render at the `text-label` role (the raw
+`text-sm` draft was rejected by the design-system guard — typography is
+role classes only), and every stripe control (close/add/pane-menu)
+carries `!h-6 !w-6`. Browser-verified after merge: stripe 24px, labels
+and controls filling it proportionally.
+
 - [x] Need to fix previews (exactly I can't see cassette preview in card)
 
 ### Agent Notes (2026-09-27)

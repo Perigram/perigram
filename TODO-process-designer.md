@@ -553,15 +553,16 @@ positional ever persists as authorization.
 
 ### V2 — the primacy inversion
 
-- [ ] Event wires: solid, `var(--p-text-color)` (the canvas's strongest
+- [x] Event wires: solid, `var(--p-text-color)` (the canvas's strongest
   ink, theme-adaptive), 2.5-3px, arrowed — the primary flow.
-- [ ] Data wires: thin, dashed, `var(--p-text-muted-color)` — the
+- [x] Data wires: thin, dashed, `var(--p-text-muted-color)` — the
   payload-family `--ck-signal-*` hue lives on socket handles only.
-- [ ] Declaration wires: dashed mid-tone, unchanged family.
-- [ ] Payload-family hue survives on socket handles only; wire styling
+- [x] Declaration wires: dashed mid-tone, unchanged family.
+- [x] Payload-family hue survives on socket handles only; wire styling
   encodes layer; selected stays primary.
-- [ ] Quiet-cards cutoff as principle: selected node = authoring
-  surface, unselected node = diagram element.
+- [x] Quiet-cards cutoff as principle: selected node = authoring
+  surface, unselected node = diagram element (with socket labels always
+  rendering — owner corrective 2026-09-28).
 
 ### Lanes A — projection (the rendering backbone)
 
@@ -614,9 +615,22 @@ prop). The docs-debt pass is done in the same commit family: the three
 `ctsTransition`-declaration passages in
 components/process-designer/README.md now state the real model (states
 are the declaration nodes; transitions are `cts.transition` process
-nodes; state→state wires are `nested`). Remaining P5: V2 primacy
-inversion, Lanes A/B, auto-arrangement, and the control-species fate
-decision.
+nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
+auto-arrangement, and the control-species fate decision.
+
+### Agent Notes — 2026-09-28 V1 corrective + V2 landed
+
+Owner review of V1: "socket labels disappeared" — the V1 de-fluff item
+that hid row labels on unselected nodes made the canvas unreadable.
+REVERTED by owner direction: socket labels always render (the quiet-card
+policy now carries that as an explicit rule). Same round shipped V2 (the
+primacy inversion) so the rework reads at a glance: the EVENT chain is
+the primary flow — solid `var(--p-text-color)` 2.5px arrowed; data wires
+are thin (1.5px) dashed `var(--p-text-muted-color)` associations;
+declaration wires stay dashed structure-toned; the payload-family hue
+lives on SOCKET HANDLES only; selected stays primary 3px
+(`WIRE_STYLES` replaces `WIRE_PATTERNS`; `sourcePortForEdge` is gone
+with it). Contract rewritten in the same pass (wire styling = LAYER).
 
 ### Adjacent track (record references — separate from the canvas)
 
