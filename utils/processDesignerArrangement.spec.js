@@ -34,15 +34,19 @@ describe('arrangeProcessGraph', () => {
     expect(arrange({ nodes: [], edges: [], effects: [], bandOfNodeId: new Map() }).size).toBe(0);
   });
 
-  it('returns nothing when no node is an effect (declaration-only graph)', () => {
+  it('seats a declaration-only graph inside lanes', () => {
     const nodes = [declarationNode('cls', 'ctsClass', 10, 20), declarationNode('fld', 'ctsField', 30, 40)];
-    const result = arrange({
+    const result = arrangeFull({
       nodes,
       edges: [{ source: 'fld', target: 'cls', role: 'type' }],
       effects: [],
       bandOfNodeId: new Map()
     });
-    expect(result.size).toBe(0);
+    for (const node of nodes) {
+      const point = result.positions.get(node.id);
+      const inside = result.bands.filter(band => point.y >= band.top && point.y + 96 <= band.top + band.height);
+      expect(inside).toHaveLength(1);
+    }
   });
 
   it('keeps flow direction: every acyclic flow edge reads left-to-right', () => {
@@ -293,14 +297,51 @@ describe('arrangeProcessGraph', () => {
     expect(result.get('src').x).toBeLessThan(result.get('read').x);
   });
 
-  it('keeps a downstream-less secondary node at its authored y', () => {
-    const result = arrange({
+  it('seats a chainless secondary inside a lane', () => {
+    const result = arrangeFull({
       nodes: [processNode('island', 12, 345), processNode('eff', 0, 0)],
       edges: [],
       effects: ['eff'],
       bandOfNodeId: new Map([['eff', BAND_A]])
     });
-    expect(result.get('island').y).toBe(345);
+    const point = result.positions.get('island');
+    const inside = result.bands.filter(band => point.y >= band.top && point.y + 140 <= band.top + band.height);
+    expect(inside).toHaveLength(1);
+  });
+
+  it('never overlaps cards in the same column', () => {
+    const nodes = [
+      processNode('eff', 0, 0),
+      processNode('src', 0, 0),
+      processNode('other', 0, 0),
+      declarationNode('cls', 'ctsClass', 0, 0)
+    ];
+    const result = arrangeFull({
+      nodes,
+      edges: [
+        { source: 'src', target: 'eff' },
+        { source: 'other', target: 'eff' },
+        { source: 'cls', target: 'eff', role: 'type' }
+      ],
+      effects: ['eff'],
+      bandOfNodeId: new Map([['eff', BAND_A]])
+    });
+    // src, other (both feeding eff, column 0) and the declaration (column
+    // 0) must stack clear of each other; eff itself is at column 1.
+    const byX = new Map();
+    for (const node of nodes) {
+      const point = result.positions.get(node.id);
+      const card = { id: node.id, y: point.y, h: node.type === 'processNode' ? 140 : 96 };
+      byX.set(point.x, [...(byX.get(point.x) || []), card]);
+    }
+    for (const cards of byX.values()) {
+      cards.sort((left, right) => left.y - right.y);
+      for (let index = 1; index < cards.length; index += 1) {
+        expect(cards[index].y).toBeGreaterThanOrEqual(cards[index - 1].y + cards[index - 1].h);
+      }
+    }
+    expect(byX.get(0).length).toBe(3);
+    expect(byX.get(420).length).toBe(1);
   });
 
   it('anchors a declaration cluster one column left of its bound process node', () => {
@@ -327,13 +368,13 @@ describe('arrangeProcessGraph', () => {
     expect(result.get('cls').x).toBe(result.get('fld').x);
   });
 
-  it('keeps a declaration island bound to no process node untouched', () => {
+  it('seats a declaration island inside a lane on the column grid', () => {
     const nodes = [
       declarationNode('isoCls', 'ctsClass', 41, 42),
       declarationNode('isoFld', 'ctsField', 43, 44),
       processNode('eff', 0, 0)
     ];
-    const result = arrange({
+    const result = arrangeFull({
       nodes,
       edges: [
         { source: 'isoFld', target: 'isoCls', role: 'type' }
@@ -341,8 +382,12 @@ describe('arrangeProcessGraph', () => {
       effects: ['eff'],
       bandOfNodeId: new Map([['eff', BAND_A]])
     });
-    expect(result.has('isoCls')).toBe(false);
-    expect(result.has('isoFld')).toBe(false);
+    for (const id of ['isoCls', 'isoFld']) {
+      const point = result.positions.get(id);
+      expect(point.x % 420).toBe(0);
+      const inside = result.bands.filter(band => point.y >= band.top && point.y + 96 <= band.top + band.height);
+      expect(inside).toHaveLength(1);
+    }
   });
 
   it('is deterministic and idempotent over its own output', () => {

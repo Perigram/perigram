@@ -1,26 +1,39 @@
 // Layered arrangement for the process canvas — the Tidy command's engine.
 // Contract (canonical): components/process-designer/README.md
 // "Auto-arrangement (Tidy)". Pure: nodes, edges, lane band membership in →
-// positions plus content-hugging band geometry out. Deterministic and
-// idempotent: every choice is a stable order or a selection from constant
-// inputs, so running the pass over its own output reproduces it.
+// positions plus content-hugging band geometry out.
+//
+// x is columnar (layering + pull-up; flow direction is preserved by
+// construction). y is a constrained relaxation run to a stable state:
+// each card settles to the median of its wired neighbors' y — the
+// short-edge objective once columns are fixed — under hard constraints:
+// every card stays inside its lane band, and no two cards in a column
+// overlap. Bounded passes and stable orders make it deterministic and
+// idempotent: running it over its own output moves nothing.
 const COLUMN_PITCH = 420;
 const LANE_ROW_HEIGHT = 170;
-const LANE_ROW_INSET = 24;
+const LANE_INSET = 24;
 const LANE_MIN_HEIGHT = 150;
 const LANE_PADDING = 24;
-const SECONDARY_GAP = 150;
-const DECLARATION_PITCH = 120;
+const COLUMN_GAP = 16;
 const PROCESS_CARD_HEIGHT = 140;
 const DECLARATION_CARD_HEIGHT = 96;
+const RELAX_PASSES = 24;
+const RELAX_OUTER = 6;
+const RELAX_EPSILON = 0.5;
 
 function isDeclaration(node) {
   return node?.type !== 'processNode';
 }
 
-function byAuthoredY(byId, left, right) {
-  return (byId.get(left).position?.y || 0) - (byId.get(right).position?.y || 0)
-    || (left < right ? -1 : left > right ? 1 : 0);
+function cardHeightOf(node) {
+  return isDeclaration(node) ? DECLARATION_CARD_HEIGHT : PROCESS_CARD_HEIGHT;
+}
+
+function medianOf(values) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[(sorted.length - 1) >> 1];
 }
 
 export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands = [], bandOfNodeId } = {}) {
@@ -62,9 +75,8 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
 
   // Pull pred-less nodes toward their first consumer: longest-path
   // layering strands a fresh source at the leftmost column even when its
-  // only consumer sits far right, producing long edges over empty
-  // columns. A pred-less node never depends on another node's layer, so
-  // one pass settles every pull.
+  // only consumer sits far right. A pred-less node never depends on
+  // another node's layer, so one pass settles every pull.
   for (const node of nodes) {
     if (isDeclaration(node)) continue;
     const id = node.id;
@@ -75,198 +87,8 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     if (cap > layer.get(id)) layer.set(id, cap);
   }
 
-  const columns = new Map();
-  for (const node of nodes) if (!isDeclaration(node)) columns.set(node.id, layer.get(node.id));
-
-  // The whole y pass runs in band-relative coordinates: every node is
-  // placed inside exactly one band (effects by grant, secondaries and
-  // declarations by their anchor), so band geometry derives from content
-  // and no node can cross a lane divider.
-  const bandIds = new Set(bands.map(band => band.id));
-  const bandOf = id => {
-    const band = bandOfNodeId?.get(id);
-    return band && bandIds.has(band.id) ? band : null;
-  };
-  const nodeBand = new Map();
-  const relY = new Map();
-  const absY = new Map();
-
-  // Effects: packed rows per band. Columns process left-to-right; a
-  // member takes the free row of its band nearest the median row of its
-  // already-placed same-band flow neighbors — a sequence continues level,
-  // and an unanchored member takes the lowest free row. Same-column
-  // members stack; rows are reused across columns.
-  for (const node of nodes) {
-    if (!effects.has(node.id)) continue;
-    const band = bandOf(node.id);
-    if (band) nodeBand.set(node.id, band);
-  }
-  const sameBandNeighbors = new Map();
-  for (const edge of processEdges) {
-    if (!nodeBand.has(edge.source) || !nodeBand.has(edge.target)) continue;
-    if (nodeBand.get(edge.source).id !== nodeBand.get(edge.target).id) continue;
-    for (const [from, to] of [[edge.source, edge.target], [edge.target, edge.source]]) {
-      if (!sameBandNeighbors.has(from)) sameBandNeighbors.set(from, []);
-      sameBandNeighbors.get(from).push(to);
-    }
-  }
-  const rows = new Map();
-  const columnBands = new Map();
-  for (const [id, band] of nodeBand) {
-    const column = layer.get(id);
-    if (!columnBands.has(column)) columnBands.set(column, []);
-    columnBands.get(column).push({ id, bandId: band.id });
-  }
-  const targetRow = id => {
-    const placed = (sameBandNeighbors.get(id) || []).filter(other => rows.has(other));
-    if (!placed.length) return null;
-    const sorted = placed.map(other => rows.get(other)).sort((left, right) => left - right);
-    return sorted[(sorted.length - 1) >> 1];
-  };
-  const bandRowColumns = new Map();
-  for (const column of [...columnBands.keys()].sort((left, right) => left - right)) {
-    const byBand = new Map();
-    for (const entry of columnBands.get(column)) {
-      if (!byBand.has(entry.bandId)) byBand.set(entry.bandId, []);
-      byBand.get(entry.bandId).push(entry);
-    }
-    for (const [bandId, entries] of byBand) {
-      if (!bandRowColumns.has(bandId)) bandRowColumns.set(bandId, []);
-      const rowColumns = bandRowColumns.get(bandId);
-      entries.sort((left, right) => {
-        const leftTarget = targetRow(left.id);
-        const rightTarget = targetRow(right.id);
-        return (leftTarget === null ? 1 : 0) - (rightTarget === null ? 1 : 0)
-          || (leftTarget ?? 0) - (rightTarget ?? 0)
-          || (left.id < right.id ? -1 : 1);
-      });
-      for (const entry of entries) {
-        const target = targetRow(entry.id);
-        let row = 0;
-        if (target === null) {
-          while ((rowColumns[row] || new Set()).has(column)) row += 1;
-        } else {
-          // Nearest free row to the target; on a tie, the upper row.
-          for (let distance = 0; ; distance += 1) {
-            const up = target - distance;
-            const down = target + distance;
-            if (up >= 0 && !(rowColumns[up] || new Set()).has(column)) { row = up; break; }
-            if (!(rowColumns[down] || new Set()).has(column)) { row = down; break; }
-          }
-        }
-        if (!rowColumns[row]) rowColumns[row] = new Set();
-        rowColumns[row].add(column);
-        rows.set(entry.id, row);
-      }
-    }
-  }
-  for (const [id] of nodeBand) {
-    if (rows.has(id)) relY.set(id, LANE_ROW_INSET + rows.get(id) * LANE_ROW_HEIGHT);
-  }
-
-  // Secondary process nodes: their band is their anchor effect's band
-  // (nearest downstream first); their relative y is the median of the
-  // effect rows they touch, spread within the column so cards clear each
-  // other and the fixed effect rows. Effect rows never depend on
-  // secondaries, so the targets are constants and the placement is
-  // idempotent. A node touching no effect keeps its authored y.
-  const neighborsOf = new Map();
-  for (const edge of processEdges) {
-    for (const [from, to] of [[edge.source, edge.target], [edge.target, edge.source]]) {
-      if (!neighborsOf.has(from)) neighborsOf.set(from, []);
-      neighborsOf.get(from).push(to);
-    }
-  }
-  const medianOf = values => {
-    if (!values.length) return null;
-    const sorted = [...values].sort((left, right) => left - right);
-    const middle = sorted.length >> 1;
-    return sorted.length % 2 ? sorted[middle] : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
-  };
-  // Nearest effect along a direction, walking through non-effect nodes;
-  // ties resolve to the leftmost layer, then id.
-  const nearestEffect = (id, walk) => {
-    const queue = [[id, 0]];
-    const seen = new Set([id]);
-    let best = null;
-    while (queue.length) {
-      const [current, hops] = queue.shift();
-      for (const next of walk.get(current) || []) {
-        if (seen.has(next)) continue;
-        seen.add(next);
-        if (effects.has(next)) {
-          if (!best || hops < best.hops
-            || (hops === best.hops && (layer.get(next) < layer.get(best.id)
-              || (layer.get(next) === layer.get(best.id) && next < best.id)))) {
-            best = { id: next, hops };
-          }
-          continue;
-        }
-        queue.push([next, hops + 1]);
-      }
-    }
-    return best?.id || null;
-  };
-  const effectAnchors = id => {
-    const ordered = [];
-    const push = anchor => {
-      if (anchor && rows.has(anchor) && !ordered.includes(anchor)) ordered.push(anchor);
-    };
-    push(nearestEffect(id, successors));
-    for (const other of neighborsOf.get(id) || []) if (effects.has(other)) push(other);
-    push(nearestEffect(id, predecessors));
-    return ordered;
-  };
-  const spreadGroups = new Map();
-  for (const node of nodes) {
-    if (isDeclaration(node) || effects.has(node.id)) continue;
-    const anchors = effectAnchors(node.id);
-    if (!anchors.length) {
-      absY.set(node.id, Math.round(node.position?.y || 0));
-      continue;
-    }
-    const band = nodeBand.get(anchors[0]);
-    if (!band) {
-      absY.set(node.id, Math.round(node.position?.y || 0));
-      continue;
-    }
-    nodeBand.set(node.id, band);
-    const key = `${layer.get(node.id)}|${band.id}`;
-    if (!spreadGroups.has(key)) spreadGroups.set(key, { column: layer.get(node.id), bandId: band.id, fixed: [], movable: [] });
-    spreadGroups.get(key).movable.push({ id: node.id, target: medianOf(anchors.map(anchor => relY.get(anchor))) });
-  }
-  for (const [id] of nodeBand) {
-    if (!effects.has(id) || !rows.has(id)) continue;
-    const key = `${layer.get(id)}|${nodeBand.get(id).id}`;
-    if (!spreadGroups.has(key)) spreadGroups.set(key, { column: layer.get(id), bandId: nodeBand.get(id).id, fixed: [], movable: [] });
-    spreadGroups.get(key).fixed.push({ id, target: relY.get(id) });
-  }
-  for (const key of [...spreadGroups.keys()].sort((left, right) => {
-    const [leftColumn] = left.split('|');
-    const [rightColumn] = right.split('|');
-    return Number(leftColumn) - Number(rightColumn);
-  })) {
-    const { fixed, movable } = spreadGroups.get(key);
-    const items = [
-      ...fixed.map(item => ({ ...item, fixed: true })),
-      ...movable.map(item => ({ ...item, fixed: false }))
-    ].sort((left, right) => left.target - right.target || byAuthoredY(byId, left.id, right.id));
-    let cursor = null;
-    for (const item of items) {
-      if (item.fixed) {
-        cursor = item.target;
-        continue;
-      }
-      const placed = cursor === null ? item.target : Math.max(item.target, cursor + SECONDARY_GAP);
-      relY.set(item.id, Math.round(placed));
-      cursor = placed;
-    }
-  }
-
-  // Declarations never flow: a cluster anchors one column left of the
-  // nearest process node its type wires touch and stacks around it, in
-  // that node's band. A declaration island bound to no process node (or
-  // anchored to a bandless one) is not moved.
+  // Declarations anchor one column left of the nearest process node their
+  // type wires touch; an unbound declaration island keeps its authored x.
   const typeNeighbors = new Map();
   for (const edge of edges) {
     if (edge.role !== 'type') continue;
@@ -295,43 +117,223 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     }
     return best;
   };
-  const declarationGroups = new Map();
+  const columns = new Map();
   for (const node of nodes) {
-    if (!isDeclaration(node)) continue;
+    if (!isDeclaration(node)) {
+      columns.set(node.id, layer.get(node.id));
+      continue;
+    }
     const anchor = declarationAnchor(node.id);
-    if (!anchor || !nodeBand.has(anchor)) continue;
-    if (!declarationGroups.has(anchor)) declarationGroups.set(anchor, []);
-    declarationGroups.get(anchor).push(node.id);
-  }
-  for (const [anchor, memberIds] of declarationGroups) {
-    memberIds.sort((left, right) => byAuthoredY(byId, left, right));
-    // Half a secondary gap off the secondary positions: declarations and
-    // secondaries sharing a column interleave instead of colliding.
-    const interleave = SECONDARY_GAP / 2;
-    memberIds.forEach((id, index) => {
-      columns.set(id, layer.get(anchor) - 1);
-      nodeBand.set(id, nodeBand.get(anchor));
-      relY.set(id, Math.round(relY.get(anchor)
-        + (index - (memberIds.length - 1) / 2) * DECLARATION_PITCH + interleave));
-    });
+    // Anchored declarations sit one column left of their anchor; an
+    // island snaps to the column grid nearest its authored x so the
+    // per-column separation owns it like every other card.
+    columns.set(node.id, anchor
+      ? layer.get(anchor) - 1
+      : Math.round((node.position?.x || 0) / COLUMN_PITCH));
   }
 
-  // Band geometry: content-hugging. Each band sizes to its content extent
-  // plus padding (empty bands keep the minimum) and the bands stack in
-  // their given order.
-  const cardHeightOf = id => (isDeclaration(byId.get(id)) ? DECLARATION_CARD_HEIGHT : PROCESS_CARD_HEIGHT);
-  const bandTops = new Map();
-  const geometry = [];
-  let top = 0;
-  for (const band of bands) {
-    const members = [...nodeBand.entries()].filter(([, memberBand]) => memberBand.id === band.id);
-    const bottom = members.length
-      ? Math.max(...members.map(([id]) => relY.get(id) + cardHeightOf(id)))
-      : 0;
-    const height = Math.max(LANE_MIN_HEIGHT, bottom + LANE_PADDING);
-    bandTops.set(band.id, top);
-    geometry.push({ ...band, top, height });
-    top += height;
+  // Band assignment: effects by grant; secondaries and declarations by
+  // their anchor node's band; anything without an anchor by the band
+  // nearest its authored position (a node may never cross a divider, so
+  // it must live in some band).
+  const bandIds = new Set(bands.map(band => band.id));
+  const grantedBand = id => {
+    const band = bandOfNodeId?.get(id);
+    return band && bandIds.has(band.id) ? band : null;
+  };
+  const nearestEffect = (id, walk) => {
+    const queue = [[id, 0]];
+    const seen = new Set([id]);
+    let best = null;
+    while (queue.length) {
+      const [current, hops] = queue.shift();
+      for (const next of walk.get(current) || []) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        if (effects.has(next)) {
+          if (!best || hops < best.hops
+            || (hops === best.hops && (layer.get(next) < layer.get(best.id)
+              || (layer.get(next) === layer.get(best.id) && next < best.id)))) {
+            best = { id: next, hops };
+          }
+          continue;
+        }
+        queue.push([next, hops + 1]);
+      }
+    }
+    return best?.id || null;
+  };
+  const nearestBand = node => {
+    if (!bands.length) return null;
+    const center = (node.position?.y || 0) + cardHeightOf(node) / 2;
+    let best = null;
+    for (const band of bands) {
+      const distance = center < band.top
+        ? band.top - center
+        : Math.max(0, center - (band.top + band.height));
+      if (!best || distance < best.distance) best = { band, distance };
+    }
+    return best.band;
+  };
+  const bandOf = new Map();
+  for (const node of nodes) {
+    if (effects.has(node.id)) {
+      const band = grantedBand(node.id);
+      if (band) bandOf.set(node.id, band);
+      continue;
+    }
+    if (!isDeclaration(node)) {
+      const downstream = nearestEffect(node.id, successors);
+      const anchor = grantedBand(downstream) ? downstream
+        : grantedBand(nearestEffect(node.id, predecessors)) ? nearestEffect(node.id, predecessors)
+          : null;
+      const band = anchor ? grantedBand(anchor) : nearestBand(node);
+      if (band) bandOf.set(node.id, band);
+      continue;
+    }
+    const anchor = declarationAnchor(node.id);
+    const band = (anchor && bandOf.get(anchor)) || nearestBand(node);
+    if (band) bandOf.set(node.id, band);
+  }
+
+  // Relaxation neighbors: every wire counts, flow and declaration alike.
+  const neighbors = new Map();
+  for (const edge of edges) {
+    if (!byId.has(edge.source) || !byId.has(edge.target)) continue;
+    for (const [from, to] of [[edge.source, edge.target], [edge.target, edge.source]]) {
+      if (!neighbors.has(from)) neighbors.set(from, []);
+      if (!neighbors.get(from).includes(to)) neighbors.get(from).push(to);
+    }
+  }
+
+  // Init: effects stack per band and column (one row per same-column
+  // member), secondaries start at the median of their anchor effects,
+  // declarations at their anchor; everything clamps into its band.
+  const y = new Map();
+  const bandRows = new Map();
+  for (const node of nodes) {
+    if (!effects.has(node.id) || !bandOf.has(node.id)) continue;
+    const band = bandOf.get(node.id);
+    const column = columns.get(node.id);
+    const key = `${band.id}|${column}`;
+    const row = bandRows.get(key) || 0;
+    bandRows.set(key, row + 1);
+    y.set(node.id, LANE_INSET + row * LANE_ROW_HEIGHT);
+  }
+  const bandGeometry = () => {
+    const heights = new Map();
+    for (const band of bands) heights.set(band.id, LANE_MIN_HEIGHT);
+    for (const node of nodes) {
+      const band = bandOf.get(node.id);
+      if (!band || !y.has(node.id)) continue;
+      const bottom = y.get(node.id) + cardHeightOf(node);
+      heights.set(band.id, Math.max(heights.get(band.id), bottom + LANE_PADDING));
+    }
+    const tops = new Map();
+    const geometry = [];
+    let top = 0;
+    for (const band of bands) {
+      const height = heights.get(band.id);
+      tops.set(band.id, top);
+      geometry.push({ ...band, top, height });
+      top += height;
+    }
+    return { tops, geometry };
+  };
+  const absoluteY = id => (bandOf.has(id) ? tops.get(bandOf.get(id).id) : 0) + (y.get(id) || 0);
+  const clampIntoBand = id => {
+    const band = bandOf.get(id);
+    if (!band || !y.has(id)) return 0;
+    const before = y.get(id);
+    const min = LANE_INSET;
+    const max = Math.max(min, tops.get(band.id) + bandHeights.get(band.id) - LANE_INSET - cardHeightOf(byId.get(id)));
+    y.set(id, Math.min(max, Math.max(min, before)));
+    return Math.abs(y.get(id) - before);
+  };
+  let { tops, geometry: initGeometry } = bandGeometry();
+  let bandHeights = new Map(initGeometry.map(band => [band.id, band.height]));
+  const anchorMedian = id => {
+    const anchors = (neighbors.get(id) || []).filter(other => effects.has(other) && y.has(other));
+    if (!anchors.length) return null;
+    return medianOf(anchors.map(other => absoluteY(other)));
+  };
+  for (const node of nodes) {
+    if (effects.has(node.id) || y.has(node.id)) continue;
+    const anchorNeighbor = (neighbors.get(node.id) || []).find(other => y.has(other));
+    const start = !isDeclaration(node) ? anchorMedian(node.id)
+      : anchorNeighbor !== undefined ? absoluteY(anchorNeighbor)
+        : (node.position?.y || 0);
+    if (start === null) {
+      y.set(node.id, node.position?.y || 0);
+    } else {
+      y.set(node.id, start - (bandOf.has(node.id) ? tops.get(bandOf.get(node.id).id) : 0));
+    }
+  }
+  for (const node of nodes) if (bandOf.has(node.id)) clampIntoBand(node.id);
+
+  // The relaxation: median moves clamped into the band, then per-column
+  // separation, then band heights re-derive from content and the bands
+  // restack. Repeat until stable (bounded).
+  const relaxOrder = [...nodes].map(node => node.id)
+    .sort((left, right) => (columns.get(left) ?? -1) - (columns.get(right) ?? -1) || (left < right ? -1 : 1));
+  const columnOf = id => columns.get(id) ?? null;
+  for (let outer = 0; outer < RELAX_OUTER; outer += 1) {
+    let moved = 0;
+    for (let pass = 0; pass < RELAX_PASSES; pass += 1) {
+      let passMoved = 0;
+      for (const id of relaxOrder) {
+        if (!y.has(id)) continue;
+        const target = medianOf((neighbors.get(id) || [])
+          .filter(other => y.has(other))
+          .map(other => absoluteY(other)));
+        if (target === null) continue;
+        const band = bandOf.get(id);
+        const before = y.get(id);
+        const relative = target - (band ? tops.get(band.id) : 0);
+        y.set(id, relative);
+        if (band) clampIntoBand(id);
+        passMoved += Math.abs(y.get(id) - before);
+      }
+      if (passMoved < RELAX_EPSILON) break;
+      moved += passMoved;
+    }
+    // Per-column separation: no two cards in a column overlap. This runs
+    // AFTER the clamped relaxation and nothing clamps afterwards — the
+    // exit condition requires a full iteration that moved nothing, so an
+    // exit state is always overlap-free.
+    const byColumn = new Map();
+    for (const node of nodes) {
+      if (!y.has(node.id) || columnOf(node.id) === null) continue;
+      const column = columnOf(node.id);
+      if (!byColumn.has(column)) byColumn.set(column, []);
+      byColumn.get(column).push(node);
+    }
+    for (const column of [...byColumn.keys()].sort((left, right) => left - right)) {
+      const items = byColumn.get(column)
+        .sort((left, right) => absoluteY(left.id) - absoluteY(right.id) || (left.id < right.id ? -1 : 1));
+      let previous = null;
+      for (const item of items) {
+        const band = bandOf.get(item.id);
+        const absolute = absoluteY(item.id);
+        if (previous !== null && absolute < previous.y + cardHeightOf(byId.get(previous.id)) + COLUMN_GAP) {
+          const pushed = previous.y + cardHeightOf(byId.get(previous.id)) + COLUMN_GAP;
+          y.set(item.id, pushed - (band ? tops.get(band.id) : 0));
+          moved += pushed - absolute;
+        }
+        previous = { id: item.id, y: absoluteY(item.id) };
+      }
+    }
+    // Band heights re-derive from (possibly separated) content and the
+    // bands restack; relative y makes top shifts transparent.
+    const previousTops = tops;
+    const { tops: newTops, geometry: newGeometry } = bandGeometry();
+    bandHeights = new Map(newGeometry.map(band => [band.id, band.height]));
+    tops = newTops;
+    let topsMoved = 0;
+    for (const band of newGeometry) {
+      if (previousTops.get(band.id) !== band.top) topsMoved += 1;
+    }
+    if (moved < RELAX_EPSILON && !topsMoved) break;
   }
 
   // Column normalization: declarations may sit one column left of the
@@ -341,16 +343,13 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
 
   const arranged = new Map();
   for (const node of nodes) {
-    if (!columns.has(node.id)) continue;
-    const band = nodeBand.get(node.id);
-    if (!band && !absY.has(node.id)) continue;
-    const y = band
-      ? bandTops.get(band.id) + relY.get(node.id)
-      : absY.get(node.id);
+    if (!y.has(node.id)) continue;
+    const band = bandOf.get(node.id);
+    const absolute = band ? tops.get(band.id) + y.get(node.id) : y.get(node.id);
     arranged.set(node.id, {
-      x: (columns.get(node.id) + shift) * COLUMN_PITCH,
-      y
+      x: Math.round((columns.get(node.id) + shift) * COLUMN_PITCH),
+      y: Math.round(absolute)
     });
   }
-  return { positions: arranged, bands: geometry };
+  return { positions: arranged, bands: bandGeometry().geometry };
 }

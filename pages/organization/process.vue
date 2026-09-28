@@ -1045,6 +1045,7 @@ const documentDockItems = computed(() => [
 // effect in a lane assigns that role (implicit lane clears grants).
 const secondaryHidden = ref(false);
 const LANE_ROW_HEIGHT = 170;
+const LANE_ROW_INSET = 24;
 const LANE_MIN_HEIGHT = 150;
 // lg operation card width (DesignerNodeCard `w-72`) — the corridor column.
 const LANE_CORRIDOR_WIDTH = 288;
@@ -1072,8 +1073,10 @@ function effectPrimaryRoleId(node) {
   return record?.access?.grants?.[0]?.roleId || null;
 }
 
-// Band geometry: arranged (content-hugging) when fresh, count-based
-// fallback otherwise. Membership reads grants only.
+// Band geometry: heights floor at the arranged (Tidy) height AND the
+// live extent of the member effects, so bands always embrace their
+// cards — drops and drags included — without a re-tidy. Membership
+// reads grants only.
 const laneModel = computed(() => {
   const roleIds = Object.keys(organizationRoles.value);
   const byPrimary = new Map(roleIds.map(roleId => [roleId, []]));
@@ -1084,7 +1087,14 @@ const laneModel = computed(() => {
     if (roleId && byPrimary.has(roleId)) byPrimary.get(roleId).push(node.id);
     else unassigned.push(node.id);
   }
-  const bands = [];
+  const arrangedHeight = new Map((arrangedBands.value || []).map(band => [band.id, band.height]));
+  const positionOf = new Map(nodes.value.map(node => [node.id, node.position || { x: 0, y: 0 }]));
+  const memberExtent = memberIds => {
+    const tops = memberIds.map(id => positionOf.get(id)?.y).filter(Number.isFinite);
+    if (!tops.length) return 0;
+    const bottoms = memberIds.map(id => (positionOf.get(id)?.y || 0) + LANE_ROW_HEIGHT - LANE_ROW_INSET);
+    return Math.max(...bottoms) - Math.min(...tops) + 2 * LANE_ROW_INSET;
+  };  const bands = [];
   let top = 0;
   for (const roleId of roleIds) {
     const members = byPrimary.get(roleId) || [];
@@ -1093,7 +1103,7 @@ const laneModel = computed(() => {
       kind: 'role',
       label: organizationRoles.value[roleId]?.label || '',
       top,
-      height: Math.max(LANE_MIN_HEIGHT, members.length * LANE_ROW_HEIGHT)
+      height: Math.max(LANE_MIN_HEIGHT, arrangedHeight.get(`role:${roleId}`) || 0, memberExtent(members))
     });
     top += bands[bands.length - 1].height;
   }
@@ -1103,21 +1113,11 @@ const laneModel = computed(() => {
       kind: 'role',
       label: '',
       top,
-      height: Math.max(LANE_MIN_HEIGHT, unassigned.length * LANE_ROW_HEIGHT)
+      height: Math.max(LANE_MIN_HEIGHT, arrangedHeight.get('unassigned') || 0, memberExtent(unassigned))
     });
     top += bands[bands.length - 1].height;
   }
-  const arranged = arrangedBands.value;
-  if (arranged && arranged.map(band => band.id).join('|') === bands.map(band => band.id).join('|')) {
-    bands.forEach((band, index) => {
-      band.top = arranged[index].top;
-      band.height = arranged[index].height;
-    });
-  }
-  const totalHeight = bands.length
-    ? bands[bands.length - 1].top + bands[bands.length - 1].height
-    : 0;
-  return { bands, byPrimary, unassigned, totalHeight };
+  return { bands, byPrimary, unassigned, totalHeight: top };
 });
 
 const laneBands = computed(() => laneModel.value.bands);
@@ -1212,8 +1212,7 @@ function slotIntoLane(node, band) {
   });
   const cardHeight = node.dimensions?.height || 140;
   const minY = band.top + 24;
-  const maxY = band.top + band.height - 24 - cardHeight;
-  if (maxY < minY) return;
+  const maxY = Math.max(minY, band.top + band.height - 24 - cardHeight);
   const free = [];
   for (let index = 0; index <= members.length; index += 1) {
     const y = band.top + 24 + index * LANE_ROW_HEIGHT;
