@@ -27,6 +27,18 @@ fixed it). Verified live after the restart with a throwaway repro org.
 Second-pass addition: plain edit renders icon-only (pencil) in both
 families.
 
+### Agent Notes (2026-09-28, third pass)
+
+Also icon-only: the record header Edit toggle (see the pane-header
+notes) and the plain-update action in both families.
+
+### Agent Notes (2026-09-28, third pass)
+
+The remaining "edit with text" was the record header's Edit toggle
+(`SurfaceHeader`): it rendered a labeled `Edit`/`Save` button. Now
+icon-only (pencil/check) with the localized label as tooltip/aria.
+Browser-verified on a detail surface.
+
 - [x] In wrapped home sidebar (panelmenu) need to preserve order: chats and calls (missing now)
   first
 
@@ -85,6 +97,17 @@ The first round's "not fixed" was the stale dev server: verified live
 after restart that `/api/auth/organizations` returns the org docs and
 the footer/panel resolve from them.
 
+### Agent Notes (2026-09-28, third pass — the real avatar bug)
+
+`UserAccountMenu` documented a `#trigger` slot but implemented an
+UNNAMED default slot — every `#trigger` caller (the home footer, even
+the mobile shell's icon trigger) silently got the default avatar
+button. The slot is now actually named `trigger`; browser-verified: the
+footer renders avatar + name + active organization. Bonus: the server
+`/api/auth/organizations` now also derives the org list from
+`lineage.organizationId` (older/owner accounts carry the link there and
+got an empty list before).
+
 - [x] In state popup, need to reverse events order (latest is on top)
 
 ### Agent Notes (2026-09-27)
@@ -111,6 +134,16 @@ screen's `uiMappingConfirm` group host is unchanged.)
 The "not fixed" round ran against the stale dev server (the layout host
 was not live). After `docker restart cutkit_app_dev` the tree has exactly
 one default-group host.
+
+### Agent Notes (2026-09-28, third pass — the actual doubling mechanism)
+
+The grouping itself was the second bug: every mounted
+`GeneratedMappingScreen` carried its own `ConfirmDialog
+group="uiMappingConfirm"`, and the home workspace mounts several screens
+(tabs/panes) at once — one grouped require rendered a dialog in EVERY
+mounted host. The group is gone: screens mount no confirm host at all
+and all `confirm.require` calls are ungrouped against the single
+app-layout default host, so doubling is impossible by construction.
 
 - [x] Pane header should be a bit smaller, tab headers stripe should fill it's height (including
   pane controls on right). Close tab button should appear only on hover. 
@@ -155,6 +188,13 @@ single-homed in `utils/drawingPreview.js`) was added so parametric
 templates render too. If blank cassettes should not exist, that is a
 creation-flow question, not a preview one.
 
+### Agent Notes (2026-09-28, third pass)
+
+Re-verified the served bundle after the server restart: the cassette
+`previewSource` carries all three fallbacks live; the OCCS-definition
+channel renders through the canvas occs-cassette source
+(`PreviewBox`), detector single-homed in `utils/drawingPreview.js`.
+
 - [ ] Galleries are weird: it appears for data that doesn't have visual fields (images, previews
   idk), and has no fields listed (probably it's ok if previews are there); also probably can have
   micro-chips w/ identity fields (if any, check cts) as triggers 
@@ -182,7 +222,10 @@ screen (orgs without one keep the routed detail destination); the routed
 screen page dispatches through `openInstanceInWorkspace` for the
 workspace target. Organizations implemented: a trailing Organizations
 panel in the home PanelMenu lists the user's organizations (active
-checked; selecting another switches context and opens the overview).
+checked); selecting another switches context IN PLACE — nothing routes
+away from home (third pass removed the overview navigation; the wrapped
+rail's org icon opens an in-place switching popover).
+Browser-verified.
 NOT implemented: profile/settings as popups — the account popover keeps
 its Profile route entry; a settings surface does not exist yet and needs
 its own design pass. The same-tab create path was verified live only at

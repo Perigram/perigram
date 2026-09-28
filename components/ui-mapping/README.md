@@ -133,10 +133,11 @@ surface concerns:
   `planActionLaunch` (see the shared README's Actions section): a create
   with construction inputs always opens the dialog — grant level never
   replaces the form with a bare confirmation. The screen hosts its own
-  `<Toast />` and `<ConfirmDialog group="uiMappingConfirm" />` elements —
-  without them in the tree the toast/confirm services fire into nothing
-  (the module-imports spec also fails on imported-but-unrendered
-  components).
+  `<Toast />` element — without it in the tree the toast service fires
+  into nothing (the module-imports spec also fails on imported-but-
+  unrendered components). Confirmations use NO group: the app layout owns
+  the single default-group `ConfirmDialog` host, so several concurrently
+  mounted screens can never render one require multiple times.
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
   `card-grid` | `timeline` | `stats` | `list` | `board` | `gantt` |
