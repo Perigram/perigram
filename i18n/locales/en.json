@@ -1562,10 +1562,12 @@
     "myInvitations": "Invitations",
     "invitationAccepted": "You joined the organization",
     "invitationDeclined": "Invitation declined",
-    "invitationState.invited": "Invited",
-    "invitationState.accepted": "Accepted",
-    "invitationState.declined": "Declined",
-    "invitationState.expired": "Expired"
+    "invitationState": {
+      "invited": "Invited",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "expired": "Expired"
+    }
   },
   "roles": {
     "ManufacturerAdmin": "Manufacturer Admin",
@@ -3352,12 +3354,12 @@
     "requestReceived": "Partnership request",
     "terminate": "Terminate",
     "cancelConfirm": "End the partnership with this organization?",
-    "alreadyMember": "Your organization"
-  },
-  "partnerships.status": {
-    "pending": "Pending",
-    "active": "Active",
-    "declined": "Declined",
-    "terminated": "Terminated"
+    "alreadyMember": "Your organization",
+    "status": {
+      "pending": "Pending",
+      "active": "Active",
+      "declined": "Declined",
+      "terminated": "Terminated"
+    }
   }
 }

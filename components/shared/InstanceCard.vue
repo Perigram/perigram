@@ -134,30 +134,36 @@
     <Popover v-if="variant === 'inline' || variant === 'compact'" ref="op">
         <div class="w-[min(34rem,calc(100vw-3rem))]">
             <div class="flex flex-col gap-3 p-4">
-                <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                    <small v-if="inlineTypeLabel" class="uppercase text-muted text-supporting">
-                        {{ inlineTypeLabel }}
-                    </small>
-                    <InstanceState
-                        v-if="effectiveShowStatus"
-                        :instance="instance"
+                <!-- The popup identity block (type label, status, identity
+                     row, trace) is replaceable: cards with their own
+                     directory-grade face (user, organization) render the
+                     avatar-forward header and own the whole block. -->
+                <slot name="popup-identity">
+                    <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                        <small v-if="inlineTypeLabel" class="uppercase text-muted text-supporting">
+                            {{ inlineTypeLabel }}
+                        </small>
+                        <InstanceState
+                            v-if="effectiveShowStatus"
+                            :instance="instance"
+                            :type-id="typeId"
+                            variant="inline"
+                            :actions="stateActions"
+                            @refresh="$emit('refresh')"
+                            @transitioned="$emit('refresh')"
+                        />
+                    </div>
+                    <div class="flex min-w-0 items-center gap-2">
+                        <i v-if="instanceConfig.icon" :class="instanceConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                        <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
+                    </div>
+                    <TraceChain
+                        v-if="effectivePopupShowTrace"
+                        :entity="instance"
                         :type-id="typeId"
-                        variant="inline"
-                        :actions="stateActions"
-                        @refresh="$emit('refresh')"
-                        @transitioned="$emit('refresh')"
+                        :exclude="traceExclusions"
                     />
-                </div>
-                <div class="flex min-w-0 items-center gap-2">
-                    <i v-if="instanceConfig.icon" :class="instanceConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
-                    <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
-                </div>
-                <TraceChain
-                    v-if="effectivePopupShowTrace"
-                    :entity="instance"
-                    :type-id="typeId"
-                    :exclude="traceExclusions"
-                />
+                </slot>
                 <div class="instance-card-popup-content flex flex-col gap-3">
                     <slot name="expanded">
                         <slot />
