@@ -48,7 +48,7 @@ export default defineNuxtConfig({
     // page.
     hooks: {
         'pages:extend'(pages) {
-            const screensPage = pages.find(page => page.path === '/screens/:screenKey');
+            const screensPage = pages.find(page => String(page.path || '').startsWith('/screens/'));
             if (screensPage) screensPage.alias = ['/home'];
         }
     },
