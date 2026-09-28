@@ -85,7 +85,7 @@ test.describe('directory, invitations, partnerships', () => {
     // entry never dead-ends on a silent switch).
     await app.gotoClient('/');
     await app.page.locator('[data-testid="user-menu-trigger"]:visible').first().click();
-    await app.page.locator(`button:has-text("${organizationName}")`).first().click();
+    await app.page.locator(`[data-account-org="${me.organizationId}"]`).click();
     await expect(app.page).toHaveURL(/\/organization\/?$/);
     await app.expectCleanRuntime();
     record('account popover org entry -> overview', { url: app.page.url() });
