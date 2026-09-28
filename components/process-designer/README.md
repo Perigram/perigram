@@ -395,16 +395,21 @@ socket channels, not per-node chrome:
 Deliberately meaningless: card background, handle size (fixed 12px),
 typography — chrome, never data.
 
-### Lanes (view → the authorization surface)
+### Lanes (the authorization surface)
 
 Lanes are not a view mode — they are permanent and they ARE role
-assignment. The bands render as a TRUE BACKGROUND layer (beneath nodes
-and wires, never covering them), derived from grant records on every
-render and never stored: one horizontal lane per organization role in
-the role list's fixed order (empty roles keep their lane; lane titles
-are the organization's own role names — the canvas adds no labels of
-its own), the declaration band above the pool, and an implicit
-unlabeled lane at the bottom for grantless effects.
+assignment, and they apply ONLY to effect nodes: effects are the one
+population that carries access. Bands render as a TRUE BACKGROUND layer
+(beneath nodes and wires, never covering them) — hairline separators
+only, no fills — spanning the canvas's horizontal node domain (from the
+leftmost node's column to the rightmost's). Lane titles are the
+organization's own role names at label size, rendered at ABSOLUTE size —
+counter-scaled against the canvas zoom like every floating chrome
+(selection dial, tooltips): never inflated or shrunk by the pane
+transform. The canvas adds no labels
+of its own. One horizontal lane per role in the role list's fixed order
+(empty roles keep their lane — seeing who has what is the point), plus
+an implicit unlabeled lane at the bottom for grantless effects.
 
 Placement writes the grant: dropping an effect node in a role lane
 makes that role its grant; dropping it in the implicit lane clears its
@@ -412,17 +417,18 @@ grants. This replaces the inspector's role assignment editor — grant
 LEVELS per role stay inspector-owned (a lane cannot express them), and
 the effective-access summary stays. An effect granted to several roles
 (stored records) renders in its primary lane with a translucent
-corridor painted across its other granted lanes at the node's column —
-the operation is one record, never cloned, its wires never duplicated.
-Secondary nodes (values, sources, collections, reads, control) keep
-their authored positions as pool context.
+corridor across its other granted lanes at the node's column — the
+operation is one record, never cloned, its wires never duplicated.
 
-The lane arrangement is a projection: x order is preserved, members
-stack in their authored y order inside their band, membership always
-re-derives from grants, and position is presentation state — never
-authorization by itself. The definitions toggle hides the declaration
-family — nodes and their wires — without deleting anything; `hidden`
-is runtime state and never persists. Left-to-right is the reading canon.
+Every node that does not participate in the access model —
+declarations, values, sources, collections, reads, control — is
+unaffected by lanes and free-placeable anywhere. The lane arrangement
+of effects is a projection: x order is preserved, members stack in
+their authored y order inside their band, membership always re-derives
+from grants, and position is presentation state — never authorization
+by itself. The definitions toggle hides the declaration family — nodes
+and their wires — without deleting anything; `hidden` is runtime state
+and never persists. Left-to-right is the reading canon.
 
 ### Card behavior details
 

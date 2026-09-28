@@ -173,7 +173,8 @@ creation/search controls, the default slot for the interactive canvas or
 viewport, `inspector` for the selected item configuration, and `support` for a
 secondary preview, tree, or diagnostics. Toolbar item lists (start and
 canvas groups) render through `DesignerToolbarItems` — one icon-only
-geometry for plain buttons and pressed ToggleButtons alike, label as
+geometry for every item; a boolean-pressed item is the same button
+outlined with an aria-pressed state, label as
 tooltip/accessible name. Do not add page-local breakpoint grids,
 viewport-height calculations, independent lane scrolling, or a second
 floating palette/inspector/dock to a designer; a designer may position
@@ -220,17 +221,17 @@ confirm, selection, or outside click — pickers and rename prompts use
 `Popover`.
 
 Items are plain data —
-`{ icon, label, onClick, disabled?, loading?, pressed?, attention?, hasPopup?, separator? }`
-with `icon` a PrimeIcon class — rendered by the workspace as icon-only
-PrimeVue controls: the label is the tooltip (`v-tooltip.bottom`) and the
-accessible name, `loading` swaps the icon for PrimeVue's spinner,
+`{ icon, label, onClick, disabled?, loading?, pressed?, onIcon?, attention?, hasPopup?, separator? }`
+with `icon` a PrimeIcon class — rendered by `DesignerToolbarItems` as
+icon-only PrimeVue buttons: the label is the tooltip (`v-tooltip.bottom`)
+and the accessible name, `loading` swaps the icon for PrimeVue's spinner,
 `attention` renders the overlay badge dot, items carrying a boolean
-`pressed` render as PrimeVue `ToggleButton`s (the preset's own toggled
-state, never a hand-rolled outlined button), and `hasPopup` sets
-`aria-haspopup="dialog"` for popover-hosting items. The former
-`MotionDock` chrome (proximity magnification, animated pill) is retired;
-`composables/useMotion.js` remains the motion library for its non-dock
-consumers.
+`pressed` render as the same button outlined with `aria-pressed`
+(`onIcon` optionally swaps the icon in the pressed state), and
+`hasPopup` sets `aria-haspopup="dialog"` for popover-hosting items. The
+former `MotionDock` chrome (proximity magnification, animated pill) is
+retired; `composables/useMotion.js` remains the motion library for its
+non-dock consumers.
 
 Panel visibility lives inside the toolbar's start group as its leading
 items: the
