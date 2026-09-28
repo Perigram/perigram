@@ -31,13 +31,7 @@
       </div>
     </div>
 
-    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :document-items="documentDockItems" :canvas-items="canvasDockItems">
-      <template #toolbar>
-        <span class="flex min-w-0 items-center gap-2 text-supporting">
-          <i class="pi pi-box shrink-0 text-muted" aria-hidden="true" />
-          <span class="truncate">{{ cassetteNameDraft || $t('cassette.newCassette') }}</span>
-        </span>
-      </template>
+    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :document-items="documentDockItems" :document-title="cassetteNameDraft || $t('cassette.newCassette')" :canvas-items="canvasDockItems">
 
       <template #palette>
       <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">

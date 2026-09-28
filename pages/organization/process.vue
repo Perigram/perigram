@@ -4,6 +4,7 @@
       <DesignerWorkspace
         ref="canvasFrame"
         :document-items="documentDockItems"
+        :document-title="activeName || $t('processDesigner.title')"
         :canvas-items="canvasDockItems"
         layout="canvas"
         class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
@@ -11,12 +12,6 @@
         @focusin="handleDesignerFocus"
         @wheel.capture="handleDesignerWheel"
       >
-      <template #toolbar>
-        <span class="flex min-w-0 items-center gap-2 text-supporting">
-          <i class="pi pi-sitemap shrink-0 text-muted" aria-hidden="true" />
-          <span class="truncate">{{ activeName || $t('processDesigner.title') }}</span>
-        </span>
-      </template>
       <ClientOnly>
         <VueFlow
           v-model:nodes="nodes"
@@ -55,6 +50,7 @@
               :corridors="laneCorridors"
               :left="laneExtent.left"
               :right="laneExtent.right"
+              :zoom="designerViewport?.zoom || 1"
             />
           </template>
         </VueFlow>
@@ -1083,6 +1079,7 @@ const laneModel = computed(() => {
     bands.push({
       id: `role:${roleId}`,
       kind: 'role',
+      label: organizationRoles.value[roleId]?.label || '',
       top,
       height: Math.max(LANE_MIN_HEIGHT, members.length * LANE_ROW_HEIGHT)
     });

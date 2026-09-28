@@ -1,12 +1,6 @@
 <template>
   <DesignerSurface>
-    <DesignerWorkspace layout="lanes" class="h-full" :document-items="documentDockItems" :canvas-items="canvasDockItems">
-      <template #toolbar>
-        <span class="flex min-w-0 items-center gap-2 text-supporting">
-          <i class="pi pi-table shrink-0 text-muted" aria-hidden="true" />
-          <span class="truncate">{{ displayName }}</span>
-        </span>
-      </template>
+    <DesignerWorkspace layout="lanes" class="h-full" :document-items="documentDockItems" :document-title="displayName" :canvas-items="canvasDockItems">
       <div class="relative h-full w-full overflow-hidden">
       <svg
         ref="svgRef"
