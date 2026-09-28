@@ -79,13 +79,12 @@ test.describe('directory, invitations, partnerships', () => {
     record('cross-org DM from picker', { conversationKey: directThread.conversationKey });
 
     // The chat header opens the counterpart's entity popup (the shared
-    // dialog surface): titled by the persona's display name, expand opens
+    // drawer card): titled by the persona's display name, expand opens
     // the in-home user pane. Never an id in the interface.
     await app.page.locator('[data-testid="chat-header-entity"]').click();
-    const popupTitle = app.page.locator('.p-dialog-title, .p-dialog .text-label').first();
-    await popupTitle.waitFor({ timeout: 5000 });
-    await expect(app.page.locator('.p-dialog')).toContainText(credentials.name);
-    await app.page.locator('.p-dialog [aria-label="Expand"], .p-dialog [aria-label="Раскрыть"]').first().click();
+    const drawer = app.page.locator('[data-pc-name="dialog"]').filter({ hasText: credentials.name }).first();
+    await drawer.waitFor({ timeout: 5000 });
+    await drawer.locator('[aria-label="Expand"]').first().click();
     await app.page.locator('[data-home-workspace]').waitFor({ timeout: 15000 });
     await expect(app.page.locator('[data-directory-surface]')).toContainText(credentials.name);
     await app.expectCleanRuntime();
