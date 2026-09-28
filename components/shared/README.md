@@ -141,12 +141,14 @@ rail still use `WorkspaceLanes`.
 The shared designer-canvas card vocabulary. `DesignerNodeCard` is the one
 node-card frame every canvas card composes — size ladder (`sm` declaration
 leaves, `md` type/class cards, `lg` operation cards), selection border,
-uniform padding. The card body is deliberately colorless chrome.
+uniform padding, and the population border (operation cards pass
+`primary` for the strong-ink border; every other card keeps the quiet
+content border). The card body is deliberately colorless chrome.
 `DesignerSocketHandle` is the one typed
-socket handle: shape encodes what the socket deals in (data circle,
-declaration diamond, event rounded square, status rounded square) and color the
-payload family, both from the port spec through
-[`utils/processDesignerSocketTone.js`](../../utils/README.md), with the
+socket handle: ONE uniform filled circle — color (the
+payload family, from the port spec through
+[`utils/processDesignerSocketTone.js`](../../utils/README.md)) is the
+only socket channel — with the
 standard 12px handle geometry and the
 process-plane id minted by `mintProcessSocketHandle` (the declaration
 plane's persisted `input:`/`output:` spellings pass `handleId`).
@@ -155,7 +157,7 @@ family, on both the process and the type canvas) all consume them, so a
 transported type keeps one semantic look on every card it appears on; a
 spec-less handle degrades to the neutral data tone (the type canvas
 renders read-only and supplies no specs). The channel→meaning contract
-these primitives enforce (what color, shape, pattern, and size
+these primitives enforce (what color and size
 each encode, and the card arrangement) is canonical in the
 [process designer README](../../components/process-designer/README.md)
 ("Node UI contract").

@@ -327,10 +327,10 @@ construction, not per-card styling.
 
 | Channel | Encodes | Values |
 |---|---|---|
-| Socket & wire color | transported payload family (on SOCKETS; wires encode layer, below) | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
-| Socket shape | what the socket deals in | ring = event/trigger (an OUTLINE ring is a manual trigger — the effect runs by hand; a FILLED ring is wired — the trigger fires automatically); filled dot = value/instance data; diamond = declaration binding; filled square = state/status |
-| Wire styling | edge LAYER — primacy (the BPMN inversion) | the EVENT chain is the primary flow: solid, the canvas's strongest ink (`var(--p-text-color)`, theme-adaptive), 2.5px, arrowed with a compact closed arrowhead (12px, matched to the wire ink — never a chunky 18px wedge); data wires are associations: thin (1.5px) dashed in muted ink (`var(--p-text-muted-color)`); declaration bindings are the second association layer — thin (1.5px) dashed in the muted structure mix (`color-mix` of the structure tone toward the muted ink), demoted below the event chain so a declaration-heavy graph cannot out-shout the primary flow. The full payload-family hue lives on SOCKET HANDLES only — wires never carry it. Selected overrides to primary 3px. |
-| Wire geometry | chrome (BPMN readability) | smoothstep with a ~14px corner radius; arrowheads render on the CONTROL layer only (`markerEnd` on event wires) — data and declaration wires carry no markers, so the event chain is the only directed flow |
+| Socket color | transported payload family | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
+| Socket mark | the connection point (nothing else) | ONE uniform filled circle for every socket — color is the only socket channel. There is no shape vocabulary: no rings, diamonds, squares, or dot/outline variants. A trigger's manual-vs-wired state reads from whether a wire is attached, which a wire shows by existing. |
+| Wire line style | WHAT TRAVELS on the wire | solid = instances (entity payloads — the data spine between operations); dashed = values; dotted = events — the one wire family allowed color (`var(--p-primary-color)`); declaration bindings keep the demuted structure dashed family (`--ck-signal-structure-muted`) as the second association layer. Selected overrides to primary 3px. |
+| Wire geometry | chrome (readability) | smoothstep with a ~14px corner radius; NO markers anywhere — no arrowheads on any layer. Direction reads from the reading canon: handles on the left are inputs, handles on the right are outputs. |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
 
@@ -338,43 +338,36 @@ Access (Item/List/Tree) is deliberately **not** a socket visual: one
 socket accepts all three, access is a property of what travels the wire,
 and it stays a runtime and hover fact.
 
-The payload-family hue lives on SOCKET HANDLES
+The payload-family palette
 (`processDesignerSocketTone` is the one mapping — see
-[utils](../../utils/README.md)): a class card's `type` output, a state
-card's status sockets, and a field card's typed output carry the same
-tones they carry on operation nodes. WIRES carry no payload hue — their
-styling encodes the LAYER (the primacy inversion): the strongest ink is
-the event chain, data reads as a muted association, and declarations
-are the muted structure dashed family — thinner than the event chain
-and no louder than data, because on real graphs declaration wires
-outnumber every other layer (the owner's active definition carries 16
-declaration wires against 1 event wire; at the old 2px full-saturation
-structure tone the "secondary" layer owned the canvas). One contract,
-one home per channel: hue on handles, primacy on wires.
+[utils](../../utils/README.md)) lives on SOCKET HANDLES only: a class
+card's `type` output, a state card's status sockets, and a field card's
+typed output carry the same tones they carry on operation nodes. Wires
+carry exactly one color — the primary accent on the dotted event chain
+— and otherwise speak through line style: solid instances, dashed
+values, demuted-structure declarations. One contract, one home per
+channel: hue on handles, cargo on wires.
 
 **Cards**
 
 | Channel | Encodes | Values |
 |---|---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation |
-| Card shape | the node's BPMN population | verb (effect species) = task rectangle — sharp corners; noun (data plane: sources, values, collections, reads/projections) = folded-corner data object (top-right fold); vocabulary (the declaration family) = dashed frame in the declaration-wire tone; control species keep the neutral default frame — the reserved gateway slot, no shape until the control-species fate decision |
-| Card surface & border | chrome only | neutral background; the selected border is the single card state — an unselected node is a diagram element, the selected node is the authoring surface |
-| Species corner glyph | the node's species family | a small glyph in the header's trailing corner marks verb/species families on operation cards; the label leads (label-dominant header) |
-| Trigger ring | an effect's derived trigger mode | a ring on the effect card's left edge at the event socket row — outline = manual, filled = wired (the socket shape channel applied at card scale; the derived mode is never authored) |
+| Card border | population primacy | OPERATIONS (the effect species: create, mutate, transition, remove, command) render with the strong-ink border — they are the primary nodes; every other node (values, sources, collections, reads, control, the declaration family) keeps the quiet content border — secondary nodes are surface |
+| Card surface & border | chrome only | neutral background for every card; the selected border is the single card state — selection overrides the population border — an unselected node is a diagram element, the selected node is the authoring surface |
 
 Card concern (what a node does) is carried by the label first (with the
-icon), the body deliberately colorless so sockets and wires own every
-hue on the canvas.
+icon); the header carries no extra glyph chrome.
 
 ### Arrangement
 
-Top to bottom: the header (neutral icon chip + label — no divider, with
-the species corner glyph on operations); inline configuration (only
+Top to bottom: the header (neutral icon chip + label — no divider, no
+trailing glyph); inline configuration (only
 species that author values in place); the socket rail (labeled rows,
 inputs left / outputs right, every handle
 centered on the outer node rail — labels render on every node: a socket
 without its name is unreadable chrome); the event section (effects only:
-event sockets with the trigger ring). Sections separate by spacing
+their event sockets as ordinary socket rows). Sections separate by spacing
 alone (`mt-2`/`mt-3`, row `py-1.5`) — there are deliberately **no
 dividers**: separator lines would form a third visual system competing
 with stripes and wires while encoding nothing. Socket rows are one-sided
@@ -399,6 +392,25 @@ socket channels, not per-node chrome:
 
 Deliberately meaningless: card background, handle size (fixed 12px),
 typography — chrome, never data.
+
+### Lanes (view)
+
+The Lanes toggle in the toolbar's canvas group reorganizes the pool by
+authorization, not by stored layout. Lane bands are DERIVED from grant
+records on every render and are never stored: one horizontal lane per
+organization role in the role list's fixed order (empty roles keep their
+lane — seeing who has what is the point), the declaration band above the
+pool, and an implicit unlabeled lane at the bottom for grantless effects.
+An effect node renders in its PRIMARY (first) grant's lane; secondary
+nodes (values, sources, collections, reads, control) keep their authored
+positions as pool context. Applying lanes is a one-shot in-memory
+arrangement: x order is preserved, members stack in their authored y
+order inside the band, and membership re-derives from grants whenever
+they change — position is presentation state and never authorization
+(placement-writes-grants is the Lanes B authoring stage). The
+definitions toggle hides the declaration family — nodes and their wires
+— without deleting anything; `hidden` is runtime state and never
+persists. Left-to-right is the reading canon.
 
 ### Card behavior details
 
@@ -508,7 +520,8 @@ drawer scrolls its own content, and either can be closed independently to
 recover the full canvas. The floating PrimeVue `Toolbar` (shared
 `DesignerWorkspace` chrome) owns the process lifecycle in its document group
 (open, rename, save, apply) and the view controls in its canvas group
-(zoom out, zoom in, frame all, frame selection, reset zoom), every item
+(zoom out, zoom in, frame all, frame selection, reset zoom, the Lanes
+toggle, and the definitions visibility toggle), every item
 icon-only with its label as tooltip and accessible name. There is no
 standalone Validate control:
 Apply saves, validates, and activates as one operation, while the result
