@@ -436,10 +436,7 @@ entity card, and renders that card with
 `variant="inline"`. The referenced entity card owns the click/keyboard popover
 and reuses its canonical body inside that popover; `interactive: false`
 renders the inline card non-expandable for non-interactive rows such as
-explorer entries and static summaries. A caller-hosted `#trigger` scoped
-slot (receives `toggle`) swaps the caller's chrome — chat thread headers,
-for example — for the collapsed chip while keeping the same standalone
-popup: card face, actions, and the expand/open entry. In generated surfaces,
+explorer entries and static summaries. In generated surfaces,
 the popover action row is access-aware: `InstanceInlineRef` resolves the
 referenced entity's generated detail-screen actions, forwards them to
 `InstanceCard`, and invokes the surrounding generated screen's action executor
@@ -569,10 +566,11 @@ launcher) render in the shared bottom-right chat popup
 (`ChatSupportDialog`: the token-sized, non-modal drawer card), whose expand
 action pins the conversation as a home-workspace pane tab; the sidebar
 PanelMenu's Chats entry opens that general chats pane tab directly. The
-thread header's title is the entity popup trigger for its subject — the
-user card on direct threads, the instance card on instance threads — with
-the popup's open action as the expand into a home pane; group headers
-carry member chips inline.
+thread header's title opens the entity popup (`EntityPopup.vue` +
+`useEntityPopup`): the shared dialog surface hosting the user's directory
+page on direct threads and the compiled detail screen on instance
+threads, titled by display name (never an id), with an expand action into
+the home pane; group headers carry member chips inline.
 
 ### `InstanceCard.vue` popup identity slot
 The popover's identity block — type label, status surface, icon+name row, and
@@ -591,6 +589,16 @@ instance-chat entry: an icon-only chat button routing through
 `utils/instance-chat.js`, the same seam as `InstanceCard` popovers and pane
 strips (a user-typed record opens the direct thread; every other type the
 composed instance thread). Bounded/flush editor hosts expose the same entry
+
+### `EntityPopup.vue` (with `useEntityPopup`)
+The shared entity popup: a full-size dialog hosting the entity's real
+detail surface — the directory page for `user`/`organization`
+([components/directory](../directory/README.md)), the compiled detail
+screen for instance types — titled by the record's display name (never an
+id) with an expand action that opens the home pane through the
+workspace-open seam. Mounted once by the app layout so floating chrome
+(chat thread headers) can inspect a record from any route; the composable
+state is the single `open`/`close` channel.
 from their own chrome.
 
 ### `SupportMessageContent.vue`
