@@ -3,7 +3,7 @@
     v-if="item?.entity"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
   >
-    <div data-pane-header class="flex h-7 shrink-0 items-stretch border-b border-chrome-border">
+    <div data-pane-header class="flex h-6 shrink-0 items-stretch border-b border-chrome-border">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :active-key="item.key"

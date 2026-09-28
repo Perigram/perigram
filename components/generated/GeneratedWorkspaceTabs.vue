@@ -15,7 +15,7 @@
           class="group/workspace-tab flex max-w-56 min-w-24 items-center !py-0 !px-2"
         >
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
-          <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>
+          <span class="min-w-0 truncate text-label">{{ tabLabel(tab) }}</span>
           <InstanceState
             v-if="tab.kind === 'instance'"
             :instance="tab.instance"
@@ -31,7 +31,7 @@
             rounded
             size="small"
             severity="secondary"
-            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-7 !w-7"
+            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-6 !w-6"
             :aria-label="$t('common.close')"
             @click.stop="$emit('close-tab', tab.key)"
           />
@@ -45,7 +45,7 @@
         rounded
         size="small"
         severity="secondary"
-        class="!h-7 !w-7"
+        class="!h-6 !w-6"
         :aria-label="$t('project.newTab')"
         @click.stop="$emit('add')"
       />
@@ -75,13 +75,13 @@ defineEmits(['select', 'close-tab', 'add', 'refresh']);
 const { t } = useI18n();
 const registry = useRegistryStore();
 
-// The tab strip fills the pane header's fixed compact height (28px): the
-// viewport and the tab row stretch to 100% and the tabs themselves
-// (already !py-0) center inside, so the stripe controls (close, add,
-// pane menu) carry !h-7 !w-7 to fill the stripe exactly — the PrimeVue
-// small default (32px) would overflow and clip. The pane header row
-// owns the single hairline under the whole stripe (tabs + pane
-// controls), so the tablist's own border is dropped.
+// The tab strip fills the pane header's fixed compact height (24px): the
+// viewport and the tab row stretch to 100%, tab labels render at the
+// small text size (a 16px default drowned in the stripe), and the stripe
+// controls (close, add, pane menu) carry !h-6 !w-6 to fill the stripe
+// exactly — the PrimeVue small default (32px) would overflow and clip.
+// The pane header row owns the single hairline under the whole stripe
+// (tabs + pane controls), so the tablist's own border is dropped.
 const tabListPt = {
   root: { style: { height: '100%' } },
   tabList: { style: { height: '100%', alignItems: 'stretch', borderWidth: 0 } }

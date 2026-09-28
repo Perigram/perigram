@@ -597,7 +597,6 @@ import ProcessNodeInspector from '~/components/process-designer/inspector/Proces
 import DeclarationInspector from '~/components/process-designer/inspector/DeclarationInspector.vue';
 import DeclarationEdgeInspector from '~/components/process-designer/inspector/DeclarationEdgeInspector.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
-import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
@@ -1669,13 +1668,17 @@ function decorateEdges(items = []) {
   return items.map(edge => decorateEdge(edge));
 }
 
-// Wire pattern encodes the edge ROLE (what kind of connection a wire is):
-// solid data flow, dashed declaration binding, dotted control/event
-// trigger. It never encodes type — that is color's single meaning
-// (see the node UI contract in components/process-designer/README.md).
-const WIRE_PATTERNS = {
-  type: '6 4',
-  control: '2 4'
+// Wire styling encodes the edge LAYER — the BPMN primacy inversion
+// (node UI contract in components/process-designer/README.md): the EVENT
+// chain is the primary flow (the canvas's strongest ink, solid, arrowed,
+// 2.5px); data wires are associations (thin, dashed, muted ink); the
+// payload-family hue lives on SOCKET HANDLES, never on wires.
+const WIRE_STYLES = {
+  control: { stroke: 'var(--p-text-color)', strokeWidth: 2.5 },
+  data: { stroke: 'var(--p-text-muted-color)', strokeWidth: 1.5, strokeDasharray: '5 4' },
+  // Declaration bindings transport a TYPE, not data — the structure tone
+  // is their mid-tone dashed family.
+  type: { stroke: 'var(--ck-signal-structure)', strokeWidth: 2, strokeDasharray: '6 4' }
 };
 
 // Arrowheads render on the CONTROL layer only — the event chain is the
@@ -1692,38 +1695,19 @@ function controlMarker(stroke) {
 
 function decorateEdge(edge = {}) {
   const selected = edge.selected === true || edge.id === selectedEdgeId.value;
-  const sourcePort = sourcePortForEdge(edge);
-  const pattern = WIRE_PATTERNS[edge.role] || '';
-  const stroke = selected
-    ? 'var(--p-primary-color)'
-    // Declaration bindings transport a TYPE, not data — the structure
-    // tone is their payload family.
-    : edge.role === 'type' ? 'var(--ck-signal-structure)' : processSocketColor(sourcePort);
+  const layer = WIRE_STYLES[edge.role] || WIRE_STYLES.data;
   return {
     ...edge,
     type: 'smoothstep',
     pathOptions: { borderRadius: 14 },
     animated: selected,
     style: {
-      stroke,
-      strokeWidth: selected ? 3 : 2,
-      ...(pattern ? { strokeDasharray: pattern } : {})
+      stroke: selected ? 'var(--p-primary-color)' : layer.stroke,
+      strokeWidth: selected ? 3 : layer.strokeWidth,
+      ...(layer.strokeDasharray ? { strokeDasharray: layer.strokeDasharray } : {})
     },
-    ...(edge.role === 'control' ? { markerEnd: controlMarker(stroke) } : {})
+    ...(edge.role === 'control' ? { markerEnd: controlMarker(selected ? 'var(--p-primary-color)' : layer.stroke) } : {})
   };
-}
-
-function sourcePortForEdge(edge = {}) {
-  const source = nodes.value.find(node => node.id === edge.source);
-  if (!source) return {};
-  if (edge.role === 'type') return { type: { base: 'json' } };
-  if (source.type === 'processNode') {
-    const record = draft.value?.data?.processNodes?.[source.data?.refId];
-    if (!record) return {};
-    return portForHandle(catalogPorts(record).outputs, edge.sourceHandle, 'output') || {};
-  }
-  // Declaration nodes carry their typed specs from declarationNodePorts.
-  return portForHandle(source.data?.outputSpecs || [], edge.sourceHandle, 'output') || {};
 }
 
 function syncEdgeSelection() {

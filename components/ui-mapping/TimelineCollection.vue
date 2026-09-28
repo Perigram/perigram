@@ -1,5 +1,11 @@
 <template>
-  <Timeline :value="page" class="w-full">
+  <!-- Left-anchored timeline: the app renders no #opposite column, and
+       PrimeVue's always-rendered empty opposite (flex:1) both wastes half
+       the row and lets wide unbreakable content push the separator —
+       items' left borders drifted out of alignment. The pt hides the
+       empty opposite so the marker line anchors at the left edge and the
+       content column owns the full width. -->
+  <Timeline :value="page" class="w-full" :pt="timelinePt">
     <template #content="{ item }">
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
@@ -8,7 +14,7 @@
             link
             size="small"
             :label="identityOf(item)"
-            class="text-left [&_.p-button-label]:truncate"
+            class="min-w-0 max-w-full text-left [&_.p-button-label]:truncate"
             @click="$emit('open', item)"
           />
           <span v-else class="text-supporting text-muted">{{ identityOf(item) }}</span>
@@ -64,6 +70,11 @@ const props = defineProps({
 defineEmits(['open']);
 
 const { te, t } = useI18n();
+
+// Left-anchoring (see the template note): the app's timeline is a list
+// projection with no opposite column — the empty one PrimeVue always
+// renders is display:none'd so the marker line anchors at the left edge.
+const timelinePt = { eventOpposite: { style: { display: 'none' } } };
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 // The timeline pages through the shared page budget (same rows contract
