@@ -76,9 +76,8 @@ async function redirectIfAuthenticated() {
       return;
     }
     // Orgless users have no generated workspace yet; their entry point is
-    // the profile page where organization creation lives.
-    const hasOrganization = Boolean(authStore.userData?.organizationId) || authStore.memberships.length > 0;
-    await navigateTo(hasOrganization ? '/organization' : '/profile');
+    // the organization page, which owns orgless onboarding (creation).
+    await navigateTo('/organization');
   }
 }
 

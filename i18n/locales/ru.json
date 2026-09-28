@@ -875,6 +875,7 @@
     "authentication": "Аутентификация",
     "developerTools": "Инструменты разработчика",
     "myOrganizations": "Мои организации",
+    "noOrganizationHelp": "Вы ещё не состоите в организации. Создайте её, чтобы начать работу.",
     "switchOrganization": "Переключить организацию",
     "changeAvatar": "Изменить аватар",
     "removeAvatar": "Удалить аватар",

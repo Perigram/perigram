@@ -124,7 +124,7 @@ const joinHandler = async () => {
     try {
         await $fetch(`/api/invitations/${token}/join`, { method: 'POST' });
         toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.organizationJoined'), life: 3000 });
-        navigateTo('/profile');
+        navigateTo('/organization');
     } catch (err) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: err.message, life: 3000 });
     } finally {
