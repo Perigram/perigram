@@ -1,6 +1,6 @@
 <template>
   <!-- The one pane-header stripe: the height lives here only. -->
-  <div data-pane-header class="flex h-8 shrink-0 items-stretch border-b border-chrome-border">
+  <div data-pane-header class="flex h-10 shrink-0 items-stretch border-b border-chrome-border">
     <GeneratedWorkspaceTabs
       :tabs="tabs"
       :active-key="activeKey"
