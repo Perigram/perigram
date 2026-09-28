@@ -48,15 +48,14 @@ noise.
   partnerships, and direct messaging against a real second account
   registered through the public signup API with its own request context.
   Covers name-only user search (cards carry no email), the chats
-  new-chat picker keeping results inside the direct-thread reach (a
-  stranger is not listed) and listing the shared-org persona whose
-  selection opens the DIRECT thread — the sent message lands in the
-  inbox-listed conversation (regression: user messages used to vanish
-  into instance threads) —, the single-handshake invite (accept creates
-  the active membership directly and the organization-side invitation
-  list reports consumption), and the partnership lifecycle (request → 409
-  duplicate → partner-side accept → active on `/organization/partners`
-  and the in-home organization surface). Writes the step outcomes to
+  new-chat picker listing the cross-org persona (direct threads are open
+  between any two accounts) whose selection opens the DIRECT thread — the
+  sent message lands in the inbox-listed conversation —, the
+  single-handshake invite (accept creates the active membership directly
+  and the organization-side invitation list reports consumption), and the
+  partnership lifecycle (request → 409 duplicate → partner-side accept →
+  active on `/organization/partners` and the in-home organization
+  surface). Writes the step outcomes to
   `test-results/directory-acceptance.json` as the durable artifact.
 - `process-generated-screen.spec.js`: verifies the generic instance
   transport serves generated-screen collections (`/api/instances/cassette`;
