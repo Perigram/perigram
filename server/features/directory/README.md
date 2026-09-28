@@ -60,7 +60,8 @@ collection.
 
 - Directory search lives in its contextual homes, not a shell-level
   surface: the chats new-chat picker (beside the organization-scoped
-  list, keeping only direct-thread-reachable results) and the
+  list — every match is listed and messageable, direct threads are open
+  between any two accounts) and the
   team-management invite dialog for users; the
   `/organization/partners` page for organizations.
 - User/organization detail renders as the in-home directory surface

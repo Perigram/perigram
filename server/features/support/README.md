@@ -46,13 +46,14 @@ prepends older pages keyed on the oldest loaded timestamp while preserving the
 reader's scroll position; realtime message events keep appending to the live
 end.
 
-Direct user conversations are allowed only when the authenticated user is an
-admin or shares an organization membership with the target user. Admin support
-routes remain scoped to support conversations and do not list direct user
-threads.
-An explicit recipient equal to the authenticated user creates the deterministic
-`direct:<userId>:<userId>` self-conversation; only a missing recipient selects
-the customer-support channel.
+Direct user conversations are open between any two accounts: the direct
+thread is the platform's contact channel, and the recipient merely has to
+exist (directory discovery remains name-only — emails never leak through
+it). Admin support routes remain scoped to support conversations and do
+not list direct user threads.
+An explicit recipient equal to the authenticated user creates the
+deterministic `direct:<userId>:<userId>` self-conversation; only a missing
+recipient selects the customer-support channel.
 
 ## Group Chats
 

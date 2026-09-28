@@ -51,16 +51,31 @@ test.describe('directory, invitations, partnerships', () => {
     expect(JSON.stringify(found)).not.toContain('email', 'directory cards never carry email');
     record('directory user search', { found: found.identity.name, id: found._id });
 
-    // UI: the chats picker's directory search keeps its results within the
-    // direct-thread reach — this persona shares no organization yet, so
-    // the picker lists nothing for their name.
+    // UI: the chats picker lists the cross-org persona — directory search
+    // is global, direct threads are open between any two accounts, and
+    // messaging the stranger lands in the inbox-listed conversation (the
+    // reported regression: cross-org results used to be hidden).
     await app.gotoClient('/chats');
     await app.page.locator('button:has(.pi-user-plus)').first().click();
     await app.page.locator('[data-testid="new-chat-search"]').fill(credentials.name);
-    await app.page.waitForTimeout(1200);
-    await expect(app.page.locator('[data-testid="new-chat-picker"]')).not.toContainText(credentials.name);
+    const personaOption = app.page.locator(`[data-testid="new-chat-picker"] li:has-text("${credentials.name}")`);
+    await personaOption.first().waitFor({ timeout: 10000 });
+    await personaOption.first().click();
+    const composer = app.page.locator('textarea:visible').last();
+    await composer.fill('directory e2e cross-org message');
+    await composer.press('Enter');
+    await app.page.waitForTimeout(1500);
+
+    const conversationsResponse = await (await app.request.get('/api/support/conversations')).json();
+    const conversations = conversationsResponse?.data || [];
+    const directThread = conversations.find(conversation => (
+      conversation.conversationKind === 'direct'
+      && (conversation.participants || []).map(String).includes(String(found._id))
+    ));
+    expect(directThread, 'a cross-org DM must create/list the direct conversation').toBeTruthy();
+    expect(String(directThread.lastMessage || '')).toContain('directory e2e cross-org message');
     await app.expectCleanRuntime();
-    record('picker hides unreachable users', {});
+    record('cross-org DM from picker', { conversationKey: directThread.conversationKey });
 
     const me = await (await app.request.get('/api/auth/me')).json();
     const organizationName = me.organizationData?.name || '';
@@ -142,32 +157,6 @@ test.describe('directory, invitations, partnerships', () => {
     // UI: the invited user's profile shows no leftover invitations after accept.
     await app.gotoClient('/profile?tab=organizations');
     await expect(app.page.locator('body')).not.toContainText(credentials.name);
-    await app.expectCleanRuntime();
-
-    // Chats -> new with the now shared-org persona: the picker finds them
-    // by name, selecting opens the DIRECT thread, and the sent message
-    // lands in the inbox-listed conversation (the reported regression:
-    // user messages used to vanish into instance threads).
-    await app.gotoClient('/chats');
-    await app.page.locator('button:has(.pi-user-plus)').first().click();
-    await app.page.locator('[data-testid="new-chat-search"]').fill(credentials.name);
-    const personaOption = app.page.locator(`[data-testid="new-chat-picker"] li:has-text("${credentials.name}")`);
-    await personaOption.first().waitFor({ timeout: 10000 });
-    await personaOption.first().click();
-    const composer = app.page.locator('textarea:visible').last();
-    await composer.fill('directory e2e direct message');
-    await composer.press('Enter');
-    await app.page.waitForTimeout(1500);
-
-    const conversationsResponse = await (await app.request.get('/api/support/conversations')).json();
-    const conversations = conversationsResponse?.data || [];
-    const directThread = conversations.find(conversation => (
-      conversation.conversationKind === 'direct'
-      && (conversation.participants || []).map(String).includes(String(inviteeIdValue))
-    ));
-    expect(directThread, 'the sent message must create/list the direct conversation').toBeTruthy();
-    expect(String(directThread.lastMessage || '')).toContain('directory e2e direct message');
-    record('direct message from picker', { conversationKey: directThread.conversationKey });
     await app.expectCleanRuntime();
   });
 
