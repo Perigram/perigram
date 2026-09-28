@@ -38,10 +38,13 @@
           @connect="onConnect"
         >
           <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
-          <template #node-ctsClass="props"><ClassNode v-bind="props" shape="declaration" /></template>
-          <template #node-ctsField="props"><FieldNode v-bind="props" shape="declaration" @rename="value => renameDeclarationNode(props, value)" /></template>
-          <template #node-ctsState="props"><StateNode v-bind="props" shape="declaration" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-ctsClass="props"><ClassNode v-bind="props" /></template>
+          <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
+          <template v-if="lanesView" #zoom-pane>
+            <LaneBands :bands="laneBands" :width="laneExtentWidth" />
+          </template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
       </ClientOnly>
@@ -540,7 +543,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { MarkerType, SelectionMode, VueFlow } from '@vue-flow/core';
+import { SelectionMode, VueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
@@ -586,9 +589,10 @@ import {
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { facadeDomain, facadePackContent } from '@perigram/facade';
-import { checkDeclarationsAgainstCts, classMayDeclareChildren, compileClientBundle, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
+import { checkDeclarationsAgainstCts, classMayDeclareChildren, compileClientBundle, operationKindOf, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
+import LaneBands from '~/components/process-designer/LaneBands.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
 import FieldNode from '~/components/type-designer/FieldNode.vue';
 import StateNode from '~/components/type-designer/StateNode.vue';
@@ -1011,7 +1015,187 @@ const documentDockItems = computed(() => [
     loading: applyingProcess.value
   }
 ]);
+// Lanes (view) — the projection model is canonical in
+// components/process-designer README "Lanes (view)": bands derive from
+// grant records and are never stored; an effect renders in its primary
+// (first) grant's lane; declarations get the band above the pool;
+// grantless effects get an implicit unlabeled lane at the bottom.
+const lanesView = ref(false);
+const definitionsHidden = ref(false);
+const LANE_ROW_HEIGHT = 170;
+const LANE_MIN_HEIGHT = 150;
+const DECLARATION_COLUMN_PITCH = 260;
+
+function isEffectNode(node) {
+  const record = draft.value?.data?.processNodes?.[node.data?.refId];
+  return Boolean(record) && String(operationKindOf(record) || '').startsWith('effect.');
+}
+
+function effectPrimaryRoleId(node) {
+  const record = draft.value?.data?.processNodes?.[node.data?.refId];
+  return record?.access?.grants?.[0]?.roleId || null;
+}
+
+// Membership + band geometry. Reads role/grant/counts only — never node
+// positions — so band layout cannot oscillate with the arrangement it
+// produces.
+const laneModel = computed(() => {
+  const roleIds = Object.keys(organizationRoles.value);
+  const byPrimary = new Map(roleIds.map(roleId => [roleId, []]));
+  const unassigned = [];
+  const declarations = [];
+  for (const node of nodes.value) {
+    if (DECLARATION_NODE_TYPES.includes(node.type)) {
+      declarations.push(node.id);
+      continue;
+    }
+    if (node.type !== 'processNode' || !isEffectNode(node)) continue;
+    const roleId = effectPrimaryRoleId(node);
+    if (roleId && byPrimary.has(roleId)) byPrimary.get(roleId).push(node.id);
+    else unassigned.push(node.id);
+  }
+  const bands = [];
+  let top = 0;
+  if (declarations.length || roleIds.length) {
+    const rows = Math.max(1, Math.ceil(declarations.length / 3));
+    bands.push({
+      id: 'declarations',
+      kind: 'declaration',
+      label: t('processDesigner.laneDefinitions'),
+      top,
+      height: Math.max(LANE_MIN_HEIGHT, rows * LANE_ROW_HEIGHT)
+    });
+    top += bands[0].height;
+  }
+  for (const roleId of roleIds) {
+    const members = byPrimary.get(roleId) || [];
+    const label = organizationRoles.value[roleId]?.label || '';
+    bands.push({
+      id: `role:${roleId}`,
+      kind: 'role',
+      label,
+      top,
+      height: Math.max(LANE_MIN_HEIGHT, members.length * LANE_ROW_HEIGHT)
+    });
+    top += bands[bands.length - 1].height;
+  }
+  if (unassigned.length) {
+    bands.push({
+      id: 'unassigned',
+      kind: 'role',
+      label: '',
+      top,
+      height: Math.max(LANE_MIN_HEIGHT, unassigned.length * LANE_ROW_HEIGHT)
+    });
+    top += bands[bands.length - 1].height;
+  }
+  return { bands, byPrimary, unassigned, declarations, totalHeight: top };
+});
+
+const laneBands = computed(() => (lanesView.value ? laneModel.value.bands : []));
+
+const laneExtentWidth = computed(() => {
+  if (!lanesView.value) return 0;
+  const xs = nodes.value.map(node => node.position?.x).filter(Number.isFinite);
+  const min = xs.length ? Math.min(...xs) - 320 : 0;
+  const max = xs.length ? Math.max(...xs) + 640 : 2400;
+  return Math.max(2400, max - min);
+});
+
+// One-shot in-memory arrangement: x order is preserved, members stack in
+// their authored y order inside their band, declarations fill the
+// declaration band's grid. Positions are presentation state — nothing
+// here ever writes a grant (that is the Lanes B authoring stage).
+function applyLaneProjection() {
+  const { bands, byPrimary, unassigned, declarations } = laneModel.value;
+  const declarationBand = bands.find(band => band.kind === 'declaration');
+  const roleBands = bands.filter(band => band.kind === 'role');
+  const laneOf = new Map();
+  for (const [roleId, memberIds] of byPrimary) {
+    const band = roleBands.find(candidate => candidate.id === `role:${roleId}`);
+    if (band) laneOf.set(roleId, band);
+  }
+  const positioned = new Map();
+  if (declarationBand) {
+    declarations
+      .map(id => nodes.value.find(node => node.id === id))
+      .filter(Boolean)
+      .sort((left, right) => left.position.y - right.position.y || left.position.x - right.position.x)
+      .forEach((node, index) => {
+        const column = index % 3;
+        const row = Math.floor(index / 3);
+        positioned.set(node.id, { x: 40 + column * DECLARATION_COLUMN_PITCH, y: declarationBand.top + 20 + row * LANE_ROW_HEIGHT });
+      });
+  }
+  const stackInto = (memberIds, band) => {
+    if (!band) return;
+    memberIds
+      .map(id => nodes.value.find(node => node.id === id))
+      .filter(Boolean)
+      .sort((left, right) => left.position.y - right.position.y)
+      .forEach((node, index) => {
+        positioned.set(node.id, { x: node.position.x, y: band.top + 24 + index * LANE_ROW_HEIGHT });
+      });
+  };
+  for (const [roleId, memberIds] of byPrimary) stackInto(memberIds, laneOf.get(roleId));
+  if (unassigned.length) stackInto(unassigned, roleBands.find(candidate => candidate.id === 'unassigned'));
+  nodes.value = nodes.value.map(node => (
+    positioned.has(node.id) ? { ...node, position: { ...positioned.get(node.id) } } : node
+  ));
+}
+
+// Re-project when the authorization shape changes (roles, primary
+// grants, node counts) — not on drags: position edits inside the lanes
+// view survive until membership itself changes.
+const laneSignature = computed(() => JSON.stringify({
+  roles: Object.keys(organizationRoles.value),
+  grants: nodes.value
+    .filter(node => node.type === 'processNode' && isEffectNode(node))
+    .map(node => [node.id, effectPrimaryRoleId(node)]),
+  declarations: nodes.value.filter(node => DECLARATION_NODE_TYPES.includes(node.type)).map(node => node.id),
+  hidden: definitionsHidden.value
+}));
+watch(laneSignature, () => {
+  if (lanesView.value) applyLaneProjection();
+  syncDefinitionsHidden();
+});
+
+function toggleLanesView() {
+  lanesView.value = !lanesView.value;
+  if (lanesView.value) {
+    applyLaneProjection();
+    nextTick(frameAllNodes);
+  }
+}
+
+// The definitions toggle hides the declaration family (nodes and their
+// wires) without deleting anything; `hidden` is runtime state and is
+// stripped before serialization.
+function syncDefinitionsHidden() {
+  nodes.value = nodes.value.map(node => (
+    DECLARATION_NODE_TYPES.includes(node.type) ? { ...node, hidden: definitionsHidden.value } : node
+  ));
+}
+
+function toggleDefinitionsHidden() {
+  definitionsHidden.value = !definitionsHidden.value;
+  syncDefinitionsHidden();
+}
+
 const canvasDockItems = computed(() => [
+  {
+    icon: 'pi pi-bars',
+    label: t('processDesigner.lanes'),
+    pressed: lanesView.value,
+    onClick: toggleLanesView
+  },
+  {
+    icon: 'pi pi-eye-slash',
+    label: t('processDesigner.hideDefinitions'),
+    pressed: definitionsHidden.value,
+    onClick: toggleDefinitionsHidden
+  },
+  { separator: true },
   {
     icon: 'pi pi-search-minus',
     label: t('drawing.zoomOut'),
@@ -1630,6 +1814,9 @@ function addNode(item, position = nextNodePosition()) {
       type,
       position,
       selected: true,
+      // A declaration authored while definitions are hidden stays hidden
+      // with its family (runtime state, stripped before serialization).
+      ...(definitionsHidden.value ? { hidden: true } : {}),
       data: {
         refId: id,
         ...(type === 'ctsClass'
@@ -1668,37 +1855,39 @@ function decorateEdges(items = []) {
   return items.map(edge => decorateEdge(edge));
 }
 
-// Wire styling encodes the edge LAYER — the BPMN primacy inversion
-// (node UI contract in components/process-designer/README.md): the EVENT
-// chain is the primary flow (the canvas's strongest ink, solid, arrowed,
-// 2.5px); data wires are associations (thin, dashed, muted ink);
-// declaration wires are the second association layer — thin, dashed, in
-// the demuted structure tone, because on real graphs they outnumber every
-// other layer and at full saturation they owned the canvas. The
-// payload-family hue lives on SOCKET HANDLES, never on wires.
+// Wire styling encodes WHAT TRAVELS (node UI contract in
+// components/process-designer/README.md): solid = instances (the entity
+// spine between operations), dashed = values, dotted = events — the one
+// wire family allowed color, the primary accent. Declaration bindings
+// keep the demuted structure dashed family as the second association
+// layer. No markers anywhere: direction reads from the left-to-right
+// handle canon.
 const WIRE_STYLES = {
-  control: { stroke: 'var(--p-text-color)', strokeWidth: 2.5 },
-  data: { stroke: 'var(--p-text-muted-color)', strokeWidth: 1.5, strokeDasharray: '5 4' },
+  event: { stroke: 'var(--p-primary-color)', strokeWidth: 2.5, strokeDasharray: '1 5', strokeLinecap: 'round' },
+  instance: { stroke: 'var(--p-text-color)', strokeWidth: 2 },
+  value: { stroke: 'var(--p-text-muted-color)', strokeWidth: 1.5, strokeDasharray: '5 4' },
   type: { stroke: 'var(--ck-signal-structure-muted)', strokeWidth: 1.5, strokeDasharray: '4 3' }
 };
 
-// Arrowheads render on the CONTROL layer only — the event chain is the
-// one directed flow on the canvas; data and declaration wires carry no
-// markers. The head is COMPACT (12px) and matched to the wire ink: an
-// 18px wedge on a 2.5px wire reads as a chunky blob, not a flow token.
-function controlMarker(stroke) {
-  return {
-    type: MarkerType.ArrowClosed,
-    color: stroke,
-    width: 12,
-    height: 12
-  };
+// An edge's cargo layer: events (control role), declaration bindings
+// (type role), or the data role split by what its SOURCE socket
+// transports — entity bases are instances, everything else is a value.
+function edgeLayer(edge = {}) {
+  if (edge.role === 'control') return 'event';
+  if (edge.role === 'type') return 'type';
+  const source = nodes.value.find(node => node.id === edge.source);
+  const handle = edge.sourceHandle || '';
+  const specId = handle.includes(':') ? handle.slice(handle.indexOf(':') + 1) : handle;
+  const spec = [...(source?.data?.outputSpecs || []), ...(source?.data?.inputSpecs || [])]
+    .find(candidate => candidate.id === specId);
+  const base = spec?.type?.base || spec?.base || '';
+  return base === 'entity' || base === 'entityRef' ? 'instance' : 'value';
 }
 
 function decorateEdge(edge = {}) {
   const selected = edge.selected === true || edge.id === selectedEdgeId.value;
-  const layer = WIRE_STYLES[edge.role] || WIRE_STYLES.data;
-  return {
+  const layer = WIRE_STYLES[edgeLayer(edge)] || WIRE_STYLES.value;
+  const decorated = {
     ...edge,
     type: 'smoothstep',
     pathOptions: { borderRadius: 14 },
@@ -1706,10 +1895,15 @@ function decorateEdge(edge = {}) {
     style: {
       stroke: selected ? 'var(--p-primary-color)' : layer.stroke,
       strokeWidth: selected ? 3 : layer.strokeWidth,
-      ...(layer.strokeDasharray ? { strokeDasharray: layer.strokeDasharray } : {})
-    },
-    ...(edge.role === 'control' ? { markerEnd: controlMarker(selected ? 'var(--p-primary-color)' : layer.stroke) } : {})
+      ...(layer.strokeDasharray ? { strokeDasharray: layer.strokeDasharray } : {}),
+      ...(layer.strokeLinecap ? { strokeLinecap: layer.strokeLinecap } : {})
+    }
   };
+  // No wire renders markers — and control edges persisted by earlier
+  // stylings carry markerEnd inside the stored graph, so it is dropped
+  // here rather than spread back into the live edge.
+  delete decorated.markerEnd;
+  return decorated;
 }
 
 function syncEdgeSelection() {
@@ -1794,6 +1988,10 @@ function syncNodeData() {
       console.error(`[process-designer] sync failed for ${node.type} ${node.id}`, error);
     }
   }
+  // A wire's cargo derives from its source socket, so rebinding a source
+  // (rename, type change, declaration re-wire) restyles its edges in the
+  // same pass — instance/value/event never drifts stale on the canvas.
+  edges.value = decorateEdges(edges.value);
 }
 
 // The one node-data enrichment pass: mutates and returns the canvas node
@@ -2055,6 +2253,9 @@ function stripRuntimeNodeData(node) {
   delete runtimeFreeNode.selected;
   delete runtimeFreeNode.dragging;
   delete runtimeFreeNode.resizing;
+  // The lanes view's definitions toggle is runtime presentation state —
+  // it never persists into the draft graph.
+  delete runtimeFreeNode.hidden;
   const data = { ...(node.data || {}) };
   // Declaration nodes carry authored state in keys the derived list also
   // uses for process nodes (typeId/version/scope/fields/states). Stripping
@@ -2074,7 +2275,7 @@ function stripRuntimeNodeData(node) {
 }
 
 function stripRuntimeEdgeData(edge) {
-  const { animated, style, selected, ...rest } = edge;
+  const { animated, style, selected, markerEnd, pathOptions, ...rest } = edge;
   return rest;
 }
 

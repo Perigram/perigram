@@ -1,14 +1,10 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="lg" :shape="populationShape" :title="data.purpose || data.summary || ''">
-    <!-- Label-dominant header: the label is the primary read, the species
-         glyph rides the trailing corner, and the whole header row carries
-         the node-spec tooltip (the per-node `?` affordance is gone —
-         quiet-card policy, node UI contract). -->
+  <DesignerNodeCard :selected="selected" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
+    <!-- Label-dominant header: the label is the primary read; the whole
+         header row carries the node-spec tooltip (the per-node `?`
+         affordance is gone — quiet-card policy, node UI contract). -->
     <div v-tooltip.bottom="nodeSpecTooltip" class="flex items-center gap-1.5">
       <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
-      <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-supporting">
-        <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
-      </span>
     </div>
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
@@ -62,7 +58,7 @@
            (owner corrective 2026-09-28, node UI contract). -->
       <div v-for="row in socketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <DesignerSocketHandle :socket="row.input" :wired="row.input.connected" side="left" :title="socketTitle(row.input)" />
+          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
           <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
             <TypedValueControl
@@ -82,12 +78,13 @@
       </div>
     </div>
 
-    <!-- The event section's trigger ring IS the effect's left-edge ring
-         (node UI contract): outline = manual trigger, filled = wired. -->
+    <!-- The event section renders an effect's event sockets as ordinary
+         socket rows (node UI contract): wired or manual reads from
+         whether a wire is attached. -->
     <div v-if="eventSocketRows.length" class="-mx-2.5 mt-3">
       <div v-for="row in eventSocketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <DesignerSocketHandle :socket="row.input" :wired="row.input.connected" side="left" :title="socketTitle(row.input)" />
+          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
@@ -121,17 +118,10 @@ const { t } = useI18n();
 
 const record = computed(() => props.data.processNodeRecord || props.data);
 const opKind = computed(() => operationKindOf(record.value || {}));
-// The BPMN population shape (node UI contract): verbs (effect species)
-// are task rectangles, nouns (the data plane — sources, values,
-// collections, reads/projections) are folded-corner data objects, and
-// the control species keep the neutral default frame — their shape is
-// the reserved gateway slot pending the control-species fate decision.
-const populationShape = computed(() => {
-  const kind = opKind.value || '';
-  if (kind.startsWith('effect.')) return 'task';
-  if (kind.startsWith('control.')) return '';
-  return 'data';
-});
+// Population primacy (node UI contract): operations (the effect species)
+// are the primary nodes and render the strong-ink border; every other
+// species is secondary surface.
+const isOperation = computed(() => String(opKind.value || '').startsWith('effect.'));
 const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || []));
 const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || []));
 const dataInputs = computed(() => inputSpecs.value.filter(input => input.role === 'data'));

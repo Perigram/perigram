@@ -2573,6 +2573,9 @@
     "frameAll": "Показать все узлы",
     "frameSelection": "Показать выбранные узлы",
     "resetZoom": "Сбросить масштаб",
+    "lanes": "Дорожки",
+    "hideDefinitions": "Скрыть описания",
+    "laneDefinitions": "Описания",
     "paletteGroups": {
       "entities": "Типы",
       "values": "Значения",

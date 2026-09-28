@@ -1,5 +1,5 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="md" :shape="shape">
+  <DesignerNodeCard :selected="selected" size="md" >
     <!-- Meta rows (scope version, editor tag, field/state counts) live in
          the header tooltip, not on the card face — quiet-card policy
          (process-designer README, "Node UI contract"). -->
@@ -25,11 +25,7 @@ import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
-  selected: { type: Boolean, default: false },
-  // Population shape passthrough (node UI contract): the process canvas
-  // renders this family as the dashed declaration vocabulary; the type
-  // canvas passes nothing and keeps the neutral default frame.
-  shape: { type: String, default: '' }
+  selected: { type: Boolean, default: false }
 });
 
 const label = computed(() => props.data.label || props.data.typeId || 'type');
