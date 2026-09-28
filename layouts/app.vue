@@ -300,7 +300,7 @@
         || isChatsRoute.value
         || /^\/project\/[^/]+\/queues\/?$/.test(route.path)
     ))
-    const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
+    const isAccountRoute = computed(() => route.path.startsWith('/organization'))
     const isFlushMobileSurface = computed(() => isAccountRoute.value || isChatsRoute.value)
     // The home tab follows the entry ladder: compiled home, first hub, or
     // the default home route — never a non-screen destination (the landing

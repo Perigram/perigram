@@ -426,24 +426,6 @@ layers such as sheet/stock, cut, fold, and bend layers in compact cards while
 suppressing dimension annotation layers so in-card sheet-design previews stay
 readable.
 
-### `GlobalSearch.vue`
-The app shell's global search over the directory feature: a trigger slot
-(mirroring the `UserAccountMenu` trigger contract — receives `toggle`/`hide`,
-round search button as fallback) opens a bounded dialog that debounces
-`GET /api/directory/search` and renders grouped People/Organizations rows.
-A result row opens the directory popup in place — a `Popover` anchored at
-the row (at the first row for the Enter key path) presenting the
-avatar-forward directory face (large avatar or organization mark, name,
-shared-organization line / type tag) with a chat action (users, never self)
-and one open action that routes through the workspace-open seam
-(`openInstanceInWorkspace` — pane tab on desktop, the home dialog on
-mobile). Directory results never navigate to a standalone route, and rows
-never render emails or technical ids — the only context
-line is the shared-organization name the caller already knows. The desktop
-header carries the default trigger, the mobile bottom bar and the
-generated home workspace sidebar (beside the wordmark, or first icon of
-the wrapped rail) inject their own triggers.
-
 ### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
 When only an id is provided, it resolves the DTO through the entity store's
@@ -565,7 +547,11 @@ Every card variant carries the composed instance-chat entry: full cards render
 it in the footer row (before parent footer actions), and inline/compact
 variants render it in the expansion popover action row. The entry routes
 through `utils/instance-chat.js`, so the surface the card lives on decides how
-the thread opens (desktop drawer, mobile `/chats` target).
+the thread opens (desktop drawer, mobile `/chats` target). The thread kind
+follows the support conversation contract at the seam itself: a `user` target
+opens the **direct** 1:1 conversation (the inbox-listed thread, matching
+status-history actor chat); every other type opens the composed instance
+thread.
 
 ### `InstanceCard.vue` popup identity slot
 The popover's identity block — type label, status surface, icon+name row, and

@@ -21,8 +21,8 @@
       </section>
     </div>
   </Popover>
-  <!-- Profile settings in a popup: avatar and language only — the
-       popover itself stays a plain menu. -->
+  <!-- Profile settings in a popup: avatar, language, and the
+       notifications toggle — the popover itself stays a plain menu. -->
   <StandardDialog
     v-model:visible="profileVisible"
     :header="t('nav.profile')"
@@ -62,7 +62,40 @@
         <span class="text-muted text-supporting">{{ t('profile.language') }}</span>
         <LanguageSwitcher />
       </div>
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 flex-col">
+          <span class="text-muted text-supporting">{{ t('notifications.settingsLabel') }}</span>
+          <small v-if="notifications.permission.value === 'denied'" class="text-muted">{{ t('notifications.blockedHelp') }}</small>
+        </div>
+        <ToggleSwitch
+          :model-value="notifications.enabled.value"
+          :disabled="notifications.busy.value || !notifications.canEnable.value"
+          @update:model-value="toggleNotifications"
+        />
+      </div>
     </div>
+  </StandardDialog>
+  <!-- Organization creation lives with the account (the organizations
+       group's own entry): no standalone profile route exists. -->
+  <StandardDialog
+    v-model:visible="createOrgVisible"
+    :header="t('auth.createOrg')"
+    size="sm"
+  >
+    <form class="flex flex-col gap-4 pt-4" @submit.prevent="createOrganization">
+      <div class="flex flex-col gap-1">
+        <label for="create-org-name">{{ t('common.name') }} *</label>
+        <InputText id="create-org-name" v-model="orgForm.name" required class="w-full" autofocus />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="create-org-email">{{ t('profile.email') }} *</label>
+        <InputText id="create-org-email" v-model="orgForm.email" type="email" required class="w-full" />
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <Button type="button" :label="t('common.cancel')" text severity="secondary" @click="createOrgVisible = false" />
+        <Button type="submit" :label="t('common.create')" :loading="creatingOrg" />
+      </div>
+    </form>
   </StandardDialog>
   <!-- The customizable trigger: the documented `#trigger` scoped slot
        (receives toggle/hide). The round avatar button is the fallback. -->
@@ -86,25 +119,66 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
+import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
+import ToggleSwitch from 'primevue/toggleswitch';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useInstancesStore } from '~/stores/instances';
+import { useBrowserNotifications } from '~/composables/useBrowserNotifications';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js';
 
 const emit = defineEmits(['hide']);
 
 const router = useRouter();
 const { t } = useI18n();
+const toast = useToast();
 const authStore = useAuthStore();
+const instances = useInstancesStore();
 const menu = ref(null);
 const profileVisible = ref(false);
 const avatarBusy = ref(false);
+
+// Settings state: browser notifications ride the profile popup (the
+// settings surface — nothing routes away); organization creation opens
+// from the organizations group.
+const notifications = useBrowserNotifications();
+const toggleNotifications = async (value) => {
+  if (value) {
+    const granted = await notifications.enable();
+    if (!granted) {
+      toast.add({ severity: 'warn', summary: t('common.error'), detail: t('notifications.blockedHelp'), life: 4000 });
+    }
+  } else {
+    await notifications.disable();
+  }
+};
+
+const createOrgVisible = ref(false);
+const creatingOrg = ref(false);
+const orgForm = reactive({ name: '', email: '' });
+const createOrganization = async () => {
+  creatingOrg.value = true;
+  try {
+    await instances.createInstance('organization', { ...orgForm });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.organizationCreated'), life: 3000 });
+    createOrgVisible.value = false;
+    orgForm.name = '';
+    // Refresh auth state so the new organization joins the switch group.
+    await authStore.setUser();
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('auth.organizationCreateFailed'), life: 3000 });
+  } finally {
+    creatingOrg.value = false;
+  }
+};
 
 async function uploadAvatar(event) {
   const file = event?.target?.files?.[0];
@@ -142,10 +216,13 @@ const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon')
 const menuItems = computed(() => {
   const items = [];
 
-  if (authStore.userOrganizations.length) {
-    items.push({
-      label: t('profile.myOrganizations'),
-      items: authStore.userOrganizations.map(org => ({
+  // The organizations group always renders — switching entries when the
+  // user has organizations, the create entry always (an orgless account
+  // creates its first organization right here).
+  items.push({
+    label: t('profile.myOrganizations'),
+    items: [
+      ...authStore.userOrganizations.map(org => ({
         label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
         icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
         // Switching stays in place: the workspace rehydrates its process
@@ -156,9 +233,17 @@ const menuItems = computed(() => {
             await authStore.switchOrganization(organizationId);
           }
         }
-      }))
-    });
-  }
+      })),
+      {
+        label: t('auth.createOrg'),
+        icon: 'pi pi-plus',
+        command: () => {
+          orgForm.email = authStore.userData.email || '';
+          createOrgVisible.value = true;
+        }
+      }
+    ]
+  });
 
   items.push({
     label: authStore.userData.name || t('common.user'),
