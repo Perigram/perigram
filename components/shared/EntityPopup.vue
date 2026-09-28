@@ -5,7 +5,7 @@
        home pane. -->
   <StandardDialog
     v-model:visible="visible"
-    size="xl"
+    :size="isDirectoryType ? 'md' : 'xl'"
     :show-default-footer="false"
   >
     <template #header>

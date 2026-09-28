@@ -180,10 +180,10 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-permissionrulebuilder-vue` | `components/PermissionRuleBuilder.vue` | derived usage | replace:chrome (8) |
 | `ui-components-process-designer-applymigrationdialog-vue` | `components/process-designer/ApplyMigrationDialog.vue` | derived usage | replace:chrome (4) |
 | `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (1) |
-| `ui-components-process-designer-lanebands-vue` | `components/process-designer/LaneBands.vue` | derived usage | replace:chrome (1); replace:inline-visual (1) |
 | `ui-components-process-designer-inspector-declarationedgeinspector-vue` | `components/process-designer/inspector/DeclarationEdgeInspector.vue` | derived usage | compliant |
 | `ui-components-process-designer-inspector-declarationinspector-vue` | `components/process-designer/inspector/DeclarationInspector.vue` | derived usage | compliant |
 | `ui-components-process-designer-inspector-processnodeinspector-vue` | `components/process-designer/inspector/ProcessNodeInspector.vue` | derived usage | centralize:layout (1); replace:chrome (8) |
+| `ui-components-process-designer-lanebands-vue` | `components/process-designer/LaneBands.vue` | derived usage | replace:chrome (1); replace:inline-visual (1) |
 | `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | compliant |
 | `ui-components-process-designer-typedvaluecontrol-vue` | `components/process-designer/TypedValueControl.vue` | derived usage | compliant |
 | `ui-components-process-designer-typemigrationstepsdialog-vue` | `components/process-designer/TypeMigrationStepsDialog.vue` | derived usage | replace:chrome (4) |

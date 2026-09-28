@@ -1,5 +1,5 @@
 <template>
-  <div :class="['flex flex-col gap-6 p-4', bounded ? '' : 'h-full overflow-y-auto']" data-directory-surface>
+  <div :class="['flex flex-col gap-4 p-4', bounded ? '' : 'h-full overflow-y-auto']" data-directory-surface>
     <div v-if="loading">
       <StateBlock loading />
     </div>
@@ -30,13 +30,17 @@
         </div>
       </div>
 
-      <!-- User surface -->
+      <!-- User surface: flat hosted column — the dialog or pane is the
+           surface, sections separate with dividers, never boxed panels
+           (the settings-popup content pattern). -->
       <template v-if="entry.type === 'user'">
-        <Panel v-if="detailedFields.length" :header="$t('profile.title')">
+        <template v-if="detailedFields.length">
+          <Divider class="m-0" />
           <DataBlock type-id="user" :entity="detailed" :fields="detailedFields" />
-        </Panel>
-        <Panel v-if="organizationMemberships.length" :header="$t('auth.organization')">
-          <div class="flex flex-col gap-2 py-2">
+        </template>
+        <template v-if="organizationMemberships.length">
+          <Divider class="m-0" />
+          <div class="flex flex-col gap-1">
             <button
               v-for="row in organizationMemberships"
               :key="row.membership.organizationId"
@@ -52,35 +56,37 @@
               <Tag v-if="row.active" :value="$t('common.active')" severity="success" />
             </button>
           </div>
-        </Panel>
+        </template>
       </template>
 
       <!-- Organization surface -->
       <template v-else>
-        <!-- The active organization renders its real page: the generated
-             overview (identity header + management entries) from the
-             hydrated manifest — the pane is the organization page. -->
+        <!-- The active organization's PANE renders its real page: the
+             generated overview (identity header + management entries)
+             from the hydrated manifest. The popup (bounded) keeps the
+             directory profile — a page inside a popup would stack two
+             surfaces. -->
         <GeneratedOrganizationOverview
-          v-if="overviewScreen"
+          v-if="overviewScreen && !bounded"
           :screen="overviewScreen"
         />
         <template v-else>
-          <Panel v-if="detailedFields.length" :header="$t('organization.details')">
-            <DataBlock type-id="organization" :entity="detailed" :fields="detailedFields" />
-          </Panel>
-          <!-- Read-level organization facts beyond the display contract: the
-               field-access policy admits type/email/phone at read level, and
-               DataBlock filters anything the caller's grant hides. -->
-          <Panel v-else-if="hasOrganizationFacts" :header="$t('organization.details')">
-            <DataBlock type-id="organization" :entity="factSource" :fields="ORGANIZATION_FACTS" />
-          </Panel>
-          <Panel v-if="partnership" :header="$t('partnerships.title')">
-            <div class="flex items-center gap-2 py-2">
+          <template v-if="detailedFields.length || hasOrganizationFacts">
+            <Divider class="m-0" />
+            <DataBlock
+              type-id="organization"
+              :entity="factSource"
+              :fields="detailedFields.length ? detailedFields : ORGANIZATION_FACTS"
+            />
+          </template>
+          <template v-if="partnership">
+            <Divider class="m-0" />
+            <div class="flex items-center gap-2">
               <Tag :value="$t(`partnerships.status.${partnership.status}`)" :severity="partnershipSeverity" />
               <small v-if="partnership.direction === 'incoming'" class="text-muted">{{ $t('partnerships.incoming') }}</small>
               <small v-else class="text-muted">{{ $t('partnerships.outgoing') }}</small>
             </div>
-          </Panel>
+          </template>
         </template>
       </template>
 
@@ -182,7 +188,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import Panel from 'primevue/panel';
+import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
