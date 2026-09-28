@@ -1209,8 +1209,12 @@ watch(laneSignature, () => {
 // keeps only per-grant levels.
 function onNodeDragStop({ node } = {}) {
   if (!node || node.type !== 'processNode' || !isEffectNode(node)) return;
+  // Band membership reads the node's CENTER: position is the top-left
+  // corner, so a node grabbed high lands its corner in the band above
+  // the one the author dropped it in.
+  const centerY = node.position.y + (node.dimensions?.height || 140) / 2;
   const band = laneModel.value.bands.find(candidate => (
-    candidate.kind === 'role' && node.position.y >= candidate.top && node.position.y < candidate.top + candidate.height
+    candidate.kind === 'role' && centerY >= candidate.top && centerY < candidate.top + candidate.height
   ));
   if (!band) {
     // Dropped outside every lane (e.g. the declaration band): membership
