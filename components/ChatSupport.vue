@@ -745,7 +745,6 @@
                 </div>
                 <ChatAttachmentPicker
                     ref="attachmentPicker"
-                    :recipient-user-id="activeRecipientUserId"
                     @select="selectAttachment"
                     @create-action="runCreateAction"
                 />
@@ -1623,31 +1622,11 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
                 return []
             }
         }))
+        // The strip is a tree, not a flat ladder: only the lineage children
+        // of the current target ever become chips — an empty scoped load
+        // means the target has no children, never every child of that type
+        // across all parents.
         let merged = loaded.flat()
-        // Fallback child source: when the lineage list endpoints expose
-        // nothing (scoped services missing or denied), the readable
-        // instance-options window still fills the strip so chips drill.
-        if (!merged.length) {
-            const childTypes = [...new Set(effectiveContainmentForStrip()
-                .filter(edge => edge.parentType === targetType)
-                .map(edge => edge.childType))]
-            const optionRows = await Promise.all(childTypes.map(async childType => {
-                try {
-                    const options = await $fetch('/api/support/instance-options', { query: { type: childType } })
-                    return (options || []).filter(option => option?.value)
-                        .map(option => ({
-                            key: `${childType}:${option.value}`,
-                            type: childType,
-                            id: String(option.value),
-                            name: option.label || childType,
-                            entity: option.entity || null
-                        }))
-                } catch {
-                    return []
-                }
-            }))
-            merged = optionRows.flat()
-        }
         const seen = new Set([targetKey])
         merged = merged.filter(item => {
             if (!item.key || item.key === targetKey || seen.has(item.key)) return false
@@ -2114,11 +2093,13 @@ const scrollToBottom = async () => {
     }
 }
 
-// The attachment picker is the tiered menu over the same generated entity
-// sources the home explorer exposes: generated create buttons first, type
-// rows after, and one tap on an instance selects, adds the ref, and closes the
-// picker. With no readable types and no create actions the trigger stays
-// disabled instead of opening an empty menu.
+// The attachment picker is the explorer tree of the home sidebar in a
+// popover: the same compiled home-section list sources the PanelMenu
+// renders (full user-available window, built-in search), generated create
+// buttons first beside entity rows at every level. One tap on an instance
+// selects, adds the ref, and closes the picker. With no readable types and
+// no create actions the trigger stays disabled instead of opening an empty
+// menu.
 const attachmentPickerEmpty = computed(() => {
     const home = authStore.screenManifest.find(screen => screen.template === 'home')
     return !(home?.sources || []).some(source => source.typeId && source.mode !== 'single')
@@ -2135,8 +2116,7 @@ const selectAttachment = (option) => {
             type: option.type,
             id: option.value,
             label: option.label,
-            entity: option.entity || null,
-            recipientHasAccess: option.recipientHasAccess
+            entity: option.entity || null
         })
     }
 }

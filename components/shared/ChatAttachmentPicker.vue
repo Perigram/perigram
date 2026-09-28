@@ -4,6 +4,9 @@
       v-model:expanded-keys="expandedKeys"
       :value="nodes"
       selection-mode="single"
+      filter
+      filter-mode="lenient"
+      :filter-placeholder="$t('common.search')"
       :aria-label="$t('support.attach')"
       class="w-80 max-h-96 overflow-y-auto"
       @node-select="onNodeSelect"
@@ -58,20 +61,20 @@ import { useAuthStore } from '~/stores/auth'
 import { useInstancesStore } from '~/stores/instances'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
+import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js'
 
 /**
  * Attachment picker: the home sidebar's explorer tree, densely padded, in a
- * Popover. Home-screen sections are the roots whose children list the
- * section's generated create entries right beside the entity entries — and
- * every entity repeats the pattern through its type's detail-screen child
- * creates. Entities expand through pure lineage nesting (expansion is
- * node-driven, so lazy loads never key-parse); one tap on an entity selects
- * it and closes, a create entry runs the generated flow in the host.
+ * Popover. Sections load through the SAME compiled home-screen list sources
+ * the sidebar renders (instances store + resolved source filters — the full
+ * user-available window, not a capped options endpoint), search is the
+ * Tree's built-in lenient filter, and each section's generated create
+ * entries list right beside the entity entries — every entity repeats the
+ * pattern through its type's detail-screen child creates. Entities expand
+ * through pure lineage nesting (expansion is node-driven, so lazy loads
+ * never key-parse); one tap on an entity selects it and closes, a create
+ * entry runs the generated flow in the host.
  */
-const props = defineProps({
-  recipientUserId: { type: String, default: '' }
-})
-
 const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
@@ -100,8 +103,9 @@ const entityLabel = (entity = null, type = '') => (
 // Home-screen sections, filtered like the sidebar: list sources whose type
 // is not a lineage-bound child. Source lineageBindings are org-wide, so only
 // bindings declaring this source's type as the child count.
+const homeScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'home') || null)
 const sections = computed(() => {
-  const home = authStore.screenManifest.find(screen => screen.template === 'home')
+  const home = homeScreen.value
   if (!home) return []
   return (home.regions || [])
     .map(region => {
@@ -217,47 +221,46 @@ function onNodeSelect(node) {
   const item = node.data?.item
   if (item?.type) {
     hide()
-    const option = item.option || null
-    emit('select', option
-      ? { ...option, type: item.type }
-      : {
-          type: item.type,
-          value: instanceId(item.entity) || item.key,
-          label: item.name || entityLabel(item.entity, item.type),
-          entity: item.entity || null
-        })
+    emit('select', {
+      type: item.type,
+      value: instanceId(item.entity) || item.key,
+      label: item.name || entityLabel(item.entity, item.type),
+      entity: item.entity || null
+    })
   }
 }
 
-// Expansion is node-driven: section nodes load their option list, entity
+// Expansion is node-driven: section nodes load their item list, entity
 // nodes load lineage children. No key parsing, so nested loads cannot be
 // misrouted the way the old prefix-based keys were.
 function onNodeExpand(node) {
   if (node.data?.kind === 'section') {
-    loadSectionOptions(node.data.section.source.typeId, node.key)
+    loadSectionOptions(node.data.section, node.key)
     return
   }
   if (node.data?.item) loadChildren(node.data.item)
 }
 
-async function loadSectionOptions(typeId, sectionKey) {
+// Sections load exactly like the home sections of the sidebar: the resolved
+// filters of the compiled source through the instances store, so the picker
+// browses the same full user-available window the PanelMenu renders
+// (shared observation cache, no option-list cap).
+async function loadSectionOptions(section, sectionKey) {
   if (loadedKeys.value.has(sectionKey) || loadingKeys.value.has(sectionKey)) return
   loadingKeys.value = new Set([...loadingKeys.value, sectionKey])
   try {
-    const loaded = await $fetch('/api/support/instance-options', {
-      query: {
+    const typeId = section.source.typeId
+    const entities = await instances.listInstances(
+      instances.canonicalTypeKey(typeId),
+      resolveSourceFilters(section.source, homeScreen.value || {})
+    )
+    const items = (Array.isArray(entities) ? entities : [])
+      .filter(entity => instanceId(entity))
+      .map(entity => ({
+        key: `${typeId}:${instanceId(entity)}`,
         type: typeId,
-        ...(props.recipientUserId ? { recipientUserId: props.recipientUserId } : {})
-      }
-    })
-    const items = (loaded || [])
-      .filter(option => option?.value)
-      .map(option => ({
-        key: `${typeId}:${option.value}`,
-        type: typeId,
-        entity: option.entity || null,
-        name: option.label,
-        option
+        entity,
+        name: entityLabel(entity, typeId)
       }))
     childrenByParentKey.value = new Map([...childrenByParentKey.value, [sectionKey, items]])
   } catch (error) {
@@ -307,9 +310,9 @@ async function loadChildren(parent) {
   }
 }
 
-// Each open resets: option lists are recipient-scoped per conversation, so
-// cached branches from another conversation must not leak. Sections start
-// expanded with their lists loading, like the sidebar.
+// Each open resets: expanded state and loaded branches reload so the tree
+// reflects the current workspace pool. Sections start expanded with their
+// lists loading, like the sidebar.
 function toggle(event) {
   expandedKeys.value = {}
   childrenByParentKey.value = new Map()
@@ -317,7 +320,7 @@ function toggle(event) {
   loadingKeys.value = new Set()
   for (const section of sections.value) {
     expandedKeys.value = { ...expandedKeys.value, [sectionKey(section)]: true }
-    loadSectionOptions(section.source.typeId, sectionKey(section))
+    loadSectionOptions(section, sectionKey(section))
   }
   popover.value?.toggle(event)
 }
