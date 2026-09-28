@@ -216,7 +216,8 @@
     "organization": "Организация",
     "settings": "Настройки",
     "collapseSidebar": "Свернуть панель",
-    "expandSidebar": "Развернуть панель"
+    "expandSidebar": "Развернуть панель",
+    "search": "Поиск"
   },
   "status": {
     "status": "Статус",
@@ -1555,7 +1556,16 @@
     "loginRequiredForInvitation": "Чтобы принять приглашение, необходимо войти в систему.",
     "organizationJoined": "Вы присоединились к организации",
     "loginFailed": "Не удалось войти",
-    "emailAlreadyRegistered": "Этот email уже зарегистрирован"
+    "emailAlreadyRegistered": "Этот email уже зарегистрирован",
+    "inviteExisting": "Найти существующего пользователя",
+    "invitationSent": "Приглашение отправлено",
+    "myInvitations": "Приглашения",
+    "invitationAccepted": "Вы вступили в организацию",
+    "invitationDeclined": "Приглашение отклонено",
+    "invitationState.invited": "Приглашён",
+    "invitationState.accepted": "Принято",
+    "invitationState.declined": "Отклонено",
+    "invitationState.expired": "Истекло"
   },
   "roles": {
     "ManufacturerAdmin": "Админ производителя",
@@ -2449,7 +2459,8 @@
     "unresolved": "Нужен контекст",
     "legacyPermissionsReadOnly": "Прямые разрешения — это legacy fallback-данные. Активный доступ в организации собирается из ролей процесса в разделе команды.",
     "openTeam": "Открыть команду",
-    "openProcessDesigner": "Открыть дизайнер"
+    "openProcessDesigner": "Открыть дизайнер",
+    "details": "Детали"
   },
   "sheetDesign": {
     "sheetDesigns": "Дизайны листов",
@@ -3320,5 +3331,34 @@
     "create": "Импортировать строки",
     "created": "Создано записей: {n}",
     "failed": "Импорт не выполнен"
+  },
+  "directory": {
+    "searchPlaceholder": "Поиск по имени",
+    "searchHint": "Начните вводить, чтобы найти людей и организации",
+    "searching": "Поиск…",
+    "noResults": "Ничего не найдено",
+    "users": "Люди",
+    "organizations": "Организации"
+  },
+  "partnerships": {
+    "title": "Партнёры",
+    "hint": "Партнёры организации и заявки",
+    "incoming": "Входящие заявки",
+    "outgoing": "Отправленные заявки",
+    "active": "Активные партнёры",
+    "none": "Партнёрств пока нет",
+    "addPartner": "Добавить в партнёры",
+    "findOrganizations": "Поиск организаций",
+    "requestSent": "Заявка отправлена",
+    "requestReceived": "Заявка о партнёрстве",
+    "terminate": "Расторгнуть",
+    "cancelConfirm": "Прекратить партнёрство с этой организацией?",
+    "alreadyMember": "Ваша организация"
+  },
+  "partnerships.status": {
+    "pending": "Ожидает",
+    "active": "Активно",
+    "declined": "Отклонено",
+    "terminated": "Прекращено"
   }
 }

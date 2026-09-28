@@ -2,6 +2,7 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 
 const ORGANIZATION_OVERVIEW_SCREEN_KEY = 'organization_overview';
 const ORGANIZATION_BILLING_SCREEN_KEY = 'organization_billing';
+const ORGANIZATION_PARTNERS_SCREEN_KEY = 'organization_partners';
 const ORGANIZATION_TEAM_SCREEN_KEY = 'organization_team';
 const ORGANIZATION_PROCESS_SCREEN_KEY = 'organization_process';
 
@@ -62,6 +63,24 @@ export function resolveOrganizationSystemScreens(auth = {}) {
         icon: 'pi pi-credit-card',
         requires: { feature: 'organizations', level: 'admin' }
       }] : []
+    });
+  }
+
+  if (canReadOrganization) {
+    screens.push({
+      id: ORGANIZATION_PARTNERS_SCREEN_KEY,
+      screenKey: ORGANIZATION_PARTNERS_SCREEN_KEY,
+      labelKey: 'partnerships.title',
+      descriptionKey: 'partnerships.hint',
+      kind: 'system',
+      template: 'route',
+      placement: 'hub',
+      route: '/organization/partners',
+      sourceRoute: '/organization/partners',
+      typeId: 'organization',
+      icon: 'pi pi-handshake',
+      scope: organizationScope,
+      required: { feature: 'organizations', level: 'read' }
     });
   }
 

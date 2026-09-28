@@ -216,7 +216,8 @@
     "organization": "Organization",
     "settings": "Settings",
     "collapseSidebar": "Collapse sidebar",
-    "expandSidebar": "Expand sidebar"
+    "expandSidebar": "Expand sidebar",
+    "search": "Search"
   },
   "status": {
     "status": "Status",
@@ -1555,7 +1556,16 @@
     "loginRequiredForInvitation": "You need to be logged in to accept this invitation.",
     "organizationJoined": "You have joined the organization",
     "loginFailed": "Login failed",
-    "emailAlreadyRegistered": "This email is already registered"
+    "emailAlreadyRegistered": "This email is already registered",
+    "inviteExisting": "Find an existing user",
+    "invitationSent": "Invitation sent",
+    "myInvitations": "Invitations",
+    "invitationAccepted": "You joined the organization",
+    "invitationDeclined": "Invitation declined",
+    "invitationState.invited": "Invited",
+    "invitationState.accepted": "Accepted",
+    "invitationState.declined": "Declined",
+    "invitationState.expired": "Expired"
   },
   "roles": {
     "ManufacturerAdmin": "Manufacturer Admin",
@@ -2449,7 +2459,8 @@
     "unresolved": "Needs context",
     "legacyPermissionsReadOnly": "Direct permissions are legacy fallback data. Active organization access is composed from process roles in Team management.",
     "openTeam": "Open team",
-    "openProcessDesigner": "Open designer"
+    "openProcessDesigner": "Open designer",
+    "details": "Details"
   },
   "sheetDesign": {
     "sheetDesigns": "Sheet designs",
@@ -3320,5 +3331,34 @@
     "create": "Import rows",
     "created": "Created {n} instances",
     "failed": "Import failed"
+  },
+  "directory": {
+    "searchPlaceholder": "Search by name",
+    "searchHint": "Start typing to find people and organizations",
+    "searching": "Searching…",
+    "noResults": "Nothing found",
+    "users": "People",
+    "organizations": "Organizations"
+  },
+  "partnerships": {
+    "title": "Partners",
+    "hint": "Organization partners and requests",
+    "incoming": "Incoming requests",
+    "outgoing": "Sent requests",
+    "active": "Active partners",
+    "none": "No partnerships yet",
+    "addPartner": "Add as partner",
+    "findOrganizations": "Find organizations",
+    "requestSent": "Partnership request sent",
+    "requestReceived": "Partnership request",
+    "terminate": "Terminate",
+    "cancelConfirm": "End the partnership with this organization?",
+    "alreadyMember": "Your organization"
+  },
+  "partnerships.status": {
+    "pending": "Pending",
+    "active": "Active",
+    "declined": "Declined",
+    "terminated": "Terminated"
   }
 }

@@ -198,6 +198,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
 | `ui-components-shared-filterbuilder-vue` | `components/shared/FilterBuilder.vue` | derived usage | remove:important-override (2) |
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-globalsearch-vue` | `components/shared/GlobalSearch.vue` | derived usage | replace:chrome (5); remove:state (1); replace:inline-visual (1) |
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
 | `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | compliant |
@@ -280,12 +281,15 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | replace:chrome (3) |
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
+| `ui-pages-organization-partners-vue` | `pages/organization/partners.vue` | derived usage | replace:chrome (5); compliant:scoped-layout |
 | `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (11); replace:inline-visual (1) |
 | `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (4) |
-| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
-| `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (4) |
+| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | replace:chrome (8); remove:state (1); compliant:scoped-layout |
+| `ui-pages-organizations-id-vue` | `pages/organizations/[id].vue` | derived usage | compliant |
+| `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (7); compliant:scoped-layout |
 | `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | remove:important-override (7) |
 | `ui-pages-screens-index-vue` | `pages/screens/index.vue` | derived usage | compliant |
 | `ui-pages-terms-and-conditions-vue` | `pages/terms-and-conditions.vue` | derived usage | replace:chrome (2) |
 | `ui-pages-test-ui-lab-vue` | `pages/test/ui-lab.vue` | derived usage | replace:chrome (12) |
 | `ui-pages-test-ui-mapping-vue` | `pages/test/ui-mapping.vue` | derived usage | compliant |
+| `ui-pages-users-id-vue` | `pages/users/[id].vue` | derived usage | compliant |
