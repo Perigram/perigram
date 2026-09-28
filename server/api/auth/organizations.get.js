@@ -7,11 +7,18 @@ export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
 
   const user = await usersService.getById(auth.userId);
-  if (!user || !user.memberships || user.memberships.length === 0) return [];
+  // The organizations the account can switch into: explicit memberships
+  // plus the lineage tenancy slot (older/owner accounts carry their org
+  // link there — an empty memberships list must not hide the active org
+  // from the account surfaces).
+  const orgIds = [
+    ...((user && Array.isArray(user.memberships) ? user.memberships : [])
+      .map(m => m.organizationId)
+      .filter(Boolean)),
+    ...(user?.lineage?.organizationId ? [user.lineage.organizationId] : [])
+  ];
+  const uniqueOrgIds = [...new Set(orgIds.map(id => String(id)))];
+  if (!uniqueOrgIds.length) return [];
 
-  const orgIds = user.memberships
-    .map(m => m.organizationId)
-    .filter(Boolean);
-
-  return await organizationsService.getByIds(orgIds);
+  return await organizationsService.getByIds(uniqueOrgIds);
 });

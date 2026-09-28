@@ -21,7 +21,9 @@
       </section>
     </div>
   </Popover>
-  <slot :toggle="toggle" :hide="hide">
+  <!-- The customizable trigger: the documented `#trigger` scoped slot
+       (receives toggle/hide). The round avatar button is the fallback. -->
+  <slot name="trigger" :toggle="toggle" :hide="hide">
     <Button
       data-testid="user-menu-trigger"
       type="button"

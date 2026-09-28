@@ -112,11 +112,12 @@
         <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" @click="submitDialog" />
       </template>
     </Dialog>
-    <!-- The screen hosts its own feedback surfaces: without these elements
-         in the tree, useToast and the uiMappingConfirm confirmation group
-         fire into nothing. -->
+    <!-- The screen hosts its own Toast (without a host in the tree,
+          useToast fires into nothing); confirmations deliberately use NO
+          group — the app layout owns the single default-group
+          ConfirmDialog host, so several concurrently mounted screens
+          never render one require multiple times. -->
     <Toast />
-    <ConfirmDialog group="uiMappingConfirm" />
   </div>
 </template>
 
@@ -124,7 +125,6 @@
 import { computed, provide, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Dialog from 'primevue/dialog';
-import ConfirmDialog from 'primevue/confirmdialog';
 import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -353,7 +353,6 @@ const openAction = (action, context = {}) => {
   if (launch === 'confirm') {
     const typeLabel = (props.bundle.types || []).find(type => type.id === action.typeId)?.name || null;
     confirm.require({
-      group: 'uiMappingConfirm',
       header: action.label,
       message: typeLabel || action.label,
       accept: () => runAction(action, {}, context)

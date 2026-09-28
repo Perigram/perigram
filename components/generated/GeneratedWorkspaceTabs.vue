@@ -3,7 +3,7 @@
     <Tabs
       :value="activeKey"
       scrollable
-      class="min-w-0 flex-1 justify-center"
+      class="min-w-0 h-full flex-1 justify-center"
       @update:value="key => key !== activeKey && $emit('select', key)"
     >
       <TabList class="min-w-0 flex-1" :pt="tabListPt">

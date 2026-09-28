@@ -17,11 +17,13 @@
       <div :class="LAYOUT.row">
         <Button
           v-if="editable"
-          :label="editing ? $t('uiMapping.save') : $t('uiMapping.edit')"
           :icon="editing ? 'pi pi-check' : 'pi pi-pencil'"
+          :aria-label="editing ? $t('uiMapping.save') : $t('uiMapping.edit')"
+          :title="editing ? $t('uiMapping.save') : $t('uiMapping.edit')"
           size="small"
           :severity="editing ? undefined : 'secondary'"
-          :text="!editing"
+          text
+          rounded
           @click="$emit('toggle-edit')"
         />
         <ActionButton
