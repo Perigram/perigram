@@ -9,6 +9,33 @@
         <i class="pi pi-building text-muted" style="font-size: 2rem" aria-hidden="true" />
         <p class="m-0 text-supporting text-muted">{{ t('profile.noOrganizationHelp') }}</p>
       </div>
+      <!-- Targeted invitations addressed to this account (accept joins in
+           one handshake, so auth re-hydrates after responding). -->
+      <TableFrame v-if="invitations.length" class="ck-collection-rows">
+        <DataTable :value="invitations" :pt="invitationTablePt">
+          <Column field="organizationName" :header="$t('auth.organization')" />
+          <Column :header="$t('organization.processRoles')">
+            <template #body="{ data }">
+              <div class="flex flex-wrap gap-1">
+                <Tag v-for="label in data.roleLabels" :key="label" :value="label" severity="info" size="small" />
+              </div>
+            </template>
+          </Column>
+          <Column field="expiresAt" :header="$t('auth.expires')">
+            <template #body="{ data }">
+              {{ new Date(data.expiresAt).toLocaleDateString() }}
+            </template>
+          </Column>
+          <Column :header="$t('common.actions.title')" class="text-right">
+            <template #body="{ data }">
+              <div class="flex justify-end gap-2">
+                <Button icon="pi pi-check" :label="$t('common.approve')" severity="success" size="small" :loading="respondingInviteId === data._id" @click="respondInvitation(data, 'accept')" />
+                <Button icon="pi pi-times" :label="$t('common.reject')" severity="danger" size="small" text :loading="respondingInviteId === data._id" @click="respondInvitation(data, 'decline')" />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+      </TableFrame>
       <form class="flex flex-col gap-4" @submit.prevent="createOrganization">
         <div class="flex flex-col gap-1">
           <label for="orgless-org-name">{{ t('common.name') }} *</label>
@@ -29,14 +56,18 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Tag from 'primevue/tag';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import TableFrame from '~/components/shared/TableFrame.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 
@@ -71,4 +102,44 @@ const createOrganization = async () => {
     creating.value = false;
   }
 };
+
+// Targeted invitations for this account (see
+// server/features/invitations/README.md): accept makes the membership
+// active in a single handshake, so the store must re-hydrate afterwards.
+const invitations = ref([]);
+const respondingInviteId = ref(null);
+const invitationTablePt = {
+  root: { class: 'bg-transparent' },
+  headerRow: { class: 'bg-transparent text-muted' },
+  headerCell: { class: 'bg-transparent text-muted' }
+};
+const loadInvitations = async () => {
+  try {
+    invitations.value = await $fetch('/api/invitations/mine');
+  } catch {
+    invitations.value = [];
+  }
+};
+const respondInvitation = async (invitation, action) => {
+  respondingInviteId.value = invitation._id;
+  try {
+    await $fetch(`/api/invitations/${invitation._id}/respond`, {
+      method: 'POST',
+      body: { action }
+    });
+    toast.add({
+      severity: 'success',
+      summary: t('common.success'),
+      detail: t(action === 'accept' ? 'auth.invitationAccepted' : 'auth.invitationDeclined'),
+      life: 3000
+    });
+    await authStore.setUser();
+    await loadInvitations();
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
+  } finally {
+    respondingInviteId.value = null;
+  }
+};
+onMounted(loadInvitations);
 </script>
