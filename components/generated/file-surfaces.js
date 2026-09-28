@@ -29,6 +29,9 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  *   every other surface declares `'generic'`, resolved to
  *   `GeneratedEditorPageAction` by `instance-editor-action.js` (the
  *   component imports this module, so a static import here would cycle).
+ *   The action renders like its neighbor generated action buttons and
+ *   opens the page through the pane chain in-workspace or the
+ *   workspace-page-open seam elsewhere; mobile keeps a dialog.
  */
 export const fileSurfaceRegistry = {
   'cassette-designer': {
