@@ -509,3 +509,100 @@ rewrite (applied to the live db: 38 documents, idempotent). Spec pins a
 legacy-vocabulary fixture loading as typeId. Verified against the live
 active process through the real seam: acceptance clean, identity
 migration clean, 4 actions / 8 compiled / 9 manifest screens.
+
+## P5 — The canvas speaks BPMN (accepted target model, 2026-09-27 review)
+
+The canvas is two graphs wearing one surface: typed dataflow plus the
+event/control chain. The event chain IS the BPMN sequence flow (an effect
+runs automatically iff its event socket is wired), so primacy inverts:
+event wires become the primary flow, data demotes to association styling.
+BPMN is read in shape, line weight, and arrangement — not hue; color
+retreats to sockets and cards stay neutral (Camunda-monochrome). Only
+three node populations get shapes — verbs (effects → task rectangles),
+nouns (data-plane → folded-corner data objects), vocabulary (declarations
+→ the dashed family matching declaration wires). Declarations are not
+events; no circles, and no gateway diamonds until the control species
+are target-model-real. Every visual token encodes exactly one real fact:
+the Node UI contract channel table stays the law and is rewritten with
+each landed stage (docs-first). Position is presentation state — nothing
+positional ever persists as authorization.
+
+### V1 — geometry, rings, de-fluff (one contract rewrite)
+
+- [ ] Smoothstep edges: delete the `decorateEdge` normalization that
+  forces bezier (a leftover from the per-kind node components) and set
+  `defaultEdgeOptions = { type: 'smoothstep' }` with a ~12-16px corner
+  radius. Declaration-wire matching and connection inference key on
+  role/label/endpoints, not geometry (verified 2026-09-27); the
+  transpiler already round-trips `edge.type`.
+- [ ] Arrowheads on the control layer only (`markerEnd` on event wires) —
+  data and declaration wires carry no markers.
+- [ ] Socket shape channel: ring = event/trigger (outline ring = manual,
+  filled = wired/automatic), filled dot = data, diamond = declaration
+  binding, square = status — resolves the BPMN circle-event collision
+  without breaking the channel table.
+- [ ] Trigger ring on effect cards' left edge: the derived trigger mode
+  becomes visible language (the one honest event token — it lives on the
+  verb, where the fact lives).
+- [ ] Species corner glyph + label-dominant header on task cards.
+- [ ] De-fluff: card-header hover tooltip replaces the per-node `?`
+  affordance; `CtsTypeNode` hint line removed; meta rows (`v1`, editor
+  tag, field/state counts) to hover; socket row labels hidden on
+  unselected nodes; drop the one-sided socket-grid placeholder cells.
+- [ ] Rewrite the Node UI contract section for all of the above.
+
+### V2 — the primacy inversion
+
+- [ ] Event wires: solid, dark, 2.5-3px, arrowed — the primary flow.
+- [ ] Data wires: thin, light, dashed (BPMN data association).
+- [ ] Declaration wires: dashed mid-tone, unchanged family.
+- [ ] Payload-family hue survives on socket handles only; wire styling
+  encodes layer; selected stays primary.
+- [ ] Quiet-cards cutoff as principle: selected node = authoring
+  surface, unselected node = diagram element.
+
+### Lanes A — projection (the rendering backbone)
+
+- [ ] Lane bands derived from grant records (never stored): one lane per
+  role in fixed order, effect nodes render in their primary role's lane,
+    declaration band above the pool, "hide definitions" view toggle.
+- [ ] Horizontal lanes; left-to-right is the reading canon.
+
+### Lanes B — placement-writes-grants (authoring)
+
+- [ ] Dragging an effect node across a lane boundary writes its grant
+  record — the exact mutation the inspector performs; membership always
+  re-derives from grants on load; lane = primary (first) role, extra
+  roles stay inspector-owned chips.
+
+### Auto-arrangement
+
+- [ ] Diagram view (read/projection): positions fully derived — x =
+  layer by longest path along the event chain (validation already
+  rejects control cycles), y = lane band, data nouns attached near their
+  consumer; never persisted.
+- [ ] Edit view: stored positions authoritative; new-node placement
+  extends the nearest-unoccupied-grid contract into the lane's next free
+  column.
+- [ ] Tidy command in the toolbar's canvas group: the layered pass run
+  destructively (writes positions).
+- [ ] Hand-rolled layered pass first (topological layering + barycenter
+  ordering, ~150 lines); dagre/ELK only if real graphs defeat it.
+
+### Open decision + docs debt
+
+- [ ] Control species: the palette exposes if/switch/fork/join/
+  forEach/stops (landed with the authoring-model rebuild) — confirm
+  target-model status or schedule the cut; it decides whether the
+  gateway diamond slot stays reserved.
+- [ ] Reconcile stale transition-node claims: READMEs and code comments
+  speak of `ctsTransition` declaration nodes; none exist — the
+  declaration palette is class/field/state/typeReference and state→state
+  wires are `nested`. Fix in the V1 docs pass.
+
+### Adjacent track (record references — separate from the canvas)
+
+- [ ] Typed instance refs insertable in any text field (generalize the
+  chat token parser/renderer beyond SupportMessageContent).
+- [ ] Backlinks ("referenced by") panel on detail pages.
+- [ ] Cmd-K instance switcher; drag-a-row → reference gesture.
