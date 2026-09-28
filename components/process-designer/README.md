@@ -19,8 +19,11 @@ process node never becomes the lifecycle declaration by carrying a target
 string.
 
 A state connected to a class is a root state. A state connected to another
-state declares its single parent; transition declarations separately connect
-`from` and `to` states. Initial and terminal state facts belong to state
+state declares its single parent (`nested`); there is NO transition
+declaration node — the declaration palette is class/field/state/
+type-reference, and transition operations are process nodes
+(`cts.transition`) that reference declared states. Initial and terminal
+state facts belong to state
 nodes. Construction has no lifecycle-entry socket, and transition operations
 reference declared transitions rather than inventing target states.
 
@@ -152,12 +155,13 @@ runtime (`mintId` — graph nodes, edges, services, sockets, stations):
 time + counter + random, so same-millisecond drops cannot collide.
 Renaming is always a pure label change; persisted instances, posted org
 types, producer outputs, and relation references keep resolving.
-The class inspector owns no inline lifecycle editor. States and transitions
-are first-class declaration nodes. A state connects to its class (root) or to
+The class inspector owns no inline lifecycle editor. States are first-class
+declaration nodes. A state connects to its class (root) or to
 one parent state (nested); its inspector owns the name, local initial flag,
-terminal flag, and display policy. A transition declaration connects explicit
-from/to state references and owns intent, guard, effects, and transition
-policy. The compiler recursively emits one state machine per axis and rejects
+terminal flag, and display policy. Transitions are process nodes
+(`cts.transition`), never declaration nodes: they author a target state and
+an optional intent against their bound type. The compiler recursively emits
+one state machine per axis and rejects
 cycles, missing nested initials, duplicate sibling names, unknown paths, and
 unreachable terminal states. Process transition operations select one of
 these declarations; they do not add states or terminal facts.
@@ -218,11 +222,11 @@ against real entity outputs.
 
 Declaration-plane wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`) are legal only between declaration
-partners: field/state/transition/operator nodes declare on a class or its
+partners: field/state/operator nodes declare on a class or its
 state machine; class/type-reference nodes target a ref field's accepted
 targets; class/reference nodes bind an origin species Type pin; state→state
-wires declare one parent relationship; and transition nodes connect declared
-from/to states. Class→class children wires retain their typed key and
+wires declare one parent relationship (`nested` — there is no transition
+declaration node). Class→class children wires retain their typed key and
 `onRemove` policy. File-class parent containment is refused at the connect
 gate. Declaration edges persist as `role: 'type'` records and round-trip
 without being treated as dataflow. `compileTreeDeclarations` is the one
