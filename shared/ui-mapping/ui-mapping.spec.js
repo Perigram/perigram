@@ -152,9 +152,6 @@ describe('field control resolution', () => {
     // containment — each missing signal falls back to the shape default.
     expect(resolveListLayout(process, { stateful: true })).toBe('board');
     expect(resolveListLayout(process, { stateful: false })).toBe('timeline');
-    // Containment opts out of the board (the tree projection owns
-    // lineage); the prose shape keeps its chronological read.
-    expect(resolveListLayout(process, { stateful: true, hierarchical: true })).toBe('timeline');
     expect(resolveListLayout({ ...process, class: 'item' }, { stateful: true })).toBe('timeline');
     expect(hasStateVocabulary({ queued: {}, running: {} })).toBe(true);
     expect(hasStateVocabulary({ queued: {} })).toBe(false);

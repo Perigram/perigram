@@ -81,17 +81,6 @@
         :state-policy="node.statePolicy"
         @open="emitOpen"
       />
-      <HierarchyTable
-        :load-type="loadType"
-        v-else-if="listLayout === 'tree-table'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        @open="emitOpen"
-      />
       <CardGrid
         v-else-if="listLayout === 'card-grid'"
         :instances="sortedInstances"
@@ -243,17 +232,6 @@
         :instances="filteredInstances"
         :type="node.type"
         :controls="node.listControls"
-        :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        @open="emitOpen"
-      />
-      <HierarchyTable
-        :load-type="loadType"
-        v-else-if="listLayout === 'tree-table'"
-        :instances="filteredInstances"
-        :type="node.type"
         :openable="openable"
         :pool="effectivePool"
         :bundle="bundle"
@@ -477,7 +455,6 @@ import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-s
 import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import CollectionTable from './CollectionTable.vue';
-import HierarchyTable from './HierarchyTable.vue';
 import CardGrid from './CardGrid.vue';
 import BoardCollection from './BoardCollection.vue';
 import GanttCollection from './GanttCollection.vue';
@@ -495,8 +472,8 @@ const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
-  // Lazy child-type loader for the hierarchy projection (see
-  // HierarchyTable): `async (typeId) => screenInstance[]`, owned by the
+  // Lazy type loader for the containment cross-cut (the parent-context
+  // overlay below): `async (typeId) => screenInstance[]`, owned by the
   // app host that owns the instance store.
   loadType: { type: Function, default: null },
   depth: { type: Number, default: 0 },
@@ -630,11 +607,10 @@ const { localizedTypeLabel } = useLocalizedTypeLabel();
 const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? localizedTypeLabel(region.type) : region.id);
 const regionLabel = computed(() => regionLabelFor(props.node));
 // The derived list layout — the resolver's contract decision over shape,
-// class, hierarchy, size, and the served state vocabulary. The projection
+// class, size, and the served state vocabulary. The projection
 // switch below is the user's view-state override inside a bounded pair,
 // never a second derivation.
 const derivedListLayout = computed(() => resolveListLayout(props.node.type, {
-  hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length),
   stateful: hasStateVocabulary(props.node.statePolicy),
   size: props.node.instances.length <= SMALL_LIST_AT
     ? 'small'
@@ -643,12 +619,12 @@ const derivedListLayout = computed(() => resolveListLayout(props.node.type, {
 // The projection switch rides the same persisted-view-state seam as sort
 // and filters: a stateful collection (a served vocabulary spanning at
 // least BOARD_MIN_COLUMNS values) whose derived layout is a structural
-// collection (table, tree-table) may board, and a derived board may
+// collection (table) may board, and a derived board may
 // table back. Shape-specialized projections (timeline, stats, carousel,
 // the handful list) never switch — the board would fight their shape.
 // A stored preference for a non-switchable collection is ignored.
 const projectionSwitchable = computed(() => hasStateVocabulary(props.node.statePolicy)
-  && ['table', 'tree-table', 'board'].includes(derivedListLayout.value));
+  && ['table', 'board'].includes(derivedListLayout.value));
 const projectionScope = computed(() => `list-projection:${props.node.typeId || ''}`);
 const projectionPreference = ref(loadProjectionPreference(projectionScope.value));
 watch(projectionScope, scope => {

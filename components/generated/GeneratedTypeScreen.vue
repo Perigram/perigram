@@ -123,7 +123,7 @@ function openInstance(instance) {
   if (instance?.type && instance?.id) emit('open-instance', instance);
 }
 
-// Lazy child-type loader for the hierarchy projection: loads the child
+// Lazy type loader for the containment cross-cut: loads the requested
 // type through the shared store and returns its projected pool rows.
 async function loadTypeIntoPool(typeId = '') {
   const key = instances.canonicalTypeKey(typeId);

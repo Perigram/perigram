@@ -89,7 +89,6 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { shape: 'statlike' }, layout: 'stats' },
   { match: { class: 'file', size: 'large' }, layout: 'carousel' },
   { match: { class: 'file' }, layout: 'card-grid' },
-  { match: { hierarchical: true }, layout: 'tree-table' },
   // Scheduled (exactly one instant, no stronger shape): appointment-like
   // collections lay out as the month grid; temporal shape beats size the
   // way chronology already does.
@@ -107,7 +106,7 @@ export const BOARD_MIN_COLUMNS = 2;
 
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
-export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'tree-table', 'card-grid', 'carousel', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
+export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'carousel', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
 
 // Collection thresholds live with the other design-system budgets so
 // materializations carry no magic numbers: tables paginate past
@@ -156,7 +155,6 @@ export const SURFACE_ROW_BUDGET = 10;
 // ~2). No sampling cap — sibling arrangement must see the true total.
 export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   table: 1,
-  'tree-table': 1,
   timeline: 2,
   'card-grid': 4,
   board: 4,

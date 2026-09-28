@@ -21,7 +21,7 @@ const instanceLabel = (instance, type) => titleFor(instance, type, { unnamedLabe
 
 // Children resolve through the shared hierarchy matcher (declared
 // lineageKey, never the edge's map key) — the same matcher as
-// HierarchyTable and InstancePicker.
+// InstancePicker and the workspace explorer.
 const childrenOf = (instance, type, seen) => childrenOfParent(type, props.pool, instance.id)
   .filter(candidate => !seen.has(candidate.id));
 
