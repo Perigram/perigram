@@ -567,12 +567,8 @@ launcher) render in the shared bottom-right chat popup
 action pins the conversation as a home-workspace pane tab; the sidebar
 PanelMenu's Chats entry opens that general chats pane tab directly. The
 thread header's title opens the entity popup (`EntityPopup.vue` +
-`useEntityPopup`): the shared drawer-card popup (`DrawerPopup.vue` — the
-general bottom-right chrome the chat popup established) hosting the user's
-directory page on direct threads and the compiled detail screen through
-the generator host on instance threads, titled by display name (never an
-id), with an expand action into the home pane; group headers carry member
-chips inline.
+`useEntityPopup`) — titled by display name (never an id); group headers
+carry member chips inline.
 
 ### `InstanceCard.vue` popup identity slot
 The popover's identity block — type label, status surface, icon+name row, and
@@ -593,19 +589,19 @@ strips (a user-typed record opens the direct thread; every other type the
 composed instance thread). Bounded/flush editor hosts expose the same entry
 
 ### `EntityPopup.vue` (with `useEntityPopup`)
-The shared entity popup riding `DrawerPopup.vue`: the hosted detail
-supplies its own header row — the record's display name (never an id)
-plus an expand action into the home pane through the workspace-open seam.
-The body hosts the entity's real detail surface — the directory page
-(with the generated organization overview for the active org) for
-`user`/`organization`
+The shared entity popup: the standard centered `StandardDialog` (size
+`xl`, bounded scroll body) hosting the entity's real detail surface —
+the directory page (with the generated organization overview for the
+active org) for `user`/`organization`
 ([components/directory](../directory/README.md)), and the compiled detail
 screen through the generator host
-([components/generated](../generated/README.md)) for instance types;
-identity opens from the generator swap the popup subject in place.
-Mounted once by the app layout so floating chrome (chat thread headers)
-can inspect a record from any route; the composable state is the single
-`open`/`close` channel.
+([components/generated](../generated/README.md)) for instance types.
+The header carries the record's display name (never an id); the footer
+carries the controls — expand (opens the home pane through the
+workspace-open seam) and close. Identity opens from the generator swap
+the popup subject in place. Mounted once by the app layout so floating
+chrome (chat thread headers) can inspect a record from any route; the
+composable state is the single `open`/`close` channel.
 from their own chrome.
 
 ### `SupportMessageContent.vue`
@@ -745,11 +741,6 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   parameters and lifecycle hook settings so those surfaces do not fall back to
   raw JSON editors. Entity type helper text is shown only for `instanceId`
   selectors, not workflow-state selectors.
-- **`DrawerPopup.vue`**: The general bottom-right drawer-card popup
-  chrome the chat popup established, extracted as its own shared wrapper:
-  non-modal PrimeVue Dialog, hidden header, app surface tokens, bounded
-  height with the content owning scroll and headers. The chat popup and
-  the entity popup ride it.
 - **`UserAccountMenu.vue`**: The single shared account control: a PrimeVue
   popover whose account group carries the profile settings trigger, the
   theme toggle, and logout; the organizations group opens every

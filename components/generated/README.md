@@ -13,6 +13,16 @@ transitions. The routed screens page and floating hosts (the shared
 entity popup) render compiled screens through it — the generator surface
 is never wired twice.
 
+Every organization management surface — team, partners, billing, and
+the process designer canvas — is a registered workspace page in
+`workspace-pages.js` carrying its `route`; the generated overview's
+system-screen buttons open them as home pane tabs through the page-open
+seam (`utils/workspace-page-open.js` — the page twin of the entity
+workspace-open event, with a mobile route fallback). Nothing routes away
+from home; the routes remain as mobile/deep-link fallbacks. The
+workspace-page registry also carries the route→page map
+(`workspacePageIdForRoute`) that chrome resolve through.
+
 The manifest vocabulary is the projected UI contract, everywhere: screens and
 actions key their target by `typeId`, actions by `id` (with `parentTypeId`
 for parent context), templates are `typeList`/`instanceDetail`/`home`, and
