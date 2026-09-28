@@ -582,7 +582,7 @@ export async function listEntityOptions(auth, type, query = '', recipientUserId 
     }));
 }
 
-export async function listInstanceOptionTypes(auth = {}) {
+export async function listEntityOptionTypes(auth = {}) {
     const scopedAuth = await resolveInstanceOptionAuth(auth);
     return scopedInstanceOptionTypes(scopedAuth).map(source => ({
         value: source.typeId,

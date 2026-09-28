@@ -3,18 +3,23 @@
     v-if="item?.entity"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
   >
-    <GeneratedPaneHeader
-      :tabs="tabs"
-      :active-key="item.key"
-      :closeable="closeable"
-      :splittable="splittable"
-      @refresh="$emit('refresh')"
-      @select-tab="$emit('select-tab', $event)"
-      @close-tab="$emit('close-tab', $event)"
-      @add="$emit('add-tab', $event)"
-      @split="orientation => $emit('split', orientation)"
-      @close="$emit('close')"
-    />
+    <div data-pane-header class="flex h-6 shrink-0 items-stretch border-b border-chrome-border">
+      <GeneratedWorkspaceTabs
+        :tabs="tabs"
+        :active-key="item.key"
+        @select="$emit('select-tab', $event)"
+        @close="$emit('close-tab', $event)"
+        @add="$emit('add-tab', $event)"
+        @refresh="$emit('refresh')"
+      />
+      <div class="flex shrink-0 items-center pr-1">
+        <GeneratedWorkspacePaneMenu
+          :splittable="splittable"
+          :closeable="closeable"
+          @split="$emit('split', $event)"
+          @close="$emit('close')"
+        />
+      </div>
     </div>
 
     <div
@@ -92,7 +97,8 @@ import Button from 'primevue/button';
 import GeneratedInstanceDetail from '~/components/generated/GeneratedInstanceDetail.vue';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
-import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
+import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
+import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';

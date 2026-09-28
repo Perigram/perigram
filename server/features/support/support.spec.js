@@ -267,7 +267,7 @@ describe('support communication service', () => {
       }]
     };
 
-    await expect(supportService.listInstanceOptionTypes(processAuth)).resolves.toEqual([
+    await expect(supportService.listEntityOptionTypes(processAuth)).resolves.toEqual([
       { value: 'queue', label: 'My Queues', labelKey: null, sourceId: 'queue', screenKey: 'queue_screen' },
       { value: 'external_record', label: 'Readable External Records', labelKey: null, sourceId: 'external_record', screenKey: 'queue_screen' }
     ]);
@@ -556,7 +556,7 @@ describe('support communication service', () => {
     // Regression: a manifest whose creator kinds were not expanded by the
     // compiler must degrade to "no creator credit", not throw a 500 that
     // takes down type-ids, instance-options, and every message send.
-    await expect(supportService.listInstanceOptionTypes(auth)).resolves.toEqual([]);
+    await expect(supportService.listEntityOptionTypes(auth)).resolves.toEqual([]);
     await expect(supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
       message: 'unexpanded kinds must not break sends'

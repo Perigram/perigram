@@ -3,18 +3,23 @@
     v-if="definition"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
   >
-    <GeneratedPaneHeader
-      :tabs="tabs"
-      :active-key="page.key"
-      :closeable="closeable"
-      :splittable="splittable"
-      @refresh="$emit('refresh')"
-      @select-tab="$emit('select-tab', $event)"
-      @close-tab="$emit('close-tab', $event)"
-      @add="$emit('add-tab', $event)"
-      @split="orientation => $emit('split', orientation)"
-      @close="$emit('close')"
-    />
+    <div data-pane-header class="flex h-6 shrink-0 items-stretch border-b border-chrome-border">
+      <GeneratedWorkspaceTabs
+        :tabs="tabs"
+        :active-key="page.key"
+        @select="$emit('select-tab', $event)"
+        @close-tab="$emit('close-tab', $event)"
+        @add="$emit('add-tab', $event)"
+        @refresh="$emit('refresh')"
+      />
+      <div class="flex shrink-0 items-center pr-1">
+        <GeneratedWorkspacePaneMenu
+          :splittable="splittable"
+          :closeable="closeable"
+          @split="$emit('split', $event)"
+          @close="$emit('close')"
+        />
+      </div>
     </div>
 
     <div class="min-h-0 flex-1 overflow-hidden">
@@ -33,7 +38,8 @@
 
 <script setup>
 import { computed } from 'vue';
-import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
+import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
+import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 
 const props = defineProps({
