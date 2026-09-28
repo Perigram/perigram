@@ -79,7 +79,10 @@ const registry = useRegistryStore();
 // owns the single hairline, so the tablist's border is dropped.
 const tabListPt = {
   root: { style: { height: '100%' } },
-  tabList: { style: { height: '100%', alignItems: 'stretch', borderWidth: 0 } }
+  tabList: { style: { height: '100%', alignItems: 'stretch', borderWidth: 0 } },
+  // Active tab indicator: a primary-colored bar riding the stripe's
+  // hairline (the mirror of the mobile bar's top-edge accent).
+  activeBar: { style: { height: '2px', background: 'var(--p-primary-color)', borderRadius: 0, zIndex: 1 } }
 };
 
 function tabLabel(tab = {}) {
