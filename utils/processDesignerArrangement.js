@@ -1,15 +1,14 @@
 // Layered arrangement for the process canvas — the Tidy command's engine.
 // Contract (canonical): components/process-designer/README.md
 // "Auto-arrangement (Tidy)". Pure: nodes, edges, lane bands in → positions
-// out. Deterministic and idempotent: initial orders come from authored y
-// (id as tiebreaker) and every later pass is a stable sort, so running the
-// pass over its own output reproduces it.
+// out. Deterministic and idempotent: every choice is a stable order or a
+// selection from constant inputs, so running the pass over its own output
+// reproduces it.
 const COLUMN_PITCH = 420;
 const LANE_ROW_HEIGHT = 170;
 const LANE_ROW_INSET = 24;
 const SECONDARY_GAP = 150;
 const DECLARATION_PITCH = 120;
-const BARYCENTER_MAX_SWEEPS = 12;
 
 function isDeclaration(node) {
   return node?.type !== 'processNode';
@@ -76,63 +75,84 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   for (const node of nodes) if (!isDeclaration(node)) columns.set(node.id, layer.get(node.id));
   const y = new Map();
 
-  // y for effects: one row per band member, ordered by barycenter sweeps
-  // over flow-connected effects (authored y as the initial order).
-  const bandOrder = new Map((bands || []).map(band => [band.id, []]));
+  // y for effects: packed rows per band. Columns process left-to-right; a
+  // member takes the free row of its band nearest the median row of its
+  // already-placed same-band flow neighbors — a sequence continues level,
+  // and an unanchored member takes the lowest free row. Same-column
+  // members stack; rows are reused across columns.
+  const bandIds = new Set((bands || []).map(band => band.id));
+  const rows = new Map();
+  const sameBandNeighbors = new Map();
+  for (const edge of processEdges) {
+    if (!effects.has(edge.source) || !effects.has(edge.target)) continue;
+    if (bandOfNodeId?.get(edge.source)?.id !== bandOfNodeId?.get(edge.target)?.id) continue;
+    for (const [from, to] of [[edge.source, edge.target], [edge.target, edge.source]]) {
+      if (!sameBandNeighbors.has(from)) sameBandNeighbors.set(from, []);
+      sameBandNeighbors.get(from).push(to);
+    }
+  }
+  const columnBands = new Map();
   for (const node of nodes) {
     if (!effects.has(node.id)) continue;
     const band = bandOfNodeId?.get(node.id);
-    if (band && bandOrder.has(band.id)) bandOrder.get(band.id).push(node.id);
+    if (!band || !bandIds.has(band.id)) continue;
+    const column = layer.get(node.id);
+    if (!columnBands.has(column)) columnBands.set(column, []);
+    columnBands.get(column).push({ id: node.id, bandId: band.id });
   }
-  const rows = new Map();
   const rowY = id => bandOfNodeId.get(id).top + LANE_ROW_INSET + rows.get(id) * LANE_ROW_HEIGHT;
-  const flowEffectNeighbors = new Map();
-  for (const edge of processEdges) {
-    if (!effects.has(edge.source) || !effects.has(edge.target)) continue;
-    for (const [from, to] of [[edge.source, edge.target], [edge.target, edge.source]]) {
-      if (!flowEffectNeighbors.has(from)) flowEffectNeighbors.set(from, []);
-      flowEffectNeighbors.get(from).push(to);
+  const bandRowColumns = new Map();
+  const targetRow = id => {
+    const placed = (sameBandNeighbors.get(id) || []).filter(other => rows.has(other));
+    if (!placed.length) return null;
+    const sorted = placed.map(other => rows.get(other)).sort((left, right) => left - right);
+    return sorted[(sorted.length - 1) >> 1];
+  };
+  for (const column of [...columnBands.keys()].sort((left, right) => left - right)) {
+    const byBand = new Map();
+    for (const entry of columnBands.get(column)) {
+      if (!byBand.has(entry.bandId)) byBand.set(entry.bandId, []);
+      byBand.get(entry.bandId).push(entry);
+    }
+    for (const [bandId, entries] of byBand) {
+      if (!bandRowColumns.has(bandId)) bandRowColumns.set(bandId, []);
+      const rowColumns = bandRowColumns.get(bandId);
+      entries.sort((left, right) => {
+        const leftTarget = targetRow(left.id);
+        const rightTarget = targetRow(right.id);
+        return (leftTarget === null ? 1 : 0) - (rightTarget === null ? 1 : 0)
+          || (leftTarget ?? 0) - (rightTarget ?? 0)
+          || (left.id < right.id ? -1 : 1);
+      });
+      for (const entry of entries) {
+        const target = targetRow(entry.id);
+        let row = 0;
+        if (target === null) {
+          while ((rowColumns[row] || new Set()).has(column)) row += 1;
+        } else {
+          // Nearest free row to the target; on a tie, the upper row.
+          for (let distance = 0; ; distance += 1) {
+            const up = target - distance;
+            const down = target + distance;
+            if (up >= 0 && !(rowColumns[up] || new Set()).has(column)) { row = up; break; }
+            if (!(rowColumns[down] || new Set()).has(column)) { row = down; break; }
+          }
+        }
+        if (!rowColumns[row]) rowColumns[row] = new Set();
+        rowColumns[row].add(column);
+        rows.set(entry.id, row);
+      }
     }
   }
-  for (const members of bandOrder.values()) {
-    members.sort((left, right) => byAuthoredY(byId, left, right));
-    members.forEach((id, index) => rows.set(id, index));
-  }
-  // Sweeps run to a stable order (bounded): the pass is idempotent —
-  // running it over its own output reproduces it.
-  for (let sweep = 0; sweep < BARYCENTER_MAX_SWEEPS; sweep += 1) {
-    const before = [...rows.entries()].sort().map(([, row]) => row).join();
-    const downward = sweep % 2 === 0;
-    for (const members of bandOrder.values()) {
-      const barycenter = id => {
-        const along = (flowEffectNeighbors.get(id) || []).filter(other => rows.has(other) && (
-          downward
-            ? (predecessors.get(id) || []).includes(other)
-            : (successors.get(id) || []).includes(other)
-        ));
-        if (!along.length) return null;
-        return along.reduce((sum, other) => sum + rowY(other), 0) / along.length;
-      };
-      members.sort((left, right) => (
-        (barycenter(left) ?? rowY(left)) - (barycenter(right) ?? rowY(right))
-        || rows.get(left) - rows.get(right)
-      ));
-      members.forEach((id, index) => rows.set(id, index));
-    }
-    if ([...rows.entries()].sort().map(([, row]) => row).join() === before) break;
-  }
-  for (const members of bandOrder.values()) {
-    for (const id of members) y.set(id, rowY(id));
-  }
+  for (const id of rows.keys()) y.set(id, rowY(id));
 
   // y for secondary process nodes: the median of the EFFECT rows they
   // touch — direct effect neighbors plus the nearest upstream and
   // downstream effects through secondary chains. Effect rows never
   // depend on secondaries, so the targets are constants: the placement
-  // is idempotent by construction (drifting medians came from letting
-  // secondaries watch other secondaries). Same-column cards spread to
-  // clear each other and the fixed effect rows; a node touching no
-  // effect keeps its authored y.
+  // is idempotent by construction. Same-column cards spread to clear
+  // each other and the fixed effect rows; a node touching no effect
+  // keeps its authored y.
   const neighborsOf = new Map();
   for (const edge of processEdges) {
     for (const [from, to] of [[edge.source, edge.target], [edge.target, edge.source]]) {

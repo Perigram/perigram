@@ -81,11 +81,11 @@ describe('arrangeProcessGraph', () => {
     expect(backwards).toHaveLength(1);
   });
 
-  it('places every effect inside its lane band on a distinct row', () => {
+  it('reads a same-lane sequence horizontally on one row', () => {
     const nodes = [
       processNode('a1', 900, 0), processNode('a2', 500, 0), processNode('a3', 100, 0)
     ];
-    const band = { id: 'role:a', kind: 'role', label: 'A', top: 0, height: 510 };
+    const band = { id: 'role:a', kind: 'role', label: 'A', top: 0, height: 340 };
     const result = arrange({
       nodes,
       edges: [
@@ -96,12 +96,29 @@ describe('arrangeProcessGraph', () => {
       bands: [band],
       bandOfNodeId: new Map([['a1', band], ['a2', band], ['a3', band]])
     });
-    const rows = ['a1', 'a2', 'a3'].map(id => result.get(id).y);
-    for (const y of rows) {
+    const ys = ['a1', 'a2', 'a3'].map(id => result.get(id).y);
+    for (const y of ys) {
       expect(y).toBeGreaterThanOrEqual(band.top);
       expect(y).toBeLessThan(band.top + band.height);
     }
-    expect(new Set(rows).size).toBe(3);
+    // One member per column: the chain must not read as a staircase.
+    expect(new Set(ys).size).toBe(1);
+  });
+
+  it('stacks same-column members of a lane on distinct rows', () => {
+    const nodes = [processNode('r1', 0, 0), processNode('r2', 0, 0)];
+    const band = { id: 'role:a', kind: 'role', label: 'A', top: 0, height: 340 };
+    const result = arrange({
+      nodes,
+      edges: [],
+      effects: ['r1', 'r2'],
+      bands: [band],
+      bandOfNodeId: new Map([['r1', band], ['r2', band]])
+    });
+    const [top, bottom] = ['r1', 'r2'].map(id => result.get(id).y).sort((left, right) => left - right);
+    expect(top).toBeGreaterThanOrEqual(band.top);
+    expect(bottom).toBeLessThan(band.top + band.height);
+    expect(bottom - top).toBeGreaterThanOrEqual(170);
   });
 
   it('keeps an unbanded effect where the author left it', () => {
@@ -132,8 +149,9 @@ describe('arrangeProcessGraph', () => {
     });
     const signA = Math.sign(result.get('a1').y - result.get('a2').y);
     const signB = Math.sign(result.get('b1').y - result.get('b2').y);
+    // The two wires cross iff the per-band orders disagree; equal orders
+    // (including both level) is the untangled arrangement.
     expect(signA).toBe(signB);
-    expect(signA).not.toBe(0);
   });
 
   it('pulls a pred-less source up to its first consumer\'s column', () => {
