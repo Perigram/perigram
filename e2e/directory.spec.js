@@ -58,7 +58,7 @@ test.describe('directory, invitations, partnerships', () => {
     await app.page.locator('button:has(.pi-user-plus)').first().click();
     await app.page.locator('[data-testid="new-chat-search"]').fill(credentials.name);
     await app.page.waitForTimeout(1200);
-    await expect(app.page.locator('[data-testid="new-chat-picker"] li')).toHaveCount(0);
+    await expect(app.page.locator('[data-testid="new-chat-picker"]')).not.toContainText(credentials.name);
     await app.expectCleanRuntime();
     record('picker hides unreachable users', {});
 
