@@ -107,14 +107,12 @@ surface concerns:
   persisted per type beside sort and filters
   (`utils/ui-projection-preference.js`): a collection whose type serves
   a state vocabulary and whose derived layout is a structural collection
-  (table or tree-table) may switch to the board, and a derived board may
+  (table) may switch to the board, and a derived board may
   switch back to the table — one icon toggle in the header cluster, and
   a stored preference for a non-switchable collection is ignored, so the
   derivation stays the default and the switch never fights
   shape-specialized projections (timeline, stats, carousel, the handful
-  list). Switching a hierarchical collection to the board flattens the
-  nesting for that view — cards group by state; the tree projection
-  returns with the toggle.
+  list).
 
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column): a self-contained popover
@@ -139,10 +137,10 @@ surface concerns:
   the single default-group `ConfirmDialog` host, so several concurrently
   mounted screens can never render one require multiple times.
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
-  layout comes from `resolveListLayout` (`table` | `tree-table` |
+  layout comes from `resolveListLayout` (`table` |
   `card-grid` | `timeline` | `stats` | `list` | `board` | `gantt` |
   `calendar`, matched by
-  class, shape, hierarchy, size, or the state vocabulary — see
+  class, shape, size, or the state vocabulary — see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)).
   The list header is one wrapping line — label, count, in-place expanding
   search and filter controls, and actions. The search toggle expands into
@@ -267,24 +265,8 @@ surface concerns:
   (`ParentRef.vue` — the parent type's icon plus the parent's resolved
   label, non-interactive; the region host lazily overlays loaded parent
   types onto the pool through the same `loadType` seam the tree uses).
-  Nesting itself stays owned by the parent surface's tree projection.
-- `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
-  the ONE containment view — the collection's structural roots plus
-  their lineage descendants nested as expandable rows (roots expand once
-  their children are known; deeper levels start collapsed). Children of
-  the declared edges that are not in the region pool load lazily through
-  the `loadType` seam (`async (typeId) => screenInstance[]`, provided by
-  the app host that owns the instance store; without a loader the tree
-  renders pool rows only). `hierarchyRootInstances` (shared mapping
-  contract) drops any instance whose declared parent link is stamped, so
-  children ride nested under their parents and never repeat at the top
-  level. The first column carries PrimeVue TreeTable's `expander` — the
-  toggle and the per-level indentation render only on the expander
-  column, so a custom first-column body without it renders a structurally
-  nested tree with NO visible indent or toggles (a flat pile). Columns
-  and row surfaces match `CollectionTable` (clipped rounded content
-  rows, hairline gaps, muted transparent header band); row identities
-  are link buttons under the same `onOpen` navigation contract.
+  Class surfaces never nest — containment navigation is the workspace
+  explorer's.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
   cards lay out in the shared `ResponsiveGrid` primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside panels),

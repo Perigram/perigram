@@ -169,8 +169,8 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedtypescreen-vue` | `components/generated/GeneratedTypeScreen.vue` | derived usage | remove:important-override (4) |
 | `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | replace:chrome (3) |
-| `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | compliant |
-| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | remove:important-override (3) |
+| `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | remove:important-override (2) |
+| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | remove:important-override (9) |
 | `ui-components-generated-tableimportsurface-vue` | `components/generated/TableImportSurface.vue` | derived usage | replace:chrome (1) |
 | `ui-components-languageswitcher-vue` | `components/LanguageSwitcher.vue` | derived usage | compliant |
 | `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (2); remove:important-override (5) |
@@ -249,7 +249,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-fileuploadcontrol-vue` | `components/ui-mapping/FileUploadControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-ganttcollection-vue` | `components/ui-mapping/GanttCollection.vue` | derived usage | replace:chrome (7); narrowly-allowlist:inline-data-driven (4) |
 | `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | remove:important-override (4) |
-| `ui-components-ui-mapping-hierarchytable-vue` | `components/ui-mapping/HierarchyTable.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
 | `ui-components-ui-mapping-hierarchytree-vue` | `components/ui-mapping/HierarchyTree.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-instancechip-vue` | `components/ui-mapping/InstanceChip.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-instancemultipicker-vue` | `components/ui-mapping/InstanceMultiPicker.vue` | derived usage | compliant |
@@ -257,9 +256,10 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-jsoneditor-vue` | `components/ui-mapping/JsonEditor.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-listeditor-vue` | `components/ui-mapping/ListEditor.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-objecteditor-vue` | `components/ui-mapping/ObjectEditor.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-parentref-vue` | `components/ui-mapping/ParentRef.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-previewbox-vue` | `components/ui-mapping/PreviewBox.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-quantityinput-vue` | `components/ui-mapping/QuantityInput.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | replace:chrome (1); remove:important-override (2) |
+| `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | replace:chrome (1); remove:important-override (1) |
 | `ui-components-ui-mapping-regiondatastate-vue` | `components/ui-mapping/RegionDataState.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-sortcontrol-vue` | `components/ui-mapping/SortControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statetag-vue` | `components/ui-mapping/StateTag.vue` | derived usage | compliant |
