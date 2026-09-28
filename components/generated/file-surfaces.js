@@ -1,9 +1,5 @@
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
-// Cyclic pair: GeneratedEditorPageAction imports resolveFileSurface from
-// here, so the registry reads it through lazy getters (module-init order
-// would otherwise hit an uninitialized binding).
-import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
 import TableImportSurface from '~/components/generated/TableImportSurface.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
@@ -28,9 +24,11 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  * - `workspacePage`: the pane workspace-page presentation
  *   (`labelKey`, `icon`, `component`, `props` — the props adapter receives
  *   the page record and the bound type id);
- * - `action`: the card/detail editor-action button component that opens
- *   the page (the cassette designer keeps its own action component for its
- *   dialog persistence flows).
+ * - `action`: the editor-action component that opens the page — the
+ *   cassette designer keeps its own for its dialog persistence flows;
+ *   every other surface declares `'generic'`, resolved to
+ *   `GeneratedEditorPageAction` by `instance-editor-action.js` (the
+ *   component imports this module, so a static import here would cycle).
  */
 export const fileSurfaceRegistry = {
   'cassette-designer': {
@@ -43,7 +41,7 @@ export const fileSurfaceRegistry = {
     }
   },
   'sheet-design-editor': {
-    get action() { return GeneratedEditorPageAction; },
+    action: 'generic',
     workspacePage: {
       labelKey: 'sheetDesign.editor',
       icon: 'pi pi-file-edit',
@@ -52,7 +50,7 @@ export const fileSurfaceRegistry = {
     }
   },
   'sketch-editor': {
-    get action() { return GeneratedEditorPageAction; },
+    action: 'generic',
     workspacePage: {
       labelKey: 'sketch.editorTitle',
       icon: 'pi pi-file-edit',
@@ -61,7 +59,7 @@ export const fileSurfaceRegistry = {
     }
   },
   'text-editor': {
-    get action() { return GeneratedEditorPageAction; },
+    action: 'generic',
     workspacePage: {
       labelKey: 'editors.text',
       icon: 'pi pi-file-edit',
@@ -73,7 +71,7 @@ export const fileSurfaceRegistry = {
     }
   },
   'csv-editor': {
-    get action() { return GeneratedEditorPageAction; },
+    action: 'generic',
     workspacePage: {
       labelKey: 'editors.csv',
       icon: 'pi pi-file-edit',
@@ -88,7 +86,7 @@ export const fileSurfaceRegistry = {
   // client-side, map columns onto a target type's declared vocabulary,
   // construct through the instances batch transport.
   'table-import': {
-    get action() { return GeneratedEditorPageAction; },
+    action: 'generic',
     workspacePage: {
       labelKey: 'tableImport.title',
       icon: 'pi pi-table',
@@ -259,14 +257,14 @@ export function fileWorkspacePages(editors = activeEditorBindings()) {
 
 /**
  * Derive editor-action rows: every bound file type resolves the action
- * component that opens its editor page.
+ * that opens its editor page — a registered component or `'generic'`.
  */
 export function fileEditorActions(editors = activeEditorBindings()) {
   return (editors || [])
     .map((editor) => {
       const surface = resolveFileSurface(editors, editor.type);
       return surface?.action
-        ? [editor.type, { component: surface.action }]
+        ? [editor.type, { action: surface.action }]
         : null;
     })
     .filter(Boolean);
