@@ -193,6 +193,7 @@
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
     import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
     import { resolveDefaultHomeScreen, resolveProcessEntryRoute } from '~/utils/process-navigation.js'
+    import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js'
     import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js'
 
     const router = useRouter()
@@ -275,6 +276,13 @@
         .filter(sibling => (sibling.id || sibling.to) && (sibling.id || sibling.to) !== crumb.to)
 
     const activeGeneratedScreen = computed(() => {
+        // Home serves at the stable shell route (HOME_SCREEN_ROUTE — the
+        // screens route's alias): the manifest home screen IS the active
+        // screen there, even though no screenKey param exists to match.
+        if (route.path === HOME_SCREEN_ROUTE) {
+            return authStore.screenManifest.find(screen => screen.template === 'home')
+                || resolveDefaultHomeScreen(authStore.screenManifest);
+        }
         if (!route.path.startsWith('/screens/')) return null
         const rawKey = route.params.screenKey
         const screenKey = Array.isArray(rawKey) ? rawKey.join('/') : rawKey
