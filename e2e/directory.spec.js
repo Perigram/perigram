@@ -70,7 +70,7 @@ test.describe('directory, invitations, partnerships', () => {
     await app.gotoClient('/profile');
     await app.page.locator('[data-testid="global-search-trigger"]').first().click();
     await app.page.locator('[data-testid="global-search-input"]').fill(credentials.name);
-    await app.page.locator('[data-directory-result="user:${found._id}"]').waitFor({ timeout: 10000 });
+    await app.page.locator(`[data-directory-result="user:${found._id}"]`).waitFor({ timeout: 10000 });
     await app.page.locator(`[data-directory-result="user:${found._id}"]`).click();
     // The row opens the record in place: the directory popup anchored at
     // the row (avatar-forward face + actions), never a route.
