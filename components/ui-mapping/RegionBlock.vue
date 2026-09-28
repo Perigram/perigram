@@ -500,8 +500,7 @@ const emitOpen = instance => emit('open', instance);
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
 
-// The list Panel's one compact toolbar row: no panel-owned padding —
-// the host pads the pane.
+// One compact toolbar row; the host pads the pane.
 const panelPt = {
   contentWrapper: { class: 'min-w-0' },
   header: { class: 'flex min-w-0 flex-1 items-center gap-2 !py-1 !px-0' }

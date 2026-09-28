@@ -75,10 +75,8 @@ defineEmits(['select', 'close-tab', 'add', 'refresh']);
 const { t } = useI18n();
 const registry = useRegistryStore();
 
-// The tab strip fills the pane header's fixed height (24px); the stripe
-// controls (close, add, pane menu) stretch to fill it exactly. The pane
-// header row owns the single hairline under the whole stripe, so the
-// tablist's own border is dropped.
+// The strip stretches to the pane header's fixed height; the header row
+// owns the single hairline, so the tablist's border is dropped.
 const tabListPt = {
   root: { style: { height: '100%' } },
   tabList: { style: { height: '100%', alignItems: 'stretch', borderWidth: 0 } }

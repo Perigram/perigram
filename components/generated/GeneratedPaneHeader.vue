@@ -1,6 +1,5 @@
 <template>
-  <!-- The one pane-header stripe: tab strip + pane controls in a single
-       fixed-height row. The height lives here only; controls stretch. -->
+  <!-- The one pane-header stripe: the height lives here only. -->
   <div data-pane-header class="flex h-6 shrink-0 items-stretch border-b border-chrome-border">
     <GeneratedWorkspaceTabs
       :tabs="tabs"
