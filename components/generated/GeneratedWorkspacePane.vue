@@ -56,7 +56,6 @@
   >
     <GeneratedPaneHeader
       :tabs="tabs"
-      :active-key=""""
       :closeable="closeable"
       :splittable="splittable"
       @refresh="$emit('refresh')"
