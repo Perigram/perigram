@@ -102,6 +102,14 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   return raws.map(raw => new Organization(raw));
 }
 
+// Directory discovery (see ../directory/README.md): matches organizations by
+// name across tenants and is consumed exclusively by the directory feature
+// for search cards; ordinary list queries stay membership-scoped.
+export async function directorySearch(query, limit = 10) {
+  const raws = await repository.searchByName(query, limit);
+  return raws.map(raw => new Organization(raw));
+}
+
 export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'Organization not found' });

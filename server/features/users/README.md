@@ -54,6 +54,11 @@ tenant-management grants.
   membership records, and queries both string and `ObjectId` organization-id
   forms. Process-auth contexts that omit expanded memberships still return
   same-organization users for pickers and chat lists.
+- `directorySearch(query, limit)` is the one cross-tenant read: it matches
+  active users by display name only (never email) for the
+  [directory feature](../directory/README.md), which owns the directory
+  card projection and privacy contract. Ordinary list queries stay
+  membership-scoped.
 - User avatars are private GridFS files owned through the users service.
   `PUT/GET/DELETE /api/users/:id/avatar` updates, streams, or removes JPEG,
   PNG, and WebP images. Persisted `data.avatar` storage metadata is stripped

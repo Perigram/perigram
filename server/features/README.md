@@ -29,7 +29,7 @@ Support capabilities are documented and classified, but do not need empty
 | Kind | Modules |
 |---|---|
 | Entity modules | `artifact-templates`, `artifacts`, `instance-revisions`, `organizations`, `process-definitions`, `users` |
-| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `notifications`, `sessions`, `states`, `support`, `system-settings`, `workflow-overrides` |
+| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `directory`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `notifications`, `partnerships`, `sessions`, `states`, `support`, `system-settings`, `workflow-overrides` |
 
 This directory is framework-only: domain implementations (the facade
 fabrication domain — cassettes, nesting, sheet designs) live under their
@@ -133,5 +133,7 @@ services must not self-register through hidden globals.
 - [server/utils/README.md](../utils/README.md) — Permissions API
 - [server/features/_template/README.md](./_template/README.md) — Golden Path template
 - [server/features/billing/README.md](./billing/README.md) — organization billing account and token ledger
+- [server/features/directory/README.md](./directory/README.md) — cross-tenant user/organization search and directory cards
+- [server/features/partnerships/README.md](./partnerships/README.md) — organization-to-organization partner relations
 - [server/features/workflow-overrides/README.md](./workflow-overrides/README.md) — organization-owned lifecycle overrides
 - [packages/facade/README.md](../../packages/facade/README.md) — facade fabrication pack (types, editors, services)

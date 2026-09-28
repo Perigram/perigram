@@ -21,13 +21,31 @@ exposes runtime-configuration implementation wording, and it shows a current
 tariff tag only when deployment billing mode is `tariff` and a current tariff
 is configured.
 
+`partners.vue` is the partner management route for organization-to-organization
+relations (see [partnerships](../../server/features/partnerships/README.md)).
+It lists incoming requests (accept/decline), sent requests (cancel), and
+active partners (terminate), and carries a directory search box for finding
+new partner organizations by name; requesting from a result row creates the
+pending partnership. Partner rows link to the organization directory page.
+The route is exposed as a system screen gated by `organizations:read`, while
+every mutation stays gated by `organizations:admin` on the respective side.
+
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the
 active process definition, and writes assignments through
 `/api/process-definitions/active/assignments`. It is the operational owner for
 assigning actual users to abstract process roles. It does not expose membership
 role labels as process roles. Invites, user creation, and assignment editing all
-preserve multiple selected process role ids. The role dialog derives typed
+preserve multiple selected process role ids. The invite dialog covers both
+invitation kinds: the unaddressed link invitation (roles + generated
+`/invitation/:token` link) and the targeted direct invite — an existing-user
+search over the directory feature (name-only, cross-tenant) that sends a
+single-handshake invitation to the selected user (see
+[invitations](../../server/features/invitations/README.md)). The
+`?invite=<userId>` query opens the dialog with the target preselected, which
+is how the user directory page's invite action enters the flow. The active
+invitations table distinguishes targeted invitations (invitee name and state)
+from copyable link invitations. The role dialog derives typed
 assignment binding fields from every canonical `$assignment` use in selected
 role/action grants, screen routes, scopes, bindings and requirements, and source
 identifiers and filters. Preview as Assignment runs the package assignment

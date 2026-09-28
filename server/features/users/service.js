@@ -176,6 +176,14 @@ export async function list(userId, userOrg, userRole, userPermissions) {
   return raws.map(raw => new User(raw));
 }
 
+// Directory discovery (see ../directory/README.md): matches active users by
+// display name only, never email, and is consumed exclusively by the
+// directory feature for cross-tenant search cards.
+export async function directorySearch(query, limit = 10) {
+  const raws = await usersRepository.searchByName(query, limit);
+  return raws.map(raw => new User(raw));
+}
+
 export async function getById(uid) {
   const raw = await usersRepository.findById(uid);
   if (!raw) return null;

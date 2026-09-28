@@ -87,6 +87,15 @@ const resolvedId = computed(() => normalizedId.value
 );
 const icon = computed(() => instances.iconFor(props.type));
 const cardComponent = computed(() => CARD_COMPONENTS[contract.value?.key] || null);
+// Directory detail pages are the static fallback for framework party types
+// when no generated detail screen exists (or no process is active), so
+// user/organization popovers always expose an open action (see
+// server/features/directory/README.md).
+const DIRECTORY_DETAIL_ROUTES = { user: '/users', organization: '/organizations' };
+const directoryDetailRoute = computed(() => {
+  const base = DIRECTORY_DETAIL_ROUTES[contract.value?.key];
+  return base && resolvedId.value ? { path: `${base}/${encodeURIComponent(resolvedId.value)}` } : null;
+});
 // `interactive: false` renders the inline entity card non-expandable, so
 // non-interactive rows (explorer entries, static summaries) can consume the
 // inline card without its detail popup.
@@ -95,13 +104,21 @@ const cardProps = computed(() => ({
   variant: 'inline',
   expandable: props.interactive
 }));
-const detailRoute = computed(() => {
-  if (!props.allowDetailRoute || !authStore.processActive || !resolvedId.value) return null;
-  return detailRouteForInstance({
-    entity: resolved.value || { _id: resolvedId.value },
-    typeId: generatedTypeId.value,
-    manifest: authStore.screenManifest
-  });
+const detailRoute = computed(() => detailRouteResolution.value?.route || null);
+// Only generated detail routes may open through the home workspace; static
+// directory pages navigate directly, or the workspace hijack would swallow
+// them.
+const detailRouteResolution = computed(() => {
+  if (!props.allowDetailRoute || !resolvedId.value) return null;
+  if (authStore.processActive) {
+    const generated = detailRouteForInstance({
+      entity: resolved.value || { _id: resolvedId.value },
+      typeId: generatedTypeId.value,
+      manifest: authStore.screenManifest
+    });
+    if (generated) return { route: generated, workspace: true };
+  }
+  return directoryDetailRoute.value ? { route: directoryDetailRoute.value, workspace: false } : null;
 });
 provide('instanceInlineDetailRoute', detailRoute);
 provide('instanceInlineForceTrace', true);
@@ -234,10 +251,11 @@ function openDetail(event) {
     navigateTo(detailRoute.value);
     return;
   }
-  if (openInstanceInWorkspace({
-    typeId: generatedTypeId.value || props.type,
-    instanceId: resolvedId.value
-  })) return;
+  if (detailRouteResolution.value?.workspace
+    && openInstanceInWorkspace({
+      typeId: generatedTypeId.value || props.type,
+      instanceId: resolvedId.value
+    })) return;
   navigateTo(detailRoute.value);
 }
 

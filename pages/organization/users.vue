@@ -35,7 +35,12 @@
         <DataTable :value="invitations" :pt="tablePt">
             <Column :header="$t('auth.invitationLink')">
                 <template #body="{ data }">
-                    <div class="flex items-center gap-2">
+                    <div v-if="data.inviteeUserId" class="flex items-center gap-2">
+                        <i class="pi pi-user" aria-hidden="true" />
+                        <span class="truncate max-w-md">{{ data.inviteeName || data.inviteeUserId }}</span>
+                        <Tag :value="$t(`auth.invitationState.${data.status || 'invited'}`)" severity="secondary" size="small" />
+                    </div>
+                    <div v-else class="flex items-center gap-2">
                         <span class="opacity-60 truncate max-w-md text-technical">
                             {{ getInvitationUrl(data.token) }}
                         </span>
@@ -92,7 +97,46 @@
     <!-- Invite Member Dialog -->
     <StandardDialog v-model:visible="showInviteDialog" :header="$t('auth.inviteMember')" size="sm">
         <div class="flex flex-col gap-4 pt-4">
-            <p>{{ $t('auth.inviteMemberNote') }}</p>
+            <div class="flex flex-col gap-2">
+                <label>{{ $t('auth.inviteExisting') }}</label>
+                <div v-if="selectedInvitee" class="flex items-center gap-3">
+                    <Avatar
+                        :image="selectedInvitee.data?.avatarUrl || null"
+                        :label="!selectedInvitee.data?.avatarUrl ? (selectedInvitee.identity?.name || '?').charAt(0).toUpperCase() : null"
+                        shape="circle"
+                        class="shrink-0 [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                    />
+                    <span class="min-w-0 flex-1 truncate">{{ selectedInvitee.identity?.name }}</span>
+                    <Button icon="pi pi-times" text rounded severity="secondary" size="small" :aria-label="$t('common.cancel')" @click="selectedInvitee = null" />
+                </div>
+                <template v-else>
+                    <IconField>
+                        <InputIcon class="pi pi-search" />
+                        <InputText v-model="inviteSearch" type="text" class="w-full" :placeholder="$t('directory.searchPlaceholder')" data-testid="invite-user-search" />
+                    </IconField>
+                    <div v-if="inviteSearching" class="text-muted text-body">{{ $t('directory.searching') }}</div>
+                    <div v-else-if="inviteResults.length" class="flex max-h-48 flex-col gap-1 overflow-y-auto">
+                        <button
+                            v-for="user in inviteResults"
+                            :key="user._id"
+                            type="button"
+                            class="flex w-full items-center gap-3 rounded-[var(--p-border-radius-md)] border-0 bg-transparent p-2 text-left cursor-pointer hover:bg-subtle"
+                            :data-invite-candidate="user._id"
+                            @click="selectInvitee(user)"
+                        >
+                            <Avatar
+                                :image="user.data?.avatarUrl || null"
+                                :label="!user.data?.avatarUrl ? (user.identity?.name || '?').charAt(0).toUpperCase() : null"
+                                shape="circle"
+                                class="shrink-0 [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                            />
+                            <span class="min-w-0 flex-1 truncate">{{ user.identity?.name }}</span>
+                            <small v-if="user.directory?.sharesOrganization" class="text-muted">{{ $t('partnerships.alreadyMember') }}</small>
+                        </button>
+                    </div>
+                    <div v-else-if="trimmedInviteSearch" class="text-muted text-body">{{ $t('directory.noResults') }}</div>
+                </template>
+            </div>
             <div class="flex flex-col gap-2">
                 <label>{{ $t('organization.processRoles') }} *</label>
                 <MultiSelect v-model="inviteForm.roleIds" :options="roleOptions" optionLabel="label" optionValue="value" display="chip" class="w-full" />
@@ -110,8 +154,16 @@
             </div>
         </div>
         <template #footer>
-            <Button :label="$t('common.close')" text severity="secondary" @click="showInviteDialog = false; generatedUrl = null" />
-            <Button :label="$t('auth.generateLink')" icon="pi pi-link" @click="generateInvite" :loading="generatingInvite" :disabled="!inviteForm.roleIds.length" v-if="!generatedUrl" />
+            <Button :label="$t('common.close')" text severity="secondary" @click="closeInviteDialog" />
+            <Button
+                v-if="selectedInvitee && !generatedUrl"
+                :label="$t('auth.inviteMember')"
+                icon="pi pi-user-plus"
+                :loading="inviting"
+                :disabled="!inviteForm.roleIds.length"
+                @click="inviteExistingUser"
+            />
+            <Button v-else-if="!generatedUrl" :label="$t('auth.generateLink')" icon="pi pi-link" @click="generateInvite" :loading="generatingInvite" :disabled="!inviteForm.roleIds.length" />
         </template>
     </StandardDialog>
 
@@ -208,6 +260,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -233,6 +286,9 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Checkbox from 'primevue/checkbox';
 import Password from 'primevue/password';
+import Avatar from 'primevue/avatar';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
@@ -253,6 +309,7 @@ definePageMeta({
 });
 
 const { t } = useI18n();
+const route = useRoute();
 const authStore = useAuthStore();
 const toast = useToast();
 const instances = useInstancesStore();
@@ -336,6 +393,79 @@ const form = ref({
 const inviteForm = ref({
     roleIds: []
 });
+
+// Targeted invitation state: invitee search runs through the directory
+// feature (name-only, cross-tenant) and the selected user receives a
+// single-handshake invitation (see server/features/invitations/README.md).
+const inviteSearch = ref('');
+const inviteResults = ref([]);
+const inviteSearching = ref(false);
+const selectedInvitee = ref(null);
+const inviting = ref(false);
+const trimmedInviteSearch = computed(() => inviteSearch.value.trim());
+
+watch(inviteSearch, (value) => {
+    clearTimeout(inviteSearchTimer);
+    const normalized = value.trim();
+    if (!selectedInvitee.value && normalized.length < 2) {
+        inviteResults.value = [];
+        inviteSearching.value = false;
+        return;
+    }
+    if (selectedInvitee.value) return;
+    inviteSearching.value = true;
+    inviteSearchTimer = setTimeout(async () => {
+        const seq = ++inviteSearchSeq;
+        try {
+            const response = await $fetch('/api/directory/search', { query: { q: normalized, types: 'user' } });
+            if (seq !== inviteSearchSeq) return;
+            inviteResults.value = (response?.groups || [])
+                .flatMap(group => group.results || [])
+                .filter(user => !user.directory?.isSelf);
+        } catch {
+            if (seq === inviteSearchSeq) inviteResults.value = [];
+        } finally {
+            if (seq === inviteSearchSeq) inviteSearching.value = false;
+        }
+    }, 300);
+});
+let inviteSearchTimer = null;
+let inviteSearchSeq = 0;
+
+function selectInvitee(user) {
+    selectedInvitee.value = user;
+    inviteSearch.value = '';
+    inviteResults.value = [];
+}
+
+function closeInviteDialog() {
+    showInviteDialog.value = false;
+    generatedUrl.value = null;
+    selectedInvitee.value = null;
+    inviteSearch.value = '';
+    inviteResults.value = [];
+}
+
+async function inviteExistingUser() {
+    if (!selectedInvitee.value) return;
+    inviting.value = true;
+    try {
+        await $fetch(`/api/organizations/${activeOrganizationId.value}/invitations`, {
+            method: 'POST',
+            body: {
+                roleIds: normalizeSelectedRoleIds(inviteForm.value.roleIds, roleOptions.value),
+                inviteeUserId: selectedInvitee.value._id
+            }
+        });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.invitationSent'), life: 3000 });
+        closeInviteDialog();
+        await loadInvitations();
+    } catch (e) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: e?.data?.message || e.message, life: 3000 });
+    } finally {
+        inviting.value = false;
+    }
+}
 
 const roleOptions = computed(() => {
   return Object.values(organizationRoles.value).map(role => ({
@@ -531,8 +661,19 @@ async function confirmDelete(user) {
     }
 }
 
-onMounted(() => {
-  loadUsers();
+onMounted(async () => {
+  await loadUsers();
+  // The user directory page's invite action lands here with the target
+  // user preselected and the invite dialog open.
+  const inviteTarget = route.query.invite;
+  if (inviteTarget) {
+    try {
+      selectedInvitee.value = await $fetch(`/api/directory/user/${inviteTarget}`);
+      showInviteDialog.value = true;
+    } catch {
+      toast.add({ severity: 'error', summary: t('common.error'), detail: t('common.notAvailable'), life: 3000 });
+    }
+  }
 });
 </script>
 

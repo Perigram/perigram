@@ -32,6 +32,36 @@ redirect gate for authenticated users.
   where organization creation lives; the landing is not a dead end for
   orgless accounts.
 
+## Directory Pages and Global Search
+
+`pages/users/[id].vue` and `pages/organizations/[id].vue` are the static
+directory detail routes for arbitrary users and organizations (not just the
+caller's own). Both load the directory card from
+`GET /api/directory/:type/:id` (name-level, caller-relative flags — see
+[the directory feature](../server/features/directory/README.md)) and the
+grant-redacted DTO from the ordinary feature detail endpoint, which may be
+empty when the caller holds no grant; the page merges the two and shows
+richer facts only when the DTO carries them.
+
+- The user page offers chat for other users, the profile link for self, and
+  an invite action that routes into team management with
+  `?invite=<userId>` preselecting the target — role selection stays owned by
+  the organization team page. Membership rows render only organizations the
+  viewer can themselves resolve; cross-tenant organization names are not
+  readable and must not degrade into id chips.
+- The organization page offers members the overview entry (switching
+  organization context first when it is not the active one) and offers
+  `organizations:admin` callers of another organization the partnership
+  actions (request / accept / decline / terminate) through the
+  [partnerships feature](../server/features/partnerships/README.md).
+
+The app shell global search (`components/shared/GlobalSearch.vue`) is the
+entry surface: a search trigger in the desktop header and beside the profile
+control in the mobile bottom bar open a debounced dialog over
+`GET /api/directory/search` whose rows navigate to these pages. The
+generated home workspace hides the desktop header, so search is reachable
+from every other app route.
+
 ## Authenticated Areas
 
 Authenticated route groups continue to use `layout: 'app'` and `middleware:
@@ -168,7 +198,8 @@ entity surface itself.
 Organization routes are first-class app areas. `/organization`,
 `/organization/users`, and `/organization/process` routing, billing, team, and
 process ownership are covered in
-[pages/organization/README.md](./organization/README.md). The overview is not a
+[pages/organization/README.md](./organization/README.md); `/organization/partners`
+owns partnership management. The overview is not a
 grid of navigation cards. Vue Flow renders client-side because its generated
 accessibility ids are not stable across SSR hydration. Breadcrumbs expose these
 routes as organization siblings so users can move between overview, team
@@ -186,6 +217,11 @@ Organization memberships render canonical `OrganizationCard` surfaces
 with visible footer actions: inactive memberships switch context, while the
 active membership has one direct action into the generated organization
 overview. Billing, team, and process navigation stays inside that overview.
+Targeted invitations addressed to the account render above the memberships
+grid with accept/decline actions; accepting completes the single-handshake
+membership (see
+[invitations](../server/features/invitations/README.md)) and re-hydrates
+auth so the new membership appears immediately.
 
 `/chats` is the authenticated full-page conversation inbox. Desktop keeps the
 conversation list and selected thread in a two-pane bounded workspace; mobile

@@ -50,6 +50,22 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
+export async function searchByName(query, limit = 10) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION)
+    .find({
+      'identity.name': { $regex: escapeRegex(String(query || '')), $options: 'i' },
+      'data.isActive': { $ne: false }
+    })
+    .sort({ 'identity.name': 1 })
+    .limit(limit)
+    .toArray();
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function findActiveMembersByOrganization(organizationId) {
   const db = await connectDB();
   return await db.collection(COLLECTION).find({

@@ -35,6 +35,10 @@ Key fields:
 - `write` can create/update organization records.
 - `admin` can delete organization records.
 - List queries are scoped by membership lineage.
+- `directorySearch(query, limit)` is the one cross-tenant read: it matches
+  organizations by name for the [directory feature](../directory/README.md),
+  which owns the directory card projection; ordinary list queries stay
+  membership-scoped.
 - Every organization must retain at least one active owner membership. The
   organization creator receives `membership.owner: true` plus permanent
   `organizations:admin` and `users:admin` grants. Process roles may change
@@ -44,7 +48,10 @@ Key fields:
 - Organization management UI is exposed as system generated screens during auth
   hydration, not as hardcoded page buttons. `system-screens.js` emits an
   overview screen at `/organization`, a billing screen at
-  `/organization/billing` when the caller has `organizations:read`, a team
+  `/organization/billing` when the caller has `organizations:read`, a
+  partners screen at `/organization/partners` when the caller has
+  `organizations:read` (see
+  [partnerships](../partnerships/README.md)), a team
   route screen at `/organization/users` when the caller has `users:admin`, and
   a process-designer route screen at `/organization/process` when the caller
   has `organizations:admin`. Billing checkout remains an action on the billing

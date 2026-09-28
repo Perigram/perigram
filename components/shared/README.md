@@ -426,6 +426,17 @@ layers such as sheet/stock, cut, fold, and bend layers in compact cards while
 suppressing dimension annotation layers so in-card sheet-design previews stay
 readable.
 
+### `GlobalSearch.vue`
+The app shell's global search over the directory feature: a trigger slot
+(mirroring the `UserAccountMenu` trigger contract — receives `toggle`/`hide`,
+round search button as fallback) opens a bounded dialog that debounces
+`GET /api/directory/search` and renders grouped People/Organizations rows
+navigating to the static directory pages `/users/:id` and
+`/organizations/:id`. Result rows never render emails or technical ids; the
+only context line is the shared-organization name the caller already knows.
+The desktop header carries the default trigger and the mobile bottom bar
+injects its own icon trigger.
+
 ### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
 When only an id is provided, it resolves the DTO through the entity store's
@@ -487,6 +498,12 @@ When an `entityContext` provider is present, `InstanceInlineRef` resolves the
 entity from that context before calling the API. This keeps workbench fixture
 and project-local previews from requesting protected entities already loaded in
 the surrounding surface.
+For the framework party types (`user`, `organization`), the detail route falls
+back to the static directory pages (`/users/:id`, `/organizations/:id`) when
+no generated detail screen matches or no process is active, so those popovers
+always expose an open action. Static directory routes navigate directly: only
+generated detail routes may open through the home workspace fast path, or the
+workspace hijack would swallow the navigation.
 When the active generated screen manifest exposes a detail route for the
 reference type, `InstanceInlineRef` provides that route to the expanded inline
 entity-card popover. The popover footer renders an icon-only open action that

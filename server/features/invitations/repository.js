@@ -54,3 +54,34 @@ export async function findByOrg(organizationId) {
     .find({ organizationId: toFlexibleId(organizationId), isActive: true })
     .toArray();
 }
+
+export async function findById(id) {
+  const db = await connectDB();
+  if (!id) return null;
+  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
+}
+
+export async function findActiveByInvitee(userId) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION)
+    .find({ inviteeUserId: String(userId), isActive: true })
+    .sort({ createdAt: -1 })
+    .toArray();
+}
+
+export async function findActiveByInviteeAndOrganization(userId, organizationId) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).findOne({
+    inviteeUserId: String(userId),
+    organizationId: toFlexibleId(organizationId),
+    isActive: true
+  });
+}
+
+export async function setStatus(id, status, userId) {
+  const db = await connectDB();
+  await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(id) },
+    { $set: { isActive: false, status, usedAt: new Date(), usedBy: userId } }
+  );
+}
