@@ -247,6 +247,7 @@ import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
+import { consumePendingWorkspacePage, workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
@@ -998,17 +999,21 @@ readMobileViewport();
 onMounted(() => {
   window.addEventListener(workspaceInstanceOpenEvent, openRequestedWorkspaceEntity);
   window.addEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
+  window.addEventListener(workspacePageOpenEvent, openRequestedWorkspacePage);
   mobileViewportQuery = typeof window !== 'undefined' ? window.matchMedia?.('(max-width: 767px)') : null;
   mobileViewportQuery?.addEventListener?.('change', readMobileViewport);
   const pending = consumePendingWorkspaceInstance();
   if (pending?.typeId) openRequestedWorkspaceEntity({ detail: pending });
   const pendingChat = consumePendingWorkspaceChat();
   if (pendingChat) openRequestedWorkspaceChat({ detail: pendingChat });
+  const pendingPage = consumePendingWorkspacePage();
+  if (pendingPage?.pageId) openRequestedWorkspacePage({ detail: pendingPage });
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener(workspaceInstanceOpenEvent, openRequestedWorkspaceEntity);
   window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
+  window.removeEventListener(workspacePageOpenEvent, openRequestedWorkspacePage);
   mobileViewportQuery?.removeEventListener?.('change', readMobileViewport);
 });
 
@@ -1051,6 +1056,16 @@ function openRequestedWorkspaceChat(event) {
   event?.preventDefault?.();
   const { conversationKey, label } = event?.detail || {};
   openChatTab(conversationKey || '', typeof label === 'string' ? label : '');
+}
+
+// Registered workspace pages (the organization management surfaces,
+// including the process designer) open as pane tabs from chrome through
+// the page-open seam.
+function openRequestedWorkspacePage(event) {
+  event?.preventDefault?.();
+  const { pageId } = event?.detail || {};
+  if (!pageId) return;
+  openWorkspacePage({ pageId });
 }
 
 function openCallTab(room = '', meta = {}) {

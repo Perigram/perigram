@@ -1,51 +1,55 @@
 <template>
-  <!-- The entity popup rides the shared drawer-card chrome; the hosted
-       detail supplies its own headers and controls. -->
-  <DrawerPopup
+  <!-- The entity popup: the standard centered dialog (the project's
+       dialog contract — proper size ladder, modal, footer controls)
+       hosting the entity's real detail surface. Expand steps up to the
+       home pane. -->
+  <StandardDialog
     v-model:visible="visible"
-    :label="title"
-    width="min(94vw, 34rem)"
+    size="xl"
+    :show-default-footer="false"
   >
-    <div v-if="visible" class="flex min-h-0 flex-1 flex-col">
-      <!-- The popup's own header: display name (never an id) + expand. -->
-      <div class="flex w-full min-w-0 items-center justify-between gap-2 border-b border-content-border px-4 py-3">
-        <span class="min-w-0 truncate text-section-heading">{{ title }}</span>
-        <Button
-          icon="pi pi-external-link"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('common.expand')"
-          :title="$t('common.expand')"
-          @click="expand"
-        />
-      </div>
-      <div class="min-h-0 flex-1 overflow-y-auto">
-        <DirectoryDetailSurface
-          v-if="isDirectoryType"
-          :key="`${request.typeId}:${request.instanceId}`"
-          :type-id="request.typeId"
-          :instance-id="request.instanceId"
-          bounded
-        />
-        <GeneratedScreenHost
-          v-else-if="detailScreen"
-          :screen="detailScreen"
-          @open-instance="openInstance"
-        />
-        <div v-else class="p-4">
-          <StateBlock :message="$t('common.notAvailable')" />
-        </div>
+    <template #header>
+      <span class="min-w-0 truncate text-label">{{ title }}</span>
+    </template>
+    <div class="max-h-[70vh] overflow-y-auto">
+      <DirectoryDetailSurface
+        v-if="visible && isDirectoryType"
+        :key="`${request.typeId}:${request.instanceId}`"
+        :type-id="request.typeId"
+        :instance-id="request.instanceId"
+        bounded
+      />
+      <GeneratedScreenHost
+        v-else-if="visible && detailScreen"
+        :screen="detailScreen"
+        @open-instance="openInstance"
+      />
+      <div v-else-if="visible" class="p-4">
+        <StateBlock :message="$t('common.notAvailable')" />
       </div>
     </div>
-  </DrawerPopup>
+    <template #footer>
+      <Button
+        :label="$t('common.expand')"
+        icon="pi pi-external-link"
+        text
+        severity="secondary"
+        @click="expand"
+      />
+      <Button
+        :label="$t('common.close')"
+        text
+        severity="secondary"
+        @click="close"
+      />
+    </template>
+  </StandardDialog>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import Button from 'primevue/button';
-import DrawerPopup from '~/components/shared/DrawerPopup.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';

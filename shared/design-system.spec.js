@@ -546,7 +546,6 @@ describe('Design system manifest', () => {
       'components/shared/StandardDialog.vue',
       'components/shared/DesignerDialog.vue',
       'components/shared/ChatSupportDialog.vue',
-      'components/shared/DrawerPopup.vue',
       'components/ui-mapping/SurfaceBody.vue',
       'components/ui-mapping/GeneratedMappingScreen.vue',
       'components/ui-mapping/CardGrid.vue',

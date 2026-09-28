@@ -14,7 +14,7 @@
         :label="systemLabel(item.labelKey, item.screenKey)"
         :icon="item.icon || 'pi pi-arrow-right'"
         size="small"
-        @click="router.push(item.route)"
+        @click="openSystemScreen(item)"
       />
     </template>
 
@@ -36,6 +36,8 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { workspacePageIdForRoute } from '~/components/generated/workspace-pages.js';
+import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -52,5 +54,17 @@ const organizationFields = computed(() => resolveInstanceDisplayFields({ typeId:
 
 function systemLabel(key = '', fallback = '') {
   return key && te(key) ? t(key) : fallback || key;
+}
+
+// System screens open inside the home workspace when a workspace page is
+// registered for their route (team, partners, billing); the process
+// designer keeps its standalone canvas route.
+function openSystemScreen(item = {}) {
+  const pageId = workspacePageIdForRoute(item.route || '');
+  if (pageId) {
+    openWorkspacePageFromChrome({ pageId, route: item.route });
+    return;
+  }
+  router.push(item.route);
 }
 </script>
