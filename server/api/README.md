@@ -110,6 +110,10 @@ Routes are grouped into sub-directories corresponding to features:
 
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).
+- **Multipart Uploads:** Every upload route reads the binary from a form
+  part named `file` (`files/`, `artifacts/`, `artifact-templates/`,
+  `cassettes/`, `instances/` payload, and `users/:id/avatar`); clients must
+  append the blob under that exact field name.
 - **Thin Wrappers:** API handlers should be minimal, delegating all business logic to the corresponding [Server Features](../features/README.md).
 - **Idempotency:** mutating routes honor the `Idempotency-Key` header through
   the cross-cutting middleware; replays of already-executed requests are
