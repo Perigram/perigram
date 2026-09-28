@@ -55,10 +55,14 @@ plus the grant-redacted DTO from the ordinary feature detail endpoint,
 which may be empty when the caller holds no grant.
 
 Entry points all route through the shared workspace-open seam
-(`openInstanceInWorkspace`): the app-shell global search results, the open
-action in user/org inline-ref popovers, membership rows inside the
-surface, and partner rows on the partners management page. The surface
-owns its action row (user chat / invite / self profile; organization
+(`openInstanceInWorkspace`): the open action in user/org inline-ref
+popovers, membership rows inside the surface, and partner rows on the
+partners management page. Directory search itself lives in its contextual
+homes, not a shell-level surface: user search in the chats new-chat
+picker (beside the organization-scoped list, direct-thread reach only)
+and in the team-management invite dialog (beside the by-link invitation);
+organization search on `/organization/partners`. The surface owns its
+action row (user chat / invite / self profile; organization
 overview entry, context switch, partnership lifecycle) because panes and
 dialogs have no page-level action chrome; only sanctioned management
 routes (`/profile`, `/organization*`) ever receive navigation.

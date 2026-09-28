@@ -216,8 +216,7 @@
     "organization": "Организация",
     "settings": "Настройки",
     "collapseSidebar": "Свернуть панель",
-    "expandSidebar": "Развернуть панель",
-    "search": "Поиск"
+    "expandSidebar": "Развернуть панель"
   },
   "status": {
     "status": "Статус",
@@ -3335,11 +3334,8 @@
   },
   "directory": {
     "searchPlaceholder": "Поиск по имени",
-    "searchHint": "Начните вводить, чтобы найти людей и организации",
     "searching": "Поиск…",
-    "noResults": "Ничего не найдено",
-    "users": "Люди",
-    "organizations": "Организации"
+    "noResults": "Ничего не найдено"
   },
   "partnerships": {
     "title": "Партнёры",

@@ -199,7 +199,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
 | `ui-components-shared-filterbuilder-vue` | `components/shared/FilterBuilder.vue` | derived usage | remove:important-override (2) |
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-globalsearch-vue` | `components/shared/GlobalSearch.vue` | derived usage | replace:chrome (5); remove:state (1); replace:inline-visual (1) |
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
 | `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | compliant |
