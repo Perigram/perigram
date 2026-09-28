@@ -712,7 +712,14 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   avatar (upload/remove through the user avatar API), name, active
   organization — followed by the theme toggle and logout; the
   organizations group switches context IN PLACE (the workspace rehydrates;
-  nothing routes away — no Profile or Organization route entries remain).
+  nothing routes away) and always carries the create-organization entry
+  (its dialog posts the `organization` instance through the instances
+  store — the orgless account creates its first organization right
+  here). The profile settings popup carries the language switcher and
+  the browser-notifications toggle beside the avatar. No Profile or
+  Organization route entries remain: the orgless `/organization` page
+  owns onboarding (same creation affordance), and account concerns
+  never route out of the app shell.
   The trigger is customizable through the scoped `#trigger` slot (default
   is the round avatar button), and callers inject leading actions through
   the scoped `#items` slot (receives the popover's `hide`, so an injected

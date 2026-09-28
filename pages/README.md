@@ -28,8 +28,10 @@ redirect gate for authenticated users.
   header carries the sign-in link for returning users, and the hero carries the
   single registration call to action; duplicated button pairs for the same
   destinations are a defect.
-- Authenticated users without any organization membership land on `/profile`,
-  where organization creation lives; the landing is not a dead end for
+- Authenticated users without any organization membership land on
+  `/organization`, which owns orgless onboarding (an inline
+  organization-creation form; the account menu carries the same
+  affordance); the landing is not a dead end for
   orgless accounts.
 
 ## Authenticated Areas
@@ -146,7 +148,8 @@ and server error strings are not rendered.
 `pages/auth/register.vue` is a public signup form. Signup collects the
 new user's credentials only and submits them to `/api/auth/register`;
 organizations are never created during registration — users join by
-invitation or create their own from the profile page after signing in.
+invitation or create their own from the organization page (or the
+account menu) after signing in.
 Invitation signup is selected by the `invitation` query parameter and shows
 the invitation note, but the form itself is identical. Login and registration preserve
 a safe same-origin `redirect` query, so `/invitation/:token` can send anonymous
@@ -172,11 +175,12 @@ process ownership are covered in
 grid of navigation cards. Vue Flow renders client-side because its generated
 accessibility ids are not stable across SSR hydration. Breadcrumbs expose these
 routes as organization siblings so users can move between overview, team
-management, and process design without going through profile/admin pages. The
-user menu is only the active-organization switcher; organization capabilities
-remain on these organization routes. Profile remains a personal
-account/preferences/membership page and must not show project usage or
-user-owned credit purchase flows.
+management, and process design without going through admin pages. The
+user menu is the account surface: organization switching, organization
+creation, and the profile settings popup (avatar, language,
+notifications); organization capabilities
+remain on these organization routes. No personal profile route exists —
+nothing routes out of the app shell for account concerns.
 Its account surface uploads/removes the current user's avatar through the user
 avatar API; every avatar image uses a square cover crop inside its circular
 frame. Account, preferences, and membership views use semantic navigation links
