@@ -299,7 +299,7 @@ Browser-verified: the CAS card renders 17 svg paths of geometry.
 Blank cassettes render the new quiet type-glyph band (authored
 `depiction.glyph`, no MIME strings).
 
-- [ ] Galleries are weird: it appears for data that doesn't have visual fields (images, previews
+- [x] Galleries are weird: it appears for data that doesn't have visual fields (images, previews
   idk), and has no fields listed (probably it's ok if previews are there); also probably can have
   micro-chips w/ identity fields (if any, check cts) as triggers 
 
@@ -313,6 +313,16 @@ near-empty cards. The identity chips show the one title-resolver label
 (the declared identifier field); carrying additional identity FIELDS
 inside the chip is not implemented — the expanded popover keeps that
 role.
+
+### Agent Notes (2026-09-28, second pass — the CTS check closes it)
+
+"Identity fields (if any, check cts)": the CTS display-flag law is
+EXACTLY ONE `identifier` field per type (packages/cts README,
+compile-enforced; the first declared string field is minted when none is
+flagged). The chip already carries that field's value through the one
+title resolver — there are no further identity fields to carry. The
+compact surface's additional facts stay in the expanded popover by
+design (the chip earns no box without preview/facts). Item closed.
 
 - [ ] Newly created item should be opened in same tab, not in separate route outside home. This
   applies to everything, nothing outside home. Profile and settings in popup. Organizations and
