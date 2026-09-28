@@ -556,7 +556,11 @@ The process graph preserves exact type and collection contracts through resoluti
 
 Get field (`cts.field`) reads the declared field from the incoming instance;
 its path choices are the bound type's readable fields, and an unbound node
-offers only its entity input. Field extraction and Logic map over the source
+offers only its entity input. Record Field (`value.recordField`) reads one
+authored key off each record value of its List input (service rows,
+composed parameter records) with an authored output type — plain record
+values have no declared row, so the key is authored, not selected.
+Field extraction and Logic map over the source
 topology so Boolean masks stay aligned with the original entities for
 `collection.filter`. Packet matching and input transforms are internal
 adapters, not inspector settings.

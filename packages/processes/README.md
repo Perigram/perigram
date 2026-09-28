@@ -83,10 +83,22 @@ channels interpreted over the declaration graph, while process species records
 persist the resolved type and retain their executable ports.
 
 Generic construction exposes declared row fields and declared construct
-operators. Services expose registered V→V signatures. Palette translations are
-presentation only; generated action captions derive from typed declarations.
-Callers provide the current semantic graph directly; normalization never
-infers a missing protocol version.
+operators — mode inputs are the operator's record fields, and the
+construct-addressable lineage/relation edge inputs ride every mode beside
+them (`constructionInputsForContract` is the one derivation the catalog
+ports, the compiler's construction normalization, and the designer's node
+sync share). Services expose registered V→V signatures — a service node
+is an effect species: the event contract (`control:in` → `completed`)
+wraps its signature-derived data sockets, a `list` signature field
+projects as the element-typed socket with List access (a runtime
+collection, never a persisted array, so aligned item sources and single
+broadcast items wire in without the packArray boundary), and a `ref`
+signature field projects as a typed entityRef socket (`Ref` is a value,
+SPEC §2). Signature ports resolve from the projected domain's
+`serviceContracts`; an unknown operator is a compile-time diagnostic.
+Palette translations are presentation only; generated action captions
+derive from typed declarations. Callers provide the current semantic
+graph directly; normalization never infers a missing protocol version.
 
 The declarative organization process compiler turns current species
 records into runtime contracts for access, screens, navigation, declared
@@ -551,7 +563,11 @@ action that prompts for its name rather than blocking on an unconnected
 cassette-design selection.
 Required inputs have exactly one availability contract, enforced at activation
 by `validateRequiredInputAvailability` after `validateProcessDefinition` and
-type/access inference. A required input is satisfied by a connected upstream
+type/access inference. Species records classify through the operation-kind
+seam (`operationKindOf`): a `cts.construct` carries the create-effect
+availability contract and a manual `cts.service` prompts like the command
+effect it is; manual species effects are entry triggers for reachability the
+same way. A required input is satisfied by a connected upstream
 value, an authored `inputDefaults` fallback, a domain-owned `default`, a
 generated manual prompt (manual actions only), or the run context (manual
 actions only). Activation rejects a required input with none of these sources;
@@ -654,12 +670,19 @@ Simplify, Flatten, and Graft run before Longest, Shortest, or Cross matching.
 Longest repeats the last branch/item, Shortest truncates, and Cross computes
 the Cartesian match. Safe integer-to-number, date-to-date-time,
 entity-to-entity-reference, and JSON transport coercions are implicit wire
-semantics and do not create graph nodes. Nullable-to-required, unit-changing,
+semantics and do not create graph nodes. Entity item sources broadcast into
+entity collection sockets (`entity` → `entity_list`) with the element type
+checked — the same wire rule the effect mapper's broadcast applies at
+runtime. Nullable-to-required, unit-changing,
 narrowing, and restructuring connections require explicit author intent and
 are rejected when the selected node contract cannot express that intent.
 
 `data-tree.js` owns the universal tree solver. `evaluator.js` executes pure data
-nodes and authorized reads through it. The structure species execute natively
+nodes and authorized reads through it. Record Field (`value.recordField`)
+is the record elimination form: one authored key read off each record
+value of the List input (a service row, a composed parameter record),
+with the authored output type — the same authoring gesture open-block Get
+Field uses, for plain record values. The structure species execute natively
 with the same semantics their catalog ports declare: `cts.compose` composes
 open entries into one block per aligned tuple, `cts.decompose` projects the
 declared blocks (one block when a specific output is pulled, the block map
@@ -927,11 +950,13 @@ project branch does not apply to queues under another project branch.
 Command actions inherit the incoming entity window for their domain-declared
 output entities unless the command action explicitly defines its own access
 grants or marks access as modified. Output entity types come from the domain
-command `output.entities` contract, not from frontend assumptions. When the
+command `output.entities` contract, not from frontend assumptions; a value
+service such as `solveNestingValue` declares none — its result is the raw
+handler value the graph consumes, while the command envelope (recording,
+events, billing) stays in `command_runs`. When the
 domain summary registry declares an output as a child of the input entity, the
-compiler carries lineage scope through that parent relation; for example,
-`solveNesting` outputs `nesting_run` and `sheet_design` records under the
-source queue, so those results receive the same role window as the queue unless
+compiler carries lineage scope through that parent relation, so those results
+receive the same role window as the source entity unless
 a later graph node changes it.
 Action graph compilation preserves all incoming edges for a node and uses the
 first already-resolved upstream output window. This matters for lifecycle loops:
