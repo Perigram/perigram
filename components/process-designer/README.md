@@ -444,15 +444,19 @@ the draft dirty like any drag. The pass is the pure helper
 - **x = column.** Every process node is layered by longest path over
   the flow edges (event wires and data wires; a declaration wire never
   layers anything). Transient authoring cycles are tolerated — a
-  cycle-closing edge does not advance the layer. Columns read
-  left-to-right along the event chain and the data spine alike.
+  cycle-closing edge does not advance the layer. A pred-less node is
+  pulled up to the column just before its first consumer, so a fresh
+  source does not strand at the left edge behind empty columns.
+  Columns read left-to-right along the event chain and the data spine
+  alike.
 - **Effects: y = lane row.** One row per member inside its band (band
   geometry unchanged); member order per band comes from barycenter
   sweeps over flow-connected effects, initialized from the authored y
   order, so cross-lane wires cross as little as the heuristic achieves.
-- **Secondary process nodes: y near their consumer.** They take their
-  flow column and stack vertically beside the nearest effect
-  downstream.
+- **Secondary process nodes: y at their neighbors' median.** They take
+  their flow column; their y is the median of their flow neighbors' y,
+  spread within the column so cards clear each other and the fixed
+  effect rows. A node with no flow neighbors keeps its authored y.
 - **Declaration nodes: no column of their own.** A declaration cluster
   anchors one column left of the nearest process node its type wires
   touch and stacks around it; a declaration island bound to no process

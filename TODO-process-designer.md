@@ -618,6 +618,24 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-28 tidy corrective: pull-up + effect-anchored medians
+
+Owner report: "VERY long edges, no visible reason — does force even
+work?" No force exists by design (layered pass); the long edges were
+two placement flaws, reproduced with a scratch harness
+(/tmp/opencode/tidy-diagnosis.mjs): longest-path stranded pred-less
+sources at column 0 under a far-right consumer (1682px literal wire),
+and fan-out stacked around one anchor. Fixes: pred-less nodes pull up
+to the column before their first consumer; secondary y = median of the
+EFFECT rows they touch (direct effect neighbors + nearest upstream/
+downstream effects — effect rows never depend on secondaries, so
+targets are constants and the pass is idempotent by construction; an
+earlier neighbor-median that let secondaries watch secondaries drifted
+on every re-press). Same-column spread clears fixed effect rows.
+Harness after: worst "no-reason" wire 1682→420; only structural
+multi-column spans remain. Spec 16 cases incl. fan-out median,
+pull-up, spread, and double-feedback idempotence.
+
 ### Agent Notes — 2026-09-28 tidy: the layered pass + toolbar command
 
 Owner asked for auto-arrangement preserving lanes, flow direction, and
