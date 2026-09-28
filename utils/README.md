@@ -20,6 +20,10 @@ Shared frontend utility modules used by Vue pages/components.
 - `processDesignerDefinitionRecords.js`: Pure factories for the
   definition-plane service and socket records (Roles tab surfaces); the
   process-node record factories stay with the designer node-sync family.
+- `processDesignerArrangement.js`: Pure layered-arrangement pass for the
+  process canvas (nodes/edges/lane bands → positions); the Tidy command's
+  engine, contracted in
+  [components/process-designer](../components/process-designer/README.md).
 - `processDesignerTypeMigrations.js`: Pure seam of the type-migration
   authoring loop (CTS SPEC §11/§14): a refused declaration post's plan
   payload becomes step rows labeled by the authored vocabulary

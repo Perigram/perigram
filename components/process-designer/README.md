@@ -431,6 +431,34 @@ their authored y order inside their band, membership always re-derives
 from grants, and position is presentation state — never authorization
 by itself. Left-to-right is the reading canon.
 
+### Auto-arrangement (Tidy)
+
+The toolbar's canvas group carries one arrangement command: **Tidy**
+runs the layered pass destructively — it writes node positions and
+nothing else. Grants, wires, and records are untouched, so lane
+drop-assignment keeps working after it, and the position write marks
+the draft dirty like any drag. The pass is the pure helper
+`utils/processDesignerArrangement.js` (see
+[utils](../../utils/README.md)); it is deterministic and idempotent:
+
+- **x = column.** Every process node is layered by longest path over
+  the flow edges (event wires and data wires; a declaration wire never
+  layers anything). Transient authoring cycles are tolerated — a
+  cycle-closing edge does not advance the layer. Columns read
+  left-to-right along the event chain and the data spine alike.
+- **Effects: y = lane row.** One row per member inside its band (band
+  geometry unchanged); member order per band comes from barycenter
+  sweeps over flow-connected effects, initialized from the authored y
+  order, so cross-lane wires cross as little as the heuristic achieves.
+- **Secondary process nodes: y near their consumer.** They take their
+  flow column and stack vertically beside the nearest effect
+  downstream.
+- **Declaration nodes: no column of their own.** A declaration cluster
+  anchors one column left of the nearest process node its type wires
+  touch and stacks around it; a declaration island bound to no process
+  node keeps its authored position — the pass moves only what it can
+  arrange.
+
 ### Card behavior details
 
 `ProcessNode.vue` renders the catalog's resolved ports, not stored UI guesses.
@@ -538,8 +566,9 @@ them, and canvas Escape still clears graph selection. The floating
 PrimeVue `Toolbar` (shared
 `DesignerWorkspace` chrome) owns the process lifecycle in its document group
 (open, rename, save, apply) and the view controls in its canvas group
-(zoom out, zoom in, frame all, frame selection, reset zoom, and the
-secondary visibility toggle), every item
+(zoom out, zoom in, frame all, frame selection, reset zoom, the
+secondary visibility toggle, and tidy — the destructive layered pass),
+every item
 icon-only with its label as tooltip and accessible name. There is no
 standalone Validate control:
 Apply saves, validates, and activates as one operation, while the result

@@ -587,9 +587,9 @@ positional ever persists as authorization.
 - [ ] Edit view: stored positions authoritative; new-node placement
   extends the nearest-unoccupied-grid contract into the lane's next free
   column.
-- [ ] Tidy command in the toolbar's canvas group: the layered pass run
+- [x] Tidy command in the toolbar's canvas group: the layered pass run
   destructively (writes positions).
-- [ ] Hand-rolled layered pass first (topological layering + barycenter
+- [x] Hand-rolled layered pass first (topological layering + barycenter
   ordering, ~150 lines); dagre/ELK only if real graphs defeat it.
 
 ### Open decision + docs debt
@@ -617,6 +617,25 @@ components/process-designer/README.md now state the real model (states
 are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
+
+### Agent Notes — 2026-09-28 tidy: the layered pass + toolbar command
+
+Owner asked for auto-arrangement preserving lanes, flow direction, and
+minimal crossings (proposing d3-force). Declined force simulation —
+the graph is a DAG by contract, lanes are hard y-bands, direction and
+crossing-minimization are exactly what layered layout solves, and the
+repo carries no layout dependency. Landed per this section's plan of
+record: pure `utils/processDesignerArrangement.js` (longest-path
+layering over flow edges — event and data; cycle-guarded for transient
+authoring; barycenter rows per lane band swept to a stable order;
+secondaries stacked beside their downstream effect; declaration
+clusters one column left of their bound process node; islands stay
+authored) + the toolbar Tidy command (`pi-objects-column`, canvas
+group, writes positions only and frames all). Contract in
+components/process-designer/README.md "Auto-arrangement (Tidy)";
+12-case failure-mode spec first
+(`utils/processDesignerArrangement.spec.js`). Remaining here: diagram
+view, lane-aware new-node placement.
 
 ### Agent Notes — 2026-09-28 lanes become the authorization surface + chrome fixes
 
