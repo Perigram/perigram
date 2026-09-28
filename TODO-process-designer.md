@@ -618,6 +618,28 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-28 lanes become the authorization surface + chrome fixes
+
+Owner round on `agent/canvas-polish-20260928`: operations carry the
+primary-tinted surface (`--ck-surface-primary`) instead of the strong
+border; lane bands moved to a TRUE BACKGROUND layer (negative z-index
+in the zoom-pane slot — under edges and nodes, which carry z ≥ 0); the
+invented "Definitions" label is gone (lane titles are the org's own
+role names); pressed toolbar items render through the extracted
+`DesignerToolbarItems` at one icon-only geometry (the merged chrome had
+them as 61px labeled ToggleButton chips). THE SEMANTIC CHANGE: lanes
+are permanent and placement REPLACES the inspector's role editor —
+dropping an effect in a lane writes its grant (single grant; implicit
+lane clears), the Lanes view toggle is deleted, per-grant LEVELS stay
+inspector-owned, and stored multi-grant records paint a corridor
+across their granted lanes (no node/wire duplication — the answer to
+the owner's clones question). Verified live end-to-end: drag → PATCH
+carries the lane's single grant → draft persists it; bands z -10 under
+z-0 nodes; corridor collapses on reassignment. Fixes en route: list
+summaries now carry `states.main` (draft-only orgs previously opened an
+archived empty process — the pick ranks never matched); lane-drop
+membership reads the node CENTER (position is the top-left corner).
+
 ### Agent Notes — 2026-09-28 owner redesign: cargo wires, one socket mark, operation borders; Lanes A landed
 
 Owner review of the corrective: "dashed borders and node corners change
