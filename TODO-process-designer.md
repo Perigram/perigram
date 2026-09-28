@@ -618,6 +618,40 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-28 V2 corrective: primacy made real + node shape populations
+
+Owner report: "primary-secondary wires and nodes isn't implemented, and
+event wire became ugly w/ markers". Measured against the org's real data
+(active `process-6ab23042`: 16 declaration + 12 data + **1** event wire;
+draft `process-6ab225b5`: 19 + 3 + **0**): the mechanism was live but the
+hierarchy was visually INVERTED — declaration wires rendered 2px in the
+full-saturation structure violet (`--ck-signal-structure`), the loudest
+ink on the canvas, so declaration-heavy graphs drowned the one primary
+wire. Fixes on `agent/canvas-primacy-20260928` (docs-first, contract
+rewritten before code): a derived `--ck-signal-structure-muted` token
+(55% structure toward the muted ink — the one color-mix beside the
+scrollbar precedent) demotes declaration wires to the second association
+layer (1.5px, dash 4-3) with full hue staying on socket handles; the
+control arrowhead shrinks 18px → 12px (the wedge read as a blob on the
+2.5px flow); and the card SHAPE channel lands the P5 node populations —
+verbs (effect species) = sharp-corner task rectangles, nouns (data
+plane) = folded-corner data objects (inline SVG dog-ear — scoped CSS
+stays banned by the design-system guard, which caught the first draft),
+vocabulary (declaration family) = dashed frames in the declaration-wire
+tone, control species keep the neutral frame (reserved gateway slot).
+Type canvas unchanged (shape passthrough only). NOTE: token/tailwind
+changes need a dev-container restart — HMR recompiles pages but the CSS
+variable declarations and Tailwind theme are evaluated at server start
+(the probe measured `stroke: none` until `docker restart cutkit_app_dev`).
+Browser-verified on a seeded three-layer graph (artifacts:
+/tmp/opencode/wire-report.json, canvas-probe.png): event 2.5px solid
++12px marker, data 1.5px (5-4), declaration 1.5px (4-3) demuted; task
+rects `radius:0`, noun `fold:true`, declarations dashed in
+`color(srgb .46 .40 .71)` — same tone as their wires. Guards: designer
+suites 119 + design-system 38 + SSR smokes + check-arch/check-docs/
+framework:validate green; framework manifest and UI component audit
+regenerated.
+
 ### Agent Notes — 2026-09-28 V1 corrective + V2 landed
 
 Owner review of V1: "socket labels disappeared" — the V1 de-fluff item
