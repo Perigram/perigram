@@ -1,7 +1,7 @@
 # COMPONENT: Directory
 
-Cross-tenant discovery over users and organizations: global search and
-minimal directory card reads. This is the only surface that intentionally
+Cross-tenant discovery over users and organizations: name matching and
+minimal directory card reads for the contextual search surfaces. This is the only surface that intentionally
 answers "who exists on the platform" for callers outside the caller's own
 organizations; every user/organization list service stays membership-scoped
 (see [users](../users/README.md) and
@@ -53,19 +53,21 @@ collection.
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/directory/search?q=<query>&types=user,organization` | Grouped directory cards for the global search surface. |
+| `GET /api/directory/search?q=<query>&types=user,organization` | Grouped directory cards for the contextual search surfaces. |
 | `GET /api/directory/:type/:id` | One directory card (`type` is `user` or `organization`). |
 
 ## Client Surfaces
 
-- The app shell global search ([components/shared](../../../components/shared/README.md))
-  queries `search`; result rows open the entity inside the home workspace
-  through the workspace-open seam — never a standalone route.
+- Directory search lives in its contextual homes, not a shell-level
+  surface: the chats new-chat picker (beside the organization-scoped
+  list, keeping only direct-thread-reachable results) and the
+  team-management invite dialog for users; the
+  `/organization/partners` page for organizations.
 - User/organization detail renders as the in-home directory surface
   ([components/directory](../../../components/directory/README.md)): an
   entity-bound workspace-page pane tab on desktop, the bounded home dialog
   on mobile. Inline user/organization ref popovers keep the compact
-  preview and open into those panes through the same seam.
+  preview and open into those panes through the workspace-open seam.
 
 ## Related
 

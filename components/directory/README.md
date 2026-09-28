@@ -26,7 +26,9 @@ shared workspace-open seam.
   resolve (cross-tenant org names are not readable) and open them through
   the workspace-open seam — never a route.
 - The surface owns its action row because panes/dialogs have no page-level
-  action chrome: user chat / invite (routes into team management with
+  action chrome: user chat (the direct 1:1 thread, gated to
+  shared-organization recipients by the server's direct-conversation
+  rule) / invite (routes into team management with
   `?invite=`) / self profile; organization overview entry, context switch,
   and the partnership lifecycle actions (see
   [partnerships](../../server/features/partnerships/README.md)).
@@ -37,5 +39,6 @@ shared workspace-open seam.
 ## Related
 
 - [generated components](../generated/README.md) — workspace pages and the home shell
-- [shared components](../shared/README.md) — `InstanceInlineRef`, `GlobalSearch`
+- [shared components](../shared/README.md) — `InstanceInlineRef` and the chat seam
+- [ChatSupport](../shared/README.md) — the new-chat picker's directory search
 - [server/features/directory](../../server/features/directory/README.md)
