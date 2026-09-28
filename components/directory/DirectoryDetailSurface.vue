@@ -60,7 +60,12 @@
         <Panel v-if="detailedFields.length" :header="$t('organization.details')">
           <DataBlock type-id="organization" :entity="detailed" :fields="detailedFields" />
         </Panel>
-        <Panel v-if="partnership" :header="$t('partnerships.title')">
+        <!-- Read-level organization facts beyond the display contract: the
+             field-access policy admits type/email/phone at read level, and
+             DataBlock filters anything the caller's grant hides. -->
+        <Panel v-else-if="hasOrganizationFacts" :header="$t('organization.details')">
+          <DataBlock type-id="organization" :entity="factSource" :fields="ORGANIZATION_FACTS" />
+        </Panel>        <Panel v-if="partnership" :header="$t('partnerships.title')">
           <div class="flex items-center gap-2 py-2">
             <Tag :value="$t(`partnerships.status.${partnership.status}`)" :severity="partnershipSeverity" />
             <small v-if="partnership.direction === 'incoming'" class="text-muted">{{ $t('partnerships.incoming') }}</small>
@@ -226,6 +231,23 @@ const partnership = computed(() => {
     String(item.partnerOrganization?._id) === String(entry.value?._id)
   ) || null;
 });
+// The organization fact source prefers the grant-redacted DTO and falls
+// back to the directory card so non-member orgs still show their
+// read-level facts.
+const factSource = computed(() => (detailed.value?._id ? detailed.value : entry.value));
+// Labels resolve through i18n so locale switches follow; the field paths
+// are read-level organization facts (field-access filters each row).
+const ORGANIZATION_FACTS = computed(() => [
+  { path: 'data.type', label: t('organization.type') },
+  { path: 'data.email', label: t('profile.email') },
+  { path: 'data.phone', label: t('profile.phone') },
+  { path: 'lineage.createdAt', label: t('common.created') }
+]);
+const hasOrganizationFacts = computed(() => props.typeId === 'organization'
+  && ORGANIZATION_FACTS.value.some(field => {
+    const value = field.path.split('.').reduce((source, key) => source?.[key], factSource.value);
+    return value !== undefined && value !== null && value !== '';
+  }));
 const partnershipSeverity = computed(() => ({
   pending: 'warn',
   active: 'success',

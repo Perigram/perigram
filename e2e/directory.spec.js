@@ -78,12 +78,18 @@ test.describe('directory, invitations, partnerships', () => {
     await app.expectCleanRuntime();
     record('cross-org DM from picker', { conversationKey: directThread.conversationKey });
 
-    // The chat header opens the counterpart's entity POPUP (user card),
-    // and the popup's open action expands into the in-home user pane.
+    // The chat header opens the counterpart's entity popup (the shared
+    // dialog surface): titled by the persona's display name, expand opens
+    // the in-home user pane. Never an id in the interface.
     await app.page.locator('[data-testid="chat-header-entity"]').click();
-    await app.page.locator('.p-popover:visible, [data-pc-name="popover"]:visible').first().waitFor({ timeout: 5000 }).catch(() => {});
-    await app.page.locator('body').getByText(credentials.name, { exact: false }).first().waitFor({ timeout: 5000 });
-    record('chat header entity popup', {});
+    const popupTitle = app.page.locator('.p-dialog-title, .p-dialog .text-label').first();
+    await popupTitle.waitFor({ timeout: 5000 });
+    await expect(app.page.locator('.p-dialog')).toContainText(credentials.name);
+    await app.page.locator('.p-dialog [aria-label="Expand"], .p-dialog [aria-label="Раскрыть"]').first().click();
+    await app.page.locator('[data-home-workspace]').waitFor({ timeout: 15000 });
+    await expect(app.page.locator('[data-directory-surface]')).toContainText(credentials.name);
+    await app.expectCleanRuntime();
+    record('chat header entity popup -> pane', {});
 
     // Group participants are user-scope too: a group carrying the
     // cross-org persona is created and listed (org scope is org scope,
