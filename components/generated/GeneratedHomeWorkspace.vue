@@ -17,6 +17,10 @@
             </template>
             <img v-else src="/icon.svg" alt="Perigram" class="h-7 w-7" />
           </NuxtLink>
+          <!-- Directory search rides beside the wordmark: the home shell
+               hides the desktop header, so this is the workspace's own
+               entry into the shared GlobalSearch surface. -->
+          <GlobalSearch v-if="!sidebarCollapsed" />
           <Button
             :icon="sidebarCollapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-left'"
             text
@@ -37,6 +41,20 @@
           class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
           :aria-label="$t('nav.home')"
         >
+          <GlobalSearch>
+            <template #trigger="{ toggle }">
+              <Button
+                icon="pi pi-search"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                :aria-label="$t('nav.search')"
+                :title="$t('nav.search')"
+                @click="toggle"
+              />
+            </template>
+          </GlobalSearch>
           <Button
             icon="pi pi-comments"
             text
@@ -196,6 +214,7 @@ import Avatar from 'primevue/avatar';
 import PanelMenu from 'primevue/panelmenu';
 import { useI18n } from 'vue-i18n';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
+import GlobalSearch from '~/components/shared/GlobalSearch.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';

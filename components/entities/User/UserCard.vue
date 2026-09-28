@@ -13,6 +13,28 @@
       <template #compact-content>
         <div v-if="email" class="mt-3 text-muted text-body">{{ email }}</div>
       </template>
+      <!-- Avatar-forward popup body: the expanded popover presents the
+           directory face (avatar, name, permitted contact, membership
+           context) above the same compact fact rows. -->
+      <template #expanded>
+        <div class="flex items-start gap-4">
+          <Avatar
+            :image="avatarUrl"
+            :label="!avatarUrl ? avatarLabel : null"
+            shape="circle"
+            size="xlarge"
+            class="shrink-0 [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+          />
+          <div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
+            <span class="truncate text-label">{{ user.identity?.name }}</span>
+            <span v-if="email" class="truncate text-supporting text-muted">{{ email }}</span>
+            <div v-if="organizationCount" class="mt-1">
+              <Tag :value="`${organizationCount} ${$t('profile.myOrganizations')}`" severity="info" size="small" />
+            </div>
+          </div>
+        </div>
+        <DataBlock type-id="user" :entity="user" :fields="USER_FIELDS" variant="compact" />
+      </template>
       <Divider />
       <DataBlock type-id="user" :entity="user" :fields="USER_FIELDS" />
       <template #footer>
