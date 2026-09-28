@@ -38,7 +38,7 @@ function resolveSingle(source, screen, pool) {
   return Object.values(byId)[0] || null;
 }
 
-function resolveList(source, screen, pool, sourcesById, typesById = {}) {
+function resolveList(source, screen, pool, sourcesById) {
   const byId = pool[source.typeId] || {};
   if (source.relation) {
     const originSource = sourcesById[source.relation.sourceId];
@@ -75,19 +75,19 @@ function resolveList(source, screen, pool, sourcesById, typesById = {}) {
     if (unresolved) return [];
     const filter = filterFromFlatFilters(filters);
     // An empty resolved filter carries no scope (compiled type lists ship
-    // `filters: {}`): the source is unscoped and takes the root-scoped
-    // listing below, never the whole type in one pile.
+    // `filters: {}`): the source is unscoped and takes the cross-cut
+    // listing below.
     if (filter) {
       return Object.values(byId).filter(instance => instanceMatchesFilter(instance, filter));
     }
   }
-  // An unscoped list is a type-level surface: when the type can be
-  // someone's child (a declared children edge names it), only root
-  // instances list — children ride nested under their parents, never
-  // duplicated at the top level.
-  const scopeKeys = rootScopeKeysFor(source.typeId, typesById);
-  if (!scopeKeys.size) return Object.values(byId);
-  return Object.values(byId).filter(instance => isRootInstance(instance, scopeKeys));
+  // An unscoped list is a type-level surface. A type someone's children
+  // edge names composes the containment cross-cut: every instance lists
+  // with its declared parent context (`incomingChildrenEdges` — the
+  // materialization renders the parent from it), because this surface
+  // cannot nest — the parent surface owns nesting through the tree
+  // projection. Any other type keeps the total list.
+  return Object.values(byId);
 }
 
 function resolveFilterPlaceholders(filters = {}, screen = {}) {
@@ -111,30 +111,8 @@ function surfaceKindOf(region, source) {
 }
 
 // Declared lineage keys through which this type can be someone's child
-// (any type's children edge naming it, self-referential included). The
-// edge's declared key decides, with the entry's map key as the
-// raw-declaration fallback — the same resolution `childrenOfParent` and
-// the pickers use, so root scoping and nesting never disagree. A type
-// with no incoming children edge has no root scope; every instance lists.
-function rootScopeKeysFor(typeId = '', typesById = {}) {
-  const keys = new Set();
-  for (const type of Object.values(typesById || {})) {
-    for (const [mapKey, edge] of Object.entries(type?.edges?.children || {})) {
-      const key = String(edge?.lineageKey || mapKey || '').trim();
-      if ((edge?.types || []).includes(typeId) && key) keys.add(key);
-    }
-  }
-  return keys;
-}
-
-function isRootInstance(instance = {}, scopeKeys = new Set()) {
-  for (const key of scopeKeys) {
-    const ref = instance.lineage?.[key];
-    const value = ref?.id ?? ref;
-    if (value !== null && value !== undefined && value !== '') return false;
-  }
-  return true;
-}
+// live in `incomingChildrenEdges` (index.js) — the cross-cut and the
+// pickers resolve the same declaration home the tree nests through.
 
 function composeRegion(region, screen, contract, pool, typesById, depth, providedStates) {
   const sourcesById = Object.fromEntries((screen.sources || []).map(source => [source.id, source]));
@@ -145,7 +123,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   // falls back to listing the whole type.
   const instances = surfaceKind === 'detail'
     ? (single ? [single] : [])
-    : resolveList(source, screen, pool, sourcesById, typesById);
+    : resolveList(source, screen, pool, sourcesById);
   const type = typesById[source.typeId] || null;  const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
   const containerRole = depth === 0 ? 'section' : 'card';
   const chrome = resolveChrome(containerRole, depth === 0 ? null : 'section');

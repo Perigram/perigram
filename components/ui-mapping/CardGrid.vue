@@ -37,7 +37,18 @@
               </div>
             </div>
           </template>
-          <template #subtitle>{{ type?.name }}</template>
+          <template #subtitle>
+            <span class="inline-flex min-w-0 items-center gap-1.5">
+              <span class="truncate">{{ type?.name }}</span>
+              <ParentRef
+                v-if="parented"
+                :instance="instance"
+                :bundle="bundle"
+                :pool="pool"
+                class="min-w-0"
+              />
+            </span>
+          </template>
           <template #content>
             <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
@@ -79,6 +90,8 @@ import {
 } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
+import ParentRef from './ParentRef.vue';
+import { incomingChildrenEdges } from '#shared/ui-mapping/index.js';
 
 const spacing = inject('uiMappingSpacing', null);
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
@@ -107,6 +120,11 @@ const emit = defineEmits(['open', 'run']);
 const { te, t } = useI18n();
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
+
+// The containment cross-cut: cards of a child-capable type carry their
+// parent beside the type name (see ParentRef) — containment stays visible
+// wherever the row surfaces, nesting included elsewhere.
+const parented = computed(() => incomingChildrenEdges(props.bundle, props.type?.id).length > 0);
 
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const statusOf = instance => {

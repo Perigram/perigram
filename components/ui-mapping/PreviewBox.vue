@@ -34,9 +34,16 @@
       <circle v-for="node in starNodes" :key="node.key" :cx="node.x" :cy="node.y" r="2" :fill="accent" />
     </svg>
   </div>
-  <div v-else-if="preview.component" :class="[LAYOUT.row, 'h-28 w-full rounded-ui bg-subtle text-supporting text-muted']">
+  <div v-else-if="preview.component && payload" :class="[LAYOUT.row, 'h-28 w-full rounded-ui bg-subtle text-supporting text-muted']">
     <i class="pi pi-file" />
     <span>{{ sizeLabel }}</span>
+  </div>
+  <!-- A payload-less instance has no file facts to state: the band stays
+       quiet with the type's own glyph — no MIME strings, no invented
+       content (blank is the honest surface for a record that never
+       saved a source). -->
+  <div v-else-if="preview.component" :class="[LAYOUT.row, 'h-28 w-full text-supporting text-muted']" :aria-hidden="true">
+    <i :class="typeGlyph" />
   </div>
 </template>
 
@@ -82,6 +89,9 @@ const fileUrl = computed(() => (props.payload?.fileId
   ? `/api/files/download/${encodeURIComponent(String(props.payload.fileId))}?bucket=files`
   : ''));
 const mime = computed(() => props.payload?.mime || preview.value.mime[0] || preview.value.mode);
+// The quiet blank band's glyph: the type's authored depiction, falling
+// back to the generic file icon — the type's own mark, never a MIME.
+const typeGlyph = computed(() => props.type?.depiction?.glyph || 'pi pi-file');
 const sizeLabel = computed(() => (props.payload?.size
   ? `${(props.payload.size / 1024).toFixed(0)} KB · ${mime.value}`
   : mime.value));

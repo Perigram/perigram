@@ -965,6 +965,39 @@ function parentTypesForChildrenKey(bundle = null, typeId = '', key = '') {
   return parents;
 }
 
+// The incoming containment edges of one type: every children edge, on any
+// type, that names it. Each entry is `{ parentTypeId, key }` with the
+// edge's declared lineage key — the storage key a child instance's parent
+// ref lives under. This is the cross-cut's resolution home: a list of a
+// child-capable type renders each row's parent from these edges, the
+// same declaration the tree projection nests through.
+export function incomingChildrenEdges(bundle = null, typeId = '') {
+  const edges = [];
+  for (const parentType of bundle?.types || []) {
+    for (const [mapKey, declaration] of Object.entries(parentType?.edges?.children || {})) {
+      if (!(declaration?.types || []).includes(typeId)) continue;
+      const key = lineageKeyOfEdge(declaration, mapKey);
+      if (key) edges.push({ parentTypeId: parentType.id, key });
+    }
+  }
+  return Object.freeze(edges);
+}
+
+// One instance's declared parent ref through those edges: the first
+// incoming edge whose lineage key is stamped on the instance resolves
+// `{ parentTypeId, parentId }` (both stored reference shapes match);
+// an unstamped instance is a root and resolves null.
+export function parentRefOf(instance = {}, edges = []) {
+  for (const edge of edges) {
+    const ref = instance.lineage?.[edge.key];
+    const value = ref?.id ?? ref;
+    if (value !== null && value !== undefined && value !== '') {
+      return { parentTypeId: edge.parentTypeId, parentId: String(value) };
+    }
+  }
+  return null;
+}
+
 // Hierarchy materialization: the pool instances that are children of one
 // parent instance through the type's declared children edges. Every edge
 // contributes the instances of its declared child types whose

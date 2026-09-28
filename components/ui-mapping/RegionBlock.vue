@@ -76,7 +76,7 @@
         :type="node.type"
         :controls="node.listControls"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         :state-policy="node.statePolicy"
         @open="emitOpen"
@@ -87,7 +87,7 @@
         :instances="filteredInstances"
         :type="node.type"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         :state-policy="node.statePolicy"
         @open="emitOpen"
@@ -99,7 +99,7 @@
         :controls="node.listControls"
         :actions="instanceActionsForType"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         :state-policy="node.statePolicy"
         @open="emitOpen"
@@ -112,7 +112,7 @@
         :controls="node.listControls"
         :actions="instanceActionsForType"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         :state-policy="node.statePolicy"
         :state-transitions="node.stateTransitions"
@@ -121,14 +121,14 @@
         @run="emitRun"
         @transition="payload => emit('transition', payload)"
       />
-      <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="effectivePool" :bundle="bundle" />
       <TimelineCollection
         v-else-if="listLayout === 'timeline'"
         :instances="filteredInstances"
         :type="node.type"
         :controls="node.listControls"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         @open="emitOpen"
       />
@@ -147,7 +147,7 @@
         :openable="openable"
         @open="emitOpen"
       />
-      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" :state-policy="node.statePolicy" />
+      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="effectivePool" :bundle="bundle" :state-policy="node.statePolicy" />
       <div v-else :class="LAYOUT.stackTight">
         <SurfaceBody
           v-for="instance in filteredInstances"
@@ -156,7 +156,7 @@
           :type="node.type"
           variant="row"
           parent-role="card"
-          :pool="pool"
+          :pool="effectivePool"
           :bundle="bundle"
         />
       </div>
@@ -244,7 +244,7 @@
         :type="node.type"
         :controls="node.listControls"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         :state-policy="node.statePolicy"
         @open="emitOpen"
@@ -255,7 +255,7 @@
         :instances="filteredInstances"
         :type="node.type"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         :state-policy="node.statePolicy"
         @open="emitOpen"
@@ -267,7 +267,7 @@
         :controls="node.listControls"
         :actions="instanceActionsForType"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         :state-policy="node.statePolicy"
         @open="emitOpen"
@@ -280,7 +280,7 @@
         :controls="node.listControls"
         :actions="instanceActionsForType"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         :state-policy="node.statePolicy"
         :state-transitions="node.stateTransitions"
@@ -289,14 +289,14 @@
         @run="emitRun"
         @transition="payload => emit('transition', payload)"
       />
-      <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="effectivePool" :bundle="bundle" />
       <TimelineCollection
         v-else-if="listLayout === 'timeline'"
         :instances="filteredInstances"
         :type="node.type"
         :controls="node.listControls"
         :openable="openable"
-        :pool="pool"
+        :pool="effectivePool"
         :bundle="bundle"
         @open="emitOpen"
       />
@@ -315,7 +315,7 @@
         :openable="openable"
         @open="emitOpen"
       />
-      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" :state-policy="node.statePolicy" />
+      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="effectivePool" :bundle="bundle" :state-policy="node.statePolicy" />
       <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
         <SurfaceBody
           v-for="instance in filteredInstances"
@@ -324,7 +324,7 @@
           :type="node.type"
           variant="row"
           parent-role="card"
-          :pool="pool"
+          :pool="effectivePool"
           :bundle="bundle"
         />
       </div>
@@ -451,7 +451,7 @@
 </template>
 
 <script setup>
-import { computed, inject, reactive, ref, watch } from 'vue';
+import { computed, inject, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
@@ -467,7 +467,7 @@ import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import {
   LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor, sortControlRows,
-  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar
+  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
@@ -491,7 +491,6 @@ import InstanceMultiSelect from '../shared/InstanceMultiSelect.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
-
 const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
@@ -520,6 +519,43 @@ const emitOpen = instance => emit('open', instance);
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
 const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
+
+// The containment cross-cut's data: a region whose type someone's children
+// edge names renders every row WITH its parent — and the parent records
+// are not in this surface's pool (it loads the child type). Parent types
+// load lazily through the same `loadType` seam the tree projection uses
+// and overlay the pool every collection below reads; an unloaded parent
+// still names its type (ParentRef degrades), so correctness never depends
+// on the load landing.
+const parentTypeIds = computed(() => [...new Set(
+  incomingChildrenEdges(props.bundle, props.node.typeId).map(edge => edge.parentTypeId)
+)]);
+const loadedParents = ref({});
+const effectivePool = computed(() => {
+  if (!Object.keys(loadedParents.value).length) return props.pool;
+  const overlay = Object.fromEntries(Object.entries(loadedParents.value)
+    .map(([typeId, byId]) => [typeId, { ...(props.pool[typeId] || {}), ...byId }]));
+  return { ...props.pool, ...overlay };
+});
+async function ensureParentTypes() {
+  if (!props.loadType) return;
+  for (const parentTypeId of parentTypeIds.value) {
+    if (props.pool[parentTypeId] && Object.keys(props.pool[parentTypeId]).length) continue;
+    if (loadedParents.value[parentTypeId]) continue;
+    try {
+      const rows = await props.loadType(parentTypeId);
+      loadedParents.value = {
+        ...loadedParents.value,
+        [parentTypeId]: Object.fromEntries((rows || []).filter(Boolean).map(row => [row.id, row]))
+      };
+    } catch {
+      loadedParents.value = { ...loadedParents.value, [parentTypeId]: {} };
+    }
+  }
+}
+onMounted(ensureParentTypes);
+watch(() => [props.node.typeId, props.loadType], ensureParentTypes);
+
 const editing = ref(false);
 const draft = reactive({});
 // Field-name changes map onto the wire patch blocks: `name` writes the

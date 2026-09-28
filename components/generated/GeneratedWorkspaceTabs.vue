@@ -31,7 +31,7 @@
             rounded
             size="small"
             severity="secondary"
-            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible"
+            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-7 !w-7"
             :aria-label="$t('common.close')"
             @click.stop="$emit('close-tab', tab.key)"
           />
@@ -45,6 +45,7 @@
         rounded
         size="small"
         severity="secondary"
+        class="!h-7 !w-7"
         :aria-label="$t('project.newTab')"
         @click.stop="$emit('add')"
       />
@@ -74,12 +75,13 @@ defineEmits(['select', 'close-tab', 'add', 'refresh']);
 const { t } = useI18n();
 const registry = useRegistryStore();
 
-// The tab strip fills the pane header's fixed compact height (2rem): the
+// The tab strip fills the pane header's fixed compact height (28px): the
 // viewport and the tab row stretch to 100% and the tabs themselves
-// (already !py-0) center inside, so the small add/menu buttons fill the
-// stripe exactly. The pane header row owns the single hairline under the
-// whole stripe (tabs + pane controls), so the tablist's own border is
-// dropped.
+// (already !py-0) center inside, so the stripe controls (close, add,
+// pane menu) carry !h-7 !w-7 to fill the stripe exactly — the PrimeVue
+// small default (32px) would overflow and clip. The pane header row
+// owns the single hairline under the whole stripe (tabs + pane
+// controls), so the tablist's own border is dropped.
 const tabListPt = {
   root: { style: { height: '100%' } },
   tabList: { style: { height: '100%', alignItems: 'stretch', borderWidth: 0 } }

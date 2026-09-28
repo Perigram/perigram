@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { composeScreen, buildInstancePool } from './screen.js';
+import { incomingChildrenEdges, parentRefOf } from './index.js';
 
 const bundle = {
   types: [
@@ -184,7 +185,7 @@ describe('screen composition', () => {
     expect(composed.regions[0].childRegions.map(region => region.instances.map(instance => instance.id))).toEqual([['s1'], ['w2']]);
   });
 
-  it('lists only root instances for a type that can be someone\'s child', () => {
+  it('composes the containment cross-cut for a type that can be someone\'s child', () => {
     const nestedBundle = {
       types: [
         ...bundle.types,
@@ -205,14 +206,22 @@ describe('screen composition', () => {
     const screen = { screenKey: 'roots', template: 'typeList', label: 'Roots',
       sources: [{ id: 'widget', typeId: 'widget', mode: 'list' }],
       regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'list' }] };
+    // Every instance lists — the surface cannot nest, so parent context
+    // (not omission) carries containment: each row's parent resolves
+    // through the incoming children edges, both stored ref shapes.
     expect(composeScreen(screen, contract, nestedBundle, nestedPool).regions[0].instances.map(instance => instance.id))
-      .toEqual(['root1']);
+      .toEqual(['root1', 'child1', 'child2']);
+    const edges = incomingChildrenEdges(nestedBundle, 'widget');
+    expect(edges).toEqual([{ parentTypeId: 'bin', key: 'binId' }]);
+    expect(parentRefOf(nestedPool.widget.root1, edges)).toBeNull();
+    expect(parentRefOf(nestedPool.widget.child1, edges)).toEqual({ parentTypeId: 'bin', parentId: 'b1' });
+    expect(parentRefOf(nestedPool.widget.child2, edges)).toEqual({ parentTypeId: 'bin', parentId: 'b1' });
 
-    // Compiled type lists ship an empty filters map: same root scope —
-    // the empty map never means "the whole type in one pile".
+    // Compiled type lists ship an empty filters map: same cross-cut —
+    // the empty map never narrows the listing.
     const emptyFilters = { ...screen, sources: [{ ...screen.sources[0], filters: {} }] };
     expect(composeScreen(emptyFilters, contract, nestedBundle, nestedPool).regions[0].instances.map(instance => instance.id))
-      .toEqual(['root1']);
+      .toEqual(['root1', 'child1', 'child2']);
 
     // A type no children edge names keeps the total list.
     expect(composeScreen(screen, contract, bundle, nestedPool).regions[0].instances.map(instance => instance.id).sort())
