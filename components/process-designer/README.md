@@ -5,6 +5,11 @@ The normative graph/state contracts live in
 contract in [packages/processes](../../packages/processes/README.md). This
 README owns only the authoring UX and projection rules.
 
+Canvas-appearance work (shapes, wires, lanes, arrangement) starts from the
+accepted plan of record,
+[`TODO-process-designer.md` §P5](../../TODO-process-designer.md) — read it
+before changing the node UI contract.
+
 The designer shell separates declaration authoring from executable process
 composition. Declaration nodes own CTS classes, fields, edges, recursive state
 machines, transitions, and operator signatures. Process nodes reference those
