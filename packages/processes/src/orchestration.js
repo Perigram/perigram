@@ -214,7 +214,10 @@ async function executeOperationalNode({ run, process, node, record, current, ste
       : await environment.executeEffect({
           kind: record.kind,
           record,
-          inputs: Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, packetValue(packet, 'item')])),
+          // Value-carrying effects (commands, services) consume each input
+          // by its declared socket access: a List socket delivers the
+          // aligned items as one array value, an Item socket one value.
+          inputs: await extractEffectItemInputs(record, inputs, environment),
           idempotencyKey: step.idempotencyKey,
           attempt: step.attempt,
           run
@@ -342,6 +345,18 @@ async function effectOutputValues(nodeId, record, result, environment) {
     values[`${nodeId}:${port.id}`] = createDataPacket(value, port.access || 'item');
   }
   return values;
+}
+
+// Value-carrying effects (commands, services) receive each input as one
+// value extracted by the port's declared access — a List socket's aligned
+// items become the array value the command contract expects.
+function extractEffectItemInputs(record, inputs, environment) {
+  const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+  const accessById = new Map(ports.inputs.map(port => [port.id, port.access || 'item']));
+  return Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [
+    id,
+    packetValue(packet, accessById.get(id) || 'item')
+  ]));
 }
 
 async function resolveNodeInputs(process, node, run, environment, tokenContext) {

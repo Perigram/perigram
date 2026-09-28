@@ -17,11 +17,27 @@ export const mountedPackDeclarations = [
   techDrawingPack,
   {
     id: 'facade',
-    requires: ['tech-drawing'],
+    requires: ['tech-drawing', 'documents'],
     types: facadePackContent.types,
-    editors: facadePackContent.editors
+    editors: facadePackContent.editors,
+    services: facadePackContent.services
   }
 ];
+
+// Registered pack services (SPEC §8/§21), composed in mount order: the
+// one service list every `packServices` consumer — the process runtime's
+// projected domain, the admin domain route, the designer — resolves
+// through, so a pack registration reaches every surface without a
+// per-surface import.
+export function composePackServices(packs = orderedMountedPacks()) {
+  const services = [];
+  for (const pack of packs) {
+    for (const service of pack.services || []) {
+      if (service?.id && service.command) services.push(service);
+    }
+  }
+  return services;
+}
 
 // Framework-first, dependency order, each pack once. A missing requirement
 // or a requirement cycle is a composition error — packs never shadow each

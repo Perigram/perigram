@@ -80,6 +80,7 @@ export {
   PROCESS_NODE_CATALOG,
   PROCESS_NODE_FAMILIES,
   PRODUCER_ORIGIN_EFFECT_KINDS,
+  constructionInputsForContract,
   getProcessNodeDefinition,
   processNodeDefinitionsForFamily,
   requireProcessNodeDefinition,

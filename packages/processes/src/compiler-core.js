@@ -14,7 +14,7 @@ import {
   resolveProcessNodePorts,
   validateProcessEdges
 } from './ports.js';
-import { CONSUMER_EFFECT_KINDS, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { CONSUMER_EFFECT_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree, authoredSocketDefault } from './data-tree.js';
@@ -980,7 +980,9 @@ function inputValueSatisfies(value, port, declared = {}) {
 // display contract exposes them. A prompt only ever satisfies a manual path.
 function promptableInputIds(record = {}, domain = {}) {
   const ids = new Set();
-  const kind = record.kind;
+  // Species records classify through the operation-kind seam: a manual
+  // `cts.construct` prompts exactly like the create effect it is.
+  const kind = operationKindOf(record || {});
   const construction = record.construction || {};
   const contract = domain.construction?.[record.typeId] || {};
   const modeInputs = contract.modeInputs?.[construction.mode] || [];
@@ -1045,7 +1047,10 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
   const nodes = process.graph?.nodes || [];
   const edges = process.graph?.edges || [];
   for (const [recordId, record] of Object.entries(process.processNodes || {})) {
-    if (!record?.kind?.startsWith('effect.')) continue;
+    // Species records classify through the operation-kind seam (SPEC §20):
+    // `cts.construct`/`cts.service` carry the same required-input contract
+    // their legacy effect twins do.
+    if (!operationKindOf(record || {}).startsWith('effect.')) continue;
     const manual = (record.trigger?.mode || 'manual') === 'manual';
     const graphNode = nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
     let ports = [];
@@ -3810,7 +3815,7 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
     : (modes.includes(contract.defaultMode) ? contract.defaultMode : (modes[0] || ''));
   const declaredInputs = Array.isArray(source.inputs) ? source.inputs : [];
   const blocksOwnConstruction = source.blockComposed && mode === 'genericCreate';
-  const contractInputs = (contract.modeInputs?.[mode] || contract.inputs || [])
+  const contractInputs = constructionInputsForContract(contract, mode)
     .filter(input => !blocksOwnConstruction || (
       input.id !== 'name'
       && input.path !== 'name'
@@ -4577,8 +4582,12 @@ function validateDataflowEdges(process, domain) {
   }
   const triggers = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
+    // Species records classify through the operation-kind seam: a manual
+    // `cts.service`/`cts.construct` is an entry trigger exactly like its
+    // legacy effect twin.
+    const operation = operationKindOf(record || {});
     return record?.kind?.endsWith('Trigger')
-      || (record?.kind?.startsWith('effect.') && record.trigger?.mode === 'manual');
+      || (operation.startsWith('effect.') && record.trigger?.mode === 'manual');
   });
   const reachable = reachableControlNodes(process, triggers.map(node => String(node.id)));
   for (const node of process.graph?.nodes || []) {
@@ -4658,6 +4667,11 @@ function catalogContext(domain, record) {
     ? (record.inputDefaults?.field || '')
     : record.path;
   return {
+    // The projected domain rides on the context: the species port
+    // projections read construction contracts and service signatures from
+    // it (`cts.service` has no persisted fallback), exactly as the runtime
+    // catalog contexts do.
+    domain,
     fieldSchema: processNodeUsesStructuralFields(record.kind)
       ? structuralFieldSchema(domain, fieldPath)
       : entityFieldSchema(domain, record.typeId, fieldPath),

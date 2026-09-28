@@ -69,6 +69,10 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   ], ([primary, secondary]) => [...primary, ...secondary], { outputAccess: 'list', matching: record.matching });
   if (kind.startsWith('source.')) return executeSource(record, context);
   if (kind === 'value.cast' || kind === 'value.parse') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
+  if (kind === 'value.recordField') return mapDataPacket(required(packets, 'value', record), value => {
+    const fieldValue = readPath(value, String(record.path || ''));
+    return isMissingField(fieldValue) ? missingFieldMarker(record.path) : fieldValue;
+  });
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
   if (kind === 'value.toEntityRef') return mapDataPacket(required(packets, 'value', record), value => entityReference(value, record.typeId));
   if (kind === 'value.toJson') return mapDataPacket(required(packets, 'value', record), value => structuredClone(value));

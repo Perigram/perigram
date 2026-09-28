@@ -1,6 +1,7 @@
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf, setTypeBinding } from '~/packages/cts/src/index.js';
 import {
+  constructionInputsForContract,
   formatProcessType,
   getProcessNodeDefinition,
   parseProcessSocketHandleId,
@@ -81,7 +82,9 @@ export function useProcessDesignerNodeSync({
   }
 
   function constructionInputsForMode(contract = {}, mode = '') {
-    return contract.modeInputs?.[mode] || contract.inputs || [];
+    // The shared derivation: mode inputs plus the construct-addressable
+    // lineage/relation edges (SPEC §6) — one home with the catalog ports.
+    return constructionInputsForContract(contract, mode);
   }
 
   function constructionModeOptions(typeId = '') {

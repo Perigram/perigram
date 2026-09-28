@@ -1,7 +1,7 @@
 import { reactive, ref } from 'vue';
 import { compileTreeDeclarations, createProcessDesignerContract } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, projectDomainFromView, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
-import { composeSystemDeclarations } from '~/server/packs/declarations.js';
+import { composePackServices, composeSystemDeclarations } from '~/server/packs/declarations.js';
 import { clearTypeMigrationSteps, declarationPostFailure } from '~/utils/processDesignerTypeMigrations.js';
 
 // The CTS declaration layer's lifecycle: the organization's type registry
@@ -44,7 +44,7 @@ export function useProcessDesignerTypes({
   function ctsProjectedDomain() {
     if (!ctsDomainCache) {
       ctsDomainCache = projectDomainFromView(ctsRegistry(), activeOrganizationId(), baseDomain, {
-        packServices: packContent.services
+        packServices: composePackServices()
       });
     }
     return ctsDomainCache;

@@ -8,6 +8,8 @@
 // command envelope `{ entities, parameters, auth }`; the declared parameter
 // sockets (`items`, `params`) arrive on `parameters`.
 import { createError } from 'h3';
+import { instanceServiceResolver } from '../../../features/instances/service.js';
+import { toInstanceRef } from '../refs.js';
 import {
   buildValueWorkerRequest,
   enrichNestingResult,
@@ -29,11 +31,13 @@ async function callNestingWorker(request) {
 }
 
 // Declared signature (the facade pack's `nesting.solve` service):
-//   items:  [{ polygonParts | dimensions, count, cassetteId }]  -- job geometry
-//   params: { width, height, space, sheetCount, sheet_polygon? }
+//   items:    [{ polygonParts | dimensions, count, cassetteId }]  -- job geometry
+//   material: sheet-material ref -- sheet width/height come from the
+//             declared material instance
+//   space / sheetCount: solver knobs (authored socket fallbacks; 3 mm / 1)
 // Output: { layouts, summary } as values.
 export async function solveNestingValue({ parameters = {} } = {}) {
-  const { items, params = {} } = parameters || {};
+  const { items, material, space, sheetCount } = parameters || {};
   if (!Array.isArray(items) || !items.length) {
     throw createError({ statusCode: 400, message: 'Nesting input requires items (job geometry)' });
   }
@@ -43,6 +47,21 @@ export async function solveNestingValue({ parameters = {} } = {}) {
     }
     item.count = Math.max(1, Math.trunc(Number(item.count) || 1));
   }
+
+  const materialRef = toInstanceRef(material, ['sheet-material']);
+  if (!materialRef?.id) {
+    throw createError({ statusCode: 400, message: 'Nesting requires a sheet-material reference' });
+  }
+  const materialInstance = await instanceServiceResolver('sheet-material').getById(materialRef.id);
+  if (!materialInstance) {
+    throw createError({ statusCode: 400, message: `Sheet material ${materialRef.id} not found` });
+  }
+  const params = {
+    width: Number(materialInstance.data?.width ?? materialInstance.specs?.width),
+    height: Number(materialInstance.data?.height ?? materialInstance.specs?.height),
+    space: Number(space ?? 3),
+    sheetCount: Math.max(1, Math.trunc(Number(sheetCount ?? 1) || 1))
+  };
   const required = ['width', 'height', 'space', 'sheetCount'];
   for (const key of required) {
     if (!(Number(params[key]) > 0)) {

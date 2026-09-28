@@ -828,6 +828,10 @@ describe('@perigram/processes compiler', () => {
     expect(portSpecsCompatible(
       { id: 'created', kind: 'entity', typeId: 'project' },
       { id: 'items', kind: 'entity_list', typeId: 'project' }
+    ).ok).toBe(true);
+    expect(portSpecsCompatible(
+      { id: 'created', kind: 'entity', typeId: 'project' },
+      { id: 'items', kind: 'entity_list', typeId: 'queue' }
     ).ok).toBe(false);
     expect(portSpecsCompatible(
       { id: 'completed', kind: 'event' },

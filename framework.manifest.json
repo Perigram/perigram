@@ -200,6 +200,60 @@
       "triggers": []
     },
     {
+      "action": "readOrderRows",
+      "attachments": [],
+      "events": [],
+      "id": "readOrderRows",
+      "inputs": [],
+      "label": "Read order rows",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "cts-types",
+          "level": "read"
+        }
+      ],
+      "service": "facade",
+      "tasks": [],
+      "triggers": []
+    },
+    {
+      "action": "resolveCassetteNames",
+      "attachments": [],
+      "events": [],
+      "id": "resolveCassetteNames",
+      "inputs": [],
+      "label": "Resolve cassette templates",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "cts-types",
+          "level": "read"
+        }
+      ],
+      "service": "facade",
+      "tasks": [],
+      "triggers": []
+    },
+    {
+      "action": "buildNestingItems",
+      "attachments": [],
+      "events": [],
+      "id": "buildNestingItems",
+      "inputs": [],
+      "label": "Build nesting items",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "cts-types",
+          "level": "read"
+        }
+      ],
+      "service": "facade",
+      "tasks": [],
+      "triggers": []
+    },
+    {
       "action": "solveValue",
       "attachments": [],
       "events": [],
@@ -1215,6 +1269,21 @@
       ],
       "collection": "files",
       "lineage": {},
+      "type": "sheet-material"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
       "type": "sheet-design"
     }
   ],
@@ -1341,6 +1410,11 @@
       "list": null,
       "single": null,
       "type": "cassette-design"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "sheet-material"
     },
     {
       "list": null,

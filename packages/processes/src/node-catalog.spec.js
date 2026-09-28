@@ -275,14 +275,20 @@ describe('process v4 node catalog', () => {
       }
     };
     const ports = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'nesting.solve' }, { domain });
-    expect(ports.inputs.map(input => input.id)).toEqual(['polygons', 'sheet']);
-    expect(ports.inputs[0].type).toMatchObject({ base: 'array' });
-    expect(ports.outputs[0]).toMatchObject({ id: 'result', type: { base: 'json' } });
+    // A service is an effect species: the event contract wraps the
+    // signature-derived data sockets.
+    expect(ports.inputs.map(input => input.id)).toEqual(['in', 'polygons', 'sheet']);
+    expect(ports.outputs.map(output => output.id)).toEqual(['completed', 'result']);
+    // A `list` signature field is the element-typed List socket (a runtime
+    // collection, not a persisted array).
+    expect(ports.inputs[1]).toMatchObject({ id: 'polygons', type: { base: 'json' }, access: 'list' });
+    expect(ports.outputs[1]).toMatchObject({ id: 'result', type: { base: 'json' } });
 
-    // an unknown or signature-less operator resolves to empty ports;
+    // an unknown or signature-less operator resolves no data ports;
     // compilation names the unknown operator as a diagnostic
     const unbound = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'ghost' }, { domain });
-    expect(unbound).toEqual({ inputs: [], outputs: [] });
+    expect(unbound.inputs.map(input => input.id)).toEqual(['in']);
+    expect(unbound.outputs.map(output => output.id)).toEqual(['completed']);
   });
 
   it('exposes the unfiltered All read without a hidden predicate input', () => {

@@ -1,5 +1,5 @@
-// The facade pack's nesting service registration (SPEC §8/§21): the ways
-// it could fail, pinned against the REAL pack content — a service entry
+// The facade pack's value-service registrations (SPEC §8/§21): the ways
+// they could fail, pinned against the REAL pack content — a service entry
 // without a command binding is invisible to execution; a signature that
 // does not match the command definition's parameters silently drops
 // wired values; a service whose ports do not resolve leaves the palette
@@ -16,38 +16,56 @@ function projectedDomain() {
   return projectDomainFromView(registry, 'org-1', facadeDomain, { packServices: facadeServices });
 }
 
-describe('facade pack nesting service registration', () => {
+describe('facade pack value-service registrations', () => {
   const domain = projectedDomain();
-  const service = domain.serviceContracts?.['nesting.solve'];
 
-  it('registers the service contract with a command binding', () => {
-    expect(service).toMatchObject({ id: 'nesting.solve', command: 'solveNestingValue' });
+  it('registers every service contract with a command binding', () => {
+    for (const service of facadeServices) {
+      expect(domain.serviceContracts?.[service.id]).toMatchObject({ id: service.id, command: service.command });
+    }
   });
 
-  it('declares the command definition the effect runtime resolves', () => {
-    const command = facadeCommands.solveNestingValue;
-    expect(command).toBeTruthy();
-    // The command parameters ARE the signature fields: commandEffectPayload
-    // delivers wired socket values by parameter name, so the two lists must
-    // name exactly the service signature's input fields.
-    expect(command.input.parameters.map(parameter => parameter.name))
-      .toEqual(Object.keys(service.signature.input.fields));
+  it('declares the command definitions the effect runtime resolves', () => {
+    for (const service of facadeServices) {
+      const command = facadeCommands[service.command];
+      expect(command, service.command).toBeTruthy();
+      // The command parameters ARE the signature fields: commandEffectPayload
+      // delivers wired socket values by parameter name, so the two lists must
+      // name exactly the service signature's input fields.
+      expect(command.input.parameters.map(parameter => parameter.name), service.id)
+        .toEqual(Object.keys(service.signature.input.fields));
+    }
   });
 
-  it('exposes the registered item in the services palette group', () => {
+  it('exposes every registered item in the services palette group', () => {
     const groups = servicesPaletteGroups(domain.serviceContracts);
     expect(groups).toHaveLength(1);
-    expect(groups[0].items.map(item => item.kind)).toEqual(['cts.service']);
-    expect(groups[0].items[0].preset).toMatchObject({ operator: 'nesting.solve' });
+    expect(groups[0].items.map(item => item.preset.operator)).toEqual(facadeServices.map(service => service.id));
   });
 
   it('resolves signature-derived typed sockets for a dropped cts.service node', () => {
-    const ports = resolveCatalogNodePorts(
-      { kind: 'cts.service', operator: 'nesting.solve' },
-      { domain }
-    );
-    expect(ports.inputs.map(port => port.id)).toEqual(['items', 'params']);
-    expect(ports.inputs.every(port => port.type?.base && port.required)).toBe(true);
-    expect(ports.outputs.map(port => port.id)).toEqual(['result']);
+    for (const service of facadeServices) {
+      const ports = resolveCatalogNodePorts({ kind: 'cts.service', operator: service.id }, { domain });
+      expect(ports.inputs.map(port => port.id), service.id)
+        .toEqual(['in', ...Object.keys(service.signature.input.fields)]);
+      expect(ports.outputs.map(port => port.id), service.id).toEqual(['completed', 'result']);
+    }
+  });
+
+  it('carries the solver knobs as optional sockets and the collection sockets as List access', () => {
+    const ports = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'nesting.solve' }, { domain });
+    const byId = Object.fromEntries(ports.inputs.map(port => [port.id, port]));
+    expect(byId.items.required).toBe(true);
+    expect(byId.items.access).toBe('list');
+    expect(byId.material.required).toBe(true);
+    expect(byId.space.required).toBe(false);
+    expect(byId.sheetCount.required).toBe(false);
+
+    const rows = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'orders.readRows' }, { domain });
+    expect(rows.outputs[1].access).toBe('list');
+
+    const items = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'nesting.items' }, { domain });
+    expect(items.inputs.find(port => port.id === 'designs').access).toBe('list');
+    expect(items.outputs[1].access).toBe('list');
   });
 });

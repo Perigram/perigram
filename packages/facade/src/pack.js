@@ -100,7 +100,9 @@ export const facadeFileTypes = [
       template: { base: 'ref', accepts: ['cassette'] },
       source: { base: 'ref', accepts: ['dxf-source'] },
       parameters: { base: 'json' },
-      geometry: { base: 'json' }
+      // The baked output, never a construction input: every construction
+      // mode computes it (upload/convertDxf extract, bake evaluates).
+      geometry: { base: 'json', constructible: false }
     },
     states: {
       main: {
@@ -118,9 +120,52 @@ export const facadeFileTypes = [
     // preview covers uploaded sources; baked geometry is heavy).
     snapshot: ['data.template', 'data.parameters'],
     operators: {
-      bake: { id: 'bake', species: 'construct', input: { base: 'ref', accepts: ['cassette'] } },
-      convertDxf: { id: 'convertDxf', species: 'construct', input: { base: 'ref', accepts: ['dxf-source'] } }
+      // Construct operator inputs are record-shaped so the domain
+      // projection derives exact mode inputs (`operatorModeInputs` reads
+      // `input.fields`): a bake construct wires template + parameters and
+      // nothing else.
+      bake: {
+        id: 'bake',
+        species: 'construct',
+        input: {
+          base: 'record',
+          fields: {
+            name: { base: 'string', nullable: true },
+            template: { base: 'ref', accepts: ['cassette'] },
+            parameters: { base: 'json', nullable: true }
+          }
+        }
+      },
+      convertDxf: {
+        id: 'convertDxf',
+        species: 'construct',
+        input: {
+          base: 'record',
+          fields: {
+            name: { base: 'string', nullable: true },
+            source: { base: 'ref', accepts: ['dxf-source'] }
+          }
+        }
+      }
     }
+  },
+  {
+    // The declared material (SPEC §16 `Material`): the sheet stock a
+    // nesting run cuts from — standard sheet dimensions plus thickness.
+    // Class `file` (value identity, referenced); instances are children of
+    // the org-authored order container.
+    id: 'sheet-material',
+    class: 'file',
+    scope: 'system',
+    version: 1,
+    fields: {
+      code: { base: 'string', identifier: true },
+      width: { base: 'quantity', unit: 'mm' },
+      height: { base: 'quantity', unit: 'mm' },
+      thickness: { base: 'quantity', unit: 'mm' }
+    },
+    name: 'Sheet material',
+    glyph: 'pi pi-box'
   },
   {
     // Derived: sheet designs are produced by nesting runs (and refined
@@ -173,39 +218,91 @@ export const facadeEditors = [
 ];
 
 // Registered services (SPEC §8 s species) are executable registrations,
-// not aspirations. The nesting solver is the V -> V boundary: job geometry
-// and sheet parameters in, layouts and a summary out. The signature is
-// the handler's honest contract, typed per the value universe (SPEC §2:
-// geometry is a declared product — `Ring = [Point]`, `Polygon = (outer,
-// holes)` — never json-parked; the solver's raw layout output is the one
-// true-external Json escape). `solveNestingValue` reads exactly these
-// parameter sockets; the pack binds the command handler beside it.
+// not aspirations. Signatures are the V grammar; `Ref` is a value (SPEC
+// §2), so a service may accept typed instance references and resolve them
+// through the instance services — how a graph reaches stored payload data
+// (order tables, baked geometry) without an entity leaking into a value
+// boundary. Each registration names its command; the pack mount binds the
+// handler beside it.
 const point = { base: 'record', fields: { x: { base: 'quantity', unit: 'mm' }, y: { base: 'quantity', unit: 'mm' } } };
 const ring = { base: 'list', itemType: point };
+const polygonPart = { base: 'record', fields: { coordinates: ring } };
+const nestingItem = {
+  base: 'record',
+  fields: {
+    cassetteId: { base: 'id', nullable: true },
+    polygonParts: { base: 'list', itemType: polygonPart },
+    count: { base: 'quantity', unit: 'count' }
+  }
+};
 export const facadeServices = [
   {
+    // One order row → one cassette-design order line: the display name,
+    // the template it names, and the parameter cells. Column detection is
+    // the declared convention (an exact column override wins, else the
+    // case-insensitive defaults); every other column is a parameter cell.
+    id: 'orders.readRows',
+    species: 'service',
+    command: 'readOrderRows',
+    signature: {
+      input: { base: 'record', fields: {
+        source: { base: 'ref', accepts: ['xlsx-workbook', 'csv-table'] },
+        nameColumn: { base: 'string', nullable: true },
+        templateColumn: { base: 'string', nullable: true }
+      } },
+      output: { base: 'list', itemType: { base: 'record', fields: {
+        name: { base: 'string' },
+        templateName: { base: 'string' },
+        parameters: { base: 'map', itemType: { base: 'json' } }
+      } } }
+    },
+    render: { label: 'Read order rows', icon: 'pi pi-table' }
+  },
+  {
+    // Order-line template names → cassette refs, order-preserving: the
+    // bake construct consumes the refs aligned with the rows they came
+    // from. Unmatched names fail the call listing every missing name.
+    id: 'cassettes.resolveByName',
+    species: 'service',
+    command: 'resolveCassetteNames',
+    signature: {
+      input: { base: 'record', fields: {
+        names: { base: 'list', itemType: { base: 'string' } }
+      } },
+      output: { base: 'list', itemType: { base: 'ref', accepts: ['cassette'] } }
+    },
+    render: { label: 'Resolve cassette templates', icon: 'pi pi-search' }
+  },
+  {
+    // Cassette designs → nesting job items: the baked geometry of each
+    // design read once, server-side (the p-extract seam of SPEC §16 —
+    // stored geometry never travels the graph as authored json paths).
+    id: 'nesting.items',
+    species: 'service',
+    command: 'buildNestingItems',
+    signature: {
+      input: { base: 'record', fields: {
+        designs: { base: 'list', itemType: { base: 'ref', accepts: ['cassette-design'] } }
+      } },
+      output: { base: 'list', itemType: nestingItem }
+    },
+    render: { label: 'Nesting items', icon: 'pi pi-objects-column' }
+  },
+  {
+    // The nesting solver's V -> V boundary: job items in, layouts and a
+    // summary out (the solver's raw layout payload is the one
+    // true-external Json escape). Sheet parameters come from the declared
+    // material (width/height) plus the two solver knobs (part spacing,
+    // sheet count) as authored socket fallbacks.
     id: 'nesting.solve',
     species: 'service',
     command: 'solveNestingValue',
     signature: {
       input: { base: 'record', fields: {
-        items: { base: 'list', itemType: { base: 'record', fields: {
-          cassetteId: { base: 'id', nullable: true },
-          polygonParts: { base: 'list', itemType: { base: 'record', fields: {
-            coordinates: ring
-          } } },
-          count: { base: 'quantity', unit: 'count' }
-        } } },
-        params: { base: 'record', fields: {
-          width: { base: 'quantity', unit: 'mm' },
-          height: { base: 'quantity', unit: 'mm' },
-          space: { base: 'quantity', unit: 'mm' },
-          sheetCount: { base: 'quantity', unit: 'count' },
-          sheet_polygon: { base: 'record', nullable: true, fields: {
-            outer: ring,
-            holes: { base: 'list', itemType: ring }
-          } }
-        } }
+        items: { base: 'list', itemType: nestingItem },
+        material: { base: 'ref', accepts: ['sheet-material'] },
+        space: { base: 'quantity', unit: 'mm', nullable: true },
+        sheetCount: { base: 'quantity', unit: 'count', nullable: true }
       } },
       output: { base: 'json' }
     },

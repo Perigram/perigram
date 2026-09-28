@@ -585,7 +585,11 @@ function blockCompatible(source, target) {
 
 function entityLikeCompatible(source, target) {
   if (target.id === 'parent') return { ok: true };
-  if (source.kind === 'entity_list' && target.kind === 'entity') {
+  // Item sources broadcast into collection sockets (the shared effect
+  // mapper's broadcast rule): entity -> entity_list is the same wire as
+  // entity_list -> entity, typed by the element contract.
+  if (source.kind !== target.kind && ['entity', 'entity_list'].includes(source.kind)
+    && ['entity', 'entity_list'].includes(target.kind)) {
     return typeIdCompatible(source, target);
   }
   if (source.kind !== target.kind) return incompatible(source, target);

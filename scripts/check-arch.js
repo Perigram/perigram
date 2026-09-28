@@ -30,6 +30,8 @@ const genericInstanceTypes = new Set([
   // pack-bound construction mode (bake); its handler lives in the
   // cassettes feature
   'cassette-design',
+  // pack material type served entirely by the generic machinery
+  'sheet-material',
 ]);
 const classifiedDeclarations = [...frameworkTypes, ...composeSystemDeclarations()]
   .filter(declaration => !genericInstanceTypes.has(declaration.id));

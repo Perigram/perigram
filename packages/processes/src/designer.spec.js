@@ -297,6 +297,7 @@ describe('process designer domain contract', () => {
       'source.literalItem',
       'value.logic',
       'value.string',
+      'value.recordField',
       'value.math',
       'value.dateTime'
     ]);

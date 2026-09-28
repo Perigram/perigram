@@ -2713,7 +2713,8 @@
       "switchPaths": "Switch paths",
       "finish": "Finish",
       "fail": "Fail",
-      "getField": "Get field"
+      "getField": "Get field",
+      "recordField": "Record field"
     },
     "paletteDescriptions": {
       "modifyEntity": "Changes selected fields or status on an existing entity.",
@@ -2801,7 +2802,8 @@
       "flattenTree": "Turns tree branches into one list.",
       "graftTree": "Turns list items into separate tree branches.",
       "treeBranch": "Reads one branch from a data tree.",
-      "zipLists": "Pairs items at matching positions in two lists."
+      "zipLists": "Pairs items at matching positions in two lists.",
+      "recordField": "Reads one authored key off a record value."
     },
     "dataTypes": {
       "string": "Text",

@@ -43,7 +43,8 @@ import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { facadeDomain, facadePackContent } from '~/packages/facade/src/index.js';
+import { facadeDomain } from '~/packages/facade/src/index.js';
+import { composePackServices } from '~/server/packs/declarations.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   applyStatusMigrations,
@@ -1488,7 +1489,12 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   const operation = operationKindOf(record || {}) || kind;
   if (operation === 'effect.runCommand') {
     if (!record.commandId) throw new Error('Command effect requires commandId');
-    return await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), auth);
+    const commandResult = await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), auth);
+    // The value boundary (SPEC §8 s species): a cts.service's declared
+    // output is the handler's value. The command envelope (recording,
+    // events, billing) stays in command_runs — spreading it onto the
+    // graph would flatten list results into indexed keys.
+    return record.kind === 'cts.service' ? (commandResult?.raw ?? commandResult) : commandResult;
   }
   const typeId = normalizeTypeId(record.typeId || inputs.entity?.type || '');
   if (!typeId) throw new Error(`${kind} requires typeId`);
@@ -1929,7 +1935,7 @@ function getDomain() {
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
   return projectDomainFromView(registry, organizationId, getDomain(), {
-    packServices: facadePackContent.services
+    packServices: composePackServices()
   });
 }
 

@@ -40,6 +40,7 @@ const definitions = [
 
   data('value.cast', 'cast'),
   data('value.parse', 'parse'),
+  data('value.recordField', 'recordField'),
   data('value.convertUnit', 'convertUnit'),
   data('value.toEntityRef', 'toEntityRef'),
   data('value.toJson', 'toJson'),
@@ -247,6 +248,24 @@ function completedSocket() {
 // lazy data sources and carry neither.
 const nativeControlInput = () => [{ ...socket('in', processType('event'), CONTROL, true), multiple: true }];
 
+// The construct-addressable inputs of one construction mode (SPEC §6):
+// the mode's declared inputs plus the lineage/relation edge inputs, which
+// are addressable where the entity begins regardless of mode — a typed
+// construct (bake, upload) wires its parent under a declared children
+// edge exactly like a generic create does. The single derivation shared
+// by the catalog's port projection, the compiler's construction
+// normalization, and the designer's node sync.
+export function constructionInputsForContract(contract = {}, mode = '') {
+  const modeInputs = contract.modeInputs?.[mode] || [];
+  const edgeInputs = (contract.inputs || []).filter(input => {
+    const path = String(input?.path || input?.id || '');
+    return path.startsWith('lineage.') || path.startsWith('relations.');
+  });
+  if (!modeInputs.length) return [...(contract.inputs || [])];
+  const seen = new Set(modeInputs.map(input => input?.id || input?.path));
+  return [...modeInputs, ...edgeInputs.filter(input => !seen.has(input?.id || input?.path))];
+}
+
 function nativeConstructionPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   if (!typeId) return { inputs: [declarationTypePin(record)], outputs: [] };
@@ -255,7 +274,7 @@ function nativeConstructionPorts(record = {}, context = {}) {
   const mode = record.construction?.mode && modes.includes(record.construction.mode)
     ? record.construction.mode
     : (modes.includes(contract.defaultMode) ? contract.defaultMode : modes[0]);
-  const declaredInputs = contract.modeInputs?.[mode] || contract.inputs || [];
+  const declaredInputs = constructionInputsForContract(contract, mode);
   const hasDomainContract = Boolean(context.domain?.construction?.[typeId]);
   const constructionInputs = declaredInputs.length
     ? declaredInputs
@@ -474,8 +493,15 @@ function cts(kind, label, family, level) {
     pure: false,
     ports: (record = {}, context = {}) => {
       if (record.kind === 'cts.service') {
-        return serviceSignaturePorts(context.domain?.serviceContracts?.[record.operator]?.signature)
+        // A service is an effect species: it carries the event contract
+        // (control in / completed) around its signature-derived data
+        // sockets, exactly like cts.command.
+        const signature = serviceSignaturePorts(context.domain?.serviceContracts?.[record.operator]?.signature)
           || { inputs: [], outputs: [] };
+        return {
+          inputs: [...nativeControlInput(), ...signature.inputs],
+          outputs: [completedSocket(), ...signature.outputs]
+        };
       }
       if (record.kind === 'cts.construct') return nativeConstructionPorts(record, context);
       if (record.kind === 'cts.mutate') return nativeMutatePorts(record, context);
@@ -503,18 +529,32 @@ function cts(kind, label, family, level) {
 }
 
 // The s-species port projection: signature descriptors (V grammar)
-// translate through the field-type seam into process sockets. A missing
-// or non-record input falls back to the caller's twin resolution.
+// translate through the field-type seam into process sockets. A `ref`
+// input maps to a typed entityRef socket (Ref is a value, SPEC §2); a
+// `list` field is a runtime collection, not a persisted array — the
+// socket carries the element type with List access, so aligned item
+// sources (and single broadcast items) wire in without the packArray
+// boundary. A missing or non-record input falls back to the caller's
+// twin resolution.
 function serviceSignaturePorts(signature = {}) {
   const input = signature.input?.base === 'record' ? signature.input : null;
-  const outputType = signature.output ? ctsFieldToProcessType(signature.output) : null;
+  const outputType = signature.output ? signature.output : null;
   if (!input && !outputType) return null;
+  const socketType = descriptor => {
+    const type = ctsFieldToProcessType(descriptor) || processType('json');
+    return descriptor.base === 'list'
+      ? (ctsFieldToProcessType(descriptor.itemType || {}) || processType('json'))
+      : type;
+  };
+  const isList = descriptor => descriptor.base === 'list';
   return {
     inputs: Object.entries(input?.fields || {}).map(([id, descriptor]) => ({
-      ...socket(id, ctsFieldToProcessType(descriptor) || processType('json'), DATA, descriptor.nullable !== true),
+      ...socket(id, socketType(descriptor), DATA, descriptor.nullable !== true, isList(descriptor) ? 'list' : 'item'),
       label: id
     })),
-    outputs: [socket('result', outputType || processType('json', { nullable: true }))]
+    outputs: [{
+      ...socket('result', socketType(outputType || {}), DATA, false, isList(outputType || {}) ? 'list' : 'item')
+    }]
   };
 }
 
@@ -549,6 +589,17 @@ function catalogPorts(record = {}, context = {}) {
         : configured;
     const access = kind === 'source.literalTree' ? 'tree' : kind === 'source.literalList' ? 'list' : 'item';
     return { inputs: [], outputs: [socket('value', output, DATA, false, access)] };
+  }
+  if (kind === 'value.recordField') {
+    // The record elimination form: one authored key read off each record
+    // value (a service row, a composed parameter record). The input is
+    // the element-typed List socket — mapped per item, preserving the
+    // source topology; the key and the output type are authored on the
+    // node, the same authoring gesture open-block Get Field uses.
+    return {
+      inputs: [socket('value', processType('record', { nullable: true }), DATA, true, 'list')],
+      outputs: [socket('value', processTypeFrom(record.type, processType('json', { nullable: true })), DATA, false, 'list')]
+    };
   }
   if (kind === 'value.cast' || kind === 'value.parse' || kind === 'value.convertUnit'
     || kind === 'value.toJson' || kind === 'value.required' || kind === 'value.validate'

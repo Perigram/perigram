@@ -10,12 +10,15 @@
 // it are deleted.
 import { facadeArtifactConversions, facadeDomain } from '~/packages/facade/src/index.js';
 import { saveCassetteTemplate } from './cassettes/operations.js';
+import { resolveCassetteNames } from './cassettes/resolve-names.js';
 import {
   bakeCassetteDesign,
   convertDxfCassetteDesign,
   uploadCassetteDesign
 } from './cassettes/cassette-design-construction.js';
+import { readOrderRows } from './orders/read-rows.js';
 import { solveNestingValue } from './nesting/solve-value.js';
+import { buildNestingItems } from './nesting/items.js';
 import * as cassettesService from './cassettes/service.js';
 import * as sheetDesignsService from './sheet-designs/service.js';
 import { convertArtifact as frameworkConvertArtifact } from '~/server/features/artifact-conversions/operations.js';
@@ -69,9 +72,13 @@ export const facadePack = {
 
   commandHandlers: {
     saveCassetteTemplate,
-    // The nesting solver's V -> V boundary (SPEC §8): graph processes and
-    // generated surfaces drive this; the pack's `nesting.solve` service
-    // registration names it as its command.
+    // The pack's value services (SPEC §8 s species with ref-carrying
+    // signatures): graph processes and generated surfaces drive these;
+    // the `orders.readRows`/`cassettes.resolveByName`/`nesting.items`
+    // registrations in `packages/facade` name them as their commands.
+    readOrderRows,
+    resolveCassetteNames,
+    buildNestingItems,
     solveNestingValue,
     convertArtifact: (args) => frameworkConvertArtifact(args, {
       conversions: facadeArtifactConversions.map(conversion => (
