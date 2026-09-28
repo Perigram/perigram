@@ -43,8 +43,14 @@
           :title="$t('support.openChat')"
           @click="openConversation"
         />
+        <GeneratedEditorPageAction
+          v-if="editorActionAvailable"
+          :entity="instance"
+          :type-id="type?.id"
+          @refresh="$emit('refresh')"
+        />
         <Button
-          v-if="editable"
+          v-if="editable && !editorActionAvailable"
           :icon="editing ? 'pi pi-check' : 'pi pi-pencil'"
           :aria-label="editing ? $t('uiMapping.save') : $t('uiMapping.edit')"
           :title="editing ? $t('uiMapping.save') : $t('uiMapping.edit')"
@@ -123,6 +129,8 @@ import {
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import StateTag from './StateTag.vue';
+import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
+import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { openInstanceChat } from '~/utils/instance-chat.js';
 import StateHistory from '../shared/state/StateHistory.vue';
 
@@ -146,7 +154,7 @@ const props = defineProps({
   navigation: { type: Object, default: null }
 });
 
-const emit = defineEmits(['run', 'transition', 'toggle-edit']);
+const emit = defineEmits(['run', 'transition', 'toggle-edit', 'refresh']);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 
 // The header's conversation entry: same seam as the card/pane chat
@@ -187,14 +195,19 @@ const trail = computed(() => {
 // serves is the same hop through the run channel — the machine button
 // owns the header (its dispatch targets the opened instance), so the
 // compiled twin never doubles it.
+// Status transitions render only through the machine-scoped runtime set
+// (their target depends on the opened instance's current state).
+// updateInstance never joins the generic run menu: stateless ones are
+// field edits (fields edit inline; editor-bound types open the editor),
+// state-carrying ones are the machine buttons.
 const transitionActions = computed(() => props.actions
   .filter(action => action?.__runtime && action?.state?.to));
-// Status transitions render only through the machine-scoped runtime set
-// (their target depends on the opened instance's current state); a
-// contract status action never joins the generic run menu.
+// Editor-bound types carry the editor open action instead of the edit-mode
+// toggle: the editor page owns their editing.
+const editorActionAvailable = computed(() => Boolean(instanceEditorActionFor(props.type?.id)));
 const manualActions = computed(() => props.actions
   .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
-  .filter(action => !(action?.actionKind === 'updateInstance' && action?.state?.to))
+  .filter(action => action?.actionKind !== 'updateInstance')
   .filter(action => {
     const from = action.state?.from || '';
     if (!from) return true;

@@ -340,6 +340,7 @@
           @run="emitRun"
           @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
           @toggle-edit="toggleEditing"
+          @refresh="emit('refresh')"
         />
         <SurfaceBody
           :instance="node.instances[0]"
@@ -495,7 +496,7 @@ const props = defineProps({
   navigation: { type: Object, default: null }
 });
 
-const emit = defineEmits(['run', 'transition', 'open', 'patch']);
+const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
 const emitOpen = instance => emit('open', instance);
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
