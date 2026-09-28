@@ -75,6 +75,22 @@ test.describe('directory, invitations, partnerships', () => {
     record('directory organization search', { organizationName });
   });
 
+  test('account popover organization entry opens the overview', async ({ app }) => {
+    const me = await (await app.request.get('/api/auth/me')).json();
+    const organizationName = me.organizationData?.name || '';
+    expect(organizationName, 'e2e session must carry an active organization name').toBeTruthy();
+
+    // The home sidebar's account popover: clicking the active organization
+    // opens its overview (layouts README account-control contract — the
+    // entry never dead-ends on a silent switch).
+    await app.gotoClient('/');
+    await app.page.locator('[data-testid="user-menu-trigger"]:visible').first().click();
+    await app.page.locator(`button:has-text("${organizationName}")`).first().click();
+    await expect(app.page).toHaveURL(/\/organization\/?$/);
+    await app.expectCleanRuntime();
+    record('account popover org entry -> overview', { url: app.page.url() });
+  });
+
   test('inviting an existing user completes in a single handshake', async ({ app }) => {
     const { context, credentials } = await registerInvitedUser(app.page);
     app.trackCleanup(async () => { await context.dispose(); });
