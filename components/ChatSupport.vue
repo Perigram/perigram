@@ -1597,13 +1597,13 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
         })
         const loaded = await Promise.all(sources.map(async source => {
             try {
-                const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
-                return (Array.isArray(entities) ? entities : []).map(entity => ({
-                    key: `${source.typeId}:${stripInstanceId(entity)}`,
+                const childInstances = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
+                return (Array.isArray(childInstances) ? childInstances : []).map(instance => ({
+                    key: `${source.typeId}:${stripInstanceId(instance)}`,
                     type: source.typeId,
-                    id: stripInstanceId(entity),
-                    name: entity?.identity?.name || entity?.identity?.serial || stripInstanceId(entity) || source.typeId,
-                    entity
+                    id: stripInstanceId(instance),
+                    name: instance?.identity?.name || instance?.identity?.serial || stripInstanceId(instance) || source.typeId,
+                    entity: instance
                 }))
             } catch {
                 return []

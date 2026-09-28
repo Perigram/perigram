@@ -250,17 +250,17 @@ async function loadSectionOptions(section, sectionKey) {
   loadingKeys.value = new Set([...loadingKeys.value, sectionKey])
   try {
     const typeId = section.source.typeId
-    const entities = await instances.listInstances(
+    const sectionInstances = await instances.listInstances(
       instances.canonicalTypeKey(typeId),
       resolveSourceFilters(section.source, homeScreen.value || {})
     )
-    const items = (Array.isArray(entities) ? entities : [])
-      .filter(entity => instanceId(entity))
-      .map(entity => ({
-        key: `${typeId}:${instanceId(entity)}`,
+    const items = (Array.isArray(sectionInstances) ? sectionInstances : [])
+      .filter(instance => instanceId(instance))
+      .map(instance => ({
+        key: `${typeId}:${instanceId(instance)}`,
         type: typeId,
-        entity,
-        name: entityLabel(entity, typeId)
+        entity: instance,
+        name: entityLabel(instance, typeId)
       }))
     childrenByParentKey.value = new Map([...childrenByParentKey.value, [sectionKey, items]])
   } catch (error) {
@@ -277,7 +277,7 @@ async function loadChildren(parent) {
   loadingKeys.value = new Set([...loadingKeys.value, parent.key])
   try {
     // Lineage only, mirroring the sidebar nesting: containment children from
-    // the compiled detail sources. Relation-linked entities are skipped so
+    // the compiled detail sources. Relation-linked instances are skipped so
     // the tree stays a hierarchy.
     const sources = linkedExplorerChildSources({
       linkedItems: [parent],
@@ -286,12 +286,12 @@ async function loadChildren(parent) {
     })
     const loaded = await Promise.all(sources.map(async source => {
       try {
-        const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
-        return (Array.isArray(entities) ? entities : []).map(entity => ({
-          key: `${source.typeId}:${instanceId(entity)}`,
+        const childInstances = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
+        return (Array.isArray(childInstances) ? childInstances : []).map(instance => ({
+          key: `${source.typeId}:${instanceId(instance)}`,
           type: source.typeId,
-          name: entityLabel(entity, source.typeId),
-          entity
+          name: entityLabel(instance, source.typeId),
+          entity: instance
         }))
       } catch {
         return []

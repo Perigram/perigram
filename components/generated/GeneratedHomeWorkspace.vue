@@ -427,7 +427,7 @@ const currentUserId = computed(() => String(
 ));
 
 // Items nested under another loaded workspace item through the effective
-// containment graph: lazily fetched explorer children and entities opened
+// containment graph: lazily fetched explorer children and instances opened
 // from nested surfaces both nest beneath their loaded ancestor.
 const childrenByKey = computed(() => {
   const containment = effectiveContainment();
@@ -711,7 +711,7 @@ function typeNode(typeId, childTypes) {
     .map(child => typeNode(child, childTypes))
     .sort((a, b) => a.label.localeCompare(b.label));
   const section = sections.value.find(candidate => candidate.source.typeId === typeId);
-  const entities = section ? sectionItemsFor(section.region.id) : [];
+  const sectionInstances = section ? sectionItemsFor(section.region.id) : [];
   const screen = typeScreenFor(typeId);
   return {
     key: typeMenuKey(typeId),
@@ -719,8 +719,8 @@ function typeNode(typeId, childTypes) {
     icon: instances.iconFor(typeId),
     selectable: true,
     data: { typeId, screen, section },
-    leaf: !children.length && !entities.length,
-    children: [...children, ...entities.map(item => entityNode(item))]
+    leaf: !children.length && !sectionInstances.length,
+    children: [...children, ...sectionInstances.map(item => entityNode(item))]
   };
 }
 
@@ -1177,8 +1177,8 @@ async function loadContainmentChildren(parent) {
   });
   const loaded = await Promise.all(sources.map(async source => {
     try {
-      const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters);
-      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.typeId, entity));
+      const childInstances = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters);
+      return (Array.isArray(childInstances) ? childInstances : []).map(instance => workspaceEntityItem(source.typeId, instance));
     } catch {
       return [];
     }
