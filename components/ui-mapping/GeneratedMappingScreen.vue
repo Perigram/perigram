@@ -46,17 +46,10 @@
       @patch="submitPatch"
     />
 
-    <!-- The routed detail surface keeps the instance conversation beside the
-         composed body: the generator owns plain (non-overload) detail routes —
-         org-authored CTS types after the migration — so the rail lives here
-         exactly like the legacy renderer's detail column. It starts
-         collapsed; the panel owns its own bounded height when expanded. -->
-    <InstanceChatPanel
-      v-if="detailInstance"
-      :type="detailInstance.type || screen?.typeId || ''"
-      :id="String(detailInstance._id || detailInstance.id || '')"
-      :name="detailInstance.identity?.name || ''"
-    />
+    <!-- The routed detail surface keeps the same conversation contract as
+         every other instance surface: the record header (SurfaceHeader)
+         carries the composed chat entry; there is no embedded comments
+         section beside the body. -->
 
     <Dialog
       v-model:visible="linkDialogVisible"
@@ -133,7 +126,6 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
-import InstanceChatPanel from '~/components/shared/InstanceChatPanel.vue';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';

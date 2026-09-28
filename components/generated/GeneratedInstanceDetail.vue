@@ -43,15 +43,18 @@
       @refresh="$emit('refresh')"
     />
     <slot />
-    <!-- The conversation is a SIDEBAR RAIL, not a section appended to the
-         main column: InstancePage already owns the two-track detail layout
-         (body + sidebar from 48rem), and a rail is what that slot is for. A
-         bottom disclosure buried the thread under the whole body, made it
-         undiscoverable, and broke the page's reading order. -->
-    <template #sidebar>
-      <InstanceChatPanel :type="typeId" :id="instanceIdValue" :name="instanceNameValue" />
-    </template>
-    <template v-if="editorActionComponent || headerActionIds.length" #actions>
+    <template #actions>
+      <!-- The composed instance-chat entry: the record header owns the
+           conversation affordance — no embedded comments section. -->
+      <Button
+        icon="pi pi-comments"
+        text
+        rounded
+        severity="secondary"
+        :aria-label="$t('support.openChat')"
+        :title="$t('support.openChat')"
+        @click="openConversation"
+      />
       <component
         :is="editorActionComponent"
         v-if="editorActionComponent"
@@ -76,8 +79,9 @@
 import { computed, inject, provide, unref } from 'vue';
 import InstancePage from '~/components/shared/InstancePage.vue';
 import GeneratedInstanceDetailBody from '~/components/generated/GeneratedInstanceDetailBody.vue';
-import InstanceChatPanel from '~/components/shared/InstanceChatPanel.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import Button from 'primevue/button';
+import { openInstanceChat } from '~/utils/instance-chat.js';
 import { useAuthStore } from '~/stores/auth';
 import { instanceEditorActionFor, instanceEditorForcesIdentity } from '~/components/generated/instance-editor-action.js';
 import {
@@ -109,6 +113,13 @@ const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
 const authStore = useAuthStore();
 const instanceNameValue = computed(() => props.instance?.identity?.name || '');
+// The header's conversation entry: same seam as the card/pane chat
+// actions — a user-typed record opens the direct thread, every other
+// type the composed instance thread.
+const openConversation = () => {
+  if (!instanceIdValue.value) return;
+  openInstanceChat({ type: props.typeId, id: instanceIdValue.value, name: instanceNameValue.value });
+};
 const instanceIdValue = computed(() => {
   const id = props.instance?._id || props.instance?.id || props.instance?.identity?.uid || '';
   return id ? String(id) : '';

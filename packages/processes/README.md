@@ -994,7 +994,10 @@ projects or entities. Screens with incomplete bindings are skipped with
 compiler warnings. `discoverAssignmentBindingRequirements()` walks those
 locations plus process role/action access and returns each selected key with its
 scalar type and contributing locations. User-specific compiled screens use canonical generated
-routes under `/screens/:screenKey`; the original semantic route is preserved as
+routes under `/screens/:screenKey` — except home: the compiled home screen
+(the per-user `home_<userId>` key) serves at the stable shell route
+`HOME_SCREEN_ROUTE` (`/home`), because home is the app's own shell, not a
+generated screen URL; the original semantic route is preserved as
 `sourceRoute` for audit/debug context. Manual screen actions execute through the
 active process action runtime, which verifies the user's compiled action
 manifest before delegating to entity, status, socket, or command services.

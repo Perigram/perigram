@@ -2,6 +2,7 @@ import { operationKindOf } from '../../cts/src/index.js';
 import { normalizeWorkflow, resolveWorkflowStatePath } from '../../workflows/src/index.js';
 import {
   generatedScreenRoute,
+  HOME_SCREEN_ROUTE,
   normalizeScreenContract,
   validateScreenContract
 } from './screen-contract.js';
@@ -2072,8 +2073,10 @@ export function compileHomeScreenForAssignment({ assignment = {}, screens = [], 
     kind: 'home',
     template: 'home',
     placement: 'home',
-    route: generatedScreenRoute(screenKey),
-    sourceRoute: generatedScreenRoute(screenKey),
+    // Home serves at the stable shell route — the per-user screenKey
+    // stays the manifest identity, never the URL.
+    route: HOME_SCREEN_ROUTE,
+    sourceRoute: HOME_SCREEN_ROUTE,
     roleIds: assignment.roleIds || [],
     sources: sections.map(section => ({
       id: section.sourceId,

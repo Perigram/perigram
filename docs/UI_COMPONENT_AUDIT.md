@@ -154,9 +154,9 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedcassettedesigneraction-vue` | `components/generated/GeneratedCassetteDesignerAction.vue` | derived usage | compliant |
 | `ui-components-generated-generatedcassettedesignerworkspacepage-vue` | `components/generated/GeneratedCassetteDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | compliant |
-| `ui-components-generated-generateddetailscreen-vue` | `components/generated/GeneratedDetailScreen.vue` | derived usage | remove:important-override (3) |
+| `ui-components-generated-generateddetailscreen-vue` | `components/generated/GeneratedDetailScreen.vue` | derived usage | remove:important-override (2) |
 | `ui-components-generated-generatedfilepreview-vue` | `components/generated/GeneratedFilePreview.vue` | derived usage | compliant |
-| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (1); remove:important-override (17) |
+| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | centralize:layout (1); replace:chrome (1); remove:important-override (8) |
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
@@ -201,7 +201,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
-| `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | compliant |
 | `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-instancemultiselect-vue` | `components/shared/InstanceMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instancepage-vue` | `components/shared/InstancePage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
@@ -228,7 +227,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-tableframe-vue` | `components/shared/TableFrame.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-threeviewport-vue` | `components/shared/ThreeViewport.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-typedsettingsform-vue` | `components/shared/TypedSettingsForm.vue` | derived usage | compliant |
-| `ui-components-shared-useraccountmenu-vue` | `components/shared/UserAccountMenu.vue` | derived usage | replace:chrome (5); remove:important-override (1) |
+| `ui-components-shared-useraccountmenu-vue` | `components/shared/UserAccountMenu.vue` | derived usage | replace:chrome (5); remove:important-override (3) |
 | `ui-components-shared-workspacelanes-vue` | `components/shared/WorkspaceLanes.vue` | derived usage | compliant |
 | `ui-components-shared-workspacesplitnode-vue` | `components/shared/WorkspaceSplitNode.vue` | derived usage | replace:chrome (3); remove:important-override (2) |
 | `ui-components-sheetdesigneditor-vue` | `components/SheetDesignEditor.vue` | derived usage | compliant |
@@ -249,7 +248,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-fieldcontrol-vue` | `components/ui-mapping/FieldControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fileuploadcontrol-vue` | `components/ui-mapping/FileUploadControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-ganttcollection-vue` | `components/ui-mapping/GanttCollection.vue` | derived usage | replace:chrome (7); narrowly-allowlist:inline-data-driven (4) |
-| `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | remove:important-override (4) |
+| `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-hierarchytree-vue` | `components/ui-mapping/HierarchyTree.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-instancechip-vue` | `components/ui-mapping/InstanceChip.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-instancemultipicker-vue` | `components/ui-mapping/InstanceMultiPicker.vue` | derived usage | compliant |
@@ -260,14 +259,14 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-parentref-vue` | `components/ui-mapping/ParentRef.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-previewbox-vue` | `components/ui-mapping/PreviewBox.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-quantityinput-vue` | `components/ui-mapping/QuantityInput.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | replace:chrome (1); remove:important-override (1) |
+| `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | replace:chrome (1); remove:important-override (2) |
 | `ui-components-ui-mapping-regiondatastate-vue` | `components/ui-mapping/RegionDataState.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-sortcontrol-vue` | `components/ui-mapping/SortControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statetag-vue` | `components/ui-mapping/StateTag.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statgrid-vue` | `components/ui-mapping/StatGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacebody-vue` | `components/ui-mapping/SurfaceBody.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | replace:chrome (2); remove:state (1) |
-| `ui-components-ui-mapping-surfaceheader-vue` | `components/ui-mapping/SurfaceHeader.vue` | derived usage | compliant:scoped-layout |
+| `ui-components-ui-mapping-surfaceheader-vue` | `components/ui-mapping/SurfaceHeader.vue` | derived usage | remove:important-override (2); compliant:scoped-layout |
 | `ui-components-ui-mapping-timelinecollection-vue` | `components/ui-mapping/TimelineCollection.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-varianteditor-vue` | `components/ui-mapping/VariantEditor.vue` | derived usage | compliant |
 | `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |
@@ -280,12 +279,11 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-index-vue` | `pages/index.vue` | derived usage | centralize:layout (5); replace:chrome (4) |
 | `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | replace:chrome (3) |
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
-| `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
+| `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | replace:chrome (3); replace:inline-visual (1) |
 | `ui-pages-organization-partners-vue` | `pages/organization/partners.vue` | derived usage | replace:chrome (9); compliant:scoped-layout |
 | `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (11); replace:inline-visual (1) |
 | `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | replace:chrome (8); remove:state (1); compliant:scoped-layout |
-| `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (7); compliant:scoped-layout |
 | `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | remove:important-override (7) |
 | `ui-pages-screens-index-vue` | `pages/screens/index.vue` | derived usage | compliant |
 | `ui-pages-terms-and-conditions-vue` | `pages/terms-and-conditions.vue` | derived usage | replace:chrome (2) |

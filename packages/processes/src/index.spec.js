@@ -1391,7 +1391,7 @@ describe('@perigram/processes compiler', () => {
       actions: ['action_accept']
     });
     expect(compiled.userAccess.user_a.navigation[0]).toMatchObject({
-      route: '/screens/home_user_a',
+      route: '/home',
       screenKey: 'home_user_a'
     });
     expect(compiled.userAccess.user_a.screens.find(screen => screen.template === 'home')).toMatchObject({

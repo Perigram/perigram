@@ -1,4 +1,8 @@
 export const SCREEN_TEMPLATES = ['typeList', 'instanceDetail', 'workspaceLanes', 'table', 'formAction', 'home', 'route', 'organizationOverview', 'organizationAccount'];
+// The stable route every home screen is served at, compiled and
+// sourceless alike: home is the app's own shell, not a generated screen
+// URL — no screenKey vocabulary appears in the address bar for it.
+export const HOME_SCREEN_ROUTE = '/home';
 export const SCREEN_SOURCE_MODES = ['list', 'single'];
 export const SCREEN_REGION_SLOTS = ['main', 'left', 'center', 'right', 'supporting'];
 // Canonical registry of region surfaces the generated screen runtime renders:

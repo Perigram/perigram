@@ -13,16 +13,24 @@ redirect gate for authenticated users.
   block on a client-side `/api/auth/me` round trip.
 - Authenticated users with an organization go to the generated process entry
   route: the generated `home` screen first, then the first generated hub/list
-  screen, then the default home route `/screens/home` when no navigable
+  screen, then the default home route `/home` when no navigable
   generated screen exists. The entry route must not fall back to static domain
   routes such as `/projects` while a process is active, because available
   screens are defined entirely by the active process graph. Generated `home`
   may be synthesized from inferred operational list screens, but organization
   system screens such as `/organization` are still not process entry
   candidates.
+- Home serves at the stable shell route `/home` (`HOME_SCREEN_ROUTE` in the
+  [process compiler's screen contract](../packages/processes/README.md)):
+  home is the app's own shell with pages inside it, so no screenKey
+  vocabulary appears in its URL — the per-user `home_<userId>` key stays the
+  manifest identity. `/home` is the screens route's alias (`pages:extend` in
+  `nuxt.config.js`); the screens renderer's fallback resolves the unresolvable
+  key to the home screen, and a stale `/screens/home*` URL replaces to
+  `/home` instead of rendering a second home surface.
 - The home screen is the default screen (canonical contract):
   `resolveProcessEntryRoute`/`resolveDefaultHomeScreen` in
-  `utils/process-navigation.js` end every ladder at `/screens/home`, and a
+  `utils/process-navigation.js` end every ladder at `/home`, and a
   sourceless synthesized home screen (`defaultHomeScreen`) stands in whenever
   the compiled manifest carries no home — no active definition, a definition
   that no longer compiles (auth hydration degrades that to "no active
@@ -81,7 +89,7 @@ no synthesizable detail pair) falls back to the home screen — the manifest's
 compiled home when one exists, otherwise the default home contract above —
 so the route never dead-ends on an error surface: a stale bookmark or a
 recompiled process renders the workspace instead of a "screen unavailable"
-page. `pages/screens/index.vue` redirects `/screens` to `/screens/home` for
+page. `pages/screens/index.vue` redirects `/screens` to `/home` for
 the same reason. Process screens arrive in the compiled UI
 contract vocabulary (`typeList`/`instanceDetail`/`home` plus `typeId`) and
 render through the UI generator (`composeScreen` +

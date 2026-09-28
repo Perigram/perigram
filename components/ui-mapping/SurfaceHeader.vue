@@ -29,6 +29,20 @@
         </div>
       </div>
       <div :class="LAYOUT.row">
+        <!-- The composed instance-chat entry, the same route every instance
+             surface uses (InstanceCard popovers, pane strips): the record
+             header owns the conversation affordance instead of an embedded
+             comments section. -->
+        <Button
+          icon="pi pi-comments"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('support.openChat')"
+          :title="$t('support.openChat')"
+          @click="openConversation"
+        />
         <Button
           v-if="editable"
           :icon="editing ? 'pi pi-check' : 'pi pi-pencil'"
@@ -109,6 +123,7 @@ import {
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import StateTag from './StateTag.vue';
+import { openInstanceChat } from '~/utils/instance-chat.js';
 import StateHistory from '../shared/state/StateHistory.vue';
 
 const spacing = inject('uiMappingSpacing', null);
@@ -133,6 +148,19 @@ const props = defineProps({
 
 const emit = defineEmits(['run', 'transition', 'toggle-edit']);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
+
+// The header's conversation entry: same seam as the card/pane chat
+// actions — a user-typed record opens the direct thread, every other
+// type the composed instance thread.
+function openConversation() {
+  const instanceId = String(props.instance?._id || props.instance?.id || '');
+  if (!instanceId) return;
+  openInstanceChat({
+    type: props.type?.id || '',
+    id: instanceId,
+    name: identity.value
+  });
+}
 const glyph = computed(() => iconFor(props.type, props.instance));
 const trail = computed(() => {
   const chain = [];

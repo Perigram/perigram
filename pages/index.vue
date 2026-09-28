@@ -73,8 +73,8 @@ async function redirectIfAuthenticated() {
       await navigateTo('/organization');
       return;
     }
-    // The home screen is the default screen: the entry ladder ends at
-    // /screens/home, so a missing or broken active definition still lands
+    // The home screen is the default screen: the entry ladder ends at the
+    // stable home route, so a missing or broken active definition still lands
     // organization members on the workspace's definition-independent
     // surfaces (see pages/README.md).
     await navigateTo(resolveProcessEntryRoute({
