@@ -420,16 +420,15 @@ over the pool (bare keys read as lineage keys — the total client default;
 an unresolved `$screen` placeholder means the pinned scope is unknown, so
 the source resolves no instances instead of the whole type); an unscoped
 list of a type that can be someone's child (a declared children edge
-names it) lists only root instances — the edge's declared `lineageKey`
-decides, with the entry's map key as the raw-declaration fallback, the
-same key resolution `childrenOfParent` uses, so scoping and nesting never
-disagree — both stored reference shapes
-matching; the tree-table projection applies the same structural rule over
+names it) composes the containment cross-cut: every instance of the type
+lists WITH its declared parent context visible (`incomingChildrenEdges`
+resolves the parent ref; materializations render the parent chip), never
+a bare flat pile — nesting itself stays owned by the parent surface,
+where the tree-table projection applies the same structural rule over
 the loaded pool through `hierarchyRootInstances` (an instance whose
 declared parent link is stamped rides nested, never duplicated at the
-top level — whether or not the parent record is loaded in this pool,
-mirroring this source-level rule; an instance with no parent stamp at
-all stays a visible root); maps
+top level — whether or not the parent record is loaded in this pool;
+an instance with no parent stamp at all stays a visible root); maps
 regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
 action records, the per-region `dataState` (see Data states), the

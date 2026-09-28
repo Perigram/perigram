@@ -262,8 +262,12 @@ surface concerns:
   transitions, instance-scoped commands) and renders on the instance
   surfaces — row menus, the detail header, and the machine-served
   transitions. An unscoped list of a type that can be someone's child (a
-  declared children edge names it) lists only root instances — children
-  ride nested under their parents, never duplicated at the top level.
+  declared children edge names it) composes the containment cross-cut:
+  every instance lists with its parent beside the identity
+  (`ParentRef.vue` — the parent type's icon plus the parent's resolved
+  label, non-interactive; the region host lazily overlays loaded parent
+  types onto the pool through the same `loadType` seam the tree uses).
+  Nesting itself stays owned by the parent surface's tree projection.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the ONE containment view — the collection's structural roots plus
   their lineage descendants nested as expandable rows (roots expand once
@@ -285,8 +289,9 @@ surface concerns:
   cards lay out in the shared `ResponsiveGrid` primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside panels),
   each Card clipped (`overflow-hidden`) on the stock anatomy — preview as
-  `#header`, identity + status in `#title`, type label in `#subtitle`,
-  labeled budgeted facts in `#content`. Card ORDERING lives in the
+  `#header`, identity + status in `#title`, type label (with the row's
+  `ParentRef` parent context when the type is someone's child) in
+  `#subtitle`, labeled budgeted facts in `#content`. Card ORDERING lives in the
   region header's in-place sort control (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
   mounts; the DataView itself renders no header). The card identity is a link button
@@ -384,7 +389,11 @@ surface concerns:
   entirely from theme tokens — `--ck-subtle-background` bases with
   translucent hsl accents — so generated art adapts to light/dark and owns
   no hardcoded colors; `image` renders a seeded gradient sky, `geometry` a
-  star plot, `attachment` a size/MIME row.
+  star plot. Attachment-class previews carry no invented art: an instance
+  WITH a payload the viewer cannot render states the file's size and
+  MIME, while a payload-less instance renders the quiet type-glyph band
+  (the authored `depiction.glyph`, no MIME strings — blank is the honest
+  surface for a record that never saved a source).
 - `FieldControl.vue` — the field dispatcher: resolves the descriptor in the
   given variant and renders the display primitive or delegates to an
   editor. Measured values (quantities, instants, numbers) render in the
@@ -417,9 +426,12 @@ surface concerns:
   enums as Rating, enum lists edit through OrderList, and spec-row values
   are click-to-edit through Inplace with visible affordance — hover
   highlights the value row and reveals a pencil icon.
-- `InstanceChip.vue`, `PreviewBox.vue`, `ActionButton.vue` — reference chips,
-  payload previews keyed on the declared preview mode, and action-button
-  presentation from the compiled action record. Reference chips render as
+- `InstanceChip.vue`, `PreviewBox.vue`, `ActionButton.vue`, `ParentRef.vue` — reference chips,
+  payload previews keyed on the declared preview mode, action-button
+  presentation from the compiled action record, and the containment
+  cross-cut's parent context token (a muted parent-type icon + the
+  parent's resolved label through `incomingChildrenEdges`/`parentRefOf`;
+  a parent missing from the pool still names its type). Reference chips render as
   `subtle` pills — one step above the canvas, below instance cards: an
   inline reference is not an instance surface. Action and field labels
   resolve through the stable generated keys first

@@ -22,15 +22,18 @@
       </template>
     <Column sortable :sort-field="sortByIdentity" :header="$t('uiMapping.identityColumn')">
       <template #body="{ data }">
-        <Button
-          v-if="openable"
-          link
-          size="small"
-          :label="identityOf(data)"
-          class="max-w-72 text-left [&_.p-button-label]:truncate"
-          @click="$emit('open', data)"
-        />
-        <span v-else class="text-body block max-w-72 truncate">{{ identityOf(data) }}</span>
+        <div class="flex min-w-0 items-center gap-1.5">
+          <Button
+            v-if="openable"
+            link
+            size="small"
+            :label="identityOf(data)"
+            class="max-w-72 text-left [&_.p-button-label]:truncate"
+            @click="$emit('open', data)"
+          />
+          <span v-else class="text-body max-w-72 truncate">{{ identityOf(data) }}</span>
+          <ParentRef v-if="parented" :instance="data" :bundle="bundle" :pool="pool" class="min-w-0 shrink-0" />
+        </div>
       </template>
     </Column>
     <Column v-if="hasStatus" sortable :sort-field="sortByStatus" :header="$t('uiMapping.statusColumn')">
@@ -83,11 +86,12 @@ import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
   titleFor, resolveListControls, stateDisplayFor,
-  localizedLabel, fieldLabelKey
+  localizedLabel, fieldLabelKey, incomingChildrenEdges
 } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
+import ParentRef from './ParentRef.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -107,6 +111,11 @@ const props = defineProps({
 defineEmits(['open']);
 
 const { te, t } = useI18n();
+
+// The containment cross-cut: identity cells of a child-capable type carry
+// their parent beside the label (see ParentRef) — the same declaration
+// the tree projection nests through, stated where nesting cannot happen.
+const parented = computed(() => incomingChildrenEdges(props.bundle, props.type?.id).length > 0);
 
 // Notion-style row surfaces: every body row is a content-surface card
 // (rounded, one step above the canvas) with a hairline gap between rows —

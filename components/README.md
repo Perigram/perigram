@@ -186,7 +186,9 @@ single hairline spans the whole stripe — tab list and the right-side pane
 controls alike: each entity tab carries its compact
 lifecycle status and a close affordance that appears only on tab hover or
 focus (its space stays reserved so labels do not shift), followed by a
-standalone add-tab control.
+standalone add-tab control. Every control in the stripe — close, add, and
+the pane menu — exactly fills the stripe height (28px), so no control
+overflows or clips against the stripe's edges.
 Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
 hidden, matching an IDE file-tab strip.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
