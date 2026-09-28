@@ -194,7 +194,12 @@ pre-projection keys (`sheet_design`, `facade`, `facade_pattern`) no
 longer resolve an editor surface (abandoned data, SPEC §19). The
 sheet-design editor resolves its own write grant internally and degrades
 to view-only without it; the generated action surface of editor-bound
-types renders normally on their read details.
+types renders normally on their read details. Detail headers and pane
+action strips never carry stateless field-edit `updateInstance` actions
+(`isFieldEditAction`): detail fields are inline-editable on their own,
+state-carrying updates are transitions and stay, and the editing
+affordance of an editor-bound type is its editor action (file-edit
+glyph).
 
 The `sketch-editor` surface mounts `SketchEditor` and the
 `text-editor`/`csv-editor` surfaces mount `ArtifactTextEditor` — each
