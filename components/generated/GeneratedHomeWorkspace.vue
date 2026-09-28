@@ -204,6 +204,17 @@
       </div>
     </div>
 
+    <!-- The mobile directory dialog: user/organization opens on mobile
+         viewports render in place (bounded surface, no route). -->
+    <StandardDialog v-model:visible="directoryDialogVisible" size="md">
+      <DirectoryDetailSurface
+        v-if="directoryDialogRequest"
+        :key="`${directoryDialogRequest.typeId}:${directoryDialogRequest.instanceId}`"
+        :type-id="directoryDialogRequest.typeId"
+        :instance-id="directoryDialogRequest.instanceId"
+        bounded
+      />
+    </StandardDialog>
   </div>
 </template>
 
@@ -221,9 +232,11 @@ import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/u
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
+import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
-import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
+import { resolveGeneratedWorkspacePage, generatedWorkspacePages, entityWorkspacePageIdFor } from '~/components/generated/workspace-pages.js';
 import { resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
@@ -332,6 +345,9 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     pageId: reference.pageId,
     entity: entityItem.entity,
     typeId: reference.typeId,
+    // Entity-bound page tabs label from the one title resolver like
+    // instance tabs — the page id stays a fallback, not the display.
+    label: instanceLabelOf(reference.typeId, reference.instanceId),
     cassettes: cassetteItems.value.map(item => item.entity)
   };
 }).filter(Boolean));
@@ -754,7 +770,10 @@ function instanceLabelOf(typeId = '', id = '') {
 // never a separate route and never an entity renderer: the manifest's
 // instanceDetail screen first, the synthesized fallback (from the type's
 // list screen) second. Editor-bound types route to their registered
-// editor page instead; a type with neither stays silent, exactly like
+// editor page instead; types with no compiled detail screen and no editor
+// but a registered entity-bound workspace page (the directory surface for
+// `user`/`organization`) open that page as the pane tab; a type with none
+// of the three stays silent, exactly like
 // the routed surface contract.
 function openInstanceTab(typeId = '', instanceIdValue = '') {
   if (!typeId || !instanceIdValue || !activePane.value) return;
@@ -778,6 +797,15 @@ function openInstanceTab(typeId = '', instanceIdValue = '') {
   const surface = resolveFileSurface(undefined, typeId);
   if (surface?.workspacePage) {
     openWorkspacePage({ pageId: surface.surface, typeId, entity: { _id: instanceIdValue } });
+    return;
+  }
+  // Entity-bound workspace pages are the last fallback: types with no
+  // compiled detail screen and no editor (user, organization) still open
+  // as pane tabs through their registered directory page — never as a
+  // standalone route.
+  const fallbackPageId = entityWorkspacePageIdFor(typeId);
+  if (fallbackPageId) {
+    openWorkspacePage({ pageId: fallbackPageId, typeId, entity: { _id: instanceIdValue } });
   }
 }
 
@@ -887,16 +915,37 @@ watch(() => callsStore.pendingTabRoom, room => {
 
 // Desktop instance links open as compiled detail-screen tabs: live events
 // while the home workspace is mounted, pending requests (stashed before
-// navigating home) consumed on mount.
+// navigating home) consumed on mount. Mobile viewports have no panes: the
+// directory types open as the bounded home dialog instead (entity types
+// with a compiled detail screen keep the routed mobile contract).
 function openRequestedWorkspaceEntity(event) {
   event?.preventDefault?.();
   const { typeId, instanceId } = event?.detail || {};
   if (!typeId || !instanceId) return;
+  if (isMobileViewport.value && entityWorkspacePageIdFor(typeId)) {
+    directoryDialogRequest.value = { typeId, instanceId };
+    return;
+  }
   openInstanceTab(typeId, instanceId);
 }
 
+const isMobileViewport = ref(false);
+const directoryDialogRequest = ref(null);
+const directoryDialogVisible = computed({
+  get: () => Boolean(directoryDialogRequest.value),
+  set: (value) => { if (!value) directoryDialogRequest.value = null; }
+});
+let mobileViewportQuery = null;
+function readMobileViewport() {
+  isMobileViewport.value = Boolean(typeof window !== 'undefined'
+    && window.matchMedia?.('(max-width: 767px)')?.matches);
+}
+readMobileViewport();
+
 onMounted(() => {
   window.addEventListener(workspaceInstanceOpenEvent, openRequestedWorkspaceEntity);
+  mobileViewportQuery = typeof window !== 'undefined' ? window.matchMedia?.('(max-width: 767px)') : null;
+  mobileViewportQuery?.addEventListener?.('change', readMobileViewport);
   const pending = consumePendingWorkspaceInstance();
   if (pending?.typeId) openRequestedWorkspaceEntity({ detail: pending });
   window.addEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
@@ -906,6 +955,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener(workspaceInstanceOpenEvent, openRequestedWorkspaceEntity);
+  mobileViewportQuery?.removeEventListener?.('change', readMobileViewport);
   window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
 });
 

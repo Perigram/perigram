@@ -87,15 +87,11 @@ const resolvedId = computed(() => normalizedId.value
 );
 const icon = computed(() => instances.iconFor(props.type));
 const cardComponent = computed(() => CARD_COMPONENTS[contract.value?.key] || null);
-// Directory detail pages are the static fallback for framework party types
-// when no generated detail screen exists (or no process is active), so
-// user/organization popovers always expose an open action (see
-// server/features/directory/README.md).
-const DIRECTORY_DETAIL_ROUTES = { user: '/users', organization: '/organizations' };
-const directoryDetailRoute = computed(() => {
-  const base = DIRECTORY_DETAIL_ROUTES[contract.value?.key];
-  return base && resolvedId.value ? { path: `${base}/${encodeURIComponent(resolvedId.value)}` } : null;
-});
+// Directory types (user, organization) have no generated detail screen and
+// no standalone route: their open action goes through the workspace-open
+// seam — a home pane tab on desktop, the home dialog on mobile.
+const directoryOpen = computed(() => ['user', 'organization'].includes(contract.value?.key)
+  && Boolean(resolvedId.value));
 // `interactive: false` renders the inline entity card non-expandable, so
 // non-interactive rows (explorer entries, static summaries) can consume the
 // inline card without its detail popup.
@@ -104,23 +100,16 @@ const cardProps = computed(() => ({
   variant: 'inline',
   expandable: props.interactive
 }));
-const detailRoute = computed(() => detailRouteResolution.value?.route || null);
-// Only generated detail routes may open through the home workspace; static
-// directory pages navigate directly, or the workspace hijack would swallow
-// them.
-const detailRouteResolution = computed(() => {
-  if (!props.allowDetailRoute || !resolvedId.value) return null;
-  if (authStore.processActive) {
-    const generated = detailRouteForInstance({
-      entity: resolved.value || { _id: resolvedId.value },
-      typeId: generatedTypeId.value,
-      manifest: authStore.screenManifest
-    });
-    if (generated) return { route: generated, workspace: true };
-  }
-  return directoryDetailRoute.value ? { route: directoryDetailRoute.value, workspace: false } : null;
+const detailRoute = computed(() => {
+  if (!props.allowDetailRoute || !authStore.processActive || !resolvedId.value) return null;
+  return detailRouteForInstance({
+    entity: resolved.value || { _id: resolvedId.value },
+    typeId: generatedTypeId.value,
+    manifest: authStore.screenManifest
+  });
 });
 provide('instanceInlineDetailRoute', detailRoute);
+provide('instanceInlineOpenDetail', openDetail);
 provide('instanceInlineForceTrace', true);
 provide('instanceInlineTypeLabel', computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type));
 provide('instanceInlineActionIds', computed(() => popupActionIds.value));
@@ -245,18 +234,25 @@ function onCompactKeydown(event) {
 function openDetail(event) {
   event?.stopPropagation?.();
   requestCloseMobileTransientSurfaces();
-  if (!detailRoute.value) return;
-  if (typeof window !== 'undefined'
-    && window.matchMedia?.('(max-width: 767px)')?.matches) {
-    navigateTo(detailRoute.value);
-    return;
-  }
-  if (detailRouteResolution.value?.workspace
-    && openInstanceInWorkspace({
+  if (detailRoute.value) {
+    if (typeof window !== 'undefined'
+      && window.matchMedia?.('(max-width: 767px)')?.matches) {
+      navigateTo(detailRoute.value);
+      return;
+    }
+    if (openInstanceInWorkspace({
       typeId: generatedTypeId.value || props.type,
       instanceId: resolvedId.value
     })) return;
-  navigateTo(detailRoute.value);
+    navigateTo(detailRoute.value);
+    return;
+  }
+  if (directoryOpen.value) {
+    openInstanceInWorkspace({
+      typeId: generatedTypeId.value || props.type,
+      instanceId: resolvedId.value
+    });
+  }
 }
 
 function openEntityChatFromRef(event) {
@@ -472,7 +468,7 @@ function tonePalette(role) {
               @execute="executePopupAction"
             />
             <Button
-              v-if="detailRoute"
+              v-if="detailRoute || directoryOpen"
               icon="pi pi-external-link"
               text
               rounded

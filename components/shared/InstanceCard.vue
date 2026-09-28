@@ -187,13 +187,13 @@
                         @execute="executeInlineAction"
                     />
                     <Button
-                        v-if="inlineDetailRoute"
+                        v-if="inlineDetailRoute || inlineOpenDetailRef"
                         :label="$t('common.open')"
                         icon="pi pi-external-link"
                         text
                         size="small"
                         :aria-label="$t('common.open')"
-                        @click="openInlineDetail"
+                        @click="inlineOpenDetailRef || openInlineDetail"
                     />
                 </div>
             </div>
@@ -271,6 +271,11 @@ function openCardChat() {
     });
 }
 const inlineDetailRouteRef = inject('instanceInlineDetailRoute', null);
+// Workspace-aware open handler from the hosting inline ref: when present,
+// the open action routes through it (pane tab / home dialog) instead of a
+// raw navigateTo, so card popovers obey the same everything-inside-home
+// rule the compact popover does.
+const inlineOpenDetailRef = inject('instanceInlineOpenDetail', null);
 const inlineForceTraceRef = inject('instanceInlineForceTrace', false);
 const inlineTypeLabelRef = inject('instanceInlineTypeLabel', '');
 const inlineActionIdsRef = inject('instanceInlineActionIds', []);

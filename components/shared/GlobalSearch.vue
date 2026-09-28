@@ -84,7 +84,6 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
@@ -95,12 +94,12 @@ import InputText from 'primevue/inputtext';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useAuthStore } from '~/stores/auth';
 import { requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 
 const props = defineProps({
   autofocus: { type: Boolean, default: true }
 });
 
-const router = useRouter();
 const { t } = useI18n();
 const authStore = useAuthStore();
 
@@ -178,7 +177,9 @@ function focusInput() {
 
 function openResult(entry) {
   visible.value = false;
-  router.push(entry.type === 'user' ? `/users/${entry._id}` : `/organizations/${entry._id}`);
+  // Directory results open inside the home workspace — pane tab on
+  // desktop, the home dialog on mobile; never a standalone route.
+  openInstanceInWorkspace({ typeId: entry.type, instanceId: entry._id });
 }
 
 function openFirstResult() {

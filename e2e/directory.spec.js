@@ -63,24 +63,33 @@ test.describe('directory, invitations, partnerships', () => {
       .toBeTruthy();
     record('directory organization search', { organizationName });
 
-    // UI: the shell search opens the user's directory page. The generated
-    // home route owns its own sidebar and hides the desktop header, so the
-    // search entry is exercised from a header-bearing route.
+    // UI: the shell search opens the user INSIDE the home workspace — a
+    // pane tab, never a standalone route. The search entry is exercised
+    // from a header-bearing route (the home sidebar entry is covered by
+    // the sidebar contract).
     await app.gotoClient('/profile');
     await app.page.locator('[data-testid="global-search-trigger"]').first().click();
     await app.page.locator('[data-testid="global-search-input"]').fill(credentials.name);
     await app.page.locator(`[data-directory-result="user:${found._id}"]`).waitFor({ timeout: 10000 });
     await app.page.locator(`[data-directory-result="user:${found._id}"]`).click();
-    await app.page.waitForURL(new RegExp(`/users/${found._id}`), { timeout: 10000 });
-    await expect(app.page.locator('body')).toContainText(credentials.name);
+    // The workspace-open seam navigates home when home is not mounted and
+    // opens the directory pane tab there; the URL never becomes a
+    // /users/:id page route.
+    await app.page.locator('[data-home-workspace]').waitFor({ timeout: 15000 });
+    await expect(app.page).not.toHaveURL(/\/users\//);
+    await expect(app.page.locator('[data-directory-surface]')).toContainText(credentials.name);
     await app.expectCleanRuntime();
-    record('global search UI -> user page', { url: app.page.url() });
+    record('global search UI -> home pane', { url: app.page.url() });
 
-    // UI: organization directory page of the active organization.
-    await app.gotoClient(`/organizations/${me.organizationId}`);
-    await expect(app.page.locator('body')).toContainText(/perigram|e2e|organization/i);
+    // The organization opens in-home too: search row click → pane tab.
+    await app.page.locator('[data-testid="global-search-trigger"]').first().click();
+    await app.page.locator('[data-testid="global-search-input"]').fill(organizationName);
+    await app.page.locator(`[data-directory-result="organization:${me.organizationId}"]`).waitFor({ timeout: 10000 });
+    await app.page.locator(`[data-directory-result="organization:${me.organizationId}"]`).click();
+    await app.page.waitForTimeout(1500);
+    await expect(app.page.locator('[data-directory-surface]')).toContainText(organizationName);
     await app.expectCleanRuntime();
-    record('organization directory page', { organizationId: String(me.organizationId) });
+    record('organization opens in home', { organizationId: String(me.organizationId) });
   });
 
   test('inviting an existing user completes in a single handshake', async ({ app }) => {
@@ -190,11 +199,14 @@ test.describe('directory, invitations, partnerships', () => {
     await expect(app.page.locator('body')).toContainText(partnerOrg.identity?.name);
     await app.expectCleanRuntime();
 
-    // UI: the partner organization page carries the partnership state.
-    await app.gotoClient(`/organizations/${partnerOrg._id}`);
-    await expect(app.page.locator('body')).toContainText(partnerOrg.identity?.name);
+    // UI: the partner row opens the organization inside the home workspace
+    // (pane tab, no standalone org route).
+    await app.page.locator(`[data-partner-candidate="${partnerOrg._id}"]`).click();
+    await app.page.locator('[data-home-workspace]').waitFor({ timeout: 15000 });
+    await expect(app.page).not.toHaveURL(/\/organizations\//);
+    await expect(app.page.locator('[data-directory-surface]')).toContainText(partnerOrg.identity?.name);
     await app.expectCleanRuntime();
-    record('partners UI surfaces', { partnersRoute: true, orgPage: true });
+    record('partners UI surfaces', { partnersRoute: true, inHomeOrg: true });
 
     // Cleanup: terminate the partnership.
     app.trackCleanup(async () => {

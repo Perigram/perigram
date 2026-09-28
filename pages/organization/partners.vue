@@ -24,12 +24,15 @@
               <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-subtle">
                 <i class="pi pi-building" aria-hidden="true" />
               </span>
-              <NuxtLink :to="`/organizations/${org._id}`" class="min-w-0 flex-1 no-underline">
-                <span class="flex min-w-0 flex-1 flex-col">
-                  <span class="truncate text-body">{{ org.identity?.name }}</span>
-                  <small v-if="org.directory?.isMember" class="text-muted">{{ $t('partnerships.alreadyMember') }}</small>
-                </span>
-              </NuxtLink>
+              <button
+                type="button"
+                class="flex min-w-0 flex-1 flex-col border-0 bg-transparent p-0 text-left cursor-pointer"
+                :data-partner-candidate="org._id"
+                @click="openOrganization(org._id)"
+              >
+                <span class="truncate text-body">{{ org.identity?.name }}</span>
+                <small v-if="org.directory?.isMember" class="text-muted">{{ $t('partnerships.alreadyMember') }}</small>
+              </button>
               <Tag v-if="org.data?.type" :value="org.data.type" severity="secondary" />
               <Button
                 v-if="!org.directory?.isMember && !partnershipWith(org._id)"
@@ -53,9 +56,13 @@
             <DataTable :value="section.rows" :pt="tablePt" :row-class="rowSurfaceClass">
               <Column field="partnerOrganization.name" :header="$t('auth.organization')">
                 <template #body="{ data }">
-                  <NuxtLink :to="`/organizations/${data.partnerOrganization._id}`" class="no-underline">
+                  <button
+                    type="button"
+                    class="border-0 bg-transparent p-0 text-left cursor-pointer"
+                    @click="openOrganization(data.partnerOrganization._id)"
+                  >
                     {{ data.partnerOrganization.name }}
-                  </NuxtLink>
+                  </button>
                 </template>
               </Column>
               <Column v-if="section.key === 'incoming'" :header="$t('common.actions.title')" class="text-right">
@@ -106,6 +113,7 @@ import InputText from 'primevue/inputtext';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { useAuthStore } from '~/stores/auth';
 
 definePageMeta({
@@ -188,6 +196,11 @@ async function loadPartnerships() {
 
 function partnershipWith(organizationId) {
   return partnerships.value.find(item => String(item.partnerOrganization?._id) === String(organizationId)) || null;
+}
+
+// Partner organizations open inside the home workspace, never a route.
+function openOrganization(organizationId) {
+  openInstanceInWorkspace({ typeId: 'organization', instanceId: String(organizationId) });
 }
 
 async function requestPartnership(org) {
