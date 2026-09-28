@@ -274,10 +274,13 @@ surface concerns:
   renders pool rows only). `hierarchyRootInstances` (shared mapping
   contract) drops any instance whose declared parent link is stamped, so
   children ride nested under their parents and never repeat at the top
-  level. Columns and row surfaces match `CollectionTable` (clipped
-  rounded content rows, hairline gaps, muted transparent header band);
-  row identities are link buttons under the same `onOpen` navigation
-  contract.
+  level. The first column carries PrimeVue TreeTable's `expander` — the
+  toggle and the per-level indentation render only on the expander
+  column, so a custom first-column body without it renders a structurally
+  nested tree with NO visible indent or toggles (a flat pile). Columns
+  and row surfaces match `CollectionTable` (clipped rounded content
+  rows, hairline gaps, muted transparent header band); row identities
+  are link buttons under the same `onOpen` navigation contract.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
   cards lay out in the shared `ResponsiveGrid` primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside panels),
