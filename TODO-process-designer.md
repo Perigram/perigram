@@ -618,6 +618,57 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-28 owner redesign: cargo wires, one socket mark, operation borders; Lanes A landed
+
+Owner review of the corrective: "dashed borders and node corners change
+is awful… you didn't remove fucking arrow and dot… primary nodes are
+operations; wires: solid=instance, dashed=value, dotted=event; socket
+palette good but usage and shapes need conceptual redesign; when done,
+do lanes." The shape populations are REVERTED (dashed frames, task
+rectangles, folded corners, species corner glyph all gone — cards are
+one rounded frame again) and replaced by the owner's model on
+`agent/canvas-redesign-lanes-20260928`:
+
+- WIRE LINE STYLE encodes WHAT TRAVELS: solid = instances (entity
+  payloads — resolved live from the source socket's type base, restyled
+  in the same sync pass), dashed = values, dotted = events in the
+  primary accent, declarations keep the demuted structure family.
+  NO markers anywhere — markerEnd is dropped at decorate (stored
+  control edges from earlier stylings carried it) and stripped at save.
+- SOCKETS: one uniform filled circle; payload-family color is the only
+  socket channel (no rings/diamonds/squares, no `wired` prop —
+  manual-vs-wired reads from the wire's presence). The allowlisted
+  inline-exception string updated with it.
+- NODES: operations (effect species) render the strong-ink border
+  (`primary` prop on DesignerNodeCard); everything else keeps the quiet
+  content border — secondary nodes are surface.
+- LANES A: toolbar Lanes toggle renders grant-derived lane bands
+  (never stored) through Vue Flow's `zoom-pane` slot (`LaneBands.vue`):
+  one lane per role in fixed order (empty roles visible), declaration
+  band above the pool, implicit unlabeled lane for grantless effects;
+  a one-shot in-memory projection preserves x and authored-y order
+  (positions are presentation state — Lanes B owns placement-writes);
+  the definitions toggle hides the declaration family via runtime
+  `hidden` (stripped before serialization; Vue Flow hides their wires).
+
+Live-verified twice on seeded graphs (/tmp/opencode/redesign-report.json,
+canvas-lanes-final.png): dotted-primary event (1-5 round-cap) /
+2px-solid instance / 1.5px-dashed value / demuted declaration; zero
+marker defs; operations rgb(63,63,70) border vs zinc-200 secondary;
+handles 9999px radius in family colors; bands Definitions→roles→
+unassigned with granted effects in their role lane and grantless in
+the implicit one; definitions toggle removes declaration nodes.
+
+FINDING (pre-existing, not lanes): activating a draft in the same
+request that CREATED its role stores `access.grants[].roleId` stripped
+(`roleIds:[null]`, compiled actions lose role scoping and screens
+infer zero stations) — the org-configuration roles cache has not seen
+the brand-new role; with a settled role the same activation preserves
+grants (verified both ways against stored docs). Designer flows (Apply
+with pre-existing roles, e.g. the owner's active definition) are
+unaffected; the race needs its own task in the process-definitions
+feature.
+
 ### Agent Notes — 2026-09-28 V2 corrective: primacy made real + node shape populations
 
 Owner report: "primary-secondary wires and nodes isn't implemented, and

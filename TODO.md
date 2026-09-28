@@ -451,7 +451,7 @@ every stage rewrites the Node UI contract section before code.
 - [x] V2: primacy inversion — event wires become the primary flow
   (solid, `--p-text-color`, arrowed), data wires thin dashed
   (`--p-text-muted-color`), hue retreats to sockets
-- [ ] Lanes A: role lanes projected from grant records; declaration band
+- [x] Lanes A: role lanes projected from grant records; declaration band
   above the pool; hide-definitions toggle
 - [ ] Lanes B: placement-writes-grants — lane crossing edits the grant
   record, membership always re-derived from grants
@@ -478,3 +478,21 @@ detail and live measurements: §P5 agent notes in
 [`TODO-process-designer.md`](./TODO-process-designer.md). Token-level
 changes need a dev-container restart (HMR does not re-evaluate the
 Tailwind theme/CSS variable declarations). Lanes A remains next.
+
+### Agent Notes (2026-09-28 — owner redesign: cargo wires + Lanes A)
+
+Owner rejected the shape-population corrective ("dashed borders and
+node corners change is awful", "you didn't remove fucking arrow and
+dot") and gave the target model: primary nodes = operations
+(strong-ink border), everything else quiet surface; wires encode cargo
+— solid = instance, dashed = value, dotted = event (primary accent);
+socket palette kept but the shape zoo (rings/diamonds/squares, trigger
+ring, corner glyph, all arrowheads) removed — one uniform filled
+circle, color only. Lanes A landed with it: Lanes toggle renders
+grant-derived role lanes + declaration band + implicit grantless lane
+(never stored, one-shot in-memory projection), definitions toggle
+hides the declaration family. Full detail and live measurements: §P5
+agent notes in [`TODO-process-designer.md`](./TODO-process-designer.md).
+Finding recorded there: activating a draft in the same request that
+created its role strips grant roleIds (org-config roles cache race) —
+needs its own task.
