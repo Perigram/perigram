@@ -296,10 +296,13 @@ surface concerns:
   re-derives from the reactive pool, so reconciliation (a new child, a
   moved parent) re-nests it in place instead of waiting for a remount.
 - `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
-  (when nested), a contextual `navigation` slot (a host that opened the
-  record inside another surface — a workspace tab reached from another
-  page, a popup with a back stack — injects its back affordance ahead of
-  the identity block), Avatar identity with title and a `type · id` muted
+  (when nested), a contextual `navigation` channel (the `#navigation`
+  slot for direct template hosts plus the `navigation` prop —
+  `{ icon, label, command }` threaded through GeneratedMappingScreen →
+  RegionBlock to the depth-0 header for hosts that mount the screen as
+  a component; a host that opened the record inside another surface —
+  a workspace tab reached from another page, a popup with a back stack —
+  injects its back affordance ahead of the identity block), Avatar identity with title and a `type · id` muted
   subtitle, placed actions, the Edit toggle (rendered only on patchable
   surfaces; see `onPatch` above — while editing it reads as Save and
   submits the draft), and exactly one state

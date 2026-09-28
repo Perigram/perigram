@@ -336,6 +336,7 @@
           :pool="pool"
           :bundle="bundle"
           :state-policy="node.statePolicy"
+          :navigation="depth === 0 ? navigation : null"
           @run="emitRun"
           @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
           @toggle-edit="toggleEditing"
@@ -488,7 +489,10 @@ const props = defineProps({
   patchable: { type: Boolean, default: false },
   // Machine-authority transition resolver for board drags (the host's
   // state service): passed through to the board projection.
-  resolveTransitions: { type: Function, default: null }
+  resolveTransitions: { type: Function, default: null },
+  // Host-injected contextual back affordance for the record header
+  // (`{ icon, label, command }` — SurfaceHeader's navigation channel).
+  navigation: { type: Object, default: null }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch']);

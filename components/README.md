@@ -370,7 +370,13 @@ home tab contract
 `useMobileHomeTabs`): the app-shell bar writes the selection, the home
 workspace's mobile branch renders the selected typeList screen through
 the same generator contract as the desktop panes, and a type tab tapped
-outside the home route navigates home first. User-added screen shortcuts
+outside the home route navigates home first. Mobile instance opens
+mount the ITEM POPUP: the compiled detail surface in a full-size dialog
+owned by the home workspace — the record header's back button
+(SurfaceHeader's `navigation` channel) and the dialog's own close
+dismiss it, and the expand control routes to the full detail screen
+when the popup's bounds are not enough; nested instance opens inside
+the popup replace its content. User-added screen shortcuts
 and the home tab are disabled while the home workspace migration
 settles; organizations without compiled type screens keep a home
 fallback tab. The chats tab opens the bounded `/chats` route — chat is a
