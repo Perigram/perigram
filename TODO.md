@@ -311,6 +311,19 @@ does not exist (deferred). The same-tab create path was verified live
 only at the code level; the "not fixed" test round ran against the stale
 dev server.
 
+### Agent Notes (2026-09-28, sixth pass — settings + org creation land in the popup)
+
+`UserAccountMenu`'s profile settings popup now carries the
+browser-notifications toggle beside language and avatar; the
+organizations group ALWAYS renders and ends with a create-organization
+entry (dialog → `organization` instance through the instances store).
+The orphan `/profile` page is DELETED: the invitation join and the
+landing's orgless redirect point at `/organization`, which owns orgless
+onboarding (inline creation form + the targeted-invitations table
+ported from the cut page). Browser-verified: menu = [Org1, Create
+Organization, Profile, Toggle Theme, Logout]; the popup carries
+language + notifications; `/profile` 404s.
+
 - [ ] Item page should be opened in popup, and surfaceheader (? or in appropriate place) needs slot
   (?) for injecting back button when opened in tab from other page, and close/expand buttons for
   popup
