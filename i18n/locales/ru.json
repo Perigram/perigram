@@ -1562,10 +1562,12 @@
     "myInvitations": "Приглашения",
     "invitationAccepted": "Вы вступили в организацию",
     "invitationDeclined": "Приглашение отклонено",
-    "invitationState.invited": "Приглашён",
-    "invitationState.accepted": "Принято",
-    "invitationState.declined": "Отклонено",
-    "invitationState.expired": "Истекло"
+    "invitationState": {
+      "invited": "Приглашён",
+      "accepted": "Принято",
+      "declined": "Отклонено",
+      "expired": "Истекло"
+    }
   },
   "roles": {
     "ManufacturerAdmin": "Админ производителя",
@@ -3352,12 +3354,12 @@
     "requestReceived": "Заявка о партнёрстве",
     "terminate": "Расторгнуть",
     "cancelConfirm": "Прекратить партнёрство с этой организацией?",
-    "alreadyMember": "Ваша организация"
-  },
-  "partnerships.status": {
-    "pending": "Ожидает",
-    "active": "Активно",
-    "declined": "Отклонено",
-    "terminated": "Прекращено"
+    "alreadyMember": "Ваша организация",
+    "status": {
+      "pending": "Ожидает",
+      "active": "Активно",
+      "declined": "Отклонено",
+      "terminated": "Прекращено"
+    }
   }
 }

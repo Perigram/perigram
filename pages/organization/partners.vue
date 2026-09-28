@@ -19,7 +19,6 @@
               v-for="org in searchResults"
               :key="org._id"
               class="flex items-center gap-3"
-              :data-partner-candidate="org._id"
             >
               <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-subtle">
                 <i class="pi pi-building" aria-hidden="true" />
