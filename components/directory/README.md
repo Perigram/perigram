@@ -4,9 +4,10 @@ In-home presentation of user and organization detail. There are no
 standalone directory routes: the surface renders as an entity-bound
 workspace-page tab inside the generated home workspace (desktop panes) and
 as the bounded dialog the home workspace opens on mobile viewports. Popups
-(`InstanceInlineRef` → `UserCard`/`OrganizationCard`) remain the compact
-preview surface; their open action routes into these panes through the
-shared workspace-open seam.
+remain the compact preview surface: inline refs
+(`InstanceInlineRef` → `UserCard`/`OrganizationCard`) and the global-search
+result popup ([shared](../shared/README.md)); their open action routes
+into these panes through the shared workspace-open seam.
 
 ## Files
 

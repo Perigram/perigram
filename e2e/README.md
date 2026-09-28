@@ -47,8 +47,9 @@ noise.
 - `directory.spec.js`: directory discovery, targeted invitations, and
   partnerships against a real second account registered through the public
   signup API with its own request context. Covers name-only user search
-  (cards carry no email), the global-search UI opening the user inside the
-  home workspace (pane tab on desktop, no route change), the
+  (cards carry no email), the global-search UI opening the row's in-place
+  directory popup and expanding it inside the home workspace (pane tab on
+  desktop, no route change), the
   single-handshake invite (accept creates the active membership directly
   and the organization-side invitation list reports consumption), and the
   partnership lifecycle (request → 409 duplicate → partner-side accept →
