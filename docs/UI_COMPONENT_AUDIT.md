@@ -198,7 +198,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-designernodecard-vue` | `components/shared/DesignerNodeCard.vue` | derived usage | replace:chrome (6) |
 | `ui-components-shared-designersockethandle-vue` | `components/shared/DesignerSocketHandle.vue` | derived usage | replace:chrome (1); remove:important-override (7); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (6); replace:chrome (25); remove:important-override (2); compliant:scoped-layout |
+| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (6); replace:chrome (24); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (10) |
 | `ui-components-shared-entitypopup-vue` | `components/shared/EntityPopup.vue` | derived usage | centralize:layout (1) |
 | `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
