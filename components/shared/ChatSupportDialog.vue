@@ -8,6 +8,7 @@
         v-model:visible="visibleModel"
         :close-on-escape="false"
         :aria-label="label"
+        position="bottomright"
         :style="{ width: 'min(94vw, 25rem)' }"
         :pt="chatDialogPt"
     >

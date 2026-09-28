@@ -1,4 +1,4 @@
-import ChatSupport from '~/components/ChatSupport.vue';
+
 import CallWorkspacePage from '~/components/calls/CallWorkspacePage.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
 import { fileWorkspacePages } from '~/components/generated/file-surfaces.js';
@@ -29,20 +29,6 @@ export const generatedWorkspacePages = [
     icon: 'pi pi-building',
     component: DirectoryDetailSurface,
     props: page => ({ typeId: 'organization', instanceId: page.entity?._id || page.instanceId || '' })
-  },
-  {
-    id: 'chats',
-    labelKey: 'support.chatTitle',
-    icon: 'pi pi-comments',
-    component: ChatSupport,
-    // A conversationKey pins the tab to one thread (the desktop "expand"
-    // action); without it the tab opens the general inbox.
-    props: page => ({
-      embedded: true,
-      fullPage: true,
-      openCallInPane: true,
-      conversationKey: page.conversationKey || ''
-    })
   },
   {
     id: 'call',

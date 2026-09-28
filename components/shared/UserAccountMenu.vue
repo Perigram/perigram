@@ -202,17 +202,22 @@ function openCreateOrg() {
   createOrgVisible.value = true;
 }
 
-// Settings-side switching stays in place: the workspace rehydrates its
-// process data behind the open dialog; the check marks follow the store.
+// Settings-side organization entries match the account-control contract:
+// the active organization opens its overview directly, another membership
+// switches context first — and the popup closes so the outcome is visible.
 async function switchToOrganization(org) {
   const organizationId = org?._id?.toString() || org?.id?.toString();
-  if (!organizationId || organizationId === authStore.userData.organizationId?.toString()) return;
+  if (!organizationId) return;
   switchingTo.value = organizationId;
   try {
-    await authStore.switchOrganization(organizationId);
+    if (organizationId !== authStore.userData.organizationId?.toString()) {
+      await authStore.switchOrganization(organizationId);
+    }
   } finally {
     switchingTo.value = '';
   }
+  profileVisible.value = false;
+  router.push('/organization');
 }
 const createOrganization = async () => {
   creatingOrg.value = true;

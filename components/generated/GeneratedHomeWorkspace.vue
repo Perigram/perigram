@@ -246,7 +246,6 @@ import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
-import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
@@ -398,19 +397,11 @@ const callPageItems = computed(() => callPageRefs.value.map(call => ({
   conversationKey: call.conversationKey,
   label: call.label
 })));
-const chatPageItems = computed(() => chatPageRefs.value.map(chat => ({
-  key: chat.key,
-  kind: 'page',
-  pageId: 'chats',
-  conversationKey: chat.conversationKey,
-  label: chat.label
-})));
 const workspaceItems = computed(() => [
   ...workspaceEntityItems.value,
   ...screenItems.value,
   ...openedPageItems.value,
   ...callPageItems.value,
-  ...chatPageItems.value,
   ...staticPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
@@ -1001,15 +992,11 @@ onMounted(() => {
   mobileViewportQuery?.addEventListener?.('change', readMobileViewport);
   const pending = consumePendingWorkspaceInstance();
   if (pending?.typeId) openRequestedWorkspaceEntity({ detail: pending });
-  window.addEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
-  const pendingChat = consumePendingWorkspaceChat();
-  if (pendingChat) openRequestedWorkspaceChat({ detail: pendingChat });
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener(workspaceInstanceOpenEvent, openRequestedWorkspaceEntity);
   mobileViewportQuery?.removeEventListener?.('change', readMobileViewport);
-  window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
 });
 
 function activeRoomLabel(room = {}) {
@@ -1026,31 +1013,9 @@ function activeRoomLabel(room = {}) {
 // layout): the tab hosts the LiveKit stage plus the conversation chat rail.
 const callPageRefs = ref([]);
 
-// Pinned chat tabs are ephemeral like calls: the desktop "expand" action
-// opens one conversation as its own chats tab.
-const chatPageRefs = ref([]);
-
-function openChatTab(conversationKey = '', label = '') {
-  if (!activePane.value) return;
-  const key = conversationKey ? `page:chat:${conversationKey}` : 'page:chats';
-  const existing = chatPageRefs.value.find(chat => chat.key === key);
-  if (existing) {
-    if (label && existing.label !== label) existing.label = label;
-  } else {
-    chatPageRefs.value = [...chatPageRefs.value, {
-      key,
-      conversationKey,
-      label
-    }];
-  }
-  selectPaneTab(activePane.value.id, key, { newTab: true });
-}
-
-function openRequestedWorkspaceChat(event) {
-  event?.preventDefault?.();
-  const { conversationKey, label } = event?.detail || {};
-  openChatTab(conversationKey || '', typeof label === 'string' ? label : '');
-}
+// Chats surface exclusively in the shared bottom-right popup: the pane
+// chat-tab machinery (pinned conversation tabs, the workspace chat-open
+// event) is retired with it.
 
 function openCallTab(room = '', meta = {}) {
   if (!room || !activePane.value) return;
@@ -1094,8 +1059,17 @@ async function startCallFromConversation(conversation = {}) {
   }
 }
 
+// Chats live in the shared bottom-right popup (the one desktop chat
+// surface); mobile keeps the bounded /chats route — it has no room for a
+// floating popup.
 function openChatsPage() {
-  if (activePane.value) selectPaneTab(activePane.value.id, 'page:chats');
+  if (typeof window !== 'undefined'
+    && window.matchMedia?.('(max-width: 767px)')?.matches) {
+    navigateTo('/chats');
+    return;
+  }
+  const supportDialog = useSupportDialog();
+  supportDialog.value = true;
 }
 
 function sectionItemsFor(regionId) {
