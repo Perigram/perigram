@@ -88,6 +88,12 @@ noise.
 - `artifact-and-designer-ui.spec.js`: uploads and replaces a real DXF artifact,
   verifies viewer dispatch and revision creation, and proves incompatible
   conversion requests fail at the HTTP boundary.
+- `home-default-screen.spec.js`: pins the default-screen contract — an
+  organization whose active process compiles to no screens (the bootstrap
+  empty process) enters `/screens/home` with the workspace's
+  definition-independent surfaces, unknown screen keys render the home
+  workspace instead of an error surface, and the bare `/screens` route
+  redirects to the default home route.
 - `home-calls.spec.js`: pins the sidebar communication panel call contract
   against a mocked `/api/livekit/active-rooms` snapshot — active rooms render
   as visible flat rows (the panel auto-expands, including rooms that arrive

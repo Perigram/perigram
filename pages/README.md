@@ -11,16 +11,26 @@ redirect gate for authenticated users.
   resolved on the server when cookies are present, and client mount re-checks
   auth only to redirect authenticated sessions. The public first paint must not
   block on a client-side `/api/auth/me` round trip.
-- Authenticated users with an active process go to the generated process entry
+- Authenticated users with an organization go to the generated process entry
   route: the generated `home` screen first, then the first generated hub/list
-  screen, then `/screens` only when no navigable generated screen exists. The
-  entry route must not fall back to static domain routes such as `/projects`
-  while a process is active, because available screens are defined entirely by
-  the active process graph. Generated `home` may be synthesized from inferred
-  operational list screens, but organization system screens such as
-  `/organization` are still not process entry candidates.
-  Authenticated users without an active process use
-  the static projects workspace.
+  screen, then the default home route `/screens/home` when no navigable
+  generated screen exists. The entry route must not fall back to static domain
+  routes such as `/projects` while a process is active, because available
+  screens are defined entirely by the active process graph. Generated `home`
+  may be synthesized from inferred operational list screens, but organization
+  system screens such as `/organization` are still not process entry
+  candidates.
+- The home screen is the default screen (canonical contract):
+  `resolveProcessEntryRoute`/`resolveDefaultHomeScreen` in
+  `utils/process-navigation.js` end every ladder at `/screens/home`, and a
+  sourceless synthesized home screen (`defaultHomeScreen`) stands in whenever
+  the compiled manifest carries no home — no active definition, a definition
+  that no longer compiles (auth hydration degrades that to "no active
+  process"), or an org without navigable screens. Organization members
+  therefore always land on the home workspace, which renders every
+  definition-independent surface (chats, calls, profile, organization
+  switching) with no type sections; the compiled manifest only adds type
+  sections. Orgless accounts keep landing on `/profile`.
 - The landing presents the platform core in plain language — an authored
   process description turned into a running application — with copy under the
   `marketing.*` locale keys (see [i18n](../i18n/README.md)). Anonymous visitors
@@ -39,7 +49,13 @@ Authenticated route groups continue to use `layout: 'app'` and `middleware:
 
 `pages/screens/[screenKey].vue` is the generated operational screen route for
 active organization processes. It looks up the current user's compiled screen
-manifest from the auth store. Process screens arrive in the compiled UI
+manifest from the auth store. A key that resolves to no manifest screen (and
+no synthesizable detail pair) falls back to the home screen — the manifest's
+compiled home when one exists, otherwise the default home contract above —
+so the route never dead-ends on an error surface: a stale bookmark or a
+recompiled process renders the workspace instead of a "screen unavailable"
+page. `pages/screens/index.vue` redirects `/screens` to `/screens/home` for
+the same reason. Process screens arrive in the compiled UI
 contract vocabulary (`typeList`/`instanceDetail`/`home` plus `typeId`) and
 render through the UI generator (`composeScreen` +
 [components/ui-mapping](../components/ui-mapping/README.md)) with the client
