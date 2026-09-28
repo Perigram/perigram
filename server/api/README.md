@@ -49,6 +49,21 @@ Routes are grouped into sub-directories corresponding to features:
   listing, creation, and revocation. Handlers delegate authorization to the
   invitations feature so all invitation operations use the same process-derived
   user-management access contract and support string organization ids.
+  Creation accepts an optional `inviteeUserId` to target one existing user
+  (single-handshake direct invite) beside the unaddressed link invitation.
+- `invitations/mine` and `invitations/:id/respond`: The invitee side of
+  targeted invitations — the current user's pending invitations and their
+  accept/decline response (see the
+  [invitations feature](../features/invitations/README.md)).
+- `directory/`: Authenticated cross-tenant discovery over users and
+  organizations. `GET /directory/search` returns grouped directory cards
+  (name-only matching); `GET /directory/:type/:id` returns one card with
+  caller-relative flags. The privacy contract lives in the
+  [directory feature](../features/directory/README.md).
+- `partnerships/`: Authenticated organization-to-organization partner
+  relations: active-organization listing, request, accept, decline, and
+  cancel/terminate, all gated by `organizations:admin` on the respective
+  side (see the [partnerships feature](../features/partnerships/README.md)).
 - `sheet-designs/`: Lineage-scoped sheet design list/detail, direct DXF export,
   and `PUT /api/sheet-designs/:id` for write-authorized, revision-backed manual
   placement updates.

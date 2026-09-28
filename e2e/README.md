@@ -44,6 +44,16 @@ noise.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
+- `directory.spec.js`: directory discovery, targeted invitations, and
+  partnerships against a real second account registered through the public
+  signup API with its own request context. Covers name-only user search
+  (cards carry no email), the global-search UI navigating to
+  `/users/:id`, the single-handshake invite (accept creates the active
+  membership directly and the organization-side invitation list reports
+  `accepted`), and the partnership lifecycle (request → 409 duplicate →
+  partner-side accept → active on `/organization/partners` and the
+  organization page). Writes the step outcomes to
+  `test-results/directory-acceptance.json` as the durable artifact.
 - `process-generated-screen.spec.js`: verifies the generic instance
   transport serves generated-screen collections (`/api/instances/cassette`;
   the removed `/api/queues` route stays dead) and drives the screen matrix
