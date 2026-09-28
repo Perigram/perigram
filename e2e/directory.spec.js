@@ -36,7 +36,7 @@ async function registerInvitedUser(page) {
 }
 
 test.describe('directory, invitations, partnerships', () => {
-  test('global search finds users and organizations and opens their pages', async ({ app }) => {
+  test('global search finds users and organizations; the row popup opens them in home', async ({ app }) => {
     const { context, credentials } = await registerInvitedUser(app.page);
     app.trackCleanup(async () => { await context.dispose(); });
 
@@ -70,22 +70,30 @@ test.describe('directory, invitations, partnerships', () => {
     await app.gotoClient('/profile');
     await app.page.locator('[data-testid="global-search-trigger"]').first().click();
     await app.page.locator('[data-testid="global-search-input"]').fill(credentials.name);
-    await app.page.locator(`[data-directory-result="user:${found._id}"]`).waitFor({ timeout: 10000 });
+    await app.page.locator('[data-directory-result="user:${found._id}"]').waitFor({ timeout: 10000 });
     await app.page.locator(`[data-directory-result="user:${found._id}"]`).click();
-    // The workspace-open seam navigates home when home is not mounted and
-    // opens the directory pane tab there; the URL never becomes a
-    // /users/:id page route.
+    // The row opens the record in place: the directory popup anchored at
+    // the row (avatar-forward face + actions), never a route.
+    const popup = app.page.locator('[data-testid="directory-result-popup"]');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText(credentials.name);
+    await app.page.locator('[data-testid="directory-popup-open"]').click();
+    // The popup's open action rides the workspace-open seam: it navigates
+    // home when home is not mounted and opens the directory pane tab
+    // there; the URL never becomes a /users/:id page route.
     await app.page.locator('[data-home-workspace]').waitFor({ timeout: 15000 });
     await expect(app.page).not.toHaveURL(/\/users\//);
     await expect(app.page.locator('[data-directory-surface]')).toContainText(credentials.name);
     await app.expectCleanRuntime();
     record('global search UI -> home pane', { url: app.page.url() });
 
-    // The organization opens in-home too: search row click → pane tab.
+    // The organization opens in-home too: row popup → open → pane tab.
     await app.page.locator('[data-testid="global-search-trigger"]').first().click();
     await app.page.locator('[data-testid="global-search-input"]').fill(organizationName);
     await app.page.locator(`[data-directory-result="organization:${me.organizationId}"]`).waitFor({ timeout: 10000 });
     await app.page.locator(`[data-directory-result="organization:${me.organizationId}"]`).click();
+    await expect(app.page.locator('[data-testid="directory-result-popup"]')).toBeVisible();
+    await app.page.locator('[data-testid="directory-popup-open"]').click();
     await app.page.waitForTimeout(1500);
     await expect(app.page.locator('[data-directory-surface]')).toContainText(organizationName);
     await app.expectCleanRuntime();
