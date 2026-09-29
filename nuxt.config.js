@@ -117,6 +117,12 @@ export default defineNuxtConfig({
     },
 
     vite: {
+        define: {
+            // Prod hydration mismatches print full detail (element, server
+            // vs client value, component chain) instead of the one-liner —
+            // the diagnostic switch for layout-vs-SSR bugs on staging.
+            __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true'
+        },
         resolve: {
             alias: {
                 ...perigramAliases,
