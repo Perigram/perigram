@@ -28,12 +28,19 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).sort({ 'identity.name': 1 }).toArray();
 }
 
-export async function findActiveByOrganization(organizationId) {
+export async function findActiveSetByOrganization(organizationId) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({
+  return await db.collection(COLLECTION).find({
     'lineage.organizationId': toFlexibleId(organizationId),
     'states.main': 'ACTIVE'
-  });
+  }).sort({ 'status.timestamp': 1, _id: 1 }).toArray();
+}
+
+// The most recently activated definition — the boot convenience behind
+// `/active`; the runtime contract itself compiles the whole active set.
+export async function findActiveByOrganization(organizationId) {
+  const set = await findActiveSetByOrganization(organizationId);
+  return set[set.length - 1] || null;
 }
 
 export async function updateById(id, updates) {
@@ -44,23 +51,8 @@ export async function updateById(id, updates) {
   return await findById(id);
 }
 
-export async function archiveActiveByOrganization(organizationId, userId) {
+export async function removeById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).updateMany(
-    {
-      'lineage.organizationId': toFlexibleId(organizationId),
-      'states.main': 'ACTIVE'
-    },
-    {
-      $set: {
-        'states.main': 'ARCHIVED',
-        'status.state.active.main': 'ARCHIVED',
-        'status.state.regions.main.state': 'ARCHIVED',
-        'status.state.regions.main.path': ['ARCHIVED'],
-        'status.userId': userId || 'SYSTEM',
-        'status.timestamp': new Date(),
-        'status.metadata': { note: 'Archived by process activation' }
-      }
-    }
-  );
+  await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
 }
+

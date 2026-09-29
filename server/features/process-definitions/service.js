@@ -38,7 +38,7 @@ import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-co
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
-import { compileActiveProcessRuntime } from './runtime.js';
+import { compileActiveProcessRuntime, getActiveMergedDataForOrganization } from './runtime.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
@@ -56,6 +56,7 @@ import {
 import {
   assertCurrentProcessDefinition,
   currentProcessDefinition,
+  mergeActiveDefinitions,
   tryAcceptGraphProtocol,
   validateActivatableProcess
 } from './compiler-adapter.js';
@@ -133,6 +134,18 @@ function definitionReferencesRole(data = {}, roleId) {
   return serialized.includes(`\"${roleId}\"`);
 }
 
+// The active-set working definition every active-runtime seam (relation
+// options, socket projection, action execution) resolves against: the
+// merged data of the whole active set, carried on the newest active
+// definition's document shell for provenance.
+async function loadActiveSetProcess(auth) {
+  const organizationId = resolveOrganizationId(auth);
+  const raw = await repository.findActiveByOrganization(organizationId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
+  const data = await getActiveMergedDataForOrganization(organizationId);
+  return new ProcessDefinition({ ...raw, data: data || raw.data });
+}
+
 export async function getActive(auth) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
@@ -141,10 +154,8 @@ export async function getActive(auth) {
 }
 
 export async function getActiveRelationOptions({ actionId, instanceId, source = false } = {}, auth = {}) {
+  const process = await loadActiveSetProcess(auth);
   const organizationId = resolveOrganizationId(auth);
-  const raw = await repository.findActiveByOrganization(organizationId);
-  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
-  const process = new ProcessDefinition(raw);
   const organization = await loadOrganizationProcessConfiguration(organizationId);
   const compiled = await compileActiveProcessRuntime(process.data, organization.roles, organizationId);
   const action = compiled?.actions?.[actionId];
@@ -195,11 +206,18 @@ export async function create(payload = {}, auth) {
 
 export async function update(id, payload = {}, auth) {
   const process = await loadAuthorized(id, auth, 'write');
+  const renaming = payload.identity?.name || payload.name;
   if (process.states?.main === 'ACTIVE') {
-    throw createError({ statusCode: 409, message: 'Active process definitions cannot be edited directly' });
+    // Active definitions are managed, not authored: identity-only updates
+    // (rename) pass; graph edits still require a draft fork.
+    if (!renaming || payload.data) {
+      throw createError({ statusCode: 409, message: 'Active process definitions cannot be edited directly' });
+    }
+    process.identity.name = renaming;
+    return new ProcessDefinition(await repository.updateById(id, process)).toJSON();
   }
-  if (payload.identity?.name || payload.name) {
-    process.identity.name = payload.identity?.name || payload.name;
+  if (renaming) {
+    process.identity.name = renaming;
   }
   // Authored data persists in its own vocabulary: the persisted
   // producer-identity rewrite runs on it, and protocol acceptance validates
@@ -214,16 +232,17 @@ export async function update(id, payload = {}, auth) {
 
 // The semantic Apply diff recomputes both sides from the canonical authored
 // definitions instead of trusting the stored `compiled` snapshot (which is
-// inspection-only). Returns null when there is no distinct active definition
-// or the previous contract can no longer be compiled for comparison.
+// inspection-only). The baseline is the MERGED contract of the OTHER active
+// definitions; returns null when there are none or the previous contract
+// can no longer be compiled for comparison.
 async function activeContractBaseline(process, auth) {
-  const active = await repository.findActiveByOrganization(process.lineage.organizationId);
-  if (!active || String(active._id) === String(process._id)) return null;
+  const actives = (await repository.findActiveSetByOrganization(process.lineage.organizationId))
+    .filter(active => String(active._id) !== String(process._id));
+  if (!actives.length) return null;
   try {
     const roles = await loadOrganizationRoles(process.lineage.organizationId);
-    const domain = await getProjectedDomain(process.lineage.organizationId);
-    const data = currentProcessDefinition(active.data, domain);
-    return compileProcessDefinition(data, domain, { roles });
+    const organizationId = process.lineage.organizationId;
+    return await compileActiveProcessRuntime(mergeActiveDefinitions(actives.map(active => active.data)), roles, organizationId);
   } catch {
     return null;
   }
@@ -309,8 +328,21 @@ export async function activate(id, auth) {
     ...process.data,
     compiled: await compileOrganizationProcess(process.data, process.lineage.organizationId, roles)
   };
-  const stranded = await collectStrandedInstanceStatees(process, auth, process.data.compiled);
-  const plan = stranded.length ? buildStatusMigrationPlan(stranded, process.data.compiled) : null;
+  // The gate and the migration both resolve against the NEXT merged
+  // contract — this definition atop the other actives — so states owned
+  // by other active definitions are never falsely stranded.
+  const mergedNext = await compileActiveProcessRuntime(
+    mergeActiveDefinitions([
+      ...(await repository.findActiveSetByOrganization(process.lineage.organizationId))
+        .filter(active => String(active._id) !== String(process._id))
+        .map(active => active.data),
+      process.data
+    ]),
+    roles,
+    process.lineage.organizationId
+  );
+  const stranded = mergedNext ? await collectStrandedInstanceStatees(process, auth, mergedNext) : [];
+  const plan = stranded.length ? buildStatusMigrationPlan(stranded, mergedNext) : null;
   // The migration decision is a declaration on the definition
   // (data.migrations.statuses), not an activate-time payload: activation
   // reads what the organization authored. Stale declared rows are no-ops
@@ -323,10 +355,8 @@ export async function activate(id, auth) {
       throw createError({ statusCode: 400, message: mappingErrors.join('; '), data: { migrationPlan: plan } });
     }
   }
-  await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
   applyProcessState(process, 'ACTIVE', auth.userId, 'Process activated');
   let updated = await repository.updateById(id, process);
-  await organizationProcessService().setActiveProcessDefinition(process.lineage.organizationId, updated._id);
   // Activation can flip the org's registry view (APPLY posts in-tree
   // declarations before activate): re-derive the instance indexes.
   await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
@@ -340,7 +370,7 @@ export async function activate(id, auth) {
       mappings,
       auth,
       organizationId: process.lineage.organizationId,
-      compiled: process.data.compiled
+      compiled: mergedNext
     });
     process.data.migrations = {
       ...(process.data.migrations || {}),
@@ -405,11 +435,33 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
   };
   applyProcessState(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated (empty)');
 
-  await repository.archiveActiveByOrganization(organizationId, actorId || 'SYSTEM');
   const created = await repository.create(process);
-  await organizationProcessService().setActiveProcessDefinition(organizationId, created._id);
-
   return new ProcessDefinition(created).toJSON();
+}
+
+// Deactivation removes one definition from the additive active set: state
+// returns to DRAFT (editable, re-activatable) and the runtime contract
+// re-derives from the remaining actives.
+export async function deactivate(id, auth) {
+  const process = await loadAuthorized(id, auth, 'admin');
+  if (process.states?.main !== 'ACTIVE') {
+    throw createError({ statusCode: 409, message: 'Only active process definitions can be deactivated' });
+  }
+  applyProcessState(process, 'DRAFT', auth.userId, 'Process deactivated');
+  const updated = await repository.updateById(id, process);
+  await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
+  publishOrgContractChanged(String(process.lineage.organizationId), 'process', { definitionId: String(updated._id) });
+  return new ProcessDefinition(updated).toJSON();
+}
+
+export async function remove(id, auth) {
+  const process = await loadAuthorized(id, auth, 'admin');
+  await repository.removeById(id);
+  if (process.states?.main === 'ACTIVE') {
+    await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
+    publishOrgContractChanged(String(process.lineage.organizationId), 'process', { definitionId: String(id) });
+  }
+  return { removed: true };
 }
 
 export async function archive(id, auth) {
@@ -688,9 +740,7 @@ export async function projectEntityThroughSocket({ socketId, instanceId, targetO
   if (!socketId) throw createError({ statusCode: 400, message: 'Socket id is required' });
   if (!instanceId) throw createError({ statusCode: 400, message: 'Entity id is required' });
 
-  const raw = await repository.findActiveByOrganization(organizationId);
-  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
-  const process = new ProcessDefinition(raw);
+  const process = await loadActiveSetProcess(auth);
   const socket = process.data.sockets?.[socketId];
   if (!socket) throw createError({ statusCode: 404, message: 'Socket not found in active process' });
   if (socket.direction === 'inbound') {
@@ -726,10 +776,7 @@ export async function projectEntityThroughSocket({ socketId, instanceId, targetO
 export async function executeActiveProcessAction({ actionId, instanceId, data = {}, parameters = {}, entities = {}, targetOrganizationId = null } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   if (!actionId) throw createError({ statusCode: 400, message: 'Action id is required' });
-  const raw = await repository.findActiveByOrganization(organizationId);
-  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
-
-  const process = new ProcessDefinition(raw);
+  const process = await loadActiveSetProcess(auth);
   const organization = await loadOrganizationProcessConfiguration(organizationId);
   const compiled = await compileActiveProcessRuntime(process.data, organization.roles, organizationId);
   const action = compiled?.actions?.[actionId];
@@ -1979,7 +2026,7 @@ async function loadOrganizationRoles(organizationId) {
 
 function organizationProcessService() {
   const service = getAppRegistry().getInstanceService('organization');
-  if (!service?.getProcessConfiguration || !service?.setActiveProcessDefinition) {
+  if (!service?.getProcessConfiguration) {
     throw createError({ statusCode: 500, message: 'Organization process service is not registered' });
   }
   return service;

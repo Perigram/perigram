@@ -147,20 +147,8 @@ export async function getProcessConfiguration(organizationId) {
   if (!raw) return null;
   return {
     roles: structuredClone(raw.data?.roles || {}),
-    roleAssignments: structuredClone(raw.data?.roleAssignments || {}),
-    activeProcessDefinitionId: raw.data?.activeProcessDefinitionId || null
+    roleAssignments: structuredClone(raw.data?.roleAssignments || {})
   };
-}
-
-export async function setActiveProcessDefinition(organizationId, processDefinitionId) {
-  const raw = await repository.findById(organizationId);
-  if (!raw) throw createError({ statusCode: 404, message: 'Organization not found' });
-  await repository.updateById(organizationId, {
-    data: {
-      ...(raw.data || {}),
-      activeProcessDefinitionId: processDefinitionId
-    }
-  });
 }
 
 export async function listRoles(organizationId, auth = {}) {
