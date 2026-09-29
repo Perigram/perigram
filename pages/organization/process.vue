@@ -627,7 +627,7 @@ import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
 import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
 import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
-import { arrangeProcessGraph } from '~/utils/processDesignerArrangement.js';
+import { arrangeProcessGraph, settleLaneGeometry } from '~/utils/processDesignerArrangement.js';
 import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
@@ -1050,11 +1050,12 @@ const LANE_ROW_INSET = 24;
 const LANE_MIN_HEIGHT = 150;
 // lg operation card width (DesignerNodeCard `w-72`) — the corridor column.
 const LANE_CORRIDOR_WIDTH = 288;
-// The arranged (content-hugging) band geometry Tidy produced — adopted for
-// rendering while it matches the current band set; the count-based sizes
-// below are the fallback before any arrangement or after membership
-// changes. Membership itself always re-derives from grants.
+// The arranged (content-wrapped) band geometry and node→band assignment
+// the settle pass produced. Bands wrap their nodes and recalculate on the
+// fly (node UI contract "Lanes"); the count-based sizes below are only
+// the pre-settle paint. Membership itself always re-derives from grants.
 const arrangedBands = ref(null);
+const arrangedAssignment = ref(null);
 
 function isEffectNode(node) {
   const record = draft.value?.data?.processNodes?.[node.data?.refId];
@@ -1074,10 +1075,10 @@ function effectPrimaryRoleId(node) {
   return record?.access?.grants?.[0]?.roleId || null;
 }
 
-// Band geometry: heights floor at the arranged (Tidy) height AND the
-// live extent of the member effects, so bands always embrace their
-// cards — drops and drags included — without a re-tidy. Membership
-// reads grants only.
+// Band geometry: the settle pass owns it (bands wrap their nodes);
+// laneModel renders the settled geometry when it matches the band set,
+// with count-based sizes only for the pre-settle paint. Membership reads
+// grants only.
 const laneModel = computed(() => {
   const roleIds = Object.keys(organizationRoles.value);
   const byPrimary = new Map(roleIds.map(roleId => [roleId, []]));
@@ -1088,23 +1089,15 @@ const laneModel = computed(() => {
     if (roleId && byPrimary.has(roleId)) byPrimary.get(roleId).push(node.id);
     else unassigned.push(node.id);
   }
-  const arrangedHeight = new Map((arrangedBands.value || []).map(band => [band.id, band.height]));
-  const positionOf = new Map(nodes.value.map(node => [node.id, node.position || { x: 0, y: 0 }]));
-  const memberExtent = memberIds => {
-    const tops = memberIds.map(id => positionOf.get(id)?.y).filter(Number.isFinite);
-    if (!tops.length) return 0;
-    const bottoms = memberIds.map(id => (positionOf.get(id)?.y || 0) + LANE_ROW_HEIGHT - LANE_ROW_INSET);
-    return Math.max(...bottoms) - Math.min(...tops) + 2 * LANE_ROW_INSET;
-  };  const bands = [];
+  const bands = [];
   let top = 0;
   for (const roleId of roleIds) {
-    const members = byPrimary.get(roleId) || [];
     bands.push({
       id: `role:${roleId}`,
       kind: 'role',
       label: organizationRoles.value[roleId]?.label || '',
       top,
-      height: Math.max(LANE_MIN_HEIGHT, arrangedHeight.get(`role:${roleId}`) || 0, memberExtent(members))
+      height: Math.max(LANE_MIN_HEIGHT, (byPrimary.get(roleId) || []).length * LANE_ROW_HEIGHT)
     });
     top += bands[bands.length - 1].height;
   }
@@ -1114,9 +1107,17 @@ const laneModel = computed(() => {
       kind: 'role',
       label: '',
       top,
-      height: Math.max(LANE_MIN_HEIGHT, arrangedHeight.get('unassigned') || 0, memberExtent(unassigned))
+      height: Math.max(LANE_MIN_HEIGHT, unassigned.length * LANE_ROW_HEIGHT)
     });
     top += bands[bands.length - 1].height;
+  }
+  const arranged = arrangedBands.value;
+  if (arranged && arranged.map(band => band.id).join('|') === bands.map(band => band.id).join('|')) {
+    bands.forEach((band, index) => {
+      band.top = arranged[index].top;
+      band.height = arranged[index].height;
+    });
+    top = bands.length ? bands[bands.length - 1].top + bands[bands.length - 1].height : 0;
   }
   return { bands, byPrimary, unassigned, totalHeight: top };
 });
@@ -1159,32 +1160,86 @@ const laneExtent = computed(() => {
 
 // Placement writes the grant (node UI contract "Lanes"): dropping an
 // effect in a role lane assigns that role; dropping it in the implicit
-// lane clears its grants, and the card slots into that lane's free row
-// nearest the drop (the one automatic placement — stored positions are
-// otherwise authoritative). The lane IS the assignment — the inspector
+// lane clears its grants. The card lands where it fell — the settle pass
+// wraps the lane around it. The lane IS the assignment — the inspector
 // keeps only per-grant levels.
 function onNodeDragStop({ node } = {}) {
-  if (!node || node.type !== 'processNode' || !isEffectNode(node)) return;
-  // Band membership reads the node's CENTER: position is the top-left
-  // corner, so a node grabbed high lands its corner in the band above
-  // the one the author dropped it in.
-  const centerY = node.position.y + (node.dimensions?.height || 140) / 2;
-  const band = laneModel.value.bands.find(candidate => (
-    candidate.kind === 'role' && centerY >= candidate.top && centerY < candidate.top + candidate.height
-  ));
-  if (!band) return;
-  const roleId = band.id === 'unassigned' ? null : band.id.slice('role:'.length);
-  const record = draft.value?.data?.processNodes?.[node.data?.refId];
-  if (!record) return;
-  const previous = record.access?.grants || [];
-  if ((previous[0]?.roleId || null) === roleId) return;
-  const level = (roleId && previous.find(grant => grant.roleId === roleId)?.level) || record.access?.level || 'write';
-  record.access = normalizeDesignerAccess(
-    roleId ? { level, grants: [{ roleId, level }] } : { level: 'write', grants: [] }
-  );
-  slotIntoLane(node, band);
-  syncNodeData();
+  if (node && node.type === 'processNode' && isEffectNode(node)) {
+    // Band membership reads the node's CENTER: position is the top-left
+    // corner, so a node grabbed high lands its corner in the band above
+    // the one the author dropped it in.
+    const centerY = node.position.y + (node.dimensions?.height || 140) / 2;
+    const band = laneModel.value.bands.find(candidate => (
+      candidate.kind === 'role' && centerY >= candidate.top && centerY < candidate.top + candidate.height
+    ));
+    if (band) {
+      const roleId = band.id === 'unassigned' ? null : band.id.slice('role:'.length);
+      const record = draft.value?.data?.processNodes?.[node.data?.refId];
+      const previous = record?.access?.grants || [];
+      if (record && (previous[0]?.roleId || null) !== roleId) {
+        const level = (roleId && previous.find(grant => grant.roleId === roleId)?.level) || record.access?.level || 'write';
+        record.access = normalizeDesignerAccess(
+          roleId ? { level, grants: [{ roleId, level }] } : { level: 'write', grants: [] }
+        );
+        slotIntoLane(node, band);
+        syncNodeData();
+      }
+    }
+  }
+  settleLanes();
 }
+
+// The settle pass (node UI contract "Lanes"): lane bounds wrap their
+// nodes, recalculated on the fly. Each band's content seats at its top
+// through one uniform shift — relative order inside a lane is never
+// touched — and the bands stack in role order. Runs on load (through the
+// signature watch), after every drag-stop, drop, add, delete, and Tidy.
+function settleLanes() {
+  for (let iteration = 0; iteration < 3; iteration += 1) {
+    const { bands } = laneModel.value;
+    if (!bands.length) return;
+    const bandOfNode = new Map();
+    for (const node of nodes.value) {
+      if (node.type === 'processNode' && isEffectNode(node)) {
+        const band = laneOfEffect(node);
+        if (band) bandOfNode.set(node.id, band);
+        continue;
+      }
+      const remembered = arrangedAssignment.value?.get(node.id);
+      const band = (remembered && bands.find(candidate => candidate.id === remembered))
+        || (() => {
+          const centerY = (node.position?.y || 0) + (node.dimensions?.height || 140) / 2;
+          return bands.find(candidate => centerY >= candidate.top && centerY < candidate.top + candidate.height)
+            || bands[bands.length - 1];
+        })();
+      bandOfNode.set(node.id, band);
+    }
+    const { bands: geometry, shifts } = settleLaneGeometry({ nodes: nodes.value, bands, bandOfNodeId: bandOfNode });
+    let moved = false;
+    nodes.value = nodes.value.map(node => {
+      const band = bandOfNode.get(node.id);
+      const shift = band ? (shifts.get(band.id) || 0) : 0;
+      if (!shift) return node;
+      moved = true;
+      return { ...node, position: { x: node.position.x, y: node.position.y + shift } };
+    });
+    arrangedBands.value = geometry;
+    arrangedAssignment.value = bandOfNode;
+    if (!moved) break;
+  }
+}
+
+// Settle whenever the shape that feeds it changes: roles, grants, and the
+// node population (adds and deletes) — position drags settle explicitly
+// at drag-stop.
+const laneSettleSignature = computed(() => JSON.stringify({
+  roles: Object.keys(organizationRoles.value),
+  shape: nodes.value.map(node => [
+    node.id,
+    node.type === 'processNode' && isEffectNode(node) ? effectPrimaryRoleId(node) : null
+  ])
+}));
+watch(laneSettleSignature, () => settleLanes());
 
 // The band an effect belongs to by grants (laneModel's membership
 // semantics: a stale role id falls to the unassigned band).
@@ -1195,11 +1250,10 @@ function laneOfEffect(node) {
   return bands.find(candidate => candidate.id === bandId) || null;
 }
 
-// Slot the dropped card into the lane it now belongs to: the free band
-// row nearest the drop y, keeping the drop x and clamped inside the lane
-// — a card never crosses a divider. Cards already in the lane keep their
-// positions; a crowded lane clamps the card to the band interior at the
-// drop point.
+// Slot the dropped card to the lane's free row nearest the drop — only
+// when the drop landed inside the lane's current span. A drop below (or
+// above) the content stays exactly where it fell: the settle pass wraps
+// the lane around it.
 function slotIntoLane(node, band) {
   const members = nodes.value.filter(candidate => (
     candidate.id !== node.id
@@ -1212,22 +1266,15 @@ function slotIntoLane(node, band) {
     return { top, bottom: top + (member.dimensions?.height || 140) };
   });
   const cardHeight = node.dimensions?.height || 140;
-  const minY = band.top + 24;
-  const maxY = Math.max(minY, band.top + band.height - 24 - cardHeight);
+  const droppedY = node.position.y;
+  const insideSpan = droppedY >= band.top && droppedY <= band.top + band.height - cardHeight;
+  if (!insideSpan) return;
   const free = [];
   for (let index = 0; index <= members.length; index += 1) {
-    const y = band.top + 24 + index * LANE_ROW_HEIGHT;
-    if (y < minY || y > maxY) continue;
+    const y = band.top + LANE_ROW_INSET + index * LANE_ROW_HEIGHT;
     if (occupied.every(range => y + cardHeight <= range.top || y >= range.bottom)) free.push(y);
   }
-  const droppedY = node.position.y;
-  if (!free.length) {
-    const y = Math.min(maxY, Math.max(minY, droppedY));
-    nodes.value = nodes.value.map(candidate => (
-      candidate.id === node.id ? { ...candidate, position: { x: candidate.position.x, y } } : candidate
-    ));
-    return;
-  }
+  if (!free.length) return;
   const y = free.reduce((nearest, candidate) => (
     Math.abs(candidate - droppedY) < Math.abs(nearest - droppedY) ? candidate : nearest
   ), free[0]);
@@ -1266,18 +1313,18 @@ function tidyCanvas() {
   const effectIds = new Set(nodes.value
     .filter(node => node.type === 'processNode' && isEffectNode(node))
     .map(node => node.id));
-  const { positions, bands: geometry } = arrangeProcessGraph({
+  const { positions } = arrangeProcessGraph({
     nodes: nodes.value,
     edges: edges.value,
     effectIds,
     bands,
     bandOfNodeId
   });
-  arrangedBands.value = geometry;
   if (!positions.size) return;
   nodes.value = nodes.value.map(node => (
     positions.has(node.id) ? { ...node, position: positions.get(node.id) } : node
   ));
+  settleLanes();
   frameAllNodes();
 }
 
@@ -1846,6 +1893,9 @@ function setDraft(value) {
   selectedRoleId.value = Object.keys(organizationRoles.value)[0] || null;
   selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
+  // Seat lanes before the dirty baseline: a load must not mark the draft
+  // dirty just because bands wrapped their content.
+  settleLanes();
   savedDraftSignature.value = designerSignature();
   nextTick(fitInitialCanvas);
   recomputeProcessPreview();
