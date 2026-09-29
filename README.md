@@ -146,23 +146,17 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
   perigram-network`) and run `docker compose -f docker-compose.dev.yml up -d
   app` to migrate the services onto it; mongo keeps its named volume across
   the recreate.
-Agent session worktrees are nested under `.agent-worktrees/` in the project
-root; the Nuxt/Vite and Nitro dev watchers ignore that tree (`nuxt.config.js`
-watch ignores — a path predicate, because chokidar v4 leaks glob-ignored
-nested file events), because worktree `tsconfig.json` checkouts otherwise
-trip Vite's "changed tsconfig file detected" cache-clear/full-reload loop;
-the reload storm then stalls the vite-node SSR module bridge past its 60s
-timeout and surfaces as `500: Request timeout for 60000ms for type:
-module` for anyone testing against the dev server while an agent session
-runs. The per-environment dev watcher ignores (`vite.environments.*`) are
-attached only when the config is evaluated for development: a user-level
-`environments` object present during a production build deroutes the vite 7
-SSR environment's build output (the server bundle and its style sidecars
-land next to the client chunks, and nitro fails with `Could not load
-.nuxt/dist/server/server.mjs`/`styles.mjs`). This broke the first
-production build after the dev-watch fix landed (2026-09-27 `staging`
-deploy) because nothing between the two had run a production build — dev
-and the guards never exercise the SSR bundle emit.
+Agent session worktrees are nested under `.agent-worktrees/` (plus scratch
+dirs `.agent-wt*`) in the project root. Nuxt scanning and the dev watchers
+ignore that tree via a path predicate in `nuxt.config.js`: chokidar v4
+leaks glob-ignored nested file events, and worktree `tsconfig.json`
+checkouts would otherwise trip Vite's tsconfig reload loop and stall the
+vite-node SSR module bridge past its request timeout. The per-environment
+`vite.environments.*` watcher ignores are attached only in development —
+a user-level `environments` object in a production build deroutes the
+vite 7 SSR build output, and nitro fails with `Could not load
+.nuxt/dist/server/server.mjs`. Run a production build when touching this
+config; dev and the guards do not exercise the SSR bundle emit.
 Server-side `xlsx` imports target the package's ESM build
 (`import … from 'xlsx/xlsx.mjs'`): the CJS main carries an
 `export `-leading prose comment that nitro's import-validity check
