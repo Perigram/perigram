@@ -628,6 +628,7 @@ import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPor
 import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
 import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
 import { arrangeProcessGraph, settleLaneGeometry } from '~/utils/processDesignerArrangement.js';
+import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
 import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
@@ -1062,20 +1063,20 @@ function isEffectNode(node) {
   return Boolean(record) && String(operationKindOf(record) || '').startsWith('effect.');
 }
 
-// The lane population: every effect except the remove (delete) operation
-// — a maintenance verb with no role story (node UI contract "Lanes").
-function isLaneEffectNode(node) {
-  if (!isEffectNode(node)) return false;
+function nodeOperationKind(node) {
   const record = draft.value?.data?.processNodes?.[node.data?.refId];
-  return operationKindOf(record) !== 'effect.deleteEntity';
+  return record ? operationKindOf(record) : '';
 }
 
 // The visibility grouping (node UI contract "Lanes"): effects and state
-// declarations are primary and always visible; classes, fields, type
-// references, and every non-effect process node are secondary.
+// declarations are primary; classes, fields, type references, non-effect
+// process nodes, and the remove operation (presentation-secondary — the
+// one predicate in utils/processDesignerPopulation.js) are secondary and
+// hide in the clean view.
 function isSecondaryNode(node) {
   if (DECLARATION_NODE_TYPES.includes(node.type)) return node.type !== 'ctsState';
-  return node.type === 'processNode' && !isLaneEffectNode(node);
+  return node.type === 'processNode'
+    && (!isEffectNode(node) || isSecondaryPopulationKind(nodeOperationKind(node)));
 }
 
 function effectPrimaryRoleId(node) {
@@ -1092,7 +1093,7 @@ const laneModel = computed(() => {
   const byPrimary = new Map(roleIds.map(roleId => [roleId, []]));
   const unassigned = [];
   for (const node of nodes.value) {
-    if (node.type !== 'processNode' || !isLaneEffectNode(node)) continue;
+    if (node.type !== 'processNode' || !isEffectNode(node)) continue;
     const roleId = effectPrimaryRoleId(node);
     if (roleId && byPrimary.has(roleId)) byPrimary.get(roleId).push(node.id);
     else unassigned.push(node.id);
@@ -1139,7 +1140,7 @@ const laneCorridors = computed(() => {
   const roleBands = laneModel.value.bands;
   const corridors = [];
   for (const node of nodes.value) {
-    if (node.type !== 'processNode' || !isLaneEffectNode(node)) continue;
+    if (node.type !== 'processNode' || !isEffectNode(node)) continue;
     const grants = draft.value?.data?.processNodes?.[node.data?.refId]?.access?.grants || [];
     const grantedBands = grants
       .map(grant => roleBands.find(band => band.id === `role:${grant.roleId}`))
@@ -1172,7 +1173,7 @@ const laneExtent = computed(() => {
 // wraps the lane around it. The lane IS the assignment — the inspector
 // keeps only per-grant levels.
 function onNodeDragStop({ node } = {}) {
-  if (node && node.type === 'processNode' && isLaneEffectNode(node)) {
+  if (node && node.type === 'processNode' && isEffectNode(node)) {
     // Band membership reads the node's CENTER: position is the top-left
     // corner, so a node grabbed high lands its corner in the band above
     // the one the author dropped it in.
@@ -1208,7 +1209,7 @@ function settleLanes() {
     if (!bands.length) return;
     const bandOfNode = new Map();
     for (const node of nodes.value) {
-      if (node.type === 'processNode' && isLaneEffectNode(node)) {
+      if (node.type === 'processNode' && isEffectNode(node)) {
         const band = laneOfEffect(node);
         if (band) bandOfNode.set(node.id, band);
         continue;
@@ -1244,7 +1245,7 @@ const laneSettleSignature = computed(() => JSON.stringify({
   roles: Object.keys(organizationRoles.value),
   shape: nodes.value.map(node => [
     node.id,
-    node.type === 'processNode' && isLaneEffectNode(node) ? effectPrimaryRoleId(node) : null
+    node.type === 'processNode' && isEffectNode(node) ? effectPrimaryRoleId(node) : null
   ])
 }));
 watch(laneSettleSignature, () => settleLanes());
@@ -1266,7 +1267,7 @@ function slotIntoLane(node, band) {
   const members = nodes.value.filter(candidate => (
     candidate.id !== node.id
     && candidate.type === 'processNode'
-    && isLaneEffectNode(candidate)
+    && isEffectNode(candidate)
     && laneOfEffect(candidate) === band
   ));
   const occupied = members.map(member => {
@@ -1319,7 +1320,7 @@ function tidyCanvas() {
   const unassignedBand = bands.find(candidate => candidate.id === 'unassigned');
   if (unassignedBand) for (const id of unassigned) bandOfNodeId.set(id, unassignedBand);
   const effectIds = new Set(nodes.value
-    .filter(node => node.type === 'processNode' && isLaneEffectNode(node))
+    .filter(node => node.type === 'processNode' && isEffectNode(node))
     .map(node => node.id));
   const { positions } = arrangeProcessGraph({
     nodes: nodes.value,

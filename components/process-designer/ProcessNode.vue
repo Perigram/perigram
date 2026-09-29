@@ -98,6 +98,7 @@
 
 <script setup>
 import { operationKindOf } from '~/packages/cts/src/index.js';
+import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
 
 import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
@@ -118,10 +119,13 @@ const { t } = useI18n();
 
 const record = computed(() => props.data.processNodeRecord || props.data);
 const opKind = computed(() => operationKindOf(record.value || {}));
-// Population primacy (node UI contract): operations (the effect species)
-// are the primary nodes and render the strong-ink border; every other
+// Population primacy (node UI contract): operations are the primary
+// nodes and render the primary-tinted surface — except the remove
+// operation, which is presentation-secondary (the one predicate in
+// utils/processDesignerPopulation.js).
 // species is secondary surface.
-const isOperation = computed(() => String(opKind.value || '').startsWith('effect.'));
+const isOperation = computed(() => String(opKind.value || '').startsWith('effect.')
+  && !isSecondaryPopulationKind(opKind.value));
 const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || []));
 const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || []));
 const dataInputs = computed(() => inputSpecs.value.filter(input => input.role === 'data'));
