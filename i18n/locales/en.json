@@ -2581,7 +2581,6 @@
     "resetZoom": "Reset zoom",
     "hideSecondary": "Hide secondary",
     "definitions": "Definitions",
-    "activate": "Activate",
     "activeSet": "active",
     "versions": "Versions",
     "tidy": "Tidy graph",
@@ -2683,7 +2682,7 @@
       "service": "Run",
       "status": "Status",
       "literal": "Literal",
-      "literalList": "Literal list",
+      "literalList": "List literal",
       "cast": "Cast",
       "fallback": "Fallback",
       "listLength": "List length",
@@ -2814,7 +2813,8 @@
       "recordField": "Reads one authored key off a record value.",
       "joinByKey": "Pairs items of two lists by matching key paths; every left key must match, output pairs carry the left and right items.",
       "extractProjection": "Runs the bound type's declared projection (table rows, baked geometry) — the payload-to-value gate.",
-      "constructRecord": "Composes a record from field values; lists align item by item."
+      "constructRecord": "Composes a record from field values; lists align item by item.",
+      "literalList": "An authored list of typed values — one item per element of the composed data."
     },
     "dataTypes": {
       "string": "Text",
@@ -3280,7 +3280,13 @@
     "typeMigrationSetEmpty": "Set empty",
     "typeMigrationNoTargetStates": "No retained states to migrate to",
     "typeMigrationRemove": "Remove",
-    "typeMigrationBlocked": "No migration step can cover this change"
+    "typeMigrationBlocked": "No migration step can cover this change",
+    "joinLeftKey": "Left key",
+    "joinRightKey": "Right key",
+    "recordFieldPath": "Key",
+    "recordOutputType": "Output type",
+    "recordFields": "Fields",
+    "addRecordField": "Add field"
   },
   "generatedScreen": {
     "home": "Home",

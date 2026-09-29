@@ -652,6 +652,7 @@ import {
   declarationWireLegality,
   definitionToCanvas,
   isProcessDataHandle,
+  normalizeDesignerAccess,
   parseProcessSocketHandleId,
   prepareAuthoredDefinition,
   processSocketsCompatible,
@@ -676,7 +677,6 @@ import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
 import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
-import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
 import { arrangeProcessGraph, settleLaneGeometry } from '~/utils/processDesignerArrangement.js';
 import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
 import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
@@ -2099,6 +2099,9 @@ function addNode(item, position = nextNodePosition()) {
     selected: true,
     data: { refId, label: refId }
   };
+  // The loop item authors the loop PAIR: the closer is loop vocabulary,
+  // not an independent authoring choice, so it lands beside its loop.
+  const pairedKind = processNodeKind === 'control.forEach' ? 'control.forEachEnd' : null;
   if (DECLARATION_NODE_TYPES.includes(type)) {
     // Declaration-plane canvas nodes own `ctsTypes` records — they ARE the
     // type vocabulary, composed in the same tree (SPEC §20/§21), persisted
@@ -2139,13 +2142,32 @@ function addNode(item, position = nextNodePosition()) {
     Object.assign(record, clonePalettePreset(item.preset));
     syncProcessNode(record);
   }
+  let pairedNode = null;
+  if (type === 'processNode' && pairedKind) {
+    const pairedId = mintId('processNode');
+    pairedNode = {
+      id: pairedId,
+      type,
+      position: { x: position.x + 60, y: position.y + 220 },
+      selected: false,
+      data: { refId: pairedId, label: pairedId }
+    };
+    const pairedRecord = ensureRecord(recordKeyForType(type), { data: { refId: pairedId }, type }, factoryForType(type));
+    Object.assign(pairedRecord, createProcessNode(pairedId, pairedKind));
+    syncProcessNode(pairedRecord);
+    if (secondaryHidden.value && isSecondaryNode(pairedNode)) pairedNode.hidden = true;
+  }
   // A secondary node (reads, values, control — and the remove operation)
   // authored while the secondary group is hidden stays hidden with its
   // group.
   if (secondaryHidden.value && isSecondaryNode(node)) {
     node.hidden = true;
   }
-  nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), enrichNodeData(node)];
+  nodes.value = [
+    ...nodes.value.map(item => ({ ...item, selected: false })),
+    enrichNodeData(node),
+    ...(pairedNode ? [enrichNodeData(pairedNode)] : [])
+  ];
   edges.value = edges.value.map(edge => decorateEdge({ ...edge, selected: false }));
   selectedNodeId.value = id;
   selectedEdgeId.value = null;

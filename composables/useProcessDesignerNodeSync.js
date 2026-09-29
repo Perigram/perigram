@@ -2,31 +2,20 @@ import { computed } from 'vue';
 import { operationKindOf, typeIdOf, setTypeBinding } from '~/packages/cts/src/index.js';
 import {
   constructionInputsForContract,
+  createProcessRecordSync,
   formatProcessType,
   getProcessNodeDefinition,
+  humanizeNodeLabel,
   parseProcessSocketHandleId,
-  processSocketsCompatible,
-  processType,
-  resolveCatalogNodePorts,
-  syncProcessNodeProducerOutputs
+  processSocketsCompatible
 } from '~/packages/processes/src/index.js';
-import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
-import { defaultProcessNodeOperation, humanizeNodeLabel, iconForProcessNode } from './useProcessDesignerNodeRecords.js';
 
-// The node-sync family: record-level derivation for process nodes — kind
-// normalization, construction contracts, path/status defaults, port
-// resolution, labels, and option lists. The page remains the composition
-// root: the designer contract, i18n, the record factories, and the
-// projected-domain resolver are injected; every mutation flows back through
-// the page's single sync entry point (the live-graph pass calls these
-// functions; they never re-enter it).
-//
-// The vocabulary seam is @perigram/cts: `operationKindOf` maps species kinds
-// to their operation twins (one seam, no duplicated vocabulary) and
-// `typeIdOf`/`setTypeBinding` own the type binding (`typeId` for species
-// records, `typeId` for pure-algebra kinds).
-
-const MANAGED_PROCESS_BLOCKS = new Set(['origin', 'status', 'provenance', 'summary']);
+// The node-sync adapter: record-level derivation lives in the package
+// authoring seam (`createProcessRecordSync` — the same pipeline headless
+// authoring drives); this composable layers designer presentation over
+// it (i18n port labels, option lists, inspector summaries) and keeps the
+// page's single sync entry point. See the processes README "Headless
+// definition authoring".
 
 export function useProcessDesignerNodeSync({
   designer,
@@ -58,100 +47,6 @@ export function useProcessDesignerNodeSync({
     setTypeBinding(node, typeId);
   }
 
-  function v5Record(node = {}) {
-    if (String(node?.kind || '').startsWith('cts.')) return true;
-    if (node?.kind) return false;
-    return (draft.value?.data?.graphProtocol || draft.value?.graphProtocol) === 5;
-  }
-  function setNodeBlocks(node, blocks) {
-    if (v5Record(node)) node.slots = blocks;
-    else node.blocks = blocks;
-  }
-
-  function relationOptionsForEntity(typeId = '') {
-    return (designer.domain.relations || [])
-      .filter(relation => relation.ownerType === typeId)
-      .map(relation => ({
-        label: `${relation.key} · ${relation.targetType} · ${relation.cardinality}`,
-        value: relation.key
-      }));
-  }
-
-  // The bound type's declared projections (SPEC §8 p): the extract
-  // read's picker — what the type declares is what can be dereferenced.
-  function projectionOptionsForEntity(typeId = '') {
-    return Object.values(designer.domain.projectionContracts || {})
-      .filter(contract => contract.typeId === typeId)
-      .map(contract => ({ label: contract.label || contract.id, value: contract.id }));
-  }
-
-  function constructionContractForEntity(typeId) {
-    return designer.construction(typeId) || {};
-  }
-
-  function constructionInputsForMode(contract = {}, mode = '') {
-    // The shared derivation: mode inputs plus the construct-addressable
-    // lineage/relation edges (SPEC §6) — one home with the catalog ports.
-    return constructionInputsForContract(contract, mode);
-  }
-
-  function constructionModeOptions(typeId = '') {
-    return designer.createModes(typeId).map(value => ({ label: value, value }));
-  }
-
-  // The construct's accepted canonical blocks (record data consumed by
-  // compilation; the cts construct surface itself exposes row-field sockets).
-  function constructibleEntityBlocks(typeId = '') {
-    const fieldBlocks = designer.fieldsForEntity(typeId)
-      .filter(field => field.constructible !== false)
-      .map(field => field.block)
-      .filter(block => block && !MANAGED_PROCESS_BLOCKS.has(block));
-    const openBlocks = designer.blocksForEntity(typeId)
-      .map(block => block.id)
-      .filter(block => designer.blockComposition(block) && !MANAGED_PROCESS_BLOCKS.has(block));
-    return [...new Set([...fieldBlocks, ...openBlocks])];
-  }
-
-  function catalogPorts(record) {
-    // v5 cts records go to the catalog RAW: the cts() ports wrapper resolves
-    // the operation twin itself and owns the persistent type binding pin +
-    // the declaration-only construct contract (no block substrate).
-    // Pre-resolving here would bypass it.
-    return resolveCatalogNodePorts(record, catalogContext(record));
-  }
-
-  function catalogContext(node = {}) {
-    // cts.field resolves its field against the bound type; everything else
-    // resolves entity fields by its own binding when present. The field
-    // fact is the socket channel: wire, else authored default.
-    const bound = nodeTypeId(node);
-    const fields = node.kind === 'cts.field' || bound
-      ? designer.fieldsForEntity(bound)
-      : [];
-    return {
-      fieldSchema: fields.find(field => field.path === (node.inputDefaults?.field || node.path)) || null,
-      fieldSchemas: fields,
-      command: designer.domain.commands?.[node.commandId] || null,
-      domain: projectedDomain()
-    };
-  }
-
-  function processNodeInputs(node = {}) {
-    return catalogPorts(node).inputs
-      .map(port => ({ ...port, label: processPortLabel(node, port) }));
-  }
-
-  function processNodeOutputs(node = {}) {
-    return catalogPorts(node).outputs
-      .map(port => ({ ...port, label: processPortLabel(node, port) }));
-  }
-
-  function processSocketLabel(value = '') {
-    const normalized = String(value).replace(/\s+/g, '');
-    const key = `processDesigner.socketLabels.${normalized}`;
-    return te(key) ? t(key) : humanizeNodeLabel(value);
-  }
-
   function processPortLabel(node = {}, port = {}) {
     const field = designer.fieldsForEntity(nodeTypeId(node)).find(candidate => candidate.value === port.id);
     if (field) return field.i18n ? t(field.i18n) : field.label;
@@ -172,16 +67,55 @@ export function useProcessDesignerNodeSync({
     return processSocketLabel(port.label || port.id);
   }
 
-  function connectedProcessInputIds(graphNode = {}, record = {}) {
-    const inputs = catalogPorts(record).inputs;
-    return edges.value
-      .filter(edge => edge.target === graphNode.id)
-      .map(edge => {
-        const clean = parseProcessSocketHandleId(edge.targetHandle);
-        if ((!clean || clean === 'input') && inputs.length === 1) return inputs[0].id;
-        return clean;
-      })
-      .filter(Boolean);
+  const recordSync = createProcessRecordSync({
+    contract: designer,
+    defaultEntityTypeId: defaultTypeId,
+    portLabel: processPortLabel
+  });
+  const catalogPorts = recordSync.catalogPorts;
+  const catalogContext = recordSync.catalogContext;
+
+  function processSocketLabel(value = '') {
+    const normalized = String(value).replace(/\s+/g, '');
+    const key = `processDesigner.socketLabels.${normalized}`;
+    return te(key) ? t(key) : humanizeNodeLabel(value);
+  }
+
+  function processNodeInputs(node = {}) {
+    return catalogPorts(node).inputs
+      .map(port => ({ ...port, label: processPortLabel(node, port) }));
+  }
+
+  function processNodeOutputs(node = {}) {
+    return catalogPorts(node).outputs
+      .map(port => ({ ...port, label: processPortLabel(node, port) }));
+  }
+
+  function relationOptionsForEntity(typeId = '') {
+    return recordSync.relationKeysForEntity(typeId).map(relation => ({
+      label: `${relation.key} · ${relation.targetType} · ${relation.cardinality}`,
+      value: relation.key
+    }));
+  }
+
+  // The bound type's declared projections (SPEC §8 p): the extract
+  // read's picker — what the type declares is what can be dereferenced.
+  function projectionOptionsForEntity(typeId = '') {
+    return Object.values(designer.domain.projectionContracts || {})
+      .filter(contract => contract.typeId === typeId)
+      .map(contract => ({ label: contract.label || contract.id, value: contract.id }));
+  }
+
+  function constructionContractForEntity(typeId) {
+    return designer.construction(typeId) || {};
+  }
+
+  function constructionInputsForMode(contract = {}, mode = '') {
+    return constructionInputsForContract(contract, mode);
+  }
+
+  function constructionModeOptions(typeId = '') {
+    return designer.createModes(typeId).map(value => ({ label: value, value }));
   }
 
   function processNodeOperationOptions(kind = '') {
@@ -192,9 +126,6 @@ export function useProcessDesignerNodeSync({
     const operations = processNodeOperations[record.kind] || [];
     return operations.map(value => ({ label: processNodeOperationLabels[value] || value, value }));
   }
-
-  // The field projection's field arrives by wire or authored default
-  // (SPEC §20 socket algebra): no pre-defined per-type list, no dropdown.
 
   // The one recursive walk over the bound type's projected lifecycle: every
   // declared state path (nested paths dotted) with its region axis. It backs
@@ -243,12 +174,9 @@ export function useProcessDesignerNodeSync({
   }
 
   function processNodeDisplayLabel(node = {}) {
-    // `record.label` is the kind sentinel (syncProcessNode keeps
+    // `record.label` is the kind sentinel (the sync pass keeps
     // `label === kind`), not authored display data — the palette item and
     // the node definition are the only label sources.
-    // The bound type decides the catalog item: a bare species record must
-    // not borrow the first catalog entry's label (the type catalog leads
-    // the palette, so items[0] is always a pre-bound variant).
     const boundType = nodeTypeId(node);
     const items = designer.paletteGroups.flatMap(group => group.items)
       .filter(candidate => candidate.kind === node.kind)
@@ -292,93 +220,23 @@ export function useProcessDesignerNodeSync({
     else record.construction.inputs = [...(record.construction.inputs || []), input];
   }
 
-  function syncProcessNodeConstruction(node = {}) {
-    const contract = constructionContractForEntity(nodeTypeId(node));
-    const modes = contract.modes?.length ? contract.modes : ['genericCreate'];
-    node.construction ||= {};
-    // Legacy draft records carried the authored mode as `via`; the sync
-    // pass adopts it as the one spelling and drops the stale key so the
-    // next save persists `construction.mode` only.
-    if (!node.construction.mode && node.via && modes.includes(node.via)) {
-      node.construction.mode = node.via;
-    }
-    if (node.via !== undefined) delete node.via;
-    if (!modes.includes(node.construction.mode)) {
-      node.construction.mode = contract.defaultMode && modes.includes(contract.defaultMode)
-        ? contract.defaultMode
-        : modes[0];
-    }
-    node.construction.inputs = constructionInputsForMode(contract, node.construction.mode)
-      .map(input => ({ ...input }));
-  }
-
-  // The one sync entry point for a process-node record. The steps run in a
-  // fixed order and later steps read what earlier ones normalized — the
-  // Item/List/Tree access string must land before effect grant
-  // normalization rewrites `access`, construction before the initial state,
-  // blocks/fields before port resolution — and every step is idempotent, so
-  // repeated passes converge instead of oscillating.
+  // The one sync entry point for a process-node record: the package
+  // pipeline over the draft data (defaults, envelopes, bindings, ports,
+  // producer outputs) — the same pass headless authoring runs.
   function syncProcessNode(node = {}) {
-    normalizeProcessNodeDefaults(node);
-    seedLiteralEntityBinding(node);
-    normalizeEffectEnvelope(node);
-    normalizeCreateEnvelope(node);
-    normalizeBindingDefaults(node);
-    resolveProcessNodePorts(node);
+    recordSync.syncProcessNode(node, { draftData: draft.value?.data || {} });
   }
 
-  function normalizeProcessNodeDefaults(node = {}) {
-    node.kind ||= 'source.literalItem';
-    const op = opKind(node);
-    const nativeSpecies = String(node.kind || '').startsWith('cts.');
-    if (nativeSpecies) {
-      // The species is the operation. Do not persist the old executable
-      // twin's switch or transport adapters beside a native record.
-      delete node.operation;
-      delete node.matching;
-      delete node.inputTransforms;
-      delete node.selectedProducerOutputId;
-      delete node.value;
-      delete node.fields;
-      if (typeof node.type === 'string') delete node.type;
-    } else if (op === 'collection.sort') {
-      node.direction = ['asc', 'desc'].includes(node.direction) ? node.direction : 'asc';
-      delete node.operation;
-    } else {
-      node.operation ||= defaultProcessNodeOperation(node.kind);
-    }
-    if (!nativeSpecies) {
-      node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
-    }
-    // Effect records carry grant objects in `access`; the Item/List/Tree
-    // socket-access string belongs to the pure value algebra only. Writing
-    // the string on an effect would spread it into `{"0":"i",…}` junk keys
-    // when normalizeDesignerAccess runs in the effect envelope below.
-    if (!op.startsWith('effect.')) {
-      node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
-    }
-    node.icon = iconForProcessNode(node.kind);
-    // Designer-owned junk keys, pruned on every pass (authored records
-    // never carry them; drafts written by older factories did). `cases`
-    // is NOT junk — the shared control-node contract reads it.
-    delete node.retry;
-    delete node.status;
-  }
-
-  // An entityRef literal needs a concrete entity type to be authorable:
-  // seed the first type when none is bound and keep the value's type
-  // aligned with the record binding.
-  function seedLiteralEntityBinding(node = {}) {
-    if (opKind(node) !== 'source.literalItem' || node.type?.base !== 'entityRef') return;
-    node.typeId ||= defaultTypeId();
-    node.type.typeId = node.typeId;
-    if (node.value?.id) node.value = { ...node.value, type: node.typeId };
-  }
-
-  function normalizeEffectEnvelope(node = {}) {
-    if (!opKind(node).startsWith('effect.')) return;
-    node.access = normalizeDesignerAccess(node.access);
-    node.entryTriggerId = node.id;
+  function connectedProcessInputIds(graphNode = {}, record = {}) {
+    const inputs = catalogPorts(record).inputs;
+    return edges.value
+      .filter(edge => edge.target === graphNode.id)
+      .map(edge => {
+        const clean = parseProcessSocketHandleId(edge.targetHandle);
+        if ((!clean || clean === 'input') && inputs.length === 1) return inputs[0].id;
+        return clean;
+      })
+      .filter(Boolean);
   }
 
   // Trigger mode is derived, never authored: the event input is always
@@ -389,59 +247,6 @@ export function useProcessDesignerNodeSync({
     if (!opKind(record).startsWith('effect.')) return;
     const connected = connectedProcessInputIds(graphNode, record);
     record.trigger = { mode: connected.includes('in') ? 'event' : 'manual' };
-  }
-
-  function normalizeCreateEnvelope(node = {}) {
-    const op = opKind(node);
-    if (['effect.createEntity', 'effect.runProducer'].includes(op)) {
-      syncProcessNodeConstruction(node);
-      // Lifecycle entry belongs to the CTS declaration. A construct keeps
-      // no status socket, state target, or block substrate in the authored
-      // species record.
-      if (String(node.kind || '').startsWith('cts.')) delete node.state;
-    }
-    if (op === 'effect.createEntity' && !String(node.kind || '').startsWith('cts.')) {
-      setNodeBlocks(node, constructibleEntityBlocks(nodeTypeId(node)));
-      node.fields = [];
-    }
-  }
-
-  function normalizeBindingDefaults(node = {}) {
-    if (node.kind === 'cts.field') {
-      // cts.field is a consumer, but its derived typeId is still part of the
-      // record's resolved field contract. Keep it in sync with the entity
-      // input; only the transient field schema snapshot is derived data.
-      if (!node.typeId && node.type?.typeId) node.typeId = node.type.typeId;
-      delete node.fieldSchemas;
-      delete node.fieldSchema;
-      const bound = nodeTypeId(node);
-      const available = bound
-        ? designer.fieldsForEntity(bound).filter(field => field.readable !== false)
-        : [];
-      if (!available.some(field => field.value === node.path)) node.path = available[0]?.value || '';
-    } else {
-      node.path = '';
-      delete node.fieldSchemas;
-      delete node.fieldSchema;
-    }
-    if (node.kind === 'cts.read' && node.select === 'related') {
-      const relations = relationOptionsForEntity(nodeTypeId(node));
-      if (!relations.some(relation => relation.value === node.relationKey)) node.relationKey = relations[0]?.value || '';
-    }
-  }
-
-  function resolveProcessNodePorts(node = {}) {
-    // `label` is the kind sentinel (display labels derive from the palette
-    // item / node definition, never from an authored record label).
-    node.label = node.kind;
-    node.inputs = processNodeInputs(node);
-    node.outputs = processNodeOutputs(node);
-    syncProcessNodeProducerOutputs(draft.value.data, node);
-    node.inputDefaults ||= {};
-    const inputIds = new Set(node.inputs.map(input => input.id));
-    for (const inputId of Object.keys(node.inputDefaults)) {
-      if (!inputIds.has(inputId)) delete node.inputDefaults[inputId];
-    }
   }
 
   // Pure port lookup shared by every consumer of handle-shaped ports.
