@@ -70,7 +70,9 @@ are recordable; org rooms have no conversation thread to record into.
   [support attachments](../support/README.md#message-attachments));
   `egress_failed` — and any import failure — marks the recording failed.
   Egress events also fan out as `call.activity` payloads, so open call
-  surfaces flip their recording state live.
+  surfaces flip their recording state live. After the message lands, the
+  org-configured [meetings pipeline](../meetings/README.md) may post a
+  protocol-driven summary of the recording into the same conversation.
 
 Recordings are not transcribed automatically: the deployed local STT is a
 single-speaker service and call audio is multi-speaker. Transcribing and

@@ -29,7 +29,7 @@ Support capabilities are documented and classified, but do not need empty
 | Kind | Modules |
 |---|---|
 | Entity modules | `artifact-templates`, `artifacts`, `instance-revisions`, `organizations`, `process-definitions`, `users` |
-| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `directory`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `notifications`, `partnerships`, `sessions`, `states`, `support`, `system-settings`, `transcription`, `workflow-overrides` |
+| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `directory`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `meetings`, `notifications`, `partnerships`, `sessions`, `states`, `support`, `system-settings`, `transcription`, `workflow-overrides` |
 
 This directory is framework-only: domain implementations (the facade
 fabrication domain — cassettes, nesting, sheet designs) live under their
