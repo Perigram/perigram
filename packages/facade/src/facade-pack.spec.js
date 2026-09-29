@@ -57,15 +57,12 @@ describe('facade pack value-service registrations', () => {
     const byId = Object.fromEntries(ports.inputs.map(port => [port.id, port]));
     expect(byId.items.required).toBe(true);
     expect(byId.items.access).toBe('list');
-    expect(byId.material.required).toBe(true);
+    expect(byId.sheetWidth.required).toBe(true);
+    expect(byId.sheetHeight.required).toBe(true);
     expect(byId.space.required).toBe(false);
     expect(byId.sheetCount.required).toBe(false);
-
-    const rows = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'orders.readRows' }, { domain });
-    expect(rows.outputs[1].access).toBe('list');
-
-    const items = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'nesting.items' }, { domain });
-    expect(items.inputs.find(port => port.id === 'designs').access).toBe('list');
-    expect(items.outputs[1].access).toBe('list');
+    // Purity (SPEC §8): the signature carries no ref inputs — the sheet
+    // arrives as values, geometry through the declared projection.
+    expect(ports.inputs.every(port => port.type.base !== 'entityRef')).toBe(true);
   });
 });

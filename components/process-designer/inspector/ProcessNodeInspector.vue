@@ -183,6 +183,10 @@
       <label>{{ $t('processDesigner.relation') }}</label>
       <Select v-model="record.relationKey" :options="relationOptionsFor(typeId)" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
+    <div v-if="record.kind === 'cts.read' && record.select === 'extract'" class="flex flex-col gap-1">
+      <label>{{ $t('processDesigner.projection') }}</label>
+      <Select v-model="record.projection" :options="projectionOptionsFor(typeId)" option-label="label" option-value="value" filter @change="$emit('sync')" />
+    </div>
   </div>
 </template>
 
@@ -214,6 +218,7 @@ const props = defineProps({
   // policy lists on the producer output select among them.
   fieldPolicyOptions: { type: Array, default: () => [] },
   relationOptionsFor: { type: Function, default: () => [] },
+  projectionOptionsFor: { type: Function, default: () => [] },
   typeIdOptions: { type: Array, default: () => [] },
   roleOptions: { type: Array, default: () => [] },
   commandOptions: { type: Array, default: () => [] },

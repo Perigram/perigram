@@ -77,6 +77,14 @@ export function useProcessDesignerNodeSync({
       }));
   }
 
+  // The bound type's declared projections (SPEC §8 p): the extract
+  // read's picker — what the type declares is what can be dereferenced.
+  function projectionOptionsForEntity(typeId = '') {
+    return Object.values(designer.domain.projectionContracts || {})
+      .filter(contract => contract.typeId === typeId)
+      .map(contract => ({ label: contract.label || contract.id, value: contract.id }));
+  }
+
   function constructionContractForEntity(typeId) {
     return designer.construction(typeId) || {};
   }
@@ -217,7 +225,7 @@ export function useProcessDesignerNodeSync({
     if (kind === 'effect.archiveEntity') return designer.archivableEntityOptions;
     if (kind === 'effect.deleteEntity') return designer.deleteEntityOptions;
     if (node.kind === 'cts.field') return designer.readableEntityOptions;
-    if (node.kind === 'cts.read' && ['all', 'children'].includes(node.select)) return designer.listableEntityOptions;
+    if (node.kind === 'cts.read' && ['all', 'children', 'extract'].includes(node.select)) return designer.listableEntityOptions;
     return designer.entityOptions;
   }
 
@@ -459,6 +467,7 @@ export function useProcessDesignerNodeSync({
     portForHandle,
     socketPairCompatible,
     relationOptionsForEntity,
+    projectionOptionsForEntity,
     constructionModeOptions,
     artifactCreationKinds,
     updateArtifactCreationKinds,

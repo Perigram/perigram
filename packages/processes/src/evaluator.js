@@ -6,7 +6,9 @@ import {
   flattenDataPacket,
   graftDataPacket,
   mapDataPacket,
+  mapDataPacketAsync,
   normalizeDataPacket,
+  normalizeDataTree,
   packetValue,
   selectDataBranch,
   simplifyDataPacket,
@@ -153,6 +155,39 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'collection.dispatch') return dispatchPackets(required(packets, 'items', record), required(packets, 'mask', record), context.outputId);
   if (kind === 'collection.groupBy') return groupByPackets(required(packets, 'items', record), required(packets, 'keys', record));
   if (kind === 'collection.filter') return filterPackets(required(packets, 'items', record), required(packets, 'mask', record));
+  if (kind === 'collection.join') {
+    // The relational brick: strict inner join of two value lists by
+    // authored key paths (readPath semantics — 'identity.name' walks the
+    // record). Left order is preserved; a left key with no right match
+    // fails the node listing every unmatched key — silent misalignment
+    // is worse than a loud stop.
+    if (!String(record.leftKey || '').trim() || !String(record.rightKey || '').trim()) {
+      throw new Error(`${record.id || kind} requires leftKey and rightKey paths`);
+    }
+    const left = packetValue(required(packets, 'left', record), 'list');
+    const right = packetValue(required(packets, 'right', record), 'list');
+    const rightByKey = new Map();
+    for (const item of right) {
+      const key = String(readPath(item, record.rightKey) ?? '');
+      if (!key) continue;
+      if (rightByKey.has(key)) {
+        throw new Error(`${record.id || kind}: right key ${key} matches more than one entry`);
+      }
+      rightByKey.set(key, item);
+    }
+    const unmatched = [];
+    const pairs = [];
+    for (const item of left) {
+      const key = String(readPath(item, record.leftKey) ?? '');
+      const matched = key ? rightByKey.get(key) : undefined;
+      if (!matched) unmatched.push(key || '(empty)');
+      else pairs.push({ left: item, right: matched });
+    }
+    if (unmatched.length) {
+      throw new Error(`${record.id || kind}: unmatched left keys ${unmatched.join(', ')}`);
+    }
+    return createDataPacket(pairs, 'list');
+  }
   if (kind === 'tree.flatten') return flattenDataPacket(required(packets, 'value', record));
   if (kind === 'tree.graft') return graftDataPacket(required(packets, 'value', record));
   if (kind === 'tree.simplify') return simplifyDataPacket(required(packets, 'value', record));
@@ -221,7 +256,19 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
       return initial;
     });
   }
-  if (kind === 'record.construct' || kind === 'record.entityDraft') return createDataPacket(constructRecord(record, packets));
+  if (kind === 'record.construct' || kind === 'record.entityDraft') {
+    // Compose per aligned tuple (SPEC §18): connected field sources
+    // align item-wise — a literal beside a list pairs with every item,
+    // lists align index-wise — one record per alignment, list output.
+    // Single-item sources compose the single record as before.
+    const paths = (record.fields || []).filter(path => packets[path]);
+    if (!paths.length) return createDataPacket(kind === 'record.entityDraft' ? {} : {});
+    return solveDataTrees(paths.map(path => ({ tree: packets[path], access: 'item' })), values => {
+      const composed = {};
+      for (let index = 0; index < paths.length; index += 1) writePath(composed, paths[index], values[index]);
+      return composed;
+    }, { matching: record.matching });
+  }
   if (kind === 'record.deconstruct') {
     for (const block of record.blocks || []) assertDeclaredBlock(context.domain, record, block);
     if (context.outputId) {
@@ -449,6 +496,31 @@ async function executeRead(record, packets, context) {
       return createDataPacket(await context.relatedEntities?.(entityStream(), record.relationKey || record.relation, record.typeId) || [], 'list');
     case 'all':
       return createDataPacket(await context.queryEntities?.(record.typeId) || [], 'list');
+    case 'extract': {
+      // The declared projection (SPEC §8 p): the bound type's declaration
+      // owns the resolve — the evaluator only routes each instance
+      // through the runtime's projection seam. A single broadcast input
+      // flattens its list result into the output items (the read yields
+      // the projected rows); a list input projects per item, each item
+      // the instance's projected value.
+      const project = context.projectEntity;
+      if (typeof project !== 'function') {
+        throw new Error(`Extract read ${record.id || '(unnamed)'} has no projection seam in this environment`);
+      }
+      if (!record.projection) {
+        throw new Error(`Extract read ${record.id || '(unnamed)'} declares no projection`);
+      }
+      const source = required(packets, 'entity', record);
+      const normalizedSource = normalizeDataTree(source);
+      const single = normalizedSource.branches.length === 1
+        && normalizedSource.branches[0].items.length === 1;
+      const projected = await mapDataPacketAsync(source, value => project(record.typeId, record.projection, value));
+      if (single) {
+        const value = packetValue(projected);
+        return Array.isArray(value) ? createDataPacket(value, 'list') : projected;
+      }
+      return projected;
+    }
     default:
       throw new Error(`Read node ${record.id || '(unnamed)'} has no declared select`);
   }
@@ -845,14 +917,6 @@ function unzipPacket(packet) {
       items: values.map(value => value[index])
     }))
   };
-}
-
-function constructRecord(record, packets) {
-  const result = {};
-  for (const path of record.fields || []) {
-    if (packets[path]) writePath(result, path, packetValue(packets[path]));
-  }
-  return result;
 }
 
 function mergePatches(left, right) {

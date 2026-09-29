@@ -14,6 +14,7 @@ import { generateAttachment } from '~/server/features/artifacts/operations.js';
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
 
 import { facadePack } from '~/server/packs/facade/index.js';
+import { documentsPack } from '~/server/packs/documents/index.js';
 import { frameworkCommandDefinitions } from '~/server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '~/server/core/tasks/definitions.js';
 
@@ -23,7 +24,7 @@ let appRegistry = null;
 // and the packs to mount. A pack provides: domain content, entity services
 // with process bindings, construction handlers, delete adapters, commands,
 // and task executors.
-const FRAMEWORK_PACKS = [facadePack];
+const FRAMEWORK_PACKS = [documentsPack, facadePack];
 
 export function getAppRegistry() {
   if (appRegistry) {
@@ -123,6 +124,9 @@ function registerAppBindings(registry) {
     }
     for (const [id, handler] of Object.entries(pack.hookHandlers || {})) {
       registry.registerHookHandler(id, handler);
+    }
+    for (const [id, handler] of Object.entries(pack.projectionHandlers || {})) {
+      registry.registerProjectionHandler(id, handler);
     }
   }
 

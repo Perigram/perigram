@@ -6,7 +6,18 @@
 
 const MB = 1024 * 1024;
 
-function documentType({ id, mime, accept, maxSize, preview, glyph, name, revisions = null, creation = null }) {
+// The table types' declared projection (SPEC §8 p extract): instance →
+// header-keyed row records. Resolve is the pack-mounted
+// `documents.tableRows` handler (payload parse); column semantics are the
+// reading graph's authoring.
+const rowsProjection = Object.freeze([{
+  id: 'rows',
+  label: 'Table rows',
+  output: { base: 'list', itemType: { base: 'record' } },
+  resolve: { handler: 'documents.tableRows' }
+}]);
+
+function documentType({ id, mime, accept, maxSize, preview, glyph, name, revisions = null, creation = null, projections = null }) {
   return Object.freeze({
     id,
     class: 'file',
@@ -15,6 +26,7 @@ function documentType({ id, mime, accept, maxSize, preview, glyph, name, revisio
     ...(glyph ? { glyph } : {}),
     payload: { mime: [].concat(mime), accept, maxSize, preview, ...(creation ? { creation: [].concat(creation) } : {}) },
     ...(revisions ? { revisions } : {}),
+    ...(projections ? { projections } : {}),
     fields: { name: { base: 'string', identifier: true } }
   });
 }
@@ -59,7 +71,8 @@ export const documentsTypes = Object.freeze([
     glyph: 'pi pi-table',
     name: 'CSV table',
     revisions: 'content',
-    creation: ['editor']
+    creation: ['editor'],
+    projections: rowsProjection
   }),
   documentType({
     id: 'xlsx-workbook',
@@ -69,7 +82,8 @@ export const documentsTypes = Object.freeze([
     preview: 'workbook',
     glyph: 'pi pi-file-excel',
     name: 'XLSX workbook',
-    revisions: 'content'
+    revisions: 'content',
+    projections: rowsProjection
   }),
   documentType({
     id: 'docx-document',

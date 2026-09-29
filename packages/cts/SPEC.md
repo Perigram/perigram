@@ -361,6 +361,14 @@ its effective inputs (`provenance.effective`: params + versions of every
 input). The current `machineSnapshot`/`toolSnapshot`/algorithm-revision field
 habit on sheets becomes provenance semantics instead of per-entity cargo.
 
+A `Ref` may travel through V (§2) as a pointer, but dereferencing one —
+loading the instance or its payload — is a projection's job, never a
+service handler's. An s-species input signature with a `ref` field is a
+static defect; a service handler that resolves instances or files is an
+architectural violation. Species semantics change only by editing this
+SPEC: a pack README, code comment, or handler restating what a species may
+receive or resolve is a defect, not a contract.
+
 Composition (audit correction): process graphs are the composition
 calculus, owned by `@perigram/processes` — its node catalog, socket roles,
 and packet shapes stay authoritative. The six species are the canonical
@@ -369,6 +377,12 @@ kinds of the graph's effect layer (`cts.construct`, `cts.mutate`,
 conversion where declared), not a parallel calculus. CTS supplies the
 declaration-layer types those nodes reference and constrains them (R1 rows,
 R2 targets, R5 service purity); it does not re-implement dataflow typing.
+The projection `p` is expressed by the graph's read family, not by an
+effect: `cts.read select=extract` dereferences a projection declared on
+the bound type (§16's `p extract`, declared next to its type with its
+output type and either a stored `field` path or a pack-mounted handler),
+and `cts.field` projects a row path — together the only entity→value
+gates; the graph never authors paths into stored payloads.
 
 An editor is `p(T) -> ui` plus `construct(T)` or `mutate(Ref(T))`, bound to a
 surface. "An editor that produces other files" is a `k` from the editor's

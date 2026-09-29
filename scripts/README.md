@@ -11,6 +11,15 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 
 ## Core Files
 
+- `seed-order-process.js`: Seeds the facade pack's composed order process
+  into a live organization through the platform's own APIs — org type
+  declarations (order container + table relation, nesting attempt), the
+  process definition from
+  [`server/packs/facade/order-process-fixture.js`](../server/packs/facade/order-process-fixture.js),
+  and the draft/activate path. Requires a running app: `node
+  server/scripts/seed-order-process.js --email <admin> --password <pw>
+  [--url http://localhost:3000]`. After it succeeds the definition opens
+  in the process designer and its compiled screens serve the org.
 - `build-entity-icons.js`: Builds the `ck-entity-icons` font from the CNC
   domain SVGs in `public/icons/data-model/cnc-domain/` via fantasticon,
   writes `public/fonts/cnc-domain/ck-entity-icons.{woff2,ttf}`, and rewrites
@@ -94,6 +103,15 @@ in `check-arch.js` and documented in `server/features/README.md`.
 
 The checker also blocks live entity UI that passes local `:state-actions`
 instead of relying on server-provided `InstanceState` workflow actions.
+
+`check-arch.js` also enforces the SPEC §8 species purity seams at the pack
+layer (see [server/packs/README.md](../server/packs/README.md)): a
+registered service's input signature with a `ref` field is rejected at
+the declaration (dereferencing is the projection's job), and modules
+under `server/packs/*/value-services/` that import the instance or files
+features are rejected at the mount — a pure V→V handler resolves no
+entities. Projection handlers (`server/packs/*/projections/`) are the one
+entity-read seam beside the instance services.
 
 `npm run agent:scope-check -- --base origin/local` is the mandatory guard for
 external top-layer agents before they commit or push. It is intentionally

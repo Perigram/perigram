@@ -60,7 +60,12 @@ operation-kind twin participates in validation or execution. Origin species
 carry a Type pin. Consumers infer their type from the entity input.
 Entity-derived reads additionally carry the exact declared edge target, so
 parent, children, and relation traversal expose the target type rather than
-reusing the source type. `cts.mutate` exposes writable declared fields and no
+reusing the source type. An extract read (`cts.read select=extract`) is the
+declared entity→value gate (SPEC §8): it dereferences a projection declared
+on the bound type — output type, and either a stored `field` path or a
+pack-mounted handler — through the projected domain's `projectionContracts`;
+the graph never authors paths into stored payloads. `cts.mutate` exposes
+writable declared fields and no
 status; `cts.transition` consumes an entity and references a declared
 transition; `cts.construct` exposes construction inputs and no lifecycle-entry
 socket.
@@ -92,9 +97,11 @@ is an effect species: the event contract (`control:in` → `completed`)
 wraps its signature-derived data sockets, a `list` signature field
 projects as the element-typed socket with List access (a runtime
 collection, never a persisted array, so aligned item sources and single
-broadcast items wire in without the packArray boundary), and a `ref`
-signature field projects as a typed entityRef socket (`Ref` is a value,
-SPEC §2). Signature ports resolve from the projected domain's
+broadcast items wire in without the packArray boundary), and an output
+`ref` field projects as a typed entityRef socket. Input signatures carry
+no `ref` fields — `Ref` is a value (SPEC §2), but dereferencing is the
+projection's job, never a service's (SPEC §8 purity). Signature ports
+resolve from the projected domain's
 `serviceContracts`; an unknown operator is a compile-time diagnostic.
 Palette translations are presentation only; generated action captions
 derive from typed declarations. Callers provide the current semantic

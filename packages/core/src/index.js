@@ -13,6 +13,7 @@ export function createRegistry({ id = 'app' } = {}) {
   const commandHandlers = new Map();
   const taskExecutors = new Map();
   const hookHandlers = new Map();
+  const projectionHandlers = new Map();
   const adapters = new Map();
 
   const registry = {
@@ -244,6 +245,20 @@ export function createRegistry({ id = 'app' } = {}) {
 
     getHookHandler(id) {
       return hookHandlers.get(id) || null;
+    },
+
+    // Declared-projection handlers (SPEC §8 p extract): pack-mounted
+    // entity→value reads — the one seam beside instance services that may
+    // dereference a payload for the graph's extract reads.
+    registerProjectionHandler(id, handler) {
+      if (!id) throw new Error('Projection handler id is required');
+      if (typeof handler !== 'function') throw new Error(`Projection handler ${id} must be a function`);
+      projectionHandlers.set(id, handler);
+      return handler;
+    },
+
+    getProjectionHandler(id) {
+      return projectionHandlers.get(id) || null;
     },
 
     listHookHandlers() {

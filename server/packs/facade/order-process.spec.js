@@ -194,6 +194,7 @@ import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import {
   ORDER_LINEAGE_KEY,
   ORDER_ROWS,
+  ORDER_TABLE_RELATION,
   ORDER_TYPE_ID,
   ATTEMPT_TYPE_ID,
   buildCassetteTemplatePayload,
@@ -206,12 +207,12 @@ const auth = {
   userId: 'user-1',
   organizationId: ORG,
   role: 'role_admin',
-  // Real command-level gates: the order-rows/items services read registry
-  // instances (cts-types), the solver gate keeps sheet-design write
+  // Real command-level gates: the solver gate keeps sheet-design write
   // authority, organizations admin covers the process-definition access.
+  // The projections ride the run's own action grants (no service-level
+  // cts-types read remains — no ref-carrying services exist).
   effectivePermissions: {
     organizations: { level: 'admin' },
-    'cts-types': { level: 'read' },
     sheet_designs: { level: 'write' }
   }
 };
@@ -272,8 +273,8 @@ describe('the facade order process (composed test process)', () => {
     });
 
     const run = await startRun('process-order', {
-      trigger: { nodeId: 'rows' },
-      inputs: { data: { source: { type: 'xlsx-workbook', id: workbook._id } } }
+      trigger: { nodeId: 'order' },
+      inputs: { data: { [`relations.${ORDER_TABLE_RELATION}`]: { type: 'xlsx-workbook', id: workbook._id } } }
     }, auth);
     return { template, workbook, definition, run };
   }

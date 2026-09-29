@@ -4,19 +4,29 @@
 // them, and the nesting service runs once per material with every run
 // saved as a child record. Authored in the current species vocabulary
 // (graph protocol v5); served as data so server specs and e2e drive the
-// same definition. Imports the xlsx ESM build — the CJS main cannot be
-// externalized by nitro (root README Development notes).
+// same definition.
+//
+// Species seams the composition rides (SPEC §8): the table's rows arrive
+// through the documents pack's declared `rows` projection (the entity→
+// value gate — no ref-carrying service exists), template names resolve
+// through a `cts.read` of cassettes plus the pure `collection.join`, and
+// design geometry reaches the solver through the declared
+// `nesting-polygons` projection on cassette-design. The one service,
+// `nesting.solve`, is pure V→V: the sheet arrives as values read off the
+// material by field projections.
 import * as XLSX from 'xlsx/xlsx.mjs';
 import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
-import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
+import { PROCESS_DATAFLOW_VERSION } from '#packages/processes/src/index.js';
 
 // The organization's own vocabulary: the order container (group) holding
-// the production children, and the per-run record (item). Children edges
-// target the facade pack's system types — the org declares containment,
-// the pack declares the child contracts.
+// the production children and referencing its source table, and the
+// per-run record (item). Children edges target the facade pack's system
+// types — the org declares containment, the pack declares the child
+// contracts.
 export const ORDER_TYPE_ID = 'facade-order';
 export const ATTEMPT_TYPE_ID = 'nesting-attempt';
 export const ORDER_LINEAGE_KEY = 'orderId';
+export const ORDER_TABLE_RELATION = 'table';
 
 export function orderOrgTypeDeclarations() {
   return [
@@ -38,6 +48,9 @@ export function orderOrgTypeDeclarations() {
             onRemove: 'restrict',
             lineageKey: ORDER_LINEAGE_KEY
           }
+        },
+        relations: {
+          table: { types: ['xlsx-workbook'] }
         }
       }
     }
@@ -46,6 +59,8 @@ export function orderOrgTypeDeclarations() {
 
 // The order table the process imports: one row per cassette design — a
 // name, the cassette template it names, and the bake parameters as cells.
+// The header row is authored vocabulary: the graph's record-field paths
+// (`name`, `cassette`, the parameter keys) ARE the column selection.
 export const ORDER_ROWS = [
   { name: 'Tray A left', templateName: 'Tray 600', parameters: { A: 600, B: 450 } },
   { name: 'Tray B small', templateName: 'Tray 600', parameters: { A: 300, B: 300 } }
@@ -77,56 +92,81 @@ function graph(records) {
   return {
     nodes: Object.keys(records).map(id => ({ id, type: 'processNode', data: { refId: id } })),
     edges: [
-      { id: 'e-order-rows', source: 'rows', sourceHandle: 'control:completed', target: 'order', targetHandle: 'control:in' },
-      { id: 'e-rows-name', source: 'rows', sourceHandle: 'data:result', target: 'rowName', targetHandle: 'data:value' },
-      { id: 'e-rows-template', source: 'rows', sourceHandle: 'data:result', target: 'rowTemplate', targetHandle: 'data:value' },
-      { id: 'e-rows-params', source: 'rows', sourceHandle: 'data:result', target: 'rowParams', targetHandle: 'data:value' },
-      { id: 'e-order-resolve', source: 'order', sourceHandle: 'control:completed', target: 'resolve', targetHandle: 'control:in' },
-      { id: 'e-resolve-names', source: 'rowTemplate', sourceHandle: 'data:value', target: 'resolve', targetHandle: 'data:names' },
-      { id: 'e-resolve-bake', source: 'resolve', sourceHandle: 'control:completed', target: 'bake', targetHandle: 'control:in' },
-      { id: 'e-bake-template', source: 'resolve', sourceHandle: 'data:result', target: 'bake', targetHandle: 'data:template' },
-      { id: 'e-bake-name', source: 'rowName', sourceHandle: 'data:value', target: 'bake', targetHandle: 'data:name' },
-      { id: 'e-bake-params', source: 'rowParams', sourceHandle: 'data:value', target: 'bake', targetHandle: 'data:parameters' },
-      { id: 'e-bake-lineage', source: 'order', sourceHandle: 'data:result', target: 'bake', targetHandle: `data:lineage.${ORDER_LINEAGE_KEY}` },
-      { id: 'e-bake-materials', source: 'bake', sourceHandle: 'control:completed', target: 'materials', targetHandle: 'control:in' },
-      { id: 'e-codes', source: 'codes', sourceHandle: 'data:value', target: 'materials', targetHandle: 'data:data.code' },
-      { id: 'e-widths', source: 'widths', sourceHandle: 'data:value', target: 'materials', targetHandle: 'data:data.width' },
-      { id: 'e-heights', source: 'heights', sourceHandle: 'data:value', target: 'materials', targetHandle: 'data:data.height' },
-      { id: 'e-thicknesses', source: 'thicknesses', sourceHandle: 'data:value', target: 'materials', targetHandle: 'data:data.thickness' },
-      { id: 'e-order-materials', source: 'order', sourceHandle: 'data:result', target: 'materials', targetHandle: `data:lineage.${ORDER_LINEAGE_KEY}` },
-      { id: 'e-materials-items', source: 'materials', sourceHandle: 'control:completed', target: 'items', targetHandle: 'control:in' },
-      { id: 'e-bake-items', source: 'bake', sourceHandle: 'data:result', target: 'items', targetHandle: 'data:designs' },
-      { id: 'e-items-loop', source: 'items', sourceHandle: 'control:completed', target: 'loop', targetHandle: 'control:in' },
-      { id: 'e-materials-loop', source: 'materials', sourceHandle: 'data:result', target: 'loop', targetHandle: 'data:items' },
-      { id: 'e-loop-solve', source: 'loop', sourceHandle: 'control:each', target: 'solve', targetHandle: 'control:in' },
-      { id: 'e-items-solve', source: 'items', sourceHandle: 'data:result', target: 'solve', targetHandle: 'data:items' },
-      { id: 'e-loop-material', source: 'loop', sourceHandle: 'data:item', target: 'solve', targetHandle: 'data:material' },
-      { id: 'e-solve-attempt', source: 'solve', sourceHandle: 'control:completed', target: 'attempt', targetHandle: 'control:in' },
-      { id: 'e-solve-result', source: 'solve', sourceHandle: 'data:result', target: 'attempt', targetHandle: 'data:data.result' },
-      { id: 'e-order-attempt', source: 'order', sourceHandle: 'data:result', target: 'attempt', targetHandle: `data:lineage.${ORDER_LINEAGE_KEY}` },
-      { id: 'e-attempt-end', source: 'attempt', sourceHandle: 'control:completed', target: 'loopEnd', targetHandle: 'control:in' }
-    ]
+      // The manual entry is the container construct; its table relation
+      // arrives from the run context (a manual-input contract).
+      ['order', 'control:completed', 'bake', 'control:in'],
+      ['order', 'data:result', 'table', 'data:entity'],
+      ['table', 'data:value', 'tableRefs', 'data:value'],
+      ['tableRefs', 'data:value', 'firstTable', 'data:items'],
+      ['zero', 'data:value', 'firstTable', 'data:index'],
+      ['firstTable', 'data:item', 'rows', 'data:entity'],
+      ['rows', 'data:result', 'rowName', 'data:value'],
+      ['rows', 'data:result', 'bake', 'data:parameters'],
+      ['rows', 'data:result', 'join', 'data:left'],
+      ['templates', 'data:result', 'join', 'data:right'],
+      ['join', 'data:pairs', 'rowTemplate', 'data:value'],
+      ['rowTemplate', 'data:value', 'bake', 'data:template'],
+      ['rowName', 'data:value', 'bake', 'data:name'],
+      ['order', 'data:result', 'bake', `data:lineage.${ORDER_LINEAGE_KEY}`],
+      ['bake', 'control:completed', 'materials', 'control:in'],
+      ['codes', 'data:value', 'materials', 'data:data.code'],
+      ['widths', 'data:value', 'materials', 'data:data.width'],
+      ['heights', 'data:value', 'materials', 'data:data.height'],
+      ['thicknesses', 'data:value', 'materials', 'data:data.thickness'],
+      ['order', 'data:result', 'materials', `data:lineage.${ORDER_LINEAGE_KEY}`],
+      ['materials', 'control:completed', 'loop', 'control:in'],
+      ['bake', 'data:result', 'polygons', 'data:entity'],
+      ['polygons', 'data:result', 'jobItems', 'data:polygonParts'],
+      ['one', 'data:value', 'jobItems', 'data:count'],
+      ['materials', 'data:result', 'loop', 'data:items'],
+      ['loop', 'control:each', 'solve', 'control:in'],
+      ['jobItems', 'data:record', 'solve', 'data:items'],
+      ['loop', 'data:item', 'matWidth', 'data:entity'],
+      ['loop', 'data:item', 'matHeight', 'data:entity'],
+      ['matWidth', 'data:value', 'solve', 'data:sheetWidth'],
+      ['matHeight', 'data:value', 'solve', 'data:sheetHeight'],
+      ['solve', 'control:completed', 'attempt', 'control:in'],
+      ['solve', 'data:result', 'attempt', 'data:data.result'],
+      ['order', 'data:result', 'attempt', `data:lineage.${ORDER_LINEAGE_KEY}`],
+      ['attempt', 'control:completed', 'loopEnd', 'control:in']
+    ].map(([source, sourceHandle, target, targetHandle], index) => ({
+      id: `e-${index}-${source}-${target}`, source, sourceHandle, target, targetHandle
+    }))
   };
 }
 
 export function orderProcessDefinition() {
   const processNodes = {
-    // The manual entry action: reading the order table is what a user
-    // starts; its `source` arrives from the run context (a manual-input
-    // contract — an automatically evaluated path could never prompt).
-    rows: { id: 'rows', kind: 'cts.service', operator: 'orders.readRows', trigger: { mode: 'manual' }, access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] } },
+    // The manual entry action: creating the order container is what a
+    // user starts; its source table arrives on the construct's
+    // construct-addressable relation input (a manual-input contract —
+    // an automatically evaluated path could never prompt).
     order: {
       id: 'order', kind: 'cts.construct', typeId: ORDER_TYPE_ID, producerOutputId: 'order:result',
       construction: { mode: 'genericCreate', inputs: [
-        { id: 'data.name', label: 'Name', path: 'data.name', type: 'string', required: true, prompt: true }
+        { id: 'data.name', label: 'Name', path: 'data.name', type: 'string', required: true, prompt: true },
+        { id: `relations.${ORDER_TABLE_RELATION}`, label: 'Order table', path: `relations.${ORDER_TABLE_RELATION}`, type: 'entity', typeId: 'xlsx-workbook', required: true, prompt: true }
       ] },
       inputDefaults: { 'data.name': 'Facade order 42' },
-      trigger: { mode: 'event' }
+      trigger: { mode: 'manual' },
+      access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] }
     },
+    // The declared relation carries the table refs on the stored record
+    // (relations are many-valued); the first ref feeds the extract read,
+    // which turns it into row values through the documents pack's `rows`
+    // projection.
+    table: { id: 'table', kind: 'cts.field', typeId: ORDER_TYPE_ID, inputDefaults: { field: `relations.${ORDER_TABLE_RELATION}` } },
+    tableRefs: { id: 'tableRefs', kind: 'collection.unpackArray', type: { base: 'array', nullable: true, itemType: { base: 'entityRef', typeId: 'xlsx-workbook' } } },
+    firstTable: { id: 'firstTable', kind: 'collection.itemAt', type: { base: 'entityRef', typeId: 'xlsx-workbook', nullable: true } },
+    zero: { id: 'zero', kind: 'source.literalItem', type: { base: 'integer', nullable: false }, value: 0 },
+    rows: { id: 'rows', kind: 'cts.read', typeId: 'xlsx-workbook', select: 'extract', projection: 'rows' },
     rowName: { id: 'rowName', kind: 'value.recordField', path: 'name', type: { base: 'string', nullable: true } },
-    rowTemplate: { id: 'rowTemplate', kind: 'value.recordField', path: 'templateName', type: { base: 'string', nullable: true } },
-    rowParams: { id: 'rowParams', kind: 'value.recordField', path: 'parameters', type: { base: 'json', nullable: true } },
-    resolve: { id: 'resolve', kind: 'cts.service', operator: 'cassettes.resolveByName', trigger: { mode: 'event' } },
+    // Template resolution without a lookup service: read the cassettes,
+    // join rows to them by the authored keys; the matched cassette rides
+    // the pair's `right`.
+    templates: { id: 'templates', kind: 'cts.read', typeId: 'cassette', select: 'all' },
+    join: { id: 'join', kind: 'collection.join', leftKey: 'cassette', rightKey: 'identity.name' },
+    rowTemplate: { id: 'rowTemplate', kind: 'value.recordField', path: 'right', type: { base: 'entity', typeId: 'cassette', nullable: true } },
     bake: {
       id: 'bake', kind: 'cts.construct', typeId: 'cassette-design', producerOutputId: 'bake:result',
       construction: { mode: 'bake', inputs: [
@@ -156,8 +196,16 @@ export function orderProcessDefinition() {
       ] },
       trigger: { mode: 'event' }
     },
-    items: { id: 'items', kind: 'cts.service', operator: 'nesting.items', trigger: { mode: 'event' } },
+    // Job geometry through the declared projection: each design's baked
+    // nesting polygons, one job item per design (count authored).
+    polygons: { id: 'polygons', kind: 'cts.read', typeId: 'cassette-design', select: 'extract', projection: 'nesting-polygons' },
+    jobItems: { id: 'jobItems', kind: 'record.construct', fields: ['polygonParts', 'count'] },
+    one: { id: 'one', kind: 'source.literalItem', type: { base: 'number', nullable: false, unit: 'count' }, value: 1 },
     loop: { id: 'loop', kind: 'control.forEach', type: MATERIAL_TYPE },
+    // The sheet arrives as values: the loop item is the material entity,
+    // the field projections read its dimensions.
+    matWidth: { id: 'matWidth', kind: 'cts.field', typeId: 'sheet-material', inputDefaults: { field: 'data.width' } },
+    matHeight: { id: 'matHeight', kind: 'cts.field', typeId: 'sheet-material', inputDefaults: { field: 'data.height' } },
     solve: { id: 'solve', kind: 'cts.service', operator: 'nesting.solve', trigger: { mode: 'event' } },
     attempt: {
       id: 'attempt', kind: 'cts.construct', typeId: ATTEMPT_TYPE_ID, producerOutputId: 'attempt:result',

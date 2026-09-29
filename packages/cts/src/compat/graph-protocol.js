@@ -340,6 +340,12 @@ function resolveNativeNode(node, domain, typeIdFor, diagnostics, at) {
     resolved.inputDefaults = rest;
   }
   if (resolved.kind === CTS_KIND.read && !resolved.select) resolved.select = 'current';
+  if (resolved.kind === CTS_KIND.read && resolved.select === 'extract') {
+    const key = `${typeIdOf(resolved) || ''}/${resolved.projection || ''}`;
+    if (!domain.projectionContracts?.[key]) {
+      diagnostics.push(`${at}: extract read declares no projection of ${key.replace(/^\//, '(unbound type)/')} (declared projections live on the bound type)`);
+    }
+  }
   if (resolved.kind === CTS_SERVICE_KIND) {
     const service = resolved.operator ? domain.serviceContracts?.[resolved.operator] : null;
     if (resolved.operator && !service) {

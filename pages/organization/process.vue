@@ -214,6 +214,7 @@
                   :producer="selectedEntity"
                   :producer-available="selectedEntityAvailable"
                   :relation-options-for="relationOptionsForEntity"
+                  :projection-options-for="projectionOptionsForEntity"
                   :field-policy-options="producerFieldPolicyOptions"
                   :type-id-options="typeIdOptions"
                   :role-options="roleOptions"
@@ -746,6 +747,7 @@ const {
   socketPairCompatible,
   opKind,
   relationOptionsForEntity,
+  projectionOptionsForEntity,
   constructionModeOptions,
   artifactCreationKinds,
   updateArtifactCreationKinds,

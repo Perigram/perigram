@@ -136,6 +136,11 @@ export function normalizeType(declaration = {}) {
     // graphs as outputs, never as constructs.
     ...(declaration.derived === true ? { derived: true } : {}),
     edges: normalizeEdges(declaration.edges || {}, declaration.id),
+    // Declared extract projections (SPEC §8 p): the entity→value gates
+    // this type owns — output descriptor plus resolve (stored field path
+    // or pack handler id). Validated at the authoring boundary like every
+    // other facet.
+    ...(declaration.projections?.length ? { projections: normalizeProjections(declaration.projections, declaration.id) } : {}),
     // Declared migration steps (SPEC §11) ride the declaration through to
     // the R7 gate and the stored record; normalization validates the step
     // language at the authoring boundary.
@@ -150,6 +155,38 @@ export function normalizeType(declaration = {}) {
     throw new Error(`type ${declaration.id}: intents live on transition operators, never on the type (SPEC §7)`);
   }
   return Object.freeze(type);
+}
+
+// Declared extract projections (SPEC §8 p): `{ id, label?, output,
+// resolve }` with resolve exactly one of a stored `field` path or a pack
+// `handler` id. Output is a V-grammar descriptor; the declaration owns
+// the mapping so graphs never author paths into stored payloads.
+function normalizeProjections(projections = [], typeId = '') {
+  if (!Array.isArray(projections)) {
+    throw new Error(`type ${typeId}: projections must be an array`);
+  }
+  return Object.freeze(projections.map(projection => {
+    const id = String(projection?.id || '').trim();
+    if (!id || id.includes('/')) {
+      throw new Error(`type ${typeId}: projection id must be a non-empty path-free string`);
+    }
+    const fieldResolved = typeof projection?.resolve?.field === 'string' && projection.resolve.field.trim();
+    const handlerResolved = typeof projection?.resolve?.handler === 'string' && projection.resolve.handler.trim();
+    if (fieldResolved === handlerResolved) {
+      throw new Error(`type ${typeId}: projection ${id} resolves exactly one of field or handler`);
+    }
+    if (!projection.output || typeof projection.output !== 'object' || !projection.output.base) {
+      throw new Error(`type ${typeId}: projection ${id} requires an output descriptor`);
+    }
+    return Object.freeze({
+      id,
+      label: projection.label || id,
+      output: projection.output,
+      resolve: fieldResolved
+        ? { field: projection.resolve.field.trim() }
+        : { handler: projection.resolve.handler.trim() }
+    });
+  }));
 }
 
 // A stored declaration is broken when it could never have compiled as a
