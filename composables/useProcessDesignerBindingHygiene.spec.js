@@ -28,11 +28,11 @@ describe('interpretDeclarationEdges: dangling bindings', () => {
     expect(mutations).toEqual([]);
   });
 
-  it('clears a stored binding that names no known type (no wire, not in registry, not in tree)', () => {
+  it('keeps a stored binding that names no known type (the served vocabulary can be stale)', () => {
     const records = { c1: construct('c1', 'raugh') };
-    const { mutations, bindings } = interpretDeclarationEdges([], [], records, {}, {}, ['widget']);
-    expect(bindings.c1).toBe('');
-    expect(mutations).toEqual([{ scope: 'record', recordId: 'c1', key: 'typeId', value: '' }]);
+    const { mutations } = interpretDeclarationEdges([], [], records, {}, {}, ['widget']);
+    expect(mutations).toEqual([]);
+    expect(records.c1.typeId).toBe('raugh');
   });
 
   it('keeps the binding while the class remains in the tree, without the registry', () => {
@@ -44,10 +44,11 @@ describe('interpretDeclarationEdges: dangling bindings', () => {
     expect(mutations).toEqual([]);
   });
 
-  it('clears the binding once the tree class is gone (the reload case, registry present)', () => {
+  it('keeps the binding once the tree class is gone (validation owns the dead-binding report)', () => {
     const records = { c1: construct('c1', 'tree-type') };
     const { mutations } = interpretDeclarationEdges([], [], records, {}, {}, ['widget']);
-    expect(mutations).toEqual([{ scope: 'record', recordId: 'c1', key: 'typeId', value: '' }]);
+    expect(mutations).toEqual([]);
+    expect(records.c1.typeId).toBe('tree-type');
   });
 
   it('keeps presets when no registry vocabulary is supplied (cannot judge)', () => {
@@ -69,7 +70,7 @@ describe('interpretDeclarationEdges: dangling bindings', () => {
 });
 
 describe('useProcessDesignerLiveGraph: knownTypeIds plumbing', () => {
-  it('threads the known type ids into interpretation and applies the clear', () => {
+  it('threads the known type ids into interpretation without clearing stored bindings', () => {
     const nodes = ref([]);
     const edges = ref([]);
     const draft = ref({ data: { processNodes: { c1: construct('c1', 'raugh') } } });
@@ -83,8 +84,8 @@ describe('useProcessDesignerLiveGraph: knownTypeIds plumbing', () => {
         if (record) record.typeId = mutation.value;
       }
     };
-    // The watcher's immediate first pass IS the reload case: the dangling
-    // binding is cleared before the page ever paints.
+    // The watcher's immediate first pass is the reload case: the stored
+    // binding survives — the served vocabulary may predate the type.
     useProcessDesignerLiveGraph({
       nodes,
       edges,
@@ -92,8 +93,8 @@ describe('useProcessDesignerLiveGraph: knownTypeIds plumbing', () => {
       apply,
       knownTypeIds: () => ['widget']
     });
-    expect(applied.at(-1)).toEqual([{ scope: 'record', recordId: 'c1', key: 'typeId', value: '' }]);
-    expect(draft.value.data.processNodes.c1.typeId).toBe('');
+    expect(applied.flat()).toEqual([]);
+    expect(draft.value.data.processNodes.c1.typeId).toBe('raugh');
   });
 });
 

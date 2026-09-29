@@ -554,16 +554,12 @@ export function declarationNodePorts(node = {}, types = []) {
 //    `resolvers.entityInputType(recordId)` supplies it from the designer's
 //    port resolution, so plugging an entity stream into an unbound
 //    mutate/transition/remove adapts it to that type;
-// 3. the stored binding (palette preset, migration) — authored data, kept
-//    only while it names a type that still exists (registry permitting).
-// Removing the channel that supplied a binding clears it — and a binding
-// that resolves to a type known nowhere (no bind wire, no registry and no
-// tree declaration in `knownTypeIds`) is cleared too: after a reload the
-// channel memory is gone, and without the known-type check a dangling
-// binding would masquerade as authored data forever (producer outputs on
-// unknown entity types, sockets that never materialize, wires filtered at
-// save). Pure over the canvas arrays: returns only the mutations that
-// differ from current state, so an unchanged graph evaluates to no writes.
+// 3. the stored binding (palette preset, migration, headless authoring) —
+//    authored data, never cleared by interpretation; validation's anchored
+//    unknown-type report owns a binding whose type no longer exists.
+// Removing the channel that supplied a binding clears it. Pure over the
+// canvas arrays: returns only the mutations that differ from current
+// state, so an unchanged graph evaluates to no writes.
 // Lifecycle summary of one class's declaration tree: its declared states
 // (value, initial, terminal) and the state-to-state transition wires among
 // them (with intents). Pure over the canvas arrays — the class inspector
@@ -728,39 +724,12 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
     }
   }
 
-  // Types known anywhere: tree class/type declarations plus the registry
-  // view the designer resolves against. A record whose effective binding
-  // names none of them is dangling — typically a bind wire whose class
-  // node was deleted in an earlier session (channel memory resets on
-  // reload, so the dead binding would otherwise read as authored data).
-  // Clearing it here unbinds the sockets and producer outputs that the
-  // unknown type minted, instead of failing activation with phantoms.
-  // The check runs only when the caller supplies the registry vocabulary
-  // (the designer always does — framework, pack, and org types). Without
-  // it, an authored preset cannot be distinguished from a dangling binding
-  // and must survive untouched; tree declarations alone never clear a
-  // stored binding, they only extend the known set.
-  const externalKnown = (Array.isArray(knownTypeIds) ? knownTypeIds : []).filter(Boolean);
-  if (externalKnown.length) {
-    const known = new Set([
-      ...externalKnown,
-      ...nodes
-        .filter(node => node?.type === 'ctsClass' || node?.type === 'ctsType')
-        .map(node => node?.data?.typeId)
-        .filter(Boolean)
-    ]);
-    for (const [recordId, record] of Object.entries(records || {})) {
-      if (!record) continue;
-      const effective = bindings[recordId] !== undefined ? bindings[recordId] : typeIdOf(record);
-      if (effective && !known.has(effective)) {
-        bindings[recordId] = '';
-        if (typeIdOf(record) !== '') {
-          mutations.push({ scope: 'record', recordId, key: 'typeId', value: '' });
-        }
-      }
-    }
-  }
-
+  // A STORED binding that names a type outside the caller's vocabulary
+  // survives untouched: the served type view can be staler than the
+  // definition (a page session opened before the org declared the type),
+  // and validation's anchored unknown-type report owns dead bindings —
+  // the same principle the lowering and the producer-identity migration
+  // follow. Only a wire can clear a wire-sourced binding.
   return { mutations, bindings };
 }
 
