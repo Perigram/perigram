@@ -10,9 +10,16 @@ import {
   createData
 } from '../../../core/blocks/index.js';
 import { createTransitionAuth, stateService } from '../../../core/machines/service.js';
+import * as workflowOverridesService from '../../../features/workflow-overrides/service.js';
 import standardSlugify from 'standard-slugify';
 import { generateRandomString } from '../../../utils/strings.js';
 import { toFlexibleId } from '../../../utils/objectid.js';
+
+async function initialCassetteStatus(organizationId, userId, note) {
+  const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: 'cassette', organizationId });
+  if (!machine) return null;
+  return stateService.initialStatusForOrganization('cassette', organizationId, userId, { note });
+}
 import { Cassette } from './model.js';
 import { serializeForAccess } from '../../../utils/entity-redaction.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../../utils/dxf-extractor.js';
@@ -100,7 +107,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const libraryId = data.libraryId || data.data?.libraryId;
   if (libraryId) lineage.libraryId = toFlexibleId(libraryId);
 
-  const origin = await stateService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
+  const origin = await initialCassetteStatus(targetOrgId, userId, 'Template created');
 
   if (userPermissions && !hasLineagePermission(userPermissions, { lineage, status: origin }, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
@@ -116,8 +123,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const cassetteData = {
     identity: createIdentity(name, slug),
-    origin,
-    status: origin,
+    ...(origin ? { origin, status: origin } : {}),
     lineage,
     provenance: data.provenance || {},
     data: createData({
@@ -160,12 +166,11 @@ export async function importFromArtifact(artifactId, name, userId, userOrg, user
 
   // 1. Create Template
   const slug = `${standardSlugify(name || fileName, { keepCase: false })}-${generateRandomString(6)}`;
-  const origin = await stateService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Standard template uploaded' });
+  const origin = await initialCassetteStatus(targetOrgId, userId, 'Standard template uploaded');
 
   const templateData = {
     identity: createIdentity(name || fileName, slug),
-    origin,
-    status: origin,
+    ...(origin ? { origin, status: origin } : {}),
     lineage,
     relations: { sourceDxf: { type: 'artifact', id: artifact._id.toString() } },
     data: createData({

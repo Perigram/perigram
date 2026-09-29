@@ -86,6 +86,79 @@ test('the headlessly composed order process activates and loads in the designer'
   const activated = await app.request.post(`/api/process-definitions/${definitionId}/activate`);
   expect(activated.ok(), await activated.text()).toBeTruthy();
 
+  // THE LIVE RUN: a real cassette template, a real uploaded xlsx table,
+  // and the exposed manual action executed through the active-process
+  // action endpoint.
+  await app.seedSpeciesProcess({ types: ['xlsx-workbook', 'cassette'], via: { 'xlsx-workbook': 'upload', cassette: 'editor' } });
+  const { createDefaultOccsCassetteTemplateDefinition } = await import('../utils/occs/templates.js');
+  const templateRun = await app.request.post('/api/admin/commands/saveCassetteTemplate/run', {
+    data: {
+      entities: {},
+      parameters: {
+        name: `Tray 600 ${Date.now()}`,
+        type: 'PARAMETRIC',
+        definition: createDefaultOccsCassetteTemplateDefinition(),
+        parameters: []
+      }
+    }
+  });
+  expect(templateRun.ok(), await templateRun.text()).toBeTruthy();
+  const templateRunResult = await templateRun.json();
+  const template = templateRunResult?.entities?.cassette ?? templateRunResult?.created ?? templateRunResult;
+  const templateName = template?.identity?.name ?? template?.name;
+  expect(templateName, 'the command produced a named cassette template').toBeTruthy();
+
+  const { utils, write } = await import('xlsx');
+  const sheet = utils.aoa_to_sheet([
+    ['name', 'cassette', 'A', 'B'],
+    ['Tray A left', templateName, 600, 450],
+    ['Tray B small', templateName, 300, 300]
+  ]);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, sheet, 'Order');
+  const tableBuffer = Buffer.from(write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  const tableUpload = await app.request.post('/api/files/upload?bucket=files', {
+    multipart: {
+      file: {
+        name: 'order-42.xlsx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        buffer: tableBuffer
+      }
+    }
+  });
+  expect(tableUpload.ok(), await tableUpload.text()).toBeTruthy();
+  const tableFile = await tableUpload.json();
+  const table = await app.createInstance('xlsx-workbook', {
+    name: `Order table 42 ${Date.now()}`,
+    payload: { fileId: tableFile.id, mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', size: tableBuffer.length }
+  });
+
+  const executed = await app.request.post('/api/process-definitions/active/actions/order/execute', {
+    data: {
+      'data.name': 'Facade order 42',
+      'relations.table': { type: 'xlsx-workbook', id: table._id?.toString?.() || table._id || table.id }
+    }
+  });
+  expect(executed.ok(), await executed.text()).toBeTruthy();
+
+  const instancesOf = async typeId => (await (await app.request.get(`/api/instances/${typeId}`)).json()).items ?? [];
+  const orderIdOf = instance => instance?.lineage?.orderId?.toString?.() ?? String(instance?.lineage?.orderId ?? '');
+  const orders = (await instancesOf('facade-order'))
+    .filter(order => order.name === 'Facade order 42')
+    .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
+  expect(orders.length).toBeGreaterThanOrEqual(1);
+  const orderId = orders[0]._id?.toString?.() || String(orders[0]._id);
+  const designs = (await instancesOf('cassette-design')).filter(design => orderIdOf(design) === orderId);
+  expect(designs.map(design => design.name)).toEqual(['Tray A left', 'Tray B small']);
+  const materials = (await instancesOf('sheet-material')).filter(material => orderIdOf(material) === orderId);
+  expect(materials.map(material => material.fields?.code ?? material.data?.code)).toEqual(['ACM-1250x2500-04', 'ACM-1500x3000-06']);
+  const attempts = (await instancesOf('nesting-attempt')).filter(attempt => orderIdOf(attempt) === orderId);
+  expect(attempts).toHaveLength(2);
+  for (const attempt of attempts) {
+    const result = attempt.fields?.result ?? attempt.data?.result;
+    expect(result?.summary?.sheetCount).toBeGreaterThan(0);
+  }
+
   // The designer loads it as a first-class draft: nodes render with
   // their catalog labels, the loop pair lands together, and the page
   // stays clean (no console/page errors — the fixture asserts them).
@@ -111,6 +184,15 @@ test('the headlessly composed order process activates and loads in the designer'
       name: PROCESS_NAME,
       activationState: definition.status?.state,
       tableType: TABLE_TYPE,
+      liveRun: {
+        action: 'order',
+        orderName: 'Facade order 42',
+        cassetteDesigns: designs.map(design => ({ name: design.name })),
+        materials: materials.length,
+        nestingAttempts: attempts.map(attempt => ({
+          summary: (attempt.fields?.result ?? attempt.data?.result)?.summary
+        }))
+      },
       nodeKinds: kinds,
       nodeCount: kinds.length,
       edgeCount: (definition.data?.graph?.edges || []).length,
