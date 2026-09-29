@@ -13,7 +13,6 @@ services:
       - .:/src
       - /src/node_modules
       - ${CONFIG_BOT_CORTEX_HOST_PATH:-/home/isuo/Documents/perigram-cortex}:/opt/perigram-cortex:ro
-      - recordings:/recordings:ro
     environment:
       - MONGODB_URI=mongodb://mongo:27017/perigram_dev
       - NODE_ENV=development
@@ -39,7 +38,8 @@ services:
       - TRANSCRIPTION_CLOUD_BASE_URL=${TRANSCRIPTION_CLOUD_BASE_URL:-}
       - TRANSCRIPTION_CLOUD_API_KEY=${TRANSCRIPTION_CLOUD_API_KEY:-}
       - TRANSCRIPTION_MODEL=${TRANSCRIPTION_MODEL:-}
-      - LIVEKIT_RECORDINGS_DIR=${LIVEKIT_RECORDINGS_DIR:-/recordings}
+      - LIVEKIT_RECORDINGS_S3_ENDPOINT=${LIVEKIT_RECORDINGS_S3_ENDPOINT:-}
+      - LIVEKIT_RECORDINGS_S3_BUCKET=${LIVEKIT_RECORDINGS_S3_BUCKET:-}
     depends_on:
       - mongo
       - livekit
@@ -60,39 +60,6 @@ services:
       - "7880:7880"
       - "7881:7881"
       - "7882:7882/udp"
-    depends_on:
-      - redis
-    networks:
-      - perigram-network
-    restart: unless-stopped
-
-  # Egress dispatch bus for the LiveKit server and the egress container;
-  # recording requests and lifecycle state ride it.
-  redis:
-    image: redis:7-alpine
-    container_name: perigram_redis
-    networks:
-      - perigram-network
-    restart: unless-stopped
-
-  # Renders room composites into MP4s on the shared recordings volume; the
-  # app imports finished files into GridFS (livekit feature README). Egress
-  # writes file outputs to its working directory, so it runs with
-  # working_dir set to the volume; SYS_ADMIN lets Chrome start its sandbox.
-  egress:
-    image: livekit/egress:latest
-    container_name: perigram_egress
-    working_dir: /recordings
-    cap_add:
-      - SYS_ADMIN
-    environment:
-      - EGRESS_CONFIG_FILE=/etc/livekit/egress.yaml
-    volumes:
-      - ./livekit.egress.dev.yaml:/etc/livekit/egress.yaml:ro
-      - recordings:/recordings
-    depends_on:
-      - livekit
-      - redis
     networks:
       - perigram-network
     restart: unless-stopped
@@ -133,4 +100,3 @@ networks:
 
 volumes:
   mongo-data:
-  recordings:

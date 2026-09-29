@@ -1,6 +1,4 @@
 import { createHash } from 'crypto';
-import { basename } from 'node:path';
-import { readFile } from 'node:fs/promises';
 import jwt from 'jsonwebtoken';
 import { createError } from 'h3';
 import { hasPermissionGrant } from '#shared/access-control.js';
@@ -224,7 +222,10 @@ async function egressTwirp(method, body) {
     return payload;
 }
 
-const recordingsDir = () => process.env.LIVEKIT_RECORDINGS_DIR || '/recordings';
+const recordingsStore = () => ({
+    endpoint: (process.env.LIVEKIT_RECORDINGS_S3_ENDPOINT || '').replace(/\/+$/, ''),
+    bucket: (process.env.LIVEKIT_RECORDINGS_S3_BUCKET || '').replace(/^\/+|\/+$/g, '')
+});
 
 /**
  * Room → conversation mapping for recordings: direct and group rooms mirror
@@ -252,8 +253,6 @@ export async function startRoomRecording(auth, room = '') {
     const egress = await egressTwirp('StartRoomCompositeEgress', {
         room_name: room,
         audio_only: false,
-        // Relative pattern: egress writes to its working directory, which
-        // compose pins to the shared recordings volume.
         file_outputs: [{ filepath_pattern: '{room_id}-{time}.mp4' }]
     });
     const egressId = String(egress?.egress_id || '');
@@ -306,21 +305,31 @@ export async function listRoomRecordings(auth) {
 }
 
 /**
- * Imports one finished egress file: read from the shared recordings
- * directory (basename-only, so an egress-reported path can never escape
- * it), persist into GridFS, and post the conversation's `video` attachment
+ * Imports one finished egress file: fetch it from the recordings object
+ * store (the egress plane uploads there; the bucket allows anonymous reads —
+ * write credentials live on the egress deployment, never in the app),
+ * persist into GridFS, and post the conversation's `video` attachment
  * message from the recording starter.
  */
 async function importRecordingFile(record, result) {
-    const filename = basename(String(result.filename || ''));
+    const filename = String(result.filename || '').split('/').pop();
     if (!filename) return;
-    let buffer;
+    const { endpoint, bucket } = recordingsStore();
+    if (!endpoint || !bucket) {
+        throw createError({ statusCode: 503, message: 'Recordings store is not configured' });
+    }
+    let response;
     try {
-        buffer = await readFile(`${recordingsDir()}/${filename}`);
+        response = await fetch(`${endpoint}/${bucket}/${encodeURIComponent(filename)}`);
     } catch (error) {
-        console.error(`Recording file missing on egress end: ${filename}`, error);
+        console.error(`Recording store unreachable for ${filename}:`, error);
         return;
     }
+    if (!response.ok) {
+        console.error(`Recording store responded ${response.status} for ${filename}`);
+        return;
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
     const uploaded = await filesService.uploadFile(buffer, `call-recording-${record.egressId}.mp4`, {
         kind: 'call-recording',
         room: record.room

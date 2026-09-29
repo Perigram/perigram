@@ -14,8 +14,7 @@ const mocks = vi.hoisted(() => ({
     getConversationContextByKey: vi.fn(),
     findChatGroup: vi.fn(),
     insertRecordingMessage: vi.fn()
-  },
-  readFile: vi.fn()
+  }
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
@@ -25,7 +24,6 @@ vi.mock('~/server/features/connections/service.js', () => ({
   publish: mocks.connectionsPublish,
   registerTopicAuthorizer: vi.fn()
 }));
-vi.mock('node:fs/promises', () => ({ readFile: mocks.readFile }));
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
     const error = new Error(err.message);
@@ -48,6 +46,8 @@ describe('livekit recordings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.LIVEKIT_INTERNAL_URL = 'ws://livekit:7880';
+    process.env.LIVEKIT_RECORDINGS_S3_ENDPOINT = 'http://recordings:8333';
+    process.env.LIVEKIT_RECORDINGS_S3_BUCKET = 'livekit-egress';
     mocks.repository.findActiveByRoom.mockResolvedValue([]);
     mocks.repository.findAllActive.mockResolvedValue([]);
     mocks.supportService.findChatGroup.mockResolvedValue(GROUP);
@@ -55,6 +55,8 @@ describe('livekit recordings', () => {
 
   afterEach(() => {
     delete process.env.LIVEKIT_INTERNAL_URL;
+    delete process.env.LIVEKIT_RECORDINGS_S3_ENDPOINT;
+    delete process.env.LIVEKIT_RECORDINGS_S3_BUCKET;
     vi.unstubAllGlobals();
   });
 
@@ -123,7 +125,7 @@ describe('livekit recordings', () => {
     expect(visible[0]).toMatchObject({ room: DIRECT_ROOM, egressId: 'EG_1' });
   });
 
-  it('imports ended egress files into the conversation and marks completed', async () => {
+  it('imports ended egress files from the recordings store and marks completed', async () => {
     mocks.repository.findByEgressId.mockResolvedValue({
       _id: 'rec-1',
       egressId: 'EG_1',
@@ -132,7 +134,8 @@ describe('livekit recordings', () => {
       startedByUserId: 'user-a',
       status: 'recording'
     });
-    mocks.readFile.mockResolvedValue(Buffer.from('mp4-bytes'));
+    const fetchMock = vi.fn(async () => new Response('mp4-bytes', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
     mocks.filesService.uploadFile.mockResolvedValue({ id: 'gridfs-9', filename: 'call-recording-EG_1.mp4' });
 
     const result = await livekitService.publishWebhookEvent({
@@ -145,6 +148,7 @@ describe('livekit recordings', () => {
     });
 
     expect(result).toEqual({ published: true });
+    expect(fetchMock.mock.calls[0][0]).toBe('http://recordings:8333/livekit-egress/room-123.mp4');
     expect(mocks.filesService.uploadFile).toHaveBeenCalledWith(
       Buffer.from('mp4-bytes'),
       'call-recording-EG_1.mp4',
@@ -184,6 +188,7 @@ describe('livekit recordings', () => {
       $set: expect.objectContaining({ status: 'failed' })
     });
 
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('mp4-bytes', { status: 200 })));
     mocks.filesService.uploadFile.mockRejectedValue(new Error('gridfs down'));
     await livekitService.publishWebhookEvent({
       event: 'egress_ended',
