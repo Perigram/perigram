@@ -1077,7 +1077,7 @@ const documentDockItems = computed(() => [
     icon: 'pi pi-check',
     label: t('processDesigner.apply'),
     onClick: applyProcess,
-    disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value,
+    disabled: !draft.value?._id || applyingProcess.value || savingDraft.value || creatingDraft.value,
     loading: applyingProcess.value
   }
 ]);

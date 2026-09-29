@@ -227,7 +227,7 @@ export function useProcessDesignerApply({
   }
 
   async function applyProcess() {
-    if (!draft.value?._id || isActiveProcess.value || applyingProcess.value) return;
+    if (!draft.value?._id || applyingProcess.value) return;
     applyingProcess.value = true;
     try {
       const activated = await activateDraft();
