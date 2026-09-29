@@ -84,8 +84,11 @@ Routes are grouped into sub-directories corresponding to features:
   verified LiveKit webhook receiver that fans call activity onto the
   connections layer, and the active-room snapshot
   (`GET /livekit/active-rooms`) that backs the home workspace's active-call
-  list. Group call rooms derive from support group chats. See
-  [the livekit feature](../features/livekit/README.md).
+  list. Group call rooms derive from support group chats. Conversation rooms
+  record through the egress lifecycle routes
+  (`GET/POST /livekit/recordings`, `POST /livekit/recordings/stop`); finished
+  recordings import into the room's conversation as `video` attachment
+  messages. See [the livekit feature](../features/livekit/README.md).
 - `support/`: Authenticated support chat endpoints. User routes snapshot the
   current user's support conversation, a direct user-to-user conversation
   selected by `recipientUserId`, or a group conversation selected by

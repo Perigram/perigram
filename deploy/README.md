@@ -44,6 +44,15 @@ Editing the pipeline means editing that branch.
   `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit`,
   `LIVEKIT_INTERNAL_URL=http://192.168.0.248:7880`,
   `BASE_URL=https://perigram.sodalab.pro`.
+- Call recordings on hera are **not deployed**: hera's LiveKit runs without
+  Redis and without an `livekit/egress` container. Enabling recordings there
+  means, on hera: run Redis, point hera's LiveKit config at it, run
+  `livekit/egress` with hera's LiveKit key/secret and a filesystem storage
+  path, and give the app container `LIVEKIT_RECORDINGS_DIR` over that same
+  shared path (the dev stack's shape is
+  [docker-compose.dev.yml](../docker-compose.dev.yml)). Nothing in the app
+  deploy workflow changes — the routes degrade to 502/404-style failures
+  until the egress plane exists.
 - The nginx config also carries a dormant `staging.perigram.sodalab.pro`
   server block (same target); it is unreachable until a DNS record exists
   for that name. It can be activated or deleted independently.

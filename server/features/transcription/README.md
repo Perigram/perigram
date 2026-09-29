@@ -88,7 +88,7 @@ to the user, who can retry manually.
 
 - Support chat voice messages: `POST /api/support/messages/:id/transcribe`
   fills the message body with the transcript (see
-  [support](../support/README.md#voice-messages)).
+  [support](../support/README.md#message-attachments)).
 - `GET /api/transcription/config` reports `{ available }` for the caller's
   organization so clients render transcription affordances only when a
   provider is actually configured.

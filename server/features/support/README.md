@@ -22,7 +22,7 @@ Messages have a deterministic `conversationKey`:
 New writes always persist
 `conversationKey`, `conversationKind`, `participants`, `senderUserId`,
 `message`, `instanceRefs`, `timestamp`, and optionally `attachment` (see
-[Voice Messages](#voice-messages)).
+[Message Attachments](#message-attachments)).
 
 ### Inbox Preferences and Read Marks
 
@@ -219,23 +219,27 @@ timestamp }` quote (text clipped to 140 characters; voice messages carry
 their attachment descriptor), so rendering and inbox previews never need the
 parent loaded.
 
-## Voice Messages
+## Message Attachments
 
-A message may carry `attachment` — currently exactly one descriptor of kind
-`audio`:
+A message may carry `attachment` — exactly one descriptor:
 
 ```json
 { "kind": "audio", "fileId": "<gridfs id>", "mimeType": "audio/webm", "durationSeconds": 12 }
 ```
 
-The client records through `MediaRecorder`, uploads the blob through the
+Two kinds exist. `audio` is the voice-message channel: the client records
+through `MediaRecorder`, uploads the blob through the
 [files feature](../files/) upload endpoint, and posts the descriptor as the
-message payload; the message body may stay empty. Playback streams the stored
-file through the shared `/api/files/download/:id` route, so the message
-document never embeds audio bytes. Unsupported kinds, missing file ids, and
-durations above ten minutes are rejected (longer recordings clamp on write).
+message payload; the message body may stay empty. `video` is server-authored
+only: call recordings imported by the [livekit feature](../livekit/README.md#recordings)
+post an MP4 as an attachment-only message from the recording starter —
+clients render the player but never upload videos through the composer.
+Playback for both streams the stored file through the shared
+`/api/files/download/:id` route, so the message document never embeds media
+bytes. Unsupported kinds, missing file ids, and durations above ten minutes
+are rejected (longer recordings clamp on write).
 Conversation summaries carry the last message's `attachment` so inbox previews
-can render a voice-message chip.
+can render a voice/video chip.
 
 ### Transcription
 
@@ -243,9 +247,10 @@ can render a voice-message chip.
 underlying text message through the [transcription
 feature](../transcription/README.md). Admission reuses the conversation
 context resolution (the same check that authorizes SSE topics), and only
-voice messages qualify: no `attachment`, an already-transcribed attachment
-(`attachment.transcription` marker), or a non-empty message body are rejected
-with 400/409. On success the transcript becomes the message body — the
+`audio` attachments qualify (call-recording `video` attachments are
+multi-speaker and excluded): no `attachment`, an already-transcribed
+attachment (`attachment.transcription` marker), a non-audio kind, or a
+non-empty message body are rejected with 400/409. On success the transcript becomes the message body — the
 bubble keeps its audio player beside the text, and reply quotes and inbox
 previews read the text like any message — while
 `attachment.transcription { provider, model, transcribedAt }` records the

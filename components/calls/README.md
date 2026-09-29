@@ -147,8 +147,15 @@ dialogs bound their content with the `h-preview-dialog` dimension token
   in the panel.
 - Screen shares render `object-contain`; cameras `object-cover`.
   `CallPanel` itself carries no chat — app chat owns messaging; the panel
-  only emits `closed` so hosts can tear the surface down. Recording/egress
-  is not wired; it needs server-side LiveKit egress configuration first.
+  only emits `closed` so hosts can tear the surface down. The dock's record
+  toggle starts/stops the room's egress recording on conversation rooms
+  (direct, group; org rooms have no thread to record into — no toggle).
+  While a recording runs, the toggle turns danger-red and a red dot marks
+  the stage; state syncs through the shared calls store, which reads the
+  recordings snapshot and `call.activity` egress events alongside the
+  active-rooms refresh. The finished MP4 lands in the conversation as a
+  `video` attachment message (see the
+  [livekit feature](../../server/features/livekit/README.md#recordings)).
 
 ## Call activity surfaces
 

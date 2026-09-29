@@ -41,6 +41,41 @@ admission, so events only ever mention joinable rooms). Calls open as
 ephemeral workspace-pane tabs hosting the LiveKit stage beside the
 call's conversation chat, not as floating dialogs.
 
+## Recordings
+
+Call recordings ride the LiveKit **egress** component: a separate
+`livekit/egress` deployment (with Redis, which the LiveKit server config must
+also point at) renders the room composite and writes MP4 files to a
+filesystem backend shared with the app (`LIVEKIT_RECORDINGS_DIR`, `/recordings`
+in compose). Only rooms with a conversation — direct and group calls — are
+recordable; org rooms have no conversation thread to record into (they render
+stage-only in the call workspace).
+
+- `POST /api/livekit/recordings` `{ room }` starts a room-composite egress
+  after the same `authorizeRoom` admission as token minting (org rooms
+  additionally ride the `livekit` grant). The start persists a
+  `call_recordings` document — `{ egressId, room, conversationKey,
+  startedByUserId, startedAt, status }` — the app's own lifecycle record,
+  surviving restarts.
+- `POST /api/livekit/recordings/stop` `{ room }` stops every active egress
+  for an admitted room.
+- `GET /api/livekit/recordings` lists active recordings for rooms the caller
+  may enter — the call panel's record toggle and indicator state.
+- Egress lifecycle events (`egress_started`, `egress_ended`, `egress_failed`)
+  arrive on the existing verified webhook receiver. On `egress_ended`, each
+  finished file is imported from the shared directory into the
+  [files feature](../files/) (GridFS) and posted into the room's conversation
+  as an attachment-only message of kind `video` sent by the recording
+  starter (see [support attachments](../support/README.md#message-attachments));
+  `egress_failed` marks the recording failed. Egress events also fan out as
+  `call.activity` payloads, so open call surfaces flip their recording state
+  live.
+
+Recordings are not transcribed automatically: the deployed local STT is a
+single-speaker service and call audio is multi-speaker. Transcribing and
+summarizing recordings is the org meeting-protocol concern, to be built on a
+diarization-capable provider.
+
 ## Server Contract
 
 - `service.js` mints LiveKit room tokens (`jsonwebtoken`, HS256, `iss` = API
@@ -71,6 +106,7 @@ call's conversation chat, not as floating dialogs.
 | `LIVEKIT_INTERNAL_URL` | `ws://livekit:7880` (server-to-server RoomService; defaults to `LIVEKIT_PUBLIC_URL`). The compose app container cannot reach the published `localhost:7880`, so `listActiveRooms` must use the network-internal address. |
 | `LIVEKIT_API_KEY` | `devkey` |
 | `LIVEKIT_API_SECRET` | `devsecret` |
+| `LIVEKIT_RECORDINGS_DIR` | `/recordings` (shared with the egress container; egress writes, the app reads and imports) |
 
 Dev keys are fixed in `livekit.dev.yaml`; production must override all three.
 
@@ -93,14 +129,11 @@ in `ChatSupport.vue`: the call button posts `/api/livekit/invite` which
 publishes a `call` event on the conversation topic; counterparts get an
 incoming-call banner and join the same room. The home workspace sidebar
 lists active calls from `/api/livekit/active-rooms` with join buttons.
-In-call chat is intentionally absent (app chat owns messaging);
-recording is not wired: it needs the LiveKit egress component deployed
-beside the server (with Redis and its own storage backend — S3-compatible
-object storage or a local filesystem, configured on the egress, not in
-`livekit.dev.yaml`) plus server-side start/stop routes. Recorded media would
-not enter app storage automatically; anything surfaced in-app imports through
-the [files feature](../files/), and text extraction routes through the
-[transcription feature](../transcription/README.md).
+In-call chat is intentionally absent (app chat owns messaging). Recording
+is the call dock's record toggle (see [Recordings](#recordings) and
+[calls](../../../components/calls/README.md)): conversation rooms (direct,
+group) start/stop a room-composite egress, and the finished MP4 imports
+into the conversation as a `video` attachment message.
 
 ## API
 
@@ -110,6 +143,9 @@ the [files feature](../files/), and text extraction routes through the
 | `POST /api/livekit/token` | `{ room }` → `{ token, url, room, kind }` after room admission. |
 | `POST /api/livekit/invite` | `{ conversationKey }` → publishes the call invite on the conversation topic. |
 | `GET /api/livekit/active-rooms` | `{ room, kind, participants }[]` snapshot of joinable active call rooms. |
+| `GET /api/livekit/recordings` | Active recordings (`{ room, egressId, startedByUserId, startedAt }[]`) for rooms the caller may enter. |
+| `POST /api/livekit/recordings` | `{ room }` → starts a room-composite egress (conversation rooms only). |
+| `POST /api/livekit/recordings/stop` | `{ room }` → stops the room's active egress; the ended file imports into the conversation. |
 | `POST /api/livekit/webhook` | Verified LiveKit webhook receiver → connections layer. |
 
 ## Migration
