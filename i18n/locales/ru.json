@@ -2972,6 +2972,7 @@
     "collectionEntity": "Сущность коллекции",
     "relatedEntity": "Связанная сущность",
     "relation": "Связь",
+    "projection": "Проекция",
     "relations": "Связи",
     "operation": "Операция",
     "traversal": "Обход связи",
