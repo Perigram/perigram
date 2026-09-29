@@ -74,6 +74,39 @@ describe('process runtime auth hydration', () => {
     expect(auth.process?.active).toBe(true);
   });
 
+  it('compiles the activated snapshot, not live draft edits', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    // The definition is active with edits saved after activation: the
+    // runtime must keep serving the last-activated snapshot.
+    const edited = {
+      ...fixture.processDefinition,
+      data: {
+        ...structuredClone(fixture.processDefinition.data),
+        graph: { nodes: [], edges: [] },
+        processNodes: {},
+        producerOutputs: {},
+        screens: {},
+        roleGrants: {}
+      }
+    };
+    edited.data.activated = structuredClone(fixture.processDefinition.data);
+    repository.findActiveByOrganization.mockResolvedValue(edited);
+    repository.findActiveSetByOrganization.mockResolvedValue([edited]);
+    mocks.organizationService.getProcessConfiguration.mockResolvedValue({
+      roles: fixture.roles,
+      roleAssignments: { [PERSISTED_ACCEPTANCE_IDS.user]: fixture.assignment }
+    });
+
+    const auth = await resolveProcessAuth({
+      userId: PERSISTED_ACCEPTANCE_IDS.user,
+      organizationId: PERSISTED_ACCEPTANCE_IDS.organization,
+      memberships: [{ organizationId: PERSISTED_ACCEPTANCE_IDS.organization, status: 'active', permissions: {} }]
+    });
+
+    const keys = (auth.screens || []).map(screen => screen.screenKey || screen.id);
+    expect(keys.some(key => String(key).includes('cassette'))).toBe(true);
+  });
+
   it('compiles the additive active set as one merged contract', async () => {
     const fixture = createPersistedAcceptanceFixture();
     // Two active definitions: an explicitly empty one (the bootstrap

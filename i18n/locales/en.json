@@ -75,6 +75,7 @@
     "created": "Created",
     "open": "Open",
     "rename": "Rename",
+    "restore": "Restore",
     "doNotUse": "Do not use",
     "toggleTheme": "Toggle Theme",
     "backToList": "Back to List",
@@ -2581,6 +2582,7 @@
     "definitions": "Definitions",
     "activate": "Activate",
     "activeSet": "active",
+    "versions": "Versions",
     "tidy": "Tidy graph",
     "paletteGroups": {
       "entities": "Types",

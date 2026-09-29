@@ -75,6 +75,7 @@
     "created": "Создано",
     "open": "Открыть",
     "rename": "Переименовать",
+    "restore": "Восстановить",
     "doNotUse": "Не использовать",
     "toggleTheme": "Сменить тему",
     "backToList": "Назад к списку",
@@ -2581,6 +2582,7 @@
     "definitions": "Определения",
     "activate": "Активировать",
     "activeSet": "активно",
+    "versions": "Версии",
     "tidy": "Упорядочить граф",
     "paletteGroups": {
       "entities": "Типы",

@@ -29,7 +29,10 @@ export async function getActiveProcessForOrganization(organizationId) {
 export async function getActiveMergedDataForOrganization(organizationId) {
   if (!organizationId) return null;
   const actives = await repository.findActiveSetByOrganization(organizationId);
-  return mergeActiveDefinitions(actives.map(definition => definition.data));
+  // Each member contributes its last-ACTIVATED snapshot, never live
+  // draft data (feature README): in-place edits go live only through
+  // activation.
+  return mergeActiveDefinitions(actives.map(definition => definition.data.activated || definition.data));
 }
 
 export async function getActiveCompiledProcess(organizationId) {

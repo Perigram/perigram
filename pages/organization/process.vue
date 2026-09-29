@@ -152,10 +152,10 @@
                 <div
                   v-for="process in processDefinitions"
                   :key="process._id"
-                  class="flex items-center gap-2 rounded-ui border border-content-border bg-content px-3 py-2"
+                  class="flex flex-col gap-1 rounded-ui border border-content-border bg-content px-3 py-2"
                   :class="{ 'border-primary': String(process._id) === String(selectedProcessId) }"
                 >
-                  <template v-if="renamingDefinitionId === String(process._id)">
+                  <div v-if="renamingDefinitionId === String(process._id)" class="flex items-center gap-2">
                     <InputText
                       v-model="renamingDefinitionName"
                       class="min-w-0 flex-1"
@@ -171,8 +171,8 @@
                       :disabled="!renamingDefinitionName.trim()"
                       @click="applyDefinitionRename(process)"
                     />
-                  </template>
-                  <template v-else>
+                  </div>
+                  <div v-else class="flex items-center gap-2">
                     <button
                       type="button"
                       class="min-w-0 flex-1 truncate text-left"
@@ -186,6 +186,13 @@
                       :loading="definitionBusyId === String(process._id)"
                       :aria-label="$t('processDesigner.activate')"
                       @update:model-value="value => toggleDefinitionActive(process, value)"
+                    />
+                    <Button
+                      icon="pi pi-history"
+                      size="small"
+                      text
+                      :aria-label="$t('processDesigner.versions')"
+                      @click="toggleDefinitionHistory(process)"
                     />
                     <Button
                       icon="pi pi-pencil"
@@ -203,9 +210,31 @@
                       :loading="definitionBusyId === String(process._id)"
                       @click="removeDefinition(process)"
                     />
-                  </template>
+                  </div>
+                  <div
+                    v-if="historyDefinitionId === String(process._id)"
+                    class="flex flex-col gap-1 border-l border-content-border pl-3"
+                  >
+                  <div v-if="historyLoading" class="text-muted text-supporting">…</div>
+                  <div
+                    v-for="(entry, index) in definitionHistoryEntries"
+                    v-else
+                    :key="`${entry.at}-${index}`"
+                    class="flex items-center gap-2 text-supporting"
+                  >
+                    <span class="min-w-0 flex-1 truncate">{{ formatHistoryEntry(entry) }}</span>
+                    <Button
+                      icon="pi pi-undo"
+                      size="small"
+                      text
+                      :aria-label="$t('common.restore')"
+                      :loading="definitionBusyId === String(process._id)"
+                      @click="restoreDefinitionVersion(process, entry)"
+                    />
+                  </div>
                 </div>
               </div>
+            </div>
             </TabPanel>
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
@@ -1884,6 +1913,54 @@ async function applyDefinitionRename(process) {
 
 // The activation switch IS the state: on = member of the additive active
 // set (process-definitions README "Activation").
+// Activation versions (node UI contract "definitions management"): the
+// history disclosure loads the full record (list entries are summaries)
+// and restores a snapshot as the definition's data — an edit like any
+// other, live through activation.
+const historyDefinitionId = ref(null);
+const definitionHistoryEntries = ref([]);
+const historyLoading = ref(false);
+
+async function toggleDefinitionHistory(process) {
+  const id = String(process._id);
+  if (historyDefinitionId.value === id) {
+    historyDefinitionId.value = null;
+    return;
+  }
+  historyDefinitionId.value = id;
+  historyLoading.value = true;
+  try {
+    const full = process.data ? process : await persistence.loadById(id);
+    upsertProcessDefinition(full);
+    definitionHistoryEntries.value = [...(full.data?.history || [])].reverse();
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('processDesigner.versions'), detail: error?.data?.message || error?.message || '', life: 4000 });
+    historyDefinitionId.value = null;
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
+function formatHistoryEntry(entry) {
+  const at = entry.at ? new Date(entry.at).toLocaleString() : '';
+  return [at, entry.actor].filter(Boolean).join(' · ');
+}
+
+async function restoreDefinitionVersion(process, entry) {
+  const id = String(process._id);
+  if (definitionBusyId.value || !entry?.data) return;
+  definitionBusyId.value = id;
+  try {
+    const updated = await persistence.saveDraft(id, { ...entry.data, history: undefined, activated: undefined });
+    upsertProcessDefinition(updated);
+    if (String(draft.value?._id) === id) setDraft(updated);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.restore'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  } finally {
+    definitionBusyId.value = null;
+  }
+}
+
 async function toggleDefinitionActive(process, active) {
   const id = String(process._id);
   if (definitionBusyId.value) return;

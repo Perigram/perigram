@@ -235,7 +235,11 @@ async function activeContractBaseline(process, auth) {
   try {
     const roles = await loadOrganizationRoles(process.lineage.organizationId);
     const organizationId = process.lineage.organizationId;
-    return await compileActiveProcessRuntime(mergeActiveDefinitions(actives.map(active => active.data)), roles, organizationId);
+    return await compileActiveProcessRuntime(
+      mergeActiveDefinitions(actives.map(active => active.data.activated || active.data)),
+      roles,
+      organizationId
+    );
   } catch {
     return null;
   }
@@ -328,7 +332,7 @@ export async function activate(id, auth) {
     mergeActiveDefinitions([
       ...(await repository.findActiveSetByOrganization(process.lineage.organizationId))
         .filter(active => String(active._id) !== String(process._id))
-        .map(active => active.data),
+        .map(active => active.data.activated || active.data),
       process.data
     ]),
     roles,
@@ -343,7 +347,7 @@ export async function activate(id, auth) {
     const history = [...(process.data.history || []), {
       at: new Date().toISOString(),
       actor: auth.userId || 'SYSTEM',
-      data: { ...process.data, history: undefined, compiled: undefined }
+      data: { ...process.data, history: undefined, compiled: undefined, activated: undefined }
     }];
     process.data.history = history.slice(-50);
   }
@@ -360,6 +364,10 @@ export async function activate(id, auth) {
     }
   }
   applyProcessState(process, 'ACTIVE', auth.userId, 'Process activated');
+  // The runtime source for an active-set member is the snapshot that
+  // activation published (feature README): edits accumulate as draft
+  // data and go live only through activation.
+  process.data.activated = { ...process.data, history: undefined, compiled: undefined, activated: undefined };
   let updated = await repository.updateById(id, process);
   // Activation can flip the org's registry view (APPLY posts in-tree
   // declarations before activate): re-derive the instance indexes.
