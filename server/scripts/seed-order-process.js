@@ -49,15 +49,33 @@ async function main() {
   const token = login.accessToken;
   console.log(`Signed in as ${login.user?.identity?.name || login.user?.email || email}`);
 
+  // The fixture authors grants against the test vocabulary role
+  // (`role_admin`); a definition seeded into a live org must carry that
+  // org's real admin role id.
+  const organizationId = login.user?.lineage?.organizationId || login.user?.organizationId;
+  if (!organizationId) throw new Error('Login context carries no organization — switch into the target org first');
+  const org = await call(`/api/organizations/${organizationId}`, { token });
+  const roles = Object.values(org?.data?.roles || {});
+  if (!roles.length) throw new Error(`Organization ${organizationId} declares no roles`);
+  const adminRole = roles.find(role => String(role.label || '').toLowerCase() === 'admin') || roles[0];
+  console.log(`Admin role: ${adminRole.id} (${adminRole.label})`);
+
   for (const declaration of orderOrgTypeDeclarations()) {
     await call('/api/admin/cts/types', { method: 'POST', body: declaration, token });
     console.log(`Declared org type ${declaration.id}`);
   }
 
+  const definition = orderProcessDefinition();
+  for (const node of Object.values(definition.processNodes || {})) {
+    for (const grant of node.access?.grants || []) {
+      if (grant.roleId === 'role_admin') grant.roleId = adminRole.id;
+    }
+  }
+
   const existing = await call('/api/process-definitions', { token });
   const prior = (Array.isArray(existing) ? existing : existing?.items || [])
     .find(item => item?.identity?.name === PROCESS_NAME || item?.name === PROCESS_NAME);
-  const payload = { name: PROCESS_NAME, data: orderProcessDefinition() };
+  const payload = { name: PROCESS_NAME, data: definition };
 
   let definitionId;
   if (prior?._id) {
