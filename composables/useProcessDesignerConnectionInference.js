@@ -1,28 +1,7 @@
 import { operationKindOf } from '~/packages/cts/src/index.js';
+import { propagateConnectionType } from '~/packages/processes/src/index.js';
 
 export function useProcessDesignerConnectionInference({ nodes, draft, resolveOutputs, portForHandle, syncProcessNode }) {
-  const genericKinds = new Set([
-    'collection.makeList',
-    'collection.packArray',
-    'collection.unpackArray',
-    'collection.concat',
-    'collection.itemAt',
-    'collection.slice',
-    'collection.count',
-    'collection.distinct',
-    'collection.sort',
-    'collection.groupBy',
-    'collection.filter',
-    'tree.flatten',
-    'tree.graft',
-    'tree.simplify',
-    'tree.branch',
-    'tree.zip',
-    'tree.unzip',
-    'tree.cross',
-    'tree.transpose'
-  ]);
-
   function inferGenericNodeTypeFromConnection(connection = {}) {
     const sourceNode = nodes.value.find(item => item.id === connection.source);
     const targetNode = nodes.value.find(item => item.id === connection.target);
@@ -39,14 +18,7 @@ export function useProcessDesignerConnectionInference({ nodes, draft, resolveOut
       syncProcessNode(sourceRecord);
     }
     const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
-    const drivesGenericType = !targetInput
-      || ['value', 'items', 'tree', 'left'].includes(targetInput);
-    if (genericKinds.has(operationKindOf(targetRecord)) && drivesGenericType) targetRecord.type = { ...sourcePort.type };
-    if (operationKindOf(targetRecord) === 'value.logic' && ['left', 'value', ''].includes(targetInput)) targetRecord.type = { ...sourcePort.type };
-    if (['value.string', 'value.math', 'value.dateTime'].includes(targetRecord.kind)
-      && ['left', 'text', 'date', 'value', ''].includes(targetInput)) {
-      targetRecord.type = { ...sourcePort.type };
-    }
+    propagateConnectionType(targetRecord, targetInput, sourcePort);
     const entryId = targetInput.replace(/^entry:/, '');
     const entry = targetRecord.entries?.find(item => item.id === entryId);
     const connectedTypeId = sourcePort.type?.typeId || sourcePort.type?.itemType?.typeId || sourceRecord.typeId || '';

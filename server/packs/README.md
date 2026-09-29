@@ -62,7 +62,8 @@ files features are rejected at the mount (see
   `tech-drawing` and `documents` (pen/layer references and the order
   table types resolve through the composed view, never by importing
   them). The composed order process — the pack's end-to-end proof flow —
-  lives in `order-process-fixture.js` with its spec.
+  is composed headlessly through the processes package's authoring seam and
+  proven by `order-process.spec.js` for both table kinds.
 
 ## Related
 

@@ -782,11 +782,15 @@ function catalogPorts(record = {}, context = {}) {
   // The relational brick (SPEC §18 bounded iteration): two value lists
   // joined by authored key paths — strict inner join, left order
   // preserved, every left key must match exactly one right entry or the
-  // node fails listing the unmatched keys.
+  // node fails listing the unmatched keys. The list ports are json-typed:
+  // the paired streams are heterogeneous (rows against entities, records
+  // against records), and the authored key paths carry the pairing —
+  // narrowing the sockets to one element type would refuse the right
+  // side the moment the left side's type propagates.
   if (kind === 'collection.join') return {
     inputs: [
-      socket('left', configured, DATA, true, 'list'),
-      socket('right', configured, DATA, true, 'list')
+      socket('left', processType('json'), DATA, true, 'list'),
+      socket('right', processType('json'), DATA, true, 'list')
     ],
     outputs: [socket('pairs', processType('record'), DATA, false, 'list')]
   };

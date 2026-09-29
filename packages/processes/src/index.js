@@ -20,6 +20,19 @@ export {
   validateRoundTrip
 } from './transpiler.js';
 export {
+  ACCESS_LEVEL_RANK,
+  PROCESS_NODE_OPERATIONS_BY_KIND,
+  createDefinitionAuthoring,
+  createProcessNodeRecord,
+  createProcessRecordSync,
+  defaultProcessNodeOperation,
+  humanizeNodeLabel,
+  iconForProcessNode,
+  normalizeAccessLevel,
+  normalizeDesignerAccess,
+  propagateConnectionType
+} from './authoring.js';
+export {
   PROCESS_SCALAR_KINDS,
   PROCESS_DATAFLOW_VERSION,
   PROCESS_STRUCTURES,

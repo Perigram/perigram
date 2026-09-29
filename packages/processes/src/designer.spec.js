@@ -295,6 +295,7 @@ describe('process designer domain contract', () => {
     expect(items.map(item => item.preset?.select)).not.toContain('query');
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',
+      'source.literalList',
       'value.logic',
       'value.string',
       'value.recordField',

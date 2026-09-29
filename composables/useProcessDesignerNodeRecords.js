@@ -1,53 +1,9 @@
-import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
+import { createProcessNodeRecord, PROCESS_NODE_OPERATIONS_BY_KIND as processNodeOperations } from '~/packages/processes/src/index.js';
 
-// Node-record factories for the process designer. The page remains the
-// composition root: domain-derived option lists, type-id resolution, and
-// the post-creation sync hook are injected so this module owns only record
-// shapes and defaults.
-const processNodeOperations = {
-  'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max', 'absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt', 'clamp'],
-  'value.string': ['concat', 'replace', 'substring', 'split', 'join', 'length', 'lower', 'upper', 'trim'],
-  'value.logic': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull', 'and', 'or', 'xor', 'nand', 'nor', 'xnor', 'not'],
-  'value.dateTime': ['addDays', 'addHours', 'addMinutes', 'addMonths', 'addDuration', 'subtractDuration', 'differenceDays', 'differenceHours', 'differenceMinutes', 'startOfDay', 'endOfDay'],
-  'predicate.field': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'],
-  'predicate.logic': ['and', 'or', 'not'],
-  'collection.sort': ['asc', 'desc'],
-  'record.fieldChange': ['set', 'unset', 'append', 'remove']
-};
-
-export function humanizeNodeLabel(value = '') {
-  return String(value)
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[._]/g, ' ')
-    .replace(/^./, letter => letter.toUpperCase());
-}
-
-export function iconForProcessNode(kind = '') {
-  if (kind.startsWith('cts.construct')) return 'pi pi-plus-circle';
-  if (kind.startsWith('cts.mutate')) return 'pi pi-pencil';
-  if (kind.startsWith('cts.transition')) return 'pi pi-forward';
-  if (kind.startsWith('cts.remove')) return 'pi pi-trash';
-  if (kind.startsWith('cts.command')) return 'pi pi-bolt';
-  if (kind.startsWith('cts.conversion')) return 'pi pi-replay';
-  if (kind.startsWith('cts.read')) return 'pi pi-database';
-  if (kind.startsWith('cts.field')) return 'pi pi-angle-right';
-  if (kind.startsWith('cts.compose')) return 'pi pi-box';
-  if (kind.startsWith('cts.decompose')) return 'pi pi-objects-column';
-  if (kind.startsWith('cts.join')) return 'pi pi-arrows-merge';
-  if (kind.startsWith('source.')) return 'pi pi-circle-fill';
-  if (kind.startsWith('value.')) return 'pi pi-sliders-h';
-  if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
-  if (kind.startsWith('record.')) return 'pi pi-box';
-  if (kind.startsWith('predicate.')) return 'pi pi-filter';
-  if (kind.startsWith('read.')) return 'pi pi-database';
-  if (kind.startsWith('effect.')) return 'pi pi-bolt';
-  return 'pi pi-directions';
-}
-
-export function defaultProcessNodeOperation(kind = '') {
-  return (processNodeOperations[kind] || [''])[0] || '';
-}
-
+// Node-record factory adapter over the package authoring seam: the record
+// shapes, defaults, and the sync call are the headless authoring contract
+// (packages/processes `authoring.js`); this composable adds only the i18n
+// operation labels and the page's late-bound sync hook.
 export function useProcessDesignerNodeRecords({
   designer,
   translate = key => key,
@@ -119,34 +75,8 @@ export function useProcessDesignerNodeRecords({
     return designer.entityOptions[0]?.value || '';
   }
 
-  // Graph protocol v5: palette items create cts.* records. Defaults derive
-  // from the operation-kind twin (one seam); the record stores the authored
-  // vocabulary. The factory seeds only keys every record genuinely carries —
-  // kind-specific envelopes (construction, state) land in their own branches
-  // and are filled by the sync pass, not the factory.
   function createProcessNode(id, kind = 'source.literalItem') {
-    const op = operationKindOf({ kind });
-    const nativeSpecies = String(kind || '').startsWith('cts.');
-    const createLike = ['effect.createEntity', 'effect.runProducer'].includes(op);
-    const node = {
-      id,
-      kind,
-      typeId: '',
-      icon: iconForProcessNode(kind),
-      inputs: [],
-      outputs: []
-    };
-    if (!nativeSpecies) {
-      node.operation = defaultProcessNodeOperation(kind);
-      node.value = op === 'source.literalList' ? [] : op === 'source.literalTree' ? { branches: [] } : null;
-      node.fields = [];
-    }
-    if (createLike) node.construction = { mode: 'genericCreate', inputs: [] };
-    // No default bindings: nodes are unbound until the author binds them
-    // (wire a type node, or pick explicitly). A seeded domain type here is
-    // an invisible authoring decision the user never made. Native species
-    // records have no operation switch, status-entry payload, or retired
-    // producer selector.
+    const node = createProcessNodeRecord(id, kind, { defaultEntityTypeId: defaultTypeId() });
     syncProcessNode(node);
     return node;
   }

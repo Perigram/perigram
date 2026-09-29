@@ -20,7 +20,7 @@ global.fetch = vi.fn(async (_url, options = {}) => {
   };
 });
 
-import { solveNestingValue } from '../value-services/solve-nesting.js';
+import { solveNestingValue } from './solve-nesting.js';
 
 const square = [[0, 0], [10, 0], [10, 10], [0, 10]];
 

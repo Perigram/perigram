@@ -551,11 +551,14 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
       }
     }
     if ([CTS_KIND.field, CTS_KIND.mutate, CTS_KIND.compose].includes(node.kind)) {
-      // Authored definitions carry plain socket defaults (the data-tree
-      // wrap is a processes normalization concern, downstream of here).
+      // Authored definitions may carry plain socket defaults or the
+      // data-tree packet wrap the designer persists (the unwrap the
+      // processes port resolution applies) — one reader accepts both.
+      const fieldDefault = node.inputDefaults?.field;
+      const authoredFieldValue = fieldDefault?.branches?.[0]?.items?.[0] ?? fieldDefault;
       const paths = node.kind === CTS_KIND.mutate
         ? [...(node.fields || []), ...Object.keys(node.inputDefaults || {})]
-        : [node.inputDefaults?.field, node.field, node.path].filter(Boolean);
+        : [authoredFieldValue, node.field, node.path].filter(Boolean);
       for (const path of paths) {
         if (!nativeFieldPathDeclared(path, resolvedTypeId || typeId, domain)) {
           errors.push(`processNodes.${id}: field ${path} is not in the ${resolvedTypeId || typeId} row`);

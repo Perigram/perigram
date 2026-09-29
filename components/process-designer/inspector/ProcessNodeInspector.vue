@@ -187,6 +187,36 @@
       <label>{{ $t('processDesigner.projection') }}</label>
       <Select v-model="record.projection" :options="projectionOptionsFor(typeId)" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
+    <div v-if="record.kind === 'collection.join'" class="flex flex-col gap-1">
+      <label>{{ $t('processDesigner.joinLeftKey') }}</label>
+      <InputText v-model="record.leftKey" class="w-full" @change="$emit('sync')" />
+      <label>{{ $t('processDesigner.joinRightKey') }}</label>
+      <InputText v-model="record.rightKey" class="w-full" @change="$emit('sync')" />
+    </div>
+    <div v-if="record.kind === 'value.recordField'" class="flex flex-col gap-1">
+      <label>{{ $t('processDesigner.recordFieldPath') }}</label>
+      <InputText v-model="record.path" class="w-full" @change="$emit('sync')" />
+      <label>{{ $t('processDesigner.recordOutputType') }}</label>
+      <Select
+        :model-value="record.type?.base || 'json'"
+        :options="recordFieldTypeOptions"
+        option-label="label"
+        option-value="value"
+        @update:model-value="updateRecordFieldType"
+      />
+    </div>
+    <div v-if="record.kind === 'record.construct'" class="flex flex-col gap-1">
+      <label>{{ $t('processDesigner.recordFields') }}</label>
+      <div v-for="(field, index) in recordFields" :key="index" class="flex items-center gap-2">
+        <InputText
+          :model-value="field"
+          class="w-full"
+          @update:model-value="value => updateRecordField(index, value)"
+        />
+        <Button icon="pi pi-times" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeRecordField(index)" />
+      </div>
+      <Button icon="pi pi-plus" :label="$t('processDesigner.addRecordField')" size="small" text @click="addRecordField" />
+    </div>
   </div>
 </template>
 
@@ -253,6 +283,35 @@ const { t } = useI18n();
 const op = computed(() => operationKindOf(props.record || {}));
 const isEffect = computed(() => op.value.startsWith('effect.'));
 const typeId = computed(() => typeIdOf(props.record || {}));
+
+// Record-value authoring surfaces: the record elimination form's key and
+// output type, the join's key paths, and the record composer's field list.
+const recordFieldTypeOptions = computed(() => [
+  'string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'entityRef'
+].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
+const recordFields = computed(() => (Array.isArray(props.record.fields) ? props.record.fields : []));
+
+function updateRecordFieldType(base) {
+  props.record.type = { ...(props.record.type || {}), base };
+  emit('sync');
+}
+
+function updateRecordField(index, value) {
+  const fields = [...recordFields.value];
+  fields[index] = String(value || '').trim();
+  props.record.fields = fields;
+  emit('sync');
+}
+
+function addRecordField() {
+  props.record.fields = [...recordFields.value, ''];
+  emit('sync');
+}
+
+function removeRecordField(index) {
+  props.record.fields = recordFields.value.filter((_, position) => position !== index);
+  emit('sync');
+}
 const accessLevelOptions = computed(() => [
   { label: t('processDesigner.accessRead'), value: 'read' },
   { label: t('processDesigner.accessWrite'), value: 'write' },

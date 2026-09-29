@@ -520,7 +520,10 @@ grouped headings; operation descriptions are available on hover instead of
 occupying canvas space. Right-clicking empty canvas opens the palette at that
 graph position. Dropping a socket wire on empty canvas opens the same palette
 filtered to operations with a compatible opposite socket; choosing one
-creates and connects it immediately.
+creates and connects it immediately. Dropping the loop item (`forEachEntity`)
+creates the loop pair — `control.forEach` and its `control.forEachEnd` closer
+beside it — because the closer is part of the loop's semantics, not an
+independent authoring choice.
 
 ## Status model at runtime
 
@@ -543,6 +546,11 @@ offers only its entity input. Record Field (`value.recordField`) reads one
 authored key off each record value of its List input (service rows,
 composed parameter records) with an authored output type — plain record
 values have no declared row, so the key is authored, not selected.
+Join by key (`collection.join`) authors its `leftKey`/`rightKey` key paths on
+the record; Compose record (`record.construct`) authors its field path list
+(`fields` resolve their types from the wired context, else json). Both
+configurations live on the node's inline configuration area — they are the
+operation's own semantics, not grants or policy.
 Field extraction and Logic map over the source
 topology so Boolean masks stay aligned with the original entities for
 `collection.filter`. Packet matching and input transforms are internal

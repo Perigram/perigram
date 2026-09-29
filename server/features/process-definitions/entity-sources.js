@@ -19,15 +19,22 @@ export async function processChildEntities(containment = [], queryEntities, enti
 }
 
 export async function processRelatedEntities(relations = [], resolveEntity, entity, relationKey, typeId) {
-  const relation = relations.find(item => (
+  // A relation edge accepting several target types declares one entry
+  // per target: each stored ref resolves through the contract matching
+  // the ref's own type.
+  const declared = relations.filter(item => (
     sameTypeId(item.ownerType, typeId) && item.key === relationKey
   ));
-  if (!relation) throw new Error(`${typeId}.${relationKey || ''} is not a declared relation`);
-  const stored = entity?.relations?.[relation.key];
+  if (!declared.length) throw new Error(`${typeId}.${relationKey || ''} is not a declared relation`);
+  const stored = entity?.relations?.[declared[0].key];
   const refs = Array.isArray(stored) ? stored : stored ? [stored] : [];
   const resolved = await Promise.all(refs.map(ref => {
     const normalized = normalizeInstanceRef(ref);
-    return normalized?.id ? resolveEntity(relation.targetType, normalized) : null;
+    if (!normalized?.id) return null;
+    const relation = declared.length === 1
+      ? declared[0]
+      : declared.find(contract => sameTypeId(contract.targetType, normalized.type || ''));
+    return relation ? resolveEntity(relation.targetType, normalized) : null;
   }));
   return resolved.filter(Boolean);
 }
