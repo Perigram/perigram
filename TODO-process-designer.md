@@ -618,6 +618,30 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-29 lane bounds wrap content, recalculated on the fly
+
+Owner directive, stated bluntly after two misses: "LANE VERTICAL
+BOUNDS SHOULD WRAP AROUND ITS NODES. RECALCULATED ON THE FLY ON NEW
+NODES DROPPED TO LANE." The previous rounds had it inverted — drops
+were clamped INTO fixed band bounds (and earlier bailed entirely on
+tight bands). Landed the container model: a band's height IS its
+content extent + padding, recomputed by a settle pass that runs on
+load, every drag-stop, drop, add, and delete (signature watch + explicit
+calls). The settle seats each band's content at its top through ONE
+uniform shift — intra-lane order and drop offsets are never touched —
+and stacks the bands in role order, so a card dropped below a lane's
+content stays exactly where it fell and the lane grows around it,
+pushing lower lanes down. Effects assign by grant; secondaries and
+declarations ride their remembered settle band (from Tidy) or the band
+containing them, so data nouns stay glued to their lane when lanes
+resize. Drops inside a lane's current span still snap to the nearest
+free row; drops outside it stay put. Load settles BEFORE the dirty
+baseline so opening a draft never marks it dirty. Pure core exported as
+settleLaneGeometry (spec: wrap-on-drop preserves offsets, lower lanes
+shift, empty lanes stay 150px drop targets, settle idempotent); Tidy's
+own geometry now equals the settle output, so tidyCanvas just settles.
+Count-based sizing survives only as the pre-settle paint.
+
 ### Agent Notes — 2026-09-29 constrained-relaxation rewrite; drop/embracing regression fixed
 
 Owner round: "nodes cover each other, not even trying to relax, evade

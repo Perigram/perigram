@@ -425,19 +425,18 @@ classes, fields, type references, and the non-effect process nodes
 SECONDARY: unaffected by lanes, free-placeable anywhere, and grouped
 under the secondary visibility toggle, which hides them (nodes and
 their wires) without deleting anything; `hidden` is runtime state and
-never persists. Lane arrangement is never automatic: stored positions are
-authoritative in the edit view, so loading a draft, editing grants in
-the inspector, nudging a card inside its own lane, and role-list
-changes never move anything. Band bounds hug their arranged content
-plus a small padding — after Tidy the canvas renders the arranged
-geometry, and no node can cross a lane divider; before any arrangement,
-or after membership changes, bands fall back to count-based sizing. The
-one automatic placement is the lane-changing drop itself: it writes the
-grant and slots the card into the target lane's free row nearest the
-drop, keeping the drop x and clamped inside the lane. Membership always
-re-derives from grants, and position is presentation state — never
-authorization by itself. Left-to-right is the reading canon; Tidy owns
-bulk arrangement.
+never persists. Lane bounds wrap their nodes: a band's height is its
+content extent plus a small padding, recalculated on the fly — on
+load, on every drop, drag-stop, add, and delete — by the settle pass,
+which stacks the bands in role order and seats each band's content at
+its top (a uniform shift that preserves the authored order inside the
+lane; nothing is ever re-sorted). Dropping a card into a lane leaves it
+where it fell and the lane grows around it; empty roles keep a minimum
+height so their lane stays a visible drop target. The lane-changing
+drop still writes the grant — the lane IS the assignment; membership
+always re-derives from grants, and position is presentation state —
+never authorization by itself. Left-to-right is the reading canon;
+Tidy owns bulk arrangement.
 
 ### Auto-arrangement (Tidy)
 
@@ -470,12 +469,12 @@ the draft dirty like any drag. The pass is the pure helper
   cards in a column ever overlap, then band heights re-derive from
   content and the bands restack. The relaxation runs to a stable
   state (bounded, deterministic, idempotent).
-- **Band geometry is arrangement-derived**: each band sizes to its
-  content extent plus a small padding (empty roles keep the minimum
-  height), and the canvas floors rendered heights by the member
-  effects' live extent so drops and drags keep bands embracing their
-  cards without a re-tidy; membership itself always re-derives from
-  grants.
+- **Band geometry wraps content, live**: the settle pass stacks the
+  bands in role order and sizes each to its content extent plus a small
+  padding (empty roles keep a minimum height), rerunning on every load,
+  drop, drag-stop, add, and delete. Tidy's own geometry is the settle
+  pass applied to its arrangement, so a tidy canvas is already settled;
+  membership itself always re-derives from grants.
 
 ### Card behavior details
 
