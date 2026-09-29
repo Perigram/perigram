@@ -155,15 +155,18 @@ land next to the client chunks, and nitro fails with `Could not load
 production build after the dev-watch fix landed (2026-09-27 `staging`
 deploy) because nothing between the two had run a production build — dev
 and the guards never exercise the SSR bundle emit.
-Server-side `xlsx` imports resolve through `nitro.alias` to the package's
-ESM build (`xlsx` → `xlsx/xlsx.mjs`): the CJS main carries an
+Server-side `xlsx` imports target the package's ESM build
+(`import … from 'xlsx/xlsx.mjs'`): the CJS main carries an
 `export `-leading prose comment that nitro's import-validity check
 misreads as ESM syntax, so nitro refuses to externalize the package and
 rollup bundles it instead — the CJS interop then demands a default
 export from the externalized `node:fs` and every nitro server-bundle
 rebuild fails with `"default" is not exported by "…node:fs?
 commonjs-external"` (first hit 2026-09-29, when the facade order process
-added the first server-side xlsx import).
+added the first server-side xlsx import). A `nitro.alias` rewrite is NOT
+the fix: rollup's alias matches prefixes, so an aliased
+`xlsx → xlsx/xlsx.mjs` re-matches itself and resolves
+`xlsx/xlsx.mjs/xlsx.mjs` (ENOENT).
 
 ## Progressive Web App
 
