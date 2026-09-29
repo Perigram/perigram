@@ -2972,6 +2972,7 @@
     "collectionEntity": "Collection entity",
     "relatedEntity": "Related entity",
     "relation": "Relation",
+    "projection": "Projection",
     "relations": "Relations",
     "operation": "Operation",
     "traversal": "Traversal",
