@@ -3,6 +3,7 @@
 .data
 .nuxt
 .nuxt.root-owned
+.nuxt.trash*
 .nitro
 .cache
 dist

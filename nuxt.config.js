@@ -26,14 +26,9 @@ const portableAliases = {
 const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')
 const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{${cssDeclarations(darkCssVariableTokens)}}`
 
-// Chokidar-safe ignore for agent session worktrees. Chokidar v4 dropped
-// anymatch: glob patterns silently leak file events under nested dirs
-// (reproduced: '**/.agent-worktrees/**' still emitted `add
-// .agent-worktrees/<session>/tsconfig.json`, and Vite's tsconfig reload
-// then cleared the dev cache for every worktree checkout — the reload
-// storm stalled vite-node's SSR module bridge past its 60s request
-// timeout). The predicate matches relative AND absolute paths on both
-// separator styles.
+// Watch-ignore predicate for agent worktrees: chokidar v4 leaks
+// glob-ignored nested events, so the ignore must match paths, not globs.
+// Contract: Development notes in the root README.
 const WORKTREE_WATCH_IGNORE = p => /(^|[\\/])\.agent[-_]w[a-z0-9_-]*([\\/]|$)/i.test(String(p));
 
 export default defineNuxtConfig({
@@ -129,25 +124,13 @@ export default defineNuxtConfig({
                 ...portableAliases
             }
         },
-        // Agent session worktrees live under .agent-worktrees/ inside the
-        // project root. Their tsconfig.json (written by every git worktree
-        // checkout) tripped Vite's tsconfig reload ("changed tsconfig file
-        // detected — Clearing cache and forcing full-reload", repeatedly),
-        // nuking the dev cache; the reload storm then stalled the
-        // vite-node SSR module bridge past its 60s request timeout and
-        // manual testers got 500s. The ignore is a PREDICATE (chokidar v4
-        // leaks glob-ignored nested files) applied to the shared server
-        // watcher and each environment's dev watcher.
         server: {
             watch: {
                 ignored: [WORKTREE_WATCH_IGNORE]
             }
         },
-        // The per-environment dev watchers above are attached only for
-        // dev: a user-level `environments` object present during a
-        // production build deroutes the vite 7 SSR build output and nitro
-        // ENOENTs on .nuxt/dist/server/{server,styles}.mjs. Contract and
-        // failure history: Development notes in the root README.
+        // Dev-only: a user-level `environments` object deroutes the
+        // vite 7 SSR build in production. Root README, Development.
         ...(process.env.NODE_ENV === 'development' ? {
             environments: {
                 client: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } },
