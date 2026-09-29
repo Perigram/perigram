@@ -117,6 +117,10 @@ export function extractRow(fieldSchemas = []) {
 // defaults follow the class convention (item quantities -> specs).
 export function slotFor(descriptor = {}, classOf = '') {
   if (descriptor.slot) return descriptor.slot;
+  // A ref field is a declared relation (SPEC §6: the declared edge is the
+  // only legal place a ref may be stored): its row lives in the relations
+  // slot, whatever authored it.
+  if (descriptor.base === 'ref') return 'relations';
   return classOf === 'item' && descriptor.base === 'quantity' ? 'specs' : 'data';
 }
 

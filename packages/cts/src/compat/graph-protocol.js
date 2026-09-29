@@ -415,12 +415,18 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
   const classRecordIdByGraphNode = new Map((graph?.nodes || [])
     .filter(node => node?.type === 'ctsClass' && node.data?.refId)
     .map(node => [String(node.id), String(node.data.refId)]));
+  // A children edge's target may be an in-tree class OR a type-reference
+  // node naming a registry type: the child type id comes from whichever
+  // the wire lands on.
+  const childTypeIdByGraphNode = new Map((graph?.nodes || [])
+    .filter(node => (node?.type === 'ctsClass' || node?.type === 'ctsType') && (node.data?.refId || node.data?.typeId))
+    .map(node => [String(node.id), node.type === 'ctsClass' ? String(node.data.refId) : String(node.data.typeId || '')]));
   const childrenEdges = [];
   for (const edge of graph?.edges || []) {
     if (edge.role !== 'type') continue;
     if (edge.label === 'children') {
       const parent = classRecordIdByGraphNode.get(String(edge.source));
-      const child = classRecordIdByGraphNode.get(String(edge.target));
+      const child = childTypeIdByGraphNode.get(String(edge.target));
       const parentDeclaration = byKind('class').find(candidate => candidate.id === parent);
       if (parent && child && classMayDeclareChildren(parentDeclaration?.class || 'file')) {
         childrenEdges.push({ edge, parent, child });

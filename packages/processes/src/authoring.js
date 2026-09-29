@@ -7,7 +7,13 @@
 // without one. A palette item that cannot be dropped, configured, and
 // round-tripped through this seam is a defect (authoring.spec.js pins it).
 import { operationKindOf, typeIdOf, setTypeBinding } from '../../cts/src/index.js';
-import { createProcessDesignerContract, syncProcessNodeProducerOutputs } from './designer.js';
+import {
+  camelCaseId,
+  createProcessDesignerContract,
+  declarationWireLegality,
+  interpretDeclarationEdges,
+  syncProcessNodeProducerOutputs
+} from './designer.js';
 import { constructionInputsForContract, resolveCatalogNodePorts } from './node-catalog.js';
 import { mintProcessSocketHandle, parseProcessSocketHandleId, PROCESS_DATAFLOW_VERSION } from './ports.js';
 import { processSocketsCompatible, processType } from './types.js';
@@ -306,15 +312,70 @@ export function propagateConnectionType(targetRecord = {}, targetInput = '', sou
   if (generic) targetRecord.type = { ...sourcePort.type };
 }
 
+// Declaration-tree authoring: the same gestures the designer's tree
+// canvas makes. Classes, fields, and type references are dropped as
+// canvas nodes with their persisted ctsTypes records; declaration wires
+// (declares, targets, children, binds, entry, field) are gated by
+// `declarationWireLegality` and persisted as role:'type' edges. The
+// composed state runs the platform's own interpretation
+// (`interpretDeclarationEdges`) before serialization, so record bindings
+// derive from wires exactly as the designer's live pass derives them.
+const DECLARATION_NODE_KINDS = Object.freeze({
+  ctsClass: 'class',
+  ctsField: 'field',
+  ctsState: 'state',
+  ctsType: 'type'
+});
+
+function declarationNode(nodeType, { id, data }) {
+  return { id, type: nodeType, position: { x: 0, y: 0 }, data: { refId: id, ...data } };
+}
+
+function syncDeclarationRecordFromNode(record, nodeType, data) {
+  if (nodeType === 'ctsClass') {
+    record.kind = 'class';
+    record.typeId = data.typeId || '';
+    record.name = data.name || '';
+    record.class = data.class || 'file';
+    record.glyph = data.glyph || null;
+    record.payload = data.payload || null;
+    record.operators = Array.isArray(data.operators) ? data.operators : [];
+  } else if (nodeType === 'ctsField') {
+    record.kind = 'field';
+    record.typeId = data.typeId || null;
+    record.name = data.name || '';
+    record.descriptor = { ...(data.descriptor || { base: 'string' }) };
+  } else if (nodeType === 'ctsState') {
+    record.kind = 'state';
+    record.typeId = data.typeId || null;
+    record.value = data.value || '';
+    record.initial = data.initial === true;
+    record.terminal = data.terminal === true;
+  } else {
+    record.kind = 'type';
+    record.typeId = data.typeId || '';
+  }
+  return record;
+}
+
 // Compose a definition the way the designer does. Drops create records
 // from palette items (the loop item creates its pair — the closer is part
 // of loop semantics), configure writes record semantics (the inspector's
 // writes), connect is the port-gated wire gesture, and definition()
 // returns the authored data ready for validation/activation.
 export function createDefinitionAuthoring(domain, capabilities = null) {
-  const contract = createProcessDesignerContract(domain, capabilities);
+  let contract = createProcessDesignerContract(domain, capabilities);
   const defaultEntityTypeId = () => contract.entityOptions[0]?.value || '';
-  const sync = createProcessRecordSync({ contract, defaultEntityTypeId });
+  let sync = createProcessRecordSync({ contract, defaultEntityTypeId });
+  // The Apply-shaped composition re-seats the contract once the tree's
+  // declarations are posted: the graph composes over the overlaid domain
+  // (the draft-overlay rule), exactly as the designer re-projects after
+  // APPLY posts in-tree declarations.
+  function withDomain(nextDomain) {
+    contract = createProcessDesignerContract(nextDomain, capabilities);
+    sync = createProcessRecordSync({ contract, defaultEntityTypeId });
+    for (const recordId of Object.keys(data.processNodes)) syncProcessNode(recordId);
+  }
 
   const data = {
     schemaVersion: 1,
@@ -327,8 +388,132 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
     services: {},
     sockets: {},
     screens: {},
+    ctsTypes: {},
     processNodes: {}
   };
+  const declarationNodes = new Map();
+
+  function declarationNodeOf(recordId) {
+    return declarationNodes.get(recordId) || null;
+  }
+
+  // Drops a declaration canvas node with its persisted ctsTypes record —
+  // the tree authoring gesture behind the palette's declaration items.
+  function declare({ id, nodeType, data: nodeData }) {
+    if (data.ctsTypes[id]) throw new Error(`Declaration ${id} already exists`);
+    const node = declarationNode(nodeType, { id, data: nodeData });
+    declarationNodes.set(id, node);
+    data.graph.nodes.push(node);
+    data.ctsTypes[id] = syncDeclarationRecordFromNode({ id }, nodeType, node.data);
+    return node;
+  }
+
+  function declareClass({ id, typeId, class: classKind = 'file', name, glyph, payload, operators }) {
+    return declare({
+      id, nodeType: 'ctsClass',
+      data: { typeId, name: name || typeId, class: classKind, glyph: glyph || null, payload: payload || null, operators: operators || [], label: '', fields: 0, states: 0 }
+    });
+  }
+
+  function declareField({ id, ownerClassId, name, descriptor }) {
+    const owner = declarationNodeOf(ownerClassId);
+    if (!owner || owner.type !== 'ctsClass') throw new Error(`Field ${id} declares on unknown class ${ownerClassId}`);
+    const fieldId = camelCaseId(name || '');
+    if (!fieldId) throw new Error(`Field ${id} has no name`);
+    const node = declare({
+      id, nodeType: 'ctsField',
+      data: { typeId: owner.data.typeId, name, descriptor: descriptor || { base: 'string' } }
+    });
+    wireDeclaration(id, ownerClassId, 'declares');
+    return node;
+  }
+
+  function declareTypeRef({ id, typeId }) {
+    return declare({ id, nodeType: 'ctsType', data: { typeId, label: typeId } });
+  }
+
+  // The declaration wire gesture: gated by the same legality table the
+  // canvas applies, persisted as a role:'type' edge the interpretation
+  // and the tree compile read.
+  function wireDeclaration(sourceId, targetId, label, edgeData = {}) {
+    const graphNode = id => data.graph.nodes.find(node => node.id === id) || null;
+    const source = graphNode(sourceId);
+    const target = graphNode(targetId);
+    const targetRecord = target?.type === 'processNode'
+      ? data.processNodes[target.data?.refId || target.id] || null
+      : null;
+    const legality = declarationWireLegality({
+      sourceType: source?.type || '',
+      targetType: target?.type || '',
+      targetRecord,
+      targetRecordKind: targetRecord?.kind || ''
+    });
+    if (legality !== label) {
+      throw new Error(`Declaration wire ${sourceId} -> ${targetId} is not a legal '${label}' gesture (legality: ${legality || 'none'})`);
+    }
+    const id = label === 'declares' ? `declares:${sourceId}-${targetId}` : `decl:${label}:${sourceId}-${targetId}`;
+    if (data.graph.edges.some(edge => edge.id === id)) return null;
+    const edge = {
+      id,
+      source: sourceId,
+      target: targetId,
+      sourceHandle: null,
+      targetHandle: null,
+      type: 'default',
+      role: 'type',
+      label,
+      ...(Object.keys(edgeData).length ? { data: edgeData } : {})
+    };
+    if (label === 'children') {
+      const childTypeId = target.data?.typeId;
+      edge.data = { key: edgeData.key || `${childTypeId}s`, onRemove: edgeData.onRemove || 'restrict' };
+    }
+    data.graph.edges.push(edge);
+    interpretNow();
+    return edge;
+  }
+
+  // Applies the platform's own interpretation to the composed state, so
+  // record bindings derive from wires exactly as the designer's live
+  // pass derives them — and the persisted records carry the same state.
+  function interpretNow() {
+    const { mutations } = interpretDeclarationEdges(
+      data.graph.nodes,
+      data.graph.edges.filter(edge => edge.role === 'type'),
+      data.processNodes,
+      {},
+      {}
+    );
+    for (const mutation of mutations || []) {
+      if (mutation.scope === 'node') {
+        const node = declarationNodes.get(mutation.nodeId)
+          || data.graph.nodes.find(candidate => candidate.id === mutation.nodeId);
+        if (node) node.data[mutation.key] = mutation.value;
+        continue;
+      }
+      const record = data.ctsTypes[mutation.recordId] || data.processNodes[mutation.recordId];
+      if (!record) continue;
+      if (mutation.key === 'typeId') {
+        setTypeBinding(record, mutation.value);
+        const node = declarationNodes.get(mutation.recordId);
+        if (node) node.data.typeId = mutation.value;
+        if (data.processNodes[mutation.recordId]) syncProcessNode(mutation.recordId);
+        continue;
+      }
+      if (mutation.key?.startsWith('inputDefaults.')) {
+        const inputId = mutation.key.slice('inputDefaults.'.length);
+        record.inputDefaults = { ...(record.inputDefaults || {}), [inputId]: mutation.value };
+        continue;
+      }
+      if (mutation.key?.startsWith('state.')) {
+        record.state = { ...(record.state || {}), [mutation.key.slice('state.'.length)]: mutation.value };
+      }
+    }
+    // Declaration records mirror their node data after interpretation.
+    for (const node of declarationNodes.values()) {
+      syncDeclarationRecordFromNode(data.ctsTypes[node.data.refId], node.type, node.data);
+    }
+  }
 
   function paletteItem(itemId) {
     return contract.paletteGroups
@@ -475,8 +660,13 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
 
   return {
     contract,
+    withDomain,
     paletteItem,
     drop,
+    declareClass,
+    declareField,
+    declareTypeRef,
+    wireDeclaration,
     configure,
     setInputDefault,
     connect,

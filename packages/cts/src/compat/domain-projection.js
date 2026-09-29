@@ -105,6 +105,30 @@ function withAccessFlags(schema, policy) {
 // and transition sockets. The domain projection carries no workflows; the
 // compiled process contract owns machines wherever a machine is needed.
 
+
+// Declared relations of a type, from both authoring shapes: explicit
+// `edges.relations` entries and ref fields whose `accepts` name the
+// targets (the tree authors relations as ref fields). One entry per
+// key/target pair, edges declared first.
+function relationEntriesFor(type, view) {
+  const entries = [];
+  const seen = new Set();
+  const push = (key, target) => {
+    const dedupe = `${key}:${target}`;
+    if (seen.has(dedupe) || !view.has(target)) return;
+    seen.add(dedupe);
+    entries.push({ key, target });
+  };
+  for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
+    for (const target of declaration.types || []) push(key, target);
+  }
+  for (const [name, descriptor] of Object.entries(type.fields || {})) {
+    if (descriptor?.base !== 'ref') continue;
+    for (const target of descriptor.accepts || []) push(name, target);
+  }
+  return entries;
+}
+
 export function projectDomainFromView(registry, organizationId = null, baseDomain = {}, { packServices = null } = {}) {
   const view = registry.resolveView ? registry.resolveView(organizationId) : new Map();
 
@@ -139,7 +163,16 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   });
 
   // fieldSchemas: core slots + lineage-from-edges + rows per type.
-  const rowEntriesByType = new Map(types.map(type => [type.id, rowToFieldSchemas(type.fields, type.class)]));
+  // A ref field's row entry lives at relations.<key> — the same path the
+  // declared relation owns. The relation contract owns that path
+  // exclusively; the colliding row entry is dropped so field schemas and
+  // construction inputs expose ONE typed input per relation.
+  const rowEntriesByType = new Map(types.map(type => {
+    const relationPaths = new Set(relationEntriesFor(type, view).map(({ key }) => `relations.${key}`));
+    const entries = rowToFieldSchemas(type.fields, type.class)
+      .filter(entry => !relationPaths.has(entry.path));
+    return [type.id, entries];
+  }));
   const fieldAccess = {};
   const fieldSchemas = {};
   for (const type of types) {
@@ -157,6 +190,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     };
     const blocks = new Set(entities.find(entity => entity.type === type.id)?.blocks || []);
     const lineageFields = orgLineageFields(type, view);
+
     // Declared relation edges are addressable fields (SPEC §6): each key
     // projects as ONE `relations.<key>` schema so constructs receive them as
     // construction inputs and mutates as leaf sockets — a declared edge is
@@ -258,11 +292,15 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   function edgeFieldsFor(type) {
     const lineage = orgLineageFields(type, view);
     const relations = [];
-    for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-      // One field per relation key: a multi-target relation is one edge
-      // (the fieldSchemas projection owns the same rule).
-      const targets = (declaration.types || []).filter(target => view.has(target));
-      if (!targets.length) continue;
+    // One field per relation key: a multi-target relation is one edge
+    // (ref fields and edges.relations both declare them).
+    const relationsByKey = new Map();
+    for (const { key, target } of relationEntriesFor(type, view)) {
+      const targets = relationsByKey.get(key) || [];
+      targets.push(target);
+      relationsByKey.set(key, targets);
+    }
+    for (const [key, targets] of relationsByKey) {
       relations.push({
         path: `relations.${key}`,
         label: `relations.${key}`,
@@ -348,10 +386,8 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   // relations: declared relation edges from every view type.
   const relations = [];
   for (const type of types) {
-    for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-      for (const target of declaration.types || []) {
-        relations.push({ ownerType: type.id, key, targetType: target, cardinality: 'many' });
-      }
+    for (const { key, target } of relationEntriesFor(type, view)) {
+      relations.push({ ownerType: type.id, key, targetType: target, cardinality: 'many' });
     }
   }
 

@@ -74,7 +74,7 @@ export const cncTypePack = [
         width: { base: 'quantity', unit: 'mm' },
         length: { base: 'quantity', unit: 'mm' },
         area: { base: 'quantity', unit: 'm2' } } },
-      material: { base: 'ref', accepts: ['material'] },
+      material: { base: 'ref', accepts: ['material'], slot: 'data' },
       placed: { base: 'list', itemType: { base: 'ref', accepts: ['part'] } }
     }
   },
@@ -85,8 +85,10 @@ export const cncTypePack = [
     version: 1,
     fields: {
       serial: { base: 'string' },
-      design: { base: 'ref', accepts: ['cut-plan'] },
-      placedOn: { base: 'ref', accepts: ['sheet'], nullable: true }
+      // Row-carried refs (the association lives in edges.relations
+      // 'placed-on'); stored as data, not relation writes.
+      design: { base: 'ref', accepts: ['cut-plan'], slot: 'data' },
+      placedOn: { base: 'ref', accepts: ['sheet'], nullable: true, slot: 'data' }
     },
     edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } }
   },

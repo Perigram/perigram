@@ -71,17 +71,26 @@ the inspector: `collection.join` keys (`leftKey`/`rightKey`),
 
 A process definition is data and its authoring path is one seam:
 `createDefinitionAuthoring(domain, capabilities)` (`src/authoring.js`)
-composes a definition exactly the way the designer does — palette-item drops
-(record factory + preset), record configuration (the same writes the
-inspector performs, including socket input defaults), and port-gated
-connections (the same `processSocketsCompatible` gate the canvas applies,
-handles minted by `ports.js`). The designer page and its composables are a
-presentation adapter over this seam; everything authorable in the browser is
-authorable without one, and a headlessly composed definition loads in the
-designer as a first-class draft. A palette item whose record cannot be
-dropped, configured, and round-tripped through the seam headlessly is a
-defect — pinned by `authoring.spec.js`, which walks every palette item and
-the canvas double round-trip.
+composes a definition exactly the way the designer does — declaration-tree
+authoring (`declareClass`/`declareField`/`declareTypeRef` plus
+`wireDeclaration` for declares/targets/children/binds wires, gated by
+`declarationWireLegality` and interpreted by `interpretDeclarationEdges`),
+palette-item drops (record factory + preset), record configuration (the
+same writes the inspector performs, including socket input defaults), and
+port-gated connections (the same `processSocketsCompatible` gate the
+canvas applies, handles minted by `ports.js`). Children wires accept
+type-reference targets, so an org type's containment may name pack and
+other registry types. A definition whose vocabulary is declared in-tree
+follows the Apply shape: compose the tree, post its compiled
+declarations, then re-seat the seam on the overlaid domain
+(`withDomain`) and compose the graph over it. The designer page and its
+composables are a presentation adapter over this seam; everything
+authorable in the browser is authorable without one, and a headlessly
+composed definition loads in the designer as a first-class draft. A
+palette item whose record cannot be dropped, configured, and
+round-tripped through the seam headlessly is a defect — pinned by
+`authoring.spec.js`, which walks every palette item and the canvas
+double round-trip.
 
 All entity-bound executable items are current species records (`cts.*`). Their
 ports resolve directly from the record and projected declarations; no

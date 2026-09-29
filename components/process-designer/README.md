@@ -21,7 +21,12 @@ string.
 A state connected to a class is a root state. A state connected to another
 state declares its single parent (`nested`); there is NO transition
 declaration node — the declaration palette is class/field/state/
-type-reference, and transition operations are process nodes
+type-reference, and transition operations are process nodes. Children
+wires accept type-reference targets beside in-tree classes: an org type's
+containment may name pack and other registry types. A ref field declares a
+relation — its `accepts` derive from targets wires onto the field node,
+and its row lives in the relations slot (a row-carried reference pins
+`slot: 'data'` in its descriptor)
 (`cts.transition`) that reference declared states. Initial and terminal
 state facts belong to state
 nodes. Construction has no lifecycle-entry socket, and transition operations

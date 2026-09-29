@@ -84,7 +84,9 @@ describe('literal -> construct field sockets', () => {
 
   it('a bound construct exposes the declared row fields as typed sockets', () => {
     const ids = ports.map(port => port.id);
-    for (const id of ['data.name', 'specs.thicknessMm', 'data.count', 'data.owner', 'data.madeAt', 'data.flag']) {
+    // Ref fields declare relations (SPEC §6): their socket lives in the
+  // relations slot, not data.
+  for (const id of ['data.name', 'specs.thicknessMm', 'data.count', 'relations.owner', 'data.madeAt', 'data.flag']) {
       expect(ids, `missing socket ${id}`).toContain(id);
     }
     expect(input(ports, 'specs.thicknessMm').type).toMatchObject({ base: 'number', unit: 'mm' });
@@ -96,7 +98,7 @@ describe('literal -> construct field sockets', () => {
     expect(processSocketsCompatible(literalOutput('boolean'), input(ports, 'data.flag')).ok).toBe(true);
     expect(processSocketsCompatible(literalOutput('date'), input(ports, 'data.madeAt')).ok).toBe(true);
     expect(processSocketsCompatible(literalOutput('dateTime'), input(ports, 'data.madeAt')).ok).toBe(true);
-    expect(processSocketsCompatible(literalOutput('entityRef', { typeId: 'keeper' }), input(ports, 'data.owner')).ok).toBe(true);
+    expect(processSocketsCompatible(literalOutput('entityRef', { typeId: 'keeper' }), input(ports, 'relations.owner')).ok).toBe(true);
   });
 
   it('a unit-less number adopts the quantity field unit; cross-unit stays explicit', () => {
@@ -112,10 +114,10 @@ describe('literal -> construct field sockets', () => {
     const result = processSocketsCompatible(literalOutput('string'), input(ports, 'data.count'));
     expect(result.ok).toBe(false);
     expect(result.reason).toBeTruthy();
-    expect(processSocketsCompatible(literalOutput('number'), input(ports, 'data.owner')).ok).toBe(false);
+    expect(processSocketsCompatible(literalOutput('number'), input(ports, 'relations.owner')).ok).toBe(false);
   });
 
   it('refs typecheck against the declared target type', () => {
-    expect(processSocketsCompatible(literalOutput('entityRef', { typeId: 'widget' }), input(ports, 'data.owner')).ok).toBe(false);
+    expect(processSocketsCompatible(literalOutput('entityRef', { typeId: 'widget' }), input(ports, 'relations.owner')).ok).toBe(false);
   });
 });
