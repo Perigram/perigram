@@ -592,16 +592,22 @@ non-modal overlay rails the toolbar toggles own; canvas clicks never close
 them, and canvas Escape still clears graph selection. The floating
 PrimeVue `Toolbar` (shared
 `DesignerWorkspace` chrome) owns the process lifecycle in its document group
-(open, rename, save, apply) and the view controls in its canvas group
+(new draft, save, apply) and the view controls in its canvas group
 (zoom out, zoom in, frame all, frame selection, reset zoom, the
 secondary visibility toggle, and tidy — the destructive layered pass),
 every item
 icon-only with its label as tooltip and accessible name. There is no
 standalone Validate control:
 Apply saves, validates, and activates as one operation, while the result
-remains visible as feedback on the canvas. The process Folder opens a
-click-anchored Popover using the shared `InstanceSelect` value event
-directly.
+remains visible as feedback on the canvas.
+
+The right pane owns **definitions management** (the Definitions tab): one
+row per organization definition — name (inline rename), the activation
+switch (on = member of the additive active set, the only state signal —
+no status badges), delete, and load-to-designer. Toggling the switch
+activates/deactivates through the additive activation contract (see
+[process-definitions](../../server/features/process-definitions/README.md));
+the toolbar carries no definition browser.
 
 Selection actions follow the quiet-card policy: nodes carry no per-node
 chrome, so while a node selection exists a PrimeVue `SpeedDial` floats
