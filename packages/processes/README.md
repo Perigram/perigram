@@ -54,6 +54,35 @@ services derive their ports from declared operator signatures. The exhaustive
 runtime catalog is not an authoring palette: packet matching, transport
 adapters, and producer identity remain compiler/runtime concerns.
 
+Palette membership rules: an authored list literal (`source.literalList`) is
+a value and lives in the values group; the persisted-array boundary
+(`collection.packArray`/`unpackArray`) and the fixed-arity `makeList` stay
+catalog-only — a graph reaches stored reference arrays through declared-edge
+reads (`cts.read select=related` resolves stored refs into an entity stream),
+never by unpacking raw arrays. The loop item (`forEachEntity`) authors the
+loop PAIR: dropping it creates `control.forEach` and its `control.forEachEnd`
+closer, because a loop without its closer is not authorable vocabulary.
+Record-carried semantics are configured on the record through the seam and
+the inspector: `collection.join` keys (`leftKey`/`rightKey`),
+`value.recordField` (`path` plus authored output type), and
+`record.construct` (`fields`).
+
+## Headless definition authoring
+
+A process definition is data and its authoring path is one seam:
+`createDefinitionAuthoring(domain, capabilities)` (`src/authoring.js`)
+composes a definition exactly the way the designer does — palette-item drops
+(record factory + preset), record configuration (the same writes the
+inspector performs, including socket input defaults), and port-gated
+connections (the same `processSocketsCompatible` gate the canvas applies,
+handles minted by `ports.js`). The designer page and its composables are a
+presentation adapter over this seam; everything authorable in the browser is
+authorable without one, and a headlessly composed definition loads in the
+designer as a first-class draft. A palette item whose record cannot be
+dropped, configured, and round-tripped through the seam headlessly is a
+defect — pinned by `authoring.spec.js`, which walks every palette item and
+the canvas double round-trip.
+
 All entity-bound executable items are current species records (`cts.*`). Their
 ports resolve directly from the record and projected declarations; no
 operation-kind twin participates in validation or execution. Origin species
