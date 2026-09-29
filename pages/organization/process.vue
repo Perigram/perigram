@@ -1821,9 +1821,9 @@ function upsertProcessDefinition(process) {
   processDefinitions.value = next.sort(compareProcessDefinitions);
 }
 
-async function createDraft({ copyActive = false, empty = false } = {}) {
-  const sourceId = copyActive ? draft.value?._id || null : null;
-  const name = copyActive && activeName.value ? `${normalizeProcessDisplayName(activeName.value)} draft` : 'Organization process';
+async function createDraft({ empty = false } = {}) {
+  const name = 'Organization process';
+  const sourceId = null;
   const data = empty
     ? canvasToDefinition(
       { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },

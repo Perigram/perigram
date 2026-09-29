@@ -2548,7 +2548,6 @@
     "socketSingleWire": "“{socket}” accepts one wire — connect a list source or use a collection node instead.",
     "title": "Process designer",
     "newDraft": "New draft",
-    "forkedActiveDraft": "Active process is read-only — forked a draft copy",
     "activate": "Activate",
     "apply": "Apply",
     "saved": "Saved",

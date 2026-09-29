@@ -53,22 +53,13 @@ export function useProcessDesignerApply({
     savingDraft.value = true;
     try {
       syncNow();
-      if (!draft.value?._id || isActiveProcess.value) return await createDraft({ copyActive: isActiveProcess.value });
-      try {
-        const updated = await persistence.saveDraft(draft.value._id, serializeProcess());
-        upsertProcessDefinition(updated);
-        setDraft(updated);
-        return updated;
-      } catch (error) {
-        // Stale workspace: the server knows this definition went ACTIVE
-        // while the client still treats it as a draft. Fork a draft copy
-        // instead of dying on the 409 — the canvas state carries over, so
-        // no edit is lost.
-        if (Number(error?.statusCode) !== 409 || !/cannot be edited directly/.test(error?.data?.message || error?.message || '')) throw error;
-        const forked = await createDraft({ copyActive: true });
-        toast.add({ severity: 'info', summary: t('processDesigner.forkedActiveDraft'), life: 5000 });
-        return forked;
-      }
+      if (!draft.value?._id) return await createDraft({ empty: true });
+      // One document for its whole life (process-definitions README):
+      // saves persist in place, draft or active — no fork.
+      const updated = await persistence.saveDraft(draft.value._id, serializeProcess());
+      upsertProcessDefinition(updated);
+      setDraft(updated);
+      return updated;
     } finally {
       savingDraft.value = false;
     }
@@ -76,7 +67,7 @@ export function useProcessDesignerApply({
 
   async function saveDraftFromDock() {
     if (savingDraft.value) return;
-    const createsDraft = !draft.value?._id || isActiveProcess.value;
+    const createsDraft = !draft.value?._id;
     try {
       await saveDraft();
       toast.add({

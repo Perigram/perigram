@@ -148,29 +148,26 @@ describe('useProcessDesignerApply migration pause', () => {
     expect(persistence.activateDraft).not.toHaveBeenCalled();
   });
 
-  it('forks a draft copy when the server reports the definition went active', async () => {
-    const toast = { add: vi.fn() };
-    const createDraft = vi.fn(async () => ({ _id: 'draft-2' }));
-    const { apply, persistence } = mountApply({ toast, createDraft });
-    const stale = new Error('Active process definitions cannot be edited directly');
-    stale.statusCode = 409;
-    stale.data = { message: 'Active process definitions cannot be edited directly' };
-    persistence.saveDraft.mockRejectedValue(stale);
-
-    const result = await apply.saveDraft();
-
-    expect(createDraft).toHaveBeenCalledWith({ copyActive: true });
-    expect(result).toEqual({ _id: 'draft-2' });
-    expect(toast.add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'info' }));
-  });
-
-  it('rethrows non-active save failures without forking', async () => {
+  it('rethrows save failures without creating anything', async () => {
     const createDraft = vi.fn();
     const { apply, persistence } = mountApply({ createDraft });
     persistence.saveDraft.mockRejectedValue(Object.assign(new Error('boom'), { statusCode: 500 }));
 
     await expect(apply.saveDraft()).rejects.toThrow('boom');
     expect(createDraft).not.toHaveBeenCalled();
+  });
+
+  it('saves an active definition in place (one document, no fork)', async () => {
+    const createDraft = vi.fn();
+    const { apply, persistence, draft } = mountApply({ createDraft });
+    draft.value = { _id: 'process-1', states: { main: 'ACTIVE' }, data: {} };
+    persistence.saveDraft.mockResolvedValue({ _id: 'process-1', states: { main: 'ACTIVE' } });
+
+    const result = await apply.saveDraft();
+
+    expect(persistence.saveDraft).toHaveBeenCalledWith('process-1', expect.anything());
+    expect(createDraft).not.toHaveBeenCalled();
+    expect(result).toEqual({ _id: 'process-1', states: { main: 'ACTIVE' } });
   });
 
   it('lands declaration-post failures in the persistent validation feedback and stops before validation', async () => {

@@ -563,6 +563,38 @@ describe('current process-definition service contract', () => {
     expect(organizationService.setActiveProcessDefinition).not.toHaveBeenCalled();
   });
 
+  it('renames without touching data (identity-only PATCH keeps the graph)', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+
+    const updated = await update('process-draft', { name: 'Renamed process' }, adminAuth());
+
+    expect(updated.identity.name).toBe('Renamed process');
+    const persisted = processRepository.updateById.mock.calls[0][1].toJSON();
+    expect(persisted.data.dataflowVersion).toBe(fixture.processDefinition.data.dataflowVersion);
+    expect(Object.keys(persisted.data.processNodes)).toEqual(Object.keys(fixture.processDefinition.data.processNodes));
+  });
+
+  it('records the superseded graph in history on re-activation', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    const activeRecord = {
+      ...draftRecord(fixture.processDefinition.data),
+      _id: 'process-draft',
+      status: { ...draftRecord(fixture.processDefinition.data).status, state: 'ACTIVE' }
+    };
+    processRepository.findById.mockResolvedValue(activeRecord);
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+    processRepository.findActiveSetByOrganization.mockResolvedValue([activeRecord]);
+
+    await activate('process-draft', adminAuth());
+
+    const persisted = processRepository.updateById.mock.calls[0][1].toJSON();
+    expect(Array.isArray(persisted.data.history)).toBe(true);
+    expect(persisted.data.history).toHaveLength(1);
+    expect(persisted.data.history[0].data.processNodes).toEqual(fixture.processDefinition.data.processNodes);
+  });
+
   it('rejects ambiguous persisted producer sockets at the save boundary', async () => {
     const authored = createPersistedAcceptanceFixture().processDefinition.data;
     const node = authored.processNodes.create_cassette;

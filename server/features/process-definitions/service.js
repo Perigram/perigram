@@ -207,23 +207,16 @@ export async function create(payload = {}, auth) {
 export async function update(id, payload = {}, auth) {
   const process = await loadAuthorized(id, auth, 'write');
   const renaming = payload.identity?.name || payload.name;
-  if (process.states?.main === 'ACTIVE') {
-    // Active definitions are managed, not authored: identity-only updates
-    // (rename) pass; graph edits still require a draft fork.
-    if (!renaming || payload.data) {
-      throw createError({ statusCode: 409, message: 'Active process definitions cannot be edited directly' });
-    }
+  // An identity-only PATCH never touches data (the rename path).
+  if (renaming && !payload.data) {
     process.identity.name = renaming;
     return new ProcessDefinition(await repository.updateById(id, process)).toJSON();
   }
-  if (renaming) {
-    process.identity.name = renaming;
-  }
-  // Authored data persists in its own vocabulary: the persisted
-  // producer-identity rewrite runs on it, and protocol acceptance validates
-  // a lowered copy so an invalid draft still fails loudly.
+  // One document for its whole life: data edits save in place, draft or
+  // active — re-activation records the superseded graph in data.history.
+  if (renaming) process.identity.name = renaming;
   const domain = await getProjectedDomain(process.lineage.organizationId);
-  const authored = persistedRewrites(structuredClone(payload.data || payload), domain);
+  const authored = persistedRewrites(structuredClone(payload.data), domain);
   process.data = authored;
   process.data.compiled = null;
   const updated = await repository.updateById(id, process);
@@ -343,6 +336,17 @@ export async function activate(id, auth) {
   );
   const stranded = mergedNext ? await collectStrandedInstanceStatees(process, auth, mergedNext) : [];
   const plan = stranded.length ? buildStatusMigrationPlan(stranded, mergedNext) : null;
+  // Version record (feature README): re-activating an already-active
+  // definition preserves the superseded authored snapshot in data.history
+  // before the new graph activates.
+  if (process.status?.state?.primary === 'ACTIVE') {
+    const history = [...(process.data.history || []), {
+      at: new Date().toISOString(),
+      actor: auth.userId || 'SYSTEM',
+      data: { ...process.data, history: undefined, compiled: undefined }
+    }];
+    process.data.history = history.slice(-50);
+  }
   // The migration decision is a declaration on the definition
   // (data.migrations.statuses), not an activate-time payload: activation
   // reads what the organization authored. Stale declared rows are no-ops
@@ -444,7 +448,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
 // re-derives from the remaining actives.
 export async function deactivate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
-  if (process.states?.main !== 'ACTIVE') {
+  if (process.status?.state?.primary !== 'ACTIVE') {
     throw createError({ statusCode: 409, message: 'Only active process definitions can be deactivated' });
   }
   applyProcessState(process, 'DRAFT', auth.userId, 'Process deactivated');
@@ -457,7 +461,7 @@ export async function deactivate(id, auth) {
 export async function remove(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
   await repository.removeById(id);
-  if (process.states?.main === 'ACTIVE') {
+  if (process.status?.state?.primary === 'ACTIVE') {
     await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
     publishOrgContractChanged(String(process.lineage.organizationId), 'process', { definitionId: String(id) });
   }
