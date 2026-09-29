@@ -76,10 +76,15 @@ services:
     restart: unless-stopped
 
   # Renders room composites into MP4s on the shared recordings volume; the
-  # app imports finished files into GridFS (livekit feature README).
+  # app imports finished files into GridFS (livekit feature README). Egress
+  # writes file outputs to its working directory, so it runs with
+  # working_dir set to the volume; SYS_ADMIN lets Chrome start its sandbox.
   egress:
     image: livekit/egress:latest
     container_name: perigram_egress
+    working_dir: /recordings
+    cap_add:
+      - SYS_ADMIN
     environment:
       - EGRESS_CONFIG_FILE=/etc/livekit/egress.yaml
     volumes:

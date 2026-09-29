@@ -1,13 +1,13 @@
-# Dev egress: renders room composites to the shared /recordings volume.
-# The LiveKit server must point at the same redis (livekit.dev.yaml) —
-# egress dispatch rides it. Prod deployments copy this shape with real keys
-# and TLS.
+# Dev egress: renders room composites into MP4s. The LiveKit server must
+# point at the same redis (livekit.dev.yaml) — egress dispatch rides it.
+# Egress has no local-storage config: without an s3/azure/gcp section it
+# writes files to its working directory, which compose pins to the shared
+# /recordings volume (requests use relative filepath patterns). Chrome
+# sandboxing needs SYS_ADMIN (docs: self-hosting/v1.7.6+). Prod deployments
+# copy this shape with real keys, TLS, and usually an object-storage backend.
 api_key: devkey
 api_secret: devsecret
 ws_url: ws://livekit:7880
 insecure: true
 redis:
   address: redis:6379
-storage:
-  local:
-    path: /recordings

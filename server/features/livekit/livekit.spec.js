@@ -77,7 +77,7 @@ describe('livekit recordings', () => {
     expect(JSON.parse(init.body)).toMatchObject({
       room_name: DIRECT_ROOM,
       audio_only: false,
-      file_outputs: [{ filepath_pattern: '/recordings/{room_id}-{time}.mp4' }]
+      file_outputs: [{ filepath_pattern: '{room_id}-{time}.mp4' }]
     });
   });
 

@@ -252,7 +252,9 @@ export async function startRoomRecording(auth, room = '') {
     const egress = await egressTwirp('StartRoomCompositeEgress', {
         room_name: room,
         audio_only: false,
-        file_outputs: [{ filepath_pattern: `${recordingsDir()}/{room_id}-{time}.mp4` }]
+        // Relative pattern: egress writes to its working directory, which
+        // compose pins to the shared recordings volume.
+        file_outputs: [{ filepath_pattern: '{room_id}-{time}.mp4' }]
     });
     const egressId = String(egress?.egress_id || '');
     if (!egressId) {
