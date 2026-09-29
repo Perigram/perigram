@@ -1,14 +1,20 @@
-// The facade order process, end to end (the composed test process):
-// an uploaded xlsx order table becomes one org-authored container with
-// baked cassette-design children, two declared sheet materials attach as
-// children, and the nesting service runs once per material with every
-// run saved as a child record. The compiler, orchestration, durable
-// effect boundary, pack handlers, and generic instance services run
-// REAL; only persistence (Mongo/GridFS), the cts-types store, and the
-// nesting worker are faked. The durable artifact lands in
-// test-results/facade-order-process.json.
+// The facade order process, end to end (the composed test process): an
+// uploaded order table (xlsx OR csv) becomes one org-authored container
+// with baked cassette-design children, two declared sheet materials
+// attach as children, and the nesting service runs once per material
+// with every run saved as a child record. The definition is COMPOSED
+// through the headless authoring seam (createDefinitionAuthoring — the
+// same record factory, presets, and port-gated connections the process
+// designer uses); no executable record is hand-forged. The compiler,
+// orchestration, durable effect boundary, pack handlers, and generic
+// instance services run REAL; only persistence (Mongo/GridFS), the
+// cts-types store, and the nesting worker are faked. The durable
+// artifact lands in test-results/facade-order-process.json.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ObjectId } from 'mongodb';
+import * as XLSX from 'xlsx/xlsx.mjs';
+import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
+import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
 
 const harness = vi.hoisted(() => ({
   fileBuffers: new Map(),
@@ -122,11 +128,11 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
 vi.mock('~/server/features/cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
   const declarations = await import('~/server/packs/declarations.js');
-  const fixture = await import('./order-process-fixture.js');
+  const vocabulary = await import('./order-process-declarations.js');
   return {
     compileRegistryForOrganization: vi.fn(async () => {
       const registry = cts.createTypeRegistry({ id: 'order-process-spec' });
-      for (const declaration of [...cts.frameworkTypes, ...declarations.composeSystemDeclarations(), ...fixture.orderOrgTypeDeclarations()]) {
+      for (const declaration of [...cts.frameworkTypes, ...declarations.composeSystemDeclarations(), ...vocabulary.orderOrgTypeDeclarations()]) {
         registry.defineType(declaration);
       }
       return registry;
@@ -136,11 +142,11 @@ vi.mock('~/server/features/cts-types/service.js', async () => {
 
 // The per-call declaration resolution reads the org type store directly.
 vi.mock('~/server/features/cts-types/repository.js', async () => {
-  const fixture = await import('./order-process-fixture.js');
-  const orgDeclarations = new Map(fixture.orderOrgTypeDeclarations().map(declaration => [declaration.id, declaration]));
+  const vocabulary = await import('./order-process-declarations.js');
+  const orgDeclarations = new Map(vocabulary.orderOrgTypeDeclarations().map(declaration => [declaration.id, declaration]));
   return {
     findByTypeId: vi.fn(async (organizationId, typeId) => orgDeclarations.get(typeId) || null),
-    listByOrganization: vi.fn(async () => fixture.orderOrgTypeDeclarations())
+    listByOrganization: vi.fn(async () => vocabulary.orderOrgTypeDeclarations())
   };
 });
 
@@ -148,6 +154,9 @@ vi.mock('../../features/process-definitions/repository.js', () => ({
   find: vi.fn(),
   findById: vi.fn(),
   findActiveByOrganization: vi.fn(),
+  // The additive active set: this org runs exactly the composed
+  // definition, resolved by id through findById above.
+  findActiveSetByOrganization: vi.fn(async () => []),
   create: vi.fn(),
   updateById: vi.fn(),
   archiveActiveByOrganization: vi.fn(),
@@ -193,14 +202,21 @@ import { composePackServices } from '~/server/packs/declarations.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import {
   ORDER_LINEAGE_KEY,
-  ORDER_ROWS,
   ORDER_TABLE_RELATION,
   ORDER_TYPE_ID,
-  ATTEMPT_TYPE_ID,
-  buildCassetteTemplatePayload,
-  buildOrderTableWorkbookBuffer,
-  orderProcessDefinition
-} from './order-process-fixture.js';
+  ATTEMPT_TYPE_ID
+} from './order-process-declarations.js';
+import { composeOrderProcessDefinition } from './order-process.js';
+
+// The order table content: one row per cassette design — a name, the
+// cassette template it names, and the bake parameters as cells. The
+// header row is authored vocabulary: the graph's record-field paths
+// (`name`, `cassette`, the parameter keys) ARE the column selection.
+const ORDER_TABLE_HEADERS = ['name', 'cassette', 'A', 'B'];
+const ORDER_ROWS = [
+  { name: 'Tray A left', templateName: 'Tray 600', parameters: { A: 600, B: 450 } },
+  { name: 'Tray B small', templateName: 'Tray 600', parameters: { A: 300, B: 300 } }
+];
 
 const ORG = 'org-order-1';
 const auth = {
@@ -209,8 +225,6 @@ const auth = {
   role: 'role_admin',
   // Real command-level gates: the solver gate keeps sheet-design write
   // authority, organizations admin covers the process-definition access.
-  // The projections ride the run's own action grants (no service-level
-  // cts-types read remains — no ref-carrying services exist).
   effectivePermissions: {
     organizations: { level: 'admin' },
     sheet_designs: { level: 'write' }
@@ -233,8 +247,23 @@ async function seedInstance(typeId, draft, buffer, mime) {
   }, auth.userId, ORG);
 }
 
-describe('the facade order process (composed test process)', () => {
-  let workbook;
+function tableBuffer(tableType) {
+  const rows = [ORDER_TABLE_HEADERS, ...ORDER_ROWS.map(row => [row.name, row.templateName, row.parameters.A, row.parameters.B])];
+  if (tableType === 'csv-table') {
+    return Buffer.from(rows.map(row => row.map(cell => /[",]/.test(String(cell)) ? `"${String(cell)}"` : String(cell)).join(',')).join('\n'), 'utf8');
+  }
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Order');
+  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+}
+
+function cassetteTemplatePayload() {
+  return Buffer.from(JSON.stringify(createDefaultOccsCassetteTemplateDefinition()), 'utf8');
+}
+
+describe.each(['xlsx-workbook', 'csv-table'])('the facade order process composed over %s', (tableType) => {
+  let table;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -244,24 +273,25 @@ describe('the facade order process (composed test process)', () => {
   });
 
   async function seedAndRun() {
-    const template = await seedInstance('cassette',
+    await seedInstance('cassette',
       { identity: { name: 'Tray 600' } },
-      buildCassetteTemplatePayload(), 'application/perigram+occs');
-    workbook = await seedInstance('xlsx-workbook',
+      cassetteTemplatePayload(), 'application/perigram+occs');
+    table = await seedInstance(tableType,
       { identity: { name: 'Order table 42' } },
-      buildOrderTableWorkbookBuffer(),
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      tableBuffer(tableType),
+      tableType === 'csv-table' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-    const definition = orderProcessDefinition();
-    // The activation gate (the same passes Apply runs), over the same
-    // projected domain the run lower seam uses.
     const domain = projectDomainFromView(
       await ctsTypesService.compileRegistryForOrganization(ORG),
       ORG,
       facadeDomain,
       { packServices: composePackServices() }
     );
-    const validation = validateActivatableProcess({ ...definition }, domain, { role_admin: { label: 'Admin' } });
+    const definition = composeOrderProcessDefinition(domain, tableType);
+    // The activation gate (the same passes Apply runs) over the composed
+    // definition, plus the canvas round-trip the designer requires of a
+    // saved draft.
+    const validation = validateActivatableProcess(definition, domain, { role_admin: { label: 'Admin' } });
     expect(validation.errors || []).toEqual([]);
 
     processRepository.findById.mockResolvedValue({
@@ -274,9 +304,9 @@ describe('the facade order process (composed test process)', () => {
 
     const run = await startRun('process-order', {
       trigger: { nodeId: 'order' },
-      inputs: { data: { [`relations.${ORDER_TABLE_RELATION}`]: { type: 'xlsx-workbook', id: workbook._id } } }
+      inputs: { data: { [`relations.${ORDER_TABLE_RELATION}`]: { type: tableType, id: table._id } } }
     }, auth);
-    return { template, workbook, definition, run };
+    return { definition, run };
   }
 
   it('validates and runs the composed process to completion', async () => {
@@ -285,6 +315,7 @@ describe('the facade order process (composed test process)', () => {
     expect(run.error).toBeNull();
     expect(run.steps.map(step => step.status)).not.toContain('failed');
   });
+
   it('builds one container with baked cassette-design children from the table rows', async () => {
     await seedAndRun();
     const orders = documentsOf(ORDER_TYPE_ID);
@@ -299,9 +330,11 @@ describe('the facade order process (composed test process)', () => {
       expect(design.fields.geometry?.nestingPolygons?.length).toBeGreaterThan(0);
       expect(design.lineage[ORDER_LINEAGE_KEY].toString()).toBe(orderId);
     }
+    // The bake parameters are exactly the parameter columns — the
+    // composed parameter record carries no row residue.
     const parameters = designs.map(design => design.fields.parameters);
-    expect(parameters[0]).toMatchObject({ A: 600, B: 450 });
-    expect(parameters[1]).toMatchObject({ A: 300, B: 300 });
+    expect(parameters[0]).toEqual({ A: 600, B: 450 });
+    expect(parameters[1]).toEqual({ A: 300, B: 300 });
   });
 
   it('attaches the declared sheet materials as children', async () => {
@@ -338,8 +371,9 @@ describe('the facade order process (composed test process)', () => {
     // The durable artifact: the composed process plus what it produced.
     const { writeFileSync, mkdirSync } = await import('node:fs');
     mkdirSync('test-results', { recursive: true });
-    writeFileSync('test-results/facade-order-process.json', JSON.stringify({
+    writeFileSync(`test-results/facade-order-process-${tableType}.json`, JSON.stringify({
       process: 'facade order process',
+      tableType,
       run: { status: run.status, steps: run.steps.length },
       container: documentsOf(ORDER_TYPE_ID).map(doc => ({ id: String(doc._id), name: doc.name })),
       cassetteDesigns: documentsOf('cassette-design').map(doc => ({
