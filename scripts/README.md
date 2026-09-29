@@ -95,6 +95,15 @@ in `check-arch.js` and documented in `server/features/README.md`.
 The checker also blocks live entity UI that passes local `:state-actions`
 instead of relying on server-provided `InstanceState` workflow actions.
 
+`check-arch.js` also enforces the SPEC §8 species purity seams at the pack
+layer (see [server/packs/README.md](../server/packs/README.md)): a
+registered service's input signature with a `ref` field is rejected at
+the declaration (dereferencing is the projection's job), and modules
+under `server/packs/*/value-services/` that import the instance or files
+features are rejected at the mount — a pure V→V handler resolves no
+entities. Projection handlers (`server/packs/*/projections/`) are the one
+entity-read seam beside the instance services.
+
 `npm run agent:scope-check -- --base origin/local` is the mandatory guard for
 external top-layer agents before they commit or push. It is intentionally
 allowlist-based: new composition surfaces must be added to

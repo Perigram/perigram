@@ -103,40 +103,33 @@ instance.
   registry mounts. Never an entity catalog — the CTS registry view is
   the catalog.
 
-## The nesting service and the value services
+## The nesting service and the declared projections
 
 `facadeServices` registers `nesting.solve` as a SPEC §8 s-species
-operator: pure values in, values out. `Ref` is a value (SPEC §2), so a
-service signature may accept typed instance references and resolve them
-through the instance services — that is how a graph reaches stored
-payload data (order tables, baked geometry) without an entity leaking
-into a value boundary. The registered services:
+operator: pure values in, values out — job items (typed job geometry per
+the value universe; the solver's raw layout payload is the one
+true-external Json escape) plus the sheet as VALUES (`sheetWidth`,
+`sheetHeight`, `thickness`, the `space`/`sheetCount` solver knobs with
+authored fallbacks 3 mm / 1 sheet), `{ layouts, summary }` out. The
+signature carries no refs: a graph reaches stored data through declared
+projections, never through a service dereferencing an instance (SPEC §8
+purity — enforced by the signature and handler-mount guards). The
+signature's field names match the `solveNestingValue` handler's parameter
+sockets exactly, and the pack mount binds the handler
+(`server/packs/facade/value-services/solve-nesting.js`). See
+[server/packs/facade/nesting README](../../server/packs/facade/nesting/README.md)
+for the boundary contract.
 
-- **`nesting.solve`** — job items in (typed job geometry per the value
-  universe; the solver's raw layout payload is the one true-external
-  Json escape), `{ layouts, summary }` out. Sheet width/height resolve
-  from the bound `sheet-material` ref; `space`/`sheetCount` are solver
-  knobs with authored fallbacks (3 mm / 1 sheet). The signature's field
-  names match the `solveNestingValue` handler's parameter sockets
-  exactly, and the pack mount binds the handler
-  (`server/packs/facade/nesting/solve-value.js`). See
-  [server/packs/facade/nesting README](../../server/packs/facade/nesting/README.md)
-  for the boundary contract.
-- **`nesting.items`** — cassette-design refs → nesting job items: the
-  baked geometry of each design read once, server-side (the p-extract
-  seam of SPEC §16 — stored geometry never travels the graph as authored
-  json paths). Output items carry exactly the `nesting.solve` item shape.
-- **`orders.readRows`** — an `xlsx-workbook`/`csv-table` ref → typed
-  order-line values `{ name, templateName, parameters }`. Column
-  detection: an authored exact column name wins, else the
-  case-insensitive defaults (`name`, `cassette`); every other column is
-  a parameter cell (numeric-looking cells become numbers).
-- **`cassettes.resolveByName`** — template names → cassette refs,
-  order-preserving, so a bake construct consumes refs aligned with the
-  rows that named them; unmatched names fail the call listing every
-  missing name.
+`cassette-design` declares the `nesting-polygons` projection (SPEC §16
+`p extract`, declared next to its type): a design instance → its baked
+`polygonParts` geometry, resolved from the stored
+`data.geometry.nestingPolygons` path — the path lives in the declaration,
+never in a graph. Table rows are the documents pack's `rows` projection
+([@perigram/documents](../documents/README.md)); name-keyed resolution
+composes from a `cts.read` over the target type plus the pure
+`collection.join` — no facade-owned lookup service exists.
 
-The composed flow these services exist for — an uploaded order table
+The composed flow — an uploaded order table
 becoming a container with baked children, materials, and saved nesting
 runs — is proven end to end by the composed test process
 (`server/packs/facade/order-process-fixture.js`, exercised by

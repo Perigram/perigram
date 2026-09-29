@@ -2,10 +2,11 @@
 
 The documents reference pack (SPEC §21): the generic media/office file
 types as declarations — the payload-trait replacements for the artifact
-kind registry's common kinds. Pure, browser-safe declaration data;
-mounting is by composition — the pack appears in
-[server/packs/declarations.js](../../server/packs/declarations.js) and
-carries no service bindings. Drawing/CAD formats (DXF, SVG) are NOT
+kind registry's common kinds. Browser-safe declaration data; mounting is
+by composition in
+[server/packs/declarations.js](../../server/packs/declarations.js), and
+the pack's one server binding is the `rows` projection handler (below).
+Drawing/CAD formats (DXF, SVG) are NOT
 here — they are tech-drawing vocabulary
 ([@perigram/tech-drawing](../tech-drawing/README.md)).
 
@@ -48,6 +49,24 @@ parameter columns — see
 [packages/facade](../../packages/facade/README.md)). `csv-table` keeps
 the csv editor (it edits in place); its import path rides the same batch
 transport when needed.
+
+## The rows projection
+
+`csv-table` and `xlsx-workbook` declare the `rows` projection (SPEC §8
+`p extract`, §16): a table instance → its first sheet as a list of
+header-keyed row records. The first non-empty row is the header; every
+following non-empty row becomes one record mapping each header (trimmed,
+stringified) to its raw cell (numeric-looking cells stay strings — typing
+is value-layer authoring downstream). Column semantics live entirely in
+the graph that reads the rows (`value.recordField` paths are the authored
+column selection); the projection carries none.
+
+The declaration resolves through the pack-mounted handler
+(`server/packs/documents/table-rows.js` binds
+`documents.tableRows`): it loads the payload once and runs the same
+SheetJS read for both payload kinds. The client import mapper's parse is
+presentation (interactive sheet/header/range walking); the projection is
+the data seam.
 
 ## Editor bindings
 
