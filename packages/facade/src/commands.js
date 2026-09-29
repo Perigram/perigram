@@ -25,7 +25,7 @@ export const facadeCommands = {
       events: ['cassette.templateSaved']
     },
     access: {
-      permissions: [{ feature: 'cassettes', level: 'write' }]
+      permissions: [{ feature: 'files', level: 'write' }]
     }
   },
   convertArtifact: {
@@ -63,7 +63,7 @@ export const facadeCommands = {
         { feature: 'artifacts', level: 'write' }
       ],
       executionGrants: [
-        { feature: 'cassettes', level: 'write', actions: { create: true } }
+        { feature: 'files', level: 'write', actions: { create: true } }
       ]
     }
   },
