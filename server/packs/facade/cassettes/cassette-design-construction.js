@@ -1,6 +1,7 @@
 import { createError } from 'h3';
 import * as filesService from '../../../features/files/service.js';
 import { instanceServiceResolver } from '../../../features/instances/service.js';
+import * as cassettesService from './service.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../../utils/dxf-extractor.js';
 import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
@@ -75,8 +76,11 @@ export async function bakeCassetteDesign(draft = {}, context = {}) {
     throw createError({ statusCode: 400, message: 'Cassette design bake parameters must be an object' });
   }
 
-  const cassetteService = instanceServiceResolver('cassette');
-  const template = await cassetteService.getById(templateId);
+  // The template is the pack's own record (legacy repository storage):
+  // resolved through the pack service, never the generic resolver.
+  const template = await cassettesService
+    .getById(templateId, context.userId, context.organizationId, context.role, context.executionAuth || null)
+    .catch(() => null);
   if (!template) {
     throw createError({ statusCode: 400, message: `Cassette template ${templateId} not found` });
   }
@@ -86,15 +90,21 @@ export async function bakeCassetteDesign(draft = {}, context = {}) {
     throw createError({ statusCode: 400, message: 'Cassette template belongs to another organization' });
   }
 
-  const buffer = await payloadBufferOf(template, `Cassette template ${templateId}`);
-  let definition = null;
-  try {
-    definition = JSON.parse(buffer.toString('utf8'));
-  } catch {
-    throw createError({ statusCode: 400, message: `Cassette template ${templateId} payload is not a readable OCCS document` });
-  }
-  if (!isOccsDocument(definition)) {
-    throw createError({ statusCode: 400, message: `Cassette template ${templateId} is not an OCCS parametric template — only OCCS templates bake` });
+  // The OCCS document rides either home: inline `data.definition`
+  // (command/command-saved templates) or the payload file.
+  let definition = template?.data?.definition && isOccsDocument(template.data.definition)
+    ? template.data.definition
+    : null;
+  if (!definition) {
+    const buffer = await payloadBufferOf(template, `Cassette template ${templateId}`);
+    try {
+      definition = JSON.parse(buffer.toString('utf8'));
+    } catch {
+      throw createError({ statusCode: 400, message: `Cassette template ${templateId} payload is not a readable OCCS document` });
+    }
+    if (!isOccsDocument(definition)) {
+      throw createError({ statusCode: 400, message: `Cassette template ${templateId} is not an OCCS parametric template — only OCCS templates bake` });
+    }
   }
 
   const evaluation = await evaluateOccsCassetteTemplate(definition, parameters, {

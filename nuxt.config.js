@@ -34,10 +34,10 @@ const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{$
 // storm stalled vite-node's SSR module bridge past its 60s request
 // timeout). The predicate matches relative AND absolute paths on both
 // separator styles.
-const WORKTREE_WATCH_IGNORE = p => /(^|[\\/])\.agent-worktrees([\\/]|$)/.test(String(p));
+const WORKTREE_WATCH_IGNORE = p => /(^|[\\/])\.agent[-_]w[a-z0-9_-]*([\\/]|$)/i.test(String(p));
 
 export default defineNuxtConfig({
-    ignore: ['**/.agent-worktrees/**'],
+    ignore: ['**/.agent-worktrees/**', '**/.agent-wt*/**'],
     compatibilityDate: '2025-07-15',
 
     // Home serves at the stable shell route '/home' — the canonical

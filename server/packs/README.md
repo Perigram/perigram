@@ -54,7 +54,10 @@ files features are rejected at the mount (see
   geometry. The pack is the implementation home, not a binding manifest:
   `cassettes/` and `nesting/` live inside this module with
   their repositories, services, and specs — removing the pack removes the
-  domain's code, not just its registry mounts. The core framework imports
+  domain's code, not just its registry mounts. Cassette rides its legacy
+  repository; the pack bridges it into instance-service resolution
+  (service, list/read adapters, the editor construction handler) so
+  process graphs read and construct one home. The core framework imports
   none of it: `artifact-conversions` and `generateAttachment` receive
   their facade executors as pack-registered handler overrides, and
   support's type lists resolve through the registry. Declaration data

@@ -37,7 +37,10 @@ value seams graph processes drive.
 
 The service is synchronous from the graph's perspective (the handler
 awaits the worker). Pure value in, pure value out: authorization is the
-process action's own grant surface plus the command-level feature gate;
+process action's own grant surface plus the command-level feature gate
+(the command's declared permission rows ride the executing action's
+auth, so a manual entry action owns every gate its graph's services
+declare);
 the command definitions declare no entity inputs or outputs. Design
 geometry reaches the solver as job-item values through the
 `nesting-polygons` projection declared on `cassette-design`

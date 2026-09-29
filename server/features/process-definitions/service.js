@@ -192,7 +192,7 @@ export async function create(payload = {}, auth) {
   const authored = persistedRewrites(structuredClone(payload.data || payload), domain);
   const process = new ProcessDefinition({
     identity: {
-      uid: `process-${new ObjectId().toString().slice(0, 8)}`,
+      uid: `process-${new ObjectId().toString()}`,
       name,
       slug: standardSlugify(name, { keepCase: false })
     },
@@ -498,8 +498,8 @@ function manualRunEnvironment(definition, auth = {}, domain = null) {
 }
 
 export async function startRun(id, payload = {}, auth = {}, options = {}) {
-  const process = await loadAuthorized(id, auth, 'read');
-  const definition = process.toJSON();
+  const process = options.definition ?? await loadAuthorized(id, auth, 'read');
+  const definition = process.toJSON ? process.toJSON() : { ...process };
   if (Number(definition.data?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
     throw createError({ statusCode: 409, message: `Process must use dataflow version ${PROCESS_DATAFLOW_VERSION} before it can run` });
   }
@@ -948,7 +948,7 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
       parameters,
       targetOrganizationId
     }
-  }, auth);
+  }, auth, { definition: process });
   if (run.status === 'failed') {
     throw createError({ statusCode: 400, message: run.error?.message || `Action ${actionId} failed` });
   }
@@ -1295,9 +1295,11 @@ function createRelationLinkExecutionAuth(auth = {}, action = {}, ownerType = '')
 function commandExecutionGrants(action = {}) {
   if (action.actionKind !== 'runCommand' || !action.commandId) return [];
   const command = getAppRegistry().getCommandDefinition(action.commandId);
-  return Array.isArray(command?.access?.executionGrants)
-    ? command.access.executionGrants.filter(grant => grant?.feature)
-    : [];
+  // The command's own permission rows ride beside its executionGrants:
+  // the action a user authorized owns every gate its command declares.
+  return [...(command?.access?.permissions || []), ...(command?.access?.executionGrants || [])]
+    .filter(grant => grant?.feature)
+    .map(grant => ({ level: grant.level || 'read', actions: grant.actions || { view: true }, feature: grant.feature }));
 }
 
 function executionActionsForAction(action = {}) {
@@ -1534,7 +1536,7 @@ function processDataEnvironment(auth, run, domain = getDomain()) {
     queryEntities: async (typeId, predicate) => {
       const service = getAppRegistry().getInstanceService(typeId);
       if (!service?.processList) throw new Error(`Entity service cannot query ${typeId} from a process`);
-      return executeProcessQuery(service.processList, predicate, auth);
+      return await executeProcessQuery(service.processList, predicate, auth);
     },
     // The declared-projection seam (SPEC §8 p extract): the graph's only
     // entity→value dereference beside the reads above. The projection
@@ -1587,7 +1589,13 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   const operation = operationKindOf(record || {}) || kind;
   if (operation === 'effect.runCommand') {
     if (!record.commandId) throw new Error('Command effect requires commandId');
-    const commandResult = await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), auth);
+    // The command's declared gates ride the execution auth: the action
+    // the user authorized owns every command its graph executes.
+    const command = getAppRegistry().getCommandDefinition(record.commandId);
+    const commandAuth = command
+      ? createActionExecutionAuth(auth, { actionKind: 'runCommand', commandId: record.commandId, access: command.access })
+      : auth;
+    const commandResult = await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), commandAuth);
     // The value boundary (SPEC §8 s species): a cts.service's declared
     // output is the handler's value. The command envelope (recording,
     // events, billing) stays in command_runs — spreading it onto the
