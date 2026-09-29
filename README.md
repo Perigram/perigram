@@ -138,6 +138,14 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
   worktrees) fails on root-owned files — fix ownership once with
   `sudo chown -R "$(id -u):$(id -g)" .nuxt` (fresh worktrees instead run
   `npx nuxi prepare`, which regenerates their own).
+- The compose stack declares `perigram-network` as an external bridge. Stacks
+  started before the CutKit→Perigram rename still sit on the legacy
+  `cutkit-network`, so any compose-driven change (an env update needs a
+  container recreate) fails with "network declared as external, but could not
+  be found". Create the network once (`docker network create
+  perigram-network`) and run `docker compose -f docker-compose.dev.yml up -d
+  app` to migrate the services onto it; mongo keeps its named volume across
+  the recreate.
 Agent session worktrees are nested under `.agent-worktrees/` in the project
 root; the Nuxt/Vite and Nitro dev watchers ignore that tree (`nuxt.config.js`
 watch ignores — a path predicate, because chokidar v4 leaks glob-ignored
