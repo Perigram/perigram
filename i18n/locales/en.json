@@ -2810,7 +2810,7 @@
       "treeBranch": "Reads one branch from a data tree.",
       "zipLists": "Pairs items at matching positions in two lists.",
       "recordField": "Reads one authored key off a record value.",
-      "joinByKey": "Pairs items of two lists by matching key paths; every left key must match, output pairs carry {left, right}.",
+      "joinByKey": "Pairs items of two lists by matching key paths; every left key must match, output pairs carry the left and right items.",
       "extractProjection": "Runs the bound type's declared projection (table rows, baked geometry) — the payload-to-value gate.",
       "constructRecord": "Composes a record from field values; lists align item by item."
     },
