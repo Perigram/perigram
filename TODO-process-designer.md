@@ -618,6 +618,18 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-29 versions view + activated snapshot
+
+Definitions pane rows gained a history disclosure: `data.history`
+entries (newest first) with restore — the snapshot becomes the
+definition's data and goes live through activation. Runtime source for
+an active-set member is now `data.activated` (written by every
+activation): in-place edits to an active definition no longer leak into
+hydration before activation (spec covers edited-draft +
+stale-activated). README slop from this session's rounds desloppified
+per owner directive — positive contract statements only, no
+removed-behavior notes; the deslop commit precedes this feature commit.
+
 ### Agent Notes — 2026-09-29 rename fix + one-document version control
 
 Owner report: rename fails ("Process dataflow version 4 is required")
