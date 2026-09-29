@@ -40,10 +40,15 @@ Editing the pipeline means editing that branch.
   `perigram.sodalab.pro` server block proxies to `http://192.168.0.230:3001`
   (512 MB upload limit). **Rollback to the hera K3s ingress:** point `$f`
   back to `http://192.168.0.248:80` in that block and `nginx -s reload`.
-- Data plane on hera (inline in deploy.yml, no credentials — lab LAN):
-  `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit`,
-  `LIVEKIT_INTERNAL_URL=http://192.168.0.248:7880`,
-  `BASE_URL=https://perigram.sodalab.pro`.
+- Data plane (inline in deploy.yml, no credentials — lab LAN/NetBird):
+  `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit` (hera mongo),
+  `BASE_URL=https://perigram.sodalab.pro`, calls on the zeus LiveKit
+  (`ws://10.77.219.223:7880` over NetBird, keys inline — browsers must be
+  NetBird-connected to join staging calls), local STT + qwen on the
+  data-worker peer (`10.77.167.148:31135/:31136`), and recordings in the
+  `livekit-egress` bucket on `192.168.0.15:8333`. The previous
+  `https://livekit.sodalab.pro` edge and hera `:7880` internal URL are the
+  revert path when a public edge is wanted again.
 - Call recordings need an external egress plane beside the LiveKit server
   the app targets: Redis, a `livekit/egress` container (SYS_ADMIN for
   Chrome), and an S3-compatible bucket readable by the app
@@ -63,14 +68,14 @@ Editing the pipeline means editing that branch.
 Auth-only values still come from Forgejo repository secrets
 (**Settings → Actions → Secrets**) and are passed by the workflow:
 
-| Secret | Consumed by | State (2026-09-27) |
+| Secret | Consumed by | State (2026-09-29) |
 |---|---|---|
-| `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | LiveKit token minting | **stale** — hold the retired poseidon-staging keys and do not match hera's LiveKit; video calls fail until the hera values are pasted here |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web Push | empty = push disabled, as before |
 
-`NUXT_MONGODB_URI` / `LIVEKIT_*_URL` / `BASE_URL` no longer come from
-secrets (see Contract). ConfigBot/Ollama env is intentionally absent on this
-deploy — it is a prod-only, cluster-internal feature.
+`NUXT_MONGODB_URI` / `LIVEKIT_*` / `TRANSCRIPTION_*` / `MEETINGS_*` no longer
+come from secrets (see Contract — the service plane is inline). ConfigBot/Ollama
+env is intentionally absent on this deploy — it is a prod-only,
+cluster-internal feature.
 
 ## Development Stack
 
