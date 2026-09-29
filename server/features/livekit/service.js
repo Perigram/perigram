@@ -326,8 +326,7 @@ async function importRecordingFile(record, result) {
         return;
     }
     if (!response.ok) {
-        console.error(`Recording store responded ${response.status} for ${filename}`);
-        return;
+        throw createError({ statusCode: 502, message: `Recording store responded ${response.status} for ${filename}` });
     }
     const buffer = Buffer.from(await response.arrayBuffer());
     const uploaded = await filesService.uploadFile(buffer, `call-recording-${record.egressId}.mp4`, {

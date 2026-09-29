@@ -197,6 +197,17 @@ describe('livekit recordings', () => {
     expect(mocks.repository.updateById).toHaveBeenLastCalledWith('rec-1', {
       $set: expect.objectContaining({ status: 'failed' })
     });
+
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('missing', { status: 404 })));
+    mocks.filesService.uploadFile.mockClear();
+    await livekitService.publishWebhookEvent({
+      event: 'egress_ended',
+      egressInfo: { egressId: 'EG_1', roomName: GROUP_ROOM, fileResults: [{ filename: 'gone.mp4' }] }
+    });
+    expect(mocks.filesService.uploadFile).not.toHaveBeenCalled();
+    expect(mocks.repository.updateById).toHaveBeenLastCalledWith('rec-1', {
+      $set: expect.objectContaining({ status: 'failed' })
+    });
   });
 
   it('ignores egress events for unknown rooms and recordings', async () => {
