@@ -30,6 +30,7 @@ export const useCallsStore = defineStore('calls', () => {
     const authStore = useAuthStore();
 
     const activeRooms = ref([]);
+    const recordings = ref([]);
     const incoming = ref([]);
     const connected = ref(false);
 
@@ -63,7 +64,20 @@ export const useCallsStore = defineStore('calls', () => {
         } catch {
             activeRooms.value = [];
         }
+        try {
+            // Recording state rides the same refresh as active rooms:
+            // egress events arrive as `call.activity` payloads and debounce
+            // into this snapshot, so toggles and dots never need their own
+            // subscription.
+            recordings.value = await $fetch('/api/livekit/recordings');
+        } catch {
+            recordings.value = [];
+        }
         reconcileInvitesWithSnapshot();
+    }
+
+    function roomRecording(room = '') {
+        return recordings.value.find(item => item.room === room) || null;
     }
 
     // Room-scoped ring lifecycle: an invite lives while its room is alive —
@@ -248,6 +262,7 @@ export const useCallsStore = defineStore('calls', () => {
         inviteTimers.clear();
         incoming.value = [];
         activeRooms.value = [];
+        recordings.value = [];
         status.value = 'idle';
         activeRoom.value = '';
         pendingTabRoom.value = '';
@@ -259,6 +274,8 @@ export const useCallsStore = defineStore('calls', () => {
 
     return {
         activeRooms,
+        recordings,
+        roomRecording,
         incoming,
         connected,
         status,

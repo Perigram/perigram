@@ -56,8 +56,17 @@
                     />
                 </div>
 
-                <div v-if="reconnecting" class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-2">
-                    <span class="rounded-ui bg-content px-3 py-1 text-supporting">{{ $t('call.reconnecting') }}</span>
+                <!-- One status pill for transient call state: reconnecting
+                     text, or a pulsing red record dot while egress runs. -->
+                <div v-if="reconnecting || recording" class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-2">
+                    <span class="flex items-center gap-1.5 rounded-ui bg-content px-3 py-1 text-supporting">
+                        <i
+                            v-if="recording"
+                            class="pi pi-circle-fill animate-pulse text-status-danger"
+                            aria-hidden="true"
+                        ></i>
+                        {{ reconnecting ? $t('call.reconnecting') : $t('call.recording') }}
+                    </span>
                 </div>
 
                 <div class="pointer-events-none absolute inset-0 overflow-hidden">
@@ -110,6 +119,17 @@
                         :aria-label="sharing ? $t('call.shareStop') : $t('call.share')"
                         :disabled="!connected"
                         @click="toggleShare"
+                    />
+                    <Button
+                        v-if="canRecord"
+                        :icon="recording ? 'pi pi-circle-fill text-status-danger' : 'pi pi-circle'"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="recording ? $t('call.recordStop') : $t('call.record')"
+                        :disabled="!connected || recordPending"
+                        @click="toggleRecording"
                     />
                     <Button
                         :icon="handRaised ? 'pi pi-thumbs-up-fill text-status-warning' : 'pi pi-thumbs-up'"
@@ -221,6 +241,8 @@ import CallPrejoin from '~/components/calls/CallPrejoin.vue';
 import CallTile from '~/components/calls/CallTile.vue';
 import { riseAndFade } from '~/composables/useMotion.js';
 import { useCallsStore } from '~/stores/calls';
+import { conversationKeyForRoom } from '~/utils/call-rooms.js';
+import { useToast } from 'primevue/usetoast';
 
 const props = defineProps({
     room: { type: String, required: true }
@@ -240,6 +262,30 @@ const micEnabled = ref(false);
 const cameraEnabled = ref(false);
 const sharing = ref(false);
 const handRaised = ref(false);
+// Recording rides the egress lifecycle routes; the shared calls store holds
+// the live state (refreshed from `call.activity` egress events), so every
+// participant sees the dot without acting. Conversation rooms only — org
+// rooms have no thread to record into.
+const recordPending = ref(false);
+const recording = computed(() => Boolean(callsStore.roomRecording(props.room)));
+const canRecord = computed(() => Boolean(conversationKeyForRoom(props.room)));
+const toast = useToast();
+const toggleRecording = async () => {
+    if (recordPending.value || !canRecord.value) return;
+    recordPending.value = true;
+    try {
+        if (recording.value) {
+            await $fetch('/api/livekit/recordings/stop', { method: 'POST', body: { room: props.room } });
+        } else {
+            await $fetch('/api/livekit/recordings', { method: 'POST', body: { room: props.room } });
+        }
+        await callsStore.refresh();
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+    } finally {
+        recordPending.value = false;
+    }
+};
 const layout = ref('speaker');
 const settingsVisible = ref(false);
 const pinnedIdentities = reactive(new Set());

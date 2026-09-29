@@ -8,6 +8,10 @@ turn:
   enabled: false
 keys:
   devkey: devsecret
+# Egress dispatch bus: the egress container (livekit.egress.dev.yaml)
+# connects through the same redis to receive recording requests.
+redis:
+  address: redis:6379
 # Room events fan into /api/livekit/webhook so active calls appear live in
 # the sidebar Calls menu; `app` is the compose service name.
 webhook:

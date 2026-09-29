@@ -17,7 +17,7 @@ const INSTANCE_REF_LIMIT = 6;
 const INSTANCE_OPTION_LIMIT = 20;
 const MESSAGE_PAGE_DEFAULT = 50;
 const MESSAGE_PAGE_MAX = 100;
-const ATTACHMENT_KINDS = ['audio'];
+const ATTACHMENT_KINDS = ['audio', 'video'];
 const ATTACHMENT_DURATION_MAX_SECONDS = 600;
 const ATTACHMENT_AUDIO_EXTENSIONS = {
     'audio/mp3': 'mp3',
@@ -644,6 +644,44 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
 }
 
 /**
+ * Server-internal attachment message: the livekit feature posts a finished
+ * call recording into the room's conversation as the recording starter.
+ * The conversation context is rebuilt from the key without auth checks —
+ * the caller is trusted server code that derived the key from an admitted
+ * room; client requests must go through the auth-checked send paths.
+ */
+export async function insertRecordingMessage({ conversationKey = '', senderUserId = '', attachment = null } = {}) {
+    const context = await trustedConversationContext(conversationKey);
+    return await insertMessage({
+        context,
+        sender: MESSAGE_SENDER.USER,
+        senderUserId: String(senderUserId || ''),
+        message: '',
+        attachment,
+        auth: {}
+    });
+}
+
+async function trustedConversationContext(conversationKey = '') {
+    if (conversationKey.startsWith('direct:')) {
+        const parts = conversationKey.split(':').slice(1);
+        if (parts.length !== 2) throw createError({ statusCode: 400, message: 'Invalid direct conversation key' });
+        return { kind: 'direct', conversationKey, participants: parts, match: { conversationKey } };
+    }
+    if (conversationKey.startsWith('group:')) {
+        const group = await findChatGroup(conversationKey.slice('group:'.length));
+        if (!group) throw createError({ statusCode: 404, message: 'Unknown conversation group' });
+        return {
+            kind: 'group',
+            conversationKey,
+            participants: (group.participants || []).map(item => item?.toString?.() || item),
+            match: { conversationKey }
+        };
+    }
+    throw createError({ statusCode: 400, message: 'Unsupported conversation key' });
+}
+
+/**
  * Converts a voice message into its underlying text message (see the support
  * README, Voice Messages): the transcript becomes the message body so every
  * text render path — bubble, reply quotes, previews — applies, while
@@ -855,10 +893,9 @@ function normalizeMessage(message, instanceRefs = [], attachment = null) {
 }
 
 /**
- * Voice messages are the one chat attachment channel: the client uploads the
- * recording through the files feature and references it here by GridFS id, so
- * the message document never embeds audio bytes and playback streams through
- * the shared download route.
+ * Chat attachments reference files uploaded through the files feature by
+ * GridFS id; the message document never embeds media bytes. Kinds and their
+ * authoring sides are owned by the support README (Message Attachments).
  */
 function normalizeAttachment(attachment) {
     if (!attachment || typeof attachment !== 'object') return null;

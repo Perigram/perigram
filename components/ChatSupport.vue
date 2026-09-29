@@ -447,8 +447,9 @@
                                     </small>
                                     <span class="flex min-w-0 items-center gap-1 text-supporting">
                                         <i
-                                            v-if="messageItem.parent.attachment?.kind === 'audio'"
-                                            class="pi pi-microphone shrink-0 text-muted"
+                                            v-if="messageItem.parent.attachment?.kind === 'audio' || messageItem.parent.attachment?.kind === 'video'"
+                                            :class="messageItem.parent.attachment?.kind === 'video' ? 'pi pi-video' : 'pi pi-microphone'"
+                                            class="shrink-0 text-muted"
                                             aria-hidden="true"
                                         />
                                         <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
@@ -457,20 +458,28 @@
                                     </span>
                                 </button>
                                 <div
-                                    v-if="messageItem.attachment?.kind === 'audio'"
+                                    v-if="messageItem.attachment?.kind === 'audio' || messageItem.attachment?.kind === 'video'"
                                     class="flex w-full max-w-full items-center gap-1"
                                 >
                                     <audio
+                                        v-if="messageItem.attachment?.kind === 'audio'"
                                         :src="attachmentUrl(messageItem.attachment)"
                                         controls
                                         preload="metadata"
                                         class="min-w-0 max-w-full"
                                     />
+                                    <video
+                                        v-else
+                                        :src="attachmentUrl(messageItem.attachment)"
+                                        controls
+                                        preload="metadata"
+                                        playsinline
+                                        class="min-w-0 max-w-full"
+                                    />
                                     <Button
                                         v-if="canTranscribe(messageItem)"
-                                        class="shrink-0"
-                                        icon="pi pi-spell-check"
-                                        severity="secondary"
+                                        class="ai-gradient shrink-0 text-accent-contrast"
+                                        icon="pi pi-microchip-ai"
                                         text
                                         rounded
                                         size="small"
@@ -577,7 +586,12 @@
                                 <template v-if="replyTo.parent?.snippet || replyTo.message">
                                     {{ replyTo.parent?.snippet || replyTo.message }}
                                 </template>
-                                <i v-else-if="replyTo.attachment?.kind === 'audio'" class="pi pi-microphone text-muted" aria-hidden="true" />
+                                <i
+                                    v-else-if="replyTo.attachment?.kind === 'audio' || replyTo.attachment?.kind === 'video'"
+                                    :class="replyTo.attachment?.kind === 'video' ? 'pi pi-video' : 'pi pi-microphone'"
+                                    class="text-muted"
+                                    aria-hidden="true"
+                                />
                             </span>
                         </div>
                         <Button

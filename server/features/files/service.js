@@ -54,6 +54,7 @@ const EXTENSION_CONTENT_TYPES = Object.freeze({
   '.jpg': 'image/jpeg',
   '.json': 'application/json',
   '.md': 'text/markdown',
+  '.mp4': 'video/mp4',
   '.occs': 'application/perigram+occs',
   '.pdf': 'application/pdf',
   '.png': 'image/png',

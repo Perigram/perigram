@@ -38,6 +38,7 @@ services:
       - TRANSCRIPTION_CLOUD_BASE_URL=${TRANSCRIPTION_CLOUD_BASE_URL:-}
       - TRANSCRIPTION_CLOUD_API_KEY=${TRANSCRIPTION_CLOUD_API_KEY:-}
       - TRANSCRIPTION_MODEL=${TRANSCRIPTION_MODEL:-}
+      - LIVEKIT_RECORDINGS_DIR=${LIVEKIT_RECORDINGS_DIR:-/recordings}
     depends_on:
       - mongo
       - livekit
@@ -45,6 +46,8 @@ services:
       - perigram-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - recordings:/recordings:ro
     command: sh -c 'npm run dev -- --host 0.0.0.0 $( [ "$NUXT_DEV_HTTPS" = "true" ] && echo --https )'
     restart: unless-stopped
 
@@ -58,6 +61,34 @@ services:
       - "7880:7880"
       - "7881:7881"
       - "7882:7882/udp"
+    depends_on:
+      - redis
+    networks:
+      - perigram-network
+    restart: unless-stopped
+
+  # Egress dispatch bus for the LiveKit server and the egress container;
+  # recording requests and lifecycle state ride it.
+  redis:
+    image: redis:7-alpine
+    container_name: perigram_redis
+    networks:
+      - perigram-network
+    restart: unless-stopped
+
+  # Renders room composites into MP4s on the shared recordings volume; the
+  # app imports finished files into GridFS (livekit feature README).
+  egress:
+    image: livekit/egress:latest
+    container_name: perigram_egress
+    environment:
+      - EGRESS_CONFIG_FILE=/etc/livekit/egress.yaml
+    volumes:
+      - ./livekit.egress.dev.yaml:/etc/livekit/egress.yaml:ro
+      - recordings:/recordings
+    depends_on:
+      - livekit
+      - redis
     networks:
       - perigram-network
     restart: unless-stopped
@@ -98,3 +129,4 @@ networks:
 
 volumes:
   mongo-data:
+  recordings:

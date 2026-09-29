@@ -467,7 +467,7 @@ describe('support communication service', () => {
 
     await expect(supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
-      attachment: { kind: 'video', fileId: 'gridfs-1' }
+      attachment: { kind: 'file', fileId: 'gridfs-1' }
     })).rejects.toMatchObject({ statusCode: 400 });
   });
 

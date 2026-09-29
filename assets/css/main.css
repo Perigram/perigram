@@ -129,6 +129,14 @@ body {
     font-display: block;
 }
 
+/* AI affordance accent (voice transcription today; protocol/summary actions
+   later): the carmine accent ramp as a diagonal gradient. One semantic class
+   keeps every AI action visually a family; the stops are theme palette
+   steps, so palette edits and dark mode keep working. */
+.ai-gradient {
+    background-image: linear-gradient(135deg, var(--p-accent-600), var(--p-accent-800));
+}
+
 /* Custom CNC entity icon font (built from public/icons/data-model/cnc-domain).
    Behaves like a PrimeIcon class string in every surface (<i :class>, PrimeVue
    Tree/Menu/Tab icon props) and follows the active color scheme.
