@@ -16,7 +16,7 @@
 // material by field projections.
 import * as XLSX from 'xlsx/xlsx.mjs';
 import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
-import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
+import { PROCESS_DATAFLOW_VERSION } from '#packages/processes/src/index.js';
 
 // The organization's own vocabulary: the order container (group) holding
 // the production children and referencing its source table, and the
