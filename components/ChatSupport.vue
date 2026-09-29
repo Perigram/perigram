@@ -459,13 +459,29 @@
                                         </span>
                                     </span>
                                 </button>
-                                <audio
+                                <div
                                     v-if="messageItem.attachment?.kind === 'audio'"
-                                    :src="attachmentUrl(messageItem.attachment)"
-                                    controls
-                                    preload="metadata"
-                                    class="max-w-full"
-                                />
+                                    class="flex w-full max-w-full items-center gap-1"
+                                >
+                                    <audio
+                                        :src="attachmentUrl(messageItem.attachment)"
+                                        controls
+                                        preload="metadata"
+                                        class="min-w-0 max-w-full"
+                                    />
+                                    <Button
+                                        v-if="canTranscribe(messageItem)"
+                                        class="shrink-0"
+                                        icon="pi pi-spell-check"
+                                        severity="secondary"
+                                        text
+                                        rounded
+                                        size="small"
+                                        :aria-label="$t('support.transcribe')"
+                                        :loading="transcribingMessageIds.has(messageItem._id)"
+                                        @click.stop="transcribeAudioMessage(messageItem)"
+                                    />
+                                </div>
                                 <div
                                     v-if="messageItem.message || (messageItem.instanceRefs || []).length"
                                     class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
@@ -1408,6 +1424,50 @@ const attachmentUrl = (attachment) => attachment?.fileId
     ? `/api/files/download/${encodeURIComponent(String(attachment.fileId))}`
     : ''
 
+// Audio transcription: the button rides audio-only voice messages while a
+// provider is configured for the caller organization; the updated document
+// replaces the bubble in place — the same contract the `message.updated`
+// conversation event delivers to other viewers.
+const transcriptionAvailable = ref(false)
+const transcribingMessageIds = ref(new Set())
+
+const fetchTranscriptionAvailability = async () => {
+    try {
+        const status = await $fetch('/api/transcription/config')
+        transcriptionAvailable.value = Boolean(status?.available)
+    } catch (error) {
+        transcriptionAvailable.value = false
+    }
+}
+
+const canTranscribe = (messageItem) => transcriptionAvailable.value
+    && messageItem.attachment?.kind === 'audio'
+    && !messageItem.attachment?.transcription
+    && !String(messageItem.message || '').trim()
+
+const replaceMessage = (messageItem) => {
+    const id = String(messageItem?._id || '')
+    if (!id) return
+    const index = messages.value.findIndex(item => String(item._id) === id)
+    if (index === -1) return
+    messages.value = messages.value.map((item, position) => (position === index ? messageItem : item))
+}
+
+const transcribeAudioMessage = async (messageItem) => {
+    const id = String(messageItem._id)
+    if (transcribingMessageIds.value.has(id)) return
+    transcribingMessageIds.value = new Set(transcribingMessageIds.value).add(id)
+    try {
+        replaceMessage(await $fetch(`/api/support/messages/${encodeURIComponent(id)}/transcribe`, { method: 'POST' }))
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 })
+    } finally {
+        const pending = new Set(transcribingMessageIds.value)
+        pending.delete(id)
+        transcribingMessageIds.value = pending
+    }
+}
+
 const participantOnline = (conversation) => {
     const participant = conversation?.conversationKind === 'direct'
         ? participantUserId(conversation)
@@ -1922,6 +1982,10 @@ watch(
                 receiveTyping(payload)
                 return
             }
+            if (payload?.type === 'message.updated') {
+                replaceMessage(payload.message)
+                return
+            }
             // Ringing arrives only through the calls store's `call.invite`
             // subscription — one owner, no second local ring state.
             if (payload?.type !== 'message') return
@@ -1944,6 +2008,7 @@ watch(() => messages.value.length, (newLength, oldLength) => {
 
 onMounted(() => {
     if (authStore.userIsSet) supportChatStore.connect()
+    fetchTranscriptionAvailability()
     if (chatTarget.value?.userId || chatTarget.value?.instanceKey) openDirectTarget()
 })
 onBeforeUnmount(() => {

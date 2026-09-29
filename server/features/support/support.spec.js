@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
     insert: vi.fn(),
     find: vi.fn(),
     findById: vi.fn(),
+    updateById: vi.fn(),
     findSince: vi.fn(),
     insertGroup: vi.fn(),
     findGroupById: vi.fn(),
@@ -37,7 +38,9 @@ const mocks = vi.hoisted(() => ({
   sheetsService: { list: vi.fn() },
   materialsService: { list: vi.fn() },
   warehousesService: { list: vi.fn() },
-  processRuntime: { resolveProcessAuth: vi.fn(async (auth) => auth) }
+  processRuntime: { resolveProcessAuth: vi.fn(async (auth) => auth) },
+  filesService: { getFileBuffer: vi.fn() },
+  transcriptionService: { transcribeAudio: vi.fn() }
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
@@ -62,6 +65,8 @@ vi.mock('~/server/features/sheets/service.js', () => mocks.sheetsService);
 vi.mock('~/server/features/materials/service.js', () => mocks.materialsService);
 vi.mock('~/server/features/warehouses/service.js', () => mocks.warehousesService);
 vi.mock('~/server/features/process-definitions/runtime.js', () => mocks.processRuntime);
+vi.mock('~/server/features/files/service.js', () => mocks.filesService);
+vi.mock('~/server/features/transcription/service.js', () => mocks.transcriptionService);
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
     const error = new Error(err.message);
@@ -464,6 +469,103 @@ describe('support communication service', () => {
       recipientUserId: 'user-b',
       attachment: { kind: 'video', fileId: 'gridfs-1' }
     })).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  describe('voice message transcription', () => {
+    const audioMessage = {
+      _id: 'msg-1',
+      conversationKey: 'direct:user-a:user-b',
+      conversationKind: 'direct',
+      participants: ['user-a', 'user-b'],
+      senderUserId: 'user-b',
+      message: '',
+      attachment: { kind: 'audio', fileId: 'gridfs-1', mimeType: 'audio/webm', durationSeconds: 3 },
+      instancePath: []
+    };
+    const directRecipient = () => {
+      mocks.usersService.getById.mockResolvedValue({
+        memberships: [{ organizationId: 'org-1' }],
+        toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+      });
+    };
+
+    it('transcribes the recording into the message body and publishes message.updated', async () => {
+      directRecipient();
+      mocks.repository.findById.mockResolvedValue(audioMessage);
+      mocks.filesService.getFileBuffer.mockResolvedValue(Buffer.from('audio-bytes'));
+      mocks.transcriptionService.transcribeAudio.mockResolvedValue({ text: 'hello there', provider: 'local', model: 'whisper-1' });
+      mocks.repository.updateById.mockImplementation(async (id, update) => ({
+        ...audioMessage,
+        message: update.$set.message,
+        attachment: { ...audioMessage.attachment, transcription: update.$set['attachment.transcription'] }
+      }));
+
+      const message = await supportService.transcribeMessageAudio(auth, 'msg-1');
+
+      expect(message.message).toBe('hello there');
+      expect(message.attachment.transcription).toMatchObject({ provider: 'local', model: 'whisper-1' });
+      expect(mocks.transcriptionService.transcribeAudio).toHaveBeenCalledWith(expect.objectContaining({
+        filename: 'voice-message.webm',
+        mimeType: 'audio/webm',
+        organizationId: 'org-1'
+      }));
+      expect(mocks.repository.updateById).toHaveBeenCalledWith('msg-1', {
+        $set: {
+          message: 'hello there',
+          'attachment.transcription': { provider: 'local', model: 'whisper-1', transcribedAt: expect.any(Date) }
+        }
+      }, expect.any(Object));
+      expect(mocks.connectionsPublish).toHaveBeenCalledWith(
+        'conversation:direct:user-a:user-b',
+        expect.objectContaining({ type: 'message.updated', message })
+      );
+    });
+
+    it('rejects messages outside the caller\'s conversations', async () => {
+      mocks.repository.findById.mockResolvedValue({
+        ...audioMessage,
+        conversationKey: 'direct:user-x:user-y',
+        participants: ['user-x', 'user-y']
+      });
+
+      await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
+        .rejects.toMatchObject({ statusCode: 403 });
+      expect(mocks.transcriptionService.transcribeAudio).not.toHaveBeenCalled();
+    });
+
+    it('rejects missing, non-audio, already transcribed, and text-carrying messages', async () => {
+      mocks.repository.findById.mockResolvedValue(null);
+      await expect(supportService.transcribeMessageAudio(auth, 'missing'))
+        .rejects.toMatchObject({ statusCode: 404 });
+
+      mocks.repository.findById.mockResolvedValue({ ...audioMessage, attachment: null });
+      await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
+        .rejects.toMatchObject({ statusCode: 400 });
+
+      mocks.repository.findById.mockResolvedValue({
+        ...audioMessage,
+        attachment: { ...audioMessage.attachment, transcription: { provider: 'local' } }
+      });
+      await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
+        .rejects.toMatchObject({ statusCode: 409 });
+
+      directRecipient();
+      mocks.repository.findById.mockResolvedValue({ ...audioMessage, message: 'caption' });
+      await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
+        .rejects.toMatchObject({ statusCode: 409, message: 'Message already carries text' });
+      expect(mocks.repository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('surfaces recordings without speech as 422 and writes nothing', async () => {
+      directRecipient();
+      mocks.repository.findById.mockResolvedValue(audioMessage);
+      mocks.filesService.getFileBuffer.mockResolvedValue(Buffer.from('audio-bytes'));
+      mocks.transcriptionService.transcribeAudio.mockResolvedValue({ text: '', provider: 'local', model: 'whisper-1' });
+
+      await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
+        .rejects.toMatchObject({ statusCode: 422 });
+      expect(mocks.repository.updateById).not.toHaveBeenCalled();
+    });
   });
 
   it('allows artifact refs when the process exposes an artifact creation action', async () => {

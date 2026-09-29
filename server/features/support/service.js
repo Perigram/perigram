@@ -1,6 +1,8 @@
 import { createError } from 'h3';
 import * as artifactsService from '~/server/features/artifacts/service.js';
 import * as usersService from '~/server/features/users/service.js';
+import * as filesService from '~/server/features/files/service.js';
+import * as transcriptionService from '~/server/features/transcription/service.js';
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { declarationForType } from '~/server/features/instances/service.js';
@@ -17,6 +19,15 @@ const MESSAGE_PAGE_DEFAULT = 50;
 const MESSAGE_PAGE_MAX = 100;
 const ATTACHMENT_KINDS = ['audio'];
 const ATTACHMENT_DURATION_MAX_SECONDS = 600;
+const ATTACHMENT_AUDIO_EXTENSIONS = {
+    'audio/mp3': 'mp3',
+    'audio/mp4': 'mp4',
+    'audio/mpeg': 'mp3',
+    'audio/ogg': 'ogg',
+    'audio/wav': 'wav',
+    'audio/webm': 'webm',
+    'audio/x-wav': 'wav'
+};
 const scopedList = (service) => (auth, filters) => service.list(auth.userId, auth.organizationId, auth.role, auth, filters);
 const INSTANCE_OPTION_LOADERS = {
     artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
@@ -632,6 +643,57 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
     });
 }
 
+/**
+ * Converts a voice message into its underlying text message (see the support
+ * README, Voice Messages): the transcript becomes the message body so every
+ * text render path — bubble, reply quotes, previews — applies, while
+ * `attachment.transcription` records the provenance and blocks re-runs.
+ * Provider selection is per organization; instance messages carry their org,
+ * person conversations fall back to the caller's.
+ */
+export async function transcribeMessageAudio(auth, messageId = '') {
+    const id = String(messageId || '').trim();
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    if (!id) throw createError({ statusCode: 400, message: 'Message id is required' });
+    const message = await repository.findById(id);
+    if (!message) throw createError({ statusCode: 404, message: 'Message not found' });
+    await getConversationContextByKey(auth, message.conversationKey);
+    const attachment = message.attachment;
+    if (attachment?.kind !== 'audio') {
+        throw createError({ statusCode: 400, message: 'Message has no audio attachment' });
+    }
+    if (attachment.transcription) {
+        throw createError({ statusCode: 409, message: 'Audio message is already transcribed' });
+    }
+    if (messageSnippet(message)) {
+        throw createError({ statusCode: 409, message: 'Message already carries text' });
+    }
+    let buffer;
+    try {
+        buffer = await filesService.getFileBuffer(attachment.fileId);
+    } catch (error) {
+        throw createError({ statusCode: 404, message: 'Audio attachment is no longer available' });
+    }
+    const mimeType = typeof attachment.mimeType === 'string' ? attachment.mimeType : '';
+    const { text, provider, model } = await transcriptionService.transcribeAudio({
+        buffer,
+        filename: `voice-message.${ATTACHMENT_AUDIO_EXTENSIONS[mimeType] || 'webm'}`,
+        mimeType,
+        organizationId: message.organizationId || auth.organizationId || null
+    });
+    if (!text) {
+        throw createError({ statusCode: 422, message: 'No speech detected in the recording' });
+    }
+    const updated = await repository.updateById(id, {
+        $set: {
+            message: text,
+            'attachment.transcription': { provider, model, transcribedAt: new Date() }
+        }
+    }, messageProjection());
+    publishMessageUpdated(updated);
+    return updated;
+}
+
 async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachment, parentMessageId, auth, recipientUserId = null }) {
     const refs = await normalizeInstanceRefs(instanceRefs, auth, { recipientUserId });
     const normalizedAttachment = normalizeAttachment(attachment);
@@ -763,6 +825,26 @@ connectionsService.registerTopicAuthorizer('conversation:', async (auth, topic) 
     const context = await getConversationContextByKey(auth, topic.slice('conversation:'.length));
     return Boolean(context);
 });
+
+/**
+ * Transcript fanout: every conversation view that can list the message — its
+ * own key plus each aggregated ancestor key along the stored instance path —
+ * receives the updated document so open threads swap the bubble in place.
+ * No inbox pings: transcription changes no unread state.
+ */
+function publishMessageUpdated(message) {
+    const keys = new Set([message.conversationKey]);
+    for (const entry of message.instancePath || []) {
+        keys.add(instanceConversationKey(entry.type, entry.id));
+    }
+    for (const key of keys) {
+        connectionsService.publish(`conversation:${key}`, {
+            type: 'message.updated',
+            conversationKey: key,
+            message
+        });
+    }
+}
 
 function normalizeMessage(message, instanceRefs = [], attachment = null) {
     const text = typeof message === 'string' ? message.trim() : '';

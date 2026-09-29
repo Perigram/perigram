@@ -146,6 +146,7 @@
     "recordVoice": "Record voice message",
     "recording": "Recording",
     "stopAndSend": "Stop and send",
+    "transcribe": "Transcribe",
     "loadEarlier": "Load earlier messages",
     "newGroup": "New group",
     "groupName": "Group name",
