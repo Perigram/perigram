@@ -183,7 +183,11 @@ export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'cts
 
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
-  if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
+  // Children edges accept type-reference targets beside in-tree classes:
+  // an org type's containment may name pack and other registry types
+  // (SPEC §6 — the child edge's type list is not restricted to in-tree
+  // declarations), the same freedom ref-field targets already have.
+  if (sourceType === 'ctsClass' && (targetType === 'ctsClass' || targetType === 'ctsType')) return 'children';
   // A state wired into a state input becomes that state's child: the wire's
   // source is the parent, the target (receiving state) the child (SPEC §7).
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'nested';

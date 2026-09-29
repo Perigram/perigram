@@ -97,8 +97,10 @@ export const facadeFileTypes = [
     revisions: 'geometry',
     fields: {
       name: { base: 'string' },
-      template: { base: 'ref', accepts: ['cassette'] },
-      source: { base: 'ref', accepts: ['dxf-source'] },
+      // Operator-carried provenance refs (the bake/convertDxf record
+      // inputs), stored as data — not association writes.
+      template: { base: 'ref', accepts: ['cassette'], slot: 'data' },
+      source: { base: 'ref', accepts: ['dxf-source'], slot: 'data' },
       parameters: { base: 'json' },
       // The baked output, never a construction input: every construction
       // mode computes it (upload/convertDxf extract, bake evaluates).

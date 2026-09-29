@@ -8,6 +8,7 @@ import {
   createDefinitionAuthoring
 } from './authoring.js';
 import { validateRoundTrip } from './transpiler.js';
+import { compileTreeDeclarations } from './designer.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
 import { facadeDomain, facadeServices } from '@perigram/facade';
@@ -92,6 +93,51 @@ describe('headless definition authoring', () => {
     const other = context.drop('literal', { id: 'other' });
     context.configure('other', { type: { base: 'integer', nullable: false }, value: 1 });
     expect(() => context.connect('other', 'value', 'first', 'index')).toThrow(/accepts one wire/);
+  });
+
+  it('authors the declaration tree in-definition: classes, ref fields, children to type references, wired bindings', () => {
+    const context = authoring();
+    context.declareClass({ id: 'orderClass', typeId: 'facade-order', class: 'group', name: 'Facade order' });
+    context.declareClass({ id: 'attemptClass', typeId: 'nesting-attempt', class: 'item', name: 'Nesting attempt' });
+    context.declareField({ id: 'orderName', ownerClassId: 'orderClass', name: 'name', descriptor: { base: 'string', identifier: true } });
+    context.declareField({ id: 'attemptLabel', ownerClassId: 'attemptClass', name: 'label', descriptor: { base: 'string', identifier: true } });
+    context.declareField({ id: 'attemptResult', ownerClassId: 'attemptClass', name: 'result', descriptor: { base: 'json' } });
+    context.declareTypeRef({ id: 'xlsxRef', typeId: 'xlsx-workbook' });
+    context.declareTypeRef({ id: 'csvRef', typeId: 'csv-table' });
+    context.declareTypeRef({ id: 'designRef', typeId: 'cassette-design' });
+    context.declareTypeRef({ id: 'materialRef', typeId: 'sheet-material' });
+    context.declareField({ id: 'tableField', ownerClassId: 'orderClass', name: 'table', descriptor: { base: 'ref' } });
+    context.wireDeclaration('xlsxRef', 'tableField', 'targets');
+    context.wireDeclaration('csvRef', 'tableField', 'targets');
+    context.wireDeclaration('orderClass', 'designRef', 'children', { key: 'contents' });
+    context.wireDeclaration('orderClass', 'materialRef', 'children', { key: 'contents' });
+    context.wireDeclaration('orderClass', 'attemptClass', 'children', { key: 'contents' });
+    context.drop('construct', { id: 'order' });
+    context.wireDeclaration('orderClass', 'order', 'binds');
+
+    const definition = context.definition();
+    const treeNodes = definition.graph.nodes.filter(node => node.type !== 'processNode');
+    const { declarations, diagnostics } = compileTreeDeclarations(treeNodes, definition.graph.edges, definition.processNodes);
+    expect(diagnostics).toEqual([]);
+    expect(declarations).toEqual([
+      { id: 'nesting-attempt', class: 'item', name: 'Nesting attempt', fields: { label: { base: 'string', identifier: true }, result: { base: 'json' } } },
+      {
+        id: 'facade-order', class: 'group', name: 'Facade order',
+        fields: { name: { base: 'string', identifier: true }, table: { base: 'ref', accepts: ['xlsx-workbook', 'csv-table'] } },
+        edges: { children: { contents: { types: ['cassette-design', 'sheet-material', 'nesting-attempt'], onRemove: 'restrict' } } }
+      }
+    ]);
+    // The binding derives from the wire (the designer's live pass), and the
+    // ports re-sync from it.
+    expect(definition.processNodes.order.typeId).toBe('facade-order');
+    expect(definition.processNodes.order.outputs.map(port => port.id)).toEqual(['completed', 'result']);
+  });
+
+  it('refuses an illegal declaration wire at the same gate the canvas applies', () => {
+    const context = authoring();
+    context.declareClass({ id: 'a', typeId: 'order-a', name: 'A' });
+    context.declareTypeRef({ id: 'b', typeId: 'xlsx-workbook' });
+    expect(() => context.wireDeclaration('b', 'a', 'children')).toThrow(/not a legal 'children'/);
   });
 
   it('round-trips every dropped palette record through the canvas twice', () => {
