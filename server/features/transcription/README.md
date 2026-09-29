@@ -20,7 +20,9 @@ Each provider has its own wire protocol:
 ### Local protocol
 
 `POST {baseUrl}/transcribe` with multipart fields `file` (audio blob with
-filename) and the optional `language` hint (ISO code, e.g. `ru`). The
+filename) and the optional `language` hint (ISO code, e.g. `ru`; omitting it
+lets the service auto-detect the language — the literal value `auto` is not
+accepted server-side). The
 response carries per-segment results — the app transcript is the segment
 texts joined with spaces:
 
