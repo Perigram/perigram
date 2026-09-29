@@ -355,7 +355,7 @@ channel: hue on handles, cargo on wires.
 | Channel | Encodes | Values |
 |---|---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation |
-| Card surface | population primacy | OPERATIONS (the effect species: create, mutate, transition, remove, command) render the primary-tinted surface (`--ck-surface-primary`, a whisper of the primary accent over the content surface) — they are the primary nodes; every other node (values, sources, collections, reads, control, the declaration family) keeps the plain content surface — secondary nodes are surface |
+| Card surface | population primacy | OPERATIONS (create, mutate, transition, command — the effect species except remove) render the primary-tinted surface (`--ck-surface-primary`, a whisper of the primary accent over the content surface) — they are the primary nodes; every other node (values, sources, collections, reads, control, the declaration family, and the remove operation) keeps the plain content surface — secondary nodes are surface. The one predicate: `utils/processDesignerPopulation.js` |
 | Card border | chrome + selection | the quiet content border for every card; the selected border is the single card state — an unselected node is a diagram element, the selected node is the authoring surface |
 
 Card concern (what a node does) is carried by the label first (with the
@@ -419,16 +419,19 @@ corridor across its other granted lanes at the node's column — the
 operation is one record, never cloned, its wires never duplicated.
 
 Effects and state declarations are the PRIMARY populations — they carry
-the access/workflow story and are always visible. The remove (delete)
-operation is SECONDARY despite being an effect species: a maintenance
-verb with no role story — it claims no lane, its drop assigns nothing,
-and it hides with the secondary group. Every other node — classes,
-fields, type references, and the non-effect process nodes (reads such
-as Get field, values/math, collections, control) — is SECONDARY:
-unaffected by lanes, free-placeable anywhere, and grouped under the
-secondary visibility toggle, which hides them (nodes and their wires)
-without deleting anything; `hidden` is runtime state and
-never persists. Lane bounds wrap their nodes: a band's height is its
+the access/workflow story. The remove (delete) operation is a LANE
+EFFECT — it claims its lane and its drop writes its grant like every
+other effect — but it is presentation-SECONDARY: the plain content
+surface and the secondary visibility toggle (the clean view) both apply
+to it, while the rest of the effect family is always visible. Every
+other node — classes, fields, type references, and the non-effect
+process nodes (reads such as Get field, values/math, collections,
+control) — is SECONDARY: unaffected by lanes, free-placeable anywhere,
+and grouped under the same toggle, which hides them (nodes and their
+wires) without deleting anything; `hidden` is runtime state and never
+persists. Presentation primacy resolves through the one predicate
+`utils/processDesignerPopulation.js` (see
+[utils](../../utils/README.md)). Lane bounds wrap their nodes: a band's height is its
 content extent plus a small padding, recalculated on the fly — on
 load, on every drop, drag-stop, add, and delete — by the settle pass,
 which stacks the bands in role order and seats each band's content at

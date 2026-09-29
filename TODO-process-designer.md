@@ -618,6 +618,22 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-29 corrective: secondary means surface + clean view, NOT lane-exile
+
+Owner correction of the previous note: "I didn't tell it CLAIMS NO
+LANE, it is SECONDARY, it fucking means HIDDEN IN CLEAN VIEW and
+SECONDARY SURFACE COLOR. It gets GRANTS BY LANE." Reverted the lane
+exile entirely (isLaneEffectNode deleted; every lane site back on
+isEffectNode — membership, drop-writes-grant, settle, tidy, slots).
+The remove operation is presentation-secondary ONLY: plain content
+surface (no primary tint) and grouped under the secondary visibility
+toggle. Both consumers (card surface, toggle) resolve through ONE
+predicate — utils/processDesignerPopulation.js
+(isSecondaryPopulationKind) — referenced from the node UI contract's
+Card surface row and the Lanes paragraph, registered in utils README.
+Design-system guard caught the changed expression set in
+process.vue; UI_COMPONENT_AUDIT regenerated per the documented flow.
+
 ### Agent Notes — 2026-09-29 delete joins the secondary population
 
 Owner direction: "'delete' should be a secondary node." The remove
