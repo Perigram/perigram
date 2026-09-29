@@ -165,6 +165,7 @@
                     />
                     <Button
                       icon="pi pi-check"
+                      class="shrink-0"
                       size="small"
                       text
                       :loading="definitionBusyId === String(process._id)"
@@ -175,13 +176,14 @@
                   <div v-else class="flex items-center gap-2">
                     <button
                       type="button"
-                      class="min-w-0 flex-1 truncate text-left"
+                      class="min-w-0 flex-[1_1_0%] basis-0 truncate text-left"
                       :title="normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id)"
                       @click="selectProcessDefinition(process._id)"
                     >
                       {{ [normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id), process.states?.main === 'ACTIVE' ? $t('processDesigner.activeSet') : null].filter(Boolean).join(' · ') }}
                     </button>
                     <ToggleSwitch
+                      class="shrink-0"
                       :model-value="process.states?.main === 'ACTIVE'"
                       :loading="definitionBusyId === String(process._id)"
                       :aria-label="$t('processDesigner.activate')"
@@ -189,6 +191,7 @@
                     />
                     <Button
                       icon="pi pi-history"
+                      class="shrink-0"
                       size="small"
                       text
                       :aria-label="$t('processDesigner.versions')"
@@ -196,6 +199,7 @@
                     />
                     <Button
                       icon="pi pi-pencil"
+                      class="shrink-0"
                       size="small"
                       text
                       :aria-label="$t('common.rename')"
@@ -203,6 +207,7 @@
                     />
                     <Button
                       icon="pi pi-trash"
+                      class="shrink-0"
                       size="small"
                       text
                       severity="danger"
@@ -225,6 +230,7 @@
                     <span class="min-w-0 flex-1 truncate">{{ formatHistoryEntry(entry) }}</span>
                     <Button
                       icon="pi pi-undo"
+                      class="shrink-0"
                       size="small"
                       text
                       :aria-label="$t('common.restore')"
