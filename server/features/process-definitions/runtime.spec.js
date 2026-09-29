@@ -13,7 +13,7 @@ vi.mock('../cts-types/service.js', async () => {
   }
   return { compileRegistryForOrganization: async () => registry };
 });
-vi.mock('./repository.js', () => ({ findActiveByOrganization: vi.fn() }));
+vi.mock('./repository.js', () => ({ findActiveByOrganization: vi.fn(), findActiveSetByOrganization: vi.fn() }));
 vi.mock('~/server/runtime/app-registry.js', () => ({
   getAppRegistry: () => ({ getInstanceService: () => mocks.organizationService })
 }));
@@ -61,6 +61,7 @@ describe('process runtime auth hydration', () => {
       }
     };
     repository.findActiveByOrganization.mockResolvedValue(v5Draft);
+    repository.findActiveSetByOrganization.mockResolvedValue([v5Draft]);
     mocks.organizationService.getProcessConfiguration.mockResolvedValue({
       roles: fixture.roles,
       roleAssignments: { user_a: { userId: 'user_a', roleIds: [PERSISTED_ACCEPTANCE_IDS.role], bindings: {} } },
@@ -73,9 +74,49 @@ describe('process runtime auth hydration', () => {
     expect(auth.process?.active).toBe(true);
   });
 
+  it('compiles the additive active set as one merged contract', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    // Two active definitions: an explicitly empty one (the bootstrap
+    // shape) plus the full fixture. The merged compile must carry the
+    // fixture's screens and access untouched — one canvas, two authors.
+    const empty = {
+      ...fixture.processDefinition,
+      _id: 'process-empty',
+      data: {
+        ...structuredClone(fixture.processDefinition.data),
+        graph: { nodes: [], edges: [] },
+        processNodes: {},
+        producerOutputs: {},
+        screens: {},
+        roleGrants: {}
+      }
+    };
+    repository.findActiveByOrganization.mockResolvedValue(fixture.processDefinition);
+    repository.findActiveSetByOrganization.mockResolvedValue([empty, fixture.processDefinition]);
+    mocks.organizationService.getProcessConfiguration.mockResolvedValue({
+      roles: fixture.roles,
+      roleAssignments: {
+        [PERSISTED_ACCEPTANCE_IDS.user]: fixture.assignment
+      }
+    });
+
+    const auth = await resolveProcessAuth({
+      userId: PERSISTED_ACCEPTANCE_IDS.user,
+      organizationId: PERSISTED_ACCEPTANCE_IDS.organization,
+      memberships: [{ organizationId: PERSISTED_ACCEPTANCE_IDS.organization, status: 'active', permissions: {} }]
+    });
+
+    expect(auth.process?.active).toBe(true);
+    const keys = (auth.screens || []).map(screen => screen.screenKey || screen.id);
+    expect(keys.some(key => String(key).includes('cassette'))).toBe(true);
+    const granted = JSON.stringify(auth.effectivePermissions || auth.permissions || {});
+    expect(granted).toContain('files');
+  });
+
   it('combines the active process role contract with the organization assignment', async () => {
     const fixture = createPersistedAcceptanceFixture();
     repository.findActiveByOrganization.mockResolvedValue(fixture.processDefinition);
+    repository.findActiveSetByOrganization.mockResolvedValue([fixture.processDefinition]);
     mocks.organizationService.getProcessConfiguration.mockResolvedValue({
       roles: fixture.roles,
       roleAssignments: {
@@ -110,6 +151,7 @@ describe('process runtime auth hydration', () => {
   it('does not grant process access without an organization assignment', async () => {
     const fixture = createPersistedAcceptanceFixture();
     repository.findActiveByOrganization.mockResolvedValue(fixture.processDefinition);
+    repository.findActiveSetByOrganization.mockResolvedValue([fixture.processDefinition]);
     mocks.organizationService.getProcessConfiguration.mockResolvedValue({ roles: fixture.roles, roleAssignments: {} });
     const auth = await resolveProcessAuth({ userId: 'user_1', organizationId: 'org_1', memberships: [{ organizationId: 'org_1', status: 'active', permissions: {} }] });
     expect(auth.roleAssignments.roleIds).toEqual([]);

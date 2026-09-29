@@ -618,6 +618,31 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-29 definitions management + additive activation
+
+Owner ask: proper definitions management — out of the toolbar, into the
+right pane; view, activate/deactivate on the fly with commutative/
+additive activation ("compilation like all active ones are on single
+canvas"), rename, loading to designer; later: "no status [badges] —
+activate switch and delete". SERVER: activation is now additive —
+repository exposes the ACTIVE set (activation order);
+mergeActiveDefinitions (compiler-adapter, pure) unions the set's
+authored data into one working definition compiled through the single
+seam (spec: empty + full fixture hydrates the full contract); the
+migration gate and Apply diff compare against the merged OTHER actives;
+activate no longer archives others; deactivate (new, ACTIVE→DRAFT) and
+delete (new) endpoints; action/socket/relation seams resolve the merged
+set; the organization document no longer stores an active definition
+pointer. Rename now passes on ACTIVE definitions (identity-only).
+UI: the inspector gains a Definitions tab — one row per definition:
+name (click loads to designer), inline rename, the activation switch
+(the switch IS the state — no status badges), delete. The toolbar keeps
+new draft / save / apply; the Folder popover and the toolbar rename are
+gone. Feature specs 80/80 incl. the merged-hydration case; guards green
+(audit regenerated). Known follow-up: the empty-state row (no
+definitions yet) and pagination are unhandled — orgs always have the
+bootstrap definition.
+
 ### Agent Notes — 2026-09-29 corrective: secondary means surface + clean view, NOT lane-exile
 
 Owner correction of the previous note: "I didn't tell it CLAIMS NO

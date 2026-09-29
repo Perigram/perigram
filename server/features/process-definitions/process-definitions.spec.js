@@ -48,9 +48,10 @@ vi.mock('./repository.js', () => ({
   find: vi.fn(),
   findById: vi.fn(),
   findActiveByOrganization: vi.fn(),
+  findActiveSetByOrganization: vi.fn(),
   create: vi.fn(),
   updateById: vi.fn(),
-  archiveActiveByOrganization: vi.fn(),
+  removeById: vi.fn(),
   getConnection: vi.fn()
 }));
 
@@ -87,6 +88,7 @@ describe('current process-definition service contract', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    processRepository.findActiveSetByOrganization.mockResolvedValue([]);
     organizationService.getProcessConfiguration.mockResolvedValue({
       roles: createPersistedAcceptanceFixture().organization.data.roles,
       roleAssignments: {}
@@ -125,6 +127,7 @@ describe('current process-definition service contract', () => {
   it('denies manual Create execution when the action is absent from the compiled role assignment', async () => {
     const fixture = createPersistedAcceptanceFixture();
     processRepository.findActiveByOrganization.mockResolvedValue(fixture.processDefinition);
+    processRepository.findActiveSetByOrganization.mockResolvedValue([fixture.processDefinition]);
     organizationService.getProcessConfiguration.mockResolvedValueOnce({
       roles: fixture.organization.data.roles,
       roleAssignments: {}
@@ -305,6 +308,11 @@ describe('current process-definition service contract', () => {
       _id: 'process-active',
       data: activeData
     });
+      processRepository.findActiveSetByOrganization.mockResolvedValue([{
+        ...fixture.processDefinition,
+        _id: 'process-active',
+        data: activeData
+      }]);
     processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     const processList = vi.fn().mockResolvedValue([{ states: { main: 'LEGACY_RETIRED' } }]);
@@ -321,7 +329,7 @@ describe('current process-definition service contract', () => {
       data: { migrationRequired: true, affected: [{ typeId, statuses: ['LEGACY_RETIRED'], count: 1 }] }
     });
     expect(processList).toHaveBeenCalledWith({}, expect.objectContaining({ organizationId: 'org-acceptance' }));
-    expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
+    expect(processRepository.updateById).not.toHaveBeenCalledWith('process-active', expect.anything());
   });
 
   it('maps construction inputs onto the wire blocks the §3 boundary reads', async () => {
@@ -386,6 +394,11 @@ describe('current process-definition service contract', () => {
       _id: 'process-active',
       data: activeData
     });
+      processRepository.findActiveSetByOrganization.mockResolvedValue([{
+        ...fixture.processDefinition,
+        _id: 'process-active',
+        data: activeData
+      }]);
     processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     getAppRegistry.mockReturnValue({
@@ -397,7 +410,8 @@ describe('current process-definition service contract', () => {
     await expect(activate('process-draft', adminAuth())).resolves.toMatchObject({
       states: { main: 'ACTIVE' }
     });
-    expect(processRepository.archiveActiveByOrganization).toHaveBeenCalled();
+    // Additive activation: the previous active definition stays ACTIVE.
+    expect(processRepository.updateById).not.toHaveBeenCalledWith('process-active', expect.anything());
   });
 
   it('returns the migration plan on validate and keeps the 409 without mappings', async () => {
@@ -416,6 +430,11 @@ describe('current process-definition service contract', () => {
       _id: 'process-active',
       data: activeData
     });
+      processRepository.findActiveSetByOrganization.mockResolvedValue([{
+        ...fixture.processDefinition,
+        _id: 'process-active',
+        data: activeData
+      }]);
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     const strandedEntities = [
       { _id: 'p-1', states: { main: 'LEGACY_RETIRED' } },
@@ -446,7 +465,7 @@ describe('current process-definition service contract', () => {
         migrationPlan: { statuses: [expect.any(Object)] }
       }
     });
-    expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
+    expect(processRepository.updateById).not.toHaveBeenCalledWith('process-active', expect.anything());
   });
 
   it('rejects declared migration mappings outside the next contract states', async () => {
@@ -464,6 +483,11 @@ describe('current process-definition service contract', () => {
       _id: 'process-active',
       data: activeData
     });
+      processRepository.findActiveSetByOrganization.mockResolvedValue([{
+        ...fixture.processDefinition,
+        _id: 'process-active',
+        data: activeData
+      }]);
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId
@@ -475,7 +499,7 @@ describe('current process-definition service contract', () => {
       statusCode: 400,
       data: { migrationPlan: { statuses: expect.any(Array) } }
     });
-    expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
+    expect(processRepository.updateById).not.toHaveBeenCalledWith('process-active', expect.anything());
   });
 
   it('activates with declared migrations, re-targets stranded instances, and records the applied summary', async () => {
@@ -495,6 +519,11 @@ describe('current process-definition service contract', () => {
       _id: 'process-active',
       data: activeData
     });
+      processRepository.findActiveSetByOrganization.mockResolvedValue([{
+        ...fixture.processDefinition,
+        _id: 'process-active',
+        data: activeData
+      }]);
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     // Faithful storage round-trip: the wire shape (`states`) plus the status
     // block a re-parsed model needs — production storage must preserve both
@@ -529,7 +558,9 @@ describe('current process-definition service contract', () => {
         failures: []
       })
     }));
-    expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
+    // Additive activation: no organization pointer is written — the active
+    // set is queried from the definitions collection.
+    expect(organizationService.setActiveProcessDefinition).not.toHaveBeenCalled();
   });
 
   it('rejects ambiguous persisted producer sockets at the save boundary', async () => {
@@ -568,7 +599,9 @@ describe('current process-definition service contract', () => {
     expect(Object.keys(region.states).sort()).toEqual(['ACTIVE', 'ARCHIVED']);
     expect(region.states.ARCHIVED.isTerminal).toBe(true);
     expect(region.transitions).toEqual([]);
-    expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
+    // Additive activation: no organization pointer is written — the active
+    // set is queried from the definitions collection.
+    expect(organizationService.setActiveProcessDefinition).not.toHaveBeenCalled();
   });
 
   it('round-trips the missing-field tag and present null through the preview response', async () => {

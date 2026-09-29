@@ -45,5 +45,5 @@ export function useProcessDesignerPersistence({ request = $fetch } = {}) {
     });
   }
 
-  return { activateDraft, createDraft, loadById: loadProcessById, loadWorkspace, previewDraft, renameDraft, saveDraft, validateDraft };
+  return { activateDraft, createDraft, loadById: loadProcessById, loadWorkspace, previewDraft, renameDraft, request, saveDraft, validateDraft };
 }

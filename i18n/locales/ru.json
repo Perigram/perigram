@@ -2579,6 +2579,9 @@
     "selectionActions": "Действия с выделением",
     "resetZoom": "Сбросить масштаб",
     "hideSecondary": "Скрыть второстепенные",
+    "definitions": "Определения",
+    "activate": "Активировать",
+    "activeSet": "активно",
     "tidy": "Упорядочить граф",
     "paletteGroups": {
       "entities": "Типы",

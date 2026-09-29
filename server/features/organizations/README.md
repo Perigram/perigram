@@ -20,8 +20,11 @@ Collection: `organizations`
 
 Key fields:
 - `processTemplateId`: Starter process id used at creation time.
-- `activeProcessDefinitionId`: Active compiled process definition id.
 - `roles`: Stable role identity record `{ [roleId]: { id, label } }`.
+
+The organization stores no active process pointer: activation is additive
+and the active definition set is queried from the process-definitions
+collection ([process-definitions](../process-definitions/README.md)).
 - `roleAssignments`: Authoritative user mapping
   `{ [userId]: { userId, roleIds, bindings } }`.
 - `settings`: Organization settings that are not role/type branches.

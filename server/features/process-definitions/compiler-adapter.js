@@ -185,3 +185,47 @@ export function currentProcessDefinition(data = {}, domain = {}) {
   }
   return migration.data;
 }
+
+// Additive activation (feature README "Activation"): merge the active
+// set's authored data into ONE working definition — as if all active
+// graphs were authored on a single canvas. Arrays concatenate with id
+// dedupe, keyed records union (later entries win), per-role grants
+// union. Activation-order is the caller's: sorted by activation
+// timestamp, the activating definition last. `compiled` and
+// `migrations` never merge (activation-time, definition-local).
+const MERGE_KEYED = [
+  'processNodes', 'producerOutputs', 'screens', 'services', 'sockets',
+  'stateDefinitions', 'valueInputs', 'ctsTypes', 'servicePrincipals'
+];
+
+export function mergeActiveDefinitions(datas = []) {
+  const list = datas.filter(Boolean);
+  if (!list.length) return null;
+  if (list.length === 1) return list[0];
+  const merged = { ...list[0] };
+  for (const data of list.slice(1)) {
+    for (const key of MERGE_KEYED) {
+      if (!data[key]) continue;
+      merged[key] = { ...(merged[key] || {}), ...data[key] };
+    }
+    const grants = data.roleGrants || {};
+    const target = merged.roleGrants = { ...(merged.roleGrants || {}) };
+    for (const [roleId, grantList] of Object.entries(grants)) {
+      const incoming = Array.isArray(grantList) ? grantList : [grantList];
+      const held = new Set(Array.isArray(target[roleId]) ? target[roleId] : []);
+      target[roleId] = [...held, ...incoming.filter(grant => !held.has(grant))];
+    }
+    for (const side of ['nodes', 'edges']) {
+      const graph = data.graph?.[side] || [];
+      if (!graph.length) continue;
+      const seen = new Set((merged.graph?.[side] || []).map(item => String(item.id)));
+      merged.graph = {
+        ...(merged.graph || {}),
+        [side]: [...(merged.graph?.[side] || []), ...graph.filter(item => !seen.has(String(item.id)))]
+      };
+    }
+  }
+  delete merged.compiled;
+  delete merged.migrations;
+  return merged;
+}

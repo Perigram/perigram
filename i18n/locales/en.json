@@ -2579,6 +2579,9 @@
     "selectionActions": "Selection actions",
     "resetZoom": "Reset zoom",
     "hideSecondary": "Hide secondary",
+    "definitions": "Definitions",
+    "activate": "Activate",
+    "activeSet": "active",
     "tidy": "Tidy graph",
     "paletteGroups": {
       "entities": "Types",

@@ -52,7 +52,7 @@ vi.mock('../cts-types/service.js', async () => {
   return { compileRegistryForOrganization: async () => registry };
 });
 
-vi.mock('./repository.js', () => ({ findActiveByOrganization: vi.fn() }));
+vi.mock('./repository.js', () => ({ findActiveByOrganization: vi.fn(), findActiveSetByOrganization: vi.fn() }));
 vi.mock('~/server/runtime/app-registry.js', () => ({
   getAppRegistry: () => ({ getInstanceService: () => mocks.organizationService })
 }));
@@ -120,6 +120,7 @@ describe('org-authored hierarchy hydration (declared children edges, no graph li
 
   it('places the child collection on the parent detail station and suppresses the child home section', async () => {
     repository.findActiveByOrganization.mockResolvedValue(orgHierarchyProcess());
+    repository.findActiveSetByOrganization.mockResolvedValue([orgHierarchyProcess()]);
     mocks.organizationService.getProcessConfiguration.mockResolvedValue({
       roles: { [ROLE_ID]: { id: ROLE_ID, label: 'Operator' } },
       roleAssignments: { user_a: { userId: 'user_a', roleIds: [ROLE_ID], bindings: {} } }

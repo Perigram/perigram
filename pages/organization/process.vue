@@ -137,63 +137,76 @@
           </div>
       </template>
 
-      <Popover ref="renameMenu">
-        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
-          <InputText
-            v-model="renameDraftName"
-            :placeholder="$t('processDesigner.title')"
-            class="w-full"
-            :aria-label="$t('common.rename')"
-            @keydown.enter.prevent="applyDraftRename"
-          />
-          <Button
-            icon="pi pi-check"
-            :label="$t('common.save')"
-            size="small"
-            :loading="renamingDraft"
-            :disabled="renamingDraft || !renameDraftName.trim()"
-            @click="applyDraftRename"
-          />
-        </div>
-      </Popover>
-
-
-      <Popover ref="processMenu">
-        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
-          <Select
-            v-if="processOptions.length"
-            :model-value="selectedProcessId"
-            :options="processOptions"
-            option-label="label"
-            option-value="value"
-            type-id="processDefinition"
-            class="w-full"
-            size="small"
-            :aria-label="$t('processDesigner.title')"
-            @update:model-value="value => { selectProcessDefinition(value); processMenu.hide(); }"
-          />
-          <Button
-            icon="pi pi-file-plus"
-            :label="$t('processDesigner.newDraft')"
-            size="small"
-            severity="secondary"
-            outlined
-            :loading="creatingDraft"
-            :disabled="creatingDraft || savingDraft || applyingProcess"
-            @click="createDraftFromDock"
-          />
-        </div>
-      </Popover>
-
       <template #inspector>
         <div class="flex h-full min-h-0 flex-col">
           <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
             <TabList>
               <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
+              <Tab value="definitions">{{ $t('processDesigner.definitions') }}</Tab>
               <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
               <Tab value="screens">{{ $t('organization.screens') }}</Tab>
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
+            <TabPanel value="definitions">
+              <div class="flex flex-col gap-2">
+                <div
+                  v-for="process in processDefinitions"
+                  :key="process._id"
+                  class="flex items-center gap-2 rounded-ui border border-content-border bg-content px-3 py-2"
+                  :class="{ 'border-primary': String(process._id) === String(selectedProcessId) }"
+                >
+                  <template v-if="renamingDefinitionId === String(process._id)">
+                    <InputText
+                      v-model="renamingDefinitionName"
+                      class="min-w-0 flex-1"
+                      size="small"
+                      :aria-label="$t('common.rename')"
+                      @keydown.enter.prevent="applyDefinitionRename(process)"
+                    />
+                    <Button
+                      icon="pi pi-check"
+                      size="small"
+                      text
+                      :loading="definitionBusyId === String(process._id)"
+                      :disabled="!renamingDefinitionName.trim()"
+                      @click="applyDefinitionRename(process)"
+                    />
+                  </template>
+                  <template v-else>
+                    <button
+                      type="button"
+                      class="min-w-0 flex-1 truncate text-left"
+                      :title="normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id)"
+                      @click="selectProcessDefinition(process._id)"
+                    >
+                      {{ [normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id), process.states?.main === 'ACTIVE' ? $t('processDesigner.activeSet') : null].filter(Boolean).join(' · ') }}
+                    </button>
+                    <ToggleSwitch
+                      :model-value="process.states?.main === 'ACTIVE'"
+                      :loading="definitionBusyId === String(process._id)"
+                      :aria-label="$t('processDesigner.activate')"
+                      @update:model-value="value => toggleDefinitionActive(process, value)"
+                    />
+                    <Button
+                      icon="pi pi-pencil"
+                      size="small"
+                      text
+                      :aria-label="$t('common.rename')"
+                      @click="startDefinitionRename(process)"
+                    />
+                    <Button
+                      icon="pi pi-trash"
+                      size="small"
+                      text
+                      severity="danger"
+                      :aria-label="$t('common.delete')"
+                      :loading="definitionBusyId === String(process._id)"
+                      @click="removeDefinition(process)"
+                    />
+                  </template>
+                </div>
+              </div>
+            </TabPanel>
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
                 <DeclarationInspector
@@ -568,13 +581,13 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import SpeedDial from 'primevue/speeddial';
+import ToggleSwitch from 'primevue/toggleswitch';
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Panel from 'primevue/panel';
-import Popover from 'primevue/popover';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
@@ -677,7 +690,6 @@ const grantEditorTarget = ref(null);
 const paletteQuery = ref('');
 const {
   inspectTab,
-  processMenu,
   selectedPrincipalId,
   selectedRoleId,
   selectedScreenId
@@ -1011,18 +1023,11 @@ const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
 const documentDockItems = computed(() => [
   {
-    icon: 'pi pi-folder-open',
-    label: t('common.open'),
-    onClick: event => processMenu.value?.toggle(event),
-    hasPopup: true
-  },
-  {
-    icon: 'pi pi-pencil',
-    label: t('common.rename'),
-    onClick: event => openRenamePopover(event),
-    disabled: !draft.value?._id || isActiveProcess.value,
-    loading: renamingDraft.value,
-    hasPopup: true
+    icon: 'pi pi-file-plus',
+    label: t('processDesigner.newDraft'),
+    onClick: createDraftFromDock,
+    disabled: creatingDraft.value || savingDraft.value || applyingProcess.value,
+    loading: creatingDraft.value
   },
   { separator: true },
   {
@@ -1793,7 +1798,7 @@ async function selectProcessDefinition(processId) {
   selectedProcessId.value = processId === null || processId === undefined ? null : String(processId);
   const selected = processDefinitions.value.find(process => String(process._id) === selectedProcessId.value);
   if (!selected) return;
-  closeProcessMenu();
+
   // List entries are summaries; load the full record before editing.
   if (!selected.data) {
     try {
@@ -1836,7 +1841,6 @@ async function createDraftFromDock() {
   creatingDraft.value = true;
   try {
     await createDraft({ empty: true });
-    closeProcessMenu();
     toast.add({ severity: 'success', summary: t('processDesigner.newDraft'), life: 2400 });
   } catch (error) {
     toast.add({
@@ -1850,39 +1854,72 @@ async function createDraftFromDock() {
   }
 }
 
-const renameMenu = ref(null);
-const renameDraftName = ref('');
-const renamingDraft = ref(false);
+// Definitions pane (node UI contract "definitions management"): inline
+// rename per definition row.
+const renamingDefinitionId = ref(null);
+const renamingDefinitionName = ref('');
+const definitionBusyId = ref(null);
 
-function openRenamePopover(event) {
-  renameDraftName.value = draft.value?.identity?.name || '';
-  renameMenu.value?.toggle(event);
+function startDefinitionRename(process) {
+  renamingDefinitionId.value = String(process._id);
+  renamingDefinitionName.value = process.identity?.name || '';
 }
 
-async function applyDraftRename() {
-  const name = renameDraftName.value.trim();
-  if (!name || !draft.value?._id || renamingDraft.value) return;
-  renamingDraft.value = true;
+async function applyDefinitionRename(process) {
+  const name = renamingDefinitionName.value.trim();
+  const id = String(process._id);
+  if (!name || definitionBusyId.value) return;
+  definitionBusyId.value = id;
   try {
-    const updated = await persistence.renameDraft(draft.value._id, name);
+    const updated = await persistence.renameDraft(id, name);
     upsertProcessDefinition(updated);
-    setDraft(updated);
-    renameMenu.value?.hide();
-    toast.add({ severity: 'success', summary: t('common.rename'), life: 2000 });
+    if (String(draft.value?._id) === id) setDraft(updated);
+    renamingDefinitionId.value = null;
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: t('common.rename'),
-      detail: error?.data?.message || error?.message || '',
-      life: 4000
-    });
+    toast.add({ severity: 'error', summary: t('common.rename'), detail: error?.data?.message || error?.message || '', life: 4000 });
   } finally {
-    renamingDraft.value = false;
+    definitionBusyId.value = null;
   }
 }
 
-function closeProcessMenu() {
-  processMenu.value?.hide?.();
+// The activation switch IS the state: on = member of the additive active
+// set (process-definitions README "Activation").
+async function toggleDefinitionActive(process, active) {
+  const id = String(process._id);
+  if (definitionBusyId.value) return;
+  definitionBusyId.value = id;
+  try {
+    const updated = await persistence.request(active
+      ? `/api/process-definitions/${id}/activate`
+      : `/api/process-definitions/${id}/deactivate`, { method: 'POST' });
+    upsertProcessDefinition(updated);
+    if (String(draft.value?._id) === id) setDraft(updated);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('processDesigner.activate'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  } finally {
+    definitionBusyId.value = null;
+  }
+}
+
+async function removeDefinition(process) {
+  const id = String(process._id);
+  if (definitionBusyId.value) return;
+  definitionBusyId.value = id;
+  try {
+    await persistence.request(`/api/process-definitions/${id}`, { method: 'DELETE' });
+    processDefinitions.value = processDefinitions.value
+      .filter(item => String(item._id) !== id)
+      .sort(compareProcessDefinitions);
+    if (String(draft.value?._id) === id) {
+      const fallback = processDefinitions.value[0];
+      if (fallback) await selectProcessDefinition(fallback._id);
+      else setDraft(null);
+    }
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.delete'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  } finally {
+    definitionBusyId.value = null;
+  }
 }
 
 function setDraft(value) {

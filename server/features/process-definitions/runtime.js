@@ -12,6 +12,7 @@ import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { compileClientBundle, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { projectManifestAction, projectUiAction, projectUiScreen } from '~/packages/processes/src/ui-contract-projection.js';
 import * as repository from './repository.js';
+import { mergeActiveDefinitions } from './compiler-adapter.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
 import { applyOwnerPermissionsToAuth } from '../users/organization-owner.js';
@@ -22,17 +23,26 @@ export async function getActiveProcessForOrganization(organizationId) {
   return raw || null;
 }
 
+// The active SET (feature README "Activation"): additive activation
+// compiles every ACTIVE definition as one merged working definition —
+// as if all their graphs were authored on a single canvas.
+export async function getActiveMergedDataForOrganization(organizationId) {
+  if (!organizationId) return null;
+  const actives = await repository.findActiveSetByOrganization(organizationId);
+  return mergeActiveDefinitions(actives.map(definition => definition.data));
+}
+
 export async function getActiveCompiledProcess(organizationId) {
-  const active = await getActiveProcessForOrganization(organizationId);
+  const data = await getActiveMergedDataForOrganization(organizationId);
   const organization = organizationId
     ? await getAppRegistry().getInstanceService('organization').getProcessConfiguration(organizationId)
     : null;
-  // A stored active process that no longer compiles (types removed from the
+  // An active set that no longer compiles (types removed from the
   // registry view after the pack cutover) must not brick auth hydration:
   // degrade to "no active process" with a loud log — the organization
-  // re-activates a process authored against the current view.
+  // re-activates processes authored against the current view.
   try {
-    return compileActiveProcessRuntime(active?.data || null, organization?.roles || {}, organizationId);
+    return compileActiveProcessRuntime(data, organization?.roles || {}, organizationId);
   } catch (error) {
     console.warn(`[process-definitions] active process for ${organizationId} no longer compiles and was bypassed: ${error?.message || error}`);
     return null;

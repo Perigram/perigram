@@ -5,7 +5,6 @@ export function useProcessDesignerPanels() {
     inspectTab: ref('inspector'),
     inspectorOpen: ref(true),
     paletteOpen: ref(true),
-    processMenu: ref(null),
     selectedPrincipalId: ref(null),
     selectedRoleId: ref(null),
     selectedScreenId: ref(null)

@@ -10,11 +10,27 @@ contracts. Service run/view access uses service identities rather than user
 roles. A role with grants but no authored screen receives the generated
 entity-list surface for the granted type.
 
-Activation is the only path that affects runtime behavior. The service
-requires canonical semantic process records, validates the draft, verifies the
-process transpiler round-trip, compiles the runtime contract, archives the
-previous active process for the organization, marks the selected process
-`ACTIVE`, and stores its id on the organization.
+Activation is the only path that affects runtime behavior, and
+activation is **additive**: an organization may hold several `ACTIVE`
+definitions at once, compiled as if all their authored graphs were one
+canvas. `mergeActiveDefinitions` (in `compiler-adapter.js`) merges the
+active set's authored data — graph nodes and edges concatenated (id
+dedupe), `processNodes`/`producerOutputs`/`screens`/`services`/
+`sockets`/`stateDefinitions`/`valueInputs` key-unioned, per-role
+`roleGrants` unioned — in activation order, later activations winning
+key conflicts, and the merged data compiles through the one compiler
+seam. Activating requires canonical semantic process records,
+validates the draft, verifies the process transpiler round-trip,
+compiles the runtime contract, and marks the selected process `ACTIVE`
+— the other active definitions are no longer archived.
+**Deactivation** removes one definition from the active set (state
+returns to `DRAFT`, editable and re-activatable) and re-derives the
+runtime contract. The migration gate and the semantic Apply diff
+compare the activating draft against the merged contract of the
+OTHER active definitions. The organization document stores no active
+definition id — the active set is queried from the definitions
+collection (`findActiveSetByOrganization`); `/active` returns the most
+recently activated definition for boot convenience.
 
 Validation and activation also produce the semantic Apply diff against the
 organization's current active definition. Both sides are recompiled from their
@@ -235,7 +251,8 @@ they do not infer visibility from status names or entity types.
 and organization creation. The organization service stores the organization's
 own `role_admin` identity and the creator assignment, then this feature creates
 an explicitly empty v4 definition (no grants, no producer outputs, no screens),
-compiles and activates it, and stores the active process id. There are no
+compiles and activates it as the organization's first active definition. There
+are no
 starter templates: a new organization starts with zero authored access, and the
 creator's owner membership still carries `organizations:admin`/`users:admin`
 for tenant management.
