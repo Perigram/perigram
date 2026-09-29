@@ -21,11 +21,6 @@ jobs:
         run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
       - name: redeploy container
         env:
-          # LiveKit auth stays in Forgejo secrets; everything below is the
-          # hera backend set (owner word 2026-09-27: the CI deploy is the
-          # public app at perigram.sodalab.pro; mongo/livekit live on hera).
-          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
-          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
           NUXT_VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           NUXT_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
         run: |
@@ -35,10 +30,16 @@ jobs:
             -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit \
             -e BASE_URL=https://perigram.sodalab.pro \
             -e NUXT_PUBLIC_BASE_URL=https://perigram.sodalab.pro \
-            -e LIVEKIT_PUBLIC_URL=https://livekit.sodalab.pro \
-            -e LIVEKIT_INTERNAL_URL=http://192.168.0.248:7880 \
-            -e LIVEKIT_API_KEY \
-            -e LIVEKIT_API_SECRET \
+            -e LIVEKIT_PUBLIC_URL=ws://10.77.219.223:7880 \
+            -e LIVEKIT_INTERNAL_URL=ws://10.77.219.223:7880 \
+            -e LIVEKIT_API_KEY=3a75db6bdbfc3048d69dee4b \
+            -e LIVEKIT_API_SECRET=WgT04XbkXYjW98T03yh9YNydB3I2p0ho8to67dik0k \
+            -e TRANSCRIPTION_PROVIDER=local \
+            -e TRANSCRIPTION_LOCAL_BASE_URL=http://10.77.167.148:31135/v1 \
+            -e MEETINGS_LLM_BASE_URL=http://10.77.167.148:31136/v1 \
+            -e MEETINGS_LLM_MODEL=qwen3:4b \
+            -e LIVEKIT_RECORDINGS_S3_ENDPOINT=http://192.168.0.15:8333 \
+            -e LIVEKIT_RECORDINGS_S3_BUCKET=livekit-egress \
             -e NUXT_VAPID_PUBLIC_KEY \
             -e NUXT_VAPID_PRIVATE_KEY \
             perigram:staging
