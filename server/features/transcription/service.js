@@ -46,11 +46,12 @@ export async function resolveTranscriptionConfig(organizationId = null) {
     const env = providerEnvConfig(provider);
     const baseUrl = String(setting?.baseUrl || '').trim() || env.baseUrl;
     const apiKey = String(setting?.apiKey || '').trim() || env.apiKey;
+    const language = String(setting?.language || '').trim() || String(process.env.TRANSCRIPTION_LANGUAGE || '').trim();
     const model = String(setting?.model || '').trim()
         || String(process.env.TRANSCRIPTION_MODEL || '').trim()
         || DEFAULT_MODEL;
     if (!baseUrl || (provider === 'cloud' && !apiKey)) return { provider: 'none' };
-    return { provider, baseUrl, apiKey, model };
+    return { provider, baseUrl, apiKey, model, language };
 }
 
 export async function isTranscriptionAvailable(organizationId = null) {
@@ -58,24 +59,31 @@ export async function isTranscriptionAvailable(organizationId = null) {
 }
 
 /**
- * Both providers speak the OpenAI-compatible speech-to-text protocol:
- * `POST {baseUrl}/audio/transcriptions`, multipart `file` + `model`, bearer
- * auth when keyed, `{ text }` JSON back. An empty `text` means the endpoint
- * heard no speech; the caller decides what that means.
+ * Provider wire contracts (see the transcription README): `local` posts the
+ * audio to `{baseUrl}/transcribe` with an optional `language` hint and joins
+ * the returned segment texts into the transcript; `cloud` posts the
+ * OpenAI-compatible `{baseUrl}/audio/transcriptions` with `model` and reads
+ * `{ text }`. Empty results mean no speech was detected; callers decide what
+ * that means.
  */
 export async function transcribeAudio({ buffer, filename, mimeType, organizationId = null }) {
     const config = await resolveTranscriptionConfig(organizationId);
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'Transcription is not configured' });
     }
+    const local = config.provider === 'local';
     const form = new FormData();
     form.append('file', new Blob([buffer], { type: mimeType || 'application/octet-stream' }), filename);
-    form.append('model', config.model);
+    if (local) {
+        if (config.language) form.append('language', config.language);
+    } else {
+        form.append('model', config.model);
+    }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     let response;
     try {
-        response = await fetch(`${config.baseUrl}/audio/transcriptions`, {
+        response = await fetch(`${config.baseUrl}${local ? '/transcribe' : '/audio/transcriptions'}`, {
             method: 'POST',
             headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
             body: form,
@@ -94,9 +102,18 @@ export async function transcribeAudio({ buffer, filename, mimeType, organization
         });
     }
     const payload = await response.json().catch(() => null);
-    return {
-        text: typeof payload?.text === 'string' ? payload.text.trim() : '',
-        provider: config.provider,
-        model: config.model
-    };
+    const text = local ? localTranscriptText(payload) : transcriptText(payload);
+    return { text, provider: config.provider, model: local ? '' : config.model };
+}
+
+function transcriptText(payload) {
+    return typeof payload?.text === 'string' ? payload.text.trim() : '';
+}
+
+function localTranscriptText(payload) {
+    if (!Array.isArray(payload?.segments)) return '';
+    return payload.segments
+        .map(segment => (typeof segment?.text === 'string' ? segment.text.trim() : ''))
+        .filter(Boolean)
+        .join(' ');
 }
