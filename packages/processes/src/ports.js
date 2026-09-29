@@ -35,7 +35,15 @@ export function normalizePortSpec(io = {}, fallback = {}) {
   const source = io && typeof io === 'object' ? io : {};
   const typed = structuredPortType(source.type);
   const normalizedSource = { ...typed, ...source };
-  const kind = normalizePortKind(source.kind || typed.kind, normalizedSource, fallback);
+  let kind = normalizePortKind(source.kind || typed.kind, normalizedSource, fallback);
+  // Access is the socket's consumption contract (Item/List/Tree): a
+  // list-access data or scalar socket IS a list port. The kind model
+  // predates the access qualifier; without this read, activation's edge
+  // gate and the canvas gate disagree about the same wire.
+  if (source.access === 'list' && kind !== 'list'
+    && !['entity', 'entity_list', 'block', 'block_list', 'status', 'predicate', 'event', 'attachment', 'task', 'projection'].includes(kind)) {
+    kind = 'list';
+  }
   const typeId = source.typeId || typed.typeId || fallback.typeId || '';
   const multiple = Boolean(source.multiple || typed.multiple || kind === 'entity_list');
   return {
@@ -81,8 +89,20 @@ export function portSpecsCompatible(source = {}, target = {}) {
   const targetSpec = normalizePortSpec(target);
   if (!sourceSpec.kind || !targetSpec.kind) return { ok: true };
 
-  if (targetSpec.kind === 'list') return isListKind(sourceSpec.kind) ? { ok: true } : incompatible(sourceSpec, targetSpec);
+  if (targetSpec.kind === 'list') {
+    // A list socket consumes list sources and item broadcasts (the
+    // access contract's broadcast rule: one item becomes one packet
+    // item) — data, scalars, and entity items all broadcast.
+    return isListKind(sourceSpec.kind) || ['data', 'entity', ...PROCESS_SCALAR_KINDS].includes(sourceSpec.kind)
+      ? { ok: true }
+      : incompatible(sourceSpec, targetSpec);
+  }
   if (targetSpec.kind === 'data') return dataCompatible(sourceSpec, targetSpec);
+  if (targetSpec.kind === 'json' && ['data', 'list', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(sourceSpec.kind)) {
+    // A json socket is the value escape: any data-shaped source fits
+    // (the same json coercion the socket-contract gate applies).
+    return { ok: true };
+  }
   if (sourceSpec.kind === 'data') return dataCompatible(sourceSpec, targetSpec);
   if (sourceSpec.kind === 'projection' || targetSpec.kind === 'projection') {
     return sourceSpec.kind === targetSpec.kind
@@ -545,7 +565,10 @@ function valueInputKind(input = {}) {
 }
 
 function dataCompatible(source, target) {
-  if (target.kind === 'data' && ['data', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(source.kind)) return { ok: true };
+  // A generic data socket accepts every data-shaped source, lists
+  // included: the value's structure is the runtime mapper's concern
+  // (access + matching), not a kind mismatch.
+  if (target.kind === 'data' && ['data', 'list', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(source.kind)) return { ok: true };
   if (source.kind === 'data' && target.kind === 'data') return { ok: true };
   if (source.kind === 'block' && ['data', 'block'].includes(target.kind)) return blockCompatible(source, target);
   return incompatible(source, target);

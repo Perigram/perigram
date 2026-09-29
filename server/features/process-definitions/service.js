@@ -1248,7 +1248,7 @@ function getInstanceServiceForAction(action = {}) {
   return service;
 }
 
-function createActionExecutionAuth(auth = {}, action = {}) {
+function createActionExecutionAuth(auth = {}, action = {}, { relationContracts = null } = {}) {
   const feature = resolveActionFeature(action);
   const permissions = {
     ...(auth.effectivePermissions || {})
@@ -1265,7 +1265,7 @@ function createActionExecutionAuth(auth = {}, action = {}) {
       actions: grant.actions || { view: true }
     });
   }
-  for (const source of constructionSourceGrants(action)) {
+  for (const source of constructionSourceGrants(action, relationContracts)) {
     appendExecutionGrant(permissions, source.feature, {
       level: source.level,
       actions: source.actions
@@ -1316,10 +1316,18 @@ function appendExecutionGrant(permissions, feature, grant) {
   ];
 }
 
-function constructionSourceGrants(action = {}) {
+function constructionSourceGrants(action = {}, relationContracts = null) {
   const sources = [];
   if (action.parentTypeId) {
     sources.push({ typeId: action.parentTypeId, level: 'read', actions: { view: true } });
+  }
+  // Declared relation targets are the action's own validated inputs: the
+  // execution auth grants their read, or the write fails against the very
+  // target check the action itself runs. At the effect boundary the
+  // contracts arrive resolved (the authored record carries no compiled
+  // mutation); compiled-action callers keep reading their own.
+  for (const contract of [...(relationContracts || []), ...(action.mutation?.relationContracts || [])]) {
+    sources.push({ typeId: contract.targetType, level: 'read', actions: { view: true } });
   }
   for (const field of [
     ...(action.construction?.inputs || []),
@@ -1372,23 +1380,34 @@ async function normalizeProcessMutation(typeId, mutation = {}, relationContracts
   if (!mutation.relations) return mutation;
   const normalizedRelations = {};
   for (const [key, value] of Object.entries(mutation.relations)) {
-    const relation = relationContracts.find(item => (
+    // A relation edge may accept several target types: the written ref's
+    // own type selects the contract (one declared entry per accepted
+    // target).
+    const declared = relationContracts.filter(item => (
       normalizeTypeId(item.ownerType) === normalizeTypeId(typeId) && item.key === key
     ));
-    if (!relation) {
+    if (!declared.length) {
       throw createError({ statusCode: 400, message: `Action cannot write undeclared relation ${typeId}.${key}` });
     }
     const values = Array.isArray(value) ? value : [value];
     const refs = [];
     for (const item of values) {
+      const refType = normalizeTypeId(item?.type || '');
+      const relation = declared.length === 1
+        ? declared[0]
+        : (declared.find(contract => normalizeTypeId(contract.targetType) === refType) || null);
+      if (!relation) {
+        throw createError({ statusCode: 400, message: `Relation ${typeId}.${key} does not accept ${refType || '(untyped)'}` });
+      }
       const ref = normalizeRelationRef(item, relation.targetType);
       await assertRelationTargetAvailable(ref, relation, auth);
       refs.push(ref);
     }
-    if (relation.cardinality === 'one' && refs.length !== 1) {
+    const cardinality = declared[0].cardinality || 'one';
+    if (cardinality === 'one' && refs.length !== 1) {
       throw createError({ statusCode: 400, message: `Relation ${typeId}.${key} accepts exactly one entity` });
     }
-    normalizedRelations[key] = relation.cardinality === 'many'
+    normalizedRelations[key] = cardinality === 'many'
       ? Array.from(new Map(refs.map(ref => [`${ref.type}:${ref.id}`, ref])).values())
       : refs[0];
   }
@@ -1594,7 +1613,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     let blockDraft = operation === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
-    const executionAuth = createActionExecutionAuth(auth, record);
+    const executionAuth = createActionExecutionAuth(auth, record, { relationContracts });
     // Relation values arrive on two channels — the block socket and the
     // construct-addressable `relations.*` construction inputs — and both
     // normalize through the same declared-edge contract, so the stored
@@ -1908,7 +1927,11 @@ export function processConstructionInputRecord(record = {}, inputs = {}) {
     const value = input.type === 'entity'
       ? entityInputId(supplied)
       : input.type === 'typeList'
-        ? (Array.isArray(supplied) ? supplied : [supplied]).map(entityInputId).filter(Boolean)
+        // A relation input preserves a supplied ref's own type: a
+        // relation edge may accept several target types, and the write
+        // resolves the contract per ref. Bare ids stay bare (the
+        // single-target spelling).
+        ? (Array.isArray(supplied) ? supplied : [supplied]).map(relationInputValue).filter(Boolean)
         : supplied;
     // The identity 'name' construction input writes the wire identity
     // block — the §3 instance boundary reads draft.identity.name, and a
@@ -1921,6 +1944,13 @@ export function processConstructionInputRecord(record = {}, inputs = {}) {
     setByPath(result, input.path || id, value);
   }
   return result;
+}
+
+function relationInputValue(supplied) {
+  if (supplied && typeof supplied === 'object' && (supplied.type || supplied.typeId)) {
+    return { type: supplied.type || supplied.typeId, id: String(supplied.id ?? supplied._id ?? '') };
+  }
+  return entityInputId(supplied);
 }
 
 function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {

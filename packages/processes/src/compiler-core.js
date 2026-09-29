@@ -520,16 +520,12 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       // AUTHORED inputs mint contracts — the contract-normalized list
       // would derive link actions for relations the author never wired.
       relationContracts: (node.construction?.inputs || [])
-        .map(input => {
+        .flatMap(input => {
           const path = String(input.id || input.path || '');
-          if (!path.startsWith('relations.')) return null;
+          if (!path.startsWith('relations.')) return [];
           const key = path.split('.')[1] || '';
-          const declared = declaredRelationForTarget(domain, node.typeId, input.typeId, key);
-          return declared
-            ? { ownerType: node.typeId, key: declared.key, targetType: declared.targetType, cardinality: declared.cardinality || 'one' }
-            : null;
-        })
-        .filter(Boolean),
+          return declaredRelationContracts(domain, node.typeId, input.typeId, key);
+        }),
       parentTypeId: ''
     };
   }
@@ -645,17 +641,15 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   // whichever channel delivered the value — composer or construction
   // input.
   const constructionRelationContracts = (node.construction?.inputs || [])
-    .map(input => {
+    .flatMap(input => {
       const path = String(input.id || input.path || '');
-      if (!path.startsWith('relations.')) return null;
+      if (!path.startsWith('relations.')) return [];
       const key = path.split('.')[1] || '';
-      const declared = declaredRelationForTarget(domain, node.typeId, input.typeId, key);
-      return declared
-        ? { ownerType: node.typeId, key: declared.key, targetType: declared.targetType, cardinality: declared.cardinality || 'one' }
-        : null;
+      return declaredRelationContracts(domain, node.typeId, input.typeId, key);
     })
-    .filter(Boolean)
-    .filter(contract => !relationContracts.some(existing => existing.key === contract.key));
+    .filter(contract => !relationContracts.some(existing => (
+      existing.key === contract.key && existing.targetType === contract.targetType
+    )));
   return {
     fields,
     defaults: Object.assign({}, ...composers.map(record => plainProcessDefaults(record.inputDefaults))),
@@ -697,6 +691,20 @@ function declaredRelationForTarget(domain = {}, ownerType = '', targetType = '',
     relation.ownerType === ownerType && relation.targetType === targetType && relation.key === key
   ));
   return matches.length === 1 ? matches[0] : null;
+}
+
+// A relation edge accepting several target types is ONE edge: the
+// construction input carries no single typeId, and the declared contracts
+// cover every accepted target (the runtime resolves each written ref
+// against the contract matching the ref's own type).
+function declaredRelationContracts(domain = {}, ownerType = '', targetType = '', key = '') {
+  const byKey = (domain.relations || []).filter(relation => (
+    relation.ownerType === ownerType && relation.key === key
+  ));
+  const pinned = targetType ? byKey.filter(relation => relation.targetType === targetType) : byKey;
+  return (pinned.length ? pinned : byKey)
+    .filter(relation => relation.targetType)
+    .map(relation => ({ ownerType, key: relation.key, targetType: relation.targetType, cardinality: relation.cardinality || 'one' }));
 }
 
 export function requiredEffectCapability(kind = '') {

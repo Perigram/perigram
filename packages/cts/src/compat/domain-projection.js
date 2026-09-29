@@ -158,22 +158,24 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     const blocks = new Set(entities.find(entity => entity.type === type.id)?.blocks || []);
     const lineageFields = orgLineageFields(type, view);
     // Declared relation edges are addressable fields (SPEC §6): each key
-    // projects as a `relations.<key>` schema so constructs receive them as
+    // projects as ONE `relations.<key>` schema so constructs receive them as
     // construction inputs and mutates as leaf sockets — a declared edge is
-    // the only legal place a ref may be stored.
+    // the only legal place a ref may be stored. A relation accepting
+    // several target types stays one edge: the item reference carries the
+    // declared targets as `accepts` (an entityRef expresses one type; the
+    // declaration remains the acceptance authority).
     const relationFields = [];
     for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-      for (const target of declaration.types || []) {
-        if (!view.has(target)) continue;
-        relationFields.push({
-          path: `relations.${key}`,
-          block: 'relations',
-          label: `relations.${key}`,
-          type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', typeId: target } },
-          writable: true,
-          constructible: true
-        });
-      }
+      const targets = (declaration.types || []).filter(target => view.has(target));
+      if (!targets.length) continue;
+      relationFields.push({
+        path: `relations.${key}`,
+        block: 'relations',
+        label: `relations.${key}`,
+        type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', ...(targets.length === 1 ? { typeId: targets[0] } : { accepts: targets }) } },
+        writable: true,
+        constructible: true
+      });
     }
     fieldSchemas[type.id] = [
       ...CORE_BLOCK_FIELDS.filter(field => blocks.has(field.block) || field.path === '_id'),
@@ -257,15 +259,16 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     const lineage = orgLineageFields(type, view);
     const relations = [];
     for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-      for (const target of declaration.types || []) {
-        if (!view.has(target)) continue;
-        relations.push({
-          path: `relations.${key}`,
-          label: `relations.${key}`,
-          type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', typeId: target } },
-          constructible: true
-        });
-      }
+      // One field per relation key: a multi-target relation is one edge
+      // (the fieldSchemas projection owns the same rule).
+      const targets = (declaration.types || []).filter(target => view.has(target));
+      if (!targets.length) continue;
+      relations.push({
+        path: `relations.${key}`,
+        label: `relations.${key}`,
+        type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', ...(targets.length === 1 ? { typeId: targets[0] } : { accepts: targets }) } },
+        constructible: true
+      });
     }
     return { lineage, relations };
   }
