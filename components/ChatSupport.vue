@@ -454,9 +454,6 @@
                                         <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
                                             {{ messageItem.parent.snippet }}
                                         </span>
-                                        <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted">
-                                            {{ $t('support.voiceMessage') }}
-                                        </span>
                                     </span>
                                 </button>
                                 <div
@@ -580,7 +577,7 @@
                                 <template v-if="replyTo.parent?.snippet || replyTo.message">
                                     {{ replyTo.parent?.snippet || replyTo.message }}
                                 </template>
-                                <template v-else-if="replyTo.attachment?.kind === 'audio'">{{ $t('support.voiceMessage') }}</template>
+                                <i v-else-if="replyTo.attachment?.kind === 'audio'" class="pi pi-microphone text-muted" aria-hidden="true" />
                             </span>
                         </div>
                         <Button

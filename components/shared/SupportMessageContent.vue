@@ -107,7 +107,6 @@ const canFetchRef = (ref = {}) => {
   >
     <span v-if="voiceMessage" class="inline-flex min-w-0 shrink-0 items-center gap-1">
       <i class="pi pi-microphone shrink-0" aria-hidden="true" />
-      <span class="whitespace-nowrap">{{ t('support.voiceMessage') }}</span>
     </span>
     <template v-for="(part, index) in renderParts" :key="`${part.type}-${index}-${part.id || part.value}`">
       <a
