@@ -11,6 +11,15 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 
 ## Core Files
 
+- `seed-order-process.js`: Seeds the facade pack's composed order process
+  into a live organization through the platform's own APIs — org type
+  declarations (order container + table relation, nesting attempt), the
+  process definition from
+  [`server/packs/facade/order-process-fixture.js`](../server/packs/facade/order-process-fixture.js),
+  and the draft/activate path. Requires a running app: `node
+  server/scripts/seed-order-process.js --email <admin> --password <pw>
+  [--url http://localhost:3000]`. After it succeeds the definition opens
+  in the process designer and its compiled screens serve the org.
 - `build-entity-icons.js`: Builds the `ck-entity-icons` font from the CNC
   domain SVGs in `public/icons/data-model/cnc-domain/` via fantasticon,
   writes `public/fonts/cnc-domain/ck-entity-icons.{woff2,ttf}`, and rewrites
