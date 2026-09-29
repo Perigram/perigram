@@ -342,7 +342,14 @@ export default defineNuxtConfig({
         },
         alias: {
             ...perigramAliases,
-            ...portableAliases
+            ...portableAliases,
+            // The xlsx CJS main carries an `export `-leading prose comment
+            // that nitro's import-validity check misreads as ESM syntax, so
+            // nitro would bundle (not externalize) the package and fail the
+            // server bundle on the node:fs CJS interop. The ESM build
+            // externalizes cleanly. Contract: Development notes in the root
+            // README.
+            xlsx: 'xlsx/xlsx.mjs'
         },
         routeRules: {
             '/icons/**': {
