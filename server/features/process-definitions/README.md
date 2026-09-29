@@ -21,16 +21,15 @@ dedupe), `processNodes`/`producerOutputs`/`screens`/`services`/
 key conflicts, and the merged data compiles through the one compiler
 seam. Activating requires canonical semantic process records,
 validates the draft, verifies the process transpiler round-trip,
-compiles the runtime contract, and marks the selected process `ACTIVE`
-— the other active definitions are no longer archived.
+compiles the runtime contract, and marks the selected process `ACTIVE`,
+adding it to the active set.
 **Deactivation** removes one definition from the active set (state
 returns to `DRAFT`, editable and re-activatable) and re-derives the
 runtime contract. The migration gate and the semantic Apply diff
 compare the activating draft against the merged contract of the
-OTHER active definitions. The organization document stores no active
-definition id — the active set is queried from the definitions
-collection (`findActiveSetByOrganization`); `/active` returns the most
-recently activated definition for boot convenience.
+OTHER active definitions. The active set is queried from the
+definitions collection (`findActiveSetByOrganization`); `/active`
+returns the most recently activated definition for boot convenience.
 
 Validation and activation also produce the semantic Apply diff against the
 organization's current active definition. Both sides are recompiled from their
@@ -231,13 +230,12 @@ access.
 The compiled runtime contract is not a design source. Stored definitions that
 only contain `data.compiled` without semantic records are rejected during
 validation and activation so operators do not edit a guessed reconstruction.
-A definition is ONE document for its whole life: edits save in place
-(identity and authored data, draft or active — an identity-only PATCH
-never touches data), and re-activating an already-active definition
-records the superseded authored snapshot in `data.history`
-(`{ at, actor, data }`, newest last, capped at 50) before the new graph
-activates. No forks: the designer never spawns a new definition to
-apply edits.
+Edits save in place; an identity-only PATCH never touches data. Each
+activation writes the activated snapshot to `data.activated` — the
+runtime compiles `data.activated ?? data` for every active-set member,
+never live draft data. Re-activation records the superseded snapshot in
+`data.history` (capped at 50). The Definitions pane restores a history
+entry as the definition's data; restoring goes live through activation.
 
 Entity lifecycle profiles and action nodes compile directly into normalized
 `@perigram/workflows` v2 machines. Runtime status resolution uses the active

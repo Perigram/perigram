@@ -420,67 +420,45 @@ operation is one record, never cloned, its wires never duplicated.
 
 Effects and state declarations are the PRIMARY populations — they carry
 the access/workflow story. The remove (delete) operation is a LANE
-EFFECT — it claims its lane and its drop writes its grant like every
-other effect — but it is presentation-SECONDARY: the plain content
-surface and the secondary visibility toggle (the clean view) both apply
-to it, while the rest of the effect family is always visible. Every
-other node — classes, fields, type references, and the non-effect
-process nodes (reads such as Get field, values/math, collections,
-control) — is SECONDARY: unaffected by lanes, free-placeable anywhere,
-and grouped under the same toggle, which hides them (nodes and their
-wires) without deleting anything; `hidden` is runtime state and never
-persists. Presentation primacy resolves through the one predicate
-`utils/processDesignerPopulation.js` (see
-[utils](../../utils/README.md)). Lane bounds wrap their nodes: a band's height is its
-content extent plus a small padding, recalculated on the fly — on
-load, on every drop, drag-stop, add, and delete — by the settle pass,
-which stacks the bands in role order and seats each band's content at
-its top (a uniform shift that preserves the authored order inside the
-lane; nothing is ever re-sorted). Dropping a card into a lane leaves it
-where it fell and the lane grows around it; empty roles keep a minimum
-height so their lane stays a visible drop target. The lane-changing
-drop still writes the grant — the lane IS the assignment; membership
-always re-derives from grants, and position is presentation state —
-never authorization by itself. Left-to-right is the reading canon;
-Tidy owns bulk arrangement.
+EFFECT but presentation-SECONDARY: plain content surface, hidden by the
+secondary visibility toggle; the rest of the effect family is always
+visible. Every other node — classes, fields, type references, and the
+non-effect process nodes — is SECONDARY: unaffected by lanes,
+free-placeable anywhere, hidden by the same toggle (`hidden` is runtime
+state, never persisted). Presentation primacy resolves through the one
+predicate `utils/processDesignerPopulation.js` (see
+[utils](../../utils/README.md)).
+
+Lane bounds wrap their nodes plus a small padding. The settle pass
+recalculates them on the fly — load, drop, drag-stop, add, delete —
+stacking bands in role order and seating each band's content at its top
+with one uniform shift (authored order inside a lane is never touched;
+empty roles keep a minimum height as drop targets). Dropping a card
+into a lane leaves it where it fell and the lane grows around it.
+Membership always re-derives from grants, and position is presentation
+state — never authorization by itself. Left-to-right is the reading
+canon; Tidy owns bulk arrangement.
 
 ### Auto-arrangement (Tidy)
 
 The toolbar's canvas group carries one arrangement command: **Tidy**
-runs the layered pass destructively — it writes node positions and
-nothing else. Grants, wires, and records are untouched, so lane
-drop-assignment keeps working after it, and the position write marks
-the draft dirty like any drag. The pass is the pure helper
-`utils/processDesignerArrangement.js` (see
-[utils](../../utils/README.md)); it is deterministic and idempotent:
+writes node positions and nothing else — grants, wires, and records are
+untouched, and the write marks the draft dirty like any drag. The pass
+is the pure helper `utils/processDesignerArrangement.js` (see
+[utils](../../utils/README.md)) — deterministic and idempotent:
 
-- **x = column.** Every process node is layered by longest path over
-  the flow edges (event wires and data wires; a declaration wire never
-  layers anything). Transient authoring cycles are tolerated — a
-  cycle-closing edge does not advance the layer. A pred-less node is
-  pulled up to the column just before its first consumer, so a fresh
-  source does not strand at the left edge behind empty columns.
-  Columns read left-to-right along the event chain and the data spine
-  alike.
-- **Every node lives in exactly one band** — effects by their grant,
-  secondaries and declarations by their anchor node's band, and a node
-  with no anchor at all by the band nearest its authored position — so
-  no node can cross a lane divider: a band's bounds are its content
-  plus padding, by construction.
-- **y = constrained relaxation.** Cards settle iteratively: each card
-  moves to the median of its wired neighbors' y (flow and declaration
-  wires alike — minimizing Σ|Δy| along wires, the short-edge/low-
-  crossing objective once columns are fixed), then hard constraints
-  win: clamp inside the band, then per-column separation so no two
-  cards in a column ever overlap, then band heights re-derive from
-  content and the bands restack. The relaxation runs to a stable
-  state (bounded, deterministic, idempotent).
-- **Band geometry wraps content, live**: the settle pass stacks the
-  bands in role order and sizes each to its content extent plus a small
-  padding (empty roles keep a minimum height), rerunning on every load,
-  drop, drag-stop, add, and delete. Tidy's own geometry is the settle
-  pass applied to its arrangement, so a tidy canvas is already settled;
-  membership itself always re-derives from grants.
+- **x = column.** Longest-path layering over the flow edges (event and
+  data; declaration wires never layer anything). A pred-less node pulls
+  up to the column before its first consumer; a cycle-closing edge does
+  not advance the layer.
+- **Every node lives in exactly one band** — effects by grant,
+  secondaries and declarations by their anchor node's band, anchorless
+  nodes by nearest band — so nothing crosses a lane divider.
+- **y = constrained relaxation.** Each card settles at the median of
+  its wired neighbors' y (flow and declaration wires alike), under hard
+  constraints: clamped inside its band, per-column separation (no two
+  cards in a column overlap), band heights re-derived from content
+  after each pass. Runs to a stable state.
 
 ### Card behavior details
 
@@ -601,13 +579,14 @@ standalone Validate control:
 Apply saves, validates, and activates as one operation, while the result
 remains visible as feedback on the canvas.
 
-The right pane owns **definitions management** (the Definitions tab): one
-row per organization definition — name (inline rename), the activation
-switch (on = member of the additive active set, the only state signal —
-no status badges), delete, and load-to-designer. Toggling the switch
-activates/deactivates through the additive activation contract (see
-[process-definitions](../../server/features/process-definitions/README.md));
-the toolbar carries no definition browser.
+The right pane owns **definitions management** (the Definitions tab):
+one row per definition — name (click loads to designer, inline rename),
+the activation switch (on = member of the additive active set — the
+switch is the state signal, no status badges), delete, and a history
+disclosure listing activation versions (`data.history`, newest first)
+with restore (the snapshot becomes the definition's data and goes live
+through activation). The activation contract lives in
+[process-definitions](../../server/features/process-definitions/README.md).
 
 Selection actions follow the quiet-card policy: nodes carry no per-node
 chrome, so while a node selection exists a PrimeVue `SpeedDial` floats
