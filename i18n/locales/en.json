@@ -2717,7 +2717,10 @@
       "finish": "Finish",
       "fail": "Fail",
       "getField": "Get field",
-      "recordField": "Record field"
+      "recordField": "Record field",
+      "joinByKey": "Join by key",
+      "extractProjection": "Extract (declared projection)",
+      "constructRecord": "Compose record"
     },
     "paletteDescriptions": {
       "modifyEntity": "Changes selected fields or status on an existing entity.",
@@ -2806,7 +2809,10 @@
       "graftTree": "Turns list items into separate tree branches.",
       "treeBranch": "Reads one branch from a data tree.",
       "zipLists": "Pairs items at matching positions in two lists.",
-      "recordField": "Reads one authored key off a record value."
+      "recordField": "Reads one authored key off a record value.",
+      "joinByKey": "Pairs items of two lists by matching key paths; every left key must match, output pairs carry {left, right}.",
+      "extractProjection": "Runs the bound type's declared projection (table rows, baked geometry) — the payload-to-value gate.",
+      "constructRecord": "Composes a record from field values; lists align item by item."
     },
     "dataTypes": {
       "string": "Text",

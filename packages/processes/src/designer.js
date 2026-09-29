@@ -125,6 +125,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('contextEntity', 'cts.read', { preset: { select: 'current' } }),
       paletteItem('allEntities', 'cts.read', { preset: { select: 'all' } }),
+      paletteItem('extractProjection', 'cts.read', { preset: { select: 'extract' } }),
       paletteItem('parentEntity', 'cts.read', { preset: { select: 'parent' } }),
       paletteItem('childEntities', 'cts.read', { preset: { select: 'children' } }),
       paletteItem('relatedEntities', 'cts.read', { preset: { select: 'related' } }),
@@ -139,6 +140,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
       paletteItem('text', 'value.string', { preset: { type: { base: 'string', nullable: false }, operation: 'concat' } }),
       paletteItem('recordField', 'value.recordField', { preset: { path: '', type: { base: 'json', nullable: true } } }),
+      paletteItem('constructRecord', 'record.construct', { preset: { fields: [] } }),
       paletteItem('calculate', 'value.math', { preset: { type: { base: 'number', nullable: false } } }),
       paletteItem('date', 'value.dateTime', {
         preset: {
@@ -153,6 +155,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     id: 'listTree',
     items: [
       paletteItem('joinLists', 'collection.concat'),
+      paletteItem('joinByKey', 'collection.join'),
       paletteItem('itemAtPosition', 'collection.itemAt'),
       paletteItem('sliceList', 'collection.slice'),
       paletteItem('listCount', 'collection.count'),
