@@ -48,13 +48,6 @@ const parts = computed(() => {
 const trailingRefs = computed(() => (props.message.instanceRefs || [])
   .filter(ref => ref?.type && ref?.id && !props.message.message?.includes(`{{instance:${ref.type}:${ref.id}}}`)));
 
-const attachmentIcon = computed(() => {
-    const kind = props.message.attachment?.kind;
-    if (kind === 'audio') return 'pi pi-microphone';
-    if (kind === 'video') return 'pi pi-video';
-    return '';
-});
-
 const URL_PATTERN = /\bhttps?:\/\/[^\s<>"'`]+/gi;
 
 const renderParts = computed(() => parts.value.flatMap(part => (
@@ -110,9 +103,6 @@ const canFetchRef = (ref = {}) => {
       ? 'inline-flex max-w-full min-w-0 flex-nowrap items-center gap-1 overflow-hidden align-middle'
       : 'inline-flex max-w-full min-w-0 flex-wrap items-center gap-1 align-middle'"
   >
-    <span v-if="attachmentIcon" class="inline-flex min-w-0 shrink-0 items-center gap-1">
-      <i :class="attachmentIcon" class="shrink-0" aria-hidden="true" />
-    </span>
     <template v-for="(part, index) in renderParts" :key="`${part.type}-${index}-${part.id || part.value}`">
       <a
         v-if="part.type === 'link'"
