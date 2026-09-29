@@ -8,16 +8,40 @@ the message document).
 
 ## Providers
 
-Both providers speak the same protocol — `POST {baseUrl}/audio/transcriptions`
-with multipart fields `file` (audio blob with filename) and `model`, bearer
-authorization when a key is configured, and a `{ "text": "…" }` JSON response:
+Each provider has its own wire protocol:
 
 | Provider | Endpoint source | Use |
 |---|---|---|
-| `local` | `TRANSCRIPTION_LOCAL_BASE_URL` | Self-hosted speech-to-text reachable from the app container (any OpenAI-compatible server: faster-whisper/whisper.cpp frontends, LocalAI, speaches). |
-| `cloud` | `TRANSCRIPTION_CLOUD_BASE_URL` (default `https://api.openai.com/v1`) | Hosted API; requires an API key. |
+| `local` | `TRANSCRIPTION_LOCAL_BASE_URL` | Self-hosted speech-to-text reachable from the app container (for example over the NetBird mesh). |
+| `cloud` | `TRANSCRIPTION_CLOUD_BASE_URL` (default `https://api.openai.com/v1`) | Any OpenAI-compatible hosted API; requires an API key. |
 
 `provider: 'none'` (the default) disables transcription everywhere.
+
+### Local protocol
+
+`POST {baseUrl}/transcribe` with multipart fields `file` (audio blob with
+filename) and the optional `language` hint (ISO code, e.g. `ru`). The
+response carries per-segment results — the app transcript is the segment
+texts joined with spaces:
+
+```json
+{
+  "language": "ru",
+  "duration_s": 12.3,
+  "rtf": 0.08,
+  "segments": [{ "start": 0, "end": 2.1, "text": "…", "words": [] }],
+  "speakers": []
+}
+```
+
+An empty `segments` array is an empty transcript. The service has no model
+parameter; `attachment.transcription.model` stores an empty string for local
+runs. `TRANSCRIPTION_LOCAL_API_KEY` is optional and only sent when set.
+
+### Cloud protocol
+
+`POST {baseUrl}/audio/transcriptions` with multipart fields `file` and
+`model`, bearer authorization, and a `{ "text": "…" }` JSON response.
 
 ## Configuration Resolution
 
@@ -26,21 +50,23 @@ Per-organization selection lives on the organization document at
 update's `data` merge, readable by org admins):
 
 ```json
-{ "provider": "local", "model": "whisper-1" }
+{ "provider": "local", "language": "ru" }
 ```
 
-`provider` is required (`local` | `cloud` | `none`); `model`, `baseUrl`, and
-`apiKey` are optional per-org overrides. Environment defaults fill every
-unset slot:
+`provider` is required (`local` | `cloud` | `none`); `language`, `model`,
+`baseUrl`, and `apiKey` are optional per-org overrides (`language` applies to
+the local protocol, `model` to the cloud protocol). Environment defaults fill
+every unset slot:
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `TRANSCRIPTION_PROVIDER` | `none` | Provider when the org sets none. |
 | `TRANSCRIPTION_LOCAL_BASE_URL` | — | Local endpoint base; no default. |
 | `TRANSCRIPTION_LOCAL_API_KEY` | — | Optional local endpoint key. |
+| `TRANSCRIPTION_LANGUAGE` | — | Optional local language hint (ISO code). |
 | `TRANSCRIPTION_CLOUD_BASE_URL` | `https://api.openai.com/v1` | Cloud endpoint base. |
 | `TRANSCRIPTION_CLOUD_API_KEY` | — | Cloud API key; required for cloud. |
-| `TRANSCRIPTION_MODEL` | `whisper-1` | Model unless the org overrides it. |
+| `TRANSCRIPTION_MODEL` | `whisper-1` | Cloud model unless the org overrides it. |
 
 A selected provider that cannot work — `local` without any base URL, `cloud`
 without a key — resolves to `none`: `resolveTranscriptionConfig` returns
@@ -49,9 +75,9 @@ unavailable rather than failing per request.
 
 ## Service Contract
 
-- `resolveTranscriptionConfig(organizationId)` → `{ provider, baseUrl?, apiKey?, model? }`; `{ provider: 'none' }` when disabled or unusable.
+- `resolveTranscriptionConfig(organizationId)` → `{ provider, baseUrl?, apiKey?, model?, language? }`; `{ provider: 'none' }` when disabled or unusable.
 - `isTranscriptionAvailable(organizationId)` → boolean shorthand for consumers deciding whether to surface transcription UI.
-- `transcribeAudio({ buffer, filename, mimeType, organizationId })` → `{ text, provider, model }`. Throws 503 when unresolved, 502 when the endpoint is unreachable or answers non-2xx, and returns empty `text` when the endpoint transcribes no speech (the caller decides what that means).
+- `transcribeAudio({ buffer, filename, mimeType, organizationId })` → `{ text, provider, model }` — `model` is empty for the local protocol. Throws 503 when unresolved, 502 when the endpoint is unreachable or answers non-2xx, and returns empty `text` when the result carries no speech (empty segments locally, empty cloud text); the caller decides what that means.
 
 Unreachable and failed endpoints never retry here; callers surface the error
 to the user, who can retry manually.
