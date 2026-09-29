@@ -237,6 +237,25 @@ durations above ten minutes are rejected (longer recordings clamp on write).
 Conversation summaries carry the last message's `attachment` so inbox previews
 can render a voice-message chip.
 
+### Transcription
+
+`POST /api/support/messages/:id/transcribe` converts a voice message into its
+underlying text message through the [transcription
+feature](../transcription/README.md). Admission reuses the conversation
+context resolution (the same check that authorizes SSE topics), and only
+voice messages qualify: no `attachment`, an already-transcribed attachment
+(`attachment.transcription` marker), or a non-empty message body are rejected
+with 400/409. On success the transcript becomes the message body — the
+bubble keeps its audio player beside the text, and reply quotes and inbox
+previews read the text like any message — while
+`attachment.transcription { provider, model, transcribedAt }` records the
+provenance. Open viewers receive the updated document as a `message.updated`
+event on the conversation topic (along the stored instance path for instance
+messages, like message fanout, but without inbox pings: transcription changes
+no unread state). The provider is resolved per organization
+(`message.organizationId`, falling back to the caller's), so org transcription
+settings decide between the local and cloud endpoints.
+
 ## API
 
 | Endpoint | Responsibility |
@@ -255,6 +274,7 @@ can render a voice-message chip.
 | `GET /api/support/messages?limit=<n>&before=<iso>` | Lazy history page: the `n` newest messages older than the cursor, ascending, plus `hasMore`. |
 | `GET /api/support/messages?instance=<type>:<id>&includeChildren=<0|1>` | Instance thread view: composed subtree (default) or the instance's own messages. |
 | `POST /api/support/messages` | Send support, direct (`recipientUserId`), group (`conversationKey`), or instance (`instance {type,id}`) message; optional `parentMessageId` reply quote. Publishes `message`/`read`/inbox events through the connections layer. |
+| `POST /api/support/messages/:id/transcribe` | Transcribes an authorized voice message into its message body through the org-configured transcription provider; publishes `message.updated` on the conversation topic. |
 | `GET /api/support/admin/:user_id` | REST snapshot of the admin support conversation. |
 | `POST /api/support/admin/:user_id` | Admin reply to a customer support conversation. |
 | `GET /api/support/admin/chatlist` | Admin support-thread list snapshot; excludes direct user conversations. Refreshes via the `admin-support` connections topic. |

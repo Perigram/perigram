@@ -94,7 +94,13 @@ publishes a `call` event on the conversation topic; counterparts get an
 incoming-call banner and join the same room. The home workspace sidebar
 lists active calls from `/api/livekit/active-rooms` with join buttons.
 In-call chat is intentionally absent (app chat owns messaging);
-recording/egress awaits server-side LiveKit egress configuration.
+recording is not wired: it needs the LiveKit egress component deployed
+beside the server (with Redis and its own storage backend — S3-compatible
+object storage or a local filesystem, configured on the egress, not in
+`livekit.dev.yaml`) plus server-side start/stop routes. Recorded media would
+not enter app storage automatically; anything surfaced in-app imports through
+the [files feature](../files/), and text extraction routes through the
+[transcription feature](../transcription/README.md).
 
 ## API
 

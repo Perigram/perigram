@@ -96,10 +96,15 @@ Routes are grouped into sub-directories corresponding to features:
   inline `entityRefs` picked from the same compiled screen list sources the
   home sidebar renders; the instance-options route remains the server-side
   validation and hydration channel for those refs (see
-  [support feature](../features/support/README.md)). The shared chat message
+  [support feature](../features/support/README.md)). Voice messages transcribe
+  through `POST /support/messages/:id/transcribe`. The shared chat message
   component renders both inline tokens and
   structured refs. Initial state loads over these REST routes; message, read,
   and inbox events arrive over the connections stream.
+- `transcription/`: `GET /transcription/config` reports `{ available }` for
+  the caller's organization so clients surface transcription affordances only
+  when a provider is configured (see
+  [transcription feature](../features/transcription/README.md)).
 - `workflow-overrides/`: Authenticated organization-owned lifecycle override
   read and replace endpoints for entity status machines.
 - `user/`: Current-user profile routes. Billing is organization-scoped under
