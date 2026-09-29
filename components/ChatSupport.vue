@@ -478,8 +478,9 @@
                                     />
                                     <Button
                                         v-if="canTranscribe(messageItem)"
-                                        class="ai-gradient shrink-0 text-accent-contrast"
-                                        icon="pi pi-microchip-ai"
+                                        class="shrink-0"
+                                        icon="pi pi-spell-check"
+                                        severity="secondary"
                                         text
                                         rounded
                                         size="small"

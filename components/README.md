@@ -1026,8 +1026,12 @@ record through `MediaRecorder`, upload through the files endpoint, and render
 as a native audio player on the bubble plus a voice chip in previews. While
 the org has a transcription provider configured (`GET
 /api/transcription/config`), audio-only voice messages carry a transcribe
-button beside the player; the request fills the bubble with the transcript in
-place (other viewers sync through the `message.updated` conversation event).
+button beside the player — plain secondary chrome, because transcription is a
+basic utility, not an AI affordance; the request fills the bubble with the
+transcript in place (other viewers sync through the `message.updated`
+conversation event). AI identity surfaces (a bot avatar, icon fills, message
+borders) may use the carmine accent gradient (`.ai-gradient`); filled AI
+controls are not part of the language.
 Attachments attach through the shared `ChatAttachmentPicker` (see
 [shared components](./shared/README.md)): a raw Popover + Tree hierarchy —
 home-screen sections whose create actions render as inline entries
