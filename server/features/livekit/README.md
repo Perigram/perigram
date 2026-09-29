@@ -43,13 +43,12 @@ call's conversation chat, not as floating dialogs.
 
 ## Recordings
 
-Call recordings ride the LiveKit **egress** component: a separate
-`livekit/egress` deployment (with Redis, which the LiveKit server config must
-also point at) renders the room composite and writes MP4 files to a
-filesystem backend shared with the app (`LIVEKIT_RECORDINGS_DIR`, `/recordings`
-in compose). Only rooms with a conversation — direct and group calls — are
-recordable; org rooms have no conversation thread to record into (they render
-stage-only in the call workspace).
+Call recordings ride an **external egress plane**: a LiveKit server deployed
+with Redis and a `livekit/egress` container, uploading finished MP4s to an
+S3-compatible recordings bucket the app can read anonymously. The egress
+deployment owns the write credentials and the LiveKit server's API keys; the
+app never does. Only rooms with a conversation — direct and group calls —
+are recordable; org rooms have no conversation thread to record into.
 
 - `POST /api/livekit/recordings` `{ room }` starts a room-composite egress
   after the same `authorizeRoom` admission as token minting (org rooms
@@ -63,13 +62,15 @@ stage-only in the call workspace).
   may enter — the call panel's record toggle and indicator state.
 - Egress lifecycle events (`egress_started`, `egress_ended`, `egress_failed`)
   arrive on the existing verified webhook receiver. On `egress_ended`, each
-  finished file is imported from the shared directory into the
-  [files feature](../files/) (GridFS) and posted into the room's conversation
-  as an attachment-only message of kind `video` sent by the recording
-  starter (see [support attachments](../support/README.md#message-attachments));
-  `egress_failed` marks the recording failed. Egress events also fan out as
-  `call.activity` payloads, so open call surfaces flip their recording state
-  live.
+  finished file is fetched from the recordings store
+  (`GET {endpoint}/{bucket}/{filename}`), persisted into the
+  [files feature](../files/) (GridFS), and posted into the room's
+  conversation as an attachment-only message of kind `video` sent by the
+  recording starter (see
+  [support attachments](../support/README.md#message-attachments));
+  `egress_failed` — and any import failure — marks the recording failed.
+  Egress events also fan out as `call.activity` payloads, so open call
+  surfaces flip their recording state live.
 
 Recordings are not transcribed automatically: the deployed local STT is a
 single-speaker service and call audio is multi-speaker. Transcribing and
@@ -106,7 +107,8 @@ diarization-capable provider.
 | `LIVEKIT_INTERNAL_URL` | `ws://livekit:7880` (server-to-server RoomService; defaults to `LIVEKIT_PUBLIC_URL`). The compose app container cannot reach the published `localhost:7880`, so `listActiveRooms` must use the network-internal address. |
 | `LIVEKIT_API_KEY` | `devkey` |
 | `LIVEKIT_API_SECRET` | `devsecret` |
-| `LIVEKIT_RECORDINGS_DIR` | `/recordings` (shared with the egress container; egress writes, the app reads and imports) |
+| `LIVEKIT_RECORDINGS_S3_ENDPOINT` | — | Recordings bucket endpoint (S3-compatible, anonymous read); unset disables the ended-file import. |
+| `LIVEKIT_RECORDINGS_S3_BUCKET` | — | Recordings bucket name the egress plane uploads into. |
 
 Dev keys are fixed in `livekit.dev.yaml`; production must override all three.
 

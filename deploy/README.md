@@ -44,15 +44,16 @@ Editing the pipeline means editing that branch.
   `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit`,
   `LIVEKIT_INTERNAL_URL=http://192.168.0.248:7880`,
   `BASE_URL=https://perigram.sodalab.pro`.
-- Call recordings on hera are **not deployed**: hera's LiveKit runs without
-  Redis and without an `livekit/egress` container. Enabling recordings there
-  means, on hera: run Redis, point hera's LiveKit config at it, run
-  `livekit/egress` with hera's LiveKit key/secret and a filesystem storage
-  path, and give the app container `LIVEKIT_RECORDINGS_DIR` over that same
-  shared path (the dev stack's shape is
-  [docker-compose.dev.yml](../docker-compose.dev.yml)). Nothing in the app
-  deploy workflow changes — the routes degrade to 502/404-style failures
-  until the egress plane exists.
+- Call recordings need an external egress plane beside the LiveKit server
+  the app targets: Redis, a `livekit/egress` container (SYS_ADMIN for
+  Chrome), and an S3-compatible bucket readable by the app
+  (`LIVEKIT_RECORDINGS_S3_ENDPOINT`/`BUCKET` env). A working plane already
+  exists on zeus (LiveKit `ws://10.77.219.223:7880` over NetBird with UDP
+  50100-50200, egress uploading to the `livekit-egress` bucket on
+  `192.168.0.15:8333`); hera has neither Redis nor egress — replicating the
+  zeus shape there is the production step. Nothing in the app deploy
+  workflow changes; the recording routes fail until a plane exists for the
+  targeted server.
 - The nginx config also carries a dormant `staging.perigram.sodalab.pro`
   server block (same target); it is unreachable until a DNS record exists
   for that name. It can be activated or deleted independently.
