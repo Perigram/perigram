@@ -127,6 +127,11 @@ internal container-only endpoint. `NUXT_DEV_HMR_CLIENT_PORT` defaults to
 The E2E command assumes the app stack is already running and uses Playwright
 against the configured `E2E_BASE_URL`.
 Dev-stack filesystem runbook (compose mounts the repo at `/src`):
+- Global stylesheets ride `plugins/global-styles.js`, not the Nuxt `css:`
+  array: with Nuxt 3.19's vite builder, css-array entries land only in the
+  SSR `entry-styles` sidecar, so production browsers never received
+  tailwind/primeicons/main.css/the PrimeVue theme (2026-09-29 staging —
+  "another css" broken layouts; dev and scoped styles were unaffected).
 
 - `node_modules` is an anonymous container volume (`/src/node_modules`):
   host-side installs never reach the running container. To refresh
