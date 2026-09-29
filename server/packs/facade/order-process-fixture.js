@@ -4,8 +4,9 @@
 // them, and the nesting service runs once per material with every run
 // saved as a child record. Authored in the current species vocabulary
 // (graph protocol v5); served as data so server specs and e2e drive the
-// same definition.
-import * as XLSX from 'xlsx';
+// same definition. Imports the xlsx ESM build — the CJS main cannot be
+// externalized by nitro (root README Development notes).
+import * as XLSX from 'xlsx/xlsx.mjs';
 import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
 

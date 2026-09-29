@@ -5,8 +5,11 @@
 // of a client-mapped batch post. Column detection: an authored exact
 // column name wins, else the case-insensitive convention (`name`,
 // `cassette`); every other column becomes a parameter cell.
+// The import targets the ESM build ('xlsx/xlsx.mjs', root README
+// Development notes): nitro cannot externalize the CJS main and fails the
+// server bundle on its node:fs interop.
 import { createError } from 'h3';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx/xlsx.mjs';
 import * as filesService from '../../../features/files/service.js';
 import { instanceServiceResolver } from '../../../features/instances/service.js';
 import { toInstanceRef } from '../refs.js';
