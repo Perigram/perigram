@@ -4,6 +4,7 @@ import { createError } from 'h3';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import * as connectionsService from '../connections/service.js';
 import * as filesService from '../files/service.js';
+import * as meetingsService from '../meetings/service.js';
 import { getConversationContextByKey, findChatGroup, insertRecordingMessage } from '../support/service.js';
 import * as repository from './repository.js';
 
@@ -334,7 +335,7 @@ async function importRecordingFile(record, result) {
         room: record.room
     });
     const durationSeconds = Math.round(Number(result.duration || 0));
-    await insertRecordingMessage({
+    const message = await insertRecordingMessage({
         conversationKey: record.conversationKey,
         senderUserId: record.startedByUserId,
         attachment: {
@@ -344,6 +345,7 @@ async function importRecordingFile(record, result) {
             ...(durationSeconds > 0 ? { durationSeconds } : {})
         }
     });
+    await meetingsService.summarizeRecording({ record, message });
 }
 
 async function handleEgressWebhookEvent(body = {}) {

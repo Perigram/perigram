@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
     updateById: vi.fn(async (id, update) => ({ _id: id, ...update.$set }))
   },
   filesService: { uploadFile: vi.fn() },
+  meetingsSummarize: vi.fn(),
   supportService: {
     getConversationContextByKey: vi.fn(),
     findChatGroup: vi.fn(),
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('./repository.js', () => mocks.repository);
 vi.mock('~/server/features/files/service.js', () => mocks.filesService);
+vi.mock('~/server/features/meetings/service.js', () => ({ summarizeRecording: mocks.meetingsSummarize }));
 vi.mock('~/server/features/support/service.js', () => mocks.supportService);
 vi.mock('~/server/features/connections/service.js', () => ({
   publish: mocks.connectionsPublish,
@@ -138,6 +140,8 @@ describe('livekit recordings', () => {
     vi.stubGlobal('fetch', fetchMock);
     mocks.filesService.uploadFile.mockResolvedValue({ id: 'gridfs-9', filename: 'call-recording-EG_1.mp4' });
 
+    mocks.readFilelessNoop = null;
+    mocks.supportService.insertRecordingMessage.mockResolvedValue({ _id: 'msg-1', attachment: { kind: 'video' } });
     const result = await livekitService.publishWebhookEvent({
       event: 'egress_ended',
       egressInfo: {
@@ -154,6 +158,10 @@ describe('livekit recordings', () => {
       'call-recording-EG_1.mp4',
       expect.objectContaining({ kind: 'call-recording', room: DIRECT_ROOM })
     );
+    expect(mocks.meetingsSummarize).toHaveBeenCalledWith({
+      record: expect.objectContaining({ egressId: 'EG_1' }),
+      message: { _id: 'msg-1', attachment: { kind: 'video' } }
+    });
     expect(mocks.supportService.insertRecordingMessage).toHaveBeenCalledWith({
       conversationKey: 'direct:user-a:user-b',
       senderUserId: 'user-a',

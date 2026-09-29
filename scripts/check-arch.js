@@ -70,6 +70,7 @@ const CAPABILITY_FEATURES = [
   'artifact-conversions',
   'invitations',
   'material-options',
+  'meetings',
   'nesting',
   'notification',
   'notifications',

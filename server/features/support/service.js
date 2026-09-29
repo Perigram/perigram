@@ -644,19 +644,20 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
 }
 
 /**
- * Server-internal attachment message: the livekit feature posts a finished
- * call recording into the room's conversation as the recording starter.
- * The conversation context is rebuilt from the key without auth checks —
- * the caller is trusted server code that derived the key from an admitted
- * room; client requests must go through the auth-checked send paths.
+ * Server-internal call-recording messages: the livekit feature posts a
+ * finished recording (attachment) and the meetings feature its summary
+ * (text) into the room's conversation. The conversation context is rebuilt
+ * from the key without auth checks — the callers are trusted server code
+ * that derived the key from an admitted room; client requests must go
+ * through the auth-checked send paths.
  */
-export async function insertRecordingMessage({ conversationKey = '', senderUserId = '', attachment = null } = {}) {
+export async function insertRecordingMessage({ conversationKey = '', senderUserId = '', message = '', attachment = null } = {}) {
     const context = await trustedConversationContext(conversationKey);
     return await insertMessage({
         context,
         sender: MESSAGE_SENDER.USER,
         senderUserId: String(senderUserId || ''),
-        message: '',
+        message,
         attachment,
         auth: {}
     });
