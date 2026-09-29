@@ -120,6 +120,13 @@ describe('graph protocol v5 designer round trip', () => {
     expect(saved.processNodes.construct.typeId).toBe('sheet');
     expect(validateRoundTrip(saved).ok).toBe(true);
 
+    // Definition-local version records survive the canvas round trip: a
+    // save must not wipe activation history or the activated snapshot.
+    const versioned = { ...structuredClone(v5), history: [{ at: '2026-09-29T00:00:00.000Z', actor: 'u1', data: { dataflowVersion: 4 } }], activated: { dataflowVersion: 4 } };
+    const resaved = canvasToDefinition(definitionToCanvas(structuredClone(versioned)), structuredClone(versioned));
+    expect(resaved.history).toEqual(versioned.history);
+    expect(resaved.activated).toEqual(versioned.activated);
+
     // normalization drops the binding wire: it is a canvas gesture, not dataflow
     const normalized = normalizeProcessDefinition(saved, domain);
     expect((normalized.graph.edges || []).some(edge => edge.role === 'type')).toBe(false);

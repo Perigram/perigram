@@ -225,6 +225,11 @@ function normalizeProcessLike(definition = {}) {
     valueInputs: normalizeRecord(data.valueInputs),
     processNodes: normalizeRecord(data.processNodes),
     screens: normalizeRecord(data.screens),
+    // Definition-local records that survive the canvas round trip:
+    // activation history (version control) and the last-activated
+    // snapshot (the runtime source for active-set members).
+    ...(Array.isArray(data.history) ? { history: data.history } : {}),
+    ...(data.activated && typeof data.activated === 'object' ? { activated: data.activated } : {}),
     // Graph protocol marker survives the canvas round trip (SPEC §20).
     ...(data.graphProtocol ? { graphProtocol: data.graphProtocol } : {}),
     compiled: data.compiled || null
