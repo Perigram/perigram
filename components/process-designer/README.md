@@ -615,9 +615,11 @@ beside the last selected node (anchored through the canvas viewport
 transform) carrying delete and frame selection. Edge selections keep the
 keyboard bindings.
 
-New Draft starts from an empty graph. Save on an active process is the
-explicit copy-to-draft operation; saving an ordinary draft updates that
-draft. Dirty state is a primary save affordance plus a small dot, not a
+New Draft starts from an empty graph. Save persists the loaded
+definition in place — draft or active, one document for its whole life
+(see [process-definitions](../../server/features/process-definitions/README.md));
+re-activation records the superseded graph in the definition's history.
+Dirty state is a primary save affordance plus a small dot, not a
 persistent text badge. Delete/Backspace removes all selected nodes and
 edges together while preserving definition records that are still
 referenced. Home frames the graph, Numpad Decimal frames the selection,

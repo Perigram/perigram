@@ -618,6 +618,29 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-29 rename fix + one-document version control
+
+Owner report: rename fails ("Process dataflow version 4 is required")
+and "how apply was handled before is scam (creating new definition every
+time). Probably need version control." Both real. RENAME: update() ran
+persistedRewrites(payload.data || payload) — an identity-only PATCH
+passed {name} as data and wiped the graph; identity-only PATCHes now
+never touch data. VERSION CONTROL: a definition is ONE document for its
+whole life — data edits save in place (draft or active; the 409 gate is
+gone), and re-activating an already-active definition records the
+superseded authored snapshot in data.history ({at, actor, data}, newest
+last, capped 50) before the new graph activates. The designer's fork
+path (save-onto-active → createDraft copyActive, and the 409 fork
+fallback) is deleted; Save always persists in place. Loaded-model state
+checks read status.state.primary (the wrapped model carries no states
+block — that's the wire shape; this also fixed deactivate/remove guards
+that could never match). Specs: rename-keeps-data regression,
+re-activation history record, in-place active save. NOTE: the first
+attempt at this round died in a worktree created outside
+.agent-worktrees/ (typo'd path) that an external cleanup removed with
+the uncommitted work; redone in the proper location and committed
+slice-first.
+
 ### Agent Notes — 2026-09-29 definitions management + additive activation
 
 Owner ask: proper definitions management — out of the toolbar, into the
