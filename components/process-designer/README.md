@@ -419,12 +419,15 @@ corridor across its other granted lanes at the node's column — the
 operation is one record, never cloned, its wires never duplicated.
 
 Effects and state declarations are the PRIMARY populations — they carry
-the access/workflow story and are always visible. Every other node —
-classes, fields, type references, and the non-effect process nodes
-(reads such as Get field, values/math, collections, control) — is
-SECONDARY: unaffected by lanes, free-placeable anywhere, and grouped
-under the secondary visibility toggle, which hides them (nodes and
-their wires) without deleting anything; `hidden` is runtime state and
+the access/workflow story and are always visible. The remove (delete)
+operation is SECONDARY despite being an effect species: a maintenance
+verb with no role story — it claims no lane, its drop assigns nothing,
+and it hides with the secondary group. Every other node — classes,
+fields, type references, and the non-effect process nodes (reads such
+as Get field, values/math, collections, control) — is SECONDARY:
+unaffected by lanes, free-placeable anywhere, and grouped under the
+secondary visibility toggle, which hides them (nodes and their wires)
+without deleting anything; `hidden` is runtime state and
 never persists. Lane bounds wrap their nodes: a band's height is its
 content extent plus a small padding, recalculated on the fly — on
 load, on every drop, drag-stop, add, and delete — by the settle pass,

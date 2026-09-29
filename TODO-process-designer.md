@@ -618,6 +618,21 @@ are the declaration nodes; transitions are `cts.transition` process
 nodes; state→state wires are `nested`). Remaining P5: Lanes A/B,
 auto-arrangement, and the control-species fate decision.
 
+### Agent Notes — 2026-09-29 delete joins the secondary population
+
+Owner direction: "'delete' should be a secondary node." The remove
+operation (`cts.remove`, operation kind `effect.deleteEntity`) leaves
+the lane population despite being an effect species: it claims no lane,
+its drop writes no grant, it hides under the secondary visibility
+toggle, tidy places it as a secondary (median-anchored, bandless), and
+it settles by containment. New predicate `isLaneEffectNode` (effect &&
+not delete) now drives every lane-population site — membership, drop
+assignment, settle, tidy effectIds, the toggle, and the hidden-on-create
+rule (which now routes through the shared isSecondaryNode instead of a
+duplicated species check). Its record contract, access shape, and
+operation card styling are unchanged — population only. Derived
+predicate, so existing drafts need no migration.
+
 ### Agent Notes — 2026-09-29 lane bounds wrap content, recalculated on the fly
 
 Owner directive, stated bluntly after two misses: "LANE VERTICAL
