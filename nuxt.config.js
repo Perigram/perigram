@@ -55,7 +55,6 @@ export default defineNuxtConfig({
 
     devtools: { enabled: true },
 
-    css: ['primeicons/primeicons.css', './assets/css/fonts.css', './assets/css/main.css'],
 
     modules: ['@nuxtjs/i18n', '@primevue/nuxt-module', '@nuxtjs/tailwindcss', '@pinia/nuxt'],
 
