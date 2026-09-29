@@ -218,7 +218,7 @@
                   <div v-if="historyLoading" class="text-muted text-supporting">…</div>
                   <div
                     v-for="(entry, index) in definitionHistoryEntries"
-                    v-else
+                    v-else-if="definitionHistoryEntries.length"
                     :key="`${entry.at}-${index}`"
                     class="flex items-center gap-2 text-supporting"
                   >
@@ -232,6 +232,7 @@
                       @click="restoreDefinitionVersion(process, entry)"
                     />
                   </div>
+                  <div v-else class="text-muted text-supporting">—</div>
                 </div>
               </div>
             </div>

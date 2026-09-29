@@ -1024,8 +1024,10 @@ function promptableInputIds(record = {}, domain = {}) {
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
     if (kind === 'effect.createEntity' && construction.mode === 'genericCreate') {
       ids.add('identity');
-      ids.add('name');
     }
+    // The identity name prompt (SPEC §3 construction boundary) is
+    // available to every create mode, not just generic construction.
+    if (kind === 'effect.createEntity') ids.add('name');
     for (const input of [...modeInputs, ...declaredInputs, ...contractInputs]) {
       if (!input) continue;
       if (input.prompt !== false && input.id) ids.add(input.id);
