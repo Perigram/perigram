@@ -1,4 +1,5 @@
-import { defineEventHandler, setHeaders, readFileSync } from '#imports';
+import { defineEventHandler, setHeaders } from '#imports';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // Dev self-heal at the worker seam (root README "Progressive Web App"):
