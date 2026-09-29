@@ -65,7 +65,7 @@ describe('livekit recordings', () => {
   });
 
   it('starts a recording through the egress twirp API', async () => {
-    const fetchMock = vi.fn(async () => twirpResponse({ egressId: 'EG_1', status: 'EGRESS_ACTIVE' }));
+    const fetchMock = vi.fn(async () => twirpResponse({ egress_id: 'EG_1', status: 'EGRESS_ACTIVE' }));
     vi.stubGlobal('fetch', fetchMock);
     mocks.repository.insert.mockImplementation(async (record) => ({ _id: 'rec-1', ...record }));
 
@@ -75,11 +75,10 @@ describe('livekit recordings', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('http://livekit:7880/twirp/livekit.Egress/StartRoomCompositeEgress');
     expect(JSON.parse(init.body)).toMatchObject({
-      roomName: DIRECT_ROOM,
-      audioOnly: false,
-      fileOutputs: [{ filepathPattern: '/recordings/{room_id}-{time}.mp4' }]
+      room_name: DIRECT_ROOM,
+      audio_only: false,
+      file_outputs: [{ filepath_pattern: '/recordings/{room_id}-{time}.mp4' }]
     });
-    expect(JSON.parse(init.body).fileOutputs[0].filepathPattern).toMatch(/\/recordings\/\{room_id\}-\{time\}\.mp4/);
   });
 
   it('rejects org rooms, foreign rooms, and double starts', async () => {

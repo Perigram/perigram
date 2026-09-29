@@ -196,8 +196,9 @@ async function fetchLiveKitRooms() {
 
 /**
  * Signed twirp call into the Egress service. Egress APIs require the
- * `roomRecord` video grant; requests and responses follow LiveKit's twirp
- * JSON mapping (camelCase proto fields).
+ * `roomRecord` video grant; LiveKit's twirp endpoints speak proto-JSON with
+ * original snake_case field names both ways (verified against the dev
+ * server), unlike the room-event webhooks which arrive camelCase.
  */
 async function egressTwirp(method, body) {
     const { apiKey, apiSecret, internalUrl } = config();
@@ -249,15 +250,16 @@ export async function startRoomRecording(auth, room = '') {
         throw createError({ statusCode: 409, message: 'Room is already recording' });
     }
     const egress = await egressTwirp('StartRoomCompositeEgress', {
-        roomName: room,
-        audioOnly: false,
-        fileOutputs: [{ filepathPattern: `${recordingsDir()}/{room_id}-{time}.mp4` }]
+        room_name: room,
+        audio_only: false,
+        file_outputs: [{ filepath_pattern: `${recordingsDir()}/{room_id}-{time}.mp4` }]
     });
-    if (!egress?.egressId) {
+    const egressId = String(egress?.egress_id || '');
+    if (!egressId) {
         throw createError({ statusCode: 502, message: 'LiveKit egress returned no egress id' });
     }
     return await repository.insert({
-        egressId: String(egress.egressId),
+        egressId,
         room,
         conversationKey,
         conversationKind: kind,
