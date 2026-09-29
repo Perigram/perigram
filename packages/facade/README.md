@@ -132,15 +132,6 @@ never in a graph. Table rows are the documents pack's `rows` projection
 composes from a `cts.read` over the target type plus the pure
 `collection.join` — no facade-owned lookup service exists.
 
-The composed flow — an uploaded order table (xlsx-workbook or csv-table)
-becoming a container with baked children, declared materials, and saved
-nesting runs — is proven end to end by `order-process.spec.js`: the
-definition is composed through the headless authoring seam
-(`createDefinitionAuthoring`, the same record factory, presets, and
-port-gated connections the process designer uses), activated through the
-real validation gate, and executed by the real runtime for BOTH table
-kinds, with only persistence and the nesting worker faked.
-
 ## Related
 
 - [server/packs/README.md](../../server/packs/README.md) — pack mounting.
