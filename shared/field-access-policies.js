@@ -19,7 +19,7 @@ export const fieldAccessPolicies = {
     admin: ['data.*', 'attachments.*']
   },
   cassette: {
-    feature: 'cassettes',
+    feature: 'files',
     read: [...COMMON_READ_FIELDS, 'data.type', 'data.parameters', 'data.definition', 'data.revisions', 'data.geometry.*', 'data.layerData', 'data.polygonParts'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
@@ -82,7 +82,7 @@ export const fieldAccessPolicies = {
     admin: ['data.*', 'summary.*', 'attachments.*']
   },
   entityRevision: {
-    feature: 'cassettes',
+    feature: 'files',
     read: [...COMMON_READ_FIELDS, 'data.source', 'data.scope', 'data.number', 'data.shortHash', 'data.contentHash', 'data.createdAt'],
     write: [],
     admin: ['data.*', 'attachments.*']

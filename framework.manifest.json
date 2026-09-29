@@ -377,7 +377,7 @@
       ],
       "permissions": [
         {
-          "feature": "cassettes",
+          "feature": "files",
           "level": "write"
         }
       ]

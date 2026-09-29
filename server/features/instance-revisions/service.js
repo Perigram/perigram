@@ -7,6 +7,7 @@ import {
   createProvenance,
   Identity
 } from '../../core/blocks/index.js';
+import * as workflowOverridesService from '../workflow-overrides/service.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { pluralize } from '../../utils/strings.js';
@@ -102,17 +103,22 @@ export async function ensureForEntitySnapshot({
 
   const latest = await repository.findLatest(typeId, instanceId, scope);
   const number = Number(latest?.data?.number || 0) + 1;
-  const origin = await stateService.initialStatusForOrganization(
-    'entity_revision',
-    entity.lineage?.organizationId,
-    userId,
-    { note: 'Entity revision created' }
-  );
+  const revisionMachine = await workflowOverridesService.resolveActiveWorkflow({
+    typeId: 'entity_revision',
+    organizationId: entity.lineage?.organizationId
+  });
+  const origin = revisionMachine
+    ? await stateService.initialStatusForOrganization(
+      'entity_revision',
+      entity.lineage?.organizationId,
+      userId,
+      { note: 'Entity revision created' }
+    )
+    : null;
 
   const doc = {
     identity: revisionIdentity(typeId, instanceId, scope, number),
-    origin,
-    status: origin,
+    ...(origin ? { origin, status: origin } : {}),
     lineage: {
       ...(entity.lineage || {}),
       [`${typeId}Id`]: instanceId

@@ -1,5 +1,10 @@
 import { test as base, expect } from '@playwright/test';
 import { E2E_PREFIX } from './config.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts/src/index.js';
+import { facadeDomain, facadePackContent } from '#packages/facade/src/index.js';
+import { documentsPack } from '#packages/documents/src/index.js';
+import { techDrawingPack } from '#packages/tech-drawing/src/index.js';
+import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
 
 // Default construction modes for the pack file types the suite authors.
 // Organization types keep genericCreate (payload-less) unless the caller
@@ -13,34 +18,25 @@ const DEFAULT_VIA = {
   'pdf-document': 'upload'
 };
 
-const DEFAULT_ACCEPT = {
-  image: 'image/jpeg,image/png',
-  'pdf-document': '.pdf,application/pdf'
-};
-
-// Construction inputs mirror the domain projection (packages/cts
-// compat/domain-projection.js): every mode prompts for the name,
-// upload/capture add the typed file input. The stored record carries
-// them because the execute path maps inputs through the stored
-// construction contract — sparse records silently drop names.
-// Canonical blocks ride as slots like designer-authored records.
-function seedConstructionInputs(typeId, via) {
-  const inputs = [
-    { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }
-  ];
-  if (via === 'upload' || via === 'capture') {
-    inputs.push({
-      id: 'payload',
-      label: 'File',
-      path: 'payload',
-      type: 'file',
-      accept: DEFAULT_ACCEPT[typeId] || '',
-      required: true,
-      prompt: true,
-      ...(via === 'capture' ? { capture: 'environment' } : {})
-    });
+// The mounted declaration set the app composes (framework + documents +
+// tech-drawing + facade) — the projected domain species processes author
+// against.
+function mountedDomain(organizationId) {
+  const registry = createTypeRegistry({ id: 'e2e-species' });
+  for (const declaration of [
+    ...frameworkTypes,
+    ...documentsPack.types,
+    ...techDrawingPack.types,
+    ...facadePackContent.types
+  ]) {
+    registry.defineType(declaration);
   }
-  return inputs;
+  const packServices = [
+    ...(documentsPack.services || []),
+    ...(techDrawingPack.services || []),
+    ...(facadePackContent.services || [])
+  ];
+  return projectDomainFromView(registry, organizationId, facadeDomain, { packServices });
 }
 
 export const test = base.extend({
@@ -127,7 +123,11 @@ export const test = base.extend({
       // Seeds the org with a real species process: one role, one manual
       // construct per requested pack/org type, then activate. Returns the
       // role id, draft id, and the hydrated manifest (screens + actions).
-      async seedSpeciesProcess({ types = ['cassette', 'image'], via = {}, initialStatus = {}, label = null } = {}) {
+      // Seeds the org with a species process authored through the headless
+      // authoring seam — the same palette drops and construction modes the
+      // designer produces: one manual construct per requested type, granted
+      // to a fresh role, activated beside whatever the org already runs.
+      async seedSpeciesProcess({ types = ['cassette', 'image'], via = {}, label = null } = {}) {
         const me = await (await request.get('/api/auth/me')).json();
         const organizationId = me.organizationId;
         const roleResponse = await request.post(`/api/organizations/${organizationId}/roles`, {
@@ -140,39 +140,30 @@ export const test = base.extend({
           { data: { roleIds: [role.id, 'role_admin'] } }
         );
         expect(assignResponse.ok(), await assignResponse.text()).toBeTruthy();
-        const processNodes = {};
-        const canvasNodes = [];
+
+        const authoring = createDefinitionAuthoring(mountedDomain(organizationId));
         types.forEach((typeId, index) => {
           const id = `e2e-${index}`;
           const mode = via[typeId] || DEFAULT_VIA[typeId] || 'genericCreate';
-          processNodes[id] = {
-            id,
-            kind: 'cts.construct',
+          authoring.drop('construct', { id });
+          authoring.configure(id, {
             typeId,
-            via: mode,
-            construction: { mode, inputs: seedConstructionInputs(typeId, mode) },
-            state: { to: initialStatus[typeId] || 'CREATED' },
-            trigger: { mode: 'manual' },
-            slots: ['identity', 'relations', 'attachments', 'data', 'lineage'],
-            access: { level: 'admin', roleIds: [role.id], grants: [{ roleId: role.id, level: 'admin' }] }
-          };
-          canvasNodes.push({ id, type: 'processNode', data: { refId: id } });
+            construction: { mode },
+            access: { level: 'admin', grants: [{ roleId: role.id, level: 'admin' }] }
+          });
         });
+
         const draftResponse = await request.post('/api/process-definitions', {
           data: {
             name: helper.uniqueName('E2E species process'),
-            data: {
-              dataflowVersion: 4,
-              roleGrants: {},
-              processNodes,
-              graph: { nodes: canvasNodes, edges: [] }
-            }
+            data: authoring.definition()
           }
         });
         expect(draftResponse.ok(), await draftResponse.text()).toBeTruthy();
         const draft = await draftResponse.json();
         helper.trackCleanup(async () => {
-          await request.post(`/api/process-definitions/${draft._id}/archive`, { failOnStatusCode: false });
+          await request.post(`/api/process-definitions/${draft._id}/deactivate`, { failOnStatusCode: false });
+          await request.delete(`/api/process-definitions/${draft._id}`, { failOnStatusCode: false });
         });
         const activate = async () => request.post(`/api/process-definitions/${draft._id}/activate`, {}, { failOnStatusCode: false });
         let activated = await activate();
@@ -198,9 +189,14 @@ export const test = base.extend({
         expect(state.ready, `Seeded process is not serving the requested types (screens: ${screenKeys})`).toBeTruthy();
         return { role, draftId: draft._id, manifest: state.manifest };
       },
+      // Additive activation: the executable action set is the union of
+      // every ACTIVE definition's compiled actions.
       async activeActions() {
-        const active = await (await request.get('/api/process-definitions/active')).json();
-        return Object.values(active.data?.compiled?.actions || {});
+        const list = await (await request.get('/api/process-definitions')).json();
+        const items = Array.isArray(list) ? list : list?.items || [];
+        return items
+          .filter(definition => definition.status?.state === 'ACTIVE')
+          .flatMap(definition => Object.values(definition.data?.compiled?.actions || {}));
       },
       async executeAction(actionId, body = {}) {
         const response = await request.post(`/api/process-definitions/active/actions/${actionId}/execute`, {

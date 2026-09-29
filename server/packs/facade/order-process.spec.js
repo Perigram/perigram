@@ -44,6 +44,7 @@ function createFakeDb() {
   const cursor = docs => ({
     sort: () => cursor(docs),
     limit: count => cursor(docs.slice(0, count)),
+    skip: count => cursor(docs.slice(count)),
     toArray: async () => docs
   });
   return {
@@ -207,6 +208,7 @@ import {
   ATTEMPT_TYPE_ID
 } from './order-process-declarations.js';
 import { composeOrderProcessDefinition } from './order-process.js';
+import * as cassettesService from './cassettes/service.js';
 
 // The order table content: one row per cassette design — a name, the
 // cassette template it names, and the bake parameters as cells. The
@@ -258,10 +260,6 @@ function tableBuffer(tableType) {
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
 
-function cassetteTemplatePayload() {
-  return Buffer.from(JSON.stringify(createDefaultOccsCassetteTemplateDefinition()), 'utf8');
-}
-
 describe.each(['xlsx-workbook', 'csv-table'])('the facade order process composed over %s', (tableType) => {
   let table;
 
@@ -273,9 +271,14 @@ describe.each(['xlsx-workbook', 'csv-table'])('the facade order process composed
   });
 
   async function seedAndRun() {
-    await seedInstance('cassette',
-      { identity: { name: 'Tray 600' } },
-      cassetteTemplatePayload(), 'application/perigram+occs');
+    // The template is born through the pack's own service — the storage
+    // home the bake handler reads.
+    await cassettesService.create({
+      name: 'Tray 600',
+      type: 'PARAMETRIC',
+      definition: createDefaultOccsCassetteTemplateDefinition(),
+      parameters: []
+    }, auth.userId, ORG);
     table = await seedInstance(tableType,
       { identity: { name: 'Order table 42' } },
       tableBuffer(tableType),

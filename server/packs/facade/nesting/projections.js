@@ -112,7 +112,7 @@ function buildNestingItems(jobFiles = []) {
         if (!isValidPolygonCoordinates(coords)) continue;
         items.push({
           id,
-          cassette_id: file.cassetteId,
+          cassette_id: String(file.cassetteId ?? ''),
           coords,
           handles: part.handles || [],
           sourceLayers: sourceLayersForPart(layerData, part),
@@ -127,7 +127,7 @@ function buildNestingItems(jobFiles = []) {
     if (!rectangle.length) continue;
     items.push({
       id,
-      cassette_id: file.cassetteId,
+      cassette_id: String(file.cassetteId ?? ''),
       coords: rectangle,
       handles: [],
       sourceLayers: sourceLayersForPart(layerData, {}),

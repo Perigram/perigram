@@ -87,10 +87,10 @@ describe('Cassette Management & Ownership', () => {
   };
 
   user1.permissions = {
-    memberships: [{ organizationId: user1.organizationId, permissions: { cassettes: 'admin' } }]
+    memberships: [{ organizationId: user1.organizationId, permissions: { files: 'admin' } }]
   };
   user2.permissions = {
-    memberships: [{ organizationId: user2.organizationId, permissions: { cassettes: 'admin' } }]
+    memberships: [{ organizationId: user2.organizationId, permissions: { files: 'admin' } }]
   };
 
   it('should create a standard cassette', async () => {
@@ -203,7 +203,7 @@ describe('Cassette Management & Ownership', () => {
       organizationId: user1.organizationId,
       memberships: [{ organizationId: user1.organizationId, permissions: {} }],
       effectivePermissions: {
-        cassettes: [{
+        files: [{
           level: 'read',
           rule: { fact: 'primaryState', equals: 'ACTIVE' }
         }]
@@ -222,7 +222,7 @@ describe('Cassette Management & Ownership', () => {
     const scopedReadAuth = {
       ...readOnlyActiveAuth,
       effectivePermissions: {
-        cassettes: [{ level: 'read' }]
+        files: [{ level: 'read' }]
       }
     };
     const scoped = await cassetteService.list(
@@ -255,7 +255,7 @@ describe('Cassette Management & Ownership', () => {
       organizationId: user1.organizationId,
       memberships: [{ organizationId: user1.organizationId, permissions: {} }],
       effectivePermissions: {
-        cassettes: [{
+        files: [{
           level: 'write',
           rule: { fact: 'primaryState', equals: 'CREATED2' }
         }]
@@ -293,7 +293,7 @@ describe('Cassette Management & Ownership', () => {
       organizationId: user1.organizationId,
       memberships: [{ organizationId: user1.organizationId, permissions: {} }],
       effectivePermissions: {
-        cassettes: [{
+        files: [{
           level: 'write',
           rule: { fact: 'primaryState', equals: 'CREATED' }
         }]
@@ -350,6 +350,7 @@ describe('Cassette Management & Ownership', () => {
         }
       }
     );
+
 
     const previews = await cassetteService.listPreviewByLibraries(
       [libraryId],

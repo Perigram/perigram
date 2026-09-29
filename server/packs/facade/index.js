@@ -41,6 +41,20 @@ const cassetteDesignService = {
   remove: forwardCassetteDesign('remove')
 };
 
+// Cassette rides its legacy repository (the cassette designer's storage);
+// the pack bridges it into the instance-service resolution so process
+// graphs read and construct ONE home: the legacy service. Signatures
+// adapt at the adapter seams.
+const forwardCassette = method => (...args) => cassettesService[method](...args);
+const cassetteBridgeService = {
+  list: forwardCassette('list'),
+  getById: forwardCassette('getById'),
+  create: forwardCassette('create'),
+  patch: forwardCassette('patch'),
+  processUpdate: forwardCassette('patch'),
+  remove: forwardCassette('remove')
+};
+
 // Pack-registered overrides of framework command handlers: the framework
 // defines the seam, the pack supplies the domain executor. Without this
 // pack mounted, `convertArtifact` has no cassette executor and
@@ -52,19 +66,30 @@ export const facadePack = {
   domain: facadeDomain,
 
   instanceServices: {
-    'cassette-design': cassetteDesignService
+    'cassette-design': cassetteDesignService,
+    cassette: cassetteBridgeService
   },
   processLists: {
-    'cassette-design': (filters, auth) => instanceServiceResolver('cassette-design').processList(filters, auth)
+    'cassette-design': (filters, auth) => instanceServiceResolver('cassette-design').processList(filters, auth),
+    cassette: (filters, auth) => cassettesService.list(auth.userId, auth.organizationId, auth.role, auth, filters)
   },
   processReads: {
-    'cassette-design': (id, auth) => instanceServiceResolver('cassette-design').processGetById(id, auth)
+    'cassette-design': (id, auth) => instanceServiceResolver('cassette-design').processGetById(id, auth),
+    cassette: (id, auth) => cassettesService.getById(id, auth.userId, auth.organizationId, auth.role, auth)
   },
   processCapabilities: {
-    'cassette-design': { processUpdate: true, delete: true, archive: false }
+    'cassette-design': { processUpdate: true, delete: true, archive: false },
+    cassette: { processUpdate: true, delete: true, archive: false }
   },
   constructionHandlers: {
-    'cassette-design': { upload: uploadCassetteDesign, bake: bakeCassetteDesign, convertDxf: convertDxfCassetteDesign }
+    'cassette-design': { upload: uploadCassetteDesign, bake: bakeCassetteDesign, convertDxf: convertDxfCassetteDesign },
+    // The cassette editor protocol constructs a blank template whose
+    // first designer save fills the payload.
+    cassette: {
+      editor: (draft, context = {}) => cassettesService.create(
+        draft, context.userId, context.organizationId, context.role, context.executionAuth || null
+      )
+    }
   },
 
   commandHandlers: {

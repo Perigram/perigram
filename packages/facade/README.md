@@ -60,7 +60,11 @@ nesting inputs, and per-piece traceability reference.
   referenced on the created record. The bake/convertDxf operator inputs
   are record-shaped (`name?`, `template`/`source`, bake adds
   `parameters?`), so a graph construct in those modes wires exactly the
-  operator's fields. Construction-time means
+  operator's fields. The bake resolves its template through the pack's
+  own cassette service (legacy repository storage — the pack mounts the
+  instance-service bridge), and the OCCS document rides either home:
+  inline `data.definition` (command-saved templates) or the payload
+  file. Construction-time means
   construction-time: template edits or source-file changes after
   construction never propagate to production pieces. The hand layer
   mapping (DXF layer names → canonical layers) remains the STANDARD

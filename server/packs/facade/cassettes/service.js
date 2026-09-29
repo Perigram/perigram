@@ -109,7 +109,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const origin = await initialCassetteStatus(targetOrgId, userId, 'Template created');
 
-  if (userPermissions && !hasLineagePermission(userPermissions, { lineage, status: origin }, 'cassettes', 'write')) {
+  if (userPermissions && !hasLineagePermission(userPermissions, { lineage, status: origin }, 'files', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
 
@@ -142,7 +142,7 @@ export async function importFromArtifact(artifactId, name, userId, userOrg, user
   const targetOrgId = userOrg || userId;
   const lineage = { organizationId: toFlexibleId(targetOrgId) };
 
-  if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassettes', 'write')) {
+  if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'files', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -213,7 +213,7 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
 
   return cassettes
     .map(toDTO)
-    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'cassettes', 'read'));
+    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'files', 'read'));
 }
 
 export async function listPreviewByLibraries(libraryIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
@@ -228,7 +228,7 @@ export async function listPreviewByLibraries(libraryIds = [], userId, userOrg, u
   const previews = {};
   const cassettes = raws
     .map(raw => new Cassette(raw).toJSON())
-    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'cassettes', 'read'))
+    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'files', 'read'))
     .sort(sortByStatusTimestampDesc);
 
   for (const cassette of cassettes) {
@@ -310,7 +310,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
 
   const cassette = new Cassette(raw);
 
-  if (userPermissions && !hasLineagePermission(userPermissions, cassette, 'cassettes', 'read')) {
+  if (userPermissions && !hasLineagePermission(userPermissions, cassette, 'files', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -343,7 +343,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'files', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -385,7 +385,7 @@ export async function updateLayerMapping(id, mapping, userId, userOrg, userRole,
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'files', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -408,7 +408,7 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'files', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -426,7 +426,7 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const cassette = await getById(toFlexibleId(id), userId, userOrg, userRole, userPermissions);
 
-  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'admin')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'files', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
