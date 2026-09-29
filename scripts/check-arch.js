@@ -697,6 +697,46 @@ for (const file of [...walkDir('server'), ...walkDir('shared')]) {
   }
 }
 
+// SPEC §8 species purity at the pack layer: a service's input signature
+// carries no `ref` fields (dereferencing is the projection's job), and a
+// value-service handler module imports no entity/file features (pure V→V).
+// Both violations are how ref-swallowing services get built — the guards
+// make them fail the architecture check instead of a review.
+function descriptorRefFields(descriptor, path = 'input') {
+  if (!descriptor || typeof descriptor !== 'object') return [];
+  if (descriptor.base === 'ref') return [path];
+  if (descriptor.base === 'record') {
+    return Object.entries(descriptor.fields || {}).flatMap(([key, field]) => descriptorRefFields(field, `${path}.${key}`));
+  }
+  if (descriptor.base === 'list' && descriptor.itemType) {
+    return descriptorRefFields(descriptor.itemType, `${path}[]`);
+  }
+  return [];
+}
+
+for (const pack of orderedMountedPacks()) {
+  for (const service of pack.services || []) {
+    for (const refField of descriptorRefFields(service?.signature?.input)) {
+      console.error(`❌ Pack service ${service.id} declares ref input ${refField} — services are pure V→V (SPEC §8); dereference through a declared projection instead`);
+      errors++;
+    }
+  }
+}
+
+for (const packDir of fs.readdirSync('./server/packs')) {
+  const valueServicesDir = path.join('./server/packs', packDir, 'value-services');
+  if (!fs.existsSync(valueServicesDir)) continue;
+  for (const file of walkDir(valueServicesDir)) {
+    if (!file.endsWith('.js') || file.endsWith('.spec.js')) continue;
+    const relFile = path.relative('.', file);
+    const content = fs.readFileSync(file, 'utf8');
+    if (/features\/(instances|files)\/|instanceServiceResolver/.test(content)) {
+      console.error(`❌ ${relFile} resolves entities or files — value-service handlers are pure V→V (SPEC §8); move the read to a declared projection (projections/)`);
+      errors++;
+    }
+  }
+}
+
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {
   console.log('✅ All features comply with v24 Golden Path.');

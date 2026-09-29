@@ -62,6 +62,21 @@ export function mapDataPacket(tree, mapper) {
   };
 }
 
+// Async per-item map over a packet (the extract read's projection seam is
+// async); branch/item topology preserved exactly like mapDataPacket.
+export async function mapDataPacketAsync(tree, mapper) {
+  const normalized = normalizeDataTree(tree);
+  const branches = [];
+  for (const branch of normalized.branches) {
+    const items = [];
+    for (let index = 0; index < branch.items.length; index += 1) {
+      items.push(await mapper(branch.items[index], { path: [...branch.path], index }));
+    }
+    branches.push({ path: [...branch.path], items });
+  }
+  return { branches };
+}
+
 export function solveDataTrees(inputs = [], solve, options = {}) {
   const access = inputs.map(input => input.access || 'item');
   const trees = inputs.map(input => applyInputTransforms(normalizeDataTree(input.tree), input.transforms));

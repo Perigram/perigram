@@ -70,6 +70,7 @@ const definitions = [
   data('collection.dispatch', 'dispatch'),
   data('collection.groupBy', 'groupBy'),
   data('collection.filter', 'filterValues'),
+  data('collection.join', 'joinByKey'),
   data('tree.flatten', 'flatten'),
   data('tree.graft', 'graft'),
   data('tree.simplify', 'simplify'),
@@ -382,6 +383,22 @@ function nativeReadPorts(record = {}, context = {}) {
     return {
       inputs: [declarationTypePin(record)],
       outputs: [socket('result', processType('entity', { typeId }), DATA, false, 'list')]
+    };
+  }
+  if (select === 'extract') {
+    // The declared entity→value gate (SPEC §8 p): the bound type's
+    // declared projection owns the output type and the resolve. Entity
+    // or ref input (same-type entity and entityRef sockets are
+    // compatible), lazy data source — no event contract. A list output
+    // projects as its element type with List access (a runtime
+    // collection), exactly like a service signature's list field.
+    const projection = context.domain?.projectionContracts?.[`${typeId}/${record.projection}`];
+    const output = projection?.output || {};
+    const element = output.base === 'list' ? (output.itemType || {}) : output;
+    const outputType = ctsFieldToProcessType(element) || processType('json', { nullable: true });
+    return {
+      inputs: [socket('entity', processType('entity', { typeId }), DATA, true, output.base === 'list' ? 'list' : 'item')],
+      outputs: [socket('result', outputType, DATA, false, output.base === 'list' ? 'list' : 'item')]
     };
   }
 
@@ -761,6 +778,17 @@ function catalogPorts(record = {}, context = {}) {
   if (kind === 'collection.filter') return {
     inputs: [socket('items', configured, DATA, true, 'list'), socket('mask', processType('boolean'), DATA, true, 'list')],
     outputs: [socket('items', configured, DATA, false, 'list')]
+  };
+  // The relational brick (SPEC §18 bounded iteration): two value lists
+  // joined by authored key paths — strict inner join, left order
+  // preserved, every left key must match exactly one right entry or the
+  // node fails listing the unmatched keys.
+  if (kind === 'collection.join') return {
+    inputs: [
+      socket('left', configured, DATA, true, 'list'),
+      socket('right', configured, DATA, true, 'list')
+    ],
+    outputs: [socket('pairs', processType('record'), DATA, false, 'list')]
   };
   if (kind === 'tree.flatten' || kind === 'tree.graft' || kind === 'tree.simplify' || kind === 'tree.transpose' || kind === 'tree.clean') return { inputs: [socket('value', configured, DATA, true, 'tree')], outputs: [socket('value', configured, DATA, false, 'tree')] };
   if (kind === 'tree.stats') return { inputs: [socket('value', configured, DATA, true, 'tree')], outputs: [socket('stats', processType('record'))] };

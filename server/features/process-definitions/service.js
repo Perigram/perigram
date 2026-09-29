@@ -421,7 +421,7 @@ export async function archive(id, auth) {
 
 function manualRunEnvironment(definition, auth = {}, domain = null) {
   return {
-    executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
+    executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data, domain),
     isAsyncBoundary: (request, result) => request.kind === 'effect.runCommand' && hasAsyncOutputBoundary(result),
     catalogContext: catalogContextFromDefinition(definition.data, domain),
     // The evaluator must see the same projected domain the compile path
@@ -429,7 +429,7 @@ function manualRunEnvironment(definition, auth = {}, domain = null) {
     // against the projected entity contract, so the runtime block check
     // reading the static base domain would reject them as undeclared.
     domain: domain || getDomain(),
-    data: run => processDataEnvironment(auth, run)
+    data: run => processDataEnvironment(auth, run, domain)
   };
 }
 
@@ -578,7 +578,7 @@ export async function ingestTaskCompletion({ taskRunId, taskResult = {} } = {}) 
       }, {
         catalogContext: catalogContextFromDefinition(definition.data, resumedDomain),
         domain: resumedDomain,
-        data: run => processDataEnvironment(actor, run)
+        data: run => processDataEnvironment(actor, run, resumedDomain)
       });
       return { state: resumed };
     }
@@ -678,7 +678,7 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
         domain: previewDomain
       };
     },
-    data: processDataEnvironment(auth, run)
+    data: processDataEnvironment(auth, run, previewDomain)
   }));
 }
 
@@ -1336,9 +1336,9 @@ async function normalizeProcessMutation(typeId, mutation = {}, relationContracts
   return { ...mutation, relations: normalizedRelations };
 }
 
-function processRelationContracts(record = {}, processData = {}) {
+function processRelationContracts(record = {}, processData = {}, domain = getDomain()) {
   const actionId = String(record.entryTriggerId || record.id || '');
-  return normalizeProcessDefinition(processData, getDomain()).actions?.[actionId]?.mutation?.relationContracts || [];
+  return normalizeProcessDefinition(processData, domain).actions?.[actionId]?.mutation?.relationContracts || [];
 }
 
 function declaredRelationValues(value, contracts = []) {
@@ -1440,8 +1440,7 @@ function setByPath(target, path, value) {
   if (parts[0]) cursor[parts[0]] = value;
 }
 
-function processDataEnvironment(auth, run) {
-  const domain = getDomain();
+function processDataEnvironment(auth, run, domain = getDomain()) {
   const resolveEntity = (typeId, idOrRef) => resolveProcessGraphEntity(typeId, idOrRef, { auth });
   const queryEntities = (typeId, filters) => queryProcessGraphEntities(typeId, filters, auth);
   return {
@@ -1458,12 +1457,33 @@ function processDataEnvironment(auth, run) {
       const service = getAppRegistry().getInstanceService(typeId);
       if (!service?.processList) throw new Error(`Entity service cannot query ${typeId} from a process`);
       return executeProcessQuery(service.processList, predicate, auth);
+    },
+    // The declared-projection seam (SPEC §8 p extract): the graph's only
+    // entity→value dereference beside the reads above. The projection
+    // declaration owns the resolve — a stored field path is read here, a
+    // handler id is dispatched to the pack mount that bound it.
+    projectEntity: async (typeId, projectionId, target) => {
+      const contract = domain.projectionContracts?.[`${typeId}/${projectionId}`];
+      if (!contract) throw new Error(`No projection ${projectionId} declared on ${typeId}`);
+      const id = target && typeof target === 'object'
+        ? String(target._id ?? target.id ?? '')
+        : String(target ?? '');
+      if (!id) throw new Error(`Projection ${projectionId} requires a ${typeId} instance`);
+      if (contract.resolve.field) {
+        const instance = await resolveProcessGraphEntity(typeId, id, { auth });
+        if (!instance) throw new Error(`${typeId} ${id} not found for projection ${projectionId}`);
+        return String(contract.resolve.field).split('.').filter(Boolean)
+          .reduce((value, key) => value == null ? undefined : value[key], instance);
+      }
+      const handler = getAppRegistry().getProjectionHandler(contract.resolve.handler);
+      if (!handler) throw new Error(`No handler bound for projection ${typeId}/${projectionId}`);
+      return await handler({ type: typeId, id, _id: id }, { auth });
     }
   };
 }
 
-async function executeDurableEffect(request, auth, run, processData) {
-  return await performDurableEffect(request, auth, processData);
+async function executeDurableEffect(request, auth, run, processData, domain) {
+  return await performDurableEffect(request, auth, processData, domain);
 }
 
 // The effect boundary receives the entity in every shape the run context
@@ -1482,7 +1502,7 @@ function effectEntityTarget(value, typeId) {
   return null;
 }
 
-export async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
+export async function performDurableEffect({ kind, record, inputs }, auth, processData = {}, domain = getDomain()) {
   // Native species records classify once here: the durable branches stay
   // keyed on the operation contract while the record keeps its species
   // kind, discriminator, and authored state reference intact.
@@ -1508,7 +1528,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     throw new Error(`${typeId} does not support process ${requiredCapability}`);
   }
   const relationContracts = ['effect.createEntity', 'effect.updateEntity'].includes(operation)
-    ? processRelationContracts(record, processData)
+    ? processRelationContracts(record, processData, domain)
     : [];
   if (operation === 'effect.createEntity' || operation === 'effect.runProducer') {
     const constructionDraft = processConstructionInputRecord(record, inputs);
@@ -1516,7 +1536,11 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const executionAuth = createActionExecutionAuth(auth, record);
-    blockDraft = await normalizeProcessMutation(typeId, blockDraft, relationContracts, executionAuth);
+    // Relation values arrive on two channels — the block socket and the
+    // construct-addressable `relations.*` construction inputs — and both
+    // normalize through the same declared-edge contract, so the stored
+    // shape is the declared cardinality whichever channel carried it.
+    blockDraft = await normalizeProcessMutation(typeId, { ...blockDraft, ...constructionDraft }, relationContracts, executionAuth);
     let targetState = inputs.state ?? inputs['states.main']
       ?? (Object.hasOwn(record.inputDefaults || {}, 'state') ? String(authoredSocketDefault(record.inputDefaults.state)) : undefined)
       ?? (Object.hasOwn(record.inputDefaults || {}, 'states.main') ? processDefaultValue(record.inputDefaults['states.main']) : undefined)
@@ -1536,7 +1560,6 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     }
     const draft = {
       ...blockDraft,
-      ...constructionDraft,
       // §3/§8 causal record: the effect boundary stamps provenance on
       // every process-constructed instance — op names the node and its
       // construction mode, sources collect the typed entity inputs plus

@@ -514,6 +514,22 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
         type: input.type,
         required: input.required === true
       })),
+      // Construct-addressable relation inputs carry their declared-edge
+      // contracts on the mutation, so the runtime's relation normalize
+      // accepts the write from the construction-input channel too. Only
+      // AUTHORED inputs mint contracts — the contract-normalized list
+      // would derive link actions for relations the author never wired.
+      relationContracts: (node.construction?.inputs || [])
+        .map(input => {
+          const path = String(input.id || input.path || '');
+          if (!path.startsWith('relations.')) return null;
+          const key = path.split('.')[1] || '';
+          const declared = declaredRelationForTarget(domain, node.typeId, input.typeId, key);
+          return declared
+            ? { ownerType: node.typeId, key: declared.key, targetType: declared.targetType, cardinality: declared.cardinality || 'one' }
+            : null;
+        })
+        .filter(Boolean),
       parentTypeId: ''
     };
   }
@@ -623,13 +639,30 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     };
     }))
     .filter(relation => relation.key && relation.targetType);
+  // Construct-addressable relation inputs (constructionInputsForContract
+  // exposes them as sockets) carry their declared-edge contracts on the
+  // action too, so the runtime's relation normalize accepts the write
+  // whichever channel delivered the value — composer or construction
+  // input.
+  const constructionRelationContracts = (node.construction?.inputs || [])
+    .map(input => {
+      const path = String(input.id || input.path || '');
+      if (!path.startsWith('relations.')) return null;
+      const key = path.split('.')[1] || '';
+      const declared = declaredRelationForTarget(domain, node.typeId, input.typeId, key);
+      return declared
+        ? { ownerType: node.typeId, key: declared.key, targetType: declared.targetType, cardinality: declared.cardinality || 'one' }
+        : null;
+    })
+    .filter(Boolean)
+    .filter(contract => !relationContracts.some(existing => existing.key === contract.key));
   return {
     fields,
     defaults: Object.assign({}, ...composers.map(record => plainProcessDefaults(record.inputDefaults))),
     wiredFields,
     schemas: allSchemas,
     parentTypeId: node.parentTypeId || (parentTypes.length === 1 ? parentTypes[0] : ''),
-    relationContracts
+    relationContracts: [...relationContracts, ...constructionRelationContracts]
   };
 }
 

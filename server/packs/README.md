@@ -20,19 +20,39 @@ domain, the admin domain route, and the designer resolve their
 `packServices` from, so a pack registration reaches every surface without
 a per-surface import.
 
+Type declarations may carry `projections` (SPEC §8 `p extract`, declared
+next to their type): `{ id, label, output, resolve }` where `resolve` is
+either a stored `field` path (the projection is a pure row read — no
+handler) or a `handler` id bound by a pack mount's `projectionHandlers`.
+Projection handlers are entity reads — that is the projection's job — and
+live in `server/packs/<pack>/projections/`.
+
+Value-service handlers (SPEC §8 s-species) are pure V→V: they never
+import instance or file services — dereferencing is a projection's job
+(see the purity rule in
+[packages/cts/SPEC.md](../../packages/cts/SPEC.md) §8). They live in
+`server/packs/<pack>/value-services/`, and two architecture guards hold
+the line: service input signatures with `ref` fields are rejected at the
+declaration, and `value-services/` modules importing the instance or
+files features are rejected at the mount (see
+[scripts/README.md](../../scripts/README.md)).
+
+- `documents/` — the pack mount binding the `rows` projection handler
+  (`documents.tableRows`, see
+  [@perigram/documents](../../packages/documents/README.md)); the types
+  ride the generic instance machinery.
 - `tech-drawing/` — mounted purely by composition (no service bindings):
   the `pen-template` and `layer-standard` reference types and their
   system-catalog instances ride the generic instance machinery.
   Declaration data lives in `packages/tech-drawing/src/index.js`.
 - `facade/` — the facade pack: cassette (OCCS file + cassette-designer editor),
-  sheet design, the declared sheet-material type, the nesting value
-  services (`nesting.solve`, `nesting.items`, `orders.readRows`,
-  `cassettes.resolveByName` → their command handlers in the pack's
-  `nesting/`, `orders/`, and `cassettes/` modules), and the
+  sheet design, the declared sheet-material type, the pure `nesting.solve`
+  value service (its handler in `value-services/`), the declared
+  `nesting-polygons` projection on `cassette-design`, and the
   `cassette-design` production type whose `upload`/`bake`/`convertDxf`
   construction handlers produce per-piece records with extractable
   geometry. The pack is the implementation home, not a binding manifest:
-  `cassettes/`, `orders/`, and `nesting/` live inside this module with
+  `cassettes/` and `nesting/` live inside this module with
   their repositories, services, and specs — removing the pack removes the
   domain's code, not just its registry mounts. The core framework imports
   none of it: `artifact-conversions` and `generateAttachment` receive

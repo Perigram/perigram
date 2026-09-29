@@ -71,53 +71,9 @@ export const facadeCommands = {
   // command; a graph-driven cts.service effect reaches the handler through
   // its definition with the declared signature fields on `parameters`. No
   // entity inputs or output entities: values in, values out.
-  readOrderRows: {
-    id: 'readOrderRows',
-    service: 'facade',
-    action: 'readOrderRows',
-    label: 'Read order rows',
-    input: {
-      parameters: [
-        { name: 'source', label: 'Order table', type: 'object', required: true },
-        { name: 'nameColumn', label: 'Name column', type: 'string' },
-        { name: 'templateColumn', label: 'Template column', type: 'string' }
-      ]
-    },
-    triggers: [],
-    output: {},
-    access: { permissions: [{ feature: 'cts-types', level: 'read' }] }
-  },
-  resolveCassetteNames: {
-    id: 'resolveCassetteNames',
-    service: 'facade',
-    action: 'resolveCassetteNames',
-    label: 'Resolve cassette templates',
-    input: {
-      parameters: [
-        { name: 'names', label: 'Template names', type: 'array', required: true }
-      ]
-    },
-    triggers: [],
-    output: {},
-    access: { permissions: [{ feature: 'cts-types', level: 'read' }] }
-  },
-  buildNestingItems: {
-    id: 'buildNestingItems',
-    service: 'facade',
-    action: 'buildNestingItems',
-    label: 'Build nesting items',
-    input: {
-      parameters: [
-        { name: 'designs', label: 'Cassette designs', type: 'array', required: true }
-      ]
-    },
-    triggers: [],
-    output: {},
-    access: { permissions: [{ feature: 'cts-types', level: 'read' }] }
-  },
   // The nesting solver's V -> V boundary: items in, layouts + summary out.
-  // Sheet width/height come from the material instance the graph binds;
-  // space/sheetCount are optional solver knobs with handler defaults.
+  // The sheet arrives as values (sheetWidth/sheetHeight/thickness) — the
+  // graph reads them off the material; the handler resolves nothing.
   solveNestingValue: {
     id: 'solveNestingValue',
     service: 'nesting',
@@ -126,7 +82,8 @@ export const facadeCommands = {
     input: {
       parameters: [
         { name: 'items', label: 'Job geometry', type: 'array', required: true },
-        { name: 'material', label: 'Sheet material', type: 'object', required: true },
+        { name: 'sheetWidth', label: 'Sheet width', type: 'number', required: true },
+        { name: 'sheetHeight', label: 'Sheet height', type: 'number', required: true },
         { name: 'space', label: 'Part spacing', type: 'number' },
         { name: 'sheetCount', label: 'Sheet count', type: 'number' }
       ]

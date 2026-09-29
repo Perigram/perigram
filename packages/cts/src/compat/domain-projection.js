@@ -352,6 +352,25 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     }
   }
 
+  // projections: declared extract projections (SPEC §8 p) from every
+  // view type, keyed '<typeId>/<projectionId>' — the projection
+  // declaration owns its output type and its resolve (stored field path
+  // or pack-mounted handler). The graph's extract reads resolve through
+  // this map; nothing else may dereference a payload.
+  const projectionContracts = {};
+  for (const type of types) {
+    for (const projection of (type.projections || [])) {
+      if (!projection?.id || !projection.output || !projection.resolve) continue;
+      projectionContracts[`${type.id}/${projection.id}`] = {
+        typeId: type.id,
+        id: projection.id,
+        label: projection.label || projection.id,
+        output: projection.output,
+        resolve: projection.resolve
+      };
+    }
+  }
+
   // attachmentKinds: payload traits are the whole upload contract (SPEC
   // §4) — one upload-backed kind per payload-bearing type, keyed by type
   // id. The creation mode is the type's first declared protocol.
@@ -388,6 +407,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     construction,
     relations,
     attachmentKinds,
+    ...(Object.keys(projectionContracts).length ? { projectionContracts } : {}),
     ...(Object.keys(services).length ? { serviceContracts: services } : {})
   };
 }

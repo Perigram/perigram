@@ -147,7 +147,16 @@ export const facadeFileTypes = [
           }
         }
       }
-    }
+    },
+    // Declared extract projection (SPEC §8 p / §16): a design instance →
+    // its baked nesting geometry. The stored path lives in the
+    // declaration — the graph never authors paths into stored payloads.
+    projections: [{
+      id: 'nesting-polygons',
+      label: 'Nesting polygons',
+      output: { base: 'list', itemType: { base: 'record', fields: { coordinates: { base: 'list', itemType: { base: 'record', fields: { x: { base: 'quantity', unit: 'mm' }, y: { base: 'quantity', unit: 'mm' } } } } } } },
+      resolve: { field: 'data.geometry.nestingPolygons' }
+    }]
   },
   {
     // The declared material (SPEC §16 `Material`): the sheet stock a
@@ -218,12 +227,11 @@ export const facadeEditors = [
 ];
 
 // Registered services (SPEC §8 s species) are executable registrations,
-// not aspirations. Signatures are the V grammar; `Ref` is a value (SPEC
-// §2), so a service may accept typed instance references and resolve them
-// through the instance services — how a graph reaches stored payload data
-// (order tables, baked geometry) without an entity leaking into a value
-// boundary. Each registration names its command; the pack mount binds the
-// handler beside it.
+// not aspirations. Signatures are the V grammar and pure: inputs carry no
+// `ref` fields — a graph reaches stored data through declared projections
+// (the documents pack's `rows`, this pack's `nesting-polygons`), never
+// through a service dereferencing an instance. Each registration names
+// its command; the pack mount binds the handler beside it.
 const point = { base: 'record', fields: { x: { base: 'quantity', unit: 'mm' }, y: { base: 'quantity', unit: 'mm' } } };
 const ring = { base: 'list', itemType: point };
 const polygonPart = { base: 'record', fields: { coordinates: ring } };
@@ -237,70 +245,21 @@ const nestingItem = {
 };
 export const facadeServices = [
   {
-    // One order row → one cassette-design order line: the display name,
-    // the template it names, and the parameter cells. Column detection is
-    // the declared convention (an exact column override wins, else the
-    // case-insensitive defaults); every other column is a parameter cell.
-    id: 'orders.readRows',
-    species: 'service',
-    command: 'readOrderRows',
-    signature: {
-      input: { base: 'record', fields: {
-        source: { base: 'ref', accepts: ['xlsx-workbook', 'csv-table'] },
-        nameColumn: { base: 'string', nullable: true },
-        templateColumn: { base: 'string', nullable: true }
-      } },
-      output: { base: 'list', itemType: { base: 'record', fields: {
-        name: { base: 'string' },
-        templateName: { base: 'string' },
-        parameters: { base: 'map', itemType: { base: 'json' } }
-      } } }
-    },
-    render: { label: 'Read order rows', icon: 'pi pi-table' }
-  },
-  {
-    // Order-line template names → cassette refs, order-preserving: the
-    // bake construct consumes the refs aligned with the rows they came
-    // from. Unmatched names fail the call listing every missing name.
-    id: 'cassettes.resolveByName',
-    species: 'service',
-    command: 'resolveCassetteNames',
-    signature: {
-      input: { base: 'record', fields: {
-        names: { base: 'list', itemType: { base: 'string' } }
-      } },
-      output: { base: 'list', itemType: { base: 'ref', accepts: ['cassette'] } }
-    },
-    render: { label: 'Resolve cassette templates', icon: 'pi pi-search' }
-  },
-  {
-    // Cassette designs → nesting job items: the baked geometry of each
-    // design read once, server-side (the p-extract seam of SPEC §16 —
-    // stored geometry never travels the graph as authored json paths).
-    id: 'nesting.items',
-    species: 'service',
-    command: 'buildNestingItems',
-    signature: {
-      input: { base: 'record', fields: {
-        designs: { base: 'list', itemType: { base: 'ref', accepts: ['cassette-design'] } }
-      } },
-      output: { base: 'list', itemType: nestingItem }
-    },
-    render: { label: 'Nesting items', icon: 'pi pi-objects-column' }
-  },
-  {
     // The nesting solver's V -> V boundary: job items in, layouts and a
     // summary out (the solver's raw layout payload is the one
-    // true-external Json escape). Sheet parameters come from the declared
-    // material (width/height) plus the two solver knobs (part spacing,
-    // sheet count) as authored socket fallbacks.
+    // true-external Json escape). The sheet arrives as VALUES — the
+    // graph reads width/height/thickness off the material through the
+    // field projection; the handler resolves nothing. `space` and
+    // `sheetCount` are solver knobs with authored fallbacks (3 mm / 1
+    // sheet).
     id: 'nesting.solve',
     species: 'service',
     command: 'solveNestingValue',
     signature: {
       input: { base: 'record', fields: {
         items: { base: 'list', itemType: nestingItem },
-        material: { base: 'ref', accepts: ['sheet-material'] },
+        sheetWidth: { base: 'quantity', unit: 'mm' },
+        sheetHeight: { base: 'quantity', unit: 'mm' },
         space: { base: 'quantity', unit: 'mm', nullable: true },
         sheetCount: { base: 'quantity', unit: 'count', nullable: true }
       } },
