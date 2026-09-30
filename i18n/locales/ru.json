@@ -2548,17 +2548,6 @@
     "definitionActions": "Действия с определением",
     "versions": "Версии",
     "tidy": "Упорядочить граф",
-    "paletteGroups": {
-      "entities": "Типы",
-      "values": "Значения",
-      "listTree": "Списки и деревья",
-      "operations": "Операции",
-      "typeBindingHint": "Соедините этот узел с construct или read, чтобы привязать тип.",
-      "types": "Типы",
-      "instances": "Сущности",
-      "control": "Поток",
-      "services": "Сервисы"
-    },
     "paletteItems": {
       "modifyEntity": "Изменить сущность",
       "defineStatus": "Задать статус",

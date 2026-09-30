@@ -39,11 +39,11 @@
           @node-drag-stop="onNodeDragStop"
           @nodes-change="onCanvasNodesChange"
         >
-          <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
-          <template #node-ctsClass="props"><ClassNode v-bind="props" /></template>
-          <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
-          <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
-          <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
+          <template #node-ctsType="props"><CtsTypeNode v-bind="props" signal="structure" /></template>
+          <template #node-ctsClass="props"><ClassNode v-bind="props" signal="structure" /></template>
+          <template #node-ctsField="props"><FieldNode v-bind="props" signal="structure" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-ctsState="props"><StateNode v-bind="props" signal="structure" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-processNode="props"><ProcessNode v-bind="props" :signal="signalForNode(props)" /></template>
           <template #zoom-pane>
             <LaneBands
               :bands="laneBands"
@@ -82,12 +82,12 @@
         </div>
         <OperationPalette
           ref="contextPaletteSearch"
-          :groups="contextPaletteListboxGroups"
+          :items="contextPaletteItems"
           :placeholder="contextPalette.socket ? $t('processDesigner.compatibleOperations') : $t('processDesigner.addOperation')"
           @pick="addContextNode"
           @close="closeContextPalette"
         />
-        <Message v-if="!contextPaletteListboxGroups.length" class="m-2 shrink-0" severity="secondary" size="small">
+        <Message v-if="!contextPaletteItems.length" class="m-2 shrink-0" severity="secondary" size="small">
           {{ $t('processDesigner.noCompatibleOperations') }}
         </Message>
       </div>
@@ -98,7 +98,7 @@
 
       <template #palette>
         <OperationPalette
-          :groups="paletteListboxGroups"
+          :items="paletteItems"
           :placeholder="$t('processDesigner.searchOperations')"
           @pick="item => (item.action ? item.action() : addNode(item))"
         />
@@ -648,6 +648,7 @@ import DeclarationInspector from '~/components/process-designer/inspector/Declar
 import DeclarationEdgeInspector from '~/components/process-designer/inspector/DeclarationEdgeInspector.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
+import { signalForPaletteGroup } from '~/utils/processDesignerSignals.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
 import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
@@ -719,7 +720,7 @@ function activeOrganizationId() {
     || null;
 }
 
-const { paletteLabel, paletteDescription, paletteGroupLabel } = createPaletteText({ t, te });
+const { paletteLabel, paletteDescription } = createPaletteText({ t, te });
 
 // CTS declaration layer: the palette, entity/field/status option lists, and
 // compilation all derive from one source — the organization's type registry
@@ -992,15 +993,31 @@ const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = u
   isCompatible: contextItemCompatible
 });
 
-// Listbox-shaped projection of both palettes: localized group labels and
-// per-item labels (the Listbox filter matches them) + descriptions for the
-// row tooltip.
-const toListboxGroups = groups => (groups || []).map(group => ({
-  label: paletteGroupLabel(group.id),
-  items: group.items.map(item => ({ ...item, label: paletteLabel(item), description: paletteDescription(item) }))
-}));
-const paletteListboxGroups = computed(() => toListboxGroups(paletteGroups.value));
-const contextPaletteListboxGroups = computed(() => toListboxGroups(contextPaletteGroups.value));
+// Palette items for the chip palettes: flat, localized, with the shared
+// category signal (chips and canvas nodes read the same token).
+const toPaletteItems = groups => (groups || []).flatMap(group =>
+  group.items.map(item => ({
+    ...item,
+    label: paletteLabel(item),
+    description: paletteDescription(item),
+    signal: signalForPaletteGroup(group.id)
+  })));
+const paletteItems = computed(() => toPaletteItems(paletteGroups.value));
+const contextPaletteItems = computed(() => toPaletteItems(contextPaletteGroups.value));
+
+// Canvas nodes stripe with the same signal as the chip that creates them:
+// operation kinds resolve through the palette catalog, declaration nodes
+// are structure by definition.
+const signalByKind = computed(() => {
+  const map = new Map();
+  for (const group of designer.paletteGroups || []) {
+    for (const item of group.items) {
+      if (item.kind) map.set(item.kind, signalForPaletteGroup(group.id));
+    }
+  }
+  return map;
+});
+const signalForNode = node => signalByKind.value.get(node.data?.kind) || 'effect';
 const lifecycleModes = computed(() => [
   { label: t('processDesigner.lifecycleModeDefaultCreated'), value: 'defaultCreated' },
   { label: t('processDesigner.lifecycleModeDomainDefault'), value: 'domainDefault' },

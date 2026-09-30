@@ -2548,17 +2548,6 @@
     "definitionActions": "Definition actions",
     "versions": "Versions",
     "tidy": "Tidy graph",
-    "paletteGroups": {
-      "entities": "Types",
-      "values": "Values",
-      "listTree": "Lists and trees",
-      "operations": "Operations",
-      "typeBindingHint": "Wire this node into a construct or read node to bind its type.",
-      "types": "Types",
-      "instances": "Entities",
-      "control": "Flow",
-      "services": "Services"
-    },
     "paletteItems": {
       "modifyEntity": "Modify entity",
       "defineStatus": "Define status",

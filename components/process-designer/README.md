@@ -139,11 +139,12 @@ registered service species. **Instances** owns context, all, typed-reference
 resolution, exact declared-edge traversal, and field projection. **Values**,
 **Collections**, and **Flow** own explicit value/list/branch semantics.
 Both the rail palette and the canvas context palette render through one
-component, `OperationPalette.vue`: a filterable PrimeVue `Listbox` with
-option groups (localized group labels, icon rows, per-item tooltip) —
-picking an item emits once and selects nothing. The Listbox owns the
-filter box and group headers; the preset renders listbox roots borderless
-because every use sits inside a rail that already owns its frame.
+component, `OperationPalette.vue`: a searchable wrap of chips — small
+PrimeVue Buttons (no icons, no group headers) whose dot carries the
+item's category signal. The SAME signal token stripes the canvas node
+the chip creates (`utils/processDesignerSignals.js` is the single
+group→signal map; `DesignerNodeCard` owns the stripe), so a chip reads
+like the node it adds.
 There is no raw-id source, producer join, fixed-arity list constructor, block
 substrate, or hidden predicate input. Unknown service operators fail with a
 named diagnostic.

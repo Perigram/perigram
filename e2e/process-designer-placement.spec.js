@@ -34,7 +34,7 @@ test('palette add places at the viewport center and lanes wrap their cards', asy
   await expect(app.page.locator('.process-designer-canvas, [data-vue-flow-container], .vue-flow').first()).toBeVisible({ timeout: 20_000 });
 
   // first add: the card appears once, inside the visible viewport span
-  const paletteLiteral = app.page.getByRole('option', { name: 'Literal', exact: true });
+  const paletteLiteral = app.page.getByRole('button', { name: 'Literal', exact: true });
   await paletteLiteral.click();
   await app.page.waitForTimeout(800);
   const firstPlacement = await nodeTransforms(app.page);
