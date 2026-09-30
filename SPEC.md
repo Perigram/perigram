@@ -22,6 +22,11 @@ categories (palette chips and canvas nodes alike) are told apart by shared
 signal styling, not icons or headers — the palette entry looks like the
 node it creates.
 
+Node layouts stay simple: a literal is one row (type dropdown + value;
+multiline data wraps below at the node's max width). Operation node width
+follows its socket names — input and output columns keep a fixed gap,
+names crop at a max length, the node title likewise.
+
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be
 preserved (panes and sidebar w/ chats and calls). "Screens" should go to panes/tabs, top-level menu still
