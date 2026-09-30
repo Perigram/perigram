@@ -78,6 +78,10 @@ export const designTokens = {
         dialogXl: '72rem',
         supportChatWidth: '25rem',
         supportChatHeight: '31.25rem',
+        callWindowWidth: '30rem',
+        callWindowHeight: '34rem',
+        callWindowMinWidth: '22rem',
+        callWindowMinHeight: '20rem',
         supportChatViewportMaxHeight: 'calc(100dvh - 6rem)',
         supportChatAdminHeight: 'calc(100vh - 12rem)',
         supportChatMessageMax: '85%',
@@ -208,6 +212,10 @@ export const cssVariableTokens = {
     '--ck-dialog-xl': designTokens.layout.dialogXl,
     '--ck-support-chat-width': designTokens.layout.supportChatWidth,
     '--ck-support-chat-height': designTokens.layout.supportChatHeight,
+    '--ck-call-window-width': designTokens.layout.callWindowWidth,
+    '--ck-call-window-height': designTokens.layout.callWindowHeight,
+    '--ck-call-window-min-width': designTokens.layout.callWindowMinWidth,
+    '--ck-call-window-min-height': designTokens.layout.callWindowMinHeight,
     '--ck-support-chat-viewport-max-height': designTokens.layout.supportChatViewportMaxHeight,
     '--ck-support-chat-admin-height': designTokens.layout.supportChatAdminHeight,
     '--ck-support-chat-message-max': designTokens.layout.supportChatMessageMax,
@@ -330,20 +338,26 @@ export const tailwindThemeExtension = {
     },
     width: {
         swatch: 'var(--ck-swatch-size)',
-        'support-chat': 'var(--ck-support-chat-width)'
+        'support-chat': 'var(--ck-support-chat-width)',
+        'call-window': 'var(--ck-call-window-width)'
     },
     height: {
         swatch: 'var(--ck-swatch-size)',
         'support-chat': 'var(--ck-support-chat-height)',
         'support-chat-admin': 'var(--ck-support-chat-admin-height)',
-        'preview-dialog': 'var(--ck-preview-dialog-height)'
+        'preview-dialog': 'var(--ck-preview-dialog-height)',
+        'call-window': 'var(--ck-call-window-height)'
     },
     maxHeight: {
         'board-column': 'var(--ck-board-column-max-height)',
         'support-chat-viewport-max': 'var(--ck-support-chat-viewport-max-height)'
     },
     minHeight: {
-        'support-chat': 'var(--ck-support-chat-height)'
+        'support-chat': 'var(--ck-support-chat-height)',
+        'call-window': 'var(--ck-call-window-min-height)'
+    },
+    minWidth: {
+        'call-window': 'var(--ck-call-window-min-width)'
     },
     borderRadius: {
         ui: 'var(--p-border-radius-md)',
