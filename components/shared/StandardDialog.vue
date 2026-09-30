@@ -3,6 +3,7 @@
         v-bind="$attrs" 
         :modal="true" 
         :class="['w-full', sizeClass]"
+        :pt="sheetPt"
     >
         <template #header v-if="$slots.header">
             <slot name="header"></slot>
@@ -40,8 +41,19 @@ const sizeClass = computed(() => {
         case 'lg': return 'max-w-dialog-lg';
         case 'xl': return 'max-w-dialog-xl';
         case 'full': return 'max-w-full m-4';
+        // The mobile page sheet: edge-to-edge, viewport-height, square —
+        // everything else is desktop dialog chrome. Classes ride pt (the
+        // cascade channel for PrimeVue internals).
+        case 'sheet': return '';
         case 'md':
         default: return 'max-w-dialog-md';
     }
 });
+
+const sheetPt = props.size === 'sheet'
+    ? {
+        root: { class: 'm-0 h-dvh max-w-full rounded-none' },
+        content: { class: 'flex min-h-0 flex-1 flex-col overflow-y-auto' }
+    }
+    : {};
 </script>

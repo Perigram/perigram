@@ -204,7 +204,7 @@
          full detail screen when the popup's bounds are not enough. -->
     <StandardDialog
       v-model:visible="mobileDetailVisible"
-      size="full"
+      size="sheet"
       :show-default-footer="false"
     >
       <template #header>
@@ -222,7 +222,7 @@
           />
         </div>
       </template>
-      <div class="max-h-[70vh] overflow-y-auto">
+      <div class="flex min-h-0 flex-1 flex-col">
         <GeneratedDetailScreen
           v-if="mobileDetailScreen"
           :screen="mobileDetailScreen"
