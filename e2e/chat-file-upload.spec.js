@@ -77,7 +77,10 @@ test.describe('chat file uploads', () => {
     expect(seed.ok(), await seed.text()).toBeTruthy();
 
     await app.page.goto('/chats');
-    const boxRow = app.page.locator('.chat-inbox .p-listbox-option', { hasText: 'Chat upload box' }).first();
+    // The authored construct drops the instance name (unnamed instances
+    // render their id fallback), so the row is located by the seeded
+    // preview text.
+    const boxRow = app.page.locator('.chat-inbox .p-listbox-option', { hasText: 'opening the box thread' }).first();
     await expect(boxRow).toBeVisible({ timeout: 20000 });
     await boxRow.click();
 
