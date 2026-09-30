@@ -243,8 +243,8 @@ const canUpload = computed(() => {
 watch(() => props.cassetteId, async (newId) => {
   if (newId) {
     try {
-      cassette.value = await $fetch(`/api/cassettes/${encodeURIComponent(newId)}`);
-      const mapping = cassette.value.definition?.mapping || cassette.value.definition?.data?.mapping || cassette.value.data?.definition?.mapping;
+      cassette.value = await $fetch(`/api/instances/cassette/${encodeURIComponent(newId)}`);
+      const mapping = cassette.value?.data?.mapping;
       if (mapping) {
         layerMappings.value = { ...mapping };
       }

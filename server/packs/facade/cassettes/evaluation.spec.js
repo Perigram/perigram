@@ -1,25 +1,38 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 
-vi.mock('./repository.js', () => ({
-  findById: vi.fn()
+const { resolverMock, getFileBufferMock } = vi.hoisted(() => ({
+  resolverMock: vi.fn(),
+  getFileBufferMock: vi.fn()
 }));
 
-import * as repository from './repository.js';
+vi.mock('../../../features/instances/service.js', () => ({
+  instanceServiceResolver: resolverMock
+}));
+vi.mock('../../../features/files/service.js', () => ({
+  getFileBuffer: getFileBufferMock,
+  uploadFile: vi.fn()
+}));
+
 import { evaluateTemplate } from './evaluation.js';
 
+const definition = createDefaultOccsCassetteTemplateDefinition();
+
 describe('cassette OCCS evaluation', () => {
-  it('unwraps updated template definition containers before OCCS baking', async () => {
-    repository.findById.mockResolvedValue({
-      _id: 'template-1',
-      data: {
-        type: 'PARAMETRIC',
-        definition: {
-          parameters: ['A', 'B', 'R'],
-          definition: createDefaultOccsCassetteTemplateDefinition()
-        }
-      }
+  beforeEach(() => {
+    resolverMock.mockReset();
+    getFileBufferMock.mockReset();
+  });
+
+  it('evaluates the payload OCCS document — the one definition home', async () => {
+    resolverMock.mockReturnValue({
+      getById: vi.fn(async () => ({
+        _id: 'template-1',
+        identity: { uid: 'template-1', name: 'Template 1' },
+        attachments: { primary: { fileId: 'file-1' } }
+      }))
     });
+    getFileBufferMock.mockResolvedValue(Buffer.from(JSON.stringify(definition), 'utf8'));
 
     const result = await evaluateTemplate('template-1', { A: 700, B: 300, R: 40 });
 
@@ -29,5 +42,18 @@ describe('cassette OCCS evaluation', () => {
       workpieceDefinitionId: 'wp_1_def',
       occurrenceId: 'wp_1'
     });
+  });
+
+  it('refuses a template whose payload is not an OCCS document', async () => {
+    resolverMock.mockReturnValue({
+      getById: vi.fn(async () => ({
+        _id: 'template-2',
+        identity: { uid: 'template-2', name: 'Template 2' },
+        attachments: { primary: { fileId: 'file-2' } }
+      }))
+    });
+    getFileBufferMock.mockResolvedValue(Buffer.from(JSON.stringify({ params: {} }), 'utf8'));
+
+    await expect(evaluateTemplate('template-2', {})).rejects.toMatchObject({ statusCode: 422 });
   });
 });

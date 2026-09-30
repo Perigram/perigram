@@ -22,7 +22,7 @@ export function useCassetteDesignerPersistence() {
   // reads). Payload-less instances pass through untouched — the designer
   // starts its blank graph tree for them.
   async function hydrateDefinition(entity = null) {
-    if (!entity || entity.data?.definition || entity.definition) return entity;
+    if (!entity || entity.definition) return entity;
     const url = instancePayloadFileUrl(entity.attachments?.primary);
     if (!url) return entity;
     try {

@@ -24,6 +24,7 @@ reads. Tech-drawing catalogue instances migrate into §3 documents through
 | Script | When to run | What it does |
 |---|---|---|
 | `migrate-tech-drawing-instances.js` | Adopting the tech-drawing pack instance store | Moves legacy pen/layer-standard rows into §3 pack instances (ids preserved), carrying the `defaultPen` relation. Dry-run; `--apply` persists. |
+| `migrate-cassette-instances.js` | Adopting the §13 cassette store | Moves legacy `cassettes`-collection documents into the per-class `files` collection (ids preserved); inline OCCS definitions upload to the payload bucket. The legacy collection is left for the operator to drop. Dry-run; `--apply` persists. |
 | `migrate-instance-tenancy.js` | Adopting the SPEC §3 tenancy slot | Backfills top-level `organizationId` from `lineage.organizationId` and strips the legacy lineage key. Dry-run; `--apply` persists. |
 | `migrate-instance-revisions.js` | Adopting geometry revisions | Creates or reuses `entity_revisions` records for cassette templates' current geometry scope and writes `data.revisions.geometry` pointers back. |
 | `migrate-artifact-file-revisions.js` | Adopting retained artifact file revisions | Backfills artifact current-file revisions and scoped pointers. Dry-run; `--apply` persists. |

@@ -1,11 +1,11 @@
 import { createError } from 'h3';
 import * as filesService from '../../../features/files/service.js';
 import { instanceServiceResolver } from '../../../features/instances/service.js';
-import * as cassettesService from './service.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../../utils/dxf-extractor.js';
 import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
 import { evaluateOccsCassetteTemplate } from '#utils/occs/evaluate.js';
+import { cassetteDefinition } from './service.js';
 
 // The cassette-design construction handlers (SPEC §21): the pack mount
 // binds them as the type's only construction modes. All three produce a
@@ -46,12 +46,13 @@ function extractGeometry(fileBuffer) {
 }
 
 async function payloadBufferOf(instance, label) {
-  const payloadRef = instance?.attachments?.primary || null;
-  if (!payloadRef?.fileId) {
-    throw createError({ statusCode: 400, message: `${label} carries no DXF payload` });
+  const payloadRef = instance?.attachments?.primary || instance?.payload || null;
+  const fileId = payloadRef?.fileId || payloadRef?.id || null;
+  if (!fileId) {
+    throw createError({ statusCode: 400, message: `${label} carries no payload` });
   }
   // The §3 payload blob home is the `files` GridFS bucket.
-  return await filesService.getFileBuffer(payloadRef.fileId, 'files');
+  return await filesService.getFileBuffer(fileId, 'files');
 }
 
 async function createDesign(draft, context, data, payload) {
@@ -67,8 +68,7 @@ async function createDesign(draft, context, data, payload) {
 }
 
 export async function bakeCassetteDesign(draft = {}, context = {}) {
-  const templateId = String(draft?.data?.template || draft?.template || '').trim();
-  if (!templateId) {
+  const templateId = String(draft?.data?.template || draft?.template || '').trim();  if (!templateId) {
     throw createError({ statusCode: 400, message: 'Cassette design bake requires a template reference' });
   }
   const parameters = draft?.data?.parameters || draft?.parameters || {};
@@ -76,11 +76,9 @@ export async function bakeCassetteDesign(draft = {}, context = {}) {
     throw createError({ statusCode: 400, message: 'Cassette design bake parameters must be an object' });
   }
 
-  // The template is the pack's own record (legacy repository storage):
-  // resolved through the pack service, never the generic resolver.
-  const template = await cassettesService
-    .getById(templateId, context.userId, context.organizationId, context.role, context.executionAuth || null)
-    .catch(() => null);
+  // The template is a §13 file instance: the generic service serves it,
+  // and the OCCS document rides its payload — the one home.
+  const template = await instanceServiceResolver('cassette').getById(templateId);
   if (!template) {
     throw createError({ statusCode: 400, message: `Cassette template ${templateId} not found` });
   }
@@ -90,21 +88,9 @@ export async function bakeCassetteDesign(draft = {}, context = {}) {
     throw createError({ statusCode: 400, message: 'Cassette template belongs to another organization' });
   }
 
-  // The OCCS document rides either home: inline `data.definition`
-  // (command/command-saved templates) or the payload file.
-  let definition = template?.data?.definition && isOccsDocument(template.data.definition)
-    ? template.data.definition
-    : null;
-  if (!definition) {
-    const buffer = await payloadBufferOf(template, `Cassette template ${templateId}`);
-    try {
-      definition = JSON.parse(buffer.toString('utf8'));
-    } catch {
-      throw createError({ statusCode: 400, message: `Cassette template ${templateId} payload is not a readable OCCS document` });
-    }
-    if (!isOccsDocument(definition)) {
-      throw createError({ statusCode: 400, message: `Cassette template ${templateId} is not an OCCS parametric template — only OCCS templates bake` });
-    }
+  const definition = await cassetteDefinition(template);
+  if (!isOccsDocument(definition)) {
+    throw createError({ statusCode: 400, message: `Cassette template ${templateId} is not an OCCS parametric template — only OCCS templates bake` });
   }
 
   const evaluation = await evaluateOccsCassetteTemplate(definition, parameters, {

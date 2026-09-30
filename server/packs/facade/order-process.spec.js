@@ -16,6 +16,7 @@ import * as XLSX from 'xlsx/xlsx.mjs';
 import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
 import { compileTreeDeclarations } from '#packages/processes/src/designer.js';
+import { instanceServiceResolver } from '../../features/instances/service.js';
 
 const harness = vi.hoisted(() => ({
   fileBuffers: new Map(),
@@ -196,7 +197,6 @@ import * as ctsTypesService from '../../features/cts-types/service.js';
 import { facadeDomain } from '~/packages/facade/src/index.js';
 import { composePackServices } from '~/server/packs/declarations.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
-import * as cassettesService from './cassettes/service.js';
 
 const ORG = 'org-order-1';
 const ORDER_LINEAGE_KEY = 'facadeOrderId';
@@ -224,6 +224,13 @@ async function seedInstance(typeId, draft, buffer, mime) {
     ...draft,
     payload: { fileId: stored.id, mime, size: buffer.length }
   }, auth.userId, ORG);
+}
+
+// The template is a §13 file instance: the OCCS document rides the
+// payload, exactly the way the save command and the designer persist it.
+async function seedCassetteTemplate(name) {
+  const buffer = Buffer.from(JSON.stringify(createDefaultOccsCassetteTemplateDefinition()), 'utf8');
+  return await seedInstance('cassette', { identity: { name } }, buffer, 'application/perigram+occs');
 }
 
 const ORDER_TABLE_HEADERS = ['name', 'cassette', 'A', 'B'];
@@ -407,12 +414,7 @@ describe.each(['xlsx-workbook', 'csv-table'])('the order process authored in-tre
   });
 
   async function composeApplyAndRun() {
-    await cassettesService.create({
-      name: 'Tray 600',
-      type: 'PARAMETRIC',
-      definition: createDefaultOccsCassetteTemplateDefinition(),
-      parameters: []
-    }, auth.userId, ORG);
+    await seedCassetteTemplate('Tray 600');
     table = await seedInstance(tableType,
       { identity: { name: 'Order table 42' } },
       tableBuffer(tableType),

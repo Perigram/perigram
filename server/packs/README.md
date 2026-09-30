@@ -45,26 +45,26 @@ files features are rejected at the mount (see
   the `pen-template` and `layer-standard` reference types and their
   system-catalog instances ride the generic instance machinery.
   Declaration data lives in `packages/tech-drawing/src/index.js`.
-- `facade/` — the facade pack: cassette (OCCS file + cassette-designer editor),
-  sheet design, the pure `nesting.solve`
+- `facade/` — the facade pack: cassette (a §13 file type whose payload is
+  the OCCS template document), cassette design, sheet design, the pure
+  `nesting.solve`
   value service (its handler in `value-services/`), the declared
   `nesting-polygons` projection on `cassette-design`, and the
   `cassette-design` production type whose `upload`/`bake`/`convertDxf`
   construction handlers produce per-piece records with extractable
   geometry. The pack is the implementation home, not a binding manifest:
   `cassettes/` and `nesting/` live inside this module with
-  their repositories, services, and specs — removing the pack removes the
-  domain's code, not just its registry mounts. Cassette rides its legacy
-  repository; the pack bridges it into instance-service resolution
-  (service, list/read adapters, the editor construction handler) so
-  process graphs read and construct one home. The core framework imports
-  none of it: `artifact-conversions` and `generateAttachment` receive
-  their facade executors as pack-registered handler overrides, and
-  support's type lists resolve through the registry. Declaration data
-  lives in `packages/facade/src/pack.js`; the pack requires
-  `tech-drawing` and `documents` (pen/layer references and the order
-  table types resolve through the composed view, never by importing
-  them).
+  their specs — removing the pack removes the
+  domain's code, not just its registry mounts. Cassette records and their
+  payload/revision chain ride the generic instance machinery; the pack
+  binds only its domain operations (import, export, evaluation, bake). The
+  core framework imports none of it: `artifact-conversions` and
+  `generateAttachment` receive their facade executors as pack-registered
+  handler overrides, and support's type lists resolve through the
+  registry. Declaration data lives in `packages/facade/src/pack.js`; the
+  pack requires `tech-drawing` and `documents` (pen/layer references and
+  the order table types resolve through the composed view, never by
+  importing them).
 
 ## Related
 

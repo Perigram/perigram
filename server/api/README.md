@@ -6,11 +6,11 @@ Routes are grouped into sub-directories corresponding to features:
 - `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
   replacement, authorized source streaming, and deletion. Template-generated
   artifacts expose `PUT /api/artifacts/:id/layout` for revision-backed edits.
-- `cassettes/`: Template upload (`POST /api/cassettes/upload`), artifact-based
-  import (`POST /api/cassettes/import`), management, and template DXF export.
-  The collection route forwards generated-screen lineage filters such as
-  `libraryId` to the feature service so parent detail pages only list their own
-  child templates.
+- `cassettes/`: The pack's two domain routes — artifact-based import
+  (`POST /api/cassettes/import`, a `DXF_SOURCE` artifact becomes a
+  STANDARD template) and template DXF export
+  (`GET /api/cassettes/:id/export`). Cassette CRUD rides the generic
+  instance transport (`/api/instances/cassette`, SPEC §13).
 - `commands/`: Authenticated execution route for declared domain commands such
   as `saveCassetteTemplate` and `generateAttachment`.
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`

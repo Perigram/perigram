@@ -5,14 +5,18 @@ import {
   redactEntityForAccess
 } from './instance-field-access.js';
 
-const cassette = {
-  _id: 'cassette-1',
-  identity: { uid: 'c-1', name: 'Cassette One' },
+// The policy-bearing guinea pig: a type with a legacy field-access
+// policy (cassette is §13-served — its access derives from the class
+// collection, so it no longer exercises this map).
+const sheetDesign = {
+  _id: 'design-1',
+  identity: { uid: 'd-1', name: 'Design One' },
   lineage: { organizationId: 'org-1' },
   summary: { revisionCount: 2, totalArea: 12 },
+  specs: { sheetIndex: 3 },
   data: {
-    type: 'PARAMETRIC',
-    definition: { graphTree: { nodes: [] } },
+    geometry: { outline: [[0, 0], [10, 0], [10, 10]] },
+    materialPool: ['mat-1'],
     internalCost: 1000
   }
 };
@@ -30,7 +34,7 @@ const user = {
       role: 'role_viewer',
       roleIds: ['role_viewer'],
       status: 'active',
-      permissions: { cassettes: 'read' }
+      permissions: { sheet_designs: 'read' }
     }]
   }
 };
@@ -38,9 +42,9 @@ const user = {
 describe('entity field access', () => {
   it('denies fields without a registered entity policy', () => {
     expect(canDisplayEntityField({
-      permissions: { cassettes: 'admin' },
-      entity: cassette,
-      typeId: 'cassette',
+      permissions: { sheet_designs: 'admin' },
+      entity: { _id: 'x-1' },
+      typeId: 'not-a-type',
       path: 'billing.internalCost'
     })).toBe(false);
   });
@@ -48,31 +52,31 @@ describe('entity field access', () => {
   it('filters card field descriptors by policy and active permissions', () => {
     const fields = [
       { path: 'summary.revisionCount' },
-      { path: 'data.type' },
-      { path: 'data.definition' },
+      { path: 'data.materialPool' },
+      { path: 'data.geometry.outline' },
       { path: 'data.internalCost' }
     ];
 
     expect(filterEntityFields({
       fields,
-      permissions: { cassettes: 'read' },
-      entity: cassette,
-      typeId: 'cassette'
+      permissions: { sheet_designs: 'read' },
+      entity: sheetDesign,
+      typeId: 'sheet-design'
     }).map(field => field.path)).toEqual([
       'summary.revisionCount',
-      'data.type',
-      'data.definition'
+      'data.materialPool',
+      'data.geometry.outline'
     ]);
 
     expect(filterEntityFields({
       fields,
-      permissions: { cassettes: 'write' },
-      entity: cassette,
-      typeId: 'cassette'
+      permissions: { sheet_designs: 'write' },
+      entity: sheetDesign,
+      typeId: 'sheet-design'
     }).map(field => field.path)).toEqual([
       'summary.revisionCount',
-      'data.type',
-      'data.definition',
+      'data.materialPool',
+      'data.geometry.outline',
       'data.internalCost'
     ]);
   });
@@ -94,47 +98,47 @@ describe('entity field access', () => {
 
   it('honors scoped permission grants', () => {
     const permissions = {
-      cassettes: { level: 'read', scope: { instanceId: 'cassette-1' } }
+      sheet_designs: { level: 'read', scope: { instanceId: 'design-1' } }
     };
 
     expect(canDisplayEntityField({
       permissions,
-      entity: cassette,
-      typeId: 'cassette',
+      entity: sheetDesign,
+      typeId: 'sheet-design',
       path: 'summary.revisionCount'
     })).toBe(true);
 
     expect(canDisplayEntityField({
       permissions,
-      entity: { ...cassette, _id: 'cassette-2' },
-      typeId: 'cassette',
+      entity: { ...sheetDesign, _id: 'design-2' },
+      typeId: 'sheet-design',
       path: 'summary.revisionCount'
     })).toBe(false);
   });
 
   it('redacts DTOs to allowed paths for the active membership', () => {
-    const redacted = redactEntityForAccess(cassette, 'cassette', {
+    const redacted = redactEntityForAccess(sheetDesign, 'sheet-design', {
       organizationId: 'org-1',
       memberships: [{
         organizationId: 'org-1',
-        permissions: { cassettes: 'read' }
+        permissions: { sheet_designs: 'read' }
       }]
     });
 
-    expect(redacted.identity.name).toBe('Cassette One');
+    expect(redacted.identity.name).toBe('Design One');
     expect(redacted.summary.revisionCount).toBe(2);
-    expect(redacted.data.type).toBe('PARAMETRIC');
-    expect(redacted.data.definition).toEqual({ graphTree: { nodes: [] } });
+    expect(redacted.data.materialPool).toEqual(['mat-1']);
+    expect(redacted.data.geometry.outline).toEqual([[0, 0], [10, 0], [10, 10]]);
     expect(redacted.data.internalCost).toBeUndefined();
   });
 
   it('uses active process permissions and field policies for redaction', () => {
-    const redacted = redactEntityForAccess(cassette, 'cassette', {
+    const redacted = redactEntityForAccess(sheetDesign, 'sheet-design', {
       organizationId: 'org-1',
-      effectivePermissions: { cassettes: 'read' },
-      permissions: { cassettes: 'admin' },
+      effectivePermissions: { sheet_designs: 'read' },
+      permissions: { sheet_designs: 'admin' },
       fieldPolicies: {
-        cassette: {
+        'sheet-design': {
           read: ['identity.name'],
           write: [],
           private: ['data.internalCost']
@@ -142,7 +146,7 @@ describe('entity field access', () => {
       }
     });
 
-    expect(redacted.identity.name).toBe('Cassette One');
+    expect(redacted.identity.name).toBe('Design One');
     expect(redacted.summary).toBeUndefined();
     expect(redacted.data).toBeUndefined();
   });

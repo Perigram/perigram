@@ -333,9 +333,10 @@ describe('support communication service', () => {
             identity: { name: 'Iklya 1' },
             lineage: { organizationId: 'org-1' },
             data: {
-              type: 'STANDARD',
-              definition: { params: { A: 1 } },
-              revisions: { geometry: null }
+              templateType: 'STANDARD',
+              mapping: { 'cut.outer': 'cut.outer' },
+              polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }],
+              layerData: []
             }
           }
         : null)),
@@ -346,9 +347,10 @@ describe('support communication service', () => {
               identity: { name: 'Iklya 1' },
               lineage: { organizationId: 'org-1' },
               data: {
-                type: 'STANDARD',
-                definition: { params: { A: 1 } },
-                revisions: { geometry: null }
+                templateType: 'STANDARD',
+                mapping: { 'cut.outer': 'cut.outer' },
+                polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }],
+                layerData: []
               }
             }
           ]
@@ -375,9 +377,9 @@ describe('support communication service', () => {
         instance: expect.objectContaining({
           _id: 'cassette-1',
           data: expect.objectContaining({
-            type: 'STANDARD',
-            definition: { params: { A: 1 } },
-            revisions: { geometry: null }
+            templateType: 'STANDARD',
+            mapping: { 'cut.outer': 'cut.outer' },
+            polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }]
           })
         })
       })
