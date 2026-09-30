@@ -540,7 +540,11 @@ relationship.
 ### `ChatAttachmentPicker.vue`
 The chat composer's attachment surface: a Popover hosting PrimeVue
 `Tree`, both unmodified Aura. No `pt`, padding, border, or background
-overrides. Home-screen sections are the roots and load through the SAME
+overrides. A leading file-upload entry (icon + hidden input constrained
+by the host's `filesAccept`) rides above the tree — files and entity refs
+share the one attach surface — and emits `files` for the host to stage;
+the host passes `filesEnabled`/`filesAccept` from its own upload window.
+Home-screen sections are the roots and load through the SAME
 compiled home-screen list sources the home sidebar's PanelMenu renders —
 the instances store's `listInstances` with the source's resolved filters —
 so the picker browses the full user-available window (shared observation
@@ -561,8 +565,8 @@ tree reflects the current workspace pool. Recipient chat-only visibility
 is NOT computed here: the support service derives it on send and on draft
 hydration through the instance-options endpoint (see
 [support feature](../../../server/features/support/README.md)). The host
-owns the draft `entityRefs` and the create-action flows; the picker only
-emits `select`/`create-action`.
+owns the draft `entityRefs`, the create-action flows, and file staging;
+the picker only emits `select`/`create-action`/`files`.
 
 ### `InstanceCard.vue` (chat entry)
 Every card variant carries the composed instance-chat entry: full cards render

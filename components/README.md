@@ -1056,17 +1056,20 @@ posting hydrated entity snapshots. The type picker should localize generated
 entity type ids for users instead of exposing raw backend strings. Attachment-
 only messages are valid and must stay sendable when the draft has at least one
 selected entity ref, a recorded voice attachment, or a staged file. File
-uploads ride a second composer control beside the paperclip: staging
-multiple files, previewing them as removable chips (image thumbnails for
-image files, type icons otherwise), and sending them as one message whose
-`attachments[]` render through the shared `ChatAttachments` gallery
-(`components/shared/README.md`). In instance chats the composer resolves
-the composer target's accepting file children through the served type view
-(`utils/chat-file-targets.js`): the file input's `accept` is the union of
-candidate `accept` lists, staged files matching several children carry a
-per-file child-type choice on the chip, files with no candidate are
-refused at selection, and the voice recorder follows the same rule for
-audio. The send carries the chosen `targetTypeId` per attachment; the
+uploads ride the SAME attach popover as entity refs (a leading upload
+entry above the tree — no second composer control): staging multiple
+files as removable chips (image thumbnails for image files, type icons
+otherwise) whose `attachments[]` render through the shared
+`ChatAttachments` gallery (`components/shared/README.md`). In instance
+chats the composer resolves the composer target's accepting file children
+through the served type view (`utils/chat-file-targets.js`): the upload
+entry's `accept` is the union of candidate `accept` lists, staged chips
+carry the resolved child-type identity (the served type name; a choice
+control when several children accept the file), files with no candidate
+are refused at selection, and the voice recorder follows the same rule
+for audio. Person conversations and party-target chats (the organization
+chat) always upload plain unlinked files. The send carries the chosen
+`targetTypeId` per attachment; the
 server materializes the child instances (support feature README, Message
 Attachments) — the client never constructs instances itself. The
 conversation snapshot

@@ -70,7 +70,7 @@ test.describe('chat file uploads', () => {
     outcomes.common.downloadStatus = download.status();
 
     // -- Instance chat: seed the thread, open it in /chats, stage the PNG
-    //    through the composer, and send. --
+    //    through the attach popover's upload entry, and send. --
     const seed = await request.post('http://localhost:3000/api/support/messages', {
       data: { instance: { type: BOX_TYPE, id: box._id }, message: 'opening the box thread' }
     });
@@ -84,12 +84,22 @@ test.describe('chat file uploads', () => {
     await expect(boxRow).toBeVisible({ timeout: 20000 });
     await boxRow.click();
 
+    // Uploads belong to the attach popover: the entry rides above the
+    // entity tree, constrained to the accepting children's union.
+    await app.page.locator('[data-testid="chat-attach-trigger"]').click();
+    const popoverUpload = app.page.locator('[data-testid="chat-file-trigger"]');
+    await expect(popoverUpload).toBeVisible({ timeout: 10000 });
     const fileInput = app.page.locator('[data-testid="chat-file-input"]');
     await expect(fileInput).toBeAttached();
     await fileInput.setInputFiles({
       name: 'facade-evidence.png', mimeType: 'image/png', buffer: PNG_BYTES
     });
-    await expect(app.page.locator('[data-testid="chat-pending-files"]')).toBeVisible();
+
+    // The staged chip carries the target child's identity (the served
+    // type name, never a raw id) beside the file.
+    const pending = app.page.locator('[data-testid="chat-pending-files"]');
+    await expect(pending).toBeVisible();
+    await expect(pending.getByText('E2E Chat Photo')).toBeVisible();
     await app.page.getByRole('button', { name: 'Send' }).click();
 
     const gallery = app.page.locator('[data-testid="chat-attachment-gallery"]');
@@ -99,6 +109,17 @@ test.describe('chat file uploads', () => {
       body: await gallery.screenshot(),
       contentType: 'image/png'
     });
+
+    // Pressing the materialized instance chip opens its inspect popover.
+    const refChip = app.page.getByText('facade-evidence.png').first();
+    await refChip.click({ timeout: 10000 });
+    const anyPopover = app.page.locator('.p-popover:visible');
+    await expect(anyPopover.first()).toBeVisible({ timeout: 10000 });
+    await testInfo.attach('chat-ref-popover', {
+      body: await anyPopover.first().screenshot(),
+      contentType: 'image/png'
+    });
+    await app.page.keyboard.press('Escape');
 
     // The materialized child: payload carries the uploaded file, lineage
     // carries the box through the derived children-edge key.
@@ -120,10 +141,13 @@ test.describe('chat file uploads', () => {
     outcomes.instance.messageId = fileMessage._id;
     expect(fileMessage.instanceRefs?.some(ref => ref.type === PHOTO_TYPE && ref.id === createdPhoto._id)).toBe(true);
 
-    // -- Refusal: a PDF matches no declared child, so the composer drops
-    //    it at selection and the API rejects the smuggled write. --
+    // -- Refusal: a PDF matches no declared child, so the popover's upload
+    //    never stages it and the API rejects the smuggled write. --
+    await app.page.locator('[data-testid="chat-attach-trigger"]').click();
+    await expect(popoverUpload).toBeVisible({ timeout: 10000 });
     await fileInput.setInputFiles({ name: 'probe.pdf', mimeType: 'application/pdf', buffer: PDF_BYTES });
     await expect(app.page.locator('[data-testid="chat-pending-files"]')).toHaveCount(0);
+    await app.page.keyboard.press('Escape');
     const smuggled = await request.post('http://localhost:3000/api/support/messages', {
       data: {
         instance: { type: BOX_TYPE, id: box._id },
@@ -132,6 +156,29 @@ test.describe('chat file uploads', () => {
     });
     outcomes.refusal.smuggleStatus = smuggled.status();
     expect(smuggled.status()).toBe(400);
+
+    // -- Party-target chats (the organization chat) keep plain uploads:
+    // the popover entry is enabled there and files ride unlinked. --
+    const me = await (await request.get('http://localhost:3000/api/auth/me')).json();
+    const orgChat = await request.post('http://localhost:3000/api/support/messages', {
+      data: {
+        instance: { type: 'organization', id: me.organizationId },
+        message: 'org thread seed for uploads'
+      }
+    });
+    expect(orgChat.ok(), await orgChat.text()).toBeTruthy();
+    await app.page.goto('/chats');
+    const orgRow = app.page.locator('.chat-inbox .p-listbox-option', { hasText: 'org thread seed for uploads' }).first();
+    await expect(orgRow).toBeVisible({ timeout: 20000 });
+    await orgRow.click();
+    await app.page.locator('[data-testid="chat-attach-trigger"]').click();
+    await expect(app.page.locator('[data-testid="chat-file-trigger"]')).toBeVisible({ timeout: 10000 });
+    await app.page.locator('[data-testid="chat-file-input"]').setInputFiles({
+      name: 'org-note.png', mimeType: 'image/png', buffer: PNG_BYTES
+    });
+    await app.page.getByRole('button', { name: 'Send' }).click();
+    await expect(app.page.locator('[data-testid="chat-attachment-gallery"]').last()).toBeVisible({ timeout: 20000 });
+    outcomes.orgChat = { uploadStagedAndSent: true };
 
     await app.expectCleanRuntime();
 

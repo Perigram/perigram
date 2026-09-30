@@ -699,15 +699,16 @@
                             />
                         </div>
                     </div>
-                    <!-- Staged files: image thumbnails or type icons, a
-                         per-file child-type choice when several instance
-                         children accept the file, and removal before send.
-                         The hidden input rides the composer row. -->
+                    <!-- Staged files: image thumbnails or type icons, the
+                         resolved child-type identity for instance targets
+                         (a choice when several children accept the file),
+                         and removal before send. Uploads ride the attach
+                         popover. -->
                     <div v-if="pendingFiles.length" class="mb-2 flex flex-col gap-1" data-testid="chat-pending-files">
                         <div
                             v-for="(pending, index) in pendingFiles"
                             :key="pending.key"
-                            class="inline-flex max-w-full items-center gap-2 rounded-ui bg-subtle px-2 py-1"
+                            class="inline-flex max-w-full min-w-0 items-center gap-2 rounded-ui bg-subtle px-2 py-1"
                         >
                             <img
                                 v-if="pending.kind === 'image' && pending.url"
@@ -728,6 +729,14 @@
                                 :aria-label="$t('support.attachmentTargetType')"
                                 @update:model-value="value => setPendingTarget(index, value)"
                             />
+                            <span
+                                v-else-if="pending.targetTypeId"
+                                class="inline-flex min-w-0 shrink-0 items-center gap-1 text-muted text-supporting"
+                                :title="pendingTargetLabel(pending)"
+                            >
+                                <i :class="instances.iconFor(pending.targetTypeId)" class="shrink-0" aria-hidden="true" />
+                                <span class="max-w-32 truncate">{{ pendingTargetLabel(pending) }}</span>
+                            </span>
                             <Button
                                 icon="pi pi-times"
                                 text
@@ -779,15 +788,6 @@
                              addon, so it reads as the composer's main
                              action. -->
                         <InputGroup>
-                            <input
-                                ref="chatFileInput"
-                                class="hidden"
-                                type="file"
-                                multiple
-                                :accept="chatFileAcceptAttr || undefined"
-                                data-testid="chat-file-input"
-                                @change="selectChatFiles"
-                            >
                             <InputGroupAddon>
                                 <Button
                                     icon="pi pi-paperclip"
@@ -795,18 +795,8 @@
                                     variant="text"
                                     :disabled="attachmentPickerEmpty"
                                     :aria-label="$t('support.attach')"
+                                    data-testid="chat-attach-trigger"
                                     @click="openAttachmentPicker($event)"
-                                />
-                            </InputGroupAddon>
-                            <InputGroupAddon>
-                                <Button
-                                    icon="pi pi-upload"
-                                    severity="secondary"
-                                    variant="text"
-                                    :disabled="!chatUploadEnabled"
-                                    :aria-label="$t('support.attachFiles')"
-                                    data-testid="chat-file-trigger"
-                                    @click="chatFileInput?.click()"
                                 />
                             </InputGroupAddon>
                             <Textarea
@@ -840,8 +830,11 @@
                 </div>
                 <ChatAttachmentPicker
                     ref="attachmentPicker"
+                    :files-enabled="chatUploadEnabled"
+                    :files-accept="chatFileAcceptAttr"
                     @select="selectAttachment"
                     @create-action="runCreateAction"
+                    @files="stageChatFiles"
                 />
             </section>
         </div>
@@ -1345,7 +1338,6 @@ const receiveTyping = (payload) => {
     // per-file `targetTypeId` in instance chats. Common chats accept any
     // file; instance chats only accept files the composer target's
     // declared file children take (the server re-validates every send).
-    const chatFileInput = ref(null)
     const pendingFiles = ref([])
     const ATTACHMENT_LIMIT = 10
     let pendingFileSeq = 0
@@ -1367,16 +1359,29 @@ const receiveTyping = (payload) => {
             typeById: typeViewById
         })))
 
-    // Instance chats without accepting children refuse uploads at pick
-    // time; the input's accept list is the candidates' declared union.
-    const instanceChatUploadBlocked = computed(() => Boolean(composerTargetType.value) && !chatFileCandidates.value.length)
+    // Uploads are refused at pick time ONLY for a loaded non-party
+    // instance target with no accepting file children — person chats,
+    // party-target chats (the organization chat), and not-yet-loaded type
+    // views keep plain uploads, mirroring the server's materialization
+    // rule. The input's accept list is the candidates' declared union.
+    const instanceChatUploadBlocked = computed(() => {
+        if (!composerTargetType.value) return false
+        const targetRecord = typeViewById(composerTargetType.value)
+        if (!targetRecord || targetRecord.class === 'party') return false
+        return !chatFileCandidates.value.length
+    })
     const chatUploadEnabled = computed(() => Boolean(activeConversation.value) && !instanceChatUploadBlocked.value)
     const chatFileAcceptAttr = computed(() => (instanceChatUploadBlocked.value ? '' : chatFileAccept(chatFileCandidates.value)))
 
-    // Voice follows the same rule: an instance chat records only when a
-    // candidate child accepts the mimes MediaRecorder produces.
-    const voiceRecordingAllowed = computed(() => !composerTargetType.value
-        || Boolean(chatVoiceFileCandidate(chatFileCandidates.value)))
+    // Voice follows the same target rule: person/party chats always
+    // record; a strict instance chat records only when a candidate child
+    // accepts the mimes MediaRecorder produces.
+    const voiceRecordingAllowed = computed(() => {
+        if (!composerTargetType.value) return true
+        const targetRecord = typeViewById(composerTargetType.value)
+        if (!targetRecord || targetRecord.class === 'party') return true
+        return Boolean(chatVoiceFileCandidate(chatFileCandidates.value))
+    })
 
     const voiceTargetTypeId = computed(() => (
         composerTargetType.value ? (chatVoiceFileCandidate(chatFileCandidates.value)?.typeId || '') : ''
@@ -1401,6 +1406,13 @@ const receiveTyping = (payload) => {
         ))
     }
 
+    // The staged file's target identity: the candidate's served type name
+    // (bundle `name`), never a raw backend id.
+    const pendingTargetLabel = (pending) => (
+        pending.candidates.find(candidate => candidate.typeId === pending.targetTypeId)?.label
+        || localizedTypeIdLabel(pending.targetTypeId)
+    )
+
     const removePendingFile = (index) => {
         const pending = pendingFiles.value[index]
         if (pending?.url) URL.revokeObjectURL(pending.url)
@@ -1414,9 +1426,7 @@ const receiveTyping = (payload) => {
         pendingFiles.value = []
     }
 
-    const selectChatFiles = (event) => {
-        const files = [...(event.target?.files || [])]
-        if (event.target) event.target.value = ''
+    const stageChatFiles = (files = []) => {
         if (!files.length || !activeConversation.value) return
         const instanceChat = Boolean(composerTargetType.value)
         for (const file of files) {
@@ -2397,6 +2407,9 @@ const scrollToBottom = async () => {
 // no create actions the trigger stays disabled instead of opening an empty
 // menu.
 const attachmentPickerEmpty = computed(() => {
+    // The paperclip opens for entity refs OR file uploads: a chat whose
+    // home screen has no list sections still attaches files.
+    if (chatUploadEnabled.value) return false
     const home = authStore.screenManifest.find(screen => screen.template === 'home')
     return !(home?.sources || []).some(source => source.typeId && source.mode !== 'single')
 })
