@@ -1171,6 +1171,19 @@ const laneSignature = computed(() => JSON.stringify({
 }));
 watch(laneSignature, () => projectLanes());
 
+// The seated top of a band: the smallest non-negative member offset
+// (0 for an empty band). New facts never enter above it, so adds and
+// drops never disturb seated cards.
+function laneSeatedMinimum(bandId) {
+  let min = Infinity;
+  for (const node of nodes.value) {
+    if (laneMembershipOf(node) !== bandId) continue;
+    const offset = node.data?.laneY;
+    if (Number.isFinite(offset) && offset >= 0) min = Math.min(min, offset);
+  }
+  return Number.isFinite(min) ? min : 0;
+}
+
 // A freshly added node joins the lane under its placement point (README
 // "Canvas behavior"): non-effects take that lane as their home; an
 // effect's lane is the grant-derived one, so a grantless effect created
@@ -1180,11 +1193,12 @@ function seedLaneFacts(node) {
   const centerY = node.position.y + 70;
   const band = bands.find(candidate => centerY >= candidate.top && centerY < candidate.top + candidate.height);
   if (!band) return node;
+  const seat = Math.max(Math.max(0, Math.round(node.position.y - band.top)), laneSeatedMinimum(band.id));
   if (node.type === 'processNode' && isEffectNode(node)) {
     if (laneMembershipOf(node) !== band.id) return node;
-    return { ...node, data: { ...(node.data || {}), laneY: Math.max(0, Math.round(node.position.y - band.top)) } };
+    return { ...node, data: { ...(node.data || {}), laneY: seat } };
   }
-  return { ...node, data: { ...(node.data || {}), lane: band.id, laneY: Math.max(0, Math.round(node.position.y - band.top)) } };
+  return { ...node, data: { ...(node.data || {}), lane: band.id, laneY: seat } };
 }
 
 // Band paint model: the projection owns geometry; labels come from the
@@ -1291,12 +1305,16 @@ function onNodeDragStop({ node, nodes: draggedNodes } = {}) {
     }
     // The offset fact: relative to the band the node now belongs to.
     // Authored offsets are never negative — a card the author dropped
-    // across a lane's top edge seats inside the accepting band.
+    // across a lane's top edge seats inside the accepting band — and
+    // never above the band's seated top, so seated cards never move.
     const membership = laneMembershipOf(candidate);
     const membershipTop = membership && bands.find(entry => entry.id === membership)?.top;
     const data = { ...(candidate.data || {}) };
     if (Number.isFinite(membershipTop)) {
-      data.laneY = Math.max(0, Math.round(candidate.position.y - membershipTop));
+      data.laneY = Math.max(
+        Math.max(0, Math.round(candidate.position.y - membershipTop)),
+        ...(membership ? [laneSeatedMinimum(membership)] : [])
+      );
     } else {
       delete data.lane;
       delete data.laneY;

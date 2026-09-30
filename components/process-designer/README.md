@@ -450,13 +450,12 @@ and idempotently:
 - **Bands hug their content completely.** Each band's height is its
   members' offset extent plus padding (empty lanes keep the 150px
   minimum as drop targets), and content seats at the band's top inset:
-  seating removes the dead space above a band's content, so a drop into
-  an empty or gapped band seats together with the band's content, a
-  drop into seated content moves nothing, and deleting a card lets the
-  band's content pull up to hug. Authored offsets are never negative —
-  a card dropped across a lane's top edge seats inside the accepting
-  band (membership reads the card's center), and offsets between
-  lane-mates never change.
+  seating removes the dead space above a band's content, and deleting a
+  card lets the band's content pull up to hug. Authored offsets are
+  never negative and never above the band's seated top — a card dropped
+  across a lane's top edge seats inside the accepting band (membership
+  reads the card's center), and adds and drops never disturb seated
+  cards; offsets between lane-mates never change.
 - **Bands stack in role order**, so a lane growing shifts every lane
   below — and each lane's content rides with it, because offsets are
   lane-relative. Nothing ever reseats across lanes.
