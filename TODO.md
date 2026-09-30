@@ -594,3 +594,21 @@ the node CENTER (position is top-left — the corner lands a band above
 the drop). Deviation from the Lanes B plan text: extra roles are NOT
 inspector-editable anymore (the owner replaced role assignment
 outright); corridors display stored multi-grant records only.
+
+### Agent Notes (2026-09-30, PrimeVue sweep over the designer surface)
+
+Swept every remaining hand-rolled chrome finding in the process designer
+(analyzer-enumerated): bordered row containers in ApplyMigrationDialog,
+TypeMigrationStepsDialog, ProcessNodeInspector, and the context palette /
+screen preview cards became `bg-subtle`/`bg-content` token insets (PrimeVue
+owns borders); palette item buttons dropped hand-rolled hover-border state
+(Aura owns hover); the two arbitrary `grid-cols-[…]` editor rows and the
+preview branch grid became flex layout; LaneBands' hairline moved into its
+data-driven style binding (socket-handle precedent). Three analyzer defects
+fixed — `border`/`rounded` prefix-matched inside `border-content-border`/
+`rounded-ui`, `bg-process-canvas`/`bg-primary-surface` are token-backed
+surfaces, and the `!important` pattern matched JS negations in template
+expressions. The whole designer surface now analyzes compliant with only
+pinned data-driven inline-style allowlists (canvas geometry, pointer
+anchoring). definitions-pane spec updated for the ellipsis-menu rename
+path and green against the live stack.
