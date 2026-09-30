@@ -190,6 +190,14 @@
                       @update:model-value="value => toggleDefinitionActive(process, value)"
                     />
                     <Button
+                      icon="pi pi-history"
+                      class="shrink-0"
+                      size="small"
+                      text
+                      :aria-label="$t('processDesigner.versions')"
+                      @click="toggleDefinitionHistory(process)"
+                    />
+                    <Button
                       icon="pi pi-ellipsis-v"
                       class="shrink-0"
                       size="small"
@@ -1903,11 +1911,6 @@ function toggleDefinitionMenu(event, process) {
 
 function definitionMenuItems(process) {
   return [
-    {
-      label: t('processDesigner.versions'),
-      icon: 'pi pi-history',
-      command: () => toggleDefinitionHistory(process)
-    },
     {
       label: t('common.rename'),
       icon: 'pi pi-pencil',
