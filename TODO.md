@@ -18,6 +18,15 @@ id is never displayed (AGENTS.md UI rule). Rule made explicit for agents in
 `components/README.md` Style Guide (raw PrimeVue + no technical ids in UI)
 and in `SPEC.md` (## UI).
 
+### Agent Notes (2026-09-30, layout fix)
+
+The history disclosure rendered invisibly: the `#option` template had
+sibling root nodes, but `.p-listbox-option` is itself a flex row with
+hidden overflow, so the history block laid out beside the row instead of
+below it. The option template now has a single root column wrapper
+(chats-inbox pattern); controls keep `@click.stop`, the option body
+keeps native select-on-click.
+
 - [x] Kanban of a parents table showed the CHILD type's state lanes (empty)
   — machine vocabulary seeding leaked unscoped state tokens into every
   producer
