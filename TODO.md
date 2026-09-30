@@ -535,6 +535,30 @@ generic-construct path drops authored `name` inputs (e2e boxes render
 id-fallback names), and unnamed instances surface their raw id in chat
 inbox rows rather than the unnamed placeholder.
 
+Third round (same day, owner review): uploads moved INTO the attach
+popover (no second composer control; the paperclip opens for entity refs
+OR files), staged instance-chat files carry the resolved child-type
+identity (served type name; choice control when ambiguous), and the
+disabled-upload bug in party-target chats is fixed — one shared
+strict-instance predicate now drives entry gating, staging, and voice,
+so the organization chat uploads plain files like person chats. The
+"popup on press" regression was the plain inline chip never toggling the
+inspect popover (pre-existing gap the README already contradicted;
+org-authored refs hit it) — the popover is now a shared root-level
+surface both chip variants open. Attachment previews got deterministic
+geometry (single image natural-aspect in fixed bounds, sets as
+fixed-size tiles, bounded videos) with sender-side alignment and cropped
+names everywhere. Big uploads (>8MB) ride resumable chunk sessions with
+per-chunk progress bars and disconnect resume (files repository + TTL
+reaping; `useChatFileUpload` transport), and downloads serve HTTP byte
+ranges so video playback works. E2E extended and green: range 206,
+12MB chunked round-trip byte-complete, popover upload, chip identity,
+ref popover, org-chat plain upload.
+NOTE: this round's docs (api/support/composables README updates) landed
+inside the feature commit `d364f75f` instead of a separate `neo:`
+commit — commit-split deviation acknowledged here rather than rewriting
+history.
+
 ## Process Designer
 
 - [ ] Need to create proper definitions management interface; and multiple of them can be active (summarized on
