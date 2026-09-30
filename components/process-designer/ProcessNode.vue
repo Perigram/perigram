@@ -1,5 +1,43 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
+  <!-- One-line literal (SPEC "Node layouts"): no header, no named socket
+       rows — type dropdown + value, with the value socket's unnamed
+       handle docked at the row's right edge. -->
+  <DesignerNodeCard v-if="isOneLineLiteral" :selected="selected" size="inline" :primary="isOperation" :title="data.purpose || data.summary || ''">
+    <div class="nodrag nowheel flex items-center gap-1.5" @mousedown.stop @click.stop>
+      <Select
+        v-if="record.type?.base === 'entityRef'"
+        :model-value="record.typeId || record.type.typeId"
+        :options="data.processTypeIdOptions || []"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="min-w-0 flex-1"
+        @update:model-value="value => update({ typeId: value, type: { ...record.type, typeId: value } })"
+      />
+      <Select
+        v-else
+        :model-value="record.type?.base"
+        :options="baseTypeOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="w-24 shrink-0"
+        @update:model-value="updateValueType"
+      />
+      <TypedValueControl
+        :base="record.type?.base || 'json'"
+        :type-id="record.type?.typeId || record.typeId || ''"
+        :model-value="record.value"
+        class="min-w-0 flex-1"
+        @update:model-value="value => update({ value })"
+      />
+      <div v-if="oneLineOutput" class="relative flex shrink-0 items-center pr-3" :title="socketTitle(oneLineOutput)">
+        <DesignerSocketHandle :socket="oneLineOutput" side="right" :title="socketTitle(oneLineOutput)" />
+      </div>
+    </div>
+  </DesignerNodeCard>
+
+  <DesignerNodeCard v-else :selected="selected" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
     <!-- Label-dominant header: the label is the primary read; the whole
          header row carries the node-spec tooltip (the per-node `?`
          affordance is gone — quiet-card policy, node UI contract). -->
@@ -50,7 +88,7 @@
           :base="record.type?.base || 'json'"
           :type-id="record.type?.typeId || record.typeId || ''"
           :model-value="record.value"
-          class="w-52 max-w-full shrink-0"
+          class="min-w-0 flex-1"
           @update:model-value="value => update({ value })"
         />
       </div>
@@ -187,6 +225,16 @@ const hasInlineConfiguration = computed(() => (
   || operationOptions.value.length
   || opKind.value.startsWith('source.literal')
 ));
+
+// The one-line literal: a single data output (the value), no inputs —
+// anything with more sockets keeps the full card.
+const isOneLineLiteral = computed(() => (
+  opKind.value === 'source.literalItem'
+  && dataInputs.value.length === 0
+  && dataOutputs.value.length === 1
+  && eventSocketRows.value.length === 0
+));
+const oneLineOutput = computed(() => (isOneLineLiteral.value ? dataOutputs.value[0] : null));
 function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
 }

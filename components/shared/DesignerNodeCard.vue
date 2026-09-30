@@ -25,7 +25,8 @@ const props = defineProps({
 const WIDTHS = {
   sm: 'w-48',
   md: 'w-56',
-  lg: 'w-max min-w-72 max-w-96'
+  inline: 'w-64',
+  lg: 'w-max min-w-56 max-w-96'
 };
 
 const frameClass = computed(() => [
