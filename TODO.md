@@ -857,3 +857,13 @@ overrides). One knob in main.css app-shell section.
 Owner call: mobile scales UP, not down — touch targets and text grow
 together (18px root below the 48rem break). Direction corrected from
 the first cut.
+
+### Agent Notes (2026-09-30, mobile item popup is a page sheet)
+
+The mobile ITEM POPUP was a desktop dialog at full size — margins,
+rounded corners, 70vh cap. StandardDialog gains a `sheet` size: pt-driven
+root (m-0 h-dvh max-w-full rounded-none) and a flexing scroll body; the
+mobile detail mounts it edge-to-edge with no height cap. The chat dock
+and incoming calls keep the `full` size. The earlier popup pass was
+invisible compliance cleanup — this is the visible redesign the owner
+asked for, on the surface they were looking at.
