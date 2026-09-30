@@ -92,15 +92,11 @@ test('palette add places at the viewport center and lanes wrap their cards', asy
   expect(droppedY, `dropped card seats inside the top lane (y=${droppedY}, lane top=${tops[0]})`).toBeGreaterThanOrEqual(tops[0] + 20);
   expect(droppedY).toBeLessThan(tops[1]);
 
-  // the lane facts persist with the draft: save and read the graph back
+  // the lane facts persist with the draft: save and read the active
+  // definition's graph back
   await app.page.getByRole('button', { name: /^save$/i }).first().click();
   await app.page.waitForTimeout(1800);
-  const definitions = await app.request.get('/api/process-definitions');
-  const list = await definitions.json();
-  const latest = (Array.isArray(list) ? list : list.definitions || [])
-    .filter(definition => definition.updatedAt)
-    .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)))[0];
-  const loaded = await app.request.get(`/api/process-definitions/${latest._id}`);
+  const loaded = await app.request.get('/api/process-definitions/active');
   expect(loaded.ok(), await loaded.text()).toBeTruthy();
   const definition = await loaded.json();
   const droppedX = Number(afterDrop[0].match(/translate\((\d+)px/)?.[1] || 0);
