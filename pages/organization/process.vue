@@ -190,30 +190,21 @@
                       @update:model-value="value => toggleDefinitionActive(process, value)"
                     />
                     <Button
-                      icon="pi pi-history"
+                      icon="pi pi-ellipsis-v"
                       class="shrink-0"
                       size="small"
                       text
-                      :aria-label="$t('processDesigner.versions')"
-                      @click="toggleDefinitionHistory(process)"
+                      severity="secondary"
+                      :aria-label="$t('processDesigner.definitionActions')"
+                      aria-haspopup="true"
+                      :aria-controls="`definition-menu-${process._id}`"
+                      @click="event => toggleDefinitionMenu(event, process)"
                     />
-                    <Button
-                      icon="pi pi-pencil"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      :aria-label="$t('common.rename')"
-                      @click="startDefinitionRename(process)"
-                    />
-                    <Button
-                      icon="pi pi-trash"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      severity="danger"
-                      :aria-label="$t('common.delete')"
-                      :loading="definitionBusyId === String(process._id)"
-                      @click="removeDefinition(process)"
+                    <Menu
+                      :ref="instance => setDefinitionMenuRef(process._id, instance)"
+                      :id="`definition-menu-${process._id}`"
+                      :model="definitionMenuItems(process)"
+                      popup
                     />
                   </div>
                   <div
@@ -618,6 +609,7 @@ import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import SpeedDial from 'primevue/speeddial';
 import ToggleSwitch from 'primevue/toggleswitch';
+import Menu from 'primevue/menu';
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
@@ -1895,6 +1887,39 @@ async function createDraftFromDock() {
 const renamingDefinitionId = ref(null);
 const renamingDefinitionName = ref('');
 const definitionBusyId = ref(null);
+
+// The row's ellipsis menu: versions, rename, delete live there — the row
+// itself carries only the name and the activation switch.
+const definitionMenus = new Map();
+
+function setDefinitionMenuRef(id, instance) {
+  if (instance) definitionMenus.set(String(id), instance);
+  else definitionMenus.delete(String(id));
+}
+
+function toggleDefinitionMenu(event, process) {
+  definitionMenus.get(String(process._id))?.toggle(event);
+}
+
+function definitionMenuItems(process) {
+  return [
+    {
+      label: t('processDesigner.versions'),
+      icon: 'pi pi-history',
+      command: () => toggleDefinitionHistory(process)
+    },
+    {
+      label: t('common.rename'),
+      icon: 'pi pi-pencil',
+      command: () => startDefinitionRename(process)
+    },
+    {
+      label: t('common.delete'),
+      icon: 'pi pi-trash',
+      command: () => removeDefinition(process)
+    }
+  ];
+}
 
 function startDefinitionRename(process) {
   renamingDefinitionId.value = String(process._id);

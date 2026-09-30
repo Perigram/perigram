@@ -2584,6 +2584,7 @@
     "hideSecondary": "Hide secondary",
     "definitions": "Definitions",
     "activeSet": "active",
+    "definitionActions": "Definition actions",
     "versions": "Versions",
     "tidy": "Tidy graph",
     "paletteGroups": {
