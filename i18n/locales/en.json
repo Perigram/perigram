@@ -2557,7 +2557,8 @@
       "types": "Types",
       "instances": "Entities",
       "control": "Flow",
-      "services": "Services"
+      "services": "Services",
+      "fileData": "File data"
     },
     "paletteItems": {
       "modifyEntity": "Modify entity",
@@ -2695,7 +2696,7 @@
       "composeBlock": "Builds one reusable structural block from selected values.",
       "modifyBlock": "Copies a structural block and replaces only connected selected values.",
       "valueInput": "Produces one editable value of the selected type.",
-      "logic": "Compares values or combines Boolean conditions.",
+      "logic": "Combines Boolean conditions.",
       "text": "Applies the selected text operation.",
       "date": "Adds, subtracts, compares, or normalizes dates.",
       "sliceList": "Returns the items between start and end positions.",

@@ -55,7 +55,7 @@ export function useProcessDesignerNodeSync({
     // entity-bearing result carries its bound type's name — "result" is
     // a socket role, not a type, and never a label. Unbound, it reads
     // like every untyped entity stream ("instances").
-    if (port.id === 'result' && port.type?.base === 'entity') {
+    if (port.id === 'result' && ['entity', 'entityRef'].includes(port.type?.base)) {
       const bound = nodeTypeId(node);
       const options = processTypeIdOptions(node);
       const option = bound && Array.isArray(options)

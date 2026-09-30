@@ -186,7 +186,7 @@ function entityOutputCandidates(nodeId, node, producerOutputs, domain) {
     declaredOutputs = [];
   }
   for (const output of [...declaredOutputs, ...(node.outputs || [])]) {
-    const typeId = output?.type?.base === 'entity'
+    const typeId = ['entity', 'entityRef'].includes(output?.type?.base)
       ? output.type.typeId
       : output?.kind === 'entity' ? output.typeId : '';
     if (!output?.id || !typeId) continue;

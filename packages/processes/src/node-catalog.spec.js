@@ -294,7 +294,7 @@ describe('process v4 node catalog', () => {
   it('exposes the unfiltered All read without a hidden predicate input', () => {
     const ports = resolveCatalogNodePorts({ kind: 'cts.read', select: 'all', typeId: 'sheet' }, { domain: {} });
     expect(ports.inputs.map(input => input.id)).toEqual(['type']);
-    expect(ports.outputs.every(output => output.type?.base === 'entity')).toBe(true);
+    expect(ports.outputs.every(output => output.type?.base === 'entityRef')).toBe(true);
   });
 
   it('declares List consumption on every mapped mutation effect input socket', () => {
@@ -480,7 +480,9 @@ describe('process v4 node catalog', () => {
 
   it('changes unified logic and date sockets with the selected operation', () => {
     expect(resolveCatalogNodePorts({ kind: 'value.logic', operation: 'not' }).inputs.map(input => input.id)).toEqual(['left']);
-    expect(resolveCatalogNodePorts({ kind: 'value.logic', operation: 'gte', type: { base: 'dateTime' } }).inputs.map(input => input.type.base))
+    expect(resolveCatalogNodePorts({ kind: 'value.logic', operation: 'and', type: { base: 'boolean' } }).inputs.map(input => input.type.base))
+      .toEqual(['boolean', 'boolean']);
+    expect(resolveCatalogNodePorts({ kind: 'value.compare', operation: 'gte', type: { base: 'dateTime' } }).inputs.map(input => input.type.base))
       .toEqual(['dateTime', 'dateTime']);
     expect(resolveCatalogNodePorts({ kind: 'value.dateTime', operation: 'addDays' }).inputs.map(input => [input.id, input.type.base]))
       .toEqual([['date', 'dateTime'], ['amount', 'number']]);

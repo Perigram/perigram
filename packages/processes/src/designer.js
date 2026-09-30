@@ -138,7 +138,8 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('literal', 'source.literalItem', { preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }),
       paletteItem('literalList', 'source.literalList', { preset: { type: { base: 'string', nullable: false }, value: [] } }),
-      paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
+      paletteItem('compareValues', 'value.compare', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
+      paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'and' } }),
       paletteItem('text', 'value.string', { preset: { type: { base: 'string', nullable: false }, operation: 'concat' } }),
       paletteItem('recordField', 'value.recordField', { preset: { path: '', type: { base: 'json', nullable: true } } }),
       paletteItem('constructRecord', 'record.construct', { preset: { fields: [] } }),
@@ -753,7 +754,7 @@ export function isEntityOriginRecord(record = {}) {
   const operation = operationKindOf(record);
   if (!ENTITY_ORIGIN_OPERATION_KINDS.has(operation)) return false;
   return (record.outputs || []).some(output => (
-    output?.id && output.type?.base === 'entity' && output.type?.typeId
+    output?.id && ['entity', 'entityRef'].includes(output.type?.base) && output.type?.typeId
   ));
 }
 
@@ -777,7 +778,7 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   }
 
   const outputs = (node.outputs || []).filter(output => (
-    output?.id && output.type?.base === 'entity' && output.type?.typeId
+    output?.id && ['entity', 'entityRef'].includes(output.type?.base) && output.type?.typeId
   ));
   const outputIds = new Set(outputs.map(output => `${node.id}:${output.id}`));
 
@@ -819,6 +820,27 @@ export function servicesPaletteGroups(serviceContracts = {}) {
       preset: { operator: service.id }
     }));
   return items.length ? [{ id: 'services', items }] : [];
+}
+
+// File data-level palette section (SPEC §8 palette law): every declared
+// file-data projection — a file type's payload decomposed into row
+// values, like the documents pack's table rows — drops as a pre-bound
+// extract read in its own group, visibly distinct from core value
+// operations: reading a table is file data-level work, not data algebra.
+export function fileDataPaletteGroups(projectionContracts = {}, entities = []) {
+  const labelByType = new Map(entities.map(entity => [entity.type, entity.label || entity.type]));
+  const items = Object.values(projectionContracts || {})
+    .filter(projection => projection?.typeId && projection.id)
+    .map(projection => {
+      const typeLabel = labelByType.get(projection.typeId) || projection.typeId;
+      return paletteItem(`extract:${projection.typeId}:${projection.id}`, 'cts.read', {
+        label: `${typeLabel} · ${projection.label}`,
+        description: `${typeLabel} · ${projection.label}`,
+        icon: 'pi pi-table',
+        preset: { select: 'extract', typeId: projection.typeId, projection: projection.id }
+      });
+    });
+  return items.length ? [{ id: 'fileData', items }] : [];
 }
 
 // Type catalog palette (SPEC §20/§21, L2): registry types are draggable
@@ -885,6 +907,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
 
   const paletteGroups = [
     ...servicesPaletteGroups(domain.serviceContracts || {}),
+    ...fileDataPaletteGroups(domain.projectionContracts || {}, entities),
     ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
       ...group,
       items: group.items
