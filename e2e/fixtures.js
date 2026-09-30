@@ -187,13 +187,18 @@ export const test = base.extend({
         return { role, draftId: draft._id, manifest: state.manifest };
       },
       // Additive activation: the executable action set is the union of
-      // every ACTIVE definition's compiled actions.
+      // every ACTIVE definition's compiled actions. The list endpoint is
+      // a summary projection (full data loads per id), so each active
+      // definition is fetched for its compiled contract.
       async activeActions() {
         const list = await (await request.get('/api/process-definitions')).json();
         const items = Array.isArray(list) ? list : list?.items || [];
-        return items
-          .filter(definition => definition.status?.state === 'ACTIVE')
-          .flatMap(definition => Object.values(definition.data?.compiled?.actions || {}));
+        const actions = [];
+        for (const summary of items.filter(definition => definition.status?.state === 'ACTIVE')) {
+          const full = await (await request.get(`/api/process-definitions/${summary._id}`)).json();
+          actions.push(...Object.values(full?.data?.compiled?.actions || {}));
+        }
+        return actions;
       },
       async executeAction(actionId, body = {}) {
         const response = await request.post(`/api/process-definitions/active/actions/${actionId}/execute`, {
