@@ -105,12 +105,10 @@ describe('headless definition authoring', () => {
     context.declareTypeRef({ id: 'xlsxRef', typeId: 'xlsx-workbook' });
     context.declareTypeRef({ id: 'csvRef', typeId: 'csv-table' });
     context.declareTypeRef({ id: 'designRef', typeId: 'cassette-design' });
-    context.declareTypeRef({ id: 'materialRef', typeId: 'sheet-material' });
     context.declareField({ id: 'tableField', ownerClassId: 'orderClass', name: 'table', descriptor: { base: 'ref' } });
     context.wireDeclaration('xlsxRef', 'tableField', 'targets');
     context.wireDeclaration('csvRef', 'tableField', 'targets');
     context.wireDeclaration('orderClass', 'designRef', 'children', { key: 'contents' });
-    context.wireDeclaration('orderClass', 'materialRef', 'children', { key: 'contents' });
     context.wireDeclaration('orderClass', 'attemptClass', 'children', { key: 'contents' });
     context.drop('construct', { id: 'order' });
     context.wireDeclaration('orderClass', 'order', 'binds');
@@ -124,7 +122,7 @@ describe('headless definition authoring', () => {
       {
         id: 'facade-order', class: 'group', name: 'Facade order',
         fields: { name: { base: 'string', identifier: true }, table: { base: 'ref', accepts: ['xlsx-workbook', 'csv-table'] } },
-        edges: { children: { contents: { types: ['cassette-design', 'sheet-material', 'nesting-attempt'], onRemove: 'restrict' } } }
+        edges: { children: { contents: { types: ['cassette-design', 'nesting-attempt'], onRemove: 'restrict' } } }
       }
     ]);
     // The binding derives from the wire (the designer's live pass), and the

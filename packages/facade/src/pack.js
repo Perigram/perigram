@@ -232,7 +232,7 @@ export const facadeServices = [
     // The nesting solver's V -> V boundary: job items in, layouts and a
     // summary out (the solver's raw layout payload is the one
     // true-external Json escape). The sheet arrives as VALUES — the
-    // graph reads width/height/thickness off the material through the
+    // graph reads width/height off the material through the
     // field projection; the handler resolves nothing. `space` and
     // `sheetCount` are solver knobs with authored fallbacks (3 mm / 1
     // sheet).

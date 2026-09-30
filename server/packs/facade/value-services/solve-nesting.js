@@ -8,8 +8,8 @@
 //
 // Invoked as a command handler (server/core/commands): the payload is the
 // command envelope `{ entities, parameters, auth }`; the declared parameter
-// sockets (`items`, `sheetWidth`, `sheetHeight`, `thickness`, `space`,
-// `sheetCount`) arrive on `parameters`.
+// sockets (`items`, `sheetWidth`, `sheetHeight`, `space`, `sheetCount`)
+// arrive on `parameters`.
 import { createError } from 'h3';
 import {
   buildValueWorkerRequest,
