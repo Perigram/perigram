@@ -38,9 +38,14 @@ export async function migrateCassetteInstances(db, { apply = APPLY } = {}) {
   const files = db.collection('files');
   const legacy = await db.collection('cassettes').find({}).toArray();
 
+  // Legacy repository ids were minted from `identity.uid`: arbitrary
+  // strings, not ObjectIds. Ids are preserved verbatim either way so
+  // existing references keep resolving.
+  const preservedId = id => (id instanceof ObjectId ? id : ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : String(id));
+
   for (const doc of legacy) {
     summary.scanned += 1;
-    const id = doc._id;
+    const id = preservedId(doc._id);
     if (await files.findOne({ _id: id, type: 'cassette' }, { projection: { _id: 1 } })) {
       summary.skipped += 1;
       continue;
@@ -65,7 +70,7 @@ export async function migrateCassetteInstances(db, { apply = APPLY } = {}) {
     }
 
     const instance = {
-      _id: id instanceof ObjectId ? id : new ObjectId(String(id)),
+      _id: id,
       type: 'cassette',
       typeVersion: 2,
       organizationId: organizationId == null ? null : organizationId,
