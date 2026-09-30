@@ -17,6 +17,7 @@ export default {
     './nuxt.config.{js,ts}',
     './assets/css/**/*.css',
     './shared/ui-mapping/*.js',
+    './utils/*.js',
   ],
   darkMode: ['selector', '.dark-mode'],
   theme: {

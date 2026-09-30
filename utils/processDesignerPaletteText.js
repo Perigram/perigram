@@ -15,5 +15,10 @@ export function createPaletteText({ t, te }) {
     return te(key) ? t(key) : paletteLabel(item);
   }
 
-  return { paletteLabel, paletteDescription };
+  function paletteGroupLabel(id) {
+    const key = `processDesigner.paletteGroups.${id}`;
+    return te(key) ? t(key) : humanizeNodeLabel(id);
+  }
+
+  return { paletteLabel, paletteDescription, paletteGroupLabel };
 }
