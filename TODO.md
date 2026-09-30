@@ -515,6 +515,26 @@ in-flight merge in the primary checkout) which 500s the whole stack;
 not resolved here, validation against the live app is blocked until it
 is.
 
+Validation (2026-09-30, second note): the blocking conflict was resolved
+by its owner; branch merged into `local` (parallel roles-ux and
+popups-primevue merges included — one real defect of mine surfaced at
+merge time, a duplicated `canTranscribe` declaration the SSR smoke
+cannot see because it mounts no chats page; fixed in `c23b1633`).
+`e2e/chat-file-upload.spec.js` PASSED live: common-chat attachment-only
+send + download 200 (disposition attachment), instance-chat composer
+upload materialized as the declared photo child (payload mime verified,
+lineage stamped, message linked to the box thread with the child ref),
+PDF refused at selection and the smuggled write 400s. Durable artifact:
+`test-results/chat-file-upload.json`. Migration
+`migrate-support-attachments.js --apply` ran against the dev DB (10/10
+legacy messages, idempotent re-run 0). Guards on merged `local`:
+check-arch, docs:validate, framework:validate, and the focused specs
+(cts, support, instances, localization, design-system, SSR smoke) all
+green. Known adjacent findings, not touched here: the compiled
+generic-construct path drops authored `name` inputs (e2e boxes render
+id-fallback names), and unnamed instances surface their raw id in chat
+inbox rows rather than the unnamed placeholder.
+
 ## Process Designer
 
 - [ ] Need to create proper definitions management interface; and multiple of them can be active (summarized on
