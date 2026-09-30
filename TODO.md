@@ -725,3 +725,17 @@ min-w-56 so socket-driven widths are actually visible. NOTE: the
 design-system drift test is red on committed local from the parallel
 padding agent's WorkspaceSplitNode scoped style (no analyzer exception);
 they are reworking it in the primary tree — not touched here.
+
+### Agent Notes (2026-09-30, role management + screens per role)
+
+Rename/delete moved behind the role's ellipsis menu (inline rename like
+the definitions pane; delete opens a StandardDialog confirm). The delete
+confirm scans every definition (loadById when the summary lacks data)
+through deriveRoleAccessSummary and warns with the names of definitions
+where the role carries load (lanes/grants/screens/actions). The Screens
+tab is gone: compiled stations render per role under Roles
+(screensForSelectedRole filters by screen.roleIds; unscoped stations
+render under every role), the authored-station editor only under its
+owning role, and customizeStation selects the owning role first. The
+compiled-preview recompute gate moved from the screens tab to roles.
+SSR smoke updated: screens tab label absent, roles pane renders.

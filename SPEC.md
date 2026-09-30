@@ -27,6 +27,11 @@ multiline data wraps below at the node's max width). Operation node width
 follows its socket names — input and output columns keep a fixed gap,
 names crop at a max length, the node title likewise.
 
+Role management: renaming and deleting a role are menu actions, never
+first-plane. Deleting warns first when the role carries load in any
+definition (its lane, grants, screens, or actions). Screens are not a
+separate tab — they render per role under Roles.
+
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be
 preserved (panes and sidebar w/ chats and calls). "Screens" should go to panes/tabs, top-level menu still
