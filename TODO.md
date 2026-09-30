@@ -843,3 +843,11 @@ process-canvas), and inline-style exceptions may carry a layout category
 already compliant. Preview popups were structurally PrimeVue already
 (StandardDialog + generated surfaces) — the debt was chrome, not
 structure.
+
+### Agent Notes (2026-09-30, mobile global scale)
+
+The rem basis is the scale: html font-size drops to 15px below the app's
+mobile break (48rem viewport, matching the md: shell split) — PrimeVue
+components, rem-based typography roles, and Tailwind utilities all scale
+together (PrimeVue's documented scaling mechanism; no per-component
+overrides). One knob in main.css app-shell section.

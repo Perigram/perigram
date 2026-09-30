@@ -37,6 +37,9 @@ status badges) are raw PrimeVue: Popover/StandardDialog own the surface
 and chrome, no hand-rolled borders or !utility overrides on PrimeVue
 internals.
 
+Mobile devices scale the whole UI through the root font-size (the rem
+basis PrimeVue components and the typography roles share).
+
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be
 preserved (panes and sidebar w/ chats and calls). "Screens" should go to panes/tabs, top-level menu still
