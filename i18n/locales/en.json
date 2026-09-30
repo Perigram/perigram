@@ -3253,6 +3253,8 @@
       "instances": "Entities",
       "control": "Flow",
       "services": "Services",
+      "tableData": "Table data",
+      "facade": "Facade fabrication",
       "fileData": "File data"
     }
   },

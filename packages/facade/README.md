@@ -115,7 +115,10 @@ for the boundary contract.
 `p extract`, declared next to its type): a design instance → its baked
 `polygonParts` geometry, resolved from the stored
 `data.geometry.nestingPolygons` path — the path lives in the declaration,
-never in a graph. Table rows are the documents pack's `rows` projection
+never in a graph. The declaration and the `nesting.solve` service carry
+the `facade` palette group: the pack's plugin tab in the process
+designer, where cassette geometry extraction and the solver drop
+pre-bound. Table rows are the documents pack's `tableData` projection
 ([@perigram/documents](../documents/README.md)); name-keyed resolution
 composes from a `cts.read` over the target type plus the pure
 `collection.join` — no facade-owned lookup service exists.

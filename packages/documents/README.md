@@ -40,7 +40,12 @@ following non-empty row becomes one record mapping each header (trimmed,
 stringified) to its raw cell (numeric-looking cells stay strings — typing
 is value-layer authoring downstream). Column semantics live entirely in
 the graph that reads the rows (`value.recordField` paths are the authored
-column selection); the projection carries none.
+column selection); the projection carries none. The declaration carries
+the `tableData` palette group: the pack's plugin tab in the process
+designer, where table decomposition (and, when declared, composition and
+management) drop pre-bound — the tab is the vocabulary home for
+spreadsheet data operations, and nothing table-specific may land in the
+core value groups.
 
 The declaration resolves through the pack-mounted handler
 (`server/packs/documents/table-rows.js` binds

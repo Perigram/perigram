@@ -9,10 +9,14 @@ const MB = 1024 * 1024;
 // The table types' declared projection (SPEC §8 p extract): instance →
 // header-keyed row records. Resolve is the pack-mounted
 // `documents.tableRows` handler (payload parse); column semantics are the
-// reading graph's authoring.
+// reading graph's authoring. The `tableData` group is the pack's palette
+// section: the plugin-tab law — xlsx/csv decomposition, composition, and
+// management of TABLE data live in their own tab, like a Grasshopper
+// plugin's component category.
 const rowsProjection = Object.freeze([{
   id: 'rows',
   label: 'Table rows',
+  group: 'tableData',
   output: { base: 'list', itemType: { base: 'record' } },
   resolve: { handler: 'documents.tableRows' }
 }]);

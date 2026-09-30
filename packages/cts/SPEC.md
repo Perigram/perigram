@@ -395,10 +395,14 @@ per operation: field-value reads live on the record elimination form
 comparison predicates; boolean algebra composes them. `entity` is legacy
 slang — current authoring vocabulary names references as `entityRef`, and
 the untyped `entity` spelling survives only inside the persisted-v4
-compatibility tier. File-data operations (decomposing a workbook or CSV
-into row values) are a pack-owned palette section, visibly distinct from
-core value operations: a graph reader sees that reading a table is file
-data-level work, not generic data algebra.
+compatibility tier. Palette sections are plugin tabs: a pack's declared
+data operations — the documents pack's xlsx/csv table decomposition
+(decomposition, composition, and management of table data), the facade
+pack's cassette geometry extraction and solver — drop pre-bound in the
+pack's own tab, never in a generic bucket; a packless service falls back
+to the services tab. Typed producer paths drop the same way: one
+pre-bound "all <Type>" source per listable type beside the generic read
+presets.
 
 An editor is `p(T) -> ui` plus `construct(T)` or `mutate(Ref(T))`, bound to a
 surface. "An editor that produces other files" is a `k` from the editor's

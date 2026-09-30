@@ -182,6 +182,7 @@ function normalizeProjections(projections = [], typeId = '') {
       id,
       label: projection.label || id,
       output: projection.output,
+      ...(projection.group ? { group: String(projection.group) } : {}),
       resolve: fieldResolved
         ? { field: projection.resolve.field.trim() }
         : { handler: projection.resolve.handler.trim() }

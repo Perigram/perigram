@@ -811,8 +811,10 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
 // `serviceContracts` is the single source: what is not registered is not
 // offered.
 export function servicesPaletteGroups(serviceContracts = {}) {
+  // The fallback tab: services without a declared pack group. Grouped
+  // services drop into their pack's section (packPaletteGroups).
   const items = Object.values(serviceContracts || {})
-    .filter(service => service?.id && service.command)
+    .filter(service => service?.id && service.command && !service.group)
     .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
       label: service.render?.label || service.id,
       description: service.render?.label || service.id,
@@ -822,25 +824,51 @@ export function servicesPaletteGroups(serviceContracts = {}) {
   return items.length ? [{ id: 'services', items }] : [];
 }
 
-// File data-level palette section (SPEC §8 palette law): every declared
-// file-data projection — a file type's payload decomposed into row
-// values, like the documents pack's table rows — drops as a pre-bound
-// extract read in its own group, visibly distinct from core value
-// operations: reading a table is file data-level work, not data algebra.
-export function fileDataPaletteGroups(projectionContracts = {}, entities = []) {
-  const labelByType = new Map(entities.map(entity => [entity.type, entity.label || entity.type]));
-  const items = Object.values(projectionContracts || {})
-    .filter(projection => projection?.typeId && projection.id)
-    .map(projection => {
-      const typeLabel = labelByType.get(projection.typeId) || projection.typeId;
-      return paletteItem(`extract:${projection.typeId}:${projection.id}`, 'cts.read', {
-        label: `${typeLabel} · ${projection.label}`,
-        description: `${typeLabel} · ${projection.label}`,
-        icon: 'pi pi-table',
-        preset: { select: 'extract', typeId: projection.typeId, projection: projection.id }
-      });
-    });
-  return items.length ? [{ id: 'fileData', items }] : [];
+// Pack-owned palette sections — the plugin-tab law (SPEC §8 palette law):
+// a pack's declared data operations surface as the pack's own tab, like a
+// Grasshopper plugin's component category. The documents pack's
+// `tableData` tab carries xlsx/csv table decomposition (and, when
+// declared, composition and management); the facade pack's `facade` tab
+// carries cassette geometry extraction beside the solver. Ungrouped
+// projections stay unlisted (the generic extract preset covers them).
+export function packPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
+  const sections = new Map();
+  const section = id => {
+    if (!sections.has(id)) sections.set(id, { id, items: [] });
+    return sections.get(id);
+  };
+  for (const projection of Object.values(projectionContracts || {})) {
+    if (!projection?.group || !projection.typeId || !projection.id) continue;
+    section(projection.group).items.push(paletteItem(`extract:${projection.typeId}:${projection.id}`, 'cts.read', {
+      label: `${projection.label} · ${projection.typeId}`,
+      description: `${projection.label} · ${projection.typeId}`,
+      icon: 'pi pi-table',
+      preset: { select: 'extract', typeId: projection.typeId, projection: projection.id }
+    }));
+  }
+  for (const service of Object.values(serviceContracts || {})) {
+    if (!service?.group || !service?.id || !service.command) continue;
+    section(service.group).items.push(paletteItem(`service:${service.id}`, 'cts.service', {
+      label: service.render?.label || service.id,
+      description: service.render?.label || service.id,
+      icon: service.render?.icon || 'pi pi-bolt',
+      preset: { operator: service.id }
+    }));
+  }
+  return [...sections.values()].filter(group => group.items.length);
+}
+
+// Typed producer paths (SPEC §8 palette law): one pre-bound "all" source
+// per listable type — the entity streams a graph starts from, dropped
+// bound instead of configured.
+export function typedSourcePaletteItems(entities = [], isListable = () => true) {
+  return entities
+    .filter(entity => entity?.type && isListable(entity.type))
+    .map(entity => paletteItem(`all:${entity.type}`, 'cts.read', {
+      label: `All ${entity.label || entity.type}`,
+      description: `All ${entity.label || entity.type}`,
+      preset: { select: 'all', typeId: entity.type }
+    }));
 }
 
 // Type catalog palette (SPEC §20/§21, L2): registry types are draggable
@@ -906,11 +934,18 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
   }
 
   const paletteGroups = [
+    ...packPaletteGroups(domain.projectionContracts || {}, domain.serviceContracts || {}),
     ...servicesPaletteGroups(domain.serviceContracts || {}),
-    ...fileDataPaletteGroups(domain.projectionContracts || {}, entities),
     ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
       ...group,
-      items: group.items
+      // Typed producer paths join the entity sources beside the generic
+      // read presets: one pre-bound "all" drop per listable type.
+      ...(group.id === 'instances' ? {
+        items: [...group.items, ...typedSourcePaletteItems(
+          entities,
+          typeId => (capabilities ? Boolean(capabilityFor(typeId)?.list) : true)
+        )]
+      } : {})
     }))
   ];
 
