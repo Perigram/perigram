@@ -543,7 +543,7 @@
                                         />
                                     </span>
                                 </div>
-                                <span class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting">
+                                <span class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting order-last">
                                     {{ formatTime(messageItem.timestamp) }}
                                     <!-- Messages linked to lower instances keep a
                                          subtle, clickable leaf link inside the
@@ -1694,16 +1694,20 @@ const stopAndSendVoiceRecording = () => {
 const transcriptionAvailable = ref(false)
 const transcribingMessageIds = ref(new Set())
 
-const canTranscribe = (messageItem) => transcriptionAvailable.value
-    && (messageItem.attachments || []).length === 1
-    && messageItem.attachments[0].kind === 'audio'
-
 // Audio-only voice messages: their text is a transcription (the service
 // writes it into `message`), rendering under the player on the subtle
 // surface regardless of sender. Kind falls back to the MIME derivation —
 // stored descriptors and projected events are not guaranteed to carry it.
 const isAudioOnlyMessage = (messageItem) => (messageItem.attachments || []).length === 1
     && (messageItem.attachments[0].kind || chatAttachmentKind(messageItem.attachments[0].mimeType || '')) === 'audio'
+
+// The transcribe button rides audio-only voice messages that carry no
+// transcription yet — either signal (the stored provenance flag or the
+// message text itself) means it is already transcribed.
+const canTranscribe = (messageItem) => transcriptionAvailable.value
+    && isAudioOnlyMessage(messageItem)
+    && !messageItem.message
+    && !messageItem.attachments[0].transcription
     && !messageItem.attachments[0].transcription
     && !String(messageItem.message || '').trim()
 
