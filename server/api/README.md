@@ -22,7 +22,10 @@ Routes are grouped into sub-directories corresponding to features:
   single ranges; unparseable or unsatisfiable ranges degrade to the full
   `200` body) because media playback and seeking refuse range-less
   responses, and `?download=1` flips the disposition to an explicit
-  download. Big uploads ride resumable chunk-append sessions:
+  download. Disposition filenames are RFC 6266-encoded (ASCII fallback +
+  `filename*=UTF-8''…`) — header bytes stop at Latin-1, so a raw
+  non-ASCII stored name would otherwise fail the whole response. Big
+  uploads ride resumable chunk-append sessions:
   `POST /api/files/upload-sessions` (`{ fileName, mimeType, size,
   bucket? }`, 5MB chunks, 1GB cap) returns `{ uploadId, chunkSize }`;
   `PUT /api/files/upload-sessions/:id/:index` appends one raw-bytes
