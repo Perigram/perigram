@@ -418,69 +418,7 @@ function tonePalette(role) {
           />
         </span>
       </span>
-    </span>
-
-    <Popover v-if="interactive" ref="compactOp">
-      <div class="w-[min(34rem,calc(100vw-3rem))]">
-        <div class="flex flex-col gap-4 p-4">
-          <TraceChain v-if="resolved" :entity="resolved" :type-id="type" />
-          <small class="uppercase text-muted text-supporting">
-            {{ compactTypeLabel }}
-          </small>
-          <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">
-            <span class="min-w-0 truncate" :title="identityLabel">{{ identityLabel }}</span>
-            <InstanceState
-              v-if="resolved"
-              :instance="resolved"
-              :type-id="generatedTypeId"
-              variant="inline"
-            />
-          </div>
-          <div class="instance-card-popup-content">
-            <InstanceSurfaceContent
-              v-if="resolved"
-              :entity="resolved"
-              :type-id="generatedTypeId"
-              surface="card"
-              suppress-child-summaries
-              relation-variant="compact"
-              :display-overrides="{ dataDisplay: 'compact' }"
-            />
-          </div>
-          <div v-if="popupHasActions || detailRoute || resolvedId" class="flex flex-wrap justify-end gap-2" @click.stop>
-            <Button
-              v-if="resolvedId && !cardComponent"
-              icon="pi pi-comments"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('support.instanceChat')"
-              @click="openEntityChatFromRef"
-            />
-            <GeneratedCassetteDesignerAction
-              v-if="popupShowCassetteDesigner"
-              :entity="resolved"
-            />
-            <GeneratedActionButton
-              v-for="actionId in popupActionIds"
-              :key="actionId"
-              :action-id="actionId"
-              @execute="executePopupAction"
-            />
-            <Button
-              v-if="detailRoute || directoryOpen"
-              icon="pi pi-external-link"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('common.open')"
-              @click="openDetail"
-            />
-          </div>
-        </div>
-      </div>
-    </Popover>
-  </span>
+    </span>  </span>
 
   <span v-else class="instance-inline-tone inline-flex min-w-0 max-w-full items-center align-middle" :class="{ 'pointer-events-none': !interactive }" :style="toneStyle">
     <component
@@ -493,8 +431,13 @@ function tonePalette(role) {
     <span
       v-else-if="resolved"
       class="instance-inline-chip min-w-0 max-w-full"
+      :class="{ 'cursor-pointer': interactive }"
+      :role="resolved && interactive ? 'button' : undefined"
+      :tabindex="resolved && interactive ? 0 : undefined"
       :title="identityLabel"
       data-instance-card-interactive="true"
+      @click="resolved && interactive ? toggleCompactPopup($event) : undefined"
+      @keydown="resolved && interactive ? onCompactKeydown($event) : undefined"
     >
       <i v-if="icon" :class="['instance-inline-chip-icon', icon]" aria-hidden="true"></i>
       <span class="instance-inline-chip-label">{{ identityLabel }}</span>
@@ -504,4 +447,68 @@ function tonePalette(role) {
       <span class="truncate">{{ resolvedId || $t('common.notAvailable') }}</span>
     </span>
   </span>
+
+  <!-- Shared inspect popover: the compact micro card AND the plain
+       inline chip (types without a registered entity card — org-authored
+       instances) toggle the same surface. -->
+  <Popover v-if="interactive" ref="compactOp">
+        <div class="w-[min(34rem,calc(100vw-3rem))]">
+          <div class="flex flex-col gap-4 p-4">
+            <TraceChain v-if="resolved" :entity="resolved" :type-id="type" />
+            <small class="uppercase text-muted text-supporting">
+              {{ compactTypeLabel }}
+            </small>
+            <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">
+              <span class="min-w-0 truncate" :title="identityLabel">{{ identityLabel }}</span>
+              <InstanceState
+                v-if="resolved"
+                :instance="resolved"
+                :type-id="generatedTypeId"
+                variant="inline"
+              />
+            </div>
+            <div class="instance-card-popup-content">
+              <InstanceSurfaceContent
+                v-if="resolved"
+                :entity="resolved"
+                :type-id="generatedTypeId"
+                surface="card"
+                suppress-child-summaries
+                relation-variant="compact"
+                :display-overrides="{ dataDisplay: 'compact' }"
+              />
+            </div>
+            <div v-if="popupHasActions || detailRoute || resolvedId" class="flex flex-wrap justify-end gap-2" @click.stop>
+              <Button
+                v-if="resolvedId && !cardComponent"
+                icon="pi pi-comments"
+                text
+                rounded
+                size="small"
+                :aria-label="$t('support.instanceChat')"
+                @click="openEntityChatFromRef"
+              />
+              <GeneratedCassetteDesignerAction
+                v-if="popupShowCassetteDesigner"
+                :entity="resolved"
+              />
+              <GeneratedActionButton
+                v-for="actionId in popupActionIds"
+                :key="actionId"
+                :action-id="actionId"
+                @execute="executePopupAction"
+              />
+              <Button
+                v-if="detailRoute || directoryOpen"
+                icon="pi pi-external-link"
+                text
+                rounded
+                size="small"
+                :aria-label="$t('common.open')"
+                @click="openDetail"
+              />
+            </div>
+          </div>
+        </div>
+      </Popover>
 </template>

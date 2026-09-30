@@ -102,7 +102,7 @@ test.describe('chat file uploads', () => {
     await expect(pending.getByText('E2E Chat Photo')).toBeVisible();
     await app.page.getByRole('button', { name: 'Send' }).click();
 
-    const gallery = app.page.locator('[data-testid="chat-attachment-gallery"]');
+    const gallery = app.page.locator('[data-testid="chat-attachments"]');
     await expect(gallery).toBeVisible({ timeout: 20000 });
     await expect(gallery.locator('img')).toHaveCount(1, { timeout: 20000 });
     await testInfo.attach('chat-instance-gallery', {
@@ -177,7 +177,7 @@ test.describe('chat file uploads', () => {
       name: 'org-note.png', mimeType: 'image/png', buffer: PNG_BYTES
     });
     await app.page.getByRole('button', { name: 'Send' }).click();
-    await expect(app.page.locator('[data-testid="chat-attachment-gallery"]').last()).toBeVisible({ timeout: 20000 });
+    await expect(app.page.locator('[data-testid="chat-attachments"]').last().locator('img')).toBeVisible({ timeout: 20000 });
     outcomes.orgChat = { uploadStagedAndSent: true };
 
     await app.expectCleanRuntime();
