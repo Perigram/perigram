@@ -155,9 +155,13 @@ export const facadeFileTypes = [
     // Declared extract projection (SPEC §8 p / §16): a design instance →
     // its baked nesting geometry. The stored path lives in the
     // declaration — the graph never authors paths into stored payloads.
+    // The `facade` group is the pack's palette section (the plugin-tab
+    // law): cassette geometry extraction lives in the facade tab beside
+    // the solver, not in a generic bucket.
     projections: [{
       id: 'nesting-polygons',
       label: 'Nesting polygons',
+      group: 'facade',
       output: { base: 'list', itemType: { base: 'record', fields: { coordinates: { base: 'list', itemType: { base: 'record', fields: { x: { base: 'quantity', unit: 'mm' }, y: { base: 'quantity', unit: 'mm' } } } } } } },
       resolve: { field: 'data.geometry.nestingPolygons' }
     }]
@@ -237,10 +241,11 @@ export const facadeServices = [
     // graph reads width/height off the material through the
     // field projection; the handler resolves nothing. `space` and
     // `sheetCount` are solver knobs with authored fallbacks (3 mm / 1
-    // sheet).
+    // sheet). The `facade` group is the pack's palette section.
     id: 'nesting.solve',
     species: 'service',
     command: 'solveNestingValue',
+    group: 'facade',
     signature: {
       input: { base: 'record', fields: {
         items: { base: 'list', itemType: nestingItem },

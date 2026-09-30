@@ -49,12 +49,15 @@ block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated projection of CTS semantics. Its
 groups are declaration items, type-bound constructs, effect species, typed
-instance sources/navigation, values, collections, flow, registered
-services (one pre-bound drop per pack service), and file-data projections
-(one pre-bound extract drop per declared file-data projection — a distinct
-section, because reading a table is file data-level work, not data
-algebra). Registered
-services derive their ports from declared operator signatures. The exhaustive
+instance sources/navigation (generic read presets plus one pre-bound
+"all <Type>" drop per listable type — the producer paths a graph starts
+from), values, collections, flow, and pack-owned plugin tabs: a pack's
+declared data operations — the documents pack's `tableData` tab (xlsx/csv
+table decomposition, composition, and management) and the facade pack's
+`facade` tab (cassette geometry extraction beside the solver) — surface
+pre-bound in the pack's own section (`packPaletteGroups`); a packless
+service falls back to the services tab (`servicesPaletteGroups`). The
+exhaustive
 runtime catalog is not an authoring palette: packet matching, transport
 adapters, and producer identity remain compiler/runtime concerns.
 

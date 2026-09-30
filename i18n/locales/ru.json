@@ -2558,7 +2558,8 @@
       "instances": "Сущности",
       "control": "Поток",
       "services": "Сервисы",
-      "fileData": "Файловые данные"
+      "tableData": "Табличные данные",
+      "facade": "Фасадное производство"
     },
     "paletteItems": {
       "modifyEntity": "Изменить сущность",

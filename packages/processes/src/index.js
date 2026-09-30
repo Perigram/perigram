@@ -61,6 +61,8 @@ export {
   createProcessDesignerContract,
   declarationWireLegality,
   servicesPaletteGroups,
+  packPaletteGroups,
+  typedSourcePaletteItems,
   syncProcessNodeProducerOutputs
 } from './designer.js';
 export { resolveProcessActionInputContext } from './algebra.js';

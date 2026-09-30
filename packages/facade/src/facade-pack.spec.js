@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { facadeServices, facadeCommands, facadeDomain } from './index.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts/src/index.js';
 import { composeSystemDeclarations } from '../../../server/packs/declarations.js';
-import { resolveCatalogNodePorts, servicesPaletteGroups } from '#packages/processes/src/index.js';
+import { resolveCatalogNodePorts, servicesPaletteGroups, packPaletteGroups } from '#packages/processes/src/index.js';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'facade-pack-registration' });
@@ -37,10 +37,16 @@ describe('facade pack value-service registrations', () => {
     }
   });
 
-  it('exposes every registered item in the services palette group', () => {
-    const groups = servicesPaletteGroups(domain.serviceContracts);
-    expect(groups).toHaveLength(1);
-    expect(groups[0].items.map(item => item.preset.operator)).toEqual(facadeServices.map(service => service.id));
+  it('exposes every registered item in the facade palette section (the plugin-tab law)', () => {
+    const groups = packPaletteGroups(domain.projectionContracts || {}, domain.serviceContracts);
+    const facadeGroup = groups.find(group => group.id === 'facade');
+    expect(facadeGroup, 'the facade pack owns its palette section').toBeTruthy();
+    expect(facadeGroup.items.map(item => item.preset.operator).filter(Boolean))
+      .toEqual(facadeServices.map(service => service.id));
+    expect(facadeGroup.items.map(item => item.preset.projection).filter(Boolean))
+      .toEqual(['nesting-polygons']);
+    // Grouped services leave the fallback tab empty.
+    expect(servicesPaletteGroups(domain.serviceContracts)).toHaveLength(0);
   });
 
   it('resolves signature-derived typed sockets for a dropped cts.service node', () => {

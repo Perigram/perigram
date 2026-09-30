@@ -2558,7 +2558,8 @@
       "instances": "Entities",
       "control": "Flow",
       "services": "Services",
-      "fileData": "File data"
+      "tableData": "Table data",
+      "facade": "Facade fabrication"
     },
     "paletteItems": {
       "modifyEntity": "Modify entity",
