@@ -2,11 +2,11 @@
   <div class="flex min-w-0 flex-col gap-4">
     <template v-if="edge.label === 'children'">
       <div class="flex flex-col gap-1">
-        <label>{{ $t('typesPane.edgeKey') }}</label>
+        <label>{{ $t('processDesigner.edgeKey') }}</label>
         <InputText v-model="edge.data.key" />
       </div>
       <div class="flex flex-col gap-1">
-        <label>{{ $t('typesPane.onRemove') }}</label>
+        <label>{{ $t('processDesigner.edgeOnRemove') }}</label>
         <Select
           v-model="edge.data.onRemove"
           :options="onRemoveOptions"

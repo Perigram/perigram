@@ -628,3 +628,17 @@ preset renders listbox roots borderless (`primeComponentTokens.listbox`)
 — every listbox use sits in a rail that owns its frame, so the old
 `border-0` utility on PrimeVue components becomes unnecessary. Placement
 spec's palette locator follows the option role now.
+
+### Agent Notes (2026-09-30, registry button + types page removed)
+
+The palette's registry shortcut button and pages/organization/types.vue
+are gone — the palette is now the Listbox alone inside the framed rail
+(no toolbar row, no wrapper). The type-designer components STAY: they are
+live (FieldNode/StateNode/TypeNode render canvas declaration nodes,
+DescriptorEditor backs the declaration inspector) — auto-imports, not
+import statements, and a path-only grep missed them; SSR smoke would have
+caught the broken build. typesPane i18n pruned to the seven keys the
+surviving components use; the edge inspector's two labels moved to the
+processDesigner namespace. LaneBands bands carry a semantic `lane-band`
+class and the placement spec selects it (the sweep had moved the hairline
+into the style binding, leaving `div.border-t` stale).
