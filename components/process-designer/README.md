@@ -412,11 +412,14 @@ organization's own role names at label size, counter-scaled against the
 canvas zoom so they render at absolute screen size. One horizontal lane
 per role in the role list's fixed order
 (empty roles keep their lane — seeing who has what is the point), plus
-an implicit unlabeled lane at the bottom for grantless effects.
+an implicit unlabeled lane at the bottom, always present, that catches
+grantless effects and everything dropped below the role lanes.
 
-Placement writes the grant: dropping an effect node in a role lane
+Placement writes membership: dropping an effect node in a role lane
 makes that role its grant; dropping it in the implicit lane clears its
-grants. This replaces the inspector's role assignment editor — grant
+grants. Dropping any OTHER node into a lane makes that lane its home
+(persisted on the canvas node) — lanes accept everything dropped into
+them. This replaces the inspector's role assignment editor — grant
 LEVELS per role stay inspector-owned (a lane cannot express them), and
 the effective-access summary stays. An effect granted to several roles
 (stored records) renders in its primary lane with a translucent
@@ -428,25 +431,49 @@ the access/workflow story. The remove (delete) operation is a LANE
 EFFECT but presentation-SECONDARY: plain content surface, hidden by the
 secondary visibility toggle; the rest of the effect family is always
 visible. Every other node — classes, fields, type references, and the
-non-effect process nodes — is SECONDARY: unaffected by lanes,
-free-placeable anywhere, hidden by the same toggle (`hidden` is runtime
-state, never persisted). Presentation primacy resolves through the one
+non-effect process nodes — is SECONDARY: unaffected by grants, hidden
+by the same toggle (`hidden` is runtime state, never persisted).
+Presentation primacy resolves through the one
 predicate `utils/processDesignerPopulation.js` (see
 [utils](../../utils/README.md)).
 
-Lane bounds wrap their nodes plus a small padding as a PURE PROJECTION:
-band geometry derives from the member effects' live positions (flooring
-at the Tidy-arranged height and the 150px minimum), so bands embrace
-their cards on load, drag, add, and delete without ever moving a node.
-Lane arrangement is never automatic — stored positions are authoritative
-(owner direction 2026-09-28, restated 2026-09-30 after an automatic
-settle pass reintroduced jumping): loads seat nothing, adds place at the
-viewport center per the canvas contract above, and the one explicit
-placement gesture is the lane-changing drop (grant write plus slot to
-the lane's nearest free row when the card landed inside the lane's span
-— outside it, the card stays exactly where it fell). Tidy owns bulk
-arrangement. Membership always re-derives from grants, and position is
-presentation state — never authorization by itself.
+Lanes are containers, and a node's vertical coordinate is authored
+RELATIVE to its lane (owner direction 2026-09-30): the persisted fact is
+the lane offset (`data.laneY`), and the canvas renders
+`absolute y = lane top + offset`. Membership is an authored fact too —
+effects by grant record, everything else by the lane it was dropped into
+(`data.lane`). From those facts one projection pass
+(`laneContainerLayout` in `utils/processDesignerArrangement.js`, see
+[utils](../../utils/README.md)) derives everything else, deterministically
+and idempotently:
+
+- **Bands hug their content completely.** Each band's height is its
+  members' offset extent plus padding (empty lanes keep the 150px
+  minimum as drop targets), and content seats at the band's top inset:
+  seating removes the dead space above a band's content, so a drop into
+  an empty or gapped band seats together with the band's content, a
+  drop into seated content moves nothing (offsets between lane-mates
+  never change), and deleting a card lets the band's content pull up to
+  hug.
+- **Bands stack in role order**, so a lane growing shifts every lane
+  below — and each lane's content rides with it, because offsets are
+  lane-relative. Nothing ever reseats across lanes.
+- **The pass never invents coordinates.** It runs on load, add, delete,
+  drop, drag-stop, grant edits, and role-list changes (once more when
+  the first measured card dimensions arrive), writing only the derived
+  absolutes and normalized offsets. Adds keep the viewport-center canvas
+  contract, joining the lane under the placement point; a drop lands in
+  the accepting lane at its dropped offset (the seating correction above
+  is the only adjustment). A drop that lands in NO lane (above the
+  stack) leaves the node free-floating outside every band until dropped
+  into one. Drafts authored before lanes get facts derived once on load
+  by containment against the minimum-height stack.
+- **Tidy owns bulk arrangement**: it rewrites offsets inside the same
+  lanes (memberships and grants untouched).
+
+Position remains presentation state — never authorization by itself:
+the grant record is the authorization, the lane fact is presentation
+membership, and both persist with the canvas node.
 
 ### Auto-arrangement (Tidy)
 
@@ -568,7 +595,10 @@ adapters, not inspector settings.
 ## Canvas behavior and diagnostics
 
 Nodes are added to the nearest unoccupied grid position around the visible
-viewport center. A newly inserted node must not cover an existing node or
+viewport center, and the node joins the lane under that position (see
+"Lanes" — an effect's lane is still the grant-derived one, so a grantless
+effect created above the implicit lane stays free-floating until dropped).
+A newly inserted node must not cover an existing node or
 its socket hit targets. Left drag box-selects, Shift extends selection,
 two-finger touchpad scroll pans, pinch zooms around the pointer, and Space
 plus left drag provides keyboard-assisted panning without a middle mouse

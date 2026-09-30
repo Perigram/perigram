@@ -733,6 +733,33 @@ shift, empty lanes stay 150px drop targets, settle idempotent); Tidy's
 own geometry now equals the settle output, so tidyCanvas just settles.
 Count-based sizing survives only as the pre-settle paint.
 
+### Agent Notes — 2026-09-30 lanes are containers — relative coordinates, hug, accept-everything
+
+Owner directive (three lines): "Node vertical positions are relative to
+their lane coords. Lane hugs its content completely. Lane accepts
+everything dropped to it." The morning's pure-projection restore derived
+band geometry from ABSOLUTE positions, so painted bands drifted off
+their content the moment stacked tops diverged from where nodes sat —
+bounds no longer wrapped. Landed the container model: lane membership
+and the lane-relative offset (`data.lane` / `data.laneY`) are authored
+facts persisted with the canvas node (effects' membership stays the
+grant record); `laneContainerLayout` (pure, in the arrangement module)
+derives everything else — bands hug their members (content seats at the
+top inset; offsets between lane-mates never change), stack in role
+order, and members ride their band because absolute y = band top +
+offset. Drops write membership for EVERY node type (effects via the
+grant, everything else via the lane fact) plus the dropped offset; drops
+into no lane (above the stack) leave the node free-floating. Adds join
+the lane under the placement point (a grantless effect above the
+implicit lane stays free until dropped). The projection runs on load,
+add, delete, drop, drag-stop, grant edits, and role-list changes — once
+more when measured card dimensions arrive (that correction re-takes the
+dirty baseline; it is not authoring). Legacy drafts derive facts once on
+load by containment against the min-height seed stack (`deriveLaneFacts`,
+pure, spec'd). `slotIntoLane`'s row snapping is gone — a drop keeps its
+offset; Tidy rewrites offsets inside the same lanes. Spec 31 cases; README
+"Lanes" rewritten to the container contract in the same pass.
+
 ### Agent Notes — 2026-09-30 corrective: automatic settle removed — explicit placement only, again
 
 Owner report: nodes "auto-place in lanes… jumping to random positions,
