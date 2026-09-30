@@ -178,6 +178,9 @@ test.describe('chat file uploads', () => {
     await fileInput.setInputFiles({ name: 'big-evidence.png', mimeType: 'image/png', buffer: BIG_BYTES });
     await expect(app.page.locator('[data-testid="chat-pending-files"]')).toBeVisible();
     await app.page.getByRole('button', { name: 'Send' }).click();
+    // The chunked send posts only after every chunk is acknowledged; the
+    // staged chips clear on success.
+    await expect(app.page.locator('[data-testid="chat-pending-files"]')).toHaveCount(0, { timeout: 120000 });
     const bigGallery = app.page.locator('[data-testid="chat-attachments"]').last();
     await expect(bigGallery.locator('img')).toBeVisible({ timeout: 60000 });
     const bigThread = await request.get(`http://localhost:3000/api/support/messages?instance=${BOX_TYPE}:${box._id}&includeChildren=1`);
