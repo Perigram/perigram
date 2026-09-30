@@ -8,6 +8,7 @@
     data-key="id"
     filter
     :filter-placeholder="placeholder"
+    :meta-key-selection="true"
     :aria-label="placeholder"
     class="min-h-0 flex-1"
     scroll-height="100%"
@@ -32,10 +33,13 @@ import Listbox from 'primevue/listbox';
 // The operation palette for the process designer: one filterable grouped
 // list (PrimeVue Listbox owns the filter box, group headers, and option
 // rows). Selection is momentary — picking an item emits once and the
-// model stays null, so the palette never keeps a highlight. Groups carry
-// precomputed localized `label`s (filtering matches them) and per-item
-// `description`s for the row tooltip. Used by both the rail palette and
-// the canvas context palette.
+// model stays null, so the palette never keeps a highlight.
+// `metaKeySelection` keeps repeat picks working: with the default, a
+// plain click on an option marked selected emits null (deselect), which
+// would silently swallow the second add of the same operation.
+// Groups carry precomputed localized `label`s (filtering matches them)
+// and per-item `description`s for the row tooltip. Used by both the rail
+// palette and the canvas context palette.
 defineProps({
   groups: { type: Array, default: () => [] },
   placeholder: { type: String, default: '' }
