@@ -920,3 +920,15 @@ expand) — pt styling shipped unseen. Reverted to the known-good full
 size + preview height; the dead sheet size is removed from
 StandardDialog. A proper mobile call surface needs design review with
 the owner first.
+
+### Agent Notes (2026-09-30, call window size + resize)
+
+Root cause of the shrunken window: the popup sweep replaced the
+arbitrary sizes with h-136/w-120 — numeric utilities that do not exist
+in Tailwind's default spacing scale, so no CSS applied and the flex
+window collapsed to content. Sizes are now token-backed
+(w/h-call-window with min caps, tailwind aliases from the token
+source), and the window is user-resizable: a bottom-left grip grows it
+up-left (anchored top-right during the gesture, like the drag header),
+clamped to the token minimums and the viewport, persisted in
+localStorage. The size binding pins a data-driven inline exception.
