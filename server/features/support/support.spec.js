@@ -40,7 +40,8 @@ const mocks = vi.hoisted(() => ({
   warehousesService: { list: vi.fn() },
   processRuntime: { resolveProcessAuth: vi.fn(async (auth) => auth) },
   filesService: { getFileBuffer: vi.fn() },
-  transcriptionService: { transcribeAudio: vi.fn() }
+  transcriptionService: { transcribeAudio: vi.fn() },
+  instancesService: { declarationForType: vi.fn(async () => null) }
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
@@ -67,6 +68,7 @@ vi.mock('~/server/features/warehouses/service.js', () => mocks.warehousesService
 vi.mock('~/server/features/process-definitions/runtime.js', () => mocks.processRuntime);
 vi.mock('~/server/features/files/service.js', () => mocks.filesService);
 vi.mock('~/server/features/transcription/service.js', () => mocks.transcriptionService);
+vi.mock('~/server/features/instances/service.js', () => mocks.instancesService);
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
     const error = new Error(err.message);
@@ -87,6 +89,13 @@ describe('support communication service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => input);
+    mocks.appRegistry.getInstanceService.mockImplementation(() => ({ processGetById: vi.fn(async () => null) }));
+    // Real declaration resolution by default (pack snapshot facets and
+    // trait shapes); materialization tests override per type.
+    mocks.instancesService.declarationForType.mockImplementation(async (typeId, organizationId) => {
+      const actual = await vi.importActual('~/server/features/instances/service.js');
+      return actual.declarationForType(typeId, organizationId);
+    });
   });
 
   it('resolves deterministic direct conversation context for same-organization users', async () => {
@@ -333,9 +342,10 @@ describe('support communication service', () => {
             identity: { name: 'Iklya 1' },
             lineage: { organizationId: 'org-1' },
             data: {
-              type: 'STANDARD',
-              definition: { params: { A: 1 } },
-              revisions: { geometry: null }
+              templateType: 'STANDARD',
+              mapping: { 'cut.outer': 'cut.outer' },
+              polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }],
+              layerData: []
             }
           }
         : null)),
@@ -346,9 +356,10 @@ describe('support communication service', () => {
               identity: { name: 'Iklya 1' },
               lineage: { organizationId: 'org-1' },
               data: {
-                type: 'STANDARD',
-                definition: { params: { A: 1 } },
-                revisions: { geometry: null }
+                templateType: 'STANDARD',
+                mapping: { 'cut.outer': 'cut.outer' },
+                polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }],
+                layerData: []
               }
             }
           ]
@@ -375,9 +386,9 @@ describe('support communication service', () => {
         instance: expect.objectContaining({
           _id: 'cassette-1',
           data: expect.objectContaining({
-            type: 'STANDARD',
-            definition: { params: { A: 1 } },
-            revisions: { geometry: null }
+            templateType: 'STANDARD',
+            mapping: { 'cut.outer': 'cut.outer' },
+            polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }]
           })
         })
       })
@@ -443,23 +454,45 @@ describe('support communication service', () => {
     const message = await supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
       message: '   ',
-      attachment: { kind: 'audio', fileId: 'gridfs-1', mimeType: 'audio/webm', durationSeconds: 12 }
+      attachments: [{ kind: 'audio', fileId: 'gridfs-1', mimeType: 'audio/webm', durationSeconds: 12 }]
     });
 
     expect(message.message).toBe('');
-    expect(message.attachment).toEqual({
+    expect(message.attachments).toEqual([{
       kind: 'audio',
       fileId: 'gridfs-1',
       mimeType: 'audio/webm',
       durationSeconds: 12
-    });
+    }]);
     expect(mocks.connectionsPublish).toHaveBeenCalledWith(
       'conversation:direct:user-a:user-b',
       expect.objectContaining({ type: 'message' })
     );
   });
 
-  it('rejects unsupported chat attachment kinds', async () => {
+  it('sends multi-file galleries in common chats without instance linkage', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+
+    const message = await supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      message: 'site photos',
+      attachments: [
+        { kind: 'image', fileId: 'gridfs-a', mimeType: 'image/png', name: 'facade.png', size: 2048 },
+        { kind: 'image', fileId: 'gridfs-b', mimeType: 'image/jpeg', name: 'closeup.jpg', size: 4096 },
+        { kind: 'file', fileId: 'gridfs-c', mimeType: 'application/pdf', name: 'report.pdf', size: 8192 }
+      ]
+    });
+
+    expect(message.attachments).toHaveLength(3);
+    expect(message.attachments[0]).toMatchObject({ kind: 'image', fileId: 'gridfs-a', name: 'facade.png', size: 2048 });
+    expect(message.attachments[2]).toMatchObject({ kind: 'file', name: 'report.pdf' });
+  });
+
+  it('rejects unsupported chat attachment kinds and over-limit attachment lists', async () => {
     mocks.usersService.getById.mockResolvedValue({
       memberships: [{ organizationId: 'org-1' }],
       toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
@@ -467,7 +500,12 @@ describe('support communication service', () => {
 
     await expect(supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
-      attachment: { kind: 'file', fileId: 'gridfs-1' }
+      attachments: [{ kind: 'hologram', fileId: 'gridfs-1' }]
+    })).rejects.toMatchObject({ statusCode: 400 });
+
+    await expect(supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      attachments: Array.from({ length: 11 }, (_, index) => ({ kind: 'file', fileId: `gridfs-${index}` }))
     })).rejects.toMatchObject({ statusCode: 400 });
   });
 
@@ -479,7 +517,7 @@ describe('support communication service', () => {
       participants: ['user-a', 'user-b'],
       senderUserId: 'user-b',
       message: '',
-      attachment: { kind: 'audio', fileId: 'gridfs-1', mimeType: 'audio/webm', durationSeconds: 3 },
+      attachments: [{ kind: 'audio', fileId: 'gridfs-1', mimeType: 'audio/webm', durationSeconds: 3 }],
       instancePath: []
     };
     const directRecipient = () => {
@@ -497,13 +535,16 @@ describe('support communication service', () => {
       mocks.repository.updateById.mockImplementation(async (id, update) => ({
         ...audioMessage,
         message: update.$set.message,
-        attachment: { ...audioMessage.attachment, transcription: update.$set['attachment.transcription'] }
+        attachments: [{
+          ...audioMessage.attachments[0],
+          transcription: update.$set['attachments.$[element].transcription']
+        }]
       }));
 
       const message = await supportService.transcribeMessageAudio(auth, 'msg-1');
 
       expect(message.message).toBe('hello there');
-      expect(message.attachment.transcription).toMatchObject({ provider: 'local', model: 'whisper-1' });
+      expect(message.attachments[0].transcription).toMatchObject({ provider: 'local', model: 'whisper-1' });
       expect(mocks.transcriptionService.transcribeAudio).toHaveBeenCalledWith(expect.objectContaining({
         filename: 'voice-message.webm',
         mimeType: 'audio/webm',
@@ -512,9 +553,9 @@ describe('support communication service', () => {
       expect(mocks.repository.updateById).toHaveBeenCalledWith('msg-1', {
         $set: {
           message: 'hello there',
-          'attachment.transcription': { provider: 'local', model: 'whisper-1', transcribedAt: expect.any(Date) }
+          'attachments.$[element].transcription': { provider: 'local', model: 'whisper-1', transcribedAt: expect.any(Date) }
         }
-      }, expect.any(Object));
+      }, expect.any(Object), { arrayFilters: [{ 'element.fileId': 'gridfs-1' }] });
       expect(mocks.connectionsPublish).toHaveBeenCalledWith(
         'conversation:direct:user-a:user-b',
         expect.objectContaining({ type: 'message.updated', message })
@@ -538,13 +579,13 @@ describe('support communication service', () => {
       await expect(supportService.transcribeMessageAudio(auth, 'missing'))
         .rejects.toMatchObject({ statusCode: 404 });
 
-      mocks.repository.findById.mockResolvedValue({ ...audioMessage, attachment: null });
+      mocks.repository.findById.mockResolvedValue({ ...audioMessage, attachments: [] });
       await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
         .rejects.toMatchObject({ statusCode: 400 });
 
       mocks.repository.findById.mockResolvedValue({
         ...audioMessage,
-        attachment: { ...audioMessage.attachment, transcription: { provider: 'local' } }
+        attachments: [{ ...audioMessage.attachments[0], transcription: { provider: 'local' } }]
       });
       await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
         .rejects.toMatchObject({ statusCode: 409 });
@@ -565,6 +606,125 @@ describe('support communication service', () => {
       await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
         .rejects.toMatchObject({ statusCode: 422 });
       expect(mocks.repository.updateById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('instance chat file materialization', () => {
+    const parentInstance = () => ({ _id: 'order-1', identity: { name: 'Site order' }, lineage: { organizationId: 'org-1' } });
+    const registryWithParent = (uploadHandler) => {
+      mocks.appRegistry.getInstanceService.mockImplementation((type) => {
+        if (type === 'site-order') {
+          return { processGetById: vi.fn(async () => parentInstance()) };
+        }
+        return {
+          processGetById: vi.fn(async () => null),
+          ...(uploadHandler ? { constructionHandlers: { upload: uploadHandler } } : {})
+        };
+      });
+    };
+
+    it('materializes an uploaded file as the accepting child instance and refs it', async () => {
+      mocks.repository.insert.mockImplementation(async (record) => record);
+      const upload = vi.fn(async (draft) => ({
+        _id: 'file-instance-1',
+        type: 'site-photo',
+        identity: { name: draft.payload.name },
+        lineage: { siteOrderId: 'order-1' }
+      }));
+      registryWithParent(upload);
+      mocks.instancesService.declarationForType.mockImplementation(async (typeId) => {
+        if (typeId === 'site-order') {
+          return { id: 'site-order', class: 'group', edges: { children: { photos: { types: ['site-photo'], onRemove: 'restrict' } } } };
+        }
+        if (typeId === 'site-photo') {
+          return { id: 'site-photo', class: 'file', payload: { mime: ['image/png', 'image/jpeg'], creation: ['upload'] } };
+        }
+        return null;
+      });
+
+      const message = await supportService.sendUserMessage(auth, {
+        instance: { type: 'site-order', id: 'order-1' },
+        message: '',
+        attachments: [{
+          kind: 'image',
+          fileId: 'gridfs-photo',
+          mimeType: 'image/png',
+          name: 'facade.png',
+          size: 1024,
+          targetTypeId: 'site-photo'
+        }]
+      });
+
+      // The stored descriptor drops the request-vocabulary targetTypeId;
+      // the created instance joins the refs with its snapshot.
+      expect(message.attachments).toEqual([{
+        kind: 'image',
+        fileId: 'gridfs-photo',
+        mimeType: 'image/png',
+        name: 'facade.png',
+        size: 1024
+      }]);
+      expect(upload).toHaveBeenCalledWith({
+        payload: { fileId: 'gridfs-photo', mime: 'image/png', size: 1024, name: 'facade.png' },
+        lineage: { siteOrderId: 'order-1' },
+        identity: { name: 'facade.png' }
+      }, { userId: 'user-a', organizationId: 'org-1' });
+      expect(message.instanceRefs).toEqual([expect.objectContaining({
+        type: 'site-photo',
+        id: 'file-instance-1',
+        label: 'facade.png',
+        instance: expect.objectContaining({ _id: 'file-instance-1' })
+      })]);
+    });
+
+    it('rejects an instance-chat file no declared child accepts', async () => {
+      registryWithParent();
+      mocks.instancesService.declarationForType.mockImplementation(async (typeId) => (
+        typeId === 'site-order' ? { id: 'site-order', class: 'group', edges: {} } : null
+      ));
+
+      await expect(supportService.sendUserMessage(auth, {
+        instance: { type: 'site-order', id: 'order-1' },
+        attachments: [{ kind: 'file', fileId: 'gridfs-x', mimeType: 'application/pdf' }]
+      })).rejects.toMatchObject({ statusCode: 400, message: 'This chat accepts no file uploads' });
+    });
+
+    it('rejects an ambiguous file without a chosen target type', async () => {
+      const upload = vi.fn(async (draft) => ({ _id: 'file-any', identity: { name: draft.payload.name } }));
+      registryWithParent(upload);
+      mocks.instancesService.declarationForType.mockImplementation(async (typeId) => {
+        if (typeId === 'site-order') {
+          return { id: 'site-order', class: 'group', edges: { children: { shots: { types: ['site-photo', 'site-report'] } } } };
+        }
+        return { id: typeId, class: 'file', payload: { mime: ['image/png'], creation: ['upload'] } };
+      });
+
+      await expect(supportService.sendUserMessage(auth, {
+        instance: { type: 'site-order', id: 'order-1' },
+        attachments: [{ kind: 'image', fileId: 'gridfs-x', mimeType: 'image/png' }]
+      })).rejects.toMatchObject({ statusCode: 400, message: 'Attachment matches several target types; pick one' });
+      expect(upload).not.toHaveBeenCalled();
+    });
+
+    it('keeps files unlinked in party-target chats (the organization chat)', async () => {
+      mocks.repository.insert.mockImplementation(async (record) => record);
+      mocks.appRegistry.getInstanceService.mockImplementation((type) => (
+        type === 'organization'
+          ? { processGetById: vi.fn(async () => ({ _id: 'org-1', identity: { name: 'Org' }, lineage: {} })) }
+          : { processGetById: vi.fn(async () => null) }
+      ));
+      mocks.instancesService.declarationForType.mockImplementation(async (typeId) => (
+        typeId === 'organization' ? { id: 'organization', class: 'party' } : null
+      ));
+
+      const message = await supportService.sendUserMessage(auth, {
+        instance: { type: 'organization', id: 'org-1' },
+        message: '',
+        attachments: [{ kind: 'file', fileId: 'gridfs-x', mimeType: 'application/pdf', name: 'notes.pdf' }]
+      });
+
+      expect(message.attachments).toHaveLength(1);
+      expect(message.instanceRefs).toEqual([]);
     });
   });
 

@@ -19,7 +19,7 @@ async function bandSeparatorTops(page) {
   return page.evaluate(() => {
     const root = document.querySelector('.vue-flow');
     if (!root) return [];
-    return Array.from(root.querySelectorAll('div.border-t'))
+    return Array.from(root.querySelectorAll('.lane-band'))
       .map(el => Number((el.style.top || '').replace('px', '')))
       .filter(top => Number.isFinite(top))
       .sort((left, right) => left - right);
@@ -78,7 +78,7 @@ test('palette add places at the viewport center and lanes wrap their cards', asy
   // lane — it seats inside that lane (top inset), everything else stays
   const card = app.page.locator('.vue-flow__node').first();
   const box = await card.boundingBox();
-  const laneSeparator = await app.page.locator('.vue-flow div.border-t').first().boundingBox();
+  const laneSeparator = await app.page.locator('.vue-flow .lane-band').first().boundingBox();
   // drag by the card header: the selected card's inline editor overlays
   // the body and swallows pointer events
   await app.page.mouse.move(box.x + 30, box.y + 12);

@@ -73,6 +73,6 @@ const panePanelPt = {
   // to shrink below its content for the tablist to overflow and scroll.
   contentContainer: { class: 'flex min-h-0 min-w-0 flex-1 flex-col' },
   contentWrapper: { class: 'flex min-h-0 min-w-0 flex-1 flex-col' },
-  content: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0' }
+  content: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !p-0' }
 };
 </script>

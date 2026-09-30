@@ -564,10 +564,9 @@ function executeString(record, packets) {
 
 function executeLogic(record, packets) {
   const left = required(packets, 'left', record);
-  if (['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'].includes(record.operation)) {
-    return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => compare(record.operation, a, b), { matching: record.matching });
-  }
-  if (['isNull', 'isNotNull'].includes(record.operation)) {
+  // Boolean algebra only (SPEC §8 palette law): value comparison lives on
+  // `value.compare`, field-path comparison on `predicate.field`.
+  if (record.operation === 'isNull' || record.operation === 'isNotNull') {
     return mapDataPacket(left, value => compare(record.operation, value, null));
   }
   if (record.operation === 'not') return mapDataPacket(left, value => !value);

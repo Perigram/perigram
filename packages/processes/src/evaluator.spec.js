@@ -171,7 +171,7 @@ describe('process v4 data execution', () => {
 
   it('uses one logic node for gates and comparisons', async () => {
     const comparison = await executeProcessDataNode(
-      { kind: 'value.logic', operation: 'gte' },
+      { kind: 'value.compare', operation: 'gte' },
       { left: createDataPacket(30), right: createDataPacket(20) }
     );
     const gate = await executeProcessDataNode(
@@ -742,7 +742,7 @@ describe('process v4 data execution', () => {
       { block: blocks }
     );
     const mask = await executeProcessDataNode(
-      { kind: 'value.logic', operation: 'eq' },
+      { kind: 'value.compare', operation: 'eq' },
       { left: names, right: createDataPacket('Alpha') }
     );
     const found = await executeProcessDataNode(
@@ -766,7 +766,7 @@ describe('process v4 data execution', () => {
     const fieldMask = async (block, path, operation, target) => {
       const blocks = await executeProcessDataNode({ kind: 'record.getBlock', block }, { entity: selected });
       const values = await executeProcessDataNode({ kind: 'record.getField', block, path }, { block: blocks });
-      return executeProcessDataNode({ kind: 'value.logic', operation }, { left: values, right: createDataPacket(target) });
+      return executeProcessDataNode({ kind: 'value.compare', operation }, { left: values, right: createDataPacket(target) });
     };
     const nameMask = await fieldMask('identity', 'identity.name', 'eq', 'Alpha');
     const statusMask = await fieldMask('states', 'states.main', 'eq', 'NEW');
@@ -802,7 +802,7 @@ describe('process v4 data execution', () => {
       { block: blocks }
     );
     const mask = await executeProcessDataNode(
-      { kind: 'value.logic', operation: 'eq' },
+      { kind: 'value.compare', operation: 'eq' },
       { left: statuses, right: createDataPacket('DONE') }
     );
     const found = await executeProcessDataNode(
@@ -831,7 +831,7 @@ describe('process v4 data execution', () => {
       { block: blocks }
     );
     const mask = await executeProcessDataNode(
-      { kind: 'value.logic', operation: 'eq' },
+      { kind: 'value.compare', operation: 'eq' },
       { left: refs, right: createDataPacket({ type: 'library', id: 'lib-a' }) }
     );
     const found = await executeProcessDataNode(
@@ -857,7 +857,7 @@ describe('process v4 data execution', () => {
       { block: blocks }
     );
     const mask = await executeProcessDataNode(
-      { kind: 'value.logic', operation: 'eq' },
+      { kind: 'value.compare', operation: 'eq' },
       { left: names, right: createDataPacket('Nobody') }
     );
     const found = await executeProcessDataNode(
@@ -888,7 +888,7 @@ describe('process v4 data execution', () => {
       { block: blocks }
     );
     const mask = await executeProcessDataNode(
-      { kind: 'value.logic', operation: 'contains' },
+      { kind: 'value.compare', operation: 'contains' },
       { left: names, right: createDataPacket('a') }
     );
     const found = await executeProcessDataNode(
@@ -1152,7 +1152,7 @@ describe('process v4 data execution', () => {
       { block: blocks }
     );
     const mask = await executeProcessDataNode(
-      { kind: 'value.logic', operation: 'eq' },
+      { kind: 'value.compare', operation: 'eq' },
       { left: statuses, right: createDataPacket('DONE') }
     );
     const matching = await executeProcessDataNode(
@@ -1230,7 +1230,7 @@ describe('native structure species execution', () => {
 describe('stable structural equality', () => {
   it('compares eq across differing key order', async () => {
     const result = await executeProcessDataNode(
-      { kind: 'value.logic', operation: 'eq' },
+      { kind: 'value.compare', operation: 'eq' },
       { left: createDataPacket({ a: 1, b: 2 }), right: createDataPacket({ b: 2, a: 1 }) }
     );
 

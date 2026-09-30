@@ -20,16 +20,18 @@ test('definitions pane: row controls, rename, versions accrual, restore', async 
   await definitionsTab.click();
 
   const row = app.page.locator('[data-testid]').filter({ has: app.page.getByRole('switch') }).first();
-  const firstRow = app.page.locator('button[title]').first();
+  const firstRow = app.page.getByRole('option').first();
   await expect(firstRow).toBeVisible({ timeout: 15000 });
 
-  // The full control set: activation switch, versions, rename, delete.
+  // The full control set: activation switch and versions on the row;
+  // rename/delete behind the row's ellipsis menu.
   const versionsButton = app.page.getByRole('button', { name: 'Versions' }).first();
-  const renameButton = app.page.getByRole('button', { name: 'Rename' }).first();
-  const deleteButton = app.page.getByRole('button', { name: 'Delete' }).first();
   const activationSwitch = app.page.getByRole('switch').first();
   await expect(activationSwitch).toBeVisible();
   await expect(versionsButton).toBeVisible();
+  await app.page.getByRole('button', { name: 'Definition actions' }).first().click();
+  const renameButton = app.page.getByRole('menuitem', { name: 'Rename' }).first();
+  const deleteButton = app.page.getByRole('menuitem', { name: 'Delete' }).first();
   await expect(renameButton).toBeVisible();
   await expect(deleteButton).toBeVisible();
   report.controls = { switch: true, versions: true, rename: true, delete: true };

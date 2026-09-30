@@ -1,42 +1,16 @@
-import * as repository from './repository.js';
-import { createProcessUpdateHandler } from '../../../features/_template/process-update-handler.js';
-import * as instanceRevisionsService from '../../../features/instance-revisions/service.js';
+// Cassette pack operations over the generic §13 instance service: CRUD,
+// tenancy, payload storage, and the geometry revision chain are the
+// generic machinery's job (records live in the `files` per-class
+// collection; the OCCS/DXF document rides the payload). What stays here
+// is the pack's domain semantics: the STANDARD DXF import (artifact →
+// extracted geometry) and the template DXF export (payload evaluation or
+// stored layers → DXF).
+import { createError } from 'h3';
 import * as artifactsService from '../../../features/artifacts/service.js';
 import * as filesService from '../../../features/files/service.js';
-import { createError } from 'h3';
-import { hasLineagePermission, getLineageFilter } from '../../../utils/permissions.js';
-import {
-  createIdentity,
-  createData
-} from '../../../core/blocks/index.js';
-import { createTransitionAuth, stateService } from '../../../core/machines/service.js';
-import * as workflowOverridesService from '../../../features/workflow-overrides/service.js';
-import standardSlugify from 'standard-slugify';
-import { generateRandomString } from '../../../utils/strings.js';
-import { toFlexibleId } from '../../../utils/objectid.js';
-
-async function initialCassetteStatus(organizationId, userId, note) {
-  const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: 'cassette', organizationId });
-  if (!machine) return null;
-  return stateService.initialStatusForOrganization('cassette', organizationId, userId, { note });
-}
-import { Cassette } from './model.js';
-import { serializeForAccess } from '../../../utils/entity-redaction.js';
+import { instanceServiceResolver } from '../../../features/instances/service.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../../utils/dxf-extractor.js';
 import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
-import { isOccsDocument } from '#utils/occs/parameters.js';
-import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
-import { generateLayeredDxf } from '../../../utils/dxf-writer.js';
-
-/**
- * Cassette Templates Service - v24 Standardized
- */
-
-
-function toDTO(cassette) {
-  if (!cassette) return null;
-  return new Cassette(cassette).toJSON();
-}
 
 function buildMappedLayerData(fileBuffer, layerMapping = {}) {
   return Object.entries(layerMapping).flatMap(([sourceLayer, layer]) => {
@@ -52,108 +26,35 @@ function buildMappedLayerData(fileBuffer, layerMapping = {}) {
   });
 }
 
-const GEOMETRY_REVISION_SCOPE = 'geometry';
+const cassetteService = () => instanceServiceResolver('cassette');
 
-function geometryRevisionContent(cassette) {
-  const data = cassette.data || {};
-  return {
-    type: data.type || 'PARAMETRIC',
-    definition: data.definition || null,
-    parameters: data.parameters || []
-  };
-}
-
-function geometryRevisionSnapshot(cassette) {
-  return {
-    identity: cassette.identity || null,
-    data: geometryRevisionContent(cassette)
-  };
-}
-
-function geometryRevisionPointer(revision) {
-  if (!revision) return null;
-  return {
-    currentId: revision._id,
-    number: revision.data?.number || 0,
-    contentHash: revision.data?.contentHash || ''
-  };
-}
-
-async function ensureGeometryRevision(cassette, userId, reason = 'content-change') {
-  const revision = await instanceRevisionsService.ensureForEntitySnapshot({
-    typeId: 'cassette',
-    entity: cassette,
-    scope: GEOMETRY_REVISION_SCOPE,
-    content: geometryRevisionContent(cassette),
-    snapshot: geometryRevisionSnapshot(cassette),
-    userId,
-    reason
-  });
-  const data = {
-    ...(cassette.data || {}),
-    revisions: {
-      ...(cassette.data?.revisions || {}),
-      [GEOMETRY_REVISION_SCOPE]: geometryRevisionPointer(revision)
-    }
-  };
-  const updated = await repository.updateById(cassette._id, { data });
-  return { revision, cassette: updated };
-}
-
-export async function create(data, userId, userOrg, userRole, userPermissions) {
-  // Lineage: Templates belong to the organization
-  const targetOrgId = userOrg || userId;
-  const lineage = { organizationId: toFlexibleId(targetOrgId) };
-  const libraryId = data.libraryId || data.data?.libraryId;
-  if (libraryId) lineage.libraryId = toFlexibleId(libraryId);
-
-  const origin = await initialCassetteStatus(targetOrgId, userId, 'Template created');
-
-  if (userPermissions && !hasLineagePermission(userPermissions, { lineage, status: origin }, 'files', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
+// The PARAMETRIC template's OCCS document — the payload is the one home.
+export async function cassetteDefinition(cassette) {
+  const payloadRef = cassette?.attachments?.primary || cassette?.payload || null;
+  const fileId = payloadRef?.fileId || payloadRef?.id || null;
+  if (!fileId) return null;
+  let definition = null;
+  try {
+    definition = JSON.parse((await filesService.getFileBuffer(fileId, 'files')).toString('utf8'));
+  } catch {
+    return null;
   }
-
-  const name = data.name || data.identity?.name || 'New Template';
-  const slug = data.slug || data.identity?.slug || `${standardSlugify(name, { keepCase: false })}-${generateRandomString(6)}`;
-  const suppliedDefinition = data.definition || data.data?.definition;
-  if (suppliedDefinition && !isOccsDocument(suppliedDefinition)) {
-    throw createError({ statusCode: 400, message: 'Cassette definition must be a valid OCCS document' });
-  }
-  const definition = suppliedDefinition || createDefaultOccsCassetteTemplateDefinition();
-
-  const cassetteData = {
-    identity: createIdentity(name, slug),
-    ...(origin ? { origin, status: origin } : {}),
-    lineage,
-    provenance: data.provenance || {},
-    data: createData({
-        type: data.type || 'PARAMETRIC', // PARAMETRIC | STANDARD
-        definition,
-        parameters: data.parameters || data.data?.parameters || Object.keys(definition.parameters || {})
-    })
-  };
-
-  const cassette = await repository.create(cassetteData);
-  const { cassette: updated } = await ensureGeometryRevision(cassette, userId, 'template-created');
-  return toDTO(updated);
+  return definition && typeof definition === 'object' ? definition : null;
 }
 
-export async function importFromArtifact(artifactId, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
-  const targetOrgId = userOrg || userId;
-  const lineage = { organizationId: toFlexibleId(targetOrgId) };
-
-  if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'files', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  const artifact = await artifactsService.getById(artifactId, userId, userOrg, userRole, userPermissions);
+// STANDARD import: a DXF_SOURCE artifact's payload is extracted once —
+// the cut contour and mapped semantic layers become the template's
+// stored geometry fields, the DXF itself becomes the payload.
+export async function importFromArtifact(artifactId, name, auth, mapping = {}, parameters = []) {
+  const artifact = await artifactsService.getById(
+    artifactId, auth.userId, auth.organizationId, auth.role, auth
+  );
   if (artifact.data?.type !== 'DXF_SOURCE' || !artifact.attachments?.primary?.fileId) {
     throw createError({ statusCode: 400, message: 'Cassette import requires a DXF_SOURCE artifact with a file' });
   }
   const attachment = artifact.attachments.primary;
   const bucketName = attachment.metadata?.bucketName || attachment.bucketName || 'userDxf';
   const fileBuffer = await filesService.getFileBuffer(attachment.fileId, bucketName);
-  const fileName = attachment.name || artifact.identity?.name || 'cassette.dxf';
   const layerMapping = mapping || {};
   const polygonParts = extractNestingPolygons(fileBuffer, layerMapping, OCCS_LAYER_CUT_OUTER);
   if (!polygonParts.length) {
@@ -164,277 +65,54 @@ export async function importFromArtifact(artifactId, name, userId, userOrg, user
   }
   const layerData = buildMappedLayerData(fileBuffer, layerMapping);
 
-  // 1. Create Template
-  const slug = `${standardSlugify(name || fileName, { keepCase: false })}-${generateRandomString(6)}`;
-  const origin = await initialCassetteStatus(targetOrgId, userId, 'Standard template uploaded');
+  const stored = await filesService.uploadFile(
+    fileBuffer, attachment.name || artifact.identity?.name || 'cassette.dxf', {
+      userId: auth.userId, organizationId: auth.organizationId, type: 'cassette'
+    }, 'files'
+  );
 
-  const templateData = {
-    identity: createIdentity(name || fileName, slug),
-    ...(origin ? { origin, status: origin } : {}),
-    lineage,
-    relations: { sourceDxf: { type: 'artifact', id: artifact._id.toString() } },
-    data: createData({
-      type: 'STANDARD',
-      definition: { mapping: layerMapping },
+  return await cassetteService().create({
+    identity: { name: name || artifact.identity?.name || 'Cassette' },
+    payload: { fileId: stored.id, mime: 'application/dxf', size: fileBuffer.length },
+    data: {
+      templateType: 'STANDARD',
+      mapping: layerMapping,
       parameters: parameters || [],
-      // The uploaded geometry is the template's own nestable content: the
-      // extracted cut contour and mapped semantic layers live on the
-      // cassette document, so previews, exports, and the nesting solver
-      // read one record.
       polygonParts,
       layerData
-    })
-  };
-
-  const template = await repository.create(templateData);
-  const { cassette: updatedTemplate } = await ensureGeometryRevision(template, userId, 'template-uploaded');
-
-  return toDTO(updatedTemplate);
-}
-
-export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
-  const { limit, skip, status, primaryState, primaryStates, ...rest } = query;
-
-  const lineageFilter = getLineageFilter(userPermissions);
-  const processedFilter = normalizeLineageQuery(rest);
-
-  // Wire filter vocabulary is primaryStates; the v24 cassettes storage
-  // keeps its status block, so the storage path targets the block.
-  const statuses = normalizePrimaryStatuses(primaryStates);
-  if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
-  else if (status || primaryState) processedFilter['status.state.primary'] = status || primaryState;
-
-  const finalFilter = { ...lineageFilter, ...processedFilter };
-
-  const cassettes = await repository.find(finalFilter, {
-    limit: limit ? parseInt(limit) : 100,
-    skip: skip ? parseInt(skip) : 0
-  });
-
-  return cassettes
-    .map(toDTO)
-    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'files', 'read'));
-}
-
-export async function listPreviewByLibraries(libraryIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
-  const ids = Array.from(new Set(libraryIds.flatMap(id => flexibleLookupValues(id)).filter(Boolean)));
-  if (!ids.length) return {};
-
-  const limit = Math.max(Number(options.limit || 4), 1);
-  const raws = await repository.find({
-    ...getLineageFilter(userPermissions),
-    'lineage.libraryId': { $in: ids }
-  });
-  const previews = {};
-  const cassettes = raws
-    .map(raw => new Cassette(raw).toJSON())
-    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'files', 'read'))
-    .sort(sortByStatusTimestampDesc);
-
-  for (const cassette of cassettes) {
-    const libraryId = cassette.lineage?.libraryId?.toString?.() || cassette.lineage?.libraryId;
-    if (!libraryId) continue;
-    previews[libraryId] ||= [];
-    if (previews[libraryId].length >= limit) continue;
-    previews[libraryId].push(cassettePreview(cassette, userPermissions));
-  }
-
-  return previews;
-}
-
-function normalizeLineageQuery(query = {}) {
-  const normalized = { ...query };
-  for (const key of ['projectId', 'queueId', 'warehouseId', 'cassetteId', 'libraryId']) {
-    if (normalized[key] !== undefined) {
-      normalized[`lineage.${key}`] = toFlexibleId(normalized[key]);
-      delete normalized[key];
+    },
+    provenance: {
+      op: 'artifact-conversion',
+      sources: [{ type: 'artifact', id: String(artifact._id) }],
+      effective: { mapping: layerMapping }
     }
-  }
-  return normalized;
+  }, auth.userId, auth.organizationId);
 }
 
-function normalizePrimaryStatuses(value) {
-  if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
-  if (typeof value !== 'string') return [];
-  return value.split(',').map(item => item.trim()).filter(Boolean);
-}
+// Template DXF export: PARAMETRIC templates evaluate their OCCS payload
+// once (the serial evaluation lock lives in evaluation.js); STANDARD
+// templates export their stored layers.
+export async function exportDxf(id, dimensions = {}, auth = null) {
+  const template = await cassetteService().getById(id);
+  if (!template) throw createError({ statusCode: 404, message: 'Template not found' });
 
-function flexibleLookupValues(id) {
-  if (id === null || id === undefined) return [];
-  const stringId = id?.toString?.() || id;
-  const flexibleId = toFlexibleId(id);
-  return [flexibleId, stringId].filter((value, index, values) => (
-    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
-  ));
-}
-
-function sortByStatusTimestampDesc(left = {}, right = {}) {
-  return statusTimestamp(right) - statusTimestamp(left);
-}
-
-function statusTimestamp(entity = {}) {
-  const value = entity.status?.timestamp || entity.origin?.timestamp || entity.updatedAt || entity.createdAt;
-  const timestamp = value ? new Date(value).getTime() : 0;
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function cassettePreview(cassette = {}, userPermissions = null) {
-  const preview = {
-    _id: cassette._id?.toString?.() || cassette._id,
-    typeId: 'cassette',
-    identity: {
-      ...(cassette.identity || {}),
-      name: cassette.identity?.name || cassette.identity?.slug || cassette.identity?.uid || 'Cassette'
-    },
-    origin: cassette.origin || null,
-    status: cassette.status || null,
-    lineage: cassette.lineage || {},
-    data: {
-      type: cassette.data?.type || null,
-      definition: cassette.data?.definition || null,
-      geometry: cassette.data?.geometry || null,
-      layerData: Array.isArray(cassette.data?.layerData) ? cassette.data.layerData : [],
-      polygonParts: Array.isArray(cassette.data?.polygonParts) ? cassette.data.polygonParts : [],
-      parameters: Array.isArray(cassette.data?.parameters) ? cassette.data.parameters : [],
-      revisions: cassette.data?.revisions || {}
-    },
-    summary: {}
-  };
-  return serializeForAccess('cassette', preview, userPermissions);
-}
-
-
-export async function getById(id, userId, userOrg, userRole, userPermissions) {
-  const raw = await repository.findById(toFlexibleId(id));
-  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
-
-  const cassette = new Cassette(raw);
-
-  if (userPermissions && !hasLineagePermission(userPermissions, cassette, 'files', 'read')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  return cassette.toJSON();
-}
-
-export async function exportDxf(id, dimensions, userId, userOrg, userRole, userPermissions) {
-  const template = await getById(id, userId, userOrg, userRole, userPermissions);
-
-  if (template.data?.type === 'PARAMETRIC') {
+  if (template.data?.templateType === 'PARAMETRIC') {
     const { evaluateTemplate, generateSimpleDxf } = await import('./evaluation.js');
     const { polygons, nestingPolygons, layerData } = await evaluateTemplate(id, dimensions || {});
     return layerData?.length
-      ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : polygons })
+      ? layeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : polygons })
       : generateSimpleDxf(polygons);
   }
 
-  // STANDARD templates export their own uploaded geometry: the extracted
-  // semantic layers and cut contour are the export source of truth.
   const layerData = Array.isArray(template.data?.layerData) ? template.data.layerData : [];
   const polygonParts = Array.isArray(template.data?.polygonParts) ? template.data.polygonParts : [];
   if (!layerData.length && !polygonParts.length) {
     throw createError({ statusCode: 404, message: 'DXF not found for this template' });
   }
+  return layeredDxf({ layerData, polygonParts });
+}
+
+async function layeredDxf({ layerData, polygonParts }) {
+  const { generateLayeredDxf } = await import('../../../utils/dxf-writer.js');
   return generateLayeredDxf({ layerData, polygonParts });
 }
-
-export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
-  const raw = await repository.findById(toFlexibleId(id));
-  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
-  const cassette = new Cassette(raw);
-
-  if (!hasLineagePermission(userPermissions, cassette, 'files', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  if (updates.state && typeof updates.state === 'string') {
-    await stateService.transitionWithResult({
-      typeId: 'cassette',
-      targetId: cassette._id,
-      targetState: updates.state,
-      auth: createTransitionAuth(userId, userRole, userPermissions),
-      context: updates.stateMeta || {}
-    });
-    delete updates.state;
-  }
-
-  const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
-
-  if (updates.name) cassette.identity.name = updates.name;
-
-  const normalizedUpdatesData = updatesData && (updatesData.params || updatesData.extrusions)
-    ? { definition: updatesData }
-    : (updatesData || {});
-
-  const { name, ...cleanData } = clean;
-
-  const cassetteData = {
-    ...cassette.data,
-    ...normalizedUpdatesData,
-    ...cleanData
-  };
-
-  await repository.updateById(id, { identity: cassette.identity, data: cassetteData });
-  const updatedRaw = await repository.findById(id);
-  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'template-updated');
-  return new Cassette(revisioned).toJSON();
-}
-
-export async function updateLayerMapping(id, mapping, userId, userOrg, userRole, userPermissions) {
-  const raw = await repository.findById(toFlexibleId(id));
-  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
-  const cassette = new Cassette(raw);
-
-  if (!hasLineagePermission(userPermissions, cassette, 'files', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  const data = {
-    ...cassette.data,
-    definition: {
-      ...(cassette.data?.definition || {}),
-      mapping: mapping
-    }
-  };
-
-  await repository.updateById(id, { data });
-  const updatedRaw = await repository.findById(id);
-  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'layer-mapping-updated');
-  return new Cassette(revisioned).toJSON();
-}
-
-export async function updateParameters(id, parameters, userId, userOrg, userRole, userPermissions) {
-  const raw = await repository.findById(toFlexibleId(id));
-  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
-  const cassette = new Cassette(raw);
-
-  if (!hasLineagePermission(userPermissions, cassette, 'files', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  const data = {
-    ...cassette.data,
-    parameters: parameters
-  };
-
-  await repository.updateById(id, { data });
-  const updatedRaw = await repository.findById(id);
-  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'parameters-updated');
-  return new Cassette(revisioned).toJSON();
-}
-
-export async function remove(id, userId, userOrg, userRole, userPermissions) {
-  const cassette = await getById(toFlexibleId(id), userId, userOrg, userRole, userPermissions);
-
-  if (!hasLineagePermission(userPermissions, cassette, 'files', 'admin')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  return await repository.deleteById(id);
-}
-
-export const processUpdate = createProcessUpdateHandler({
-  typeId: 'cassette',
-  repository,
-  Model: Cassette
-});

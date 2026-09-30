@@ -540,7 +540,11 @@ relationship.
 ### `ChatAttachmentPicker.vue`
 The chat composer's attachment surface: a Popover hosting PrimeVue
 `Tree`, both unmodified Aura. No `pt`, padding, border, or background
-overrides. Home-screen sections are the roots and load through the SAME
+overrides. A leading file-upload entry (icon + hidden input constrained
+by the host's `filesAccept`) rides above the tree — files and entity refs
+share the one attach surface — and emits `files` for the host to stage;
+the host passes `filesEnabled`/`filesAccept` from its own upload window.
+Home-screen sections are the roots and load through the SAME
 compiled home-screen list sources the home sidebar's PanelMenu renders —
 the instances store's `listInstances` with the source's resolved filters —
 so the picker browses the full user-available window (shared observation
@@ -561,8 +565,8 @@ tree reflects the current workspace pool. Recipient chat-only visibility
 is NOT computed here: the support service derives it on send and on draft
 hydration through the instance-options endpoint (see
 [support feature](../../../server/features/support/README.md)). The host
-owns the draft `entityRefs` and the create-action flows; the picker only
-emits `select`/`create-action`.
+owns the draft `entityRefs`, the create-action flows, and file staging;
+the picker only emits `select`/`create-action`/`files`.
 
 ### `InstanceCard.vue` (chat entry)
 Every card variant carries the composed instance-chat entry: full cards render
@@ -647,6 +651,25 @@ For non-restricted cassette refs, the renderer may still hydrate an embedded
 snapshot through the normal entity API when that snapshot predates the richer
 chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 
+### `ChatAttachments.vue`
+Renders a support message's `attachments[]` (the contract lives in the
+[support feature](../../../server/features/support/README.md) — Message
+Attachments). One image renders at natural aspect inside fixed bounds
+(`max-h`); a set renders as fixed-size square tiles (two columns up to
+four images, three beyond) — deterministic tile geometry, not
+content-sized tracks — and every image is a PrimeVue `Image` with
+built-in zoom preview. Videos render native `<video controls>` players
+(bounded width and height); audio keeps the native audio player. Every
+other file renders a chip row (type-derived icon, cropped name, human-
+readable size) with an inline download anchor, and the message menu
+offers one download entry per attachment for any kind (labels cropped).
+The root hugs its content so sender-side message columns can right-align
+the block, and every name crops through the `min-w-0`/`truncate` chain.
+All media streams the shared `/api/files/download/:id` route honoring
+the descriptor's `bucket` when present. The component is pure
+presentation over the descriptor list — uploading, materialization, and
+transcription stay in the host composer.
+
 ---
 
 ## Navigation & Links (`components/shared/links/`)
@@ -704,8 +727,11 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 - **`WorkspaceSplitNode.vue`**: Recursive PrimeVue splitter renderer for
   IDE-style file workspaces. Split nodes select horizontal or vertical layout;
   leaf nodes expose one scoped file slot inside a PrimeVue `Panel` riding the
-  zero canvas (transparent background, content padding zeroed through pt,
-  and every Panel content layer min-width-zeroed — the default
+  zero canvas (transparent background, content padding zeroed through pt's
+  `!p-0` — the plain `p-0` utility only ties the theme's padding rule and
+  the production bundle loads app css before the injected theme, so the
+  important flag carries the pane contract regardless of style order, and
+  every Panel content layer min-width-zeroed — the default
   min-width:auto sized the grid wrapper to the hosted tab strip and blew the
   panel past its split cell, killing the tablist's overflow scrolling) and
   an active-pane marker. The pane Panel draws the default Panel hairline

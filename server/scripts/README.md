@@ -24,6 +24,7 @@ reads. Tech-drawing catalogue instances migrate into §3 documents through
 | Script | When to run | What it does |
 |---|---|---|
 | `migrate-tech-drawing-instances.js` | Adopting the tech-drawing pack instance store | Moves legacy pen/layer-standard rows into §3 pack instances (ids preserved), carrying the `defaultPen` relation. Dry-run; `--apply` persists. |
+| `migrate-cassette-instances.js` | Adopting the §13 cassette store | Moves legacy `cassettes`-collection documents into the per-class `files` collection (ids preserved); inline OCCS definitions upload to the payload bucket. The legacy collection is left for the operator to drop. Dry-run; `--apply` persists. |
 | `migrate-instance-tenancy.js` | Adopting the SPEC §3 tenancy slot | Backfills top-level `organizationId` from `lineage.organizationId` and strips the legacy lineage key. Dry-run; `--apply` persists. |
 | `migrate-instance-revisions.js` | Adopting geometry revisions | Creates or reuses `entity_revisions` records for cassette templates' current geometry scope and writes `data.revisions.geometry` pointers back. |
 | `migrate-artifact-file-revisions.js` | Adopting retained artifact file revisions | Backfills artifact current-file revisions and scoped pointers. Dry-run; `--apply` persists. |
@@ -42,6 +43,7 @@ reads. Tech-drawing catalogue instances migrate into §3 documents through
 | `migrate-organization-owner-admins.js` | Tenant safety | Marks one active membership per organization as `owner: true` and materializes permanent org/user admin recovery grants. Idempotent. |
 | `migrate-call-channels-to-groups.js` | Adopting unified support groups | Migrates the retired livekit `call_channels` collection into support `chat_groups` and drops it. Dry-run; `--apply` persists. |
 | `migrate-cutkit-extensions-to-perigram.js` | CutKit → Perigram rename | Renames persisted `extensions.cutkit` authoring keys to `extensions.perigram` at any document depth in every non-system collection, and inside GridFS file contents (JSON documents rewritten under their original id; binary files are skipped). Supports `--dry-run`. |
+| `migrate-support-attachments.js` | Adopting multi-attachment chat messages | Rewrites each `supportMessages` document's singular `attachment` object into the `attachments` array contract, stamping `bucket: 'uploads'` so legacy voice/recording blobs keep resolving after new uploads moved to the `files` bucket. Dry-run; `--apply` persists. |
 
 ## Retired
 

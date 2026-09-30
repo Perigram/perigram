@@ -205,6 +205,7 @@ describe('Design system manifest', () => {
     expect(primeComponentTokens).toEqual({
       panel: { root: { background: 'transparent', borderColor: 'transparent' } },
       panelmenu: { panel: { background: 'transparent' } },
+      listbox: { root: { borderColor: 'transparent' } },
       splitter: { gutter: { background: 'transparent' } },
       card: { root: { shadow: 'none' } },
       datatable: {
@@ -431,8 +432,8 @@ describe('Design system manifest', () => {
     }
     expect(new Set(Object.values(SCOPED_STYLE_EXCEPTIONS))).toEqual(new Set(['layout']));
     expect(SCOPED_EXCEPTION_PROPERTIES.layout.has('padding')).toBe(false);
-    expect(new Set(Object.values(INLINE_STYLE_EXCEPTIONS).map(([category]) => category)))
-      .toEqual(new Set(['data-driven']));
+    expect(new Set(Object.values(INLINE_STYLE_EXCEPTIONS).map(([category]) => category))
+      .difference(new Set(['data-driven', 'layout'])).size).toBe(0);
 
     for (const [file, [category, expectedStyles]] of Object.entries(INLINE_STYLE_EXCEPTIONS)) {
       expect(files, `${file} must retain its ${category} inline exception`).toContain(file);

@@ -294,7 +294,7 @@ function nativeConstructionPorts(record = {}, context = {}) {
     ],
     outputs: [
       completedSocket(),
-      socket('result', processType('entity', { typeId }), DATA, false)
+      socket('result', processType('entityRef', { typeId }), DATA, false)
     ]
   };
 }
@@ -323,7 +323,7 @@ function nativeMutatePorts(record = {}, context = {}) {
     ],
     outputs: [
       completedSocket(),
-      socket('result', processType('entity', { typeId }), DATA, false)
+      socket('result', processType('entityRef', { typeId }), DATA, false)
     ]
   };
 }
@@ -345,7 +345,7 @@ function nativeTransitionPorts(record = {}) {
     ],
     outputs: [
       completedSocket(),
-      socket('result', processType('entity', { typeId }), DATA, false)
+      socket('result', processType('entityRef', { typeId }), DATA, false)
     ]
   };
 }
@@ -359,7 +359,7 @@ function nativeRemovePorts(record = {}) {
     inputs: [socket('entity', processType('entityRef', { typeId }), DATA, true, 'list')],
     outputs: [
       completedSocket(),
-      socket('result', processType('entity', { typeId }), DATA, false)
+      socket('result', processType('entityRef', { typeId }), DATA, false)
     ]
   };
 }
@@ -376,13 +376,13 @@ function nativeReadPorts(record = {}, context = {}) {
   if (select === 'current') {
     return {
       inputs: [declarationTypePin(record)],
-      outputs: [socket('result', processType('entity', { typeId }), DATA, false)]
+      outputs: [socket('result', processType('entityRef', { typeId }), DATA, false)]
     };
   }
   if (select === 'all') {
     return {
       inputs: [declarationTypePin(record)],
-      outputs: [socket('result', processType('entity', { typeId }), DATA, false, 'list')]
+      outputs: [socket('result', processType('entityRef', { typeId }), DATA, false, 'list')]
     };
   }
   if (select === 'extract') {
@@ -397,7 +397,7 @@ function nativeReadPorts(record = {}, context = {}) {
     const element = output.base === 'list' ? (output.itemType || {}) : output;
     const outputType = ctsFieldToProcessType(element) || processType('json', { nullable: true });
     return {
-      inputs: [socket('entity', processType('entity', { typeId }), DATA, true, output.base === 'list' ? 'list' : 'item')],
+      inputs: [socket('entity', processType('entityRef', { typeId }), DATA, true, output.base === 'list' ? 'list' : 'item')],
       outputs: [socket('result', outputType, DATA, false, output.base === 'list' ? 'list' : 'item')]
     };
   }
@@ -430,14 +430,14 @@ function derivedReadOutputType(record = {}, context = {}) {
       .map(relation => relation.targetType);
     return acceptedEntityType(candidates);
   }
-  return processType('entity', { typeId });
+  return processType('entityRef', { typeId });
 }
 
 function acceptedEntityType(candidates = []) {
   const unique = [...new Set(candidates.filter(Boolean))];
-  if (unique.length === 1) return processType('entity', { typeId: unique[0], nullable: true });
-  if (unique.length > 1) return processType('entity', { accepts: unique, nullable: true });
-  return processType('entity', { nullable: true });
+  if (unique.length === 1) return processType('entityRef', { typeId: unique[0], nullable: true });
+  if (unique.length > 1) return processType('entityRef', { accepts: unique, nullable: true });
+  return processType('entityRef', { nullable: true });
 }
 
 // The field projection is socket algebra (SPEC §20): entity in, field in
@@ -448,7 +448,7 @@ function acceptedEntityType(candidates = []) {
 function nativeFieldPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   const entityIn = typeId
-    ? processType('entity', { typeId })
+    ? processType('entityRef', { typeId })
     : processType('entity');
   const fieldPath = String(authoredSocketDefault(record.inputDefaults?.field) || '');
   const field = fieldPath
@@ -478,7 +478,7 @@ function nativeStructurePorts(record = {}, context = {}) {
   if (record.kind === 'cts.decompose') {
     const blocks = dynamicBlocks(record, context);
     return {
-      inputs: [socket('entity', processType('entity', { typeId: typeIdOf(record) }), DATA, true)],
+      inputs: [socket('entity', processType('entityRef', { typeId: typeIdOf(record) }), DATA, true)],
       outputs: blocks.map(block => socket(block, processType('block', { block })))
     };
   }
@@ -531,7 +531,7 @@ function cts(kind, label, family, level) {
         return nativeStructurePorts(record, context);
       }
       if (record.kind === 'cts.join') {
-        const entity = processType('entity', { typeId: typeIdOf(record) || undefined });
+        const entity = processType('entityRef', { typeId: typeIdOf(record) || undefined });
         return {
           inputs: [
             socket('primary', entity, DATA, true, 'list'),
@@ -591,8 +591,8 @@ function catalogPorts(record = {}, context = {}) {
     enumId: record.enumId
   }));
   const sameShape = base => processType(base);
-  const entity = processType('entity', { typeId: record.typeId });
-  const entityList = processType('entity', { typeId: record.typeId });
+  const entity = processType('entityRef', { typeId: record.typeId });
+  const entityList = processType('entityRef', { typeId: record.typeId });
   const entityRef = processType('entityRef', { typeId: record.typeId });
   const predicate = processType('predicate', { typeId: record.typeId });
   const patch = processType('patch', { typeId: record.typeId });
@@ -708,9 +708,10 @@ function catalogPorts(record = {}, context = {}) {
     outputs: [socket('result', sameShape('boolean'))]
   };
   if (kind === 'value.logic') {
-    const comparison = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'].includes(record.operation);
+    // Boolean algebra only (SPEC §8 palette law): the null tests stay here
+    // as unary boolean tests; value comparison is `value.compare`.
     const unaryOperation = ['not', 'isNull', 'isNotNull'].includes(record.operation);
-    const inputType = comparison ? configured : sameShape('boolean');
+    const inputType = sameShape('boolean');
     return {
       inputs: [
         socket('left', inputType, DATA, true),
@@ -1149,7 +1150,7 @@ function commandOutputSockets(command = {}) {
   const outputs = [
     ...(command.output?.entities || []).map(entry => socket(
       entry?.type,
-      processType('entity', { typeId: entry?.type }),
+      processType('entityRef', { typeId: entry?.type }),
       DATA,
       false,
       'list'
@@ -1208,7 +1209,7 @@ function constructionInputs(record = {}) {
 
 function effectResultType(kind, record) {
   if (['effect.createEntity', 'effect.runProducer', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity'].includes(kind)) {
-    return processType('entity', { typeId: record.typeId, nullable: false });
+    return processType('entityRef', { typeId: record.typeId, nullable: false });
   }
   if (kind === 'effect.generateAttachment') {
     return processType('attachmentRef', { attachmentKind: record.attachmentKind });

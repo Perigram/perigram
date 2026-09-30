@@ -12,9 +12,13 @@ export async function resolveCompiledRelationOptions({
   resolveEntity
 } = {}) {
   const creator = action.relationMutation.creator;
+  const targetTypes = [].concat(action.relationMutation.targetTypes || []).filter(Boolean);
   const optionScope = resolveRelationOptionScope(creator);
   if (!optionScope.scoped) {
-    return queryEntities(registry, action.relationMutation.targetType, {}, auth);
+    // The entry accepts a union of target types: every accepted type's
+    // instances are options.
+    const pools = await Promise.all(targetTypes.map(typeId => queryEntities(registry, typeId, {}, auth)));
+    return pools.flat();
   }
   const sourceInput = optionScope.sourceInput;
   if (!sourceInput) return [];
@@ -46,12 +50,12 @@ export async function resolveCompiledRelationOptions({
   )))).flat();
   if (source) return sources.map(toPlain);
   const sourceIds = [...new Set(sources.map(instanceId).filter(Boolean).map(String))];
-  const targets = (await Promise.all(sourceIds.map(id => queryEntities(
+  const targets = (await Promise.all(sourceIds.flatMap(id => targetTypes.map(typeId => queryEntities(
     registry,
-    action.relationMutation.targetType,
+    typeId,
     { templateId: id },
     optionAuth
-  )))).flat();
+  ))))).flat();
   return Array.from(new Map(targets.map(item => [String(instanceId(item)), toPlain(item)])).values());
 }
 

@@ -78,7 +78,7 @@ describe('palette trace', () => {
     );
     expect(bound.inputs.find(port => port.id === 'type')).toBeTruthy();
     expect(bound.inputs.some(port => port.id === 'data.serial')).toBe(true);
-    expect(bound.outputs.some(port => port.type?.base === 'entity')).toBe(true);
+    expect(bound.outputs.some(port => port.type?.base === 'entityRef')).toBe(true);
   });
 
   it('consumers offer only their entity input while unbound and derive leaves when adapted', () => {

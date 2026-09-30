@@ -36,7 +36,7 @@ export const frameworkTypes = [
     version: 1,
     name: 'File',
     glyph: 'pi pi-file',
-    payload: { mime: 'application/octet-stream' },
+    payload: { mime: ['application/octet-stream', 'audio/*'] },
     fields: {
       filename: { base: 'string', identifier: true, label: 'file.name', display: 'text' }
     }

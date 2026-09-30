@@ -272,6 +272,13 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
         entries: node.entries.map(({ cardinality, operation, ...entry }) => entry)
       };
     }
+    // Palette law (SPEC §8): `value.logic` composes boolean algebra only.
+    // Stored graphs authored before the split carried comparison ops on
+    // it; loads migrate them one-way to `value.compare` (the value
+    // comparison home) with the operation preserved.
+    if (node?.kind === 'value.logic' && ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'].includes(node.operation)) {
+      return [id, { ...node, kind: 'value.compare' }];
+    }
     if (node?.kind === 'effect.archiveEntity' && node.typeId) {
       const workflow = domain.workflows?.[node.typeId];
       const archiveTransition = Object.values(workflow?.regions || {})
@@ -404,10 +411,36 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
   const derived = { ...actions };
   for (const [sourceActionId, sourceAction] of Object.entries(actions)) {
     if ((sourceAction.trigger?.mode || 'manual') !== 'manual') continue;
+    // Relation mutations are ENTRY-level: one authored relation (one
+    // storage key) compiles to one Link/Unlink pair accepting every
+    // declared target type of the entry — never per-target buttons. The
+    // caption names the authored field label (raw type ids never reach
+    // captions), falling back to the single target's authored label,
+    // else the key.
+    const contractsByKey = new Map();
     for (const relation of sourceAction.mutation?.relationContracts || []) {
       if (!sourceAction.typeId || !relation.key || !relation.targetType) continue;
+      if (!contractsByKey.has(relation.key)) {
+        contractsByKey.set(relation.key, {
+          key: relation.key,
+          contracts: [],
+          targetTypes: [],
+          cardinality: relation.cardinality || 'one',
+          association: relation.association || null,
+          creator: null
+        });
+      }
+      const entry = contractsByKey.get(relation.key);
+      entry.contracts.push(relation);
+      if (!entry.targetTypes.includes(relation.targetType)) entry.targetTypes.push(relation.targetType);
+      if (relation.cardinality === 'many') entry.cardinality = 'many';
+      if (relation.association && !entry.association) entry.association = relation.association;
+      if (relation.creator && !entry.creator) entry.creator = relation.creator;
+    }
+    for (const entry of contractsByKey.values()) {
+      const relationLabel = relationEntryLabel(domain, sourceAction.typeId, entry);
       for (const operation of ['link', 'unlink']) {
-        const creatorAction = relation.creator?.actionId ? actions[relation.creator.actionId] : null;
+        const creatorAction = entry.creator?.actionId ? actions[entry.creator.actionId] : null;
         const creator = creatorAction
           ? (() => {
               const construction = normalizeConstruction(creatorAction.construction, creatorAction.typeId, domain);
@@ -418,41 +451,43 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
                 domain
               );
               return {
-              actionId: creatorAction.id || relation.creator.actionId,
+              actionId: creatorAction.id || entry.creator.actionId,
               typeId: creatorAction.typeId,
               construction,
               inputPolicy
             };
             })()
-          : relation.creator;
-        const id = `${sourceActionId}:${operation}:${relation.key}`;
+          : entry.creator;
+        const id = `${sourceActionId}:${operation}:${entry.key}`;
         const input = {
-          id: `relation:${relation.key}`,
-          label: relation.targetType.replace(/_/g, ' '),
-          path: `relations.${relation.key}`,
+          id: `relation:${entry.key}`,
+          label: relationLabel,
+          path: `relations.${entry.key}`,
           type: 'entity',
-          typeId: relation.targetType,
-          relationKey: relation.key,
-          cardinality: relation.cardinality || 'one',
+          ...(entry.targetTypes.length === 1
+            ? { typeId: entry.targetTypes[0] }
+            : { accepts: entry.targetTypes }),
+          relationKey: entry.key,
+          cardinality: entry.cardinality,
           required: true,
           prompt: operation === 'link',
           ...(operation === 'link' && creator ? { creator } : {})
         };
         derived[id] = {
           id,
-          label: `${operation === 'link' ? 'Link' : 'Unlink'} ${relation.targetType.replace(/_/g, ' ')}`,
+          label: `${operation === 'link' ? 'Link' : 'Unlink'} ${relationLabel}`,
           actionKind: 'updateEntity',
           producerOutputId: sourceAction.producerOutputId,
           typeId: sourceAction.typeId,
           relationMutation: {
-            key: relation.key,
-            targetType: relation.targetType,
-            cardinality: relation.cardinality || 'one',
+            key: entry.key,
+            targetTypes: entry.targetTypes,
+            cardinality: entry.cardinality,
             operation,
-            ...(relation.association ? { association: relation.association } : {}),
+            ...(entry.association ? { association: entry.association } : {}),
             ...(operation === 'link' && creator ? { creator } : {})
           },
-          mutation: { fields: [`relations.${relation.key}`], relationContracts: [relation] },
+          mutation: { fields: [`relations.${entry.key}`], relationContracts: entry.contracts },
           inputPolicy: operation === 'link'
             ? { prompt: true, fields: [input] }
             : { prompt: false, fields: [] },
@@ -468,6 +503,19 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
     }
   }
   return derived;
+}
+
+// The relation entry's authored label: the owner type's declared field
+// for the relation key first (SPEC §4 display dictionary), else the
+// single accepted target's authored render label, else the key.
+function relationEntryLabel(domain = {}, ownerType = '', entry = {}) {
+  const field = (domain.fieldSchemas?.[ownerType] || [])
+    .find(schema => schema.path === `data.${entry.key}` || schema.path === entry.key);
+  if (field?.label) return field.label;
+  if (entry.targetTypes.length === 1) {
+    return entityLabelOf(domain, entry.targetTypes[0]) || entry.key;
+  }
+  return entry.key;
 }
 
 // A generic create is block-composed only when block data actually arrives
@@ -926,6 +974,10 @@ function unreachableNodeDiagnostics(process = {}) {
   }
   const warnings = [];
   for (const [nodeId, record] of recordsByGraphId) {
+    // The loop closer is control-plane machinery — the bracket of its
+    // forEach region, never a value source — dead-end semantics do not
+    // apply to it.
+    if (String(record?.kind) === 'control.forEachEnd') continue;
     if (reachingOperational.has(nodeId)) continue;
     warnings.push(`Process node ${nodeId} (${humanizedKindLabel(record?.kind)}) is non-operational: its values cannot reach any persistence effect`);
   }
@@ -2238,11 +2290,15 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
           ...(creatorScope ? { scope: creatorScope } : {})
         });
       }
-      if (action.relationMutation?.operation === 'link' && action.relationMutation.targetType) {
-        upsertGrant(roles[roleId].grants, {
-          feature: resolveEntityFeature(domain, action.relationMutation.targetType),
-          level: 'read'
-        });
+      if (action.relationMutation?.operation === 'link') {
+        // Entry-level contract: the link reads any accepted target type of
+        // the relation entry, so each accepted type's feature is granted.
+        for (const targetTypeId of [].concat(action.relationMutation.targetTypes || [])) {
+          upsertGrant(roles[roleId].grants, {
+            feature: resolveEntityFeature(domain, targetTypeId),
+            level: 'read'
+          });
+        }
       }
       const inputs = actionInputsForExposure(exposedAction, parentTypeId, domain).map(input => (
         input.id === 'entity' && !input.typeId && resolvedTypeId ? { ...input, typeId: resolvedTypeId } : input
@@ -4605,8 +4661,8 @@ function validateDataflowEdges(process, domain) {
     }
     if (compatibility.ok) {
       const portTypeId = sourcePort.type?.typeId || sourcePort.type?.itemType?.typeId || '';
-      const portEntityStream = sourcePort.type?.base === 'entity'
-        || (sourcePort.type?.base === 'array' && sourcePort.type?.itemType?.base === 'entity');
+      const portEntityStream = ['entity', 'entityRef'].includes(sourcePort.type?.base)
+        || (sourcePort.type?.base === 'array' && ['entity', 'entityRef'].includes(sourcePort.type?.itemType?.base));
       if (portEntityStream && portTypeId) {
         const producerOutputId = resolveSourceProducerOutputId(process, sourceRecord, sourcePort);
         if (producerOutputId) {

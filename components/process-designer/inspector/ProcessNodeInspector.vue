@@ -24,7 +24,7 @@
         <span
           v-for="item in effectiveAccess"
           :key="item.label"
-          class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-supporting"
+          class="max-w-full truncate rounded-ui bg-subtle px-1.5 py-0.5 text-supporting"
           :class="item.inherited ? 'text-muted' : ''"
         >{{ item.label }}</span>
       </div>
@@ -81,7 +81,7 @@
       <Message v-if="preview.state?.error" severity="error">{{ preview.state.error }}</Message>
       <Message v-else-if="!preview.state" severity="secondary">{{ $t('processDesigner.previewHint') }}</Message>
       <div v-else class="flex flex-col gap-2">
-        <section v-for="output in preview.outputs" :key="output.id" class="rounded-ui border border-content-border bg-subtle p-2 text-supporting">
+        <section v-for="output in preview.outputs" :key="output.id" class="rounded-ui bg-subtle p-2 text-supporting">
           <div class="mb-2 flex items-center justify-between gap-2">
             <span class="flex min-w-0 items-baseline gap-2">
               <strong class="truncate">{{ output.label }}</strong>
@@ -89,9 +89,9 @@
             </span>
             <span class="text-muted">{{ $t('processDesigner.previewCounts', { branches: output.tree.branchCount, items: output.tree.itemCount }) }}</span>
           </div>
-          <div v-for="branch in output.tree.branches" :key="branch.path.join(';')" class="mb-1 grid grid-cols-[auto_minmax(0,1fr)] gap-2 last:mb-0">
-            <code class="text-muted">{{ formatPreviewPath(branch.path) }}</code>
-            <code class="min-w-0 whitespace-pre-wrap break-all">{{ formatPreviewItems(branch.items) }}</code>
+          <div v-for="branch in output.tree.branches" :key="branch.path.join(';')" class="mb-1 flex gap-2 last:mb-0">
+            <code class="shrink-0 text-muted">{{ formatPreviewPath(branch.path) }}</code>
+            <code class="min-w-0 flex-1 whitespace-pre-wrap break-all">{{ formatPreviewItems(branch.items) }}</code>
           </div>
           <div v-if="output.tree.truncated" class="mt-1 text-muted">{{ $t('processDesigner.previewTruncated') }}</div>
         </section>

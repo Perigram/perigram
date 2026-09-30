@@ -47,7 +47,11 @@ export function normalizeDesignerAccess(access = {}) {
 const PROCESS_NODE_OPERATIONS = {
   'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max', 'absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt', 'clamp'],
   'value.string': ['concat', 'replace', 'substring', 'split', 'join', 'length', 'lower', 'upper', 'trim'],
-  'value.logic': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull', 'and', 'or', 'xor', 'nand', 'nor', 'xnor', 'not'],
+  // One home per operation (SPEC §8 palette law): `value.compare` owns
+  // value comparison, predicates own field-path comparison, `value.logic`
+  // composes boolean algebra only.
+  'value.compare': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'],
+  'value.logic': ['and', 'or', 'not', 'xor', 'nand', 'nor', 'xnor', 'isNull', 'isNotNull'],
   'value.dateTime': ['addDays', 'addHours', 'addMinutes', 'addMonths', 'addDuration', 'subtractDuration', 'differenceDays', 'differenceHours', 'differenceMinutes', 'startOfDay', 'endOfDay'],
   'predicate.field': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'],
   'predicate.logic': ['and', 'or', 'not'],
@@ -259,7 +263,12 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       // stays authored until a full domain syncs.
       if (typeIsKnown(node)) {
         const relations = relationKeysForEntity(typeIdOf(node));
-        if (!relations.some(relation => relation.key === node.relationKey)) node.relationKey = relations[0]?.key || '';
+        // A known type with no exposed relations is a vocabulary gap too
+        // (partial domain, load race): the authored selection survives;
+        // validation owns the report when it is genuinely wrong.
+        if (relations.length && !relations.some(relation => relation.key === node.relationKey)) {
+          node.relationKey = relations[0]?.key || '';
+        }
       }
     }
   }

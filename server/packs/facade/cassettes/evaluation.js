@@ -1,36 +1,18 @@
 /**
- * Cassette template evaluation: resolves a PARAMETRIC cassette's OCCS
- * construction definition into geometry (see the feature README's
- * evaluation contract) and renders simple polygon DXF output for export.
+ * Cassette template evaluation: a PARAMETRIC cassette's OCCS payload
+ * document resolves into geometry (see the pack README's evaluation
+ * contract) and `generateSimpleDxf` renders flat polygon DXF output.
  */
 
 import { createError } from 'h3';
-import { findById } from './repository.js';
+import { instanceServiceResolver } from '../../../features/instances/service.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
+import { cassetteDefinition } from './service.js';
 
 let evaluationChain = Promise.resolve();
 
 const OCCS_CASSETTE_FACE_LAYER = 'contour.cassette_face';
 const OCCS_FLAT_PATTERN_LAYER = 'contour.flat_pattern.face_and_returns';
-
-function resolveTemplateDefinition(template = {}) {
-  const candidates = [
-    template.data?.definition,
-    template.data?.definition?.definition,
-    template.data?.definition?.occs,
-    template.definition?.data,
-    template.definition
-  ].filter(candidate => candidate && typeof candidate === 'object');
-
-  return candidates.find(isOccsDocument) ||
-    candidates.find(candidate => (
-      candidate.params ||
-      candidate.extrusions ||
-      candidate.extensions ||
-      (candidate.parameters && !Array.isArray(candidate.parameters))
-    )) ||
-    {};
-}
 
 async function runWithEvaluationLock(task) {
   const run = evaluationChain.then(() => task());
@@ -241,25 +223,25 @@ export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAY
  */
 export async function evaluateTemplate(cassetteId, dimensions) {
   return runWithEvaluationLock(async () => {
-    const template = await findById(cassetteId);
+    const template = await instanceServiceResolver('cassette').getById(cassetteId);
     if (!template) throw new Error('Template not found');
 
-    const definitionData = resolveTemplateDefinition(template);
+    // The OCCS document rides the payload — the one home.
+    const definitionData = await cassetteDefinition(template);
     if (isOccsDocument(definitionData)) {
       const { evaluateOccsCassetteTemplate } = await import('#utils/occs/evaluate.js');
       return await evaluateOccsCassetteTemplate(definitionData, dimensions, {
-        templateId: template._id?.toString?.() || cassetteId?.toString?.() || cassetteId,
-        templateName: template.identity?.name || template.name || 'Cassette template'
+        templateId: template._id?.toString?.() || String(cassetteId),
+        templateName: template.identity?.name || 'Cassette template'
       });
     }
 
-    // Legacy parametric (WASM) definitions are gone: the OCCS graph tree is
-    // the one construction contract, evaluated in pure JS. A template that
-    // carries neither is legacy data and must be recreated as an OCCS
-    // design.
+    // A template whose payload is not an OCCS document is not a
+    // PARAMETRIC template: OCCS is the one construction contract,
+    // evaluated in pure JS.
     throw createError({
       statusCode: 422,
-      message: 'Cassette template has no OCCS construction definition — legacy parametric templates are no longer supported; recreate the template as an OCCS design'
+      message: 'Cassette template has no OCCS construction definition — only OCCS parametric templates evaluate'
     });
   });
 }

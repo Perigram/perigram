@@ -138,7 +138,8 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('literal', 'source.literalItem', { preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }),
       paletteItem('literalList', 'source.literalList', { preset: { type: { base: 'string', nullable: false }, value: [] } }),
-      paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
+      paletteItem('compareValues', 'value.compare', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
+      paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'and' } }),
       paletteItem('text', 'value.string', { preset: { type: { base: 'string', nullable: false }, operation: 'concat' } }),
       paletteItem('recordField', 'value.recordField', { preset: { path: '', type: { base: 'json', nullable: true } } }),
       paletteItem('constructRecord', 'record.construct', { preset: { fields: [] } }),
@@ -753,7 +754,7 @@ export function isEntityOriginRecord(record = {}) {
   const operation = operationKindOf(record);
   if (!ENTITY_ORIGIN_OPERATION_KINDS.has(operation)) return false;
   return (record.outputs || []).some(output => (
-    output?.id && output.type?.base === 'entity' && output.type?.typeId
+    output?.id && ['entity', 'entityRef'].includes(output.type?.base) && output.type?.typeId
   ));
 }
 
@@ -777,7 +778,7 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   }
 
   const outputs = (node.outputs || []).filter(output => (
-    output?.id && output.type?.base === 'entity' && output.type?.typeId
+    output?.id && ['entity', 'entityRef'].includes(output.type?.base) && output.type?.typeId
   ));
   const outputIds = new Set(outputs.map(output => `${node.id}:${output.id}`));
 
@@ -810,8 +811,10 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
 // `serviceContracts` is the single source: what is not registered is not
 // offered.
 export function servicesPaletteGroups(serviceContracts = {}) {
+  // The fallback tab: services without a declared pack group. Grouped
+  // services drop into their pack's section (packPaletteGroups).
   const items = Object.values(serviceContracts || {})
-    .filter(service => service?.id && service.command)
+    .filter(service => service?.id && service.command && !service.group)
     .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
       label: service.render?.label || service.id,
       description: service.render?.label || service.id,
@@ -819,6 +822,40 @@ export function servicesPaletteGroups(serviceContracts = {}) {
       preset: { operator: service.id }
     }));
   return items.length ? [{ id: 'services', items }] : [];
+}
+
+// Pack-owned palette sections — the plugin-tab law (SPEC §8 palette law):
+// a pack's declared data operations surface as the pack's own tab, like a
+// Grasshopper plugin's component category. The documents pack's
+// `tableData` tab carries xlsx/csv table decomposition (and, when
+// declared, composition and management); the facade pack's `facade` tab
+// carries cassette geometry extraction beside the solver. Ungrouped
+// projections stay unlisted (the generic extract preset covers them).
+export function packPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
+  const sections = new Map();
+  const section = id => {
+    if (!sections.has(id)) sections.set(id, { id, items: [] });
+    return sections.get(id);
+  };
+  for (const projection of Object.values(projectionContracts || {})) {
+    if (!projection?.group || !projection.typeId || !projection.id) continue;
+    section(projection.group).items.push(paletteItem(`extract:${projection.typeId}:${projection.id}`, 'cts.read', {
+      label: `${projection.label} · ${projection.typeId}`,
+      description: `${projection.label} · ${projection.typeId}`,
+      icon: 'pi pi-table',
+      preset: { select: 'extract', typeId: projection.typeId, projection: projection.id }
+    }));
+  }
+  for (const service of Object.values(serviceContracts || {})) {
+    if (!service?.group || !service?.id || !service.command) continue;
+    section(service.group).items.push(paletteItem(`service:${service.id}`, 'cts.service', {
+      label: service.render?.label || service.id,
+      description: service.render?.label || service.id,
+      icon: service.render?.icon || 'pi pi-bolt',
+      preset: { operator: service.id }
+    }));
+  }
+  return [...sections.values()].filter(group => group.items.length);
 }
 
 // Type catalog palette (SPEC §20/§21, L2): registry types are draggable
@@ -884,6 +921,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
   }
 
   const paletteGroups = [
+    ...packPaletteGroups(domain.projectionContracts || {}, domain.serviceContracts || {}),
     ...servicesPaletteGroups(domain.serviceContracts || {}),
     ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
       ...group,

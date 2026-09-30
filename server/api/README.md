@@ -6,11 +6,11 @@ Routes are grouped into sub-directories corresponding to features:
 - `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
   replacement, authorized source streaming, and deletion. Template-generated
   artifacts expose `PUT /api/artifacts/:id/layout` for revision-backed edits.
-- `cassettes/`: Template upload (`POST /api/cassettes/upload`), artifact-based
-  import (`POST /api/cassettes/import`), management, and template DXF export.
-  The collection route forwards generated-screen lineage filters such as
-  `libraryId` to the feature service so parent detail pages only list their own
-  child templates.
+- `cassettes/`: The pack's two domain routes — artifact-based import
+  (`POST /api/cassettes/import`, a `DXF_SOURCE` artifact becomes a
+  STANDARD template) and template DXF export
+  (`GET /api/cassettes/:id/export`). Cassette CRUD rides the generic
+  instance transport (`/api/instances/cassette`, SPEC §13).
 - `commands/`: Authenticated execution route for declared domain commands such
   as `saveCassetteTemplate` and `generateAttachment`.
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
@@ -18,6 +18,21 @@ Routes are grouped into sub-directories corresponding to features:
   through the CTS instance machinery, including typed payload upload/download.
 - `files/`: Shared file transport — `POST /api/files/upload` and
   `GET /api/files/download/:id` for instance payloads and attachments.
+  Downloads serve HTTP byte ranges (`Range` → `206` + `Content-Range`,
+  single ranges; unparseable or unsatisfiable ranges degrade to the full
+  `200` body) because media playback and seeking refuse range-less
+  responses, and `?download=1` flips the disposition to an explicit
+  download. Big uploads ride resumable chunk-append sessions:
+  `POST /api/files/upload-sessions` (`{ fileName, mimeType, size,
+  bucket? }`, 5MB chunks, 1GB cap) returns `{ uploadId, chunkSize }`;
+  `PUT /api/files/upload-sessions/:id/:index` appends one raw-bytes
+  chunk idempotently; `GET /api/files/upload-sessions/:id` reports the
+  received chunk indexes (the resume state after a disconnect);
+  `POST /api/files/upload-sessions/:id/complete` assembles the chunks
+  into the stored file, returns the `upload` descriptor shape, and
+  deletes the session. Sessions and chunks are Mongo documents with a
+  one-day TTL, so abandoned uploads reap themselves; the client
+  transport lives in `composables/useChatFileUpload.js`.
 - `process-definitions/`: Draft/activation endpoints, effect-free graph
   preview, plus durable orchestration. `POST /:id/runs` starts a trigger,
   `POST /runs/:id/resume` advances a running or due-waiting run, and

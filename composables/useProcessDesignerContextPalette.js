@@ -27,7 +27,6 @@ export function useProcessDesignerContextPalette({
     x: 0,
     y: 0,
     graphPosition: { x: 0, y: 0 },
-    query: '',
     socket: null
   });
 
@@ -65,7 +64,6 @@ export function useProcessDesignerContextPalette({
       x,
       y,
       graphPosition: clientToGraphPosition(point),
-      query: '',
       socket
     };
     nextTick(() => {
@@ -80,7 +78,6 @@ export function useProcessDesignerContextPalette({
       x: 0,
       y: 0,
       graphPosition: { x: 0, y: 0 },
-      query: '',
       socket: null
     };
   }

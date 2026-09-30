@@ -13,9 +13,11 @@ README that owns the concern, not here.
 - If tasks execution would involve violation of arctitecture principles, project
   guidelines or common sense, tell it explicitly, without inventing walkarounds or slop. User
   may not understand how things work and his intent may be re-shaped to be delivered elegantly
-  in terms of software architecture
+  in terms of software architecture. DO NOT REJECT USER REQUESTS SILENTLY.
 
 ## Documentation Model
+
+Documentation consists of README.md, SPEC.md and TODO.md files across codebase.
 
 README.md files form one interlinked documentation tree, scoped by C4
 levels:
@@ -37,7 +39,8 @@ Every README.md must:
 - Describe real architecture only: purpose, entry points, contracts (data
   structures, APIs, state machines, flows), conventions, and non-obvious
   decisions. No placeholders, no guesses, no trivial file listings, nothing
-  the code already makes obvious.
+  the code already makes obvious. Keep it as brief as possible and clean after 
+  other agents when see slop.
 - Link its parent README, and be registered in the parent's component
   inventory or documentation map.
 - Link every related README whose contract it consumes or extends.
@@ -45,6 +48,10 @@ Every README.md must:
   definition, state machine, workflow, API contract) lives in exactly one
   canonical README. Every other README links to it. Verbatim restatement
   across READMEs is a defect.
+
+SPEC.md describes desired state of system, container, component or code.
+It's either written by human or from human words, never invented by AI agents.
+TODO.md is operational delta between SPEC.md and README.md.
 
 ## Mandatory First Reads
 
@@ -151,6 +158,8 @@ These rules are blocking, not advisory:
 - Do not create or fill `TODO.md` Agent Notes only to satisfy process. Do not
   change a task not written by you. Update `TODO.md` only when the task itself
   changes tracked work, status, or plans that belong there.
+- When user declares desired feature or state of app, component, or service, it should ALWAYS
+  go to SPEC.md in appropriate place, and TODO.md gets updated. Then, implement.
 
 ## Validation Rules
 
@@ -163,6 +172,8 @@ These rules are blocking, not advisory:
 - Agents with a restricted write scope run the repository's scope guard
   before committing or pushing.
 - Report any validation that could not be run.
+- Only if user says task is done, move it to TODO.md_archive. NEVER
+  mark it as done by yourself. 
 
 ## Commit Rules
 

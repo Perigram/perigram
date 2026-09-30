@@ -1,7 +1,7 @@
 # COMPONENT: Components
 
 ## Style Guide
-- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls. Interactive rows, pickers, and single-select lists are PrimeVue primitives (`Listbox` with rich `#option` templates, `Select`, `Menu`); link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns.
+- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls, no stuffing composite surfaces into slot templates. Single-select lists and compact rail rows are `Listbox` with single-line `#option` templates (chats-inbox anatomy: content + hover/inline controls, `@click.stop` on triggers); per-row contextual detail (history, pickers, rename) opens a `Popover` anchored at the row's trigger (`NameEditPopover`/`InstanceActionsPopover` precedent) — never inside the option; tabular data grids are `TableFrame` + `DataTable` with `#body` cells; link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns. When unsure which component owns a surface, ask the PrimeVue MCP — do not improvise markup.
 - **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
 - **Motion:** Motion is contextual behavior, not an application theme concern.
   Keep interaction-specific motion inside the owning derived composition, use
@@ -1055,7 +1055,24 @@ collapse draft refs back to minimal `{ type, id, label }` records instead of
 posting hydrated entity snapshots. The type picker should localize generated
 entity type ids for users instead of exposing raw backend strings. Attachment-
 only messages are valid and must stay sendable when the draft has at least one
-selected entity ref or a recorded voice attachment. The conversation snapshot
+selected entity ref, a recorded voice attachment, or a staged file. File
+uploads ride the SAME attach popover as entity refs (a leading upload
+entry above the tree — no second composer control): staging multiple
+files as removable chips (image thumbnails for image files, type icons
+otherwise) whose `attachments[]` render through the shared
+`ChatAttachments` gallery (`components/shared/README.md`). In instance
+chats the composer resolves the composer target's accepting file children
+through the served type view (`utils/chat-file-targets.js`): the upload
+entry's `accept` is the union of candidate `accept` lists, staged chips
+carry the resolved child-type identity (the served type name; a choice
+control when several children accept the file), files with no candidate
+are refused at selection, and the voice recorder follows the same rule
+for audio. Person conversations and party-target chats (the organization
+chat) always upload plain unlinked files. The send carries the chosen
+`targetTypeId` per attachment; the
+server materializes the child instances (support feature README, Message
+Attachments) — the client never constructs instances itself. The
+conversation snapshot
 is auth-gated by the store so direct user candidates are not lost behind a
 failed pre-auth request.
 The expanded `/chats` route keeps the persisted-conversation inbox visible as

@@ -42,7 +42,7 @@ describe('graph protocol v5 designer round trip', () => {
       domain
     });
     const construct = resolveCatalogNodePorts({ kind: 'cts.construct', typeId: 'project', construction: { mode: 'genericCreate' } }, context({ type: 'project' }));
-    expect(construct.outputs.some(port => port.type?.base === 'entity')).toBe(true);
+    expect(construct.outputs.some(port => port.type?.base === 'entityRef')).toBe(true);
 
     const transition = resolveCatalogNodePorts({ kind: 'cts.transition', typeId: 'queue' }, context({ type: 'queue' }));
     expect(transition.inputs.some(port => port.id === 'entity')).toBe(true);
@@ -58,7 +58,7 @@ describe('graph protocol v5 designer round trip', () => {
       { domain, fieldSchemas: domain.fieldSchemas.sheet || [] }
     );
     expect(fieldProjection.inputs).toHaveLength(2);
-    expect(fieldProjection.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entity', typeId: 'sheet' } });
+    expect(fieldProjection.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entityRef', typeId: 'sheet' } });
     expect(fieldProjection.inputs[1]).toMatchObject({ id: 'field', type: { base: 'string' } });
     expect(fieldProjection.outputs[0]).toMatchObject({ id: 'value', type: { base: 'json' } });
   });
@@ -69,7 +69,7 @@ describe('graph protocol v5 designer round trip', () => {
       id: 'n1',
       kind: 'cts.construct',
       type: 'project',
-      outputs: [{ id: 'result', type: { base: 'entity', typeId: 'project' } }]
+      outputs: [{ id: 'result', type: { base: 'entityRef', typeId: 'project' } }]
     });
     expect(outputs).toEqual(['n1:result']);
     expect(data.producerOutputs['n1:result']).toMatchObject({ typeId: 'project' });
@@ -79,7 +79,7 @@ describe('graph protocol v5 designer round trip', () => {
       id: 'n2',
       kind: 'cts.mutate',
       type: 'project',
-      outputs: [{ id: 'result', type: { base: 'entity', typeId: 'project' } }]
+      outputs: [{ id: 'result', type: { base: 'entityRef', typeId: 'project' } }]
     });
     expect(consumer).toEqual([]);
     expect(data.producerOutputs['n2:result']).toBeUndefined();

@@ -3,8 +3,8 @@
     <div
       v-for="band in bands"
       :key="band.id"
-      class="absolute border-t border-content-border"
-      :style="{ top: `${band.top}px`, left: `${left}px`, width: `${Math.max(0, right - left)}px` }"
+      class="lane-band absolute"
+      :style="{ top: `${band.top}px`, left: `${left}px`, width: `${Math.max(0, right - left)}px`, borderTop: '1px solid var(--p-content-border-color)' }"
     >
       <span
         v-if="band.label"

@@ -18,12 +18,6 @@ export const fieldAccessPolicies = {
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
-  cassette: {
-    feature: 'files',
-    read: [...COMMON_READ_FIELDS, 'data.type', 'data.parameters', 'data.definition', 'data.revisions', 'data.geometry.*', 'data.layerData', 'data.polygonParts'],
-    write: ['data.*'],
-    admin: ['data.*', 'attachments.*']
-  },
   processDefinition: {
     feature: 'organizations',
     read: [...COMMON_READ_FIELDS, 'data.schemaVersion', 'data.graph.*', 'data.roleGrants.*', 'data.entityProfiles.*', 'data.services.*', 'data.sockets.*', 'data.compiled.*'],

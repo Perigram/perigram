@@ -49,8 +49,15 @@ block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated projection of CTS semantics. Its
 groups are declaration items, type-bound constructs, effect species, typed
-instance sources/navigation, values, collections, and flow. Registered
-services derive their ports from declared operator signatures. The exhaustive
+instance sources/navigation (the generic read presets — an entity source
+binds its type at configure time), values, collections, flow, and pack-owned
+plugin tabs: a pack's
+declared data operations — the documents pack's `tableData` tab (xlsx/csv
+table decomposition, composition, and management) and the facade pack's
+`facade` tab (cassette geometry extraction beside the solver) — surface
+pre-bound in the pack's own section (`packPaletteGroups`); a packless
+service falls back to the services tab (`servicesPaletteGroups`). The
+exhaustive
 runtime catalog is not an authoring palette: packet matching, transport
 adapters, and producer identity remain compiler/runtime concerns.
 
@@ -66,6 +73,16 @@ Record-carried semantics are configured on the record through the seam and
 the inspector: `collection.join` keys (`leftKey`/`rightKey`),
 `value.recordField` (`path` plus authored output type), and
 `record.construct` (`fields`).
+
+One home per operation (SPEC §8 palette law): `value.compare` owns value
+comparison, `predicate.field` owns field-path comparison, and `value.logic`
+composes boolean algebra only (the null tests stay on it as unary boolean
+tests). Stored graphs authored before the split carry comparison ops on
+`value.logic`; `normalizeProcessNodesForDomain` migrates them one-way to
+`value.compare` at the load boundary. Current species ports mint
+`entityRef` — the `entity` spelling survives only inside the persisted-v4
+compatibility tier and the wire coercion (`types.js`), and every
+producer-output acceptance rule recognizes both spellings.
 
 ## Headless definition authoring
 
@@ -632,13 +649,16 @@ only an actual array or data tree uses the collection rule; a scalar fallback
 is one broadcast item and satisfies by the scalar rules.
 Relations composed by the process graph are executable process contracts even
 when they are not global CNC-domain relations. A manual effect that consumes a
-composed relation derives `Link <target>` for the owner action surface and a
-contextual `Unlink <target>` operation for each rendered linked reference. Both
-carry the exact relation key, target type, cardinality, and access grants. Link
-prompts for a target; Unlink receives the already-rendered target reference and
-therefore never opens an entity selector.
-The compiled contract preserves the authored owner type, entry key, target
-type, and scalar/array cardinality. Array cardinality is inferred from the
+composed relation derives one `Link <relation>` / `Unlink <relation>` pair per
+authored relation ENTRY for the owner action surface (never per-target
+buttons): the caption names the relation's authored field label, the prompt
+accepts every declared target type of the entry (an authored ref field may
+wire several targets — the union stays one entry and one storage key), and
+Unlink receives the already-rendered target reference, so it never opens an
+entity selector. The compiled contract carries the relation key, the accepted
+target types, cardinality, and access grants (each accepted type's read).
+The compiled contract preserves the authored owner type, entry key, accepted
+target types, and scalar/array cardinality. Array cardinality is inferred from the
 typed Collect Array output when the relation entry is not a global domain
 relation; a same-target domain relation does not rename an independently
 authored graph entry.

@@ -320,6 +320,7 @@ const openedPageRefs = ref([]);
 const openedScreenRefs = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
+let isWorkspaceMounted = false;
 const linkedChildrenByKey = ref(new Map());
 const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
@@ -901,8 +902,9 @@ watch(() => callsStore.activeRooms.length, (count, previous = 0) => {
   }
 }, { immediate: true });
 
-watch(workspaceStorageKey, key => {
-  if (!key || typeof window === 'undefined') return;
+// Post-mount only (contract: components/generated/README.md)
+function applyPersistedWorkspaceState(key) {
+  if (!key) return;
   const state = loadHomeWorkspaceState(window.localStorage, key);
   paneTree.value = state.paneTree;
   activePaneId.value = state.activePaneId;
@@ -912,7 +914,17 @@ watch(workspaceStorageKey, key => {
   openedScreenRefs.value = state.openedScreenRefs || [];
   sidebarCollapsed.value = Boolean(state.sidebarCollapsed);
   hydratedStorageKey.value = key;
-}, { immediate: true });
+}
+
+onMounted(() => {
+  isWorkspaceMounted = true;
+  applyPersistedWorkspaceState(workspaceStorageKey.value);
+});
+
+watch(workspaceStorageKey, key => {
+  if (!key || !isWorkspaceMounted || hydratedStorageKey.value === key) return;
+  applyPersistedWorkspaceState(key);
+});
 
 watch(
   [paneTree, activePaneId, paneSequence, openedEntityRefs, openedPageRefs, openedScreenRefs, sidebarCollapsed],

@@ -1,5 +1,47 @@
 <template>
-  <DesignerNodeCard :selected="selected" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
+  <!-- One-line literal (SPEC "Node layouts"): no header, no named socket
+       rows — type dropdown + value, with the value socket's unnamed
+       handle docked at the row's right edge. -->
+  <DesignerNodeCard v-if="isOneLineLiteral" :selected="selected" size="inline" :primary="isOperation" :title="data.purpose || data.summary || ''">
+    <div class="nodrag nowheel flex items-center gap-1.5" @mousedown.stop @click.stop>
+      <Select
+        v-if="record.type?.base === 'entityRef'"
+        :model-value="record.typeId || record.type.typeId"
+        :options="data.processTypeIdOptions || []"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="min-w-0 flex-1"
+        @update:model-value="value => update({ typeId: value, type: { ...record.type, typeId: value } })"
+      />
+      <Select
+        v-else
+        :model-value="record.type?.base"
+        :options="baseTypeOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="w-24 shrink-0"
+        @update:model-value="updateValueType"
+      />
+      <!-- The wrapper carries the flex classes: TypedValueControl is a
+           fragment (v-if chain, no single root), so classes on the
+           component itself never reach the rendered control. -->
+      <div class="min-w-0 flex-1">
+        <TypedValueControl
+          :base="record.type?.base || 'json'"
+          :type-id="record.type?.typeId || record.typeId || ''"
+          :model-value="record.value"
+          @update:model-value="value => update({ value })"
+        />
+      </div>
+      <div v-if="oneLineOutput" class="relative flex shrink-0 items-center pr-3" :title="socketTitle(oneLineOutput)">
+        <DesignerSocketHandle :socket="oneLineOutput" side="right" :title="socketTitle(oneLineOutput)" />
+      </div>
+    </div>
+  </DesignerNodeCard>
+
+  <DesignerNodeCard v-else :selected="selected" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
     <!-- Label-dominant header: the label is the primary read; the whole
          header row carries the node-spec tooltip (the per-node `?`
          affordance is gone — quiet-card policy, node UI contract). -->
@@ -8,44 +50,56 @@
     </div>
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
-      <Select
-        v-if="opKind === 'source.literalItem' && record.type?.base === 'entityRef'"
-        :model-value="record.typeId || record.type.typeId"
-        :options="data.processTypeIdOptions || []"
-        option-label="label"
-        option-value="value"
-        size="small"
-        @update:model-value="value => update({ typeId: value, type: { ...record.type, typeId: value } })"
-      />
-      <div v-if="showTypeEditor">
+      <!-- One-row literal: type dropdown + value (SPEC "Node layouts");
+           multiline data (list/tree) wraps below at the node's max
+           width. -->
+      <div
+        v-if="showTypeEditor || operationOptions.length || opKind === 'source.literalItem'"
+        class="flex items-center gap-1.5"
+      >
         <Select
+          v-if="opKind === 'source.literalItem' && record.type?.base === 'entityRef'"
+          :model-value="record.typeId || record.type.typeId"
+          :options="data.processTypeIdOptions || []"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => update({ typeId: value, type: { ...record.type, typeId: value } })"
+        />
+        <Select
+          v-if="showTypeEditor"
           :model-value="record.type?.base"
           :options="baseTypeOptions"
           option-label="label"
           option-value="value"
           size="small"
+          class="w-28 shrink-0"
           @update:model-value="updateValueType"
         />
+        <Select
+          v-if="operationOptions.length"
+          :model-value="operationValue"
+          :options="operationOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="updateOperation"
+        />
+        <div v-if="opKind === 'source.literalItem'" class="min-w-0 flex-1">
+          <TypedValueControl
+            :base="record.type?.base || 'json'"
+            :type-id="record.type?.typeId || record.typeId || ''"
+            :model-value="record.value"
+            @update:model-value="value => update({ value })"
+          />
+        </div>
       </div>
-      <Select
-        v-if="operationOptions.length"
-        :model-value="operationValue"
-        :options="operationOptions"
-        option-label="label"
-        option-value="value"
-        size="small"
-        @update:model-value="updateOperation"
-      />
-      <TypedValueControl
-        v-if="opKind === 'source.literalItem'"
-        :base="record.type?.base || 'json'"
-        :type-id="record.type?.typeId || record.typeId || ''"
-        :model-value="record.value"
-        @update:model-value="value => update({ value })"
-      />
       <Textarea
         v-if="['source.literalList', 'source.literalTree'].includes(opKind)"
         :model-value="literalStructureDisplay"
+        class="w-full"
         rows="3"
         auto-resize
         @update:model-value="updateLiteralStructure"
@@ -60,7 +114,7 @@
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
-          <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
+          <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5 w-full min-w-0" @mousedown.stop @click.stop>
             <TypedValueControl
               :base="row.input.base"
               :type-id="row.input.type?.typeId || ''"
@@ -175,6 +229,16 @@ const hasInlineConfiguration = computed(() => (
   || operationOptions.value.length
   || opKind.value.startsWith('source.literal')
 ));
+
+// The one-line literal: a single data output (the value), no inputs —
+// anything with more sockets keeps the full card.
+const isOneLineLiteral = computed(() => (
+  opKind.value === 'source.literalItem'
+  && dataInputs.value.length === 0
+  && dataOutputs.value.length === 1
+  && eventSocketRows.value.length === 0
+));
+const oneLineOutput = computed(() => (isOneLineLiteral.value ? dataOutputs.value[0] : null));
 function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
 }
@@ -291,7 +355,7 @@ function updateStatusInputDefault(id, value) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 py-1.5',
+    'relative min-w-0 max-w-44 py-1.5',
     side === 'left' ? 'pl-3' : 'ml-auto pr-3 text-right'
   ];
 }

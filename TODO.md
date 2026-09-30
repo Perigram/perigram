@@ -1,5 +1,39 @@
 # TODO
 
+## Graph-native order flow de-slop (2026-09-30)
+
+- [x] Delete the ad-hoc table-import pipeline (surface, batch transport,
+  editor binding, i18n) — table→instances goes through authored graphs
+  only (`packages/facade/SPEC.md`).
+- [x] Cassette onto SPEC §13: generic instance service, payload home for
+  the OCCS document, one-way data migration, bridge/adapters/legacy DTO
+  deleted, field-access entries removed.
+- [x] Palette and type-universe coherence per the palette law
+  (`packages/cts/SPEC.md` §8): loud unknown-base errors, `entity` slang
+  out of current vocabulary, comparison ops one home, file-data palette
+  section distinct.
+- [x] Order process re-authored over the coherent palette; live E2E proof
+  restored with durable artifact.
+- [x] Unslop: `e2e/owner-path.spec.js` (agent probe) deleted, fixtures
+  comment dedupe, `check-docs` restored scoped to contract docs.
+
+### Agent Notes (2026-09-30)
+
+De-slop session `agent/xlsx-cassettes-deslop-20260930-161151`. Findings
+from the review held: two parallel xlsx→instances pipelines, pack domain
+hardcoded into a generic surface, the cassette legacy bridge contradicting
+SPEC §13, no SPEC for the order flow, and the deleted E2E proof. All five
+reworked per the owner's decisions (graph-only, cassette-is-a-file-type,
+palette law, guard on contract docs). Discovered in passing: the doc purge
+that morning restored READMEs but not their linked contract docs
+(SYSTEM_ARCHITECTURE, DESIGN_SYSTEM, UI_COMPONENT_AUDIT, REMOTE_ACCESS,
+DATA_MODEL, TODO-process-designer, four specs, five .codex SKILLs) —
+recovered byte-exact from the pre-purge tree so `check-docs` passes.
+Pre-existing failures unrelated to this work (fail on the base commit
+too): `utils/instance-shape`, `components/generated/detail-action-ownership`,
+`components/shared/instance-select`, `shared/ui-mapping` tones,
+`server/features/invitations`, `server/features/organizations/system-screens`.
+
 ## UI
 
 - [x] Definitions pane (process designer): hand-rolled div/button rows
@@ -17,6 +51,41 @@ rows. `formatHistoryEntry` now renders the timestamp only — the raw actor
 id is never displayed (AGENTS.md UI rule). Rule made explicit for agents in
 `components/README.md` Style Guide (raw PrimeVue + no technical ids in UI)
 and in `SPEC.md` (## UI).
+
+### Agent Notes (2026-09-30, layout fix)
+
+The history disclosure rendered invisibly: the `#option` template had
+sibling root nodes, but `.p-listbox-option` is itself a flex row with
+hidden overflow, so the history block laid out beside the row instead of
+below it. The option template now has a single root column wrapper
+(chats-inbox pattern); controls keep `@click.stop`, the option body
+keeps native select-on-click.
+
+### Agent Notes (2026-09-30, Listbox → DataTable)
+
+The Listbox was still the wrong component: a selection control whose
+`#option` template was being stuffed into a composite management surface
+(switch + menu + rename + disclosure per row). Rewritten as the repo's
+rows-with-actions contract — `TableFrame` + `DataTable`: `expander`
+column + `#expansion` slot owns the version disclosure natively (one
+expanded row at a time; `onDefinitionRowsUpdate` loads that row's
+history), row click loads the definition, rename lives in the name cell,
+switch + ellipsis menu in the actions cell. History rows still render
+timestamps only. Style guide now names the component split explicitly
+and points agents at the PrimeVue MCP instead of improvising markup.
+
+### Agent Notes (2026-09-30, DataTable out — Listbox rows + versions Popover)
+
+Live-stack geometry killed the DataTable attempt: the expander body cell
+rendered empty (no icon in 4.5.5), rows were 60px grid chrome in a 314px
+rail, and the pane's own e2e spec lost its Versions button. Final shape:
+single-line `Listbox` options (chats-inbox anatomy — name span, switch,
+versions + ellipsis buttons, `@click.stop` guards) and the version
+history in a `Popover` anchored at the versions button — the
+`NameEditPopover`/`InstanceActionsPopover` precedent. Pane spec's row
+locator updated to the option role. Style guide corrected: rail rows are
+Listbox single-line options, per-row detail is a Popover, DataTable is
+for tabular grids only.
 
 - [x] Kanban of a parents table showed the CHILD type's state lanes (empty)
   — machine vocabulary seeding leaked unscoped state tokens into every
@@ -403,6 +472,93 @@ decision (which surfaces open popup vs tab, and the expand target).
 Next agent: mount the popup host in the mobile instance-open path and
 feed its back button through the new slot.
 
+## Chats
+
+- [ ] Any-file uploads in chats (SPEC §Chat files): images/videos preview
+  inline with galleries for sets, download for every attachment; instance
+  chat uploads materialize as child file instances of the chat's composer
+  target (sender picks the child type when several accept the file; no
+  accepting child blocks the upload at pick time; common and organization
+  chats keep plain unlinked attachments). Voice messages follow the same
+  rule.
+
+### Agent Notes (2026-09-30)
+
+Implemented on `agent/chat-file-upload-20260930`. Message contract moved
+`attachment` → `attachments[]` (kinds image/video/audio/file, cap 10, new
+blobs in the `files` bucket; one-shot migration
+`server/scripts/migrate-support-attachments.js` stamps legacy
+voice/recording descriptors with `bucket: 'uploads'`). Instance-chat sends
+materialize each file through the registry `upload` construction handler
+(the child edge's lineage key stamps the composer target; the created
+instance joins `instanceRefs` with its snapshot; the message stays linked
+to the composer target so galleries/replies/composed views hold).
+Acceptance rule single-homed as `payloadAccepts`/`mimeMatches` in
+packages/cts (`payload.js`), consumed by the construct boundary, the
+support service, and the client early check (`utils/chat-file-targets.js`
+drives the composer's `accept` union, per-file child-type choice chips,
+and mic/upload gating). Composer gained staged-file chips, gallery
+rendering (`ChatAttachments.vue`), per-attachment download (inline chips
++ message menu), and the inbox attachment summary. Decisions confirmed by
+the owner: block-at-pick when no child accepts; chooser chips when
+several accept; voice follows the uniform rule; party-target (org) chats
+and person chats never materialize. Also fixed in passing: the inbox row
+ellipsis was an in-flow flex item (PrimeVue's runtime `.p-button
+{ position: relative }` defeats `absolute` utilities on the button —
+plain-wrapper pattern), and `attachCreatedInstance` referenced an
+undefined `entity` (ReferenceError on every prompt-less create from
+chat). Owner's "chats fill container height" report was measured against
+the live stack: the committed layout fills correctly once the component's
+scoped stylesheet loads — the surface was degraded by an unmerged
+`pages/organization/process.vue` (conflict markers, someone else's
+in-flight merge in the primary checkout) which 500s the whole stack;
+not resolved here, validation against the live app is blocked until it
+is.
+
+Validation (2026-09-30, second note): the blocking conflict was resolved
+by its owner; branch merged into `local` (parallel roles-ux and
+popups-primevue merges included — one real defect of mine surfaced at
+merge time, a duplicated `canTranscribe` declaration the SSR smoke
+cannot see because it mounts no chats page; fixed in `c23b1633`).
+`e2e/chat-file-upload.spec.js` PASSED live: common-chat attachment-only
+send + download 200 (disposition attachment), instance-chat composer
+upload materialized as the declared photo child (payload mime verified,
+lineage stamped, message linked to the box thread with the child ref),
+PDF refused at selection and the smuggled write 400s. Durable artifact:
+`test-results/chat-file-upload.json`. Migration
+`migrate-support-attachments.js --apply` ran against the dev DB (10/10
+legacy messages, idempotent re-run 0). Guards on merged `local`:
+check-arch, docs:validate, framework:validate, and the focused specs
+(cts, support, instances, localization, design-system, SSR smoke) all
+green. Known adjacent findings, not touched here: the compiled
+generic-construct path drops authored `name` inputs (e2e boxes render
+id-fallback names), and unnamed instances surface their raw id in chat
+inbox rows rather than the unnamed placeholder.
+
+Third round (same day, owner review): uploads moved INTO the attach
+popover (no second composer control; the paperclip opens for entity refs
+OR files), staged instance-chat files carry the resolved child-type
+identity (served type name; choice control when ambiguous), and the
+disabled-upload bug in party-target chats is fixed — one shared
+strict-instance predicate now drives entry gating, staging, and voice,
+so the organization chat uploads plain files like person chats. The
+"popup on press" regression was the plain inline chip never toggling the
+inspect popover (pre-existing gap the README already contradicted;
+org-authored refs hit it) — the popover is now a shared root-level
+surface both chip variants open. Attachment previews got deterministic
+geometry (single image natural-aspect in fixed bounds, sets as
+fixed-size tiles, bounded videos) with sender-side alignment and cropped
+names everywhere. Big uploads (>8MB) ride resumable chunk sessions with
+per-chunk progress bars and disconnect resume (files repository + TTL
+reaping; `useChatFileUpload` transport), and downloads serve HTTP byte
+ranges so video playback works. E2E extended and green: range 206,
+12MB chunked round-trip byte-complete, popover upload, chip identity,
+ref popover, org-chat plain upload.
+NOTE: this round's docs (api/support/composables README updates) landed
+inside the feature commit `d364f75f` instead of a separate `neo:`
+commit — commit-split deviation acknowledged here rather than rewriting
+history.
+
 ## Process Designer
 
 - [ ] Need to create proper definitions management interface; and multiple of them can be active (summarized on
@@ -559,3 +715,145 @@ the node CENTER (position is top-left — the corner lands a band above
 the drop). Deviation from the Lanes B plan text: extra roles are NOT
 inspector-editable anymore (the owner replaced role assignment
 outright); corridors display stored multi-grant records only.
+
+### Agent Notes (2026-09-30, PrimeVue sweep over the designer surface)
+
+Swept every remaining hand-rolled chrome finding in the process designer
+(analyzer-enumerated): bordered row containers in ApplyMigrationDialog,
+TypeMigrationStepsDialog, ProcessNodeInspector, and the context palette /
+screen preview cards became `bg-subtle`/`bg-content` token insets (PrimeVue
+owns borders); palette item buttons dropped hand-rolled hover-border state
+(Aura owns hover); the two arbitrary `grid-cols-[…]` editor rows and the
+preview branch grid became flex layout; LaneBands' hairline moved into its
+data-driven style binding (socket-handle precedent). Three analyzer defects
+fixed — `border`/`rounded` prefix-matched inside `border-content-border`/
+`rounded-ui`, `bg-process-canvas`/`bg-primary-surface` are token-backed
+surfaces, and the `!important` pattern matched JS negations in template
+expressions. The whole designer surface now analyzes compliant with only
+pinned data-driven inline-style allowlists (canvas geometry, pointer
+anchoring). definitions-pane spec updated for the ellipsis-menu rename
+path and green against the live stack.
+
+### Agent Notes (2026-09-30, palettes → OperationPalette)
+
+Both hand-rolled palettes (rail search + uppercase group spans + 2-col
+button grid; context search + group spans + button column) were structural
+slop the analyzer cannot see. One component now owns them:
+`OperationPalette.vue` — a filterable grouped PrimeVue `Listbox` (filter
+box, group headers, and option rows are PrimeVue-owned; pick emits once,
+no persistent selection). `useProcessDesignerPalette` lost its text-query
+plumbing (Listbox filter owns search; the composable only narrows the
+context palette by socket compatibility), `contextPalette.query` died with
+it, and `paletteSearchText` was removed from the palette-text util. The
+preset renders listbox roots borderless (`primeComponentTokens.listbox`)
+— every listbox use sits in a rail that owns its frame, so the old
+`border-0` utility on PrimeVue components becomes unnecessary. Placement
+spec's palette locator follows the option role now.
+
+### Agent Notes (2026-09-30, registry button + types page removed)
+
+The palette's registry shortcut button and pages/organization/types.vue
+are gone — the palette is now the Listbox alone inside the framed rail
+(no toolbar row, no wrapper). The type-designer components STAY: they are
+live (FieldNode/StateNode/TypeNode render canvas declaration nodes,
+DescriptorEditor backs the declaration inspector) — auto-imports, not
+import statements, and a path-only grep missed them; SSR smoke would have
+caught the broken build. typesPane i18n pruned to the seven keys the
+surviving components use; the edge inspector's two labels moved to the
+processDesigner namespace. LaneBands bands carry a semantic `lane-band`
+class and the placement spec selects it (the sweep had moved the hairline
+into the style binding, leaving `div.border-t` stale).
+
+### Agent Notes (2026-09-30, palette chips + shared node signals)
+
+Owner direction: no icons anywhere in the palette; category identity via
+shared styling between palette entries and canvas nodes. OperationPalette
+is now a searchable flex-wrap of chip Buttons (PrimeVue owns hover/focus;
+repeat picks are plain button clicks — the Listbox remount workaround
+died with it). One group→signal map (utils/processDesignerSignals.js)
+colors the chip dot AND the DesignerNodeCard left stripe, so a chip reads
+like the node it creates. Group headers, per-item icons, and the
+paletteGroups i18n block are gone; declaration nodes stripe 'structure',
+operation kinds resolve through the palette catalog.
+
+### Agent Notes (2026-09-30, chips: visible signals + group labels)
+
+The signal dots rendered as empty space: `` bg-signal-${x} `` is dynamic
+and Tailwind compiles from source text, so no class existed. All signal
+surface classes are now literal in utils/processDesignerSignals.js
+(signalBgClass) and tailwind.config scans utils/. Group labels are back
+(localized paletteGroups block restored) — chips group under small
+muted labels; dot + stripe share the one signal map.
+
+### Agent Notes (2026-09-30, node stripes removed)
+
+Owner call: the DesignerNodeCard signal stripe read badly — removed for
+now (the signal prop, stripe markup, and the node-side signal mapping
+all died; chip dots keep the one signal map). Revivable from history if
+wanted later.
+
+### Agent Notes (2026-09-30, simpler node layouts)
+
+Literal is one row (type dropdown + value; entityRef keeps its type
+picker in the row; list/tree textareas wrap below at the node max).
+Operation cards (lg) size to content: w-max with a 72 floor and 96 cap;
+socket name columns cap at 44 before truncating; the input/output gap
+stays the row's fixed gutter; the node title crops at the card cap.
+SPEC "Node layouts" records the intent.
+
+### Agent Notes (2026-09-30, literal is ONE line)
+
+One-line literal: no header, no named socket rows — type dropdown +
+value with the value socket's unnamed handle docked in the same row
+(size `inline`, w-64; every control min-w-0 so the value can't overflow).
+Applies when a literalItem has zero inputs and exactly one data output;
+anything richer keeps the full card. Operation-card floor dropped to
+min-w-56 so socket-driven widths are actually visible. NOTE: the
+design-system drift test is red on committed local from the parallel
+padding agent's WorkspaceSplitNode scoped style (no analyzer exception);
+they are reworking it in the primary tree — not touched here.
+
+### Agent Notes (2026-09-30, role management + screens per role)
+
+Rename/delete moved behind the role's ellipsis menu (inline rename like
+the definitions pane; delete opens a StandardDialog confirm). The delete
+confirm scans every definition (loadById when the summary lacks data)
+through deriveRoleAccessSummary and warns with the names of definitions
+where the role carries load (lanes/grants/screens/actions). The Screens
+tab is gone: compiled stations render per role under Roles
+(screensForSelectedRole filters by screen.roleIds; unscoped stations
+render under every role), the authored-station editor only under its
+owning role, and customizeStation selects the owning role first. The
+compiled-preview recompute gate moved from the screens tab to roles.
+SSR smoke updated: screens tab label absent, roles pane renders.
+
+### Agent Notes (2026-09-30, popup sweep)
+
+Popups audited with the analyzer and brought compliant: UserAccountMenu
+(profile/org settings) drops its !justify-start overrides for a pt-based
+alignment object and the avatar trigger loses its hand-rolled ring;
+OfflineOutboxBadge becomes a token inset; CallFloatingWindow sizes on
+the standard scale (h-136 w-120 max-h-dvh) with the frame carried by
+shadow/surface instead of hand borders; ChatSupportDialog's documented
+Dialog width rides a pinned inline-layout exception and its cap becomes
+max-h-dvh; EntityPopup caps at max-h-dvh. Analyzer now exempts the
+semantic primary/status background token families (same standing as
+process-canvas), and inline-style exceptions may carry a layout category
+(besides data-driven). NameEditPopover/InstanceActionsPopover were
+already compliant. Preview popups were structurally PrimeVue already
+(StandardDialog + generated surfaces) — the debt was chrome, not
+structure.
+
+### Agent Notes (2026-09-30, mobile global scale)
+
+The rem basis is the scale: html font-size rises to 18px below the app's
+mobile break (48rem viewport, matching the md: shell split) — PrimeVue
+components, rem-based typography roles, and Tailwind utilities all scale
+together (PrimeVue's documented scaling mechanism; no per-component
+overrides). One knob in main.css app-shell section.
+
+### Agent Notes (2026-09-30, mobile scale direction)
+
+Owner call: mobile scales UP, not down — touch targets and text grow
+together (18px root below the 48rem break). Direction corrected from
+the first cut.

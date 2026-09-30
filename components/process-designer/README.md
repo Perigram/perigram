@@ -138,6 +138,14 @@ catalog contributes one bound construct per constructible type/mode.
 registered service species. **Instances** owns context, all, typed-reference
 resolution, exact declared-edge traversal, and field projection. **Values**,
 **Collections**, and **Flow** own explicit value/list/branch semantics.
+Both the rail palette and the canvas context palette render through one
+component, `OperationPalette.vue`: searchable chip groups — localized
+group labels above wraps of small PrimeVue Buttons (no icons). Each
+chip's dot carries the item's category signal
+(`utils/processDesignerSignals.js` is the single group→signal map;
+signal classes are literal in the util because Tailwind compiles from
+source text). Canvas nodes carry no category accent — the frame is
+plain.
 There is no raw-id source, producer join, fixed-arity list constructor, block
 substrate, or hidden predicate input. Unknown service operators fail with a
 named diagnostic.
@@ -628,15 +636,16 @@ Apply saves, validates, and activates as one operation, while the result
 remains visible as feedback on the canvas.
 
 The right pane owns **definitions management** (the Definitions tab):
-a PrimeVue `Listbox` of definitions — one option per definition whose
-rich `#option` template carries the name (option click loads it to the
-designer, inline rename), the activation switch (on = member of the
-additive active set — the switch is the state signal, no status badges),
-delete, and a history disclosure listing activation versions
-(`data.history`, newest first) with restore (the snapshot becomes the
-definition's data and goes live through activation). History rows render
-the timestamp only — actor ids never appear in the UI. The activation
-contract lives in
+a `Listbox` of definitions in the chats-inbox anatomy — each option is a
+single line: name (option click loads it to the designer, inline rename
+swaps the name span for an input), the activation switch (on = member of
+the additive active set — the switch is the state signal, no status
+badges), and the versions + ellipsis buttons. The versions button opens a
+`Popover` anchored at the row listing activation versions (`data.history`,
+newest first) with restore (the snapshot becomes the definition's data
+and goes live through activation); history never renders inside the
+option. History rows render the timestamp only — actor ids never appear
+in the UI. The activation contract lives in
 [process-definitions](../../server/features/process-definitions/README.md).
 
 Selection actions follow the quiet-card policy: nodes carry no per-node

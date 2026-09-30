@@ -60,11 +60,9 @@ nesting inputs, and per-piece traceability reference.
   referenced on the created record. The bake/convertDxf operator inputs
   are record-shaped (`name?`, `template`/`source`, bake adds
   `parameters?`), so a graph construct in those modes wires exactly the
-  operator's fields. The bake resolves its template through the pack's
-  own cassette service (legacy repository storage — the pack mounts the
-  instance-service bridge), and the OCCS document rides either home:
-  inline `data.definition` (command-saved templates) or the payload
-  file. Construction-time means
+  operator's fields. The bake resolves its template through the generic
+  instance service and reads the OCCS document from the template's
+  payload — the one home. Construction-time means
   construction-time: template edits or source-file changes after
   construction never propagate to production pieces. The hand layer
   mapping (DXF layer names → canonical layers) remains the STANDARD
@@ -117,7 +115,10 @@ for the boundary contract.
 `p extract`, declared next to its type): a design instance → its baked
 `polygonParts` geometry, resolved from the stored
 `data.geometry.nestingPolygons` path — the path lives in the declaration,
-never in a graph. Table rows are the documents pack's `rows` projection
+never in a graph. The declaration and the `nesting.solve` service carry
+the `facade` palette group: the pack's plugin tab in the process
+designer, where cassette geometry extraction and the solver drop
+pre-bound. Table rows are the documents pack's `tableData` projection
 ([@perigram/documents](../documents/README.md)); name-keyed resolution
 composes from a `cts.read` over the target type plus the pure
 `collection.join` — no facade-owned lookup service exists.

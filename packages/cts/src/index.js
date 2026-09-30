@@ -13,6 +13,7 @@ export {
 export {
   EDGE_KINDS, ON_REMOVE, normalizeEdges, checkLineageAcyclic, lineageKeyForParent
 } from './edges.js';
+export { mimeMatches, payloadAccepts } from './payload.js';
 export {
   normalizeStateVocabulary, normalizeStatePolicy,
   stateValues, statePolicy, isTerminalState

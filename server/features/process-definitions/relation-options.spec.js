@@ -31,7 +31,7 @@ describe('relation option path', () => {
   const actions = {
     linkLibrary: {
       typeId: 'project',
-      relationMutation: { operation: 'link', key: 'library', targetType: 'library' }
+      relationMutation: { operation: 'link', key: 'library', targetTypes: ['library'] }
     }
   };
 

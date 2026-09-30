@@ -17,6 +17,29 @@ All UI is written in raw, unmodified PrimeVue plus the repo's registered
 shared primitives. No hand-rolled div/button chrome, no custom controls.
 Raw IDs and other technical identifiers are never shown in user-facing UI.
 
+Process designer palette: a searchable grid of chips, no icons. Operation
+categories (palette chips and canvas nodes alike) are told apart by shared
+signal styling, not icons or headers — the palette entry looks like the
+node it creates.
+
+Node layouts stay simple: a literal is one row (type dropdown + value;
+multiline data wraps below at the node's max width). Operation node width
+follows its socket names — input and output columns keep a fixed gap,
+names crop at a max length, the node title likewise.
+
+Role management: renaming and deleting a role are menu actions, never
+first-plane. Deleting warns first when the role carries load in any
+definition (its lane, grants, screens, or actions). Screens are not a
+separate tab — they render per role under Roles.
+
+Popups (profile/org settings, org/user previews, floating call window,
+status badges) are raw PrimeVue: Popover/StandardDialog own the surface
+and chrome, no hand-rolled borders or !utility overrides on PrimeVue
+internals.
+
+Mobile devices scale the whole UI through the root font-size (the rem
+basis PrimeVue components and the typography roles share).
+
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be
 preserved (panes and sidebar w/ chats and calls). "Screens" should go to panes/tabs, top-level menu still
@@ -28,6 +51,18 @@ layout. More important to get aligned with architecture, so it's only assumption
 No per-entity hardcoded components. Editors/previews bind through pack editor bindings and the
 surface registry — adding a type never touches app UI code. Files are CTS types with payload traits;
 the `artifact` entity and its overload die when chat/proof/capture/upload flows move to file instances.
+
+## Chat files
+
+Any file may be attached to chat messages. Images and videos preview inline
+(single items and their sets as galleries); every attachment offers a
+download. When a message belongs to an instance chat, each attached file
+becomes an instance of the instance's class' declared child type that
+accepts its upload (payload traits + upload creation protocol); the sender
+picks the child type when several accept the same file. Instance chats
+whose target declares no accepting child refuse the upload at pick time;
+common chats (support/direct/group) and party-target chats (the
+organization chat) keep files as plain unlinked attachments.
 
 ## Server
 

@@ -40,8 +40,8 @@ describe('ui-contract projection', () => {
         create: { id: 'create', actionKind: 'createEntity', typeId: 'project', label: 'Create' },
         update: { id: 'update', actionKind: 'updateEntity', typeId: 'project', state: { to: 'DONE' } },
         remove: { id: 'remove', actionKind: 'deleteEntity', typeId: 'project' },
-        link: { id: 'link', actionKind: 'updateEntity', typeId: 'queue', relationMutation: { key: 'items', targetType: 'cassette_design', cardinality: 'array', operation: 'link' } },
-        unlink: { id: 'unlink', actionKind: 'updateEntity', typeId: 'queue', relationMutation: { key: 'items', targetType: 'cassette_design', operation: 'unlink' } },
+        link: { id: 'link', actionKind: 'updateEntity', typeId: 'queue', relationMutation: { key: 'items', targetTypes: ['cassette_design'], cardinality: 'array', operation: 'link' } },
+        unlink: { id: 'unlink', actionKind: 'updateEntity', typeId: 'queue', relationMutation: { key: 'items', targetTypes: ['cassette_design'], operation: 'unlink' } },
         run: { id: 'run', actionKind: 'runCommand', typeId: 'queue', commandId: 'nesting.solve' },
         send: { id: 'send', actionKind: 'sendToOrganization', typeId: 'project' }
       },
@@ -50,7 +50,7 @@ describe('ui-contract projection', () => {
     expect(projected.actions.create).toMatchObject({ actionKind: 'createInstance', typeId: 'project' });
     expect(projected.actions.update).toMatchObject({ actionKind: 'updateInstance', state: { to: 'DONE' } });
     expect(projected.actions.remove).toMatchObject({ actionKind: 'deleteInstance' });
-    expect(projected.actions.link).toMatchObject({ actionKind: 'link', relation: { key: 'items', targetType: 'cassette_design' } });
+    expect(projected.actions.link).toMatchObject({ actionKind: 'link', relation: { key: 'items', targetTypes: ['cassette_design'] } });
     expect(projected.actions.unlink).toMatchObject({ actionKind: 'unlink' });
     expect(projected.actions.run).toMatchObject({ actionKind: 'runCommand', commandId: 'nesting.solve' });
     expect(projected.actions.send).toBeUndefined();
