@@ -1,56 +1,65 @@
 <template>
-  <Listbox
-    :key="pickSeq"
-    :options="groups"
-    option-group-label="label"
-    option-group-children="items"
-    option-label="label"
-    data-key="id"
-    filter
-    :filter-placeholder="placeholder"
-    :aria-label="placeholder"
-    class="min-h-0 flex-1"
-    scroll-height="100%"
-    @update:model-value="pick"
-    @keydown.esc.stop="emit('close')"
-  >
-    <template #option="{ option }">
-      <span
-        class="flex w-full min-w-0 items-center gap-2"
-        v-tooltip.right="option.description"
-      >
-        <i :class="option.icon" aria-hidden="true"></i>
-        <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
-      </span>
-    </template>
-  </Listbox>
+  <div class="flex h-full min-h-0 flex-col">
+    <div class="shrink-0 px-2 pt-2">
+      <InputText
+        v-model="query"
+        type="search"
+        size="small"
+        class="w-full"
+        :placeholder="placeholder"
+        :aria-label="placeholder"
+        @keydown.esc.stop="emit('close')"
+      />
+    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto p-2">
+      <div class="flex flex-wrap gap-1.5">
+        <Button
+          v-for="item in filteredItems"
+          :key="item.id"
+          size="small"
+          text
+          class="justify-start bg-subtle"
+          :aria-label="item.label"
+          v-tooltip.right="item.description"
+          @click="emit('pick', item)"
+        >
+          <span
+            class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
+            :class="`bg-signal-${item.signal}`"
+            aria-hidden="true"
+          ></span>
+          <span class="min-w-0 truncate">{{ item.label }}</span>
+        </Button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import Listbox from 'primevue/listbox';
-import { ref } from 'vue';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import { computed, ref } from 'vue';
 
-// The operation palette for the process designer: one filterable grouped
-// list (PrimeVue Listbox owns the filter box, group headers, and option
-// rows). This is an ACTION list, not a selection list: Listbox keeps an
-// internal selected value that a controlled null model does not clear,
-// and a plain re-click of a deep-equal option takes the deselect path
-// (emits null) — swallowing the second add of the same operation. The
-// palette therefore remounts itself after every pick (`:key` bump), so
-// every click or Enter is a fresh select. Groups carry precomputed
-// localized `label`s (the filter matches them) and per-item
-// `description`s for the row tooltip. Used by both the rail palette and
-// the canvas context palette.
-defineProps({
-  groups: { type: Array, default: () => [] },
+// The operation palette for the process designer: a searchable wrap of
+// chips (small PrimeVue Buttons own hover/focus; no icons, no group
+// headers). Categories read through the shared signal dot — the same
+// signal tokens stripe the canvas node the chip creates
+// (utils/processDesignerSignals.js is the one map). Picking emits once;
+// buttons carry no selection state, so repeat picks are plain clicks.
+// `items` carry precomputed localized `label`s (the filter matches them),
+// `description`s for the chip tooltip, and `signal` names.
+const props = defineProps({
+  items: { type: Array, default: () => [] },
   placeholder: { type: String, default: '' }
 });
 const emit = defineEmits(['pick', 'close']);
-const pickSeq = ref(0);
 
-function pick(item) {
-  if (!item) return;
-  emit('pick', item);
-  pickSeq.value++;
-}
+const query = ref('');
+const filteredItems = computed(() => {
+  const needle = query.value.trim().toLowerCase();
+  if (!needle) return props.items;
+  return props.items.filter(item =>
+    item.label.toLowerCase().includes(needle)
+    || (item.description || '').toLowerCase().includes(needle));
+});
 </script>
