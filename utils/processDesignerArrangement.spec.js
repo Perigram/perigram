@@ -2,7 +2,7 @@
 // components/process-designer/README.md "Auto-arrangement"): the pure
 // Tidy pass — deterministic, idempotent, lane-preserving, flow-directed.
 import { describe, expect, it } from 'vitest';
-import { arrangeProcessGraph } from '~/utils/processDesignerArrangement.js';
+import { arrangeProcessGraph, deriveLaneFacts, laneContainerLayout } from '~/utils/processDesignerArrangement.js';
 
 const BAND_A = { id: 'role:a', kind: 'role', label: 'A', top: 0, height: 340 };
 const BAND_B = { id: 'role:b', kind: 'role', label: 'B', top: 340, height: 340 };
@@ -448,5 +448,158 @@ describe('arrangeProcessGraph', () => {
       second.has(node.id) ? { ...node, position: second.get(node.id) } : node
     )) });
     expect([...third]).toEqual([...first]);
+  });
+});
+
+describe('laneContainerLayout', () => {
+  const BANDS = ['role:a', 'role:b', 'unassigned'];
+  const membershipOf = node => node.lane;
+  const laneYOf = node => node.laneY;
+
+  it('hugs each band around its content and stacks in order', () => {
+    const { bands, positions } = laneContainerLayout({
+      nodes: [
+        { id: 'a1', lane: 'role:a', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+        { id: 'a2', lane: 'role:a', laneY: 400, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+        { id: 'b1', lane: 'role:b', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }
+      ],
+      bandIds: BANDS,
+      membershipOf,
+      laneYOf
+    });
+    // band a: content bottoms at 400 + 140, plus the bottom inset
+    expect(bands[0]).toEqual({ id: 'role:a', top: 0, height: 400 + 140 + 24 });
+    expect(bands[1].top).toBe(bands[0].height);
+    expect(bands[2].top).toBe(bands[0].height + bands[1].height);
+    expect(positions.get('b1')).toBe(bands[1].top + 24);
+  });
+
+  it('members ride their band when a band above grows', () => {
+    const base = laneContainerLayout({
+      nodes: [{ id: 'a1', lane: 'role:a', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+        { id: 'b1', lane: 'role:b', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }],
+      bandIds: BANDS, membershipOf, laneYOf
+    });
+    const grown = laneContainerLayout({
+      nodes: [{ id: 'a1', lane: 'role:a', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+        { id: 'a2', lane: 'role:a', laneY: 400, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+        { id: 'b1', lane: 'role:b', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }],
+      bandIds: BANDS, membershipOf, laneYOf
+    });
+    const shift = grown.bands[1].top - base.bands[1].top;
+    expect(shift).toBeGreaterThan(0);
+    expect(grown.positions.get('b1')).toBe(base.positions.get('b1') + shift);
+    expect(grown.laneY.get('b1')).toBe(24);
+  });
+
+  it('seats content at the top inset without breaking lane-mate offsets', () => {
+    const { laneY, positions, bands } = laneContainerLayout({
+      nodes: [{ id: 'a1', lane: 'role:a', laneY: 60, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+        { id: 'a2', lane: 'role:a', laneY: 400, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }],
+      bandIds: BANDS, membershipOf, laneYOf
+    });
+    expect(laneY.get('a1')).toBe(24);
+    expect(laneY.get('a2')).toBe(364); // same 340px gap to its lane-mate
+    expect(positions.get('a2')).toBe(364);
+    expect(bands[0].height).toBe(364 + 140 + 24);
+  });
+
+  it('a drop becoming the topmost card shifts the band by at most one inset', () => {
+    const settled = laneContainerLayout({
+      nodes: [{ id: 'a1', lane: 'role:a', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }],
+      bandIds: BANDS, membershipOf, laneYOf
+    });
+    const dropped = laneContainerLayout({
+      nodes: [{ id: 'a1', lane: 'role:a', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+        { id: 'a0', lane: 'role:a', laneY: 5, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }],
+      bandIds: BANDS, membershipOf, laneYOf
+    });
+    expect(dropped.laneY.get('a1')).toBeGreaterThanOrEqual(24);
+    expect(dropped.laneY.get('a1') - settled.laneY.get('a1')).toBeLessThanOrEqual(24);
+  });
+
+  it('a strayed member (negative offset) stays out of the hug and keeps its place', () => {
+    const { bands, laneY, positions } = laneContainerLayout({
+      nodes: [{ id: 'a1', lane: 'role:a', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+        { id: 'stray', lane: 'unassigned', laneY: -800, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }],
+      bandIds: BANDS, membershipOf, laneYOf
+    });
+    expect(laneY.has('stray')).toBe(false);
+    expect(positions.has('stray')).toBe(false);
+    expect(bands[2].height).toBe(150);
+  });
+
+  it('unknown membership and missing offsets contribute nothing', () => {
+    const { bands, positions } = laneContainerLayout({
+      nodes: [
+        { id: 'ghost', lane: 'role:gone', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode' },
+        { id: 'nooffset', lane: 'role:a', position: { x: 0, y: 0 }, type: 'processNode' }
+      ],
+      bandIds: BANDS, membershipOf, laneYOf
+    });
+    expect(bands[0].height).toBe(150);
+    expect(positions.size).toBe(0);
+  });
+
+  it('keeps empty bands at the minimum height as drop targets', () => {
+    const { bands } = laneContainerLayout({
+      nodes: [{ id: 'b1', lane: 'role:b', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }],
+      bandIds: BANDS, membershipOf, laneYOf
+    });
+    expect(bands[0].height).toBe(150);
+    expect(bands[2].height).toBe(150);
+  });
+
+  it('is idempotent over its own output', () => {
+    const nodes = [{ id: 'a1', lane: 'role:a', laneY: 24, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } },
+      { id: 'b1', lane: 'role:b', laneY: 300, position: { x: 0, y: 0 }, type: 'processNode', dimensions: { height: 140 } }];
+    const first = laneContainerLayout({ nodes, bandIds: BANDS, membershipOf, laneYOf });
+    const seated = nodes.map(node => ({ ...node, laneY: first.laneY.get(node.id), position: { x: 0, y: first.positions.get(node.id) } }));
+    const second = laneContainerLayout({ nodes: seated, bandIds: BANDS, membershipOf, laneYOf });
+    expect([...second.laneY.entries()]).toEqual([...first.laneY.entries()]);
+    expect([...second.positions.entries()]).toEqual([...first.positions.entries()]);
+    expect(second.bands).toEqual(first.bands);
+  });
+});
+
+describe('deriveLaneFacts', () => {
+  const BANDS = ['role:a', 'role:b', 'unassigned'];
+
+  it('derives membership and offsets by containment against the seed stack', () => {
+    const [derived] = deriveLaneFacts({
+      nodes: [{ id: 'n1', type: 'processNode', position: { x: 0, y: 170 }, data: {} }],
+      bandIds: BANDS
+    });
+    expect(derived.data.lane).toBe('role:b'); // seed stack: a [0,150), b [150,300)
+    expect(derived.data.laneY).toBe(20);
+  });
+
+  it('membership-known nodes take the offset against their own band', () => {
+    const [derived] = deriveLaneFacts({
+      nodes: [{ id: 'n1', type: 'processNode', position: { x: 0, y: 170 }, data: {} }],
+      bandIds: BANDS,
+      membershipOf: () => 'unassigned'
+    });
+    expect(derived.data.lane).toBeUndefined();
+    expect(derived.data.laneY).toBe(170 - 300);
+  });
+
+  it('leaves nodes above the stack and below it correctly', () => {
+    const derived = deriveLaneFacts({
+      nodes: [
+        { id: 'above', type: 'processNode', position: { x: 0, y: -300 }, data: {} },
+        { id: 'below', type: 'processNode', position: { x: 0, y: 5000 }, data: {} }
+      ],
+      bandIds: BANDS
+    });
+    expect(derived[0].data.lane).toBeUndefined();
+    expect(derived[0].data.laneY).toBeUndefined();
+    expect(derived[1].data.lane).toBe('unassigned');
+  });
+
+  it('never rewrites nodes that already carry facts', () => {
+    const node = { id: 'n1', type: 'processNode', position: { x: 0, y: 320 }, data: { laneY: 42 } };
+    const [derived] = deriveLaneFacts({ nodes: [node], bandIds: BANDS });
+    expect(derived).toBe(node);
   });
 });

@@ -1,7 +1,7 @@
 // Layered arrangement for the process canvas — the Tidy command's engine.
 // Contract (canonical): components/process-designer/README.md
-// "Auto-arrangement (Tidy)". Pure: nodes, edges, lane band membership in →
-// positions plus content-hugging band geometry out.
+// "Auto-arrangement (Tidy)" and "Lanes". Pure: nodes, edges, lane band
+// membership in → positions plus content-hugging band geometry out.
 //
 // x is columnar (layering + pull-up; flow direction is preserved by
 // construction). y is a constrained relaxation run to a stable state:
@@ -353,4 +353,93 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     });
   }
   return { positions: arranged, bands: bandGeometry().geometry };
+}
+
+// The lane container pass (contract: components/process-designer/README.md
+// "Lanes"). Node vertical coordinates are LANE-RELATIVE authored facts;
+// given membership (`membershipOf(node)` → band id or null) and each
+// node's lane offset (`laneYOf(node)` → number), derive the full layout:
+// every band hugs its content (height = member offset extent + padding,
+// floored at the minimum; content seats at the top inset — a band's
+// members shift together by at most that seating correction, offsets
+// between lane-mates never change), bands stack in the given order, and
+// each member's absolute y is band top + normalized offset. A member
+// whose offset is negative sits ABOVE its lane: it is strayed (dropped
+// outside every band) and stays exactly where it fell, outside the hug,
+// until re-dropped. Deterministic and idempotent: running it over its
+// own output moves nothing.
+export function laneContainerLayout({ nodes = [], bandIds = [], membershipOf = null, laneYOf = null } = {}) {
+  const resolve = node => {
+    const bandId = membershipOf?.(node) || null;
+    if (!bandId || !bandIds.includes(bandId)) return null;
+    const offset = laneYOf?.(node);
+    return { bandId, offset: Number.isFinite(offset) ? offset : null };
+  };
+  const membersByBand = new Map(bandIds.map(id => [id, []]));
+  for (const node of nodes) {
+    const resolved = resolve(node);
+    if (!resolved || resolved.offset === null || resolved.offset < 0) continue;
+    membersByBand.get(resolved.bandId).push({ node, offset: resolved.offset });
+  }
+  const bands = [];
+  const laneY = new Map();
+  const positions = new Map();
+  let top = 0;
+  for (const bandId of bandIds) {
+    const members = membersByBand.get(bandId);
+    let height = LANE_MIN_HEIGHT;
+    if (members.length) {
+      // Hug: content seats at the band's top inset.
+      const shift = LANE_INSET - Math.min(...members.map(member => member.offset));
+      let bottom = 0;
+      for (const { node, offset } of members) {
+        const seated = Math.round(offset + shift);
+        laneY.set(node.id, seated);
+        positions.set(node.id, Math.round(top + seated));
+        bottom = Math.max(bottom, seated + cardHeightOf(node));
+      }
+      height = Math.max(LANE_MIN_HEIGHT, bottom + LANE_INSET);
+    }
+    bands.push({ id: bandId, top, height });
+    top += height;
+  }
+  return { bands, laneY, positions };
+}
+
+// One-time fact derivation for drafts authored before lane containers:
+// nodes carrying no lane offset yet adopt membership + offset from their
+// stored absolute position, measured against the minimum-height seed
+// stack (membership-known nodes — effects — take their offset against
+// THEIR band's seed top, wherever they sit). Nodes above the stack with
+// no membership stay fact-less (free-floating). Returns new node data;
+// nodes that already carry facts pass through untouched.
+export function deriveLaneFacts({ nodes = [], bandIds = [], membershipOf = null } = {}) {
+  const seed = [];
+  let top = 0;
+  for (const bandId of bandIds) {
+    seed.push({ id: bandId, top });
+    top += LANE_MIN_HEIGHT;
+  }
+  const bandTopOf = bandId => seed.find(band => band.id === bandId)?.top ?? null;
+  const containingBand = y => {
+    for (const band of seed) {
+      if (y >= band.top && y < band.top + LANE_MIN_HEIGHT) return band.id;
+    }
+    return y >= top && seed.length ? seed[seed.length - 1].id : null;
+  };
+  return nodes.map(node => {
+    if (Number.isFinite(node.data?.laneY)) return node;
+    const data = { ...(node.data || {}) };
+    const y = node.position?.y ?? 0;
+    const membership = membershipOf?.(node) || null;
+    if (membership && bandIds.includes(membership)) {
+      data.laneY = Math.round(y - bandTopOf(membership));
+      return { ...node, data };
+    }
+    const bandId = containingBand(y);
+    if (!bandId) return node;
+    data.lane = bandId;
+    data.laneY = Math.round(y - bandTopOf(bandId));
+    return { ...node, data };
+  });
 }
