@@ -875,3 +875,10 @@ gone — record opens (openMobileInstance) and workspace-entity opens
 (openRequestedWorkspaceEntity) route to the compiled detail screen via
 detailRouteForInstance; the bounded directory dialog and the mobile
 detail sheet (plus their state) are deleted. Desktop keeps tab opens.
+
+### Agent Notes (2026-09-30, call popup is a sheet)
+
+The mobile accepted-call dialog was a floating full-size card (margins,
+rounded, fixed preview height). It mounts the sheet size now —
+edge-to-edge, viewport height, the panel fills it. The invite card
+keeps its floating toast shape.
