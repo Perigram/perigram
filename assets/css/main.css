@@ -26,7 +26,7 @@ body {
    app's own mobile break (the md: shell split). */
 @media (max-width: 47.99rem) {
     html {
-        font-size: 20px;
+        font-size: 16px;
     }
 }
 
