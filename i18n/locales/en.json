@@ -3256,7 +3256,11 @@
       "tableData": "Table data",
       "facade": "Facade fabrication",
       "fileData": "File data"
-    }
+    },
+    "roleActions": "Role actions",
+    "deleteRole": "Delete role",
+    "deleteRoleConfirm": "Delete role {name}?",
+    "roleInUseBy": "In use by {count} definition(s): {names}"
   },
   "generatedScreen": {
     "home": "Home",
