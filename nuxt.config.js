@@ -36,15 +36,22 @@ export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
 
     // Home serves at the stable shell route '/home' — the canonical
-    // screen-contract constant. It is the screens route's alias (matched
-    // by path): the screens renderer's documented fallback resolves an
-    // unresolvable key to the (compiled or sourceless) home screen, so
-    // the whole screens renderer serves '/home' without a duplicated
-    // page.
+    // screen-contract constant. The screens route's param is rewritten to
+    // a true optional param first: vue-router only accepts a static alias
+    // onto a parametrized record when the param is optional, and the
+    // built client router DROPS the record's layout/meta on the invalid
+    // combination — SSR rendered the app shell while the hydrated client
+    // rendered a bare stuck-loading page (2026-09-30 staging "broken
+    // layouts" incident). The screens renderer's documented fallback
+    // resolves an absent key to the home screen, so '/home' and
+    // '/screens/<key>' both serve the renderer without a duplicated page.
     hooks: {
         'pages:extend'(pages) {
             const screensPage = pages.find(page => String(page.path || '').startsWith('/screens/'));
-            if (screensPage) screensPage.alias = ['/home'];
+            if (screensPage) {
+                screensPage.path = '/screens/:screenKey?';
+                screensPage.alias = ['/home'];
+            }
         }
     },
 
