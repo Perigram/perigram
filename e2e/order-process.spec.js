@@ -117,6 +117,10 @@ test('the order process runs live: table rows become baked designs, materials, a
   });
 
   // A real xlsx order table uploaded through the workbook create action.
+  // The species process seeds that action (one upload construct for the
+  // workbook type, activated beside the order process — the executable
+  // action set is the union of every ACTIVE definition).
+  const species = await app.seedSpeciesProcess({ types: [TABLE_TYPE], via: { [TABLE_TYPE]: 'upload' } });
   const { utils, write } = await import('xlsx');
   const sheet = utils.aoa_to_sheet([
     ['name', 'cassette', 'A', 'B'],
