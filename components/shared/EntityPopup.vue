@@ -23,7 +23,7 @@
         />
       </div>
     </template>
-    <div class="max-h-[70vh] overflow-y-auto">
+    <div class="max-h-dvh overflow-y-auto">
       <DirectoryDetailSurface
         v-if="visible && isDirectoryType"
         :key="`${request.typeId}:${request.instanceId}`"

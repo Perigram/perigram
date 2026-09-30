@@ -4,11 +4,11 @@
          header; dock returns the call to a home workspace tab. -->
     <div
         v-if="callsStore.floatingRoom"
-        class="fixed bottom-6 right-6 z-[1000] hidden h-[34rem] max-h-[calc(100dvh-3rem)] w-[30rem] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay md:flex"
+        class="fixed bottom-6 right-6 z-40 hidden h-136 w-120 max-h-dvh max-w-full flex-col overflow-hidden rounded-ui bg-content shadow-overlay md:flex"
         data-floating-call
     >
         <header
-            class="flex h-9 shrink-0 cursor-grab items-center gap-1 border-b border-chrome-border px-2 select-none"
+            class="flex h-9 shrink-0 cursor-grab items-center gap-1 px-2 select-none"
             :class="{ 'cursor-grabbing': dragging }"
             @pointerdown="startDrag"
         >
