@@ -72,13 +72,13 @@
 
       <div
         v-if="contextPalette.open"
-        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 rounded-ui bg-content p-2 shadow-card"
+        class="absolute z-30 flex max-h-80 w-72 flex-col overflow-hidden rounded-ui shadow-card"
         :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
         @mousedown.stop
         @click.stop
       >
-        <div class="flex items-center justify-end">
-          <Button icon="pi pi-times" text size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
+        <div class="flex shrink-0 items-center justify-end px-2 pt-2">
+          <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
         </div>
         <OperationPalette
           ref="contextPaletteSearch"
@@ -87,7 +87,7 @@
           @pick="addContextNode"
           @close="closeContextPalette"
         />
-        <Message v-if="!contextPaletteListboxGroups.length" severity="secondary" size="small">
+        <Message v-if="!contextPaletteListboxGroups.length" class="m-2 shrink-0" severity="secondary" size="small">
           {{ $t('processDesigner.noCompatibleOperations') }}
         </Message>
       </div>
@@ -97,9 +97,9 @@
       </div>
 
       <template #palette>
-        <div class="flex h-full min-h-0 flex-col gap-2 p-3">
-          <div class="flex justify-end">
-            <Button icon="pi pi-database" size="small" text :aria-label="$t('typesPane.title')" v-tooltip.left="$t('typesPane.title')" @click="navigateTo('/organization/types')" />
+        <div class="flex h-full min-h-0 flex-col">
+          <div class="flex shrink-0 items-center justify-end px-2 pt-2">
+            <Button icon="pi pi-database" severity="secondary" text rounded size="small" :aria-label="$t('typesPane.title')" v-tooltip.left="$t('typesPane.title')" @click="navigateTo('/organization/types')" />
           </div>
           <OperationPalette
             :groups="paletteListboxGroups"
