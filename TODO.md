@@ -27,6 +27,19 @@ below it. The option template now has a single root column wrapper
 (chats-inbox pattern); controls keep `@click.stop`, the option body
 keeps native select-on-click.
 
+### Agent Notes (2026-09-30, Listbox → DataTable)
+
+The Listbox was still the wrong component: a selection control whose
+`#option` template was being stuffed into a composite management surface
+(switch + menu + rename + disclosure per row). Rewritten as the repo's
+rows-with-actions contract — `TableFrame` + `DataTable`: `expander`
+column + `#expansion` slot owns the version disclosure natively (one
+expanded row at a time; `onDefinitionRowsUpdate` loads that row's
+history), row click loads the definition, rename lives in the name cell,
+switch + ellipsis menu in the actions cell. History rows still render
+timestamps only. Style guide now names the component split explicitly
+and points agents at the PrimeVue MCP instead of improvising markup.
+
 - [x] Kanban of a parents table showed the CHILD type's state lanes (empty)
   — machine vocabulary seeding leaked unscoped state tokens into every
   producer
