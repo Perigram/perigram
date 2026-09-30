@@ -713,3 +713,15 @@ Operation cards (lg) size to content: w-max with a 72 floor and 96 cap;
 socket name columns cap at 44 before truncating; the input/output gap
 stays the row's fixed gutter; the node title crops at the card cap.
 SPEC "Node layouts" records the intent.
+
+### Agent Notes (2026-09-30, literal is ONE line)
+
+One-line literal: no header, no named socket rows — type dropdown +
+value with the value socket's unnamed handle docked in the same row
+(size `inline`, w-64; every control min-w-0 so the value can't overflow).
+Applies when a literalItem has zero inputs and exactly one data output;
+anything richer keeps the full card. Operation-card floor dropped to
+min-w-56 so socket-driven widths are actually visible. NOTE: the
+design-system drift test is red on committed local from the parallel
+padding agent's WorkspaceSplitNode scoped style (no analyzer exception);
+they are reworking it in the primary tree — not touched here.
