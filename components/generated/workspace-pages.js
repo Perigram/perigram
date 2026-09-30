@@ -1,11 +1,21 @@
-import ChatSupport from '~/components/ChatSupport.vue';
-import CallWorkspacePage from '~/components/calls/CallWorkspacePage.vue';
-import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
-import OrganizationTeamPage from '~/pages/organization/users.vue';
-import OrganizationPartnersPage from '~/pages/organization/partners.vue';
-import OrganizationBillingPage from '~/pages/organization/billing.vue';
-import OrganizationProcessPage from '~/pages/organization/process.vue';
+import { defineAsyncComponent } from 'vue';
 import { fileWorkspacePages } from '~/components/generated/file-surfaces.js';
+
+// Page components resolve lazily: the registry is imported from the app
+// shell's chat/entity-popup chain, and eagerly importing pages here put
+// every workspace page (the process designer included) into the shell's
+// module graph — and a workspace-pages → DirectoryDetailSurface →
+// GeneratedOrganizationOverview → workspace-pages import cycle 500'd the
+// route whose graph entered DirectoryDetailSurface first
+// ("Cannot access 'DirectoryDetailSurface' before initialization").
+// Registry rows (ids, labels, icons, route maps) stay synchronous.
+const ChatSupport = defineAsyncComponent(() => import('~/components/ChatSupport.vue'));
+const CallWorkspacePage = defineAsyncComponent(() => import('~/components/calls/CallWorkspacePage.vue'));
+const DirectoryDetailSurface = defineAsyncComponent(() => import('~/components/directory/DirectoryDetailSurface.vue'));
+const OrganizationTeamPage = defineAsyncComponent(() => import('~/pages/organization/users.vue'));
+const OrganizationPartnersPage = defineAsyncComponent(() => import('~/pages/organization/partners.vue'));
+const OrganizationBillingPage = defineAsyncComponent(() => import('~/pages/organization/billing.vue'));
+const OrganizationProcessPage = defineAsyncComponent(() => import('~/pages/organization/process.vue'));
 
 // Entity-bound editor pages (for example the cassette designer) derive
 // from the pack editor bindings through the file-surface registry; their
