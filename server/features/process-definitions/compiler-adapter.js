@@ -20,7 +20,7 @@ import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, proj
 // own the report); they are skipped, not fatal.
 const DRAFT_OVERLAY_ORG = 'draft-overlay';
 
-function declarationOverlayDomain(data = {}, domain = {}) {
+export function declarationOverlayDomain(data = {}, domain = {}) {
   // Transition-node-declared target statuses ride the process records:
   // the overlay must know them or a draft binding check would refuse the
   // very target the transition node authors.
