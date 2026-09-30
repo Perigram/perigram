@@ -72,37 +72,22 @@
 
       <div
         v-if="contextPalette.open"
-        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui bg-content p-2 shadow-card"
+        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 rounded-ui bg-content p-2 shadow-card"
         :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
         @mousedown.stop
         @click.stop
       >
-        <div class="flex items-center gap-2">
-          <InputText
-            ref="contextPaletteSearch"
-            v-model="contextPalette.query"
-            size="small"
-            class="min-w-0 flex-1"
-            :placeholder="contextPalette.socket ? $t('processDesigner.compatibleOperations') : $t('processDesigner.addOperation')"
-            @keydown.esc="closeContextPalette"
-          />
+        <div class="flex items-center justify-end">
           <Button icon="pi pi-times" text size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
         </div>
-        <div v-for="group in contextPaletteGroups" :key="group.id" class="flex flex-col gap-1">
-          <span class="text-muted text-supporting">{{ paletteGroupLabel(group.id) }}</span>
-          <Button
-            v-for="item in group.items"
-            :key="item.id"
-            :icon="item.icon"
-            :label="paletteLabel(item)"
-            v-tooltip.right="paletteDescription(item)"
-            size="small"
-            text
-            class="justify-start"
-            @click="addContextNode(item)"
-          />
-        </div>
-        <Message v-if="!contextPaletteGroups.length" severity="secondary" size="small">
+        <OperationPalette
+          ref="contextPaletteSearch"
+          :groups="contextPaletteListboxGroups"
+          :placeholder="contextPalette.socket ? $t('processDesigner.compatibleOperations') : $t('processDesigner.addOperation')"
+          @pick="addContextNode"
+          @close="closeContextPalette"
+        />
+        <Message v-if="!contextPaletteListboxGroups.length" severity="secondary" size="small">
           {{ $t('processDesigner.noCompatibleOperations') }}
         </Message>
       </div>
@@ -112,29 +97,16 @@
       </div>
 
       <template #palette>
-        <div class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
-            <div class="flex items-center gap-1">
-              <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
-              <Button icon="pi pi-database" size="small" text :aria-label="$t('typesPane.title')" v-tooltip.left="$t('typesPane.title')" @click="navigateTo('/organization/types')" />
-            </div>
-            <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
-              <span class="px-1 uppercase text-muted text-supporting">{{ paletteGroupLabel(group.id) }}</span>
-              <div class="grid grid-cols-2 gap-1.5">
-                <Button
-                  v-for="item in group.items"
-                  :key="item.id"
-                  :icon="item.icon"
-                  :label="paletteLabel(item)"
-                  :aria-label="paletteLabel(item)"
-                  v-tooltip.right="paletteDescription(item)"
-                  size="small"
-                  text
-                  class="min-w-0 justify-start bg-subtle px-2"
-                  @click="item.action ? item.action() : addNode(item)"
-                />
-              </div>
-            </div>
+        <div class="flex h-full min-h-0 flex-col gap-2 p-3">
+          <div class="flex justify-end">
+            <Button icon="pi pi-database" size="small" text :aria-label="$t('typesPane.title')" v-tooltip.left="$t('typesPane.title')" @click="navigateTo('/organization/types')" />
           </div>
+          <OperationPalette
+            :groups="paletteListboxGroups"
+            :placeholder="$t('processDesigner.searchOperations')"
+            @pick="item => (item.action ? item.action() : addNode(item))"
+          />
+        </div>
       </template>
 
       <template #inspector>
@@ -643,6 +615,7 @@ import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
+import OperationPalette from '~/components/process-designer/OperationPalette.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -729,7 +702,6 @@ const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
 const showGrantEditor = ref(false);
 const grantEditorTarget = ref(null);
-const paletteQuery = ref('');
 const {
   inspectTab,
   selectedPrincipalId,
@@ -752,7 +724,7 @@ function activeOrganizationId() {
     || null;
 }
 
-const { paletteLabel, paletteDescription, paletteGroupLabel, paletteSearchText } = createPaletteText({ t, te });
+const { paletteLabel, paletteDescription, paletteGroupLabel } = createPaletteText({ t, te });
 
 // CTS declaration layer: the palette, entity/field/status option lists, and
 // compilation all derive from one source — the organization's type registry
@@ -998,7 +970,8 @@ const {
   openPanePalette,
   closeContextPalette,
   contextItemCompatible,
-  addContextNode
+  addContextNode,
+  contextPaletteSearch
 } = useProcessDesignerContextPalette({
   nodes,
   draft,
@@ -1020,11 +993,19 @@ const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = u
   // designer.paletteGroups after mount, and the palette must follow without
   // a remount (the async-loaded case the composable resolves reactively).
   groups: () => designer.paletteGroups,
-  query: paletteQuery,
   context: contextPalette,
-  searchText: paletteSearchText,
   isCompatible: contextItemCompatible
 });
+
+// Listbox-shaped projection of both palettes: localized group labels and
+// per-item labels (the Listbox filter matches them) + descriptions for the
+// row tooltip.
+const toListboxGroups = groups => (groups || []).map(group => ({
+  label: paletteGroupLabel(group.id),
+  items: group.items.map(item => ({ ...item, label: paletteLabel(item), description: paletteDescription(item) }))
+}));
+const paletteListboxGroups = computed(() => toListboxGroups(paletteGroups.value));
+const contextPaletteListboxGroups = computed(() => toListboxGroups(contextPaletteGroups.value));
 const lifecycleModes = computed(() => [
   { label: t('processDesigner.lifecycleModeDefaultCreated'), value: 'defaultCreated' },
   { label: t('processDesigner.lifecycleModeDomainDefault'), value: 'domainDefault' },

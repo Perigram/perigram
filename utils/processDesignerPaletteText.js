@@ -20,9 +20,5 @@ export function createPaletteText({ t, te }) {
     return te(key) ? t(key) : humanizeNodeLabel(id);
   }
 
-  function paletteSearchText(item) {
-    return [item.kind, paletteLabel(item), paletteDescription(item)].join(' ').toLowerCase();
-  }
-
-  return { paletteLabel, paletteDescription, paletteGroupLabel, paletteSearchText };
+  return { paletteLabel, paletteDescription, paletteGroupLabel };
 }
