@@ -120,9 +120,6 @@ export const test = base.extend({
         expect(response.ok(), await response.text()).toBeTruthy();
         return await response.json();
       },
-      // Seeds the org with a real species process: one role, one manual
-      // construct per requested pack/org type, then activate. Returns the
-      // role id, draft id, and the hydrated manifest (screens + actions).
       // Seeds the org with a species process authored through the headless
       // authoring seam — the same palette drops and construction modes the
       // designer produces: one manual construct per requested type, granted

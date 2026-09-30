@@ -5,7 +5,8 @@
   "imports": {
     "#shared/*": "./shared/*",
     "#packages/*": "./packages/*",
-    "#utils/*": "./utils/*"
+    "#utils/*": "./utils/*",
+    "#test-data/*": "./test-data/*"
   },
   "workspaces": [
     "packages/*"
@@ -30,7 +31,8 @@
     "framework:validate": "node scripts/framework-inspect.js validate",
     "agent:scope-check": "node scripts/check-agent-scope.js",
     "icons:build": "node scripts/build-entity-icons.js",
-    "test:durable": "node --test server/features/process-definitions/run-repository.spec.js"
+    "test:durable": "node --test server/features/process-definitions/run-repository.spec.js",
+    "docs:validate": "node scripts/check-docs.js"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
