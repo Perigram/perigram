@@ -49,9 +49,9 @@ block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated projection of CTS semantics. Its
 groups are declaration items, type-bound constructs, effect species, typed
-instance sources/navigation (generic read presets plus one pre-bound
-"all <Type>" drop per listable type — the producer paths a graph starts
-from), values, collections, flow, and pack-owned plugin tabs: a pack's
+instance sources/navigation (the generic read presets — an entity source
+binds its type at configure time), values, collections, flow, and pack-owned
+plugin tabs: a pack's
 declared data operations — the documents pack's `tableData` tab (xlsx/csv
 table decomposition, composition, and management) and the facade pack's
 `facade` tab (cassette geometry extraction beside the solver) — surface

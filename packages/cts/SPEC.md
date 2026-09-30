@@ -400,9 +400,9 @@ data operations — the documents pack's xlsx/csv table decomposition
 (decomposition, composition, and management of table data), the facade
 pack's cassette geometry extraction and solver — drop pre-bound in the
 pack's own tab, never in a generic bucket; a packless service falls back
-to the services tab. Typed producer paths drop the same way: one
-pre-bound "all <Type>" source per listable type beside the generic read
-presets.
+to the services tab. Entity sources are the generic read presets, bound
+at configure time — the palette never enumerates per-type copies of a
+generic gesture.
 
 An editor is `p(T) -> ui` plus `construct(T)` or `mutate(Ref(T))`, bound to a
 surface. "An editor that produces other files" is a `k` from the editor's
