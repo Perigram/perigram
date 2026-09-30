@@ -1,6 +1,6 @@
 import { defineEventHandler, readRawBody, createError } from 'h3';
-import { requireAuth } from '../../../utils/permissions.js';
-import * as filesService from '../../../features/files/service.js';
+import { requireAuth } from '../../../../utils/permissions.js';
+import * as filesService from '../../../../features/files/service.js';
 
 // Appends (idempotently) one raw-bytes chunk to the caller's session.
 export default defineEventHandler(async (event) => {

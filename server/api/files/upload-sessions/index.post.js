@@ -1,6 +1,6 @@
 import { defineEventHandler, readBody, createError } from 'h3';
-import { requireAuth } from '../../utils/permissions.js';
-import * as filesService from '../../features/files/service.js';
+import { requireAuth } from '../../../utils/permissions.js';
+import * as filesService from '../../../features/files/service.js';
 
 // Opens a resumable upload session (the chunk-append contract the chat
 // composer uses for big files — see server/api/README.md, files).
