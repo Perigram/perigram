@@ -158,6 +158,10 @@
                 @update:model-value="value => selectProcessDefinition(value)"
               >
                 <template #option="{ option }">
+                  <!-- One root node: the Listbox option itself is a flex
+                       row with hidden overflow, so sibling roots would lay
+                       out side by side inside it. -->
+                  <div class="flex w-full min-w-0 flex-col gap-1">
                   <div v-if="renamingDefinitionId === String(option._id)" class="flex w-full items-center gap-2" @click.stop>
                     <InputText
                       v-model="renamingDefinitionName"
@@ -218,6 +222,7 @@
                   <div
                     v-if="historyDefinitionId === String(option._id)"
                     class="flex w-full flex-col gap-1"
+                    @click.stop
                   >
                     <div v-if="historyLoading" class="text-muted text-supporting">…</div>
                     <div
@@ -238,6 +243,7 @@
                       />
                     </div>
                     <div v-else class="text-muted text-supporting">—</div>
+                  </div>
                   </div>
                 </template>
               </Listbox>
