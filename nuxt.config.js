@@ -76,6 +76,14 @@ export default defineNuxtConfig({
                 preset: Re_L,
                 options: {
                     darkModeSelector: '.dark-mode',
+                    // The theme rides a CSS layer so unlayered app styles (every
+                    // Tailwind utility and main.css override) win specificity
+                    // ties in every build: the built bundle places the injected
+                    // theme styles after the bundled utilities and flipped each
+                    // tie the dev runtime resolved toward the app.
+                    cssLayer: {
+                        name: 'primevue'
+                    }
                 },
             },
         },
