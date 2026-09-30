@@ -833,7 +833,11 @@ function applyPersistedWorkspaceState(key) {
   paneTree.value = state.paneTree;
   activePaneId.value = state.activePaneId;
   paneSequence.value = state.paneSequence;
-  openedEntityRefs.value = state.openedEntityRefs;
+  // Tabs can outlive their type (registry churn rewrites type ids): dead
+  // references drop on restore instead of rendering id-fallback rows and
+  // hammering unknown collections with 404s.
+  openedEntityRefs.value = (state.openedEntityRefs || [])
+    .filter(reference => registryStore.typeRecord(reference.typeId));
   openedPageRefs.value = state.openedPageRefs;
   openedScreenRefs.value = state.openedScreenRefs || [];
   sidebarCollapsed.value = Boolean(state.sidebarCollapsed);
@@ -871,6 +875,10 @@ watch(
 watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
   const loaded = await Promise.all(refs.map(async reference => {
+    // Persisted tabs can outlive their type (registry churn): a dead
+    // typeId has no collection to read and only produces 404 noise —
+    // it drops here instead of hydrating.
+    if (!registryStore.typeRecord(reference.typeId)) return null;
     const existing = workspaceEntityItems.value.find(item => (
       item.type === reference.typeId && instanceId(item.entity) === reference.instanceId
     ));
