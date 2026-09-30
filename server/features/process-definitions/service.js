@@ -56,6 +56,7 @@ import {
 import {
   assertCurrentProcessDefinition,
   currentProcessDefinition,
+  declarationOverlayDomain,
   mergeActiveDefinitions,
   tryAcceptGraphProtocol,
   validateActivatableProcess
@@ -291,7 +292,11 @@ export async function validate(id, auth) {
   const domain = await getProjectedDomain(process.lineage.organizationId);
   const accepted = currentProcessDefinition(process.data, domain);
   assertCanonicalProcessSource(accepted);
-  const validation = validateActivatableProcess(accepted, domain, await loadOrganizationRoles(process.lineage.organizationId));
+  // The draft's own declarations overlay the registry view at validation
+  // too (the same rule save-time acceptance applies): a draft carrying
+  // in-tree classes validates against them — they land in the registry
+  // at Apply, not before.
+  const validation = validateActivatableProcess(accepted, declarationOverlayDomain(process.data, domain), await loadOrganizationRoles(process.lineage.organizationId));
   const diff = await contractDiffFor(process, auth);
   let migrationPlan = null;
   if (diff?.removedInstanceStatees?.length) {
