@@ -8,44 +8,56 @@
     </div>
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
-      <Select
-        v-if="opKind === 'source.literalItem' && record.type?.base === 'entityRef'"
-        :model-value="record.typeId || record.type.typeId"
-        :options="data.processTypeIdOptions || []"
-        option-label="label"
-        option-value="value"
-        size="small"
-        @update:model-value="value => update({ typeId: value, type: { ...record.type, typeId: value } })"
-      />
-      <div v-if="showTypeEditor">
+      <!-- One-row literal: type dropdown + value (SPEC "Node layouts");
+           multiline data (list/tree) wraps below at the node's max
+           width. -->
+      <div
+        v-if="showTypeEditor || operationOptions.length || opKind === 'source.literalItem'"
+        class="flex items-center gap-1.5"
+      >
         <Select
+          v-if="opKind === 'source.literalItem' && record.type?.base === 'entityRef'"
+          :model-value="record.typeId || record.type.typeId"
+          :options="data.processTypeIdOptions || []"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => update({ typeId: value, type: { ...record.type, typeId: value } })"
+        />
+        <Select
+          v-if="showTypeEditor"
           :model-value="record.type?.base"
           :options="baseTypeOptions"
           option-label="label"
           option-value="value"
           size="small"
+          class="w-28 shrink-0"
           @update:model-value="updateValueType"
         />
+        <Select
+          v-if="operationOptions.length"
+          :model-value="operationValue"
+          :options="operationOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="updateOperation"
+        />
+        <TypedValueControl
+          v-if="opKind === 'source.literalItem'"
+          :base="record.type?.base || 'json'"
+          :type-id="record.type?.typeId || record.typeId || ''"
+          :model-value="record.value"
+          class="w-52 max-w-full shrink-0"
+          @update:model-value="value => update({ value })"
+        />
       </div>
-      <Select
-        v-if="operationOptions.length"
-        :model-value="operationValue"
-        :options="operationOptions"
-        option-label="label"
-        option-value="value"
-        size="small"
-        @update:model-value="updateOperation"
-      />
-      <TypedValueControl
-        v-if="opKind === 'source.literalItem'"
-        :base="record.type?.base || 'json'"
-        :type-id="record.type?.typeId || record.typeId || ''"
-        :model-value="record.value"
-        @update:model-value="value => update({ value })"
-      />
       <Textarea
         v-if="['source.literalList', 'source.literalTree'].includes(opKind)"
         :model-value="literalStructureDisplay"
+        class="w-full"
         rows="3"
         auto-resize
         @update:model-value="updateLiteralStructure"
@@ -291,7 +303,7 @@ function updateStatusInputDefault(id, value) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 py-1.5',
+    'relative min-w-0 max-w-44 py-1.5',
     side === 'left' ? 'pl-3' : 'ml-auto pr-3 text-right'
   ];
 }

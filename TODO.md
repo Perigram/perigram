@@ -704,3 +704,12 @@ Owner call: the DesignerNodeCard signal stripe read badly — removed for
 now (the signal prop, stripe markup, and the node-side signal mapping
 all died; chip dots keep the one signal map). Revivable from history if
 wanted later.
+
+### Agent Notes (2026-09-30, simpler node layouts)
+
+Literal is one row (type dropdown + value; entityRef keeps its type
+picker in the row; list/tree textareas wrap below at the node max).
+Operation cards (lg) size to content: w-max with a 72 floor and 96 cap;
+socket name columns cap at 44 before truncating; the input/output gap
+stays the row's fixed gutter; the node title crops at the card cap.
+SPEC "Node layouts" records the intent.
