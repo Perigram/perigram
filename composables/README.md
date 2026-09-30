@@ -326,6 +326,20 @@ showing records that are only visible through another assigned role.
 
 ---
 
+## useChatFileUpload
+
+The chat composer's file transport (the server contract lives in
+[server/api/README.md](../server/api/README.md) → files): files up to 8MB
+POST directly through XHR so upload progress events surface; bigger files
+ride resumable chunk sessions — every acknowledged chunk advances
+progress, and on disconnect the uploader waits for connectivity, reads
+the session's received indexes, and re-sends only the gaps (bounded
+resyncs, then a surfaced error). `uploadChatFile(file, { onProgress })`
+returns the stored descriptor (`{ id, filename, url }`) every caller
+consumes; the staged `File` handle owns the resume, so dropping the draft
+abandons the session for the server-side TTL to reap. Voice recordings
+upload through the same transport.
+
 ## useFileTypeView
 
 Organization-scoped cached read of the served CTS type view

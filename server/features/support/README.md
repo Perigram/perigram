@@ -236,8 +236,12 @@ the `files` GridFS bucket (the SPEC §3 Blob home — the same bucket instance
 payloads live in, so a descriptor's file is directly usable as a payload
 reference); the optional `bucket` key marks pre-migration blobs left in
 `uploads`. Previews, playback, and downloads stream through the shared
-`/api/files/download/:id` route (`?download=1` for an explicit download);
-message documents never embed media bytes. Call recordings imported by the
+`/api/files/download/:id` route (`?download=1` for an explicit download;
+single byte ranges answer `206` so video playback and seeking work); big
+files upload through resumable chunk sessions with per-chunk progress
+(see [api routes](../../api/README.md) → files, driven by the
+`useChatFileUpload` client transport). Message documents never embed
+media bytes. Call recordings imported by the
 [livekit feature](../livekit/README.md#recordings) remain server-authored
 `video` attachment-only messages posted from the recording starter; every
 other attachment is user-uploaded through the composer (voice messages

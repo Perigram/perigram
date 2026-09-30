@@ -18,6 +18,21 @@ Routes are grouped into sub-directories corresponding to features:
   through the CTS instance machinery, including typed payload upload/download.
 - `files/`: Shared file transport — `POST /api/files/upload` and
   `GET /api/files/download/:id` for instance payloads and attachments.
+  Downloads serve HTTP byte ranges (`Range` → `206` + `Content-Range`,
+  single ranges; unparseable or unsatisfiable ranges degrade to the full
+  `200` body) because media playback and seeking refuse range-less
+  responses, and `?download=1` flips the disposition to an explicit
+  download. Big uploads ride resumable chunk-append sessions:
+  `POST /api/files/upload-sessions` (`{ fileName, mimeType, size,
+  bucket? }`, 5MB chunks, 1GB cap) returns `{ uploadId, chunkSize }`;
+  `PUT /api/files/upload-sessions/:id/:index` appends one raw-bytes
+  chunk idempotently; `GET /api/files/upload-sessions/:id` reports the
+  received chunk indexes (the resume state after a disconnect);
+  `POST /api/files/upload-sessions/:id/complete` assembles the chunks
+  into the stored file, returns the `upload` descriptor shape, and
+  deletes the session. Sessions and chunks are Mongo documents with a
+  one-day TTL, so abandoned uploads reap themselves; the client
+  transport lives in `composables/useChatFileUpload.js`.
 - `process-definitions/`: Draft/activation endpoints, effect-free graph
   preview, plus durable orchestration. `POST /:id/runs` starts a trigger,
   `POST /runs/:id/resume` advances a running or due-waiting run, and
