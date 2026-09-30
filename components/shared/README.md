@@ -657,8 +657,9 @@ Renders a support message's `attachments[]` (the contract lives in the
 Attachments). One image renders at natural aspect inside fixed bounds
 (`max-h`); a set renders as fixed-size square tiles (two columns up to
 four images, three beyond) — deterministic tile geometry, not
-content-sized tracks — and every image is a PrimeVue `Image` with
-built-in zoom preview. Videos render native `<video controls>` players
+content-sized tracks — and clicking any image opens it centered in a
+full-size `StandardDialog` (the standard modal surface; no component
+-local lightbox chrome). Videos render native `<video controls>` players
 (bounded width and height); audio keeps the native audio player. Every
 other file renders a chip row (type-derived icon, cropped name, human-
 readable size) with an inline download anchor, and the message menu

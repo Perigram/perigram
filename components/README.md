@@ -1071,7 +1071,16 @@ for audio. Person conversations and party-target chats (the organization
 chat) always upload plain unlinked files. The send carries the chosen
 `targetTypeId` per attachment; the
 server materializes the child instances (support feature README, Message
-Attachments) — the client never constructs instances itself. The
+Attachments) — the client never constructs instances itself. Sends detach
+their draft at click time: text, refs, reply, and staged files are
+snapshotted and leave the composer immediately (the staged strip keeps
+rendering the sent files as progress-carrying outgoing rows), so anything
+typed or staged while uploads run belongs to the next message and is never
+wiped by a settling send; sends chain so bodies land in click order, and a
+failed send restores exactly what it took unless the strips were cleared
+wholesale in between (conversation or target switch). The staging strip is
+height-bounded so the composer dock never squeezes the thread above it,
+and voice sends follow the same detach rule for their text. The
 conversation snapshot
 is auth-gated by the store so direct user candidates are not lost behind a
 failed pre-auth request.
