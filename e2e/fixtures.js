@@ -194,7 +194,7 @@ export const test = base.extend({
         const list = await (await request.get('/api/process-definitions')).json();
         const items = Array.isArray(list) ? list : list?.items || [];
         const actions = [];
-        for (const summary of items.filter(definition => definition.status?.state === 'ACTIVE')) {
+        for (const summary of items.filter(definition => definition.states?.main === 'ACTIVE' || definition.status?.state === 'ACTIVE')) {
           const full = await (await request.get(`/api/process-definitions/${summary._id}`)).json();
           actions.push(...Object.values(full?.data?.compiled?.actions || {}));
         }
