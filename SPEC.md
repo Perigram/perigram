@@ -17,6 +17,11 @@ All UI is written in raw, unmodified PrimeVue plus the repo's registered
 shared primitives. No hand-rolled div/button chrome, no custom controls.
 Raw IDs and other technical identifiers are never shown in user-facing UI.
 
+Process designer palette: a searchable grid of chips, no icons. Operation
+categories (palette chips and canvas nodes alike) are told apart by shared
+signal styling, not icons or headers — the palette entry looks like the
+node it creates.
+
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be
 preserved (panes and sidebar w/ chats and calls). "Screens" should go to panes/tabs, top-level menu still

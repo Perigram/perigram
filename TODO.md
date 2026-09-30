@@ -642,3 +642,15 @@ surviving components use; the edge inspector's two labels moved to the
 processDesigner namespace. LaneBands bands carry a semantic `lane-band`
 class and the placement spec selects it (the sweep had moved the hairline
 into the style binding, leaving `div.border-t` stale).
+
+### Agent Notes (2026-09-30, palette chips + shared node signals)
+
+Owner direction: no icons anywhere in the palette; category identity via
+shared styling between palette entries and canvas nodes. OperationPalette
+is now a searchable flex-wrap of chip Buttons (PrimeVue owns hover/focus;
+repeat picks are plain button clicks — the Listbox remount workaround
+died with it). One group→signal map (utils/processDesignerSignals.js)
+colors the chip dot AND the DesignerNodeCard left stripe, so a chip reads
+like the node it creates. Group headers, per-item icons, and the
+paletteGroups i18n block are gone; declaration nodes stripe 'structure',
+operation kinds resolve through the palette catalog.
