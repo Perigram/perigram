@@ -1,5 +1,39 @@
 # TODO
 
+## Graph-native order flow de-slop (2026-09-30)
+
+- [x] Delete the ad-hoc table-import pipeline (surface, batch transport,
+  editor binding, i18n) — table→instances goes through authored graphs
+  only (`packages/facade/SPEC.md`).
+- [x] Cassette onto SPEC §13: generic instance service, payload home for
+  the OCCS document, one-way data migration, bridge/adapters/legacy DTO
+  deleted, field-access entries removed.
+- [x] Palette and type-universe coherence per the palette law
+  (`packages/cts/SPEC.md` §8): loud unknown-base errors, `entity` slang
+  out of current vocabulary, comparison ops one home, file-data palette
+  section distinct.
+- [x] Order process re-authored over the coherent palette; live E2E proof
+  restored with durable artifact.
+- [x] Unslop: `e2e/owner-path.spec.js` (agent probe) deleted, fixtures
+  comment dedupe, `check-docs` restored scoped to contract docs.
+
+### Agent Notes (2026-09-30)
+
+De-slop session `agent/xlsx-cassettes-deslop-20260930-161151`. Findings
+from the review held: two parallel xlsx→instances pipelines, pack domain
+hardcoded into a generic surface, the cassette legacy bridge contradicting
+SPEC §13, no SPEC for the order flow, and the deleted E2E proof. All five
+reworked per the owner's decisions (graph-only, cassette-is-a-file-type,
+palette law, guard on contract docs). Discovered in passing: the doc purge
+that morning restored READMEs but not their linked contract docs
+(SYSTEM_ARCHITECTURE, DESIGN_SYSTEM, UI_COMPONENT_AUDIT, REMOTE_ACCESS,
+DATA_MODEL, TODO-process-designer, four specs, five .codex SKILLs) —
+recovered byte-exact from the pre-purge tree so `check-docs` passes.
+Pre-existing failures unrelated to this work (fail on the base commit
+too): `utils/instance-shape`, `components/generated/detail-action-ownership`,
+`components/shared/instance-select`, `shared/ui-mapping` tones,
+`server/features/invitations`, `server/features/organizations/system-screens`.
+
 ## UI
 
 - [x] Definitions pane (process designer): hand-rolled div/button rows

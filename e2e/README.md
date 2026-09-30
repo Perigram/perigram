@@ -44,6 +44,17 @@ noise.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
+- `order-process.spec.js`: the composed order process LIVE — the org
+  vocabulary declared in-tree and posted (the Apply sequence), the graph
+  composed over the overlaid domain through the shared seam fixture
+  (`test-data/order-process-authoring.js`), activated, and executed: a
+  PARAMETRIC template saved through the command (OCCS document on the
+  payload), a real xlsx table uploaded through the workbook create
+  action, and the order action run through the active-process endpoint.
+  Asserts the produced container, the baked cassette-design children
+  (template provenance + baked geometry), the two declared materials,
+  and one nesting run per material with real solver summaries; writes
+  the durable artifact `test-results/order-process-live.json`.
 - `directory.spec.js`: directory discovery, targeted invitations,
   partnerships, and direct messaging against a real second account
   registered through the public signup API with its own request context.
