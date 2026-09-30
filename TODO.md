@@ -612,3 +612,19 @@ expressions. The whole designer surface now analyzes compliant with only
 pinned data-driven inline-style allowlists (canvas geometry, pointer
 anchoring). definitions-pane spec updated for the ellipsis-menu rename
 path and green against the live stack.
+
+### Agent Notes (2026-09-30, palettes → OperationPalette)
+
+Both hand-rolled palettes (rail search + uppercase group spans + 2-col
+button grid; context search + group spans + button column) were structural
+slop the analyzer cannot see. One component now owns them:
+`OperationPalette.vue` — a filterable grouped PrimeVue `Listbox` (filter
+box, group headers, and option rows are PrimeVue-owned; pick emits once,
+no persistent selection). `useProcessDesignerPalette` lost its text-query
+plumbing (Listbox filter owns search; the composable only narrows the
+context palette by socket compatibility), `contextPalette.query` died with
+it, and `paletteSearchText` was removed from the palette-text util. The
+preset renders listbox roots borderless (`primeComponentTokens.listbox`)
+— every listbox use sits in a rail that owns its frame, so the old
+`border-0` utility on PrimeVue components becomes unnecessary. Placement
+spec's palette locator follows the option role now.
