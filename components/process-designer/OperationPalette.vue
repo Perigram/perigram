@@ -1,6 +1,6 @@
 <template>
   <Listbox
-    :model-value="null"
+    :model-value="selected"
     :options="groups"
     option-group-label="label"
     option-group-children="items"
@@ -8,11 +8,10 @@
     data-key="id"
     filter
     :filter-placeholder="placeholder"
-    :meta-key-selection="true"
     :aria-label="placeholder"
     class="min-h-0 flex-1"
     scroll-height="100%"
-    @update:model-value="item => item && emit('pick', item)"
+    @update:model-value="pick"
     @keydown.esc.stop="emit('close')"
   >
     <template #option="{ option }">
@@ -29,20 +28,27 @@
 
 <script setup>
 import Listbox from 'primevue/listbox';
+import { ref } from 'vue';
 
 // The operation palette for the process designer: one filterable grouped
 // list (PrimeVue Listbox owns the filter box, group headers, and option
-// rows). Selection is momentary — picking an item emits once and the
-// model stays null, so the palette never keeps a highlight.
-// `metaKeySelection` keeps repeat picks working: with the default, a
-// plain click on an option marked selected emits null (deselect), which
-// would silently swallow the second add of the same operation.
-// Groups carry precomputed localized `label`s (filtering matches them)
-// and per-item `description`s for the row tooltip. Used by both the rail
-// palette and the canvas context palette.
+// rows). Selection is momentary: a pick emits once and the model returns
+// to null — the palette keeps no highlight, and a plain click on the same
+// operation always re-selects (PrimeVue otherwise swallows clicks on an
+// option it already marks selected). Groups carry precomputed localized
+// `label`s (the filter matches them) and per-item `description`s for the
+// row tooltip. Used by both the rail palette and the canvas context
+// palette.
 defineProps({
   groups: { type: Array, default: () => [] },
   placeholder: { type: String, default: '' }
 });
 const emit = defineEmits(['pick', 'close']);
+const selected = ref(null);
+
+function pick(item) {
+  if (!item) return;
+  emit('pick', item);
+  selected.value = null;
+}
 </script>
