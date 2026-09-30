@@ -34,8 +34,9 @@ async function ensureUploadSessionIndexes(db) {
 export async function insertUploadSession(doc) {
   const db = await connectDB();
   await ensureUploadSessionIndexes(db);
-  await db.collection(SESSIONS_COLLECTION).insertOne({ ...doc, _id: new ObjectId() });
-  return doc;
+  const inserted = { ...doc, _id: new ObjectId() };
+  await db.collection(SESSIONS_COLLECTION).insertOne(inserted);
+  return inserted;
 }
 
 export async function findUploadSession(uploadId, { userId } = {}) {
