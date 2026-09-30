@@ -167,7 +167,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
 | `ui-components-generated-generatedpaneheader-vue` | `components/generated/GeneratedPaneHeader.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedregion-vue` | `components/generated/GeneratedRegion.vue` | derived usage | compliant |
-| `ui-components-generated-generatedscreen-vue` | `components/generated/GeneratedScreen.vue` | derived usage | centralize:layout (1); remove:important-override (5) |
+| `ui-components-generated-generatedscreen-vue` | `components/generated/GeneratedScreen.vue` | derived usage | centralize:layout (1); remove:important-override (3) |
 | `ui-components-generated-generatedscreenhost-vue` | `components/generated/GeneratedScreenHost.vue` | derived usage | remove:important-override (2) |
 | `ui-components-generated-generatedscreenpane-vue` | `components/generated/GeneratedScreenPane.vue` | derived usage | compliant |
 | `ui-components-generated-generatedtypescreen-vue` | `components/generated/GeneratedTypeScreen.vue` | derived usage | remove:important-override (4) |
