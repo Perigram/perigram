@@ -165,20 +165,31 @@
                                             :viewer-user-id="currentUserId"
                                             single-line
                                         />
+                                        <ChatAttachments
+                                            v-else-if="(option.attachments || []).length"
+                                            :attachments="option.attachments"
+                                            single-line
+                                        />
                                         <template v-else>{{ $t('support.noMessages') }}</template>
                                     </small>
                                 </div>
                             </div>
-                            <Button
-                                icon="pi pi-ellipsis-v"
-                                severity="secondary"
-                                text
-                                rounded
-                                size="small"
-                                class="absolute top-1/2 right-0 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                                :aria-label="$t('common.more')"
-                                @click.stop="openConversationMenu($event, option)"
-                            />
+                                <!-- Plain wrapper owns the absolute
+                                     positioning and hover visibility:
+                                     PrimeVue's runtime .p-button position
+                                     rule would defeat utility classes on
+                                     the button itself. -->
+                                <span class="absolute top-1/2 right-0 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                                    <Button
+                                        icon="pi pi-ellipsis-v"
+                                        severity="secondary"
+                                        text
+                                        rounded
+                                        size="small"
+                                        :aria-label="$t('common.more')"
+                                        @click.stop="openConversationMenu($event, option)"
+                                    />
+                                </span>
                         </div>
                     </template>
                 </Listbox>
@@ -447,8 +458,8 @@
                                     </small>
                                     <span class="flex min-w-0 items-center gap-1 text-supporting">
                                         <i
-                                            v-if="messageItem.parent.attachment?.kind === 'audio' || messageItem.parent.attachment?.kind === 'video'"
-                                            :class="messageItem.parent.attachment?.kind === 'video' ? 'pi pi-video' : 'pi pi-microphone'"
+                                            v-if="(messageItem.parent.attachments || []).length"
+                                            :class="parentAttachmentIcon(messageItem.parent)"
                                             class="shrink-0 text-muted"
                                             aria-hidden="true"
                                         />
@@ -487,22 +498,11 @@
                                     </span>
                                 </div>
                                 <div
-                                    v-if="messageItem.attachment?.kind === 'audio' || messageItem.attachment?.kind === 'video'"
-                                    class="flex max-w-full items-center gap-1"
+                                    v-if="(messageItem.attachments || []).length"
+                                    class="group relative flex max-w-full items-center gap-1"
                                 >
-                                    <audio
-                                        v-if="messageItem.attachment?.kind === 'audio'"
-                                        :src="attachmentUrl(messageItem.attachment)"
-                                        controls
-                                        preload="metadata"
-                                        class="min-w-0 max-w-full"
-                                    />
-                                    <video
-                                        v-else
-                                        :src="attachmentUrl(messageItem.attachment)"
-                                        controls
-                                        preload="metadata"
-                                        playsinline
+                                    <ChatAttachments
+                                        :attachments="messageItem.attachments"
                                         class="min-w-0 max-w-full"
                                     />
                                     <Button
@@ -517,11 +517,9 @@
                                         :loading="transcribingMessageIds.has(messageItem._id)"
                                         @click.stop="transcribeAudioMessage(messageItem)"
                                     />
-                                </div>
-                                <div v-else class="group relative w-full">
                                     <span
                                         class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
-                                        :class="isOwnMessage(messageItem) ? 'right-0' : 'left-0'"
+                                        :class="isOwnMessage(messageItem) ? '-right-8' : '-left-8'"
                                     >
                                         <Button
                                             icon="pi pi-ellipsis-v"
@@ -588,8 +586,8 @@
                                     {{ replyTo.parent?.snippet || replyTo.message }}
                                 </template>
                                 <i
-                                    v-else-if="replyTo.attachment?.kind === 'audio' || replyTo.attachment?.kind === 'video'"
-                                    :class="replyTo.attachment?.kind === 'video' ? 'pi pi-video' : 'pi pi-microphone'"
+                                    v-else-if="(replyTo.attachments || []).length"
+                                    :class="parentAttachmentIcon(replyTo)"
                                     class="text-muted"
                                     aria-hidden="true"
                                 />
@@ -696,6 +694,45 @@
                             />
                         </div>
                     </div>
+                    <!-- Staged files: image thumbnails or type icons, a
+                         per-file child-type choice when several instance
+                         children accept the file, and removal before send.
+                         The hidden input rides the composer row. -->
+                    <div v-if="pendingFiles.length" class="mb-2 flex flex-col gap-1" data-testid="chat-pending-files">
+                        <div
+                            v-for="(pending, index) in pendingFiles"
+                            :key="pending.key"
+                            class="inline-flex max-w-full items-center gap-2 rounded-ui bg-subtle px-2 py-1"
+                        >
+                            <img
+                                v-if="pending.kind === 'image' && pending.url"
+                                :src="pending.url"
+                                alt=""
+                                class="h-8 w-8 shrink-0 rounded-ui object-cover"
+                            >
+                            <i v-else :class="pendingFileIcon(pending)" class="shrink-0 text-muted" aria-hidden="true" />
+                            <span class="min-w-0 flex-1 truncate text-supporting">{{ pending.file.name }}</span>
+                            <small v-if="pending.file.size" class="shrink-0 text-muted text-supporting">{{ formatFileSize(pending.file.size) }}</small>
+                            <Select
+                                v-if="pending.candidates.length > 1"
+                                :model-value="pending.targetTypeId"
+                                :options="pending.candidates"
+                                option-label="label"
+                                option-value="typeId"
+                                class="w-40 shrink-0"
+                                :aria-label="$t('support.attachmentTargetType')"
+                                @update:model-value="value => setPendingTarget(index, value)"
+                            />
+                            <Button
+                                icon="pi pi-times"
+                                text
+                                rounded
+                                size="small"
+                                :aria-label="$t('common.delete')"
+                                @click="removePendingFile(index)"
+                            />
+                        </div>
+                    </div>
                     <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-status-warning text-supporting">
                         <small
                             v-for="ref in recipientLimitedRefs"
@@ -737,6 +774,15 @@
                              addon, so it reads as the composer's main
                              action. -->
                         <InputGroup>
+                            <input
+                                ref="chatFileInput"
+                                class="hidden"
+                                type="file"
+                                multiple
+                                :accept="chatFileAcceptAttr || undefined"
+                                data-testid="chat-file-input"
+                                @change="selectChatFiles"
+                            >
                             <InputGroupAddon>
                                 <Button
                                     icon="pi pi-paperclip"
@@ -745,6 +791,17 @@
                                     :disabled="attachmentPickerEmpty"
                                     :aria-label="$t('support.attach')"
                                     @click="openAttachmentPicker($event)"
+                                />
+                            </InputGroupAddon>
+                            <InputGroupAddon>
+                                <Button
+                                    icon="pi pi-upload"
+                                    severity="secondary"
+                                    variant="text"
+                                    :disabled="!chatUploadEnabled"
+                                    :aria-label="$t('support.attachFiles')"
+                                    data-testid="chat-file-trigger"
+                                    @click="chatFileInput?.click()"
                                 />
                             </InputGroupAddon>
                             <Textarea
@@ -761,6 +818,7 @@
                                     icon="pi pi-microphone"
                                     severity="secondary"
                                     variant="text"
+                                    :disabled="!voiceRecordingAllowed"
                                     :aria-label="$t('support.recordVoice')"
                                     @click="startVoiceRecording"
                                 />
@@ -768,7 +826,7 @@
                             <Button
                                 icon="pi pi-send"
                                 severity="primary"
-                                :disabled="(!message.trim() && !instanceRefs.length) || isLoading"
+                                :disabled="!canSendComposerDraft || isLoading"
                                 :aria-label="$t('support.send')"
                                 @click="sendMessage"
                             />
@@ -982,6 +1040,7 @@ import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
+import ChatAttachments from '~/components/shared/ChatAttachments.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
 import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'
@@ -1001,6 +1060,15 @@ import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
+import { useFileTypeView } from '~/composables/useFileTypeView.js'
+import {
+    chatFileChildCandidates,
+    chatFileAccept,
+    chatFileCandidatesForFile,
+    chatAttachmentKind,
+    chatAttachmentUrl,
+    chatVoiceFileCandidate
+} from '~/utils/chat-file-targets.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
 import { useCallsStore } from '~/stores/calls'
@@ -1267,12 +1335,155 @@ const receiveTyping = (payload) => {
     }, 3000)
 }
 
+    // -- File uploads (support README, Message Attachments) --
+    // Staged files send as one message: `attachments[]` descriptors with a
+    // per-file `targetTypeId` in instance chats. Common chats accept any
+    // file; instance chats only accept files the composer target's
+    // declared file children take (the server re-validates every send).
+    const chatFileInput = ref(null)
+    const pendingFiles = ref([])
+    const ATTACHMENT_LIMIT = 10
+    let pendingFileSeq = 0
+
+    const { typeById: typeViewById } = useFileTypeView()
+
+    // The effective send target: the drilled child chip, else the composed
+    // conversation instance. Upload compatibility follows this target.
+    const composerTargetType = computed(() => {
+        const conversation = activeConversation.value
+        if (conversation?.conversationKind !== 'instance') return null
+        return composerInstance.value?.type || conversation.typeId
+    })
+
+    const chatFileCandidates = computed(() => (!composerTargetType.value
+        ? []
+        : chatFileChildCandidates({
+            typeRecord: typeViewById(composerTargetType.value),
+            typeById: typeViewById
+        })))
+
+    // Instance chats without accepting children refuse uploads at pick
+    // time; the input's accept list is the candidates' declared union.
+    const instanceChatUploadBlocked = computed(() => Boolean(composerTargetType.value) && !chatFileCandidates.value.length)
+    const chatUploadEnabled = computed(() => Boolean(activeConversation.value) && !instanceChatUploadBlocked.value)
+    const chatFileAcceptAttr = computed(() => (instanceChatUploadBlocked.value ? '' : chatFileAccept(chatFileCandidates.value)))
+
+    // Voice follows the same rule: an instance chat records only when a
+    // candidate child accepts the mimes MediaRecorder produces.
+    const voiceRecordingAllowed = computed(() => !composerTargetType.value
+        || Boolean(chatVoiceFileCandidate(chatFileCandidates.value)))
+
+    const voiceTargetTypeId = computed(() => (
+        composerTargetType.value ? (chatVoiceFileCandidate(chatFileCandidates.value)?.typeId || '') : ''
+    ))
+
+    const pendingFileIcon = (pending) => ({
+        image: 'pi pi-image',
+        video: 'pi pi-video',
+        audio: 'pi pi-microphone',
+        file: 'pi pi-file'
+    }[pending.kind] || 'pi pi-file')
+
+    const formatFileSize = (size = 0) => {
+        if (size < 1024) return `${size} B`
+        if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`
+        return `${(size / (1024 * 1024)).toFixed(1)} MB`
+    }
+
+    const setPendingTarget = (index, typeId) => {
+        pendingFiles.value = pendingFiles.value.map((item, position) => (
+            position === index ? { ...item, targetTypeId: typeId || '' } : item
+        ))
+    }
+
+    const removePendingFile = (index) => {
+        const pending = pendingFiles.value[index]
+        if (pending?.url) URL.revokeObjectURL(pending.url)
+        pendingFiles.value = pendingFiles.value.filter((_, position) => position !== index)
+    }
+
+    const clearPendingFiles = () => {
+        for (const pending of pendingFiles.value) {
+            if (pending.url) URL.revokeObjectURL(pending.url)
+        }
+        pendingFiles.value = []
+    }
+
+    const selectChatFiles = (event) => {
+        const files = [...(event.target?.files || [])]
+        if (event.target) event.target.value = ''
+        if (!files.length || !activeConversation.value) return
+        const instanceChat = Boolean(composerTargetType.value)
+        for (const file of files) {
+            if (pendingFiles.value.length >= ATTACHMENT_LIMIT) {
+                toast.add({ severity: 'warn', summary: t('common.warning'), detail: t('support.attachmentLimit', { count: ATTACHMENT_LIMIT }), life: 4000 })
+                break
+            }
+            const kind = chatAttachmentKind(file.type || '')
+            if (instanceChat) {
+                const candidates = chatFileCandidatesForFile(chatFileCandidates.value, { type: file.type, size: file.size })
+                if (!candidates.length) {
+                    toast.add({ severity: 'warn', summary: t('common.warning'), detail: t('support.fileNotAccepted', { name: file.name }), life: 6000 })
+                    continue
+                }
+                pendingFiles.value = [...pendingFiles.value, {
+                    key: `pending-${++pendingFileSeq}`,
+                    file,
+                    kind,
+                    url: kind === 'image' ? URL.createObjectURL(file) : '',
+                    candidates,
+                    targetTypeId: candidates.length === 1 ? candidates[0].typeId : ''
+                }]
+                continue
+            }
+            pendingFiles.value = [...pendingFiles.value, {
+                key: `pending-${++pendingFileSeq}`,
+                file,
+                kind,
+                url: kind === 'image' ? URL.createObjectURL(file) : '',
+                candidates: [],
+                targetTypeId: ''
+            }]
+        }
+    }
+
+    // Ambiguous files (several accepting children, no choice yet) block
+    // the send until the sender picks a target type.
+    const pendingFilesIncomplete = computed(() => pendingFiles.value
+        .some(pending => pending.candidates.length > 1 && !pending.targetTypeId))
+
+    const canSendComposerDraft = computed(() => Boolean(
+        message.value.trim()
+        || instanceRefs.value.length
+        || (pendingFiles.value.length && !pendingFilesIncomplete.value)
+    ))
+
+    const uploadPendingFile = async (pending) => {
+        const form = new FormData()
+        form.append('file', pending.file)
+        const stored = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form })
+        return {
+            kind: pending.kind,
+            fileId: stored.id,
+            mimeType: pending.file.type || 'application/octet-stream',
+            name: pending.file.name,
+            size: pending.file.size,
+            ...(pending.targetTypeId ? { targetTypeId: pending.targetTypeId } : {})
+        }
+    }
+
 const sendMessage = async () => {
-    if ((!message.value.trim() && !instanceRefs.value.length) || !activeConversation.value) return
+    if (!canSendComposerDraft.value || !activeConversation.value) return
 
     isLoading.value = true
 
     try {
+        // Files upload first; a failed upload keeps the staged set intact
+        // for retry.
+        const attachments = []
+        for (const pending of pendingFiles.value) {
+            attachments.push(await uploadPendingFile(pending))
+        }
         const payloadInstanceRefs = instanceRefs.value.map(ref => ({
             type: ref.type,
             id: ref.id,
@@ -1291,17 +1502,21 @@ const sendMessage = async () => {
                     })
                     : null,
                 parentMessageId: replyTo.value?._id || null,
-                instanceRefs: payloadInstanceRefs
+                instanceRefs: payloadInstanceRefs,
+                attachments: attachments.length ? attachments : null
             }
         })
         message.value = ''
         instanceRefs.value = []
+        clearPendingFiles()
         replyTo.value = null
     } catch (error) {
-        // A failed send keeps the typed text for retry but releases the
-        // reply lock, so the composer (and target strip) never wedges.
+        // A failed send keeps the typed text and staged files for retry
+        // but releases the reply lock, so the composer (and target strip)
+        // never wedges.
         replyTo.value = null
         console.error('Failed to send message:', error)
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 6000 })
     } finally {
         isLoading.value = false
     }
@@ -1309,9 +1524,11 @@ const sendMessage = async () => {
 
 const { onlineUserIds } = useConnections()
 
-// Voice messages: MediaRecorder capture uploaded through the shared files
-// endpoint, then sent as a message whose only payload is the attachment
-// descriptor `{ kind: 'audio', fileId, mimeType, durationSeconds }`.
+// Voice messages: MediaRecorder capture uploaded into the `files` bucket
+// (the §3 Blob home, like every chat attachment), then sent as a message
+// whose attachments are one `{ kind: 'audio', fileId, mimeType,
+// durationSeconds }` descriptor — in instance chats with the resolved
+// audio child as its targetTypeId.
 const VOICE_RECORDING_MAX_SECONDS = 600
 const voiceRecording = ref(false)
 const voiceSending = ref(false)
@@ -1397,7 +1614,7 @@ const stopAndSendVoiceRecording = () => {
         try {
             const form = new FormData()
             form.append('file', blob, `voice-message.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`)
-            const uploaded = await $fetch('/api/files/upload', { method: 'POST', body: form })
+            const uploaded = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form })
             await $fetch('/api/support/messages', {
                 method: 'POST',
                 body: {
@@ -1411,12 +1628,13 @@ const stopAndSendVoiceRecording = () => {
                         })
                         : null,
                     parentMessageId: replyTo.value?._id || null,
-                    attachment: {
+                    attachments: [{
                         kind: 'audio',
                         fileId: uploaded.id,
                         mimeType,
-                        durationSeconds
-                    }
+                        durationSeconds,
+                        ...(voiceTargetTypeId.value ? { targetTypeId: voiceTargetTypeId.value } : {})
+                    }]
                 }
             })
             message.value = ''
@@ -1432,16 +1650,24 @@ const stopAndSendVoiceRecording = () => {
     stopRecordingTracks()
 }
 
-const attachmentUrl = (attachment) => attachment?.fileId
-    ? `/api/files/download/${encodeURIComponent(String(attachment.fileId))}`
-    : ''
-
 // Audio transcription: the button rides audio-only voice messages while a
 // provider is configured for the caller organization; the updated document
 // replaces the bubble in place — the same contract the `message.updated`
 // conversation event delivers to other viewers.
 const transcriptionAvailable = ref(false)
 const transcribingMessageIds = ref(new Set())
+
+const canTranscribe = (messageItem) => transcriptionAvailable.value
+    && (messageItem.attachments || []).length === 1
+    && messageItem.attachments[0].kind === 'audio'
+    && !messageItem.attachments[0].transcription
+    && !String(messageItem.message || '').trim()
+
+// Reply-quote icon for a quoted message's first attachment.
+const parentAttachmentIcon = (messageItem) => {
+    const kind = (messageItem?.attachments || [])[0]?.kind
+    return kind === 'video' ? 'pi pi-video' : 'pi pi-microphone'
+}
 
 const fetchTranscriptionAvailability = async () => {
     try {
@@ -1775,6 +2001,13 @@ watch(activeConversationKey, () => {
     includeChildren.value = false
 })
 
+// Staged files are target-scoped: their child-type choices (and whether
+// uploads are accepted at all) follow the composer target, so a target
+// switch drops them.
+watch(composerTargetType, () => {
+    clearPendingFiles()
+})
+
 // The children toggle re-queries the thread: the composed subtree view and
 // messages linked to the instance itself are different server-side matches.
 watch(includeChildren, () => {
@@ -1806,6 +2039,20 @@ const messageMenuItems = computed(() => {
             messageMenuTarget.value = null
         }
     }]
+    // One download entry per attachment, labeled by file name — the
+    // every-kind download affordance beside the inline file-chip buttons.
+    for (const attachment of messageMenuTarget.value?.attachments || []) {
+        items.push({
+            label: t('support.download', { name: attachment.name || attachment.mimeType || attachment.fileId }),
+            icon: 'pi pi-download',
+            command: () => {
+                messageMenu.value?.hide?.()
+                const href = chatAttachmentUrl(attachment, { download: true })
+                if (href && typeof window !== 'undefined') window.open(href, '_blank')
+                messageMenuTarget.value = null
+            }
+        })
+    }
     if (messageMenuTarget.value?.message) {
         items.push({
             label: t('common.copy'),
@@ -2256,15 +2503,15 @@ const executeCreateAction = async (action, data) => {
 const attachCreatedInstance = (action, result) => {
     if (!result || typeof result !== 'object') return
     const instance = result.created || (!result.owner ? (result.entity || result) : null)
-    const id = entity?._id?.toString?.() || entity?._id || entity?.id || entity?.identity?.uid || ''
+    const id = instance?._id?.toString?.() || instance?._id || instance?.id || instance?.identity?.uid || ''
     const type = action.relationMutation?.targetType || action.typeId
     if (!id || !type) return
     if (!instanceRefs.value.some(ref => ref.type === type && ref.id === id)) {
         instanceRefs.value.push({
             type,
             id,
-            label: entity?.identity?.name || id,
-            entity
+            label: instance?.identity?.name || id,
+            instance
         })
     }
 }

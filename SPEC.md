@@ -49,6 +49,18 @@ No per-entity hardcoded components. Editors/previews bind through pack editor bi
 surface registry — adding a type never touches app UI code. Files are CTS types with payload traits;
 the `artifact` entity and its overload die when chat/proof/capture/upload flows move to file instances.
 
+## Chat files
+
+Any file may be attached to chat messages. Images and videos preview inline
+(single items and their sets as galleries); every attachment offers a
+download. When a message belongs to an instance chat, each attached file
+becomes an instance of the instance's class' declared child type that
+accepts its upload (payload traits + upload creation protocol); the sender
+picks the child type when several accept the same file. Instance chats
+whose target declares no accepting child refuse the upload at pick time;
+common chats (support/direct/group) and party-target chats (the
+organization chat) keep files as plain unlinked attachments.
+
 ## Server
 
 A type is executable from its declaration alone: generic instance services serve everything,

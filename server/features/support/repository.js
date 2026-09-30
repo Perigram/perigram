@@ -44,12 +44,12 @@ export async function findById(id, projection = {}) {
     return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) }, { projection });
 }
 
-export async function updateById(id, update, projection = {}) {
+export async function updateById(id, update, projection = {}, options = {}) {
     const db = await connectDB();
     return await db.collection(COLLECTION).findOneAndUpdate(
         { _id: toFlexibleId(id) },
         update,
-        { returnDocument: 'after', projection }
+        { returnDocument: 'after', projection, ...options }
     );
 }
 

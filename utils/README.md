@@ -59,6 +59,15 @@ Shared frontend utility modules used by Vue pages/components.
   route-specific patch channel; its former project/warehouse entries died
   with those entity types, so it currently carries no entries.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
+- `chat-file-targets.js`: Pure resolver for the chat composer's instance-chat
+  upload window: over the served CTS type view it collects a composer
+  target's declared `file`-class children whose payload traits and `upload`
+  protocol accept a given file (`payloadAccepts` from
+  [packages/cts](../packages/cts/README.md)), yielding the candidate set,
+  the union `accept` string for the file input, and per-file matches. The
+  server re-validates every send — this is only the early check the
+  [support feature](../server/features/support/README.md) contract
+  describes.
 
 ## Utility Protocol
 

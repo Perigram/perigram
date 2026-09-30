@@ -472,6 +472,49 @@ decision (which surfaces open popup vs tab, and the expand target).
 Next agent: mount the popup host in the mobile instance-open path and
 feed its back button through the new slot.
 
+## Chats
+
+- [ ] Any-file uploads in chats (SPEC §Chat files): images/videos preview
+  inline with galleries for sets, download for every attachment; instance
+  chat uploads materialize as child file instances of the chat's composer
+  target (sender picks the child type when several accept the file; no
+  accepting child blocks the upload at pick time; common and organization
+  chats keep plain unlinked attachments). Voice messages follow the same
+  rule.
+
+### Agent Notes (2026-09-30)
+
+Implemented on `agent/chat-file-upload-20260930`. Message contract moved
+`attachment` → `attachments[]` (kinds image/video/audio/file, cap 10, new
+blobs in the `files` bucket; one-shot migration
+`server/scripts/migrate-support-attachments.js` stamps legacy
+voice/recording descriptors with `bucket: 'uploads'`). Instance-chat sends
+materialize each file through the registry `upload` construction handler
+(the child edge's lineage key stamps the composer target; the created
+instance joins `instanceRefs` with its snapshot; the message stays linked
+to the composer target so galleries/replies/composed views hold).
+Acceptance rule single-homed as `payloadAccepts`/`mimeMatches` in
+packages/cts (`payload.js`), consumed by the construct boundary, the
+support service, and the client early check (`utils/chat-file-targets.js`
+drives the composer's `accept` union, per-file child-type choice chips,
+and mic/upload gating). Composer gained staged-file chips, gallery
+rendering (`ChatAttachments.vue`), per-attachment download (inline chips
++ message menu), and the inbox attachment summary. Decisions confirmed by
+the owner: block-at-pick when no child accepts; chooser chips when
+several accept; voice follows the uniform rule; party-target (org) chats
+and person chats never materialize. Also fixed in passing: the inbox row
+ellipsis was an in-flow flex item (PrimeVue's runtime `.p-button
+{ position: relative }` defeats `absolute` utilities on the button —
+plain-wrapper pattern), and `attachCreatedInstance` referenced an
+undefined `entity` (ReferenceError on every prompt-less create from
+chat). Owner's "chats fill container height" report was measured against
+the live stack: the committed layout fills correctly once the component's
+scoped stylesheet loads — the surface was degraded by an unmerged
+`pages/organization/process.vue` (conflict markers, someone else's
+in-flight merge in the primary checkout) which 500s the whole stack;
+not resolved here, validation against the live app is blocked until it
+is.
+
 ## Process Designer
 
 - [ ] Need to create proper definitions management interface; and multiple of them can be active (summarized on

@@ -21,7 +21,7 @@ Messages have a deterministic `conversationKey`:
 
 New writes always persist
 `conversationKey`, `conversationKind`, `participants`, `senderUserId`,
-`message`, `instanceRefs`, `timestamp`, and optionally `attachment` (see
+`message`, `instanceRefs`, `timestamp`, and optionally `attachments` (see
 [Message Attachments](#message-attachments)).
 
 ### Inbox Preferences and Read Marks
@@ -214,32 +214,63 @@ A send may carry `parentMessageId`. The parent must share the conversation
 key or, for instance messages, the same organization (an aggregated view can
 reply to a message linked to a child instance); the composer links the reply
 to the same instance the quoted message belongs to. The reply persists a
-denormalized `parent { _id, senderUserId, senderName, snippet, attachment?,
+denormalized `parent { _id, senderUserId, senderName, snippet, attachments?,
 timestamp }` quote (text clipped to 140 characters; voice messages carry
 their attachment descriptor), so rendering and inbox previews never need the
 parent loaded.
 
 ## Message Attachments
 
-A message may carry `attachment` — exactly one descriptor:
+A message may carry `attachments` — an ordered list of file descriptors
+(capped at ten per message):
 
 ```json
-{ "kind": "audio", "fileId": "<gridfs id>", "mimeType": "audio/webm", "durationSeconds": 12 }
+[{ "kind": "image", "fileId": "<gridfs id>", "mimeType": "image/png", "name": "facade.png", "size": 120034 }]
 ```
 
-Two kinds exist. `audio` is the voice-message channel: the client records
-through `MediaRecorder`, uploads the blob through the
-[files feature](../files/) upload endpoint, and posts the descriptor as the
-message payload; the message body may stay empty. `video` is server-authored
-only: call recordings imported by the [livekit feature](../livekit/README.md#recordings)
-post an MP4 as an attachment-only message from the recording starter —
-clients render the player but never upload videos through the composer.
-Playback for both streams the stored file through the shared
-`/api/files/download/:id` route, so the message document never embeds media
-bytes. Unsupported kinds, missing file ids, and durations above ten minutes
-are rejected (longer recordings clamp on write).
-Conversation summaries carry the last message's `attachment` so inbox previews
-can render a voice/video chip.
+Every descriptor carries `kind`, `fileId`, and `mimeType`; uploaded files
+add `name`/`size`, voice messages add `durationSeconds` (clamped to ten
+minutes). Kinds derive from the file's MIME family: `image`, `video`,
+`audio`, `file`. Blobs upload through the [files feature](../files/) into
+the `files` GridFS bucket (the SPEC §3 Blob home — the same bucket instance
+payloads live in, so a descriptor's file is directly usable as a payload
+reference); the optional `bucket` key marks pre-migration blobs left in
+`uploads`. Previews, playback, and downloads stream through the shared
+`/api/files/download/:id` route (`?download=1` for an explicit download);
+message documents never embed media bytes. Call recordings imported by the
+[livekit feature](../livekit/README.md#recordings) remain server-authored
+`video` attachment-only messages posted from the recording starter; every
+other attachment is user-uploaded through the composer (voice messages
+included — recorded through `MediaRecorder`, sent as `audio` descriptors).
+Attachment-only messages are valid (empty body). Reply quotes persist the
+parent's attachments, and conversation summaries carry the last message's
+`attachments` so inbox previews render attachment chips.
+
+### Instance chats materialize files as child instances
+
+A message linked to an instance and carrying user-uploaded attachments
+materializes each file as an instance of the linked instance's type's
+declared child that accepts it: a `file`-class child type whose payload
+traits accept the attachment's MIME type and size and whose creation
+protocols include `upload` (the same acceptance rule the generic construct
+boundary enforces — `payloadAccepts` in
+[packages/cts](../../../packages/cts/README.md)). The send creates the
+child through the registry-resolved per-class service's `upload`
+construction handler with the attachment as payload and the chat's
+composer-target instance stamped on the child edge's lineage key, then
+appends the created instance (with its compact snapshot) to the message's
+`instanceRefs`, so the bubble shows the file as an inspectable entity while
+the message itself stays linked to the composer target — galleries, replies,
+and composed instance views keep working unchanged. When several children
+accept the same file the client sends the sender's chosen `targetTypeId`
+per attachment; the server validates the choice against its own candidate
+set and rejects an ambiguous send without one. A composer target whose type
+declares no accepting child refuses the upload: the composer's file input
+accepts only the union of candidate `accept` lists (the early check), and a
+write that smuggles an unmatched file is rejected with 400. Person
+conversations (support, direct, group) and chats over party-class targets
+(the organization chat — party classes cannot declare lineage children)
+never materialize: files there stay plain unlinked attachments.
 
 ### Transcription
 
@@ -247,14 +278,16 @@ can render a voice/video chip.
 underlying text message through the [transcription
 feature](../transcription/README.md). Admission reuses the conversation
 context resolution (the same check that authorizes SSE topics), and only
-`audio` attachments qualify (call-recording `video` attachments are
-multi-speaker and excluded): no `attachment`, an already-transcribed
-attachment (`attachment.transcription` marker), a non-audio kind, or a
-non-empty message body are rejected with 400/409. On success the transcript becomes the message body — the
+single-attachment `audio` messages qualify (call-recording `video`
+attachments are multi-speaker and excluded): no attachments, an
+already-transcribed audio entry (`transcription` marker on the descriptor),
+or a non-empty message body are rejected with 400/409. On success the
+transcript becomes the message body — the
 bubble keeps its audio player beside the text, and reply quotes and inbox
 previews read the text like any message — while
-`attachment.transcription { provider, model, transcribedAt }` records the
-provenance. Open viewers receive the updated document as a `message.updated`
+`transcription { provider, model, transcribedAt }` on the audio descriptor
+records the provenance. Open viewers receive the updated document as a
+`message.updated`
 event on the conversation topic (along the stored instance path for instance
 messages, like message fanout, but without inbox pings: transcription changes
 no unread state). The provider is resolved per organization
