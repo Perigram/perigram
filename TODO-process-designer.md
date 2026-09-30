@@ -733,6 +733,30 @@ shift, empty lanes stay 150px drop targets, settle idempotent); Tidy's
 own geometry now equals the settle output, so tidyCanvas just settles.
 Count-based sizing survives only as the pre-settle paint.
 
+### Agent Notes — 2026-09-30 corrective: automatic settle removed — explicit placement only, again
+
+Owner report: nodes "auto-place in lanes… jumping to random positions,
+created anywhere but not in center of current view" + the canvas got
+laggy. Root cause: the 09-29 settle pass (66a277ca) violated the
+09-28 explicit-placement directive — it re-seated every band's content
+with a uniform shift stacked from y=0 on load, add, delete, drop, and
+drag-stop, so a newly placed node (viewport center) was teleported into
+its band (ungranted effects → the bottom unassigned band; secondaries
+→ last-band fallback), dragging its whole band with it, and loads
+settled pre-measure with fallback card heights (140/96) so nearly every
+load produced non-zero shifts and visibly re-seated the saved layout.
+The lag was the page template reading `designerViewport?.zoom` for lane
+titles: the whole page tracked the per-frame viewport ref and re-rendered
+on every pan/zoom frame. Removed the settle pass entirely (page watch,
+`settleLaneGeometry`, its spec block); restored the pre-settle model:
+stored positions authoritative, loads seat nothing (and reset arranged
+geometry so Tidy output from a previous draft cannot leak), adds place
+at the viewport center per the canvas contract, band geometry is the
+pure embracing projection (floor at Tidy height + live member extent),
+the lane-changing drop stays the one explicit placement, Tidy owns bulk.
+`LaneBands` reads the viewport zoom itself so the page never tracks the
+per-frame ref. README "Lanes" contract rewritten in the same pass.
+
 ### Agent Notes — 2026-09-29 constrained-relaxation rewrite; drop/embracing regression fixed
 
 Owner round: "nodes cover each other, not even trying to relax, evade

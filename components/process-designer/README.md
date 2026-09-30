@@ -434,15 +434,19 @@ state, never persisted). Presentation primacy resolves through the one
 predicate `utils/processDesignerPopulation.js` (see
 [utils](../../utils/README.md)).
 
-Lane bounds wrap their nodes plus a small padding. The settle pass
-recalculates them on the fly — load, drop, drag-stop, add, delete —
-stacking bands in role order and seating each band's content at its top
-with one uniform shift (authored order inside a lane is never touched;
-empty roles keep a minimum height as drop targets). Dropping a card
-into a lane leaves it where it fell and the lane grows around it.
-Membership always re-derives from grants, and position is presentation
-state — never authorization by itself. Left-to-right is the reading
-canon; Tidy owns bulk arrangement.
+Lane bounds wrap their nodes plus a small padding as a PURE PROJECTION:
+band geometry derives from the member effects' live positions (flooring
+at the Tidy-arranged height and the 150px minimum), so bands embrace
+their cards on load, drag, add, and delete without ever moving a node.
+Lane arrangement is never automatic — stored positions are authoritative
+(owner direction 2026-09-28, restated 2026-09-30 after an automatic
+settle pass reintroduced jumping): loads seat nothing, adds place at the
+viewport center per the canvas contract above, and the one explicit
+placement gesture is the lane-changing drop (grant write plus slot to
+the lane's nearest free row when the card landed inside the lane's span
+— outside it, the card stays exactly where it fell). Tidy owns bulk
+arrangement. Membership always re-derives from grants, and position is
+presentation state — never authorization by itself.
 
 ### Auto-arrangement (Tidy)
 

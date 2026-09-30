@@ -23,6 +23,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useVueFlow } from '@vue-flow/core';
 
 // Lane bands for the process canvas (canonical contract:
 // components/process-designer README, "Lanes"): hairline separators
@@ -31,17 +32,19 @@ import { computed } from 'vue';
 // edges and nodes. Lane titles are the org's own role names at label
 // size, counter-scaled by the canvas zoom (absolute screen size). Pure
 // projection — the page derives bands and corridors from grant records;
-// this component only paints.
+// this component only paints. It reads the viewport itself so the page
+// never tracks the per-frame viewport ref.
 const props = defineProps({
   bands: { type: Array, default: () => [] },
   corridors: { type: Array, default: () => [] },
   left: { type: Number, default: 0 },
-  right: { type: Number, default: 0 },
-  zoom: { type: Number, default: 1 }
+  right: { type: Number, default: 0 }
 });
 
+const { viewport } = useVueFlow();
+
 const labelStyle = computed(() => ({
-  transform: `scale(${1 / (props.zoom || 1)})`,
+  transform: `scale(${1 / (viewport.value?.zoom || 1)})`,
   transformOrigin: 'left top'
 }));
 </script>
