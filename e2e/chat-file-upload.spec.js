@@ -69,14 +69,16 @@ test.describe('chat file uploads', () => {
     expect(download.headers()['content-disposition']).toContain('attachment');
     outcomes.common.downloadStatus = download.status();
 
-    // Media ranges: playback/seeking rides 206 partial responses.
+    // Media ranges: playback/seeking rides 206 partial responses. The
+    // end is clamped to the representation length (RFC 9110 remainder
+    // rule) — 0-99 on 70 bytes serves 0-69.
     const ranged = await request.get(`http://localhost:3000/api/files/download/${stored.id}?bucket=files`, {
       headers: { Range: `bytes=0-99` }
     });
     outcomes.common.rangeStatus = ranged.status();
     expect(ranged.status()).toBe(206);
-    expect(ranged.headers()['content-range']).toBe(`bytes 0-99/${PNG_BYTES.length}`);
-    expect((await ranged.body()).length).toBe(100);
+    expect(ranged.headers()['content-range']).toBe(`bytes 0-${PNG_BYTES.length - 1}/${PNG_BYTES.length}`);
+    expect((await ranged.body()).length).toBe(PNG_BYTES.length);
 
     // -- Instance chat: seed the thread, open it in /chats, stage the PNG
     //    through the attach popover's upload entry, and send. --
