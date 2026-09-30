@@ -32,7 +32,7 @@
         filter-mode="lenient"
         :filter-placeholder="$t('common.search')"
         :aria-label="$t('support.attach')"
-        class="max-h-96 overflow-y-auto"
+        class="max-h-96 overflow-y-auto p-0"
         @node-select="onNodeSelect"
         @node-expand="onNodeExpand"
       >
