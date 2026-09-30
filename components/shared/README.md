@@ -647,6 +647,20 @@ For non-restricted cassette refs, the renderer may still hydrate an embedded
 snapshot through the normal entity API when that snapshot predates the richer
 chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 
+### `ChatAttachments.vue`
+Renders a support message's `attachments[]` (the contract lives in the
+[support feature](../../../server/features/support/README.md) — Message
+Attachments). Images render as a gallery: one image fills the bubble width,
+a set lays out in a token-backed responsive grid, and every image is a
+PrimeVue `Image` with built-in zoom preview. Videos render native
+`<video controls>` players; audio keeps the native audio player. Every
+other file renders a chip row (type-derived icon, name, human-readable
+size) with an inline download anchor, and the message menu offers one
+download entry per attachment for any kind. All media streams the shared
+`/api/files/download/:id` route honoring the descriptor's `bucket` when
+present. The component is pure presentation over the descriptor list —
+uploading, materialization, and transcription stay in the host composer.
+
 ---
 
 ## Navigation & Links (`components/shared/links/`)

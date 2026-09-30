@@ -69,6 +69,12 @@ module layout and how the code maps to the spec's build-order tiers.
   a stored declaration that itself violates class obligations or declares
   unresolvable children never compiled as a contract, so the diff does not
   protect it.
+- `payload.js` — the payload-trait acceptance predicate (SPEC §4):
+  `payloadAccepts(traits, { mime, size })` plus its `mimeMatches` wildcard
+  matcher, tolerating the raw single-string `mime` shape beside the
+  normalized list. One home for "does this type's payload take this file" —
+  the generic construct boundary and the chat materialization seam both call
+  it instead of restating the rule.
 - `registry.js` — type records as data, tenancy resolution (system first,
   one org overlay, no shadowing), `compile()` running R1–R6, instance
   validation with `typeVersion` ill-typing. Payload declarations normalize

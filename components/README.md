@@ -1055,7 +1055,21 @@ collapse draft refs back to minimal `{ type, id, label }` records instead of
 posting hydrated entity snapshots. The type picker should localize generated
 entity type ids for users instead of exposing raw backend strings. Attachment-
 only messages are valid and must stay sendable when the draft has at least one
-selected entity ref or a recorded voice attachment. The conversation snapshot
+selected entity ref, a recorded voice attachment, or a staged file. File
+uploads ride a second composer control beside the paperclip: staging
+multiple files, previewing them as removable chips (image thumbnails for
+image files, type icons otherwise), and sending them as one message whose
+`attachments[]` render through the shared `ChatAttachments` gallery
+(`components/shared/README.md`). In instance chats the composer resolves
+the composer target's accepting file children through the served type view
+(`utils/chat-file-targets.js`): the file input's `accept` is the union of
+candidate `accept` lists, staged files matching several children carry a
+per-file child-type choice on the chip, files with no candidate are
+refused at selection, and the voice recorder follows the same rule for
+audio. The send carries the chosen `targetTypeId` per attachment; the
+server materializes the child instances (support feature README, Message
+Attachments) — the client never constructs instances itself. The
+conversation snapshot
 is auth-gated by the store so direct user candidates are not lost behind a
 failed pre-auth request.
 The expanded `/chats` route keeps the persisted-conversation inbox visible as

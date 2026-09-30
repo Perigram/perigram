@@ -50,7 +50,9 @@ hand-written services.
   `attachments.primary` — shaped `{ fileId, mime?, size?, name? }`. The
   reference is validated against the type's declared payload traits at
   construct (fileId required; `mime` must be in the declared list;
-  `size` within `maxSize` when both are known) and stored as the §3
+  `size` within `maxSize` when both are known — the shared
+  `payloadAccepts` predicate from
+  [packages/cts](../../../packages/cts/README.md)) and stored as the §3
   payload slot. Payload blobs live in the `files` GridFS bucket — the
   §3 Blob home; upload callers pass `bucket=files` and the wire payload
   reference carries no bucket by design. `toDto` projects the slot back
