@@ -559,6 +559,27 @@ inside the feature commit `d364f75f` instead of a separate `neo:`
 commit — commit-split deviation acknowledged here rather than rewriting
 history.
 
+Fourth round (same night, owner live-testing reports). Downloads "404":
+verified against the live stack and DB — every stored blob serves 200
+through the running app; the only "File not found" responses are three
+legacy voice messages (`6aaa96492e4c627e5b3fd2df`, `6aaa958b2e4c627e5b3fd219`,
+`6aaafd6721f27e65eab86ebc`) whose blobs are gone from every GridFS bucket
+(purge casualties from the Sep-29 incident) while their messages remain;
+no download-path code defect found. Blocking sends fixed on
+`agent/chat-sendfix-20260930`: the send saga owned the whole composer
+(`isLoading` disabled the send; text/files staged during an upload were
+wiped when it settled) — sends now snapshot and detach the draft at click
+time (outgoing rows keep progress), chain so bodies land in click order,
+restore exactly what they took on failure, and voice sends follow the
+same rule; the staged strip is height-bounded so the dock cannot squeeze
+the thread. Image previews left the PrimeVue `Image` mask (stock toolbar
+reads as half-screen controls on narrow viewports) for the repo's
+`StandardDialog` at full size. Guards (check-arch, docs:validate),
+focused specs (localization, support), and the full
+`e2e/chat-file-upload.spec.js` green on merged `local`; fresh artifact in
+`test-results/chat-file-upload.json` (download 200, range 206,
+materialized child payload verified).
+
 ## Process Designer
 
 - [ ] Need to create proper definitions management interface; and multiple of them can be active (summarized on
