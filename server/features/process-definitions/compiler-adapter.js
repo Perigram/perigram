@@ -10,6 +10,7 @@ import {
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { prepareAuthoredDefinition } from '~/packages/processes/src/index.js';
 import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, projectDomainFromView } from '~/packages/cts/src/index.js';
+import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 
 // A draft carries its own declarations: `ctsTypes` records author types
 // in-tree and only land in the registry at APPLY (SAVE persists the tree
@@ -30,9 +31,20 @@ export function declarationOverlayDomain(data = {}, domain = {}) {
     data?.graph || {}
   );
   if (!declarations.length) return domain;
+  // The overlay projects the draft's declarations TOGETHER with the
+  // system view: cross-type derivations (a draft parent's children edges
+  // materializing lineage inputs on system types, ref fields declaring
+  // relations) need both sides in one registry, and the merged contract
+  // must carry them — a system type's construction changes when a draft
+  // parent adopts it.
   const registry = createTypeRegistry({ id: 'cts:draft-overlay' });
+  for (const declaration of composeSystemDeclarations()) {
+    registry.defineType(declaration);
+  }
   const invalid = [];
+  const declared = new Set();
   for (const declaration of declarations) {
+    declared.add(declaration.id);
     try {
       registry.defineType({ ...declaration, scope: 'org', organizationId: DRAFT_OVERLAY_ORG });
     } catch {
@@ -53,6 +65,7 @@ export function declarationOverlayDomain(data = {}, domain = {}) {
       blocks: ['identity', 'origin', 'status', 'lineage', 'relations', 'provenance', 'attachments', 'data'],
       meta: false
     }));
+  const overlayOwn = entries => (entries || []).filter(entry => declared.has(entry.ownerType ?? entry.type));
   return {
     ...domain,
     entities: [
@@ -62,7 +75,17 @@ export function declarationOverlayDomain(data = {}, domain = {}) {
     ],
     fieldSchemas: { ...(domain.fieldSchemas || {}), ...(overlay.fieldSchemas || {}) },
     workflows: { ...(domain.workflows || {}), ...(overlay.workflows || {}) },
-    construction: { ...(domain.construction || {}), ...(overlay.construction || {}) }
+    construction: { ...(domain.construction || {}), ...(overlay.construction || {}) },
+    relations: [
+      ...(domain.relations || []),
+      ...overlayOwn(overlay.relations).filter(relation => !(domain.relations || [])
+        .some(existing => existing.ownerType === relation.ownerType && existing.key === relation.key && existing.targetType === relation.targetType))
+    ],
+    containment: [
+      ...(domain.containment || []),
+      ...overlayOwn(overlay.containment).filter(edge => !(domain.containment || [])
+        .some(existing => existing.parentType === edge.parentType && existing.childType === edge.childType && existing.lineageKey === edge.lineageKey))
+    ]
   };
 }
 
