@@ -20,7 +20,7 @@ test('definitions pane: row controls, rename, versions accrual, restore', async 
   await definitionsTab.click();
 
   const row = app.page.locator('[data-testid]').filter({ has: app.page.getByRole('switch') }).first();
-  const firstRow = app.page.locator('button[title]').first();
+  const firstRow = app.page.getByRole('option').first();
   await expect(firstRow).toBeVisible({ timeout: 15000 });
 
   // The full control set: activation switch, versions, rename, delete.
