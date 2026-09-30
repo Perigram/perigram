@@ -72,7 +72,7 @@
 
       <div
         v-if="contextPalette.open"
-        class="absolute z-30 flex max-h-80 w-72 flex-col overflow-hidden rounded-ui shadow-card"
+        class="absolute z-30 flex max-h-80 w-72 flex-col overflow-hidden rounded-ui bg-content shadow-card"
         :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
         @mousedown.stop
         @click.stop

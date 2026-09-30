@@ -452,6 +452,7 @@ export const primeComponentTokens = {
     },
     listbox: {
         root: {
+            background: 'transparent',
             borderColor: 'transparent'
         }
     },
