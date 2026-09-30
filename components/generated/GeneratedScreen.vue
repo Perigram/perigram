@@ -703,7 +703,14 @@ async function loadPromptOptions(fields = []) {
   await Promise.all(fields
     .filter(field => ['entity', 'typeList'].includes(field.type))
     .map(async (field) => {
-      const options = await entityOptions(field.typeId || field.accepts?.[0], field).catch(() => []);
+      // A multi-target relation input offers every accepted type's
+      // instances — the first accept is a fallback for single-typed
+      // inputs, never a filter for union-typed ones.
+      const typeIds = field.typeId
+        ? [field.typeId]
+        : (Array.isArray(field.accepts) && field.accepts.length ? field.accepts : [field.accepts?.[0]].filter(Boolean));
+      const options = (await Promise.all(typeIds.map(typeId => entityOptions(typeId, field).catch(() => []))))
+        .flat();
       promptOptions[field.id] = options;
     }));
 }
