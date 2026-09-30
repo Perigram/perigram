@@ -846,8 +846,14 @@ structure.
 
 ### Agent Notes (2026-09-30, mobile global scale)
 
-The rem basis is the scale: html font-size drops to 15px below the app's
+The rem basis is the scale: html font-size rises to 18px below the app's
 mobile break (48rem viewport, matching the md: shell split) — PrimeVue
 components, rem-based typography roles, and Tailwind utilities all scale
 together (PrimeVue's documented scaling mechanism; no per-component
 overrides). One knob in main.css app-shell section.
+
+### Agent Notes (2026-09-30, mobile scale direction)
+
+Owner call: mobile scales UP, not down — touch targets and text grow
+together (18px root below the 48rem break). Direction corrected from
+the first cut.
