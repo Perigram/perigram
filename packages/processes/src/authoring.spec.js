@@ -144,6 +144,11 @@ describe('headless definition authoring', () => {
     context.withDomain({ entities: [], fieldSchemas: {}, workflows: {}, construction: {}, relations: [], projectionContracts: {}, serviceContracts: {} });
     const record = context.record('gapTables');
     expect(record.relationKey).toBe(derived);
+    // The same preservation holds when the type IS known but exposes no
+    // relations (partial domain, load race): an empty relations list is a
+    // vocabulary gap, never a reset.
+    context.withDomain({ entities: [{ type: 'part', label: 'Part', collection: 'parts', blocks: ['identity'], meta: false }], fieldSchemas: {}, workflows: {}, construction: {}, relations: [], projectionContracts: {}, serviceContracts: {} });
+    expect(context.record('gapTables').relationKey).toBe(derived);
   });
 
   it('refuses an illegal declaration wire at the same gate the canvas applies', () => {
