@@ -9,7 +9,8 @@ import {
   renderPolicyFor, compileClientBundle,
   cncTypePack, partyTypes, nestingOperators, packFixtures,
   classMayDeclareChildren, lineageKeyForParent,
-  declarationsFromCtsRecords
+  declarationsFromCtsRecords,
+  payloadAccepts
 } from './index.js';
 
 function packRegistry() {
@@ -393,6 +394,17 @@ describe('payload traits (SPEC §4)', () => {
       .toThrow(/creation protocol telepathy/);
     expect(() => normalizeType({ id: 'none-doc', class: 'file', payload: { mime: ['text/plain'], creation: [] } }))
       .toThrow(/at least one creation protocol/);
+  });
+
+  it('accepts files strictly: explicit mime match plus the declared byte limit', () => {
+    const traits = { mime: ['image/*', 'application/pdf'], maxSize: 2048 };
+    expect(payloadAccepts(traits, { mime: 'image/png', size: 1024 })).toBe(true);
+    expect(payloadAccepts(traits, { mime: 'image/png', size: 4096 })).toBe(false);
+    expect(payloadAccepts(traits, { mime: 'text/plain' })).toBe(false);
+    expect(payloadAccepts(traits, { mime: null })).toBe(false);
+    expect(payloadAccepts(null, { mime: 'image/png' })).toBe(false);
+    // Raw single-string mime declarations (pack boundary shape) match too.
+    expect(payloadAccepts({ mime: 'application/dxf' }, { mime: 'application/dxf' })).toBe(true);
   });
 });
 

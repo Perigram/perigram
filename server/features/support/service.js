@@ -6,6 +6,7 @@ import * as transcriptionService from '~/server/features/transcription/service.j
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { declarationForType } from '~/server/features/instances/service.js';
+import { lineageKeyForParent, payloadAccepts } from '~/packages/cts/src/index.js';
 import * as connectionsService from '~/server/features/connections/service.js';
 import { actionToLevel, levelAtLeast, normalizePermissionGrants } from '#shared/access-control.js';
 import { createIdentity, createStatus } from '../../core/blocks/index.js';
@@ -17,8 +18,12 @@ const INSTANCE_REF_LIMIT = 6;
 const INSTANCE_OPTION_LIMIT = 20;
 const MESSAGE_PAGE_DEFAULT = 50;
 const MESSAGE_PAGE_MAX = 100;
-const ATTACHMENT_KINDS = ['audio', 'video'];
+const ATTACHMENT_KINDS = ['audio', 'video', 'image', 'file'];
+const ATTACHMENT_LIMIT = 10;
 const ATTACHMENT_DURATION_MAX_SECONDS = 600;
+// New chat attachments live in the §3 Blob home; the marker key keeps
+// pre-migration voice/recording blobs resolvable in their old bucket.
+const ATTACHMENT_LEGACY_BUCKET = 'uploads';
 const ATTACHMENT_AUDIO_EXTENSIONS = {
     'audio/mp3': 'mp3',
     'audio/mp4': 'mp4',
@@ -503,7 +508,7 @@ function instanceSummaryRow(entry, message, flags = {}) {
         instanceName: entry.name || entry.id,
         lastMessage: message.message,
         instanceRefs: message.instanceRefs || [],
-        attachment: message.attachment || null,
+        attachments: message.attachments || null,
         senderUserId: message.senderUserId,
         timestamp: message.timestamp,
         unreadCount: 0,
@@ -619,7 +624,7 @@ export async function sendUserMessage(auth, body = {}) {
         senderUserId: auth.userId,
         message: body.message,
         instanceRefs: body.instanceRefs,
-        attachment: body.attachment,
+        attachments: body.attachments,
         parentMessageId: body.parentMessageId,
         auth,
         recipientUserId: context.kind === 'direct'
@@ -638,7 +643,7 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
         senderUserId: auth.userId,
         message: body.message,
         instanceRefs: body.instanceRefs,
-        attachment: body.attachment,
+        attachments: body.attachments,
         auth
     });
 }
@@ -658,7 +663,7 @@ export async function insertRecordingMessage({ conversationKey = '', senderUserI
         sender: MESSAGE_SENDER.USER,
         senderUserId: String(senderUserId || ''),
         message,
-        attachment,
+        attachments: [attachment],
         auth: {}
     });
 }
@@ -684,11 +689,11 @@ async function trustedConversationContext(conversationKey = '') {
 
 /**
  * Converts a voice message into its underlying text message (see the support
- * README, Voice Messages): the transcript becomes the message body so every
- * text render path — bubble, reply quotes, previews — applies, while
- * `attachment.transcription` records the provenance and blocks re-runs.
- * Provider selection is per organization; instance messages carry their org,
- * person conversations fall back to the caller's.
+ * README, Transcription): the transcript becomes the message body so every
+ * text render path — bubble, reply quotes, previews — applies, while the
+ * audio descriptor's `transcription` marker records the provenance and
+ * blocks re-runs. Provider selection is per organization; instance messages
+ * carry their org, person conversations fall back to the caller's.
  */
 export async function transcribeMessageAudio(auth, messageId = '') {
     const id = String(messageId || '').trim();
@@ -697,7 +702,8 @@ export async function transcribeMessageAudio(auth, messageId = '') {
     const message = await repository.findById(id);
     if (!message) throw createError({ statusCode: 404, message: 'Message not found' });
     await getConversationContextByKey(auth, message.conversationKey);
-    const attachment = message.attachment;
+    const attachments = message.attachments || [];
+    const attachment = attachments.length === 1 ? attachments[0] : null;
     if (attachment?.kind !== 'audio') {
         throw createError({ statusCode: 400, message: 'Message has no audio attachment' });
     }
@@ -709,7 +715,7 @@ export async function transcribeMessageAudio(auth, messageId = '') {
     }
     let buffer;
     try {
-        buffer = await filesService.getFileBuffer(attachment.fileId);
+        buffer = await filesService.getFileBuffer(attachment.fileId, attachment.bucket || 'files');
     } catch (error) {
         throw createError({ statusCode: 404, message: 'Audio attachment is no longer available' });
     }
@@ -726,17 +732,20 @@ export async function transcribeMessageAudio(auth, messageId = '') {
     const updated = await repository.updateById(id, {
         $set: {
             message: text,
-            'attachment.transcription': { provider, model, transcribedAt: new Date() }
+            'attachments.$[element].transcription': { provider, model, transcribedAt: new Date() }
         }
-    }, messageProjection());
+    }, messageProjection(), { arrayFilters: [{ 'element.fileId': attachment.fileId }] });
     publishMessageUpdated(updated);
     return updated;
 }
 
-async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachment, parentMessageId, auth, recipientUserId = null }) {
-    const refs = await normalizeInstanceRefs(instanceRefs, auth, { recipientUserId });
-    const normalizedAttachment = normalizeAttachment(attachment);
-    const text = normalizeMessage(message, refs, normalizedAttachment);
+async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, recipientUserId = null }) {
+    const normalizedAttachments = normalizeAttachments(attachments);
+    const materialized = context.kind === 'instance' && normalizedAttachments
+        ? await materializeInstanceAttachments(auth, context, normalizedAttachments)
+        : { attachments: normalizedAttachments, refs: [] };
+    const refs = [...await normalizeInstanceRefs(instanceRefs, auth, { recipientUserId }), ...materialized.refs];
+    const text = normalizeMessage(message, refs, materialized.attachments);
     const parent = await resolveParentMessage(auth, context, parentMessageId);
     const instanceFields = context.kind === 'instance'
         ? await resolveInstanceMessageFields(auth, context)
@@ -750,7 +759,7 @@ async function insertMessage({ context, sender, senderUserId, message, instanceR
         senderUserId,
         message: text,
         instanceRefs: refs,
-        ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}),
+        ...(materialized.attachments?.length ? { attachments: materialized.attachments } : {}),
         ...(parent ? { parent } : {}),
         ...instanceFields,
         timestamp: new Date()
@@ -782,7 +791,7 @@ async function resolveParentMessage(auth, context, parentMessageId = '') {
         senderUserId: parentMessage.senderUserId || '',
         senderName,
         snippet: messageSnippet(parentMessage),
-        ...(parentMessage.attachment ? { attachment: parentMessage.attachment } : {}),
+        ...(parentMessage.attachments?.length ? { attachments: parentMessage.attachments } : {}),
         timestamp: parentMessage.timestamp
     };
 }
@@ -885,9 +894,9 @@ function publishMessageUpdated(message) {
     }
 }
 
-function normalizeMessage(message, instanceRefs = [], attachment = null) {
+function normalizeMessage(message, instanceRefs = [], attachments = null) {
     const text = typeof message === 'string' ? message.trim() : '';
-    if (!text && !instanceRefs.length && !attachment) {
+    if (!text && !instanceRefs.length && !attachments?.length) {
         throw createError({ statusCode: 400, message: 'Message is required' });
     }
     return text;
@@ -895,28 +904,136 @@ function normalizeMessage(message, instanceRefs = [], attachment = null) {
 
 /**
  * Chat attachments reference files uploaded through the files feature by
- * GridFS id; the message document never embeds media bytes. Kinds and their
- * authoring sides are owned by the support README (Message Attachments).
+ * GridFS id; the message document never embeds media bytes. The kinds, the
+ * descriptor shape, and the instance-chat materialization rule are owned by
+ * the support README (Message Attachments).
  */
-function normalizeAttachment(attachment) {
-    if (!attachment || typeof attachment !== 'object') return null;
-    const kind = String(attachment.kind || '');
-    const fileId = String(attachment.fileId || '').trim();
-    if (!ATTACHMENT_KINDS.includes(kind)) {
-        throw createError({ statusCode: 400, message: 'Unsupported attachment kind' });
+function normalizeAttachments(attachments) {
+    if (!attachments) return null;
+    const list = Array.isArray(attachments) ? attachments : [attachments];
+    if (!list.length) return null;
+    if (list.length > ATTACHMENT_LIMIT) {
+        throw createError({ statusCode: 400, message: `A message carries at most ${ATTACHMENT_LIMIT} attachments` });
     }
-    if (!fileId) {
-        throw createError({ statusCode: 400, message: 'Attachment file is required' });
+    return list.map(item => {
+        if (!item || typeof item !== 'object') return null;
+        const kind = String(item.kind || '');
+        const fileId = String(item.fileId || '').trim();
+        if (!ATTACHMENT_KINDS.includes(kind)) {
+            throw createError({ statusCode: 400, message: 'Unsupported attachment kind' });
+        }
+        if (!fileId) {
+            throw createError({ statusCode: 400, message: 'Attachment file is required' });
+        }
+        const durationSeconds = Number(item.durationSeconds);
+        const size = Number(item.size);
+        return {
+            kind,
+            fileId,
+            mimeType: typeof item.mimeType === 'string' ? item.mimeType.slice(0, 100) : '',
+            ...(typeof item.name === 'string' && item.name.trim() ? { name: item.name.trim().slice(0, 200) } : {}),
+            ...(Number.isFinite(size) ? { size } : {}),
+            ...(Number.isFinite(durationSeconds)
+                ? { durationSeconds: Math.min(Math.max(durationSeconds, 0), ATTACHMENT_DURATION_MAX_SECONDS) }
+                : {}),
+            ...(item.bucket === ATTACHMENT_LEGACY_BUCKET ? { bucket: ATTACHMENT_LEGACY_BUCKET } : {})
+        };
+    }).filter(Boolean);
+}
+
+/**
+ * Instance-chat materialization (support README, Message Attachments):
+ * every uploaded file becomes an instance of the composer target type's
+ * declared child that accepts it, created through the registry-resolved
+ * `upload` construction handler with the target stamped on the child
+ * edge's lineage key. Returns the stored attachments plus refs for the
+ * created instances; person conversations and party-class targets (the
+ * organization chat) keep plain unlinked attachments.
+ */
+async function materializeInstanceAttachments(auth, context, attachments = []) {
+    const scopedAuth = await resolveInstanceOptionAuth(auth);
+    const targetDeclaration = await declarationForType(context.typeId, scopedAuth.organizationId).catch(() => null);
+    if (!targetDeclaration || targetDeclaration.class === 'party') {
+        return { attachments, refs: [] };
     }
-    const durationSeconds = Number(attachment.durationSeconds);
-    return {
-        kind,
-        fileId,
-        mimeType: typeof attachment.mimeType === 'string' ? attachment.mimeType.slice(0, 100) : '',
-        ...(Number.isFinite(durationSeconds)
-            ? { durationSeconds: Math.min(Math.max(durationSeconds, 0), ATTACHMENT_DURATION_MAX_SECONDS) }
-            : {})
+    const snapshotPathsByType = new Map();
+    const snapshotPathsFor = async (typeId) => {
+        if (!snapshotPathsByType.has(typeId)) {
+            const declaration = await declarationForType(typeId, scopedAuth.organizationId).catch(() => null);
+            snapshotPathsByType.set(typeId, Array.isArray(declaration?.snapshot) ? declaration.snapshot : null);
+        }
+        return snapshotPathsByType.get(typeId);
     };
+
+    const stored = [];
+    const refs = [];
+    for (const attachment of attachments) {
+        const candidates = await fileChildCandidates(scopedAuth, targetDeclaration, attachment);
+        const chosen = attachment.targetTypeId
+            ? candidates.filter(candidate => candidate.typeId === attachment.targetTypeId)
+            : (candidates.length === 1 ? candidates : []);
+        if (!chosen.length) {
+            const accepted = [...new Set(candidates.flatMap(candidate => [].concat(candidate.declaration.payload?.mime || [])))];
+            if (candidates.length > 1) {
+                throw createError({ statusCode: 400, message: 'Attachment matches several target types; pick one' });
+            }
+            throw createError({
+                statusCode: 400,
+                message: accepted.length
+                    ? `This chat accepts ${accepted.join(', ')} files`
+                    : 'This chat accepts no file uploads'
+            });
+        }
+        const candidate = chosen[0];
+        const { targetTypeId, ...descriptor } = attachment;
+        stored.push(descriptor);
+        const created = await candidate.service.constructionHandlers.upload({
+            payload: {
+                fileId: attachment.fileId,
+                mime: attachment.mimeType,
+                size: attachment.size,
+                name: attachment.name
+            },
+            lineage: { [candidate.lineageKey]: context.instanceId },
+            ...(attachment.name ? { identity: { name: attachment.name } } : {})
+        }, { userId: scopedAuth.userId, organizationId: context.organizationId });
+        const id = created?._id?.toString?.() || created?._id || created?.id || '';
+        if (id) {
+            refs.push({
+                type: candidate.typeId,
+                id: String(id),
+                label: created?.identity?.name || attachment.name || '',
+                instance: compactInstanceSnapshot(candidate.typeId, created, await snapshotPathsFor(candidate.typeId))
+            });
+        }
+    }
+    return { attachments: stored, refs };
+}
+
+/**
+ * Declared children of the target type that accept the attachment as an
+ * `upload` construction (SPEC §4 payload traits through the shared
+ * predicate), in declaration order; only children the registry can
+ * construct through the generic handler are candidates.
+ */
+async function fileChildCandidates(scopedAuth, parentDeclaration, attachment = {}) {
+    const organizationId = scopedAuth.organizationId || null;
+    const candidates = [];
+    for (const [key, edge] of Object.entries(parentDeclaration?.edges?.children || {})) {
+        const lineageKey = edge?.lineageKey || lineageKeyForParent(parentDeclaration.id) || key;
+        for (const typeId of [].concat(edge?.types || [])) {
+            if (candidates.some(candidate => candidate.typeId === typeId)) continue;
+            const declaration = await declarationForType(typeId, organizationId).catch(() => null);
+            if (declaration?.class !== 'file' || !declaration.payload) continue;
+            const creation = [].concat(declaration.payload.creation || ['upload']);
+            if (!creation.includes('upload')) continue;
+            if (!payloadAccepts(declaration.payload, { mime: attachment.mimeType, size: attachment.size })) continue;
+            const service = getAppRegistry().getInstanceService(typeId);
+            if (!service?.constructionHandlers?.upload) continue;
+            candidates.push({ typeId, lineageKey, declaration, service });
+        }
+    }
+    return candidates;
 }
 
 async function normalizeInstanceRefs(instanceRefs = [], auth = {}, options = {}) {
@@ -981,7 +1098,7 @@ async function buildConversationSummaries(messages, auth, options = {}) {
                 groupCreatorId: group ? group.origin?.userId : undefined,
                 lastMessage: message.message,
                 instanceRefs: message.instanceRefs || [],
-                attachment: message.attachment || null,
+                attachments: message.attachments || null,
                 senderUserId: message.senderUserId,
                 timestamp: message.timestamp,
                 unreadCount: 0
@@ -1542,7 +1659,7 @@ function messageProjection() {
         conversationKind: 1,
         participants: 1,
         instanceRefs: 1,
-        attachment: 1,
+        attachments: 1,
         instanceLink: 1,
         instancePath: 1,
         parent: 1,

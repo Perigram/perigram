@@ -10,7 +10,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, normalizeType } from '~/packages/cts/src/index.js';
+import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, normalizeType, mimeMatches } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
@@ -199,7 +199,8 @@ function payloadFromWire(draft = {}, declaration = {}) {
     throw createError({ statusCode: 400, message: 'Payload reference requires a fileId' });
   }
   // Trait mime may be the registry-normalized list or the raw pack
-  // declaration's single string.
+  // declaration's single string; the wildcard matcher is shared with the
+  // strict acceptance predicate (packages/cts payload.js).
   const acceptedMime = typeof traits.mime === 'string' ? [traits.mime] : [...(traits.mime || [])];
   const mime = reference.mime || reference.mimeType || null;
   if (mime && !acceptedMime.some(accepted => mimeMatches(mime, accepted))) {
@@ -215,12 +216,6 @@ function payloadFromWire(draft = {}, declaration = {}) {
     ...(size != null ? { size } : {}),
     ...(reference.name ? { name: String(reference.name) } : {})
   };
-}
-
-function mimeMatches(actual = '', accepted = '') {
-  if (accepted === '*/*' || accepted === actual) return true;
-  if (accepted.endsWith('/*')) return actual.split('/')[0] === accepted.slice(0, -2) && actual.includes('/');
-  return false;
 }
 
 // Instance payload blobs live in the `files` GridFS bucket (SPEC §3 Blob
