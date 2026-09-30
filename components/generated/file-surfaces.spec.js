@@ -68,7 +68,7 @@ describe('file surface registry', () => {
   it('derives editor action rows from the bindings', () => {
     const actions = new Map(fileEditorActions());
     expect(actions.get('cassette')?.action?.name).toBe('GeneratedCassetteDesignerAction');
-    for (const typeId of ['sheet-design', 'sketch', 'text-document', 'csv-table', 'xlsx-workbook']) {
+    for (const typeId of ['sheet-design', 'sketch', 'text-document', 'csv-table']) {
       expect(actions.get(typeId)?.action, typeId).toBe('generic');
     }
   });
@@ -80,7 +80,6 @@ describe('file surface registry', () => {
       'csv-editor',
       'sheet-design-editor',
       'sketch-editor',
-      'table-import',
       'text-editor'
     ]);
     expect([...pages.map(page => page.typeId)].sort()).toEqual([
@@ -88,8 +87,7 @@ describe('file surface registry', () => {
       'csv-table',
       'sheet-design',
       'sketch',
-      'text-document',
-      'xlsx-workbook'
+      'text-document'
     ]);
   });
 
