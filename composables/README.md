@@ -340,7 +340,11 @@ and fact-row surfaces (`InstanceSurfaceContent`, entity cards, generated
 collections) resolve their display descriptors from the same view: the
 bundle's derived display policy is the one fact vocabulary
 ([utils/README.md](../utils/README.md) → `instance-display-contract.js`).
-The cache never serves another organization's view after an org switch.
+The cache never serves another organization's view after an org switch,
+and a failed fetch is dropped from the cache (consumers keep their
+declaration-less fallbacks for that mount; the next consumer retries
+instead of inheriting an empty view for the session — the chat upload
+window depends on it).
 
 ---
 

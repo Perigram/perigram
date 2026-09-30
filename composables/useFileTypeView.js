@@ -33,8 +33,11 @@ export function useFileTypeView() {
       })
       .catch(() => {
         // Consumers keep their declaration-less fallbacks (no preview,
-        // no editor surface) when the view cannot be loaded.
+        // no editor surface) when the view cannot be loaded, and the
+        // failed entry is dropped so the next consumer retries instead
+        // of serving an empty view for the rest of the session.
         entry.loaded.value = true;
+        cache.delete(cacheKey);
       });
   }
 

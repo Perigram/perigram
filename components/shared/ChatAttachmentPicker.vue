@@ -1,17 +1,41 @@
 <template>
   <Popover ref="popover">
-    <Tree
-      v-model:expanded-keys="expandedKeys"
-      :value="nodes"
-      selection-mode="single"
-      filter
-      filter-mode="lenient"
-      :filter-placeholder="$t('common.search')"
-      :aria-label="$t('support.attach')"
-      class="w-80 max-h-96 overflow-y-auto"
-      @node-select="onNodeSelect"
-      @node-expand="onNodeExpand"
-    >
+    <div class="flex w-80 flex-col gap-1">
+      <!-- File upload entry: the same attach surface owns files and entity
+           refs (SPEC.md §Chat files). Hidden input rides the popover; the
+           host stages what it emits. -->
+      <input
+        ref="fileInput"
+        class="hidden"
+        type="file"
+        multiple
+        :accept="filesAccept || undefined"
+        data-testid="chat-file-input"
+        @change="onFilesPicked"
+      >
+      <Button
+        v-if="filesEnabled"
+        class="justify-start"
+        icon="pi pi-upload"
+        :label="$t('support.attachFiles')"
+        severity="secondary"
+        outlined
+        size="small"
+        data-testid="chat-file-trigger"
+        @click="fileInput?.click()"
+      />
+      <Tree
+        v-model:expanded-keys="expandedKeys"
+        :value="nodes"
+        selection-mode="single"
+        filter
+        filter-mode="lenient"
+        :filter-placeholder="$t('common.search')"
+        :aria-label="$t('support.attach')"
+        class="max-h-96 overflow-y-auto p-0"
+        @node-select="onNodeSelect"
+        @node-expand="onNodeExpand"
+      >
         <template #default="{ node }">
           <span
             v-if="node.data?.kind === 'section'"
@@ -45,11 +69,13 @@
           />
         </template>
       </Tree>
+    </div>
   </Popover>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+import Button from 'primevue/button'
 import Popover from 'primevue/popover'
 import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
@@ -64,22 +90,35 @@ import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources
 import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js'
 
 /**
- * Attachment picker: the home sidebar's explorer tree, densely padded, in a
- * Popover. Sections load through the SAME compiled home-screen list sources
- * the sidebar renders (instances store + resolved source filters — the full
- * user-available window, not a capped options endpoint), search is the
- * Tree's built-in lenient filter, and each section's generated create
- * entries list right beside the entity entries — every entity repeats the
- * pattern through its type's detail-screen child creates. Entities expand
- * through pure lineage nesting (expansion is node-driven, so lazy loads
- * never key-parse); one tap on an entity selects it and closes, a create
- * entry runs the generated flow in the host.
+ * Attachment picker: the one attach surface for entity refs AND files
+ * (SPEC.md §Chat files). A leading upload entry (hidden input; the host
+ * owns staging and sends `files`) rides above the home sidebar's explorer
+ * tree, densely padded, in a Popover. Sections load through the SAME
+ * compiled home-screen list sources the sidebar renders (instances store
+ * + resolved source filters — the full user-available window, not a
+ * capped options endpoint), search is the Tree's built-in lenient filter,
+ * and each section's generated create entries list right beside the
+ * entity entries — every entity repeats the pattern through its type's
+ * detail-screen child creates. Entities expand through pure lineage
+ * nesting (expansion is node-driven, so lazy loads never key-parse); one
+ * tap on an entity selects it and closes, a create entry runs the
+ * generated flow in the host.
  */
-const emit = defineEmits(['select', 'create-action'])
+const emit = defineEmits(['select', 'create-action', 'files'])
+
+const props = defineProps({
+  // Whether this chat accepts file uploads at all (the host's early
+  // check: common and party-target chats always do; instance chats only
+  // with an accepting file child).
+  filesEnabled: { type: Boolean, default: false },
+  // The union accept string constraining the file input in instance chats.
+  filesAccept: { type: String, default: '' }
+})
 
 const { t, te } = useI18n()
 
 const popover = ref(null)
+const fileInput = ref(null)
 const expandedKeys = ref({})
 const childrenByParentKey = ref(new Map())
 const loadedKeys = ref(new Set())
@@ -228,6 +267,16 @@ function onNodeSelect(node) {
       entity: item.entity || null
     })
   }
+}
+
+// Picked files hand to the host (it owns staging, the per-file child-type
+// choice, and the send); the popover closes like an entity pick.
+function onFilesPicked(event) {
+  const files = [...(event.target?.files || [])]
+  if (event.target) event.target.value = ''
+  if (!files.length) return
+  hide()
+  emit('files', files)
 }
 
 // Expansion is node-driven: section nodes load their item list, entity
