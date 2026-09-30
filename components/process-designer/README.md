@@ -628,16 +628,16 @@ Apply saves, validates, and activates as one operation, while the result
 remains visible as feedback on the canvas.
 
 The right pane owns **definitions management** (the Definitions tab):
-a `TableFrame` + `DataTable` (the repo's rows-with-actions contract) —
-one row per definition: the expander column discloses activation
-versions (`data.history`, newest first, one expanded row at a time) with
-restore (the snapshot becomes the definition's data and goes live through
-activation), row click loads the definition to the designer, inline
-rename replaces the name cell, and the actions cell carries the
-activation switch (on = member of the additive active set — the switch is
-the state signal, no status badges) plus the ellipsis menu with rename
-and delete. History rows render the timestamp only — actor ids never
-appear in the UI. The activation contract lives in
+a `Listbox` of definitions in the chats-inbox anatomy — each option is a
+single line: name (option click loads it to the designer, inline rename
+swaps the name span for an input), the activation switch (on = member of
+the additive active set — the switch is the state signal, no status
+badges), and the versions + ellipsis buttons. The versions button opens a
+`Popover` anchored at the row listing activation versions (`data.history`,
+newest first) with restore (the snapshot becomes the definition's data
+and goes live through activation); history never renders inside the
+option. History rows render the timestamp only — actor ids never appear
+in the UI. The activation contract lives in
 [process-definitions](../../server/features/process-definitions/README.md).
 
 Selection actions follow the quiet-card policy: nodes carry no per-node

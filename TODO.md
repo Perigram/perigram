@@ -40,6 +40,19 @@ switch + ellipsis menu in the actions cell. History rows still render
 timestamps only. Style guide now names the component split explicitly
 and points agents at the PrimeVue MCP instead of improvising markup.
 
+### Agent Notes (2026-09-30, DataTable out — Listbox rows + versions Popover)
+
+Live-stack geometry killed the DataTable attempt: the expander body cell
+rendered empty (no icon in 4.5.5), rows were 60px grid chrome in a 314px
+rail, and the pane's own e2e spec lost its Versions button. Final shape:
+single-line `Listbox` options (chats-inbox anatomy — name span, switch,
+versions + ellipsis buttons, `@click.stop` guards) and the version
+history in a `Popover` anchored at the versions button — the
+`NameEditPopover`/`InstanceActionsPopover` precedent. Pane spec's row
+locator updated to the option role. Style guide corrected: rail rows are
+Listbox single-line options, per-row detail is a Popover, DataTable is
+for tabular grids only.
+
 - [x] Kanban of a parents table showed the CHILD type's state lanes (empty)
   — machine vocabulary seeding leaked unscoped state tokens into every
   producer
