@@ -694,11 +694,157 @@ const mobileTypeScreen = computed(() => (
   mobileHomeTabs.value.find(tab => tab.key === mobileHomeTabKey.value)?.screen || null
 ));
 
-// Mobile instance opens mount the ITEM POPUP: the compiled detail
-// screen in a dialog, in place — the record header's back button (the
-// SurfaceHeader navigation channel) and the dialog's own close dismiss
-// it, and the expand control routes to the full detail screen when the
-// popup's bounds are not enough.
+// Mobile record opens ROUTE to the compiled detail screen — no popup
+// middleman (owner call 2026-09-30: the item-popup contract was slop).
+function routeInstanceToScreen(typeId, instanceId) {
+  const route = detailRouteForInstance({
+    entity: { _id: instanceId },
+    typeId,
+    manifest: authStore.screenManifest
+  });
+  if (route) navigateTo(route);
+  return Boolean(route);
+}
+
+function openMobileInstance(instance = {}) {
+  routeInstanceToScreen(instance.type, instance.id);
+}
+
+function typeLabelOf(typeId = '') {
+  const record = registryStore.typeRecord(typeId);
+  // Procedural label contract only: the generated type key (locale
+  // override) over the authored type name — no entity contracts, no raw
+  // ids.
+  if (!record) return typeId;
+  return localizedLabel({ te, t }, typeLabelKey(typeId), record.name || '');
+}
+
+// The screen a type node opens: its compiled typeList screen.
+function typeScreenFor(typeId = '') {
+  return (authStore.screenManifest || []).find(screen => (
+    screen.typeId === typeId && screen.template === 'typeList'
+  )) || null;
+}
+
+function screenLabelFor(screenKey = '') {
+  const screen = (authStore.screenManifest || []).find(candidate => (
+    candidate.screenKey === screenKey || candidate.id === screenKey
+  ));
+  return localizedLabel({ te, t }, screen?.typeId ? typeLabelKey(screen.typeId) : '', screen?.label || screen?.typeId || screenKey);
+}
+
+// Instance tab titles follow the render identity contract over the
+// instances pool (the screen hosts load the same pool); a not-yet-loaded
+// instance falls back to its type label until hydration lands.
+function instanceLabelOf(typeId = '', id = '') {
+  const typeRecord = registryStore.typeRecord(typeId);
+  const entity = instances.records?.[instances.canonicalTypeKey(typeId)]?.[String(id)];
+  if (typeRecord && entity) {
+    return titleFor(dtoToScreenInstance(entity.dto, typeRecord), typeRecord, { unnamedLabel: t('common.unnamed') });
+  }
+  return typeLabelOf(typeId || id) || '';
+}
+
+// An instance opens as a compiled detail-screen tab in the active pane —
+// never a separate route and never an entity renderer: the manifest's
+// instanceDetail screen first, the synthesized fallback (from the type's
+// list screen) second. Editor-bound types route to their registered
+// editor page instead; types with no compiled detail screen and no editor
+// but a registered entity-bound workspace page (the directory surface for
+// `user`/`organization`) open that page as the pane tab; a type with none
+// of the three stays silent, exactly like
+// the routed surface contract.
+function openInstanceTab(typeId = '', instanceIdValue = '') {
+  if (!typeId || !instanceIdValue || !activePane.value) return;
+  const detail = resolveDetailScreen({ screens: authStore.screenManifest, typeId });
+  const screenKey = detail ? (detail.screenKey || detail.id) : null;
+  const key = screenKey ? `screen:${screenKey}:${instanceIdValue}` : '';
+  if (key && !openedScreenRefs.value.some(reference => reference.key === key)) {
+    openedScreenRefs.value = [...openedScreenRefs.value, {
+      key,
+      screenKey,
+      typeId,
+      instanceId: instanceIdValue
+    }];
+  }
+  if (key) {
+    selectPaneTab(activePane.value.id, key);
+    return;
+  }
+  // Served editor list by default (undefined editors → the documented
+  // binding default), exactly like the other editor-surface consumers.
+  const surface = resolveFileSurface(undefined, typeId);
+  if (surface?.workspacePage) {
+    openWorkspacePage({ pageId: surface.surface, typeId, entity: { _id: instanceIdValue } });
+    return;
+  }
+  // Entity-bound workspace pages are the last fallback: types with no
+  // compiled detail screen and no editor (user, organization) still open
+  // as pane tabs through their registered directory page — never as a
+  // standalone route.
+  const fallbackPageId = entityWorkspacePageIdFor(typeId);
+  if (fallbackPageId) {
+    openWorkspacePage({ pageId: fallbackPageId, typeId, entity: { _id: instanceIdValue } });
+  }
+}
+
+// A type (or its screen) opens as a pane tab in the active pane — never a
+// separate route.
+function openTypeScreen(screen = null) {
+  if (!screen?.screenKey && !screen?.id) return;
+  const screenKey = screen.screenKey || screen.id;
+  const key = `screen:${screenKey}`;
+  if (!openedScreenRefs.value.some(reference => reference.key === key)) {
+    openedScreenRefs.value = [...openedScreenRefs.value, {
+      key,
+      screenKey,
+      typeId: screen.typeId || ''
+    }];
+  }
+  if (activePane.value) selectPaneTab(activePane.value.id, key);
+}
+
+watch(explorerNodes, value => {
+  const next = { ...expandedKeys.value };
+  const expandTypes = nodes => {
+    for (const node of nodes) {
+      if (node.data?.typeId && !(node.key in next)) next[node.key] = true;
+      expandTypes(node.children || []);
+    }
+  };
+  expandTypes(value);
+  expandedKeys.value = next;
+}, { immediate: true });
+
+// Active rooms must be visible the moment they exist: the Calls entry
+// carries them as rows, so it auto-expands on the empty-to-active
+// transition (initial load included); an explicit collapse while calls
+// run stays respected until the next call starts.
+watch(() => callsStore.activeRooms.length, (count, previous = 0) => {
+  if (count > 0 && previous === 0) {
+    expandedKeys.value = { ...expandedKeys.value, 'communication:calls': true };
+  }
+}, { immediate: true });
+
+// Post-mount only (contract: components/generated/README.md)
+function applyPersistedWorkspaceState(key) {
+  if (!key) return;
+  const state = loadHomeWorkspaceState(window.localStorage, key);
+  paneTree.value = state.paneTree;
+  activePaneId.value = state.activePaneId;
+  paneSequence.value = state.paneSequence;
+  openedEntityRefs.value = state.openedEntityRefs;
+  openedPageRefs.value = state.openedPageRefs;
+  openedScreenRefs.value = state.openedScreenRefs || [];
+  sidebarCollapsed.value = Boolean(state.sidebarCollapsed);
+  hydratedStorageKey.value = key;
+}
+
+onMounted(() => {
+  isWorkspaceMounted = true;
+  applyPersistedWorkspaceState(workspaceStorageKey.value);
+});
+
 watch(workspaceStorageKey, key => {
   if (!key || !isWorkspaceMounted || hydratedStorageKey.value === key) return;
   applyPersistedWorkspaceState(key);
