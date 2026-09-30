@@ -18,6 +18,17 @@ body {
     color: var(--p-text-color);
 }
 
+/* Mobile shell: the whole UI scales one step down. PrimeVue components,
+   the rem-based typography roles, and Tailwind utilities all derive from
+   the root font-size (PrimeVue's documented scaling mechanism), so a
+   single rem change here is the global scale. The boundary matches the
+   app's own mobile break (the md: shell split). */
+@media (max-width: 47.99rem) {
+    html {
+        font-size: 15px;
+    }
+}
+
 .workspace-tab-strip {
     scrollbar-width: none;
 }
