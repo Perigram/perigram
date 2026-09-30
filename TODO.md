@@ -876,9 +876,10 @@ gone — record opens (openMobileInstance) and workspace-entity opens
 detailRouteForInstance; the bounded directory dialog and the mobile
 detail sheet (plus their state) are deleted. Desktop keeps tab opens.
 
-### Agent Notes (2026-09-30, call popup is a sheet)
+### Agent Notes (2026-09-30, call sheet reverted)
 
-The mobile accepted-call dialog was a floating full-size card (margins,
-rounded, fixed preview height). It mounts the sheet size now —
-edge-to-edge, viewport height, the panel fills it. The invite card
-keeps its floating toast shape.
+The sheet experiment broke the call dialog (collapsed layout, no
+expand) — pt styling shipped unseen. Reverted to the known-good full
+size + preview height; the dead sheet size is removed from
+StandardDialog. A proper mobile call surface needs design review with
+the owner first.
