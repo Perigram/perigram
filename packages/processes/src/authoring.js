@@ -253,8 +253,14 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       delete node.fieldSchema;
     }
     if (node.kind === 'cts.read' && node.select === 'related') {
-      const relations = relationKeysForEntity(typeIdOf(node));
-      if (!relations.some(relation => relation.key === node.relationKey)) node.relationKey = relations[0]?.key || '';
+      // An authored relation selection survives a vocabulary gap the same
+      // way the binding and the socket defaults do: a domain without the
+      // bound type has no relations to re-derive from, so the selection
+      // stays authored until a full domain syncs.
+      if (typeIsKnown(node)) {
+        const relations = relationKeysForEntity(typeIdOf(node));
+        if (!relations.some(relation => relation.key === node.relationKey)) node.relationKey = relations[0]?.key || '';
+      }
     }
   }
 
@@ -264,10 +270,24 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
     node.outputs = decorate(node, catalogPorts(node).outputs);
     syncProcessNodeProducerOutputs(draftData, node);
     node.inputDefaults ||= {};
-    const inputIds = new Set(node.inputs.map(input => input.id));
-    for (const inputId of Object.keys(node.inputDefaults)) {
-      if (!inputIds.has(inputId)) delete node.inputDefaults[inputId];
+    // Authored socket defaults survive a vocabulary gap: when the bound
+    // type is not in the current domain (a page session opened before the
+    // org declared it), the derived port list shrinks to the Type pin and
+    // must not take the authored defaults with it — validation owns the
+    // unknown-type report, and the next sync against the full domain
+    // re-derives the ports.
+    if (typeIsKnown(node)) {
+      const inputIds = new Set(node.inputs.map(input => input.id));
+      for (const inputId of Object.keys(node.inputDefaults)) {
+        if (!inputIds.has(inputId)) delete node.inputDefaults[inputId];
+      }
     }
+  }
+
+  function typeIsKnown(node = {}) {
+    const typeId = typeIdOf(node);
+    if (!typeId) return true;
+    return Boolean((contract.domain?.entities || []).some(entity => entity.type === typeId));
   }
 
   function syncProcessNode(node = {}, { draftData = {} } = {}) {

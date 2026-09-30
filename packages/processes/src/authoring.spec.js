@@ -133,6 +133,20 @@ describe('headless definition authoring', () => {
     expect(definition.processNodes.order.outputs.map(port => port.id)).toEqual(['completed', 'result']);
   });
 
+  it('preserves authored relation selection and socket defaults across a vocabulary gap', () => {
+    const context = authoring();
+    // Bind against the full domain first: the relation selection derives.
+    context.drop('relatedEntities', { id: 'gapTables' });
+    context.configure('gapTables', { typeId: 'sheet' });
+    const derived = context.record('gapTables').relationKey;
+    expect(derived).toBeTruthy();
+    // Re-seat on a domain that does not know the type: the sync must not
+    // strip the authored selection.
+    context.withDomain({ entities: [], fieldSchemas: {}, workflows: {}, construction: {}, relations: [], projectionContracts: {}, serviceContracts: {} });
+    const record = context.record('gapTables');
+    expect(record.relationKey).toBe(derived);
+  });
+
   it('refuses an illegal declaration wire at the same gate the canvas applies', () => {
     const context = authoring();
     context.declareClass({ id: 'a', typeId: 'order-a', name: 'A' });
