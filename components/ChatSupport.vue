@@ -2049,11 +2049,13 @@ const messageMenuItems = computed(() => {
             messageMenuTarget.value = null
         }
     }]
-    // One download entry per attachment, labeled by file name — the
-    // every-kind download affordance beside the inline file-chip buttons.
+    // One download entry per attachment, labeled by a cropped file name —
+    // the every-kind download affordance beside the inline file-chip
+    // buttons.
     for (const attachment of messageMenuTarget.value?.attachments || []) {
+        const name = attachment.name || attachment.mimeType || attachment.fileId
         items.push({
-            label: t('support.download', { name: attachment.name || attachment.mimeType || attachment.fileId }),
+            label: t('support.download', { name: name.length > 32 ? `${name.slice(0, 29)}…` : name }),
             icon: 'pi pi-download',
             command: () => {
                 messageMenu.value?.hide?.()

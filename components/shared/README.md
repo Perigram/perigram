@@ -654,16 +654,21 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 ### `ChatAttachments.vue`
 Renders a support message's `attachments[]` (the contract lives in the
 [support feature](../../../server/features/support/README.md) — Message
-Attachments). Images render as a gallery: one image fills the bubble width,
-a set lays out in a token-backed responsive grid, and every image is a
-PrimeVue `Image` with built-in zoom preview. Videos render native
-`<video controls>` players; audio keeps the native audio player. Every
-other file renders a chip row (type-derived icon, name, human-readable
-size) with an inline download anchor, and the message menu offers one
-download entry per attachment for any kind. All media streams the shared
-`/api/files/download/:id` route honoring the descriptor's `bucket` when
-present. The component is pure presentation over the descriptor list —
-uploading, materialization, and transcription stay in the host composer.
+Attachments). One image renders at natural aspect inside fixed bounds
+(`max-h`); a set renders as fixed-size square tiles (two columns up to
+four images, three beyond) — deterministic tile geometry, not
+content-sized tracks — and every image is a PrimeVue `Image` with
+built-in zoom preview. Videos render native `<video controls>` players
+(bounded width and height); audio keeps the native audio player. Every
+other file renders a chip row (type-derived icon, cropped name, human-
+readable size) with an inline download anchor, and the message menu
+offers one download entry per attachment for any kind (labels cropped).
+The root hugs its content so sender-side message columns can right-align
+the block, and every name crops through the `min-w-0`/`truncate` chain.
+All media streams the shared `/api/files/download/:id` route honoring
+the descriptor's `bucket` when present. The component is pure
+presentation over the descriptor list — uploading, materialization, and
+transcription stay in the host composer.
 
 ---
 
