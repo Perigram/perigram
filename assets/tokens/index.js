@@ -78,6 +78,7 @@ export const designTokens = {
         dialogXl: '72rem',
         supportChatWidth: '25rem',
         supportChatHeight: '31.25rem',
+        supportChatViewportMaxHeight: 'calc(100dvh - 6rem)',
         supportChatAdminHeight: 'calc(100vh - 12rem)',
         supportChatMessageMax: '85%',
         supportChatAdminMessageMax: '80%',
@@ -207,6 +208,7 @@ export const cssVariableTokens = {
     '--ck-dialog-xl': designTokens.layout.dialogXl,
     '--ck-support-chat-width': designTokens.layout.supportChatWidth,
     '--ck-support-chat-height': designTokens.layout.supportChatHeight,
+    '--ck-support-chat-viewport-max-height': designTokens.layout.supportChatViewportMaxHeight,
     '--ck-support-chat-admin-height': designTokens.layout.supportChatAdminHeight,
     '--ck-support-chat-message-max': designTokens.layout.supportChatMessageMax,
     '--ck-support-chat-admin-message-max': designTokens.layout.supportChatAdminMessageMax,
@@ -337,7 +339,8 @@ export const tailwindThemeExtension = {
         'preview-dialog': 'var(--ck-preview-dialog-height)'
     },
     maxHeight: {
-        'board-column': 'var(--ck-board-column-max-height)'
+        'board-column': 'var(--ck-board-column-max-height)',
+        'support-chat-viewport-max': 'var(--ck-support-chat-viewport-max-height)'
     },
     minHeight: {
         'support-chat': 'var(--ck-support-chat-height)'
@@ -452,7 +455,6 @@ export const primeComponentTokens = {
     },
     listbox: {
         root: {
-            background: 'transparent',
             borderColor: 'transparent'
         }
     },
