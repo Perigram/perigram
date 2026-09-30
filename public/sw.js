@@ -1,4 +1,4 @@
-const CACHE = 'perigram-static-v3'
+const CACHE = 'perigram-static-v4'
 // No '/_nuxt/' here on purpose: in dev that path serves live source modules,
 // and a cache-first worker (registered earlier by a prod build on the same
 // origin) would keep answering with stale code through any hard refresh.
@@ -61,8 +61,15 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request).then((cached) => {
             if (cached) return cached
             return fetch(event.request).then((response) => {
-                const copy = response.clone()
-                caches.open(CACHE).then((cache) => cache.put(event.request, copy))
+                // Cache-first poisons permanently: an error response cached
+                // during a broken deploy keeps serving after the server is
+                // fixed (staging 2026-09-30 — fonts/icons answered 500s from
+                // cache while the origin was healthy, "discarded" css rules).
+                // Only successful same-origin responses enter the cache.
+                if (response.ok && response.type === 'basic') {
+                    const copy = response.clone()
+                    event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, copy)))
+                }
                 return response
             })
         })
