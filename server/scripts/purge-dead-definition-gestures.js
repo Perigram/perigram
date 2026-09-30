@@ -46,8 +46,11 @@ for (const definition of await db.collection('process_definitions').find({}).toA
         refIdOf(edge.source) === nodeId || refIdOf(edge.target) === nodeId);
 
     const deadConstructs = Object.keys(data.processNodes).filter(nodeId => {
+        const record = data.processNodes[nodeId];
+        if (record?.kind !== 'cts.construct') return false;
         const nodeEdges = touching(nodeId);
-        return nodeEdges.length > 0 && nodeEdges.every(edge => isBindsEdgeInto(edge, nodeId));
+        if (!nodeEdges.length) return !record.typeId;
+        return nodeEdges.every(edge => isBindsEdgeInto(edge, nodeId));
     });
     const deadTypeRefs = Object.keys(data.ctsTypes || {}).filter(refId => {
         const record = data.ctsTypes[refId];
