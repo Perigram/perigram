@@ -704,8 +704,11 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 - **`WorkspaceSplitNode.vue`**: Recursive PrimeVue splitter renderer for
   IDE-style file workspaces. Split nodes select horizontal or vertical layout;
   leaf nodes expose one scoped file slot inside a PrimeVue `Panel` riding the
-  zero canvas (transparent background, content padding zeroed through pt,
-  and every Panel content layer min-width-zeroed — the default
+  zero canvas (transparent background, content padding zeroed through pt
+  plus a scoped `:deep(.p-panel-content)` rule — the pt's `p-0` utility
+  only ties the theme's padding rule, and the production bundle loads app
+  css before the injected theme, so the scoped rule carries the pane
+  contract regardless of style order, and every Panel content layer min-width-zeroed — the default
   min-width:auto sized the grid wrapper to the hosted tab strip and blew the
   panel past its split cell, killing the tablist's overflow scrolling) and
   an active-pane marker. The pane Panel draws the default Panel hairline
