@@ -1684,9 +1684,10 @@ const canTranscribe = (messageItem) => transcriptionAvailable.value
 
 // Audio-only voice messages: their text is a transcription (the service
 // writes it into `message`), rendering under the player on the subtle
-// surface regardless of sender.
+// surface regardless of sender. Kind falls back to the MIME derivation —
+// stored descriptors and projected events are not guaranteed to carry it.
 const isAudioOnlyMessage = (messageItem) => (messageItem.attachments || []).length === 1
-    && messageItem.attachments[0].kind === 'audio'
+    && (messageItem.attachments[0].kind || chatAttachmentKind(messageItem.attachments[0].mimeType || '')) === 'audio'
     && !messageItem.attachments[0].transcription
     && !String(messageItem.message || '').trim()
 
