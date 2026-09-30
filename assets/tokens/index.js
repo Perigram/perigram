@@ -450,6 +450,11 @@ export const primeComponentTokens = {
             background: 'transparent'
         }
     },
+    listbox: {
+        root: {
+            borderColor: 'transparent'
+        }
+    },
     splitter: {
         gutter: {
             background: 'transparent'

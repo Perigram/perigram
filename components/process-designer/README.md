@@ -138,6 +138,12 @@ catalog contributes one bound construct per constructible type/mode.
 registered service species. **Instances** owns context, all, typed-reference
 resolution, exact declared-edge traversal, and field projection. **Values**,
 **Collections**, and **Flow** own explicit value/list/branch semantics.
+Both the rail palette and the canvas context palette render through one
+component, `OperationPalette.vue`: a filterable PrimeVue `Listbox` with
+option groups (localized group labels, icon rows, per-item tooltip) —
+picking an item emits once and selects nothing. The Listbox owns the
+filter box and group headers; the preset renders listbox roots borderless
+because every use sits inside a rail that already owns its frame.
 There is no raw-id source, producer join, fixed-arity list constructor, block
 substrate, or hidden predicate input. Unknown service operators fail with a
 named diagnostic.
