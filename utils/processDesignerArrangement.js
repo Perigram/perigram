@@ -433,7 +433,7 @@ export function deriveLaneFacts({ nodes = [], bandIds = [], membershipOf = null 
     const y = node.position?.y ?? 0;
     const membership = membershipOf?.(node) || null;
     if (membership && bandIds.includes(membership)) {
-      data.laneY = Math.round(y - bandTopOf(membership));
+      data.laneY = Math.max(0, Math.round(y - bandTopOf(membership)));
       return { ...node, data };
     }
     const bandId = containingBand(y);

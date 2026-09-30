@@ -1182,9 +1182,9 @@ function seedLaneFacts(node) {
   if (!band) return node;
   if (node.type === 'processNode' && isEffectNode(node)) {
     if (laneMembershipOf(node) !== band.id) return node;
-    return { ...node, data: { ...(node.data || {}), laneY: Math.round(node.position.y - band.top) } };
+    return { ...node, data: { ...(node.data || {}), laneY: Math.max(0, Math.round(node.position.y - band.top)) } };
   }
-  return { ...node, data: { ...(node.data || {}), lane: band.id, laneY: Math.round(node.position.y - band.top) } };
+  return { ...node, data: { ...(node.data || {}), lane: band.id, laneY: Math.max(0, Math.round(node.position.y - band.top)) } };
 }
 
 // Band paint model: the projection owns geometry; labels come from the
@@ -1290,11 +1290,13 @@ function onNodeDragStop({ node, nodes: draggedNodes } = {}) {
       candidate.data = { ...(candidate.data || {}), lane: candidateBand.id };
     }
     // The offset fact: relative to the band the node now belongs to.
+    // Authored offsets are never negative — a card the author dropped
+    // across a lane's top edge seats inside the accepting band.
     const membership = laneMembershipOf(candidate);
     const membershipTop = membership && bands.find(entry => entry.id === membership)?.top;
     const data = { ...(candidate.data || {}) };
     if (Number.isFinite(membershipTop)) {
-      data.laneY = Math.round(candidate.position.y - membershipTop);
+      data.laneY = Math.max(0, Math.round(candidate.position.y - membershipTop));
     } else {
       delete data.lane;
       delete data.laneY;
