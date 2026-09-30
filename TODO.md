@@ -654,3 +654,12 @@ colors the chip dot AND the DesignerNodeCard left stripe, so a chip reads
 like the node it creates. Group headers, per-item icons, and the
 paletteGroups i18n block are gone; declaration nodes stripe 'structure',
 operation kinds resolve through the palette catalog.
+
+### Agent Notes (2026-09-30, chips: visible signals + group labels)
+
+The signal dots rendered as empty space: `` bg-signal-${x} `` is dynamic
+and Tailwind compiles from source text, so no class existed. All signal
+surface classes are now literal in utils/processDesignerSignals.js
+(signalBgClass) and tailwind.config scans utils/. Group labels are back
+(localized paletteGroups block restored) — chips group under small
+muted labels; dot + stripe share the one signal map.
