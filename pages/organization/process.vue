@@ -72,7 +72,7 @@
 
       <div
         v-if="contextPalette.open"
-        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border p-2 shadow-card"
+        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui bg-content p-2 shadow-card"
         :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
         @mousedown.stop
         @click.stop
@@ -129,7 +129,7 @@
                   v-tooltip.right="paletteDescription(item)"
                   size="small"
                   text
-                  class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
+                  class="min-w-0 justify-start bg-subtle px-2"
                   @click="item.action ? item.action() : addNode(item)"
                 />
               </div>
@@ -389,7 +389,7 @@
                 <div
                   v-for="screen in compiledScreenPreview"
                   :key="screen.id"
-                  class="flex flex-col gap-2 rounded-ui border border-content-border p-3"
+                  class="flex flex-col gap-2 rounded-ui bg-subtle p-3"
                 >
                   <div class="flex items-center justify-between gap-2">
                     <span class="min-w-0 truncate text-label">{{ screen.label || screen.id }}</span>
@@ -499,13 +499,13 @@
                       </div>
                       <div v-else class="flex flex-col gap-2">
                         <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.filters') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addFilter')" size="small" text @click="screenEditing.addScalar(source.filters, 'path', '')" /></div>
-                        <div v-for="row in screenEditing.scalarRows(source.filters)" :key="row.key" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                          <InputText :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(source.filters, row.key, event.target.value)" />
-                          <Select :model-value="row.type" :options="screenScalarTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(source.filters, row.key, value)" />
-                          <InputNumber v-if="row.type === 'number'" v-model="source.filters[row.key]" size="small" />
+                        <div v-for="row in screenEditing.scalarRows(source.filters)" :key="row.key" class="flex items-center gap-2">
+                          <InputText class="min-w-0 flex-1" :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(source.filters, row.key, event.target.value)" />
+                          <Select class="min-w-0 flex-1" :model-value="row.type" :options="screenScalarTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(source.filters, row.key, value)" />
+                          <InputNumber v-if="row.type === 'number'" class="min-w-0 flex-1" v-model="source.filters[row.key]" size="small" />
                           <Checkbox v-else-if="row.type === 'boolean'" v-model="source.filters[row.key]" binary :aria-label="$t('processDesigner.value')" />
-                          <InputText v-else v-model="source.filters[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
-                          <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(source.filters, row.key)" />
+                          <InputText v-else class="min-w-0 flex-1" v-model="source.filters[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
+                          <Button class="shrink-0" icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(source.filters, row.key)" />
                         </div>
                         <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.lineageBindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addLineageBinding')" size="small" text @click="screenEditing.addLineageBinding(source)" /></div>
                         <div v-for="(binding, bindingIndex) in source.lineageBindings" :key="bindingIndex" class="grid grid-cols-2 gap-2">
@@ -544,13 +544,13 @@
                   <Button icon="pi pi-filter" :label="$t('processDesigner.editGrantConditions')" severity="secondary" outlined size="small" @click="openGrantEditor('screen', 0, selectedScreenRecord.required.feature)" />
                   <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.bindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addBinding')" size="small" text @click="screenEditing.addScalar(selectedScreenRecord.bindings, 'binding')" /></div>
-                    <div v-for="row in screenEditing.scalarRows(selectedScreenRecord.bindings)" :key="row.key" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                      <InputText :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(selectedScreenRecord.bindings, row.key, event.target.value)" />
-                      <Select :model-value="row.type" :options="screenBindingTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(selectedScreenRecord.bindings, row.key, value)" />
-                      <InputNumber v-if="row.type === 'number'" v-model="selectedScreenRecord.bindings[row.key]" size="small" />
+                    <div v-for="row in screenEditing.scalarRows(selectedScreenRecord.bindings)" :key="row.key" class="flex items-center gap-2">
+                      <InputText class="min-w-0 flex-1" :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(selectedScreenRecord.bindings, row.key, event.target.value)" />
+                      <Select class="min-w-0 flex-1" :model-value="row.type" :options="screenBindingTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(selectedScreenRecord.bindings, row.key, value)" />
+                      <InputNumber v-if="row.type === 'number'" class="min-w-0 flex-1" v-model="selectedScreenRecord.bindings[row.key]" size="small" />
                       <Checkbox v-else-if="row.type === 'boolean'" v-model="selectedScreenRecord.bindings[row.key]" binary :aria-label="$t('processDesigner.value')" />
-                      <InputText v-else v-model="selectedScreenRecord.bindings[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
-                      <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(selectedScreenRecord.bindings, row.key)" />
+                      <InputText v-else class="min-w-0 flex-1" v-model="selectedScreenRecord.bindings[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
+                      <Button class="shrink-0" icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(selectedScreenRecord.bindings, row.key)" />
                     </div>
                   </div>
                   <div class="flex flex-col gap-1">

@@ -15,7 +15,7 @@
         <div
           v-for="removed in row.removed"
           :key="`${row.typeId}|${removed.state}`"
-          class="flex flex-wrap items-center gap-3 rounded-ui border border-content-border px-3 py-2"
+          class="flex flex-wrap items-center gap-3 rounded-ui bg-subtle px-3 py-2"
         >
           <span class="text-technical">{{ removed.state }}</span>
           <span class="text-supporting text-muted">
