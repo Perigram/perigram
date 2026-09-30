@@ -1,17 +1,21 @@
-import { GridFSBucket, ObjectId } from 'mongodb';
+import { GridFSBucket } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
+import * as repository from './repository.js';
 
-export async function uploadFile(fileBuffer, fileName, metadata = {}, bucketName = 'uploads') {
+export async function uploadFile(fileBuffer, fileName, metadata = {}, bucketName = 'uploads', contentType = '') {
   const db = await connectDB();
   const bucket = new GridFSBucket(db, { bucketName });
-  
+
   const uploadStream = bucket.openUploadStream(fileName, {
-    metadata: { 
+    metadata: {
       ...metadata,
       createdAt: new Date()
-    }
+    },
+    // Stored content type wins inline serving (videos, images); the
+    // filename extension stays the fallback in contentTypeForFile.
+    ...(contentType ? { contentType } : {})
   });
   
   await new Promise((resolve, reject) => {
@@ -31,9 +35,22 @@ export async function uploadFile(fileBuffer, fileName, metadata = {}, bucketName
 export async function getFileStream(fileId, bucketName = 'uploads') {
   const db = await connectDB();
   const bucket = new GridFSBucket(db, { bucketName });
-  
+
   try {
     return bucket.openDownloadStream(toFlexibleId(fileId));
+  } catch (err) {
+    throw createError({ statusCode: 404, message: 'File not found' });
+  }
+}
+
+// Byte-range stream for media playback/seeking: `start` inclusive,
+// `endInclusive` inclusive, translated to GridFS's exclusive `end`.
+export async function getFileRangeStream(fileId, bucketName = 'uploads', start = 0, endInclusive = 0) {
+  const db = await connectDB();
+  const bucket = new GridFSBucket(db, { bucketName });
+
+  try {
+    return bucket.openDownloadStream(toFlexibleId(fileId), { start, end: endInclusive + 1 });
   } catch (err) {
     throw createError({ statusCode: 404, message: 'File not found' });
   }
@@ -73,6 +90,7 @@ export async function findFileMeta(fileId, bucketName = 'uploads') {
   return {
     filename: String(doc.filename || ''),
     contentType: String(doc.contentType || ''),
+    length: Number(doc.length) || 0,
     metadata: doc.metadata || {}
   };
 }
@@ -101,4 +119,85 @@ export async function deleteFile(fileId, bucketName = 'uploads') {
     if (err?.code === 'ENOENT' || err?.message?.includes('FileNotFound') || err?.message?.includes('File not found')) return;
     throw err;
   }
+}
+
+// -- Resumable upload sessions --
+// Big chat uploads ride chunk-append sessions instead of one request:
+// the client slices the file, PUTs each chunk (idempotent per index), and
+// completes; on disconnect it reads the session's received indexes and
+// re-sends only the gaps. Persistence lives in the feature repository
+// (chunks survive server restarts; TTL reaps abandoned sessions); this
+// service owns validation and assembly. Small files keep the single
+// multipart POST.
+
+export async function createUploadSession({ fileName = '', mimeType = '', size = 0 } = {}, { userId = '', organizationId = '' } = {}, bucketName = 'files') {
+  const byteCount = Number(size);
+  if (!Number.isFinite(byteCount) || byteCount <= 0) {
+    throw createError({ statusCode: 400, message: 'Upload session size must be a positive number of bytes' });
+  }
+  if (byteCount > repository.UPLOAD_SESSION_MAX_BYTES) {
+    throw createError({ statusCode: 400, message: 'Upload exceeds the session size limit' });
+  }
+  const doc = await repository.insertUploadSession({
+    fileName: String(fileName || 'file').slice(0, 200),
+    mimeType: String(mimeType || '').slice(0, 100),
+    size: byteCount,
+    chunkSize: repository.UPLOAD_SESSION_CHUNK_SIZE,
+    bucket: bucketName,
+    userId: userId || null,
+    organizationId: organizationId || null,
+    createdAt: new Date()
+  });
+  return { uploadId: doc._id.toString(), chunkSize: doc.chunkSize, size: doc.size };
+}
+
+export async function getUploadSession(uploadId, context = {}) {
+  const doc = await repository.findUploadSession(uploadId, context);
+  if (!doc) throw createError({ statusCode: 404, message: 'Upload session not found' });
+  return {
+    uploadId: doc._id.toString(),
+    chunkSize: doc.chunkSize,
+    size: doc.size,
+    received: await repository.listReceivedChunkIndexes(doc._id)
+  };
+}
+
+export async function appendUploadChunk(uploadId, index, buffer, context = {}) {
+  const doc = await repository.findUploadSession(uploadId, context);
+  if (!doc) throw createError({ statusCode: 404, message: 'Upload session not found' });
+  const chunkIndex = Number(index);
+  const totalChunks = Math.ceil(doc.size / doc.chunkSize);
+  if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= totalChunks) {
+    throw createError({ statusCode: 400, message: 'Upload chunk index out of range' });
+  }
+  if (!buffer?.length || buffer.length > doc.chunkSize) {
+    throw createError({ statusCode: 400, message: 'Upload chunk size is invalid' });
+  }
+  await repository.upsertUploadChunk(doc._id, chunkIndex, buffer);
+  return { index: chunkIndex };
+}
+
+export async function completeUploadSession(uploadId, context = {}) {
+  const doc = await repository.findUploadSession(uploadId, context);
+  if (!doc) throw createError({ statusCode: 404, message: 'Upload session not found' });
+  const totalChunks = Math.ceil(doc.size / doc.chunkSize);
+  const chunks = await repository.listUploadChunksSorted(doc._id);
+  if (chunks.length !== totalChunks || chunks.some((chunk, position) => chunk.index !== position)) {
+    throw createError({ statusCode: 400, message: 'Upload session is incomplete' });
+  }
+  const buffer = Buffer.concat(chunks.map(chunk => Buffer.from(chunk.data.buffer)));
+  if (buffer.length !== doc.size) {
+    throw createError({ statusCode: 400, message: 'Upload session byte count mismatch' });
+  }
+  // The assembled file stays chunked until the GridFS write succeeds — a
+  // failed complete can be retried.
+  const stored = await uploadFile(
+    buffer,
+    doc.fileName,
+    { userId: doc.userId || undefined, organizationId: doc.organizationId || undefined, mimeType: doc.mimeType || undefined },
+    doc.bucket,
+    doc.mimeType || ''
+  );
+  await repository.deleteUploadSession(doc._id);
+  return stored;
 }

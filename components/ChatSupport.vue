@@ -708,8 +708,9 @@
                         <div
                             v-for="(pending, index) in pendingFiles"
                             :key="pending.key"
-                            class="inline-flex max-w-full min-w-0 items-center gap-2 rounded-ui bg-subtle px-2 py-1"
+                            class="flex max-w-full min-w-0 flex-col gap-1"
                         >
+                            <div class="inline-flex max-w-full min-w-0 items-center gap-2 rounded-ui bg-subtle px-2 py-1">
                             <img
                                 v-if="pending.kind === 'image' && pending.url"
                                 :src="pending.url"
@@ -744,6 +745,13 @@
                                 size="small"
                                 :aria-label="$t('common.delete')"
                                 @click="removePendingFile(index)"
+                            />
+                            </div>
+                            <ProgressBar
+                                v-if="pending.progress != null && pending.progress < 1"
+                                :value="Math.round(pending.progress * 100)"
+                                class="w-full"
+                                :show-value="false"
                             />
                         </div>
                     </div>
@@ -1032,6 +1040,7 @@ import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import Menu from 'primevue/menu'
 import Message from 'primevue/message'
+import ProgressBar from 'primevue/progressbar'
 import ToggleSwitch from 'primevue/toggleswitch'
 import DatePicker from 'primevue/datepicker'
 import { useI18n } from 'vue-i18n'
@@ -1059,6 +1068,7 @@ import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useFileTypeView } from '~/composables/useFileTypeView.js'
+import { useChatFileUpload } from '~/composables/useChatFileUpload.js'
 import {
     chatFileChildCandidates,
     chatFileAccept,
@@ -1343,6 +1353,7 @@ const receiveTyping = (payload) => {
     let pendingFileSeq = 0
 
     const { typeById: typeViewById } = useFileTypeView()
+const { uploadChatFile } = useChatFileUpload()
 
     // The effective send target: the drilled child chip, else the composed
     // conversation instance. Upload compatibility follows this target.
@@ -1359,29 +1370,25 @@ const receiveTyping = (payload) => {
             typeById: typeViewById
         })))
 
-    // Uploads are refused at pick time ONLY for a loaded non-party
-    // instance target with no accepting file children — person chats,
-    // party-target chats (the organization chat), and not-yet-loaded type
-    // views keep plain uploads, mirroring the server's materialization
-    // rule. The input's accept list is the candidates' declared union.
-    const instanceChatUploadBlocked = computed(() => {
+    // A strict instance target is a loaded non-party type record: person
+    // conversations and party-target chats (the organization chat) take
+    // plain uploads; strict targets gate files (and voice) on accepting
+    // children. The server's materialization rule mirrors this.
+    const strictInstanceTarget = computed(() => {
         if (!composerTargetType.value) return false
         const targetRecord = typeViewById(composerTargetType.value)
-        if (!targetRecord || targetRecord.class === 'party') return false
-        return !chatFileCandidates.value.length
+        return Boolean(targetRecord) && targetRecord.class !== 'party'
     })
+
+    const instanceChatUploadBlocked = computed(() => strictInstanceTarget.value && !chatFileCandidates.value.length)
     const chatUploadEnabled = computed(() => Boolean(activeConversation.value) && !instanceChatUploadBlocked.value)
     const chatFileAcceptAttr = computed(() => (instanceChatUploadBlocked.value ? '' : chatFileAccept(chatFileCandidates.value)))
 
     // Voice follows the same target rule: person/party chats always
     // record; a strict instance chat records only when a candidate child
     // accepts the mimes MediaRecorder produces.
-    const voiceRecordingAllowed = computed(() => {
-        if (!composerTargetType.value) return true
-        const targetRecord = typeViewById(composerTargetType.value)
-        if (!targetRecord || targetRecord.class === 'party') return true
-        return Boolean(chatVoiceFileCandidate(chatFileCandidates.value))
-    })
+    const voiceRecordingAllowed = computed(() => !strictInstanceTarget.value
+        || Boolean(chatVoiceFileCandidate(chatFileCandidates.value)))
 
     const voiceTargetTypeId = computed(() => (
         composerTargetType.value ? (chatVoiceFileCandidate(chatFileCandidates.value)?.typeId || '') : ''
@@ -1428,7 +1435,7 @@ const receiveTyping = (payload) => {
 
     const stageChatFiles = (files = []) => {
         if (!files.length || !activeConversation.value) return
-        const instanceChat = Boolean(composerTargetType.value)
+        const instanceChat = strictInstanceTarget.value
         for (const file of files) {
             if (pendingFiles.value.length >= ATTACHMENT_LIMIT) {
                 toast.add({ severity: 'warn', summary: t('common.warning'), detail: t('support.attachmentLimit', { count: ATTACHMENT_LIMIT }), life: 4000 })
@@ -1474,9 +1481,9 @@ const receiveTyping = (payload) => {
     ))
 
     const uploadPendingFile = async (pending) => {
-        const form = new FormData()
-        form.append('file', pending.file)
-        const stored = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form })
+        const stored = await uploadChatFile(pending.file, {
+            onProgress: (ratio) => updatePendingProgress(pending.key, ratio)
+        });
         return {
             kind: pending.kind,
             fileId: stored.id,
@@ -1484,7 +1491,13 @@ const receiveTyping = (payload) => {
             name: pending.file.name,
             size: pending.file.size,
             ...(pending.targetTypeId ? { targetTypeId: pending.targetTypeId } : {})
-        }
+        };
+    }
+
+    const updatePendingProgress = (key, ratio) => {
+        pendingFiles.value = pendingFiles.value.map(item => (
+            item.key === key ? { ...item, progress: Math.max(item.progress || 0, ratio) } : item
+        ));
     }
 
 const sendMessage = async () => {
@@ -1627,9 +1640,12 @@ const stopAndSendVoiceRecording = () => {
         if (!blob.size || !activeConversation.value) return
         voiceSending.value = true
         try {
-            const form = new FormData()
-            form.append('file', blob, `voice-message.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`)
-            const uploaded = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form })
+            const recorded = new File(
+                [blob],
+                `voice-message.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`,
+                { type: mimeType }
+            )
+            const uploaded = await uploadChatFile(recorded)
             await $fetch('/api/support/messages', {
                 method: 'POST',
                 body: {

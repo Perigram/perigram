@@ -69,6 +69,15 @@ test.describe('chat file uploads', () => {
     expect(download.headers()['content-disposition']).toContain('attachment');
     outcomes.common.downloadStatus = download.status();
 
+    // Media ranges: playback/seeking rides 206 partial responses.
+    const ranged = await request.get(`http://localhost:3000/api/files/download/${stored.id}?bucket=files`, {
+      headers: { Range: `bytes=0-99` }
+    });
+    outcomes.common.rangeStatus = ranged.status();
+    expect(ranged.status()).toBe(206);
+    expect(ranged.headers()['content-range']).toBe(`bytes 0-99/${PNG_BYTES.length}`);
+    expect((await ranged.body()).length).toBe(100);
+
     // -- Instance chat: seed the thread, open it in /chats, stage the PNG
     //    through the attach popover's upload entry, and send. --
     const seed = await request.post('http://localhost:3000/api/support/messages', {
@@ -156,6 +165,27 @@ test.describe('chat file uploads', () => {
     });
     outcomes.refusal.smuggleStatus = smuggled.status();
     expect(smuggled.status()).toBe(400);
+
+    // -- Big upload: >8MB rides the resumable chunk-session transport
+    //    through the same popover entry; the assembled file must come back
+    //    byte-complete. --
+    const BIG_BYTES = Buffer.alloc(12 * 1024 * 1024);
+    BIG_BYTES.fill(7);
+    await app.page.locator('[data-testid="chat-attach-trigger"]').click();
+    await expect(popoverUpload).toBeVisible({ timeout: 10000 });
+    await fileInput.setInputFiles({ name: 'big-evidence.png', mimeType: 'image/png', buffer: BIG_BYTES });
+    await expect(app.page.locator('[data-testid="chat-pending-files"]')).toBeVisible();
+    await app.page.getByRole('button', { name: 'Send' }).click();
+    const bigGallery = app.page.locator('[data-testid="chat-attachments"]').last();
+    await expect(bigGallery.locator('img')).toBeVisible({ timeout: 60000 });
+    const bigThread = await request.get(`http://localhost:3000/api/support/messages?instance=${BOX_TYPE}:${box._id}&includeChildren=1`);
+    const bigMessage = (await bigThread.json()).data.find(item => (item.attachments || []).some(a => a.size === BIG_BYTES.length));
+    expect(bigMessage, 'Expected the chunked upload message').toBeTruthy();
+    const bigFileId = bigMessage.attachments.find(a => a.size === BIG_BYTES.length).fileId;
+    const bigDownload = await request.get(`http://localhost:3000/api/files/download/${bigFileId}?bucket=files`);
+    expect(bigDownload.ok()).toBeTruthy();
+    expect((await bigDownload.body()).length).toBe(BIG_BYTES.length);
+    outcomes.bigUpload = { size: BIG_BYTES.length, messageId: bigMessage._id, downloadStatus: bigDownload.status() };
 
     // -- Party-target chats (the organization chat) keep plain uploads:
     // the popover entry is enabled there and files ride unlinked. --
