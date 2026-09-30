@@ -2,7 +2,7 @@
 
 The facade fabrication domain plug-in (SPEC §21). This is the pack that
 owns cassettes (OCCS files with the cassette designer), sheet designs,
-sheet materials, cassette designs, the nesting solver service, and the
+cassette designs, the nesting solver service, and the
 pack's command and event contracts. `server/packs/facade` binds the
 declarations to server services; the framework registry and the client
 type system consume the data.
@@ -77,7 +77,7 @@ nesting inputs, and per-piece traceability reference.
 ## Modules
 
 - `src/pack.js` — the browser-safe declaration data: `facadeFileTypes`
-  (cassette, cassette-design, sheet-material, sheet-design — with
+  (cassette, cassette-design, sheet-design — with
   declared states, transitions, render policies, and operators),
   `facadeEditors`
   (the canonical editor-binding contract served with the type view),
@@ -102,7 +102,7 @@ nesting inputs, and per-piece traceability reference.
 operator: pure values in, values out — job items (typed job geometry per
 the value universe; the solver's raw layout payload is the one
 true-external Json escape) plus the sheet as VALUES (`sheetWidth`,
-`sheetHeight`, `thickness`, the `space`/`sheetCount` solver knobs with
+`sheetHeight`, the `space`/`sheetCount` solver knobs with
 authored fallbacks 3 mm / 1 sheet), `{ layouts, summary }` out. The
 signature carries no refs: a graph reaches stored data through declared
 projections, never through a service dereferencing an instance (SPEC §8

@@ -30,8 +30,6 @@ const genericInstanceTypes = new Set([
   // pack-bound construction mode (bake); its handler lives in the
   // cassettes feature
   'cassette-design',
-  // pack material type served entirely by the generic machinery
-  'sheet-material',
 ]);
 const classifiedDeclarations = [...frameworkTypes, ...composeSystemDeclarations()]
   .filter(declaration => !genericInstanceTypes.has(declaration.id));
@@ -99,13 +97,14 @@ console.log('🚀 Starting Architectural Verification...');
 
 // Agent session worktrees are ephemeral per-session checkouts: scanning
 // them flags every committed passage against its own copies while parallel
-// sessions run.
+// sessions run. `.agent-wt*` are the same sessions' scratch checkouts
+// (root README Development notes).
 const SKIP_DIRS = new Set(['.agent-worktrees']);
 const walkDir = (dir) => {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
-    if (SKIP_DIRS.has(entry.name)) continue;
+    if (SKIP_DIRS.has(entry.name) || entry.name.startsWith('.agent-wt')) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) files.push(...walkDir(full));
     else files.push(full);

@@ -22,7 +22,7 @@ value seams graph processes drive.
   names it, and the facade pack mounts it as a command handler
   ([`server/packs/facade`](../../README.md)). It receives the command
   envelope; the declared parameter sockets `items` (job geometry),
-  `sheetWidth`/`sheetHeight`/`thickness` (the sheet as values — the graph
+  `sheetWidth`/`sheetHeight` (the sheet as values — the graph
   reads them off the material through the field projection; the handler
   resolves nothing), and the optional `space`/`sheetCount` knobs arrive
   on `parameters`. It

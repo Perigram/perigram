@@ -71,9 +71,8 @@ export const facadeCommands = {
   // command; a graph-driven cts.service effect reaches the handler through
   // its definition with the declared signature fields on `parameters`. No
   // entity inputs or output entities: values in, values out.
-  // The nesting solver's V -> V boundary: items in, layouts + summary out.
-  // The sheet arrives as values (sheetWidth/sheetHeight/thickness) — the
-  // graph reads them off the material; the handler resolves nothing.
+  // The sheet arrives as values (sheetWidth/sheetHeight) — the graph reads
+  // them off the material; the handler resolves nothing.
   solveNestingValue: {
     id: 'solveNestingValue',
     service: 'nesting',

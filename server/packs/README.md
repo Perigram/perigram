@@ -46,7 +46,7 @@ files features are rejected at the mount (see
   system-catalog instances ride the generic instance machinery.
   Declaration data lives in `packages/tech-drawing/src/index.js`.
 - `facade/` — the facade pack: cassette (OCCS file + cassette-designer editor),
-  sheet design, the declared sheet-material type, the pure `nesting.solve`
+  sheet design, the pure `nesting.solve`
   value service (its handler in `value-services/`), the declared
   `nesting-polygons` projection on `cassette-design`, and the
   `cassette-design` production type whose `upload`/`bake`/`convertDxf`

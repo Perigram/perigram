@@ -1,5 +1,1223 @@
 {
-  "schemaVersion": 1,
+  "attachmentKinds": [
+    {
+      "bucket": "artifactTemplates",
+      "key": "ARTIFACT_TEMPLATE_SOURCE",
+      "kind": "ARTIFACT_TEMPLATE_SOURCE",
+      "mimeType": "application/octet-stream",
+      "preview": {
+        "mode": "attachment"
+      }
+    },
+    {
+      "bucket": "userDxf",
+      "key": "DXF_SOURCE",
+      "kind": "DXF_SOURCE",
+      "mimeType": "application/dxf",
+      "preview": {
+        "mode": "dxf"
+      }
+    },
+    {
+      "bucket": "capturePhotos",
+      "key": "CAPTURE_PHOTO",
+      "kind": "CAPTURE_PHOTO",
+      "mimeType": "image/*",
+      "preview": {
+        "mode": "image"
+      }
+    },
+    {
+      "bucket": "nestDxf",
+      "key": "LAYOUT_DXF",
+      "kind": "LAYOUT_DXF",
+      "mimeType": "application/dxf",
+      "preview": {
+        "mode": "dxf"
+      }
+    },
+    {
+      "bucket": "nestSvg",
+      "key": "LAYOUT_SVG",
+      "kind": "LAYOUT_SVG",
+      "mimeType": "image/svg+xml",
+      "preview": {
+        "mode": "svg"
+      }
+    },
+    {
+      "bucket": "artifacts",
+      "key": "PDF_PASSPORT",
+      "kind": "PDF_PASSPORT",
+      "mimeType": "application/pdf",
+      "preview": {
+        "mode": "pdf"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "SVG_FILE",
+      "kind": "SVG_FILE",
+      "mimeType": "image/svg+xml",
+      "preview": {
+        "mode": "svg"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "IMAGE_FILE",
+      "kind": "IMAGE_FILE",
+      "mimeType": "image/*",
+      "preview": {
+        "mode": "image"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "PDF_DOCUMENT",
+      "kind": "PDF_DOCUMENT",
+      "mimeType": "application/pdf",
+      "preview": {
+        "mode": "pdf"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "DOCX_DOCUMENT",
+      "kind": "DOCX_DOCUMENT",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "preview": {
+        "mode": "docx"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "TEXT_FILE",
+      "kind": "TEXT_FILE",
+      "mimeType": "text/plain",
+      "preview": {
+        "mode": "text"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "TEXT_DOCUMENT",
+      "kind": "TEXT_DOCUMENT",
+      "mimeType": "text/plain",
+      "preview": {
+        "mode": "text"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "CSV_FILE",
+      "kind": "CSV_FILE",
+      "mimeType": "text/csv",
+      "preview": {
+        "mode": "table"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "CSV_TABLE",
+      "kind": "CSV_TABLE",
+      "mimeType": "text/csv",
+      "preview": {
+        "mode": "table"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "XLSX_WORKBOOK",
+      "kind": "XLSX_WORKBOOK",
+      "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "preview": {
+        "mode": "workbook"
+      }
+    },
+    {
+      "bucket": "sketches",
+      "key": "SKETCH",
+      "kind": "SKETCH",
+      "mimeType": "application/json",
+      "preview": {
+        "mode": "sketch"
+      }
+    }
+  ],
+  "commands": [
+    {
+      "action": "saveTemplate",
+      "attachments": [],
+      "events": [
+        "cassette.templateSaved"
+      ],
+      "id": "saveCassetteTemplate",
+      "inputs": [
+        "cassette"
+      ],
+      "label": "Save cassette template",
+      "outputs": [
+        "cassette"
+      ],
+      "permissions": [
+        {
+          "feature": "files",
+          "level": "write"
+        }
+      ],
+      "service": "cassettes",
+      "tasks": [],
+      "triggers": [
+        {
+          "event": "cassette.templateSaved"
+        }
+      ]
+    },
+    {
+      "action": "convert",
+      "attachments": [],
+      "events": [
+        "artifact.converted"
+      ],
+      "id": "convertArtifact",
+      "inputs": [
+        "artifact"
+      ],
+      "label": "Convert artifact",
+      "outputs": [
+        "artifact",
+        "cassette"
+      ],
+      "permissions": [
+        {
+          "feature": "artifacts",
+          "level": "write"
+        }
+      ],
+      "service": "artifacts",
+      "tasks": [],
+      "triggers": []
+    },
+    {
+      "action": "solveValue",
+      "attachments": [],
+      "events": [],
+      "id": "solveNestingValue",
+      "inputs": [],
+      "label": "Solve nesting",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "sheet_designs",
+          "level": "write"
+        }
+      ],
+      "service": "nesting",
+      "tasks": [],
+      "triggers": []
+    },
+    {
+      "action": "generate",
+      "attachments": [
+        "LAYOUT_DXF",
+        "PDF_PASSPORT"
+      ],
+      "events": [
+        "attachment.generationQueued",
+        "attachment.generationCompleted",
+        "attachment.generationFailed"
+      ],
+      "id": "generateAttachment",
+      "inputs": [
+        "attachments.generate"
+      ],
+      "label": "Generate attachment",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "artifacts",
+          "level": "write"
+        }
+      ],
+      "service": "artifacts",
+      "tasks": [],
+      "triggers": [
+        {
+          "event": "attachment.generationRequested"
+        }
+      ]
+    }
+  ],
+  "designSystem": {
+    "components": [
+      {
+        "componentPath": "components/entities/SheetDesign/SheetDesignCard.vue",
+        "docs": [
+          "server/packs/facade/sheet-designs/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "production",
+        "key": "sheetDesign",
+        "labelKey": "entities.sheetDesign",
+        "propName": "design",
+        "status": "hidden",
+        "trace": true,
+        "typeId": "sheet_design"
+      },
+      {
+        "componentPath": "components/entities/Cassette/CassetteCard.vue",
+        "docs": [
+          "components/entities/Cassette/README.md",
+          "server/packs/facade/cassettes/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "production",
+        "key": "cassette",
+        "labelKey": "entities.cassette",
+        "propName": "cassette",
+        "status": "interactive",
+        "trace": true,
+        "typeId": "cassette"
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/EntityRevision/README.md",
+          "server/features/instance-revisions/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "system",
+        "key": "entityRevision",
+        "labelKey": "entities.entityRevision",
+        "propName": "revision",
+        "status": "hidden",
+        "trace": true,
+        "typeId": "entity_revision"
+      },
+      {
+        "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
+        "docs": [
+          "server/features/instances/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "master",
+        "key": "penTemplate",
+        "labelKey": "entities.penTemplate",
+        "propName": "pen",
+        "status": "hidden",
+        "trace": false,
+        "typeId": "pen_template"
+      },
+      {
+        "componentPath": "components/entities/LayerStandard/LayerStandardCard.vue",
+        "docs": [
+          "server/features/instances/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "master",
+        "key": "layerStandard",
+        "labelKey": "entities.layerStandard",
+        "propName": "standard",
+        "status": "hidden",
+        "trace": false,
+        "typeId": "layer_standard"
+      },
+      {
+        "componentPath": "components/entities/User/UserCard.vue",
+        "docs": [
+          "server/features/users/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "system",
+        "key": "user",
+        "labelKey": "entities.user",
+        "propName": "user",
+        "status": "hidden",
+        "trace": false,
+        "typeId": "user"
+      },
+      {
+        "componentPath": "components/entities/Organization/OrganizationCard.vue",
+        "docs": [
+          "server/features/organizations/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "system",
+        "key": "organization",
+        "labelKey": "entities.organization",
+        "propName": "organization",
+        "status": "hidden",
+        "trace": false,
+        "typeId": "organization"
+      },
+      {
+        "componentPath": "components/entities/Artifact/ArtifactCard.vue",
+        "docs": [
+          "server/features/artifacts/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "system",
+        "key": "artifact",
+        "labelKey": "entities.artifact",
+        "propName": "artifact",
+        "status": "hidden",
+        "trace": true,
+        "typeId": "artifact"
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "server/features/artifact-templates/README.md"
+        ],
+        "fieldPaths": [],
+        "group": "master",
+        "key": "artifactTemplate",
+        "labelKey": "entities.artifactTemplate",
+        "propName": "artifactTemplate",
+        "status": "hidden",
+        "trace": false,
+        "typeId": "artifact_template"
+      }
+    ],
+    "groups": [
+      {
+        "id": "production",
+        "labelKey": "uiLab.groups.production"
+      },
+      {
+        "id": "material",
+        "labelKey": "uiLab.groups.material"
+      },
+      {
+        "id": "master",
+        "labelKey": "uiLab.groups.master"
+      },
+      {
+        "id": "system",
+        "labelKey": "uiLab.groups.system"
+      }
+    ],
+    "primitives": [
+      {
+        "componentPath": "components/shared/InstanceCard.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "InstanceCard",
+        "kind": "entity-chrome",
+        "purpose": "Standard entity card chrome with identity, optional trace, optional status, content, and footer slots."
+      },
+      {
+        "componentPath": "components/shared/InstancePage.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "InstancePage",
+        "kind": "entity-layout",
+        "purpose": "Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots."
+      },
+      {
+        "componentPath": "components/shared/InstanceSelect.vue",
+        "docs": [
+          "components/shared/README.md",
+          "docs/DESIGN_SYSTEM.md"
+        ],
+        "key": "InstanceSelect",
+        "kind": "entity-input",
+        "purpose": "PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger."
+      },
+      {
+        "componentPath": "components/shared/InstanceMultiSelect.vue",
+        "docs": [
+          "components/shared/README.md",
+          "docs/DESIGN_SYSTEM.md"
+        ],
+        "key": "InstanceMultiSelect",
+        "kind": "entity-input",
+        "purpose": "PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger."
+      },
+      {
+        "componentPath": "components/shared/blocks/DataBlock.vue",
+        "docs": [
+          "components/shared/README.md",
+          "utils/README.md"
+        ],
+        "key": "DataBlock",
+        "kind": "block",
+        "purpose": "Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies."
+      },
+      {
+        "componentPath": "components/shared/state/InstanceState.vue",
+        "docs": [
+          "components/shared/README.md",
+          "utils/README.md"
+        ],
+        "key": "InstanceState",
+        "kind": "status",
+        "purpose": "Interactive status display and workflow-derived transition actions."
+      },
+      {
+        "componentPath": "components/shared/state/StateHistory.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "StateHistory",
+        "kind": "status",
+        "purpose": "Status audit timeline for entity lifecycle events."
+      },
+      {
+        "componentPath": "components/shared/DrawingCanvas.vue",
+        "docs": [
+          "components/shared/README.md",
+          "utils/README.md"
+        ],
+        "key": "DrawingCanvas",
+        "kind": "block",
+        "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions."
+      },
+      {
+        "componentPath": "components/shared/DesignerSurface.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "DesignerSurface",
+        "kind": "layout",
+        "purpose": "Shared full-height flex boundary for operational designer route, pane, and dialog hosts."
+      },
+      {
+        "componentPath": "components/shared/DesignerWorkspace.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "DesignerWorkspace",
+        "kind": "layout",
+        "purpose": "Shared responsive palette/canvas/inspector workspace for operational designers."
+      },
+      {
+        "componentPath": "components/shared/DesignerDialog.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "DesignerDialog",
+        "kind": "layout",
+        "purpose": "Viewport-sized dialog host for standalone designer launches."
+      },
+      {
+        "componentPath": "components/shared/ThreeViewport.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "ThreeViewport",
+        "kind": "viewport",
+        "purpose": "Shared Three.js renderer lifecycle and selectable scene viewport for designers."
+      },
+      {
+        "componentPath": "components/shared/GeometryPreview.vue",
+        "docs": [
+          "components/shared/README.md",
+          "docs/DESIGN_SYSTEM.md"
+        ],
+        "key": "GeometryPreview",
+        "kind": "block",
+        "purpose": "Token-backed SVG preview for DXF layers and polygon geometry stored in data.geometry.preview."
+      },
+      {
+        "componentPath": "components/shared/links/TraceLink.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "TraceLink",
+        "kind": "trace",
+        "purpose": "Single related-entity link used inside rows, status locations, and custom relation fields; TraceChain is for full ancestry."
+      },
+      {
+        "componentPath": "components/shared/links/TraceChain.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "TraceChain",
+        "kind": "trace",
+        "purpose": "Canonical lineage breadcrumb chain for entity ancestry."
+      },
+      {
+        "componentPath": "components/shared/ActionToolbar.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "ActionToolbar",
+        "kind": "layout",
+        "purpose": "Shared section/header action row used by hubs, tabs, and list pages instead of ad hoc header flex markup."
+      },
+      {
+        "componentPath": "components/shared/ResponsiveGrid.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "ResponsiveGrid",
+        "kind": "layout",
+        "purpose": "Token-backed responsive repeated-item grid."
+      },
+      {
+        "componentPath": "components/shared/StateBlock.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "StateBlock",
+        "kind": "layout",
+        "purpose": "Standard loading, empty, and error states."
+      },
+      {
+        "componentPath": "components/shared/TableFrame.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "TableFrame",
+        "kind": "layout",
+        "purpose": "Standard token-backed frame for PrimeVue DataTable surfaces, including table header background."
+      },
+      {
+        "componentPath": "components/shared/StandardDialog.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "StandardDialog",
+        "kind": "layout",
+        "purpose": "Standard modal shell with footer and responsive sizing."
+      },
+      {
+        "componentPath": "components/shared/StandardPage.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "StandardPage",
+        "kind": "layout",
+        "purpose": "Standard page shell with header and breadcrumbs."
+      }
+    ],
+    "tokens": {
+      "cssVariableTokens": {
+        "--ck-accent-100": "#fddbe4",
+        "--ck-accent-200": "#fbb9c9",
+        "--ck-accent-300": "#fb8ba7",
+        "--ck-accent-400": "#fc4d7b",
+        "--ck-accent-50": "#feeef2",
+        "--ck-accent-500": "#ff0040",
+        "--ck-accent-600": "#e1003c",
+        "--ck-accent-700": "#be0033",
+        "--ck-accent-800": "#9b0029",
+        "--ck-accent-900": "#7b0021",
+        "--ck-accent-950": "#4e0015",
+        "--ck-accent-ink": "#be0033",
+        "--ck-board-column-max-height": "calc(100dvh - 16rem)",
+        "--ck-border-subtle": "var(--p-content-border-color)",
+        "--ck-bounded-grid-item-max-width": "32rem",
+        "--ck-bounded-grid-item-min-width": "24rem",
+        "--ck-chrome-background": "var(--p-surface-100)",
+        "--ck-chrome-border": "var(--p-content-border-color)",
+        "--ck-chrome-foreground": "var(--p-text-color)",
+        "--ck-chrome-muted": "var(--p-text-muted-color)",
+        "--ck-chrome-subtle": "var(--p-surface-200)",
+        "--ck-compact-preview-width": "10rem",
+        "--ck-details-gap": "1.5rem",
+        "--ck-dialog-lg": "56rem",
+        "--ck-dialog-md": "42rem",
+        "--ck-dialog-sm": "24rem",
+        "--ck-dialog-xl": "72rem",
+        "--ck-entity-popover-min-width": "18.75rem",
+        "--ck-entity-tone-command": "#ff4b00",
+        "--ck-entity-tone-fabrication": "#dc3a45",
+        "--ck-entity-tone-material": "#0d9069",
+        "--ck-entity-tone-output": "#3f5eff",
+        "--ck-entity-tone-system": "#795ee5",
+        "--ck-floating-menu-min-width": "12.5rem",
+        "--ck-font-mono": "'IBM Plex Mono', monospace",
+        "--ck-font-serif": "'IBM Plex Serif', serif",
+        "--ck-font-ui": "'IBM Plex Sans', sans-serif",
+        "--ck-grid-gap": "1.25rem",
+        "--ck-page-background": "var(--p-surface-100)",
+        "--ck-page-max-width": "1600px",
+        "--ck-preview-dialog-height": "95vh",
+        "--ck-primary-100": "#f4f4f5",
+        "--ck-primary-200": "#e4e4e7",
+        "--ck-primary-300": "#d4d4d8",
+        "--ck-primary-400": "#a1a1aa",
+        "--ck-primary-50": "#fafafa",
+        "--ck-primary-500": "#71717a",
+        "--ck-primary-600": "#52525b",
+        "--ck-primary-700": "#3f3f46",
+        "--ck-primary-800": "#27272a",
+        "--ck-primary-900": "#18181b",
+        "--ck-primary-950": "#09090b",
+        "--ck-primary-ink": "#3f3f46",
+        "--ck-process-canvas-background": "var(--p-surface-50)",
+        "--ck-scrollbar-thumb": "color-mix(in srgb, var(--p-text-color) 32%, transparent)",
+        "--ck-scrollbar-thumb-hover": "color-mix(in srgb, var(--p-text-color) 55%, transparent)",
+        "--ck-selection-background": "color-mix(in srgb, var(--p-accent-color) 20%, transparent)",
+        "--ck-signal-data": "var(--ck-entity-tone-material)",
+        "--ck-signal-decision": "var(--ck-accent-500)",
+        "--ck-signal-effect": "var(--ck-entity-tone-fabrication)",
+        "--ck-signal-entity": "var(--ck-entity-tone-command)",
+        "--ck-signal-external": "var(--ck-entity-tone-output)",
+        "--ck-signal-identity": "var(--p-surface-500)",
+        "--ck-signal-projection": "var(--ck-entity-tone-system)",
+        "--ck-signal-quantity": "#d39700",
+        "--ck-signal-reference": "var(--ck-entity-tone-output)",
+        "--ck-signal-structure": "var(--ck-entity-tone-system)",
+        "--ck-signal-structure-muted": "color-mix(in srgb, var(--ck-signal-structure) 55%, var(--p-text-muted-color))",
+        "--ck-signal-temporal": "var(--ck-entity-tone-output)",
+        "--ck-signal-value": "var(--ck-entity-tone-system)",
+        "--ck-status-danger": "var(--p-red-600)",
+        "--ck-status-info": "var(--p-primary-color)",
+        "--ck-status-neutral": "var(--p-surface-500)",
+        "--ck-status-success": "var(--p-emerald-600)",
+        "--ck-status-warning": "var(--p-amber-700)",
+        "--ck-subtle-background": "var(--p-surface-200)",
+        "--ck-support-chat-admin-height": "calc(100vh - 12rem)",
+        "--ck-support-chat-admin-message-max": "80%",
+        "--ck-support-chat-height": "31.25rem",
+        "--ck-support-chat-message-max": "85%",
+        "--ck-support-chat-width": "25rem",
+        "--ck-surface-primary": "color-mix(in srgb, var(--p-primary-color) 7%, var(--p-content-background))",
+        "--ck-surface-raised": "var(--p-content-background)",
+        "--ck-swatch-size": "2.625rem",
+        "--ck-table-action-column-width": "3rem"
+      },
+      "designTokens": {
+        "color": {
+          "accent": "var(--p-accent-color)",
+          "accentContrast": "var(--p-accent-contrast-color)",
+          "accentInk": "var(--ck-accent-ink)",
+          "borderSubtle": "var(--ck-border-subtle)",
+          "chrome": "var(--ck-chrome-background)",
+          "chromeBorder": "var(--ck-chrome-border)",
+          "chromeForeground": "var(--ck-chrome-foreground)",
+          "chromeMuted": "var(--ck-chrome-muted)",
+          "chromeSubtle": "var(--ck-chrome-subtle)",
+          "content": "var(--p-content-background)",
+          "contentBorder": "var(--p-content-border-color)",
+          "page": "var(--ck-page-background)",
+          "primary": "var(--p-primary-color)",
+          "primaryContrast": "var(--p-primary-contrast-color)",
+          "primaryInk": "var(--ck-primary-ink)",
+          "primarySurface": "var(--ck-surface-primary)",
+          "processCanvas": "var(--ck-process-canvas-background)",
+          "raised": "var(--ck-surface-raised)",
+          "selection": "var(--ck-selection-background)",
+          "subtle": "var(--ck-subtle-background)",
+          "text": "var(--p-text-color)",
+          "textMuted": "var(--p-text-muted-color)"
+        },
+        "entityTone": {
+          "command": "var(--ck-entity-tone-command)",
+          "fabrication": "var(--ck-entity-tone-fabrication)",
+          "material": "var(--ck-entity-tone-material)",
+          "output": "var(--ck-entity-tone-output)",
+          "system": "var(--ck-entity-tone-system)"
+        },
+        "layout": {
+          "boardColumnMaxHeight": "calc(100dvh - 16rem)",
+          "boundedGridItemMaxWidth": "32rem",
+          "boundedGridItemMinWidth": "24rem",
+          "compactPreviewWidth": "10rem",
+          "detailsGap": "1.5rem",
+          "dialogLg": "56rem",
+          "dialogMd": "42rem",
+          "dialogSm": "24rem",
+          "dialogXl": "72rem",
+          "entityPopoverMinWidth": "18.75rem",
+          "floatingMenuMinWidth": "12.5rem",
+          "gridGap": "1.25rem",
+          "pageMaxWidth": "1600px",
+          "previewDialogHeight": "95vh",
+          "supportChatAdminHeight": "calc(100vh - 12rem)",
+          "supportChatAdminMessageMax": "80%",
+          "supportChatHeight": "31.25rem",
+          "supportChatMessageMax": "85%",
+          "supportChatWidth": "25rem",
+          "swatchSize": "2.625rem",
+          "tableActionColumnWidth": "3rem"
+        },
+        "palette": {
+          "accent": {
+            "50": "#feeef2",
+            "100": "#fddbe4",
+            "200": "#fbb9c9",
+            "300": "#fb8ba7",
+            "400": "#fc4d7b",
+            "500": "#ff0040",
+            "600": "#e1003c",
+            "700": "#be0033",
+            "800": "#9b0029",
+            "900": "#7b0021",
+            "950": "#4e0015"
+          },
+          "primary": {
+            "50": "#fafafa",
+            "100": "#f4f4f5",
+            "200": "#e4e4e7",
+            "300": "#d4d4d8",
+            "400": "#a1a1aa",
+            "500": "#71717a",
+            "600": "#52525b",
+            "700": "#3f3f46",
+            "800": "#27272a",
+            "900": "#18181b",
+            "950": "#09090b"
+          }
+        },
+        "signal": {
+          "data": "var(--ck-signal-data)",
+          "decision": "var(--ck-signal-decision)",
+          "effect": "var(--ck-signal-effect)",
+          "entity": "var(--ck-signal-entity)",
+          "external": "var(--ck-signal-external)",
+          "identity": "var(--ck-signal-identity)",
+          "projection": "var(--ck-signal-projection)",
+          "quantity": "var(--ck-signal-quantity)",
+          "reference": "var(--ck-signal-reference)",
+          "structure": "var(--ck-signal-structure)",
+          "structure-muted": "var(--ck-signal-structure-muted)",
+          "temporal": "var(--ck-signal-temporal)",
+          "value": "var(--ck-signal-value)"
+        },
+        "status": {
+          "danger": "var(--ck-status-danger)",
+          "info": "var(--ck-status-info)",
+          "neutral": "var(--ck-status-neutral)",
+          "success": "var(--ck-status-success)",
+          "warning": "var(--ck-status-warning)"
+        },
+        "typography": {
+          "mono": "'IBM Plex Mono', monospace",
+          "roles": {
+            "body": {
+              "fontFamily": "ui",
+              "fontSize": "1rem",
+              "fontWeight": "400",
+              "lineHeight": "1.5rem"
+            },
+            "editor": {
+              "fontFamily": "serif",
+              "fontSize": "1.125rem",
+              "fontWeight": "400",
+              "lineHeight": "1.625"
+            },
+            "label": {
+              "fontFamily": "ui",
+              "fontSize": "0.875rem",
+              "fontWeight": "600",
+              "letterSpacing": "0.02em",
+              "lineHeight": "1.25rem"
+            },
+            "metric": {
+              "fontFamily": "ui",
+              "fontSize": "1.75rem",
+              "fontVariantNumeric": "tabular-nums",
+              "fontWeight": "700",
+              "lineHeight": "2rem"
+            },
+            "page-title": {
+              "fontFamily": "ui",
+              "fontSize": "clamp(1.75rem, 1.5rem + 1vw, 2.25rem)",
+              "fontWeight": "700",
+              "lineHeight": "1.15"
+            },
+            "prose": {
+              "fontFamily": "serif",
+              "fontSize": "1rem",
+              "fontWeight": "400",
+              "lineHeight": "1.625"
+            },
+            "section-heading": {
+              "fontFamily": "ui",
+              "fontSize": "1.25rem",
+              "fontWeight": "700",
+              "lineHeight": "1.5rem"
+            },
+            "supporting": {
+              "fontFamily": "ui",
+              "fontSize": "0.75rem",
+              "fontWeight": "400",
+              "lineHeight": "1rem"
+            },
+            "technical": {
+              "fontFamily": "mono",
+              "fontSize": "0.875rem",
+              "fontWeight": "400",
+              "lineHeight": "1.25rem"
+            }
+          },
+          "serif": "'IBM Plex Serif', serif",
+          "ui": "'IBM Plex Sans', sans-serif"
+        }
+      },
+      "tailwindThemeExtension": {
+        "borderRadius": {
+          "panel": "var(--p-border-radius-lg)",
+          "ui": "var(--p-border-radius-md)"
+        },
+        "boxShadow": {
+          "card": "var(--p-card-shadow)",
+          "overlay": "var(--p-overlay-popover-shadow)"
+        },
+        "colors": {
+          "accent": {
+            "50": "var(--p-accent-50)",
+            "100": "var(--p-accent-100)",
+            "200": "var(--p-accent-200)",
+            "300": "var(--p-accent-300)",
+            "400": "var(--p-accent-400)",
+            "500": "var(--p-accent-500)",
+            "600": "var(--p-accent-600)",
+            "700": "var(--p-accent-700)",
+            "800": "var(--p-accent-800)",
+            "900": "var(--p-accent-900)",
+            "950": "var(--p-accent-950)",
+            "DEFAULT": "var(--p-accent-color)",
+            "contrast": "var(--p-accent-contrast-color)",
+            "ink": "var(--ck-accent-ink)"
+          },
+          "chrome": "var(--ck-chrome-background)",
+          "chrome-border": "var(--ck-chrome-border)",
+          "chrome-foreground": "var(--ck-chrome-foreground)",
+          "chrome-muted": "var(--ck-chrome-muted)",
+          "chrome-subtle": "var(--ck-chrome-subtle)",
+          "content": "var(--p-content-background)",
+          "content-border": "var(--p-content-border-color)",
+          "entity": {
+            "command": "var(--ck-entity-tone-command)",
+            "fabrication": "var(--ck-entity-tone-fabrication)",
+            "material": "var(--ck-entity-tone-material)",
+            "output": "var(--ck-entity-tone-output)",
+            "system": "var(--ck-entity-tone-system)"
+          },
+          "muted": "var(--p-text-muted-color)",
+          "page": "var(--ck-page-background)",
+          "primary": {
+            "50": "var(--p-primary-50)",
+            "100": "var(--p-primary-100)",
+            "200": "var(--p-primary-200)",
+            "300": "var(--p-primary-300)",
+            "400": "var(--p-primary-400)",
+            "500": "var(--p-primary-500)",
+            "600": "var(--p-primary-600)",
+            "700": "var(--p-primary-700)",
+            "800": "var(--p-primary-800)",
+            "900": "var(--p-primary-900)",
+            "950": "var(--p-primary-950)",
+            "DEFAULT": "var(--p-primary-color)",
+            "contrast": "var(--p-primary-contrast-color)",
+            "ink": "var(--ck-primary-ink)"
+          },
+          "primary-surface": "var(--ck-surface-primary)",
+          "process-canvas": "var(--ck-process-canvas-background)",
+          "signal": {
+            "data": "var(--ck-signal-data)",
+            "decision": "var(--ck-signal-decision)",
+            "effect": "var(--ck-signal-effect)",
+            "entity": "var(--ck-signal-entity)",
+            "external": "var(--ck-signal-external)",
+            "identity": "var(--ck-signal-identity)",
+            "projection": "var(--ck-signal-projection)",
+            "quantity": "var(--ck-signal-quantity)",
+            "reference": "var(--ck-signal-reference)",
+            "structure": "var(--ck-signal-structure)",
+            "structure-muted": "var(--ck-signal-structure-muted)",
+            "temporal": "var(--ck-signal-temporal)",
+            "value": "var(--ck-signal-value)"
+          },
+          "status": {
+            "danger": "var(--ck-status-danger)",
+            "info": "var(--ck-status-info)",
+            "neutral": "var(--ck-status-neutral)",
+            "success": "var(--ck-status-success)",
+            "warning": "var(--ck-status-warning)"
+          },
+          "subtle": "var(--ck-subtle-background)",
+          "surface": {
+            "0": "var(--p-surface-0)",
+            "50": "var(--p-surface-50)",
+            "100": "var(--p-surface-100)",
+            "200": "var(--p-surface-200)",
+            "300": "var(--p-surface-300)",
+            "400": "var(--p-surface-400)",
+            "500": "var(--p-surface-500)",
+            "600": "var(--p-surface-600)",
+            "700": "var(--p-surface-700)",
+            "800": "var(--p-surface-800)",
+            "900": "var(--p-surface-900)",
+            "950": "var(--p-surface-950)"
+          }
+        },
+        "fontFamily": {
+          "mono": "var(--ck-font-mono)",
+          "sans": "var(--ck-font-ui)",
+          "serif": "var(--ck-font-serif)"
+        },
+        "height": {
+          "preview-dialog": "var(--ck-preview-dialog-height)",
+          "support-chat": "var(--ck-support-chat-height)",
+          "support-chat-admin": "var(--ck-support-chat-admin-height)",
+          "swatch": "var(--ck-swatch-size)"
+        },
+        "maxHeight": {
+          "board-column": "var(--ck-board-column-max-height)"
+        },
+        "maxWidth": {
+          "app": "var(--ck-page-max-width)",
+          "dialog-lg": "var(--ck-dialog-lg)",
+          "dialog-md": "var(--ck-dialog-md)",
+          "dialog-sm": "var(--ck-dialog-sm)",
+          "dialog-xl": "var(--ck-dialog-xl)",
+          "entity-popover": "var(--ck-entity-popover-min-width)",
+          "floating-menu": "var(--ck-floating-menu-min-width)",
+          "support-chat": "var(--ck-support-chat-width)",
+          "support-chat-admin-message": "var(--ck-support-chat-admin-message-max)",
+          "support-chat-message": "var(--ck-support-chat-message-max)"
+        },
+        "minHeight": {
+          "support-chat": "var(--ck-support-chat-height)"
+        },
+        "width": {
+          "support-chat": "var(--ck-support-chat-width)",
+          "swatch": "var(--ck-swatch-size)"
+        }
+      }
+    },
+    "variants": [
+      "card",
+      "compact",
+      "inline"
+    ]
+  },
+  "entities": [
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "image"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "pdf-document"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "text-document"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "csv-table"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "xlsx-workbook"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "docx-document"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "pen-template"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "layer-standard"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "color"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "dxf-source"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "svg-file"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "sketch"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "cassette"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "cassette-design"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "lineage",
+        "relations",
+        "provenance",
+        "attachments",
+        "data"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "sheet-design"
+    }
+  ],
   "name": "perigram-framework",
   "packages": [
     {
@@ -27,1353 +1245,115 @@
       "name": "@perigram/facade"
     }
   ],
-  "entities": [
+  "relationships": [
     {
-      "type": "image",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
+      "kind": "lineage",
+      "source": "organization",
+      "target": "artifact",
+      "via": "lineage.organizationId"
     },
     {
-      "type": "pdf-document",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
+      "kind": "lineage",
+      "source": "organization",
+      "target": "process_definition",
+      "via": "lineage.organizationId"
     },
     {
-      "type": "text-document",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
+      "kind": "lineage",
+      "source": "organization",
+      "target": "user",
+      "via": "lineage.organizationId"
     },
     {
-      "type": "csv-table",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "xlsx-workbook",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "docx-document",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "pen-template",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "layer-standard",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "color",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "dxf-source",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "svg-file",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "sketch",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "cassette",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "cassette-design",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "sheet-material",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
-    },
-    {
-      "type": "sheet-design",
-      "collection": "files",
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "lineage": {}
+      "kind": "lineage",
+      "source": "organization",
+      "target": "workflow_override",
+      "via": "lineage.organizationId"
     }
   ],
   "routes": [
     {
-      "type": "image",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "image"
     },
     {
-      "type": "pdf-document",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "pdf-document"
     },
     {
-      "type": "text-document",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "text-document"
     },
     {
-      "type": "csv-table",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "csv-table"
     },
     {
-      "type": "xlsx-workbook",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "xlsx-workbook"
     },
     {
-      "type": "docx-document",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "docx-document"
     },
     {
-      "type": "pen-template",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "pen-template"
     },
     {
-      "type": "layer-standard",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "layer-standard"
     },
     {
-      "type": "color",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "color"
     },
     {
-      "type": "dxf-source",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "dxf-source"
     },
     {
-      "type": "svg-file",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "svg-file"
     },
     {
-      "type": "sketch",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "sketch"
     },
     {
-      "type": "cassette",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "cassette"
     },
     {
-      "type": "cassette-design",
+      "list": null,
       "single": null,
-      "list": null
+      "type": "cassette-design"
     },
     {
-      "type": "sheet-material",
+      "list": null,
       "single": null,
-      "list": null
-    },
-    {
-      "type": "sheet-design",
-      "single": null,
-      "list": null
+      "type": "sheet-design"
     }
   ],
-  "workflows": [],
+  "schemaVersion": 1,
   "summaries": [],
-  "commands": [
-    {
-      "id": "saveCassetteTemplate",
-      "service": "cassettes",
-      "action": "saveTemplate",
-      "label": "Save cassette template",
-      "inputs": [
-        "cassette"
-      ],
-      "outputs": [
-        "cassette"
-      ],
-      "attachments": [],
-      "tasks": [],
-      "events": [
-        "cassette.templateSaved"
-      ],
-      "triggers": [
-        {
-          "event": "cassette.templateSaved"
-        }
-      ],
-      "permissions": [
-        {
-          "feature": "files",
-          "level": "write"
-        }
-      ]
-    },
-    {
-      "id": "convertArtifact",
-      "service": "artifacts",
-      "action": "convert",
-      "label": "Convert artifact",
-      "inputs": [
-        "artifact"
-      ],
-      "outputs": [
-        "artifact",
-        "cassette"
-      ],
-      "attachments": [],
-      "tasks": [],
-      "events": [
-        "artifact.converted"
-      ],
-      "triggers": [],
-      "permissions": [
-        {
-          "feature": "artifacts",
-          "level": "write"
-        }
-      ]
-    },
-    {
-      "id": "solveNestingValue",
-      "service": "nesting",
-      "action": "solveValue",
-      "label": "Solve nesting",
-      "inputs": [],
-      "outputs": [],
-      "attachments": [],
-      "tasks": [],
-      "events": [],
-      "triggers": [],
-      "permissions": [
-        {
-          "feature": "sheet_designs",
-          "level": "write"
-        }
-      ]
-    },
-    {
-      "id": "generateAttachment",
-      "service": "artifacts",
-      "action": "generate",
-      "label": "Generate attachment",
-      "inputs": [
-        "attachments.generate"
-      ],
-      "outputs": [],
-      "attachments": [
-        "LAYOUT_DXF",
-        "PDF_PASSPORT"
-      ],
-      "tasks": [],
-      "events": [
-        "attachment.generationQueued",
-        "attachment.generationCompleted",
-        "attachment.generationFailed"
-      ],
-      "triggers": [
-        {
-          "event": "attachment.generationRequested"
-        }
-      ],
-      "permissions": [
-        {
-          "feature": "artifacts",
-          "level": "write"
-        }
-      ]
-    }
-  ],
   "tasks": [],
-  "attachmentKinds": [
-    {
-      "key": "ARTIFACT_TEMPLATE_SOURCE",
-      "kind": "ARTIFACT_TEMPLATE_SOURCE",
-      "bucket": "artifactTemplates",
-      "mimeType": "application/octet-stream",
-      "preview": {
-        "mode": "attachment"
-      }
-    },
-    {
-      "key": "DXF_SOURCE",
-      "kind": "DXF_SOURCE",
-      "bucket": "userDxf",
-      "mimeType": "application/dxf",
-      "preview": {
-        "mode": "dxf"
-      }
-    },
-    {
-      "key": "CAPTURE_PHOTO",
-      "kind": "CAPTURE_PHOTO",
-      "bucket": "capturePhotos",
-      "mimeType": "image/*",
-      "preview": {
-        "mode": "image"
-      }
-    },
-    {
-      "key": "LAYOUT_DXF",
-      "kind": "LAYOUT_DXF",
-      "bucket": "nestDxf",
-      "mimeType": "application/dxf",
-      "preview": {
-        "mode": "dxf"
-      }
-    },
-    {
-      "key": "LAYOUT_SVG",
-      "kind": "LAYOUT_SVG",
-      "bucket": "nestSvg",
-      "mimeType": "image/svg+xml",
-      "preview": {
-        "mode": "svg"
-      }
-    },
-    {
-      "key": "PDF_PASSPORT",
-      "kind": "PDF_PASSPORT",
-      "bucket": "artifacts",
-      "mimeType": "application/pdf",
-      "preview": {
-        "mode": "pdf"
-      }
-    },
-    {
-      "key": "SVG_FILE",
-      "kind": "SVG_FILE",
-      "bucket": "uploads",
-      "mimeType": "image/svg+xml",
-      "preview": {
-        "mode": "svg"
-      }
-    },
-    {
-      "key": "IMAGE_FILE",
-      "kind": "IMAGE_FILE",
-      "bucket": "uploads",
-      "mimeType": "image/*",
-      "preview": {
-        "mode": "image"
-      }
-    },
-    {
-      "key": "PDF_DOCUMENT",
-      "kind": "PDF_DOCUMENT",
-      "bucket": "uploads",
-      "mimeType": "application/pdf",
-      "preview": {
-        "mode": "pdf"
-      }
-    },
-    {
-      "key": "DOCX_DOCUMENT",
-      "kind": "DOCX_DOCUMENT",
-      "bucket": "uploads",
-      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "preview": {
-        "mode": "docx"
-      }
-    },
-    {
-      "key": "TEXT_FILE",
-      "kind": "TEXT_FILE",
-      "bucket": "uploads",
-      "mimeType": "text/plain",
-      "preview": {
-        "mode": "text"
-      }
-    },
-    {
-      "key": "TEXT_DOCUMENT",
-      "kind": "TEXT_DOCUMENT",
-      "bucket": "uploads",
-      "mimeType": "text/plain",
-      "preview": {
-        "mode": "text"
-      }
-    },
-    {
-      "key": "CSV_FILE",
-      "kind": "CSV_FILE",
-      "bucket": "uploads",
-      "mimeType": "text/csv",
-      "preview": {
-        "mode": "table"
-      }
-    },
-    {
-      "key": "CSV_TABLE",
-      "kind": "CSV_TABLE",
-      "bucket": "uploads",
-      "mimeType": "text/csv",
-      "preview": {
-        "mode": "table"
-      }
-    },
-    {
-      "key": "XLSX_WORKBOOK",
-      "kind": "XLSX_WORKBOOK",
-      "bucket": "uploads",
-      "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "preview": {
-        "mode": "workbook"
-      }
-    },
-    {
-      "key": "SKETCH",
-      "kind": "SKETCH",
-      "bucket": "sketches",
-      "mimeType": "application/json",
-      "preview": {
-        "mode": "sketch"
-      }
-    }
-  ],
-  "relationships": [
-    {
-      "source": "organization",
-      "target": "artifact",
-      "via": "lineage.organizationId",
-      "kind": "lineage"
-    },
-    {
-      "source": "organization",
-      "target": "process_definition",
-      "via": "lineage.organizationId",
-      "kind": "lineage"
-    },
-    {
-      "source": "organization",
-      "target": "user",
-      "via": "lineage.organizationId",
-      "kind": "lineage"
-    },
-    {
-      "source": "organization",
-      "target": "workflow_override",
-      "via": "lineage.organizationId",
-      "kind": "lineage"
-    }
-  ],
-  "designSystem": {
-    "variants": [
-      "card",
-      "compact",
-      "inline"
-    ],
-    "groups": [
-      {
-        "id": "production",
-        "labelKey": "uiLab.groups.production"
-      },
-      {
-        "id": "material",
-        "labelKey": "uiLab.groups.material"
-      },
-      {
-        "id": "master",
-        "labelKey": "uiLab.groups.master"
-      },
-      {
-        "id": "system",
-        "labelKey": "uiLab.groups.system"
-      }
-    ],
-    "primitives": [
-      {
-        "key": "InstanceCard",
-        "kind": "entity-chrome",
-        "componentPath": "components/shared/InstanceCard.vue",
-        "purpose": "Standard entity card chrome with identity, optional trace, optional status, content, and footer slots.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "InstancePage",
-        "kind": "entity-layout",
-        "componentPath": "components/shared/InstancePage.vue",
-        "purpose": "Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "InstanceSelect",
-        "kind": "entity-input",
-        "componentPath": "components/shared/InstanceSelect.vue",
-        "purpose": "PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger.",
-        "docs": [
-          "components/shared/README.md",
-          "docs/DESIGN_SYSTEM.md"
-        ]
-      },
-      {
-        "key": "InstanceMultiSelect",
-        "kind": "entity-input",
-        "componentPath": "components/shared/InstanceMultiSelect.vue",
-        "purpose": "PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger.",
-        "docs": [
-          "components/shared/README.md",
-          "docs/DESIGN_SYSTEM.md"
-        ]
-      },
-      {
-        "key": "DataBlock",
-        "kind": "block",
-        "componentPath": "components/shared/blocks/DataBlock.vue",
-        "purpose": "Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies.",
-        "docs": [
-          "components/shared/README.md",
-          "utils/README.md"
-        ]
-      },
-      {
-        "key": "InstanceState",
-        "kind": "status",
-        "componentPath": "components/shared/state/InstanceState.vue",
-        "purpose": "Interactive status display and workflow-derived transition actions.",
-        "docs": [
-          "components/shared/README.md",
-          "utils/README.md"
-        ]
-      },
-      {
-        "key": "StateHistory",
-        "kind": "status",
-        "componentPath": "components/shared/state/StateHistory.vue",
-        "purpose": "Status audit timeline for entity lifecycle events.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "DrawingCanvas",
-        "kind": "block",
-        "componentPath": "components/shared/DrawingCanvas.vue",
-        "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions.",
-        "docs": [
-          "components/shared/README.md",
-          "utils/README.md"
-        ]
-      },
-      {
-        "key": "DesignerSurface",
-        "kind": "layout",
-        "componentPath": "components/shared/DesignerSurface.vue",
-        "purpose": "Shared full-height flex boundary for operational designer route, pane, and dialog hosts.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "DesignerWorkspace",
-        "kind": "layout",
-        "componentPath": "components/shared/DesignerWorkspace.vue",
-        "purpose": "Shared responsive palette/canvas/inspector workspace for operational designers.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "DesignerDialog",
-        "kind": "layout",
-        "componentPath": "components/shared/DesignerDialog.vue",
-        "purpose": "Viewport-sized dialog host for standalone designer launches.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "ThreeViewport",
-        "kind": "viewport",
-        "componentPath": "components/shared/ThreeViewport.vue",
-        "purpose": "Shared Three.js renderer lifecycle and selectable scene viewport for designers.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "GeometryPreview",
-        "kind": "block",
-        "componentPath": "components/shared/GeometryPreview.vue",
-        "purpose": "Token-backed SVG preview for DXF layers and polygon geometry stored in data.geometry.preview.",
-        "docs": [
-          "components/shared/README.md",
-          "docs/DESIGN_SYSTEM.md"
-        ]
-      },
-      {
-        "key": "TraceLink",
-        "kind": "trace",
-        "componentPath": "components/shared/links/TraceLink.vue",
-        "purpose": "Single related-entity link used inside rows, status locations, and custom relation fields; TraceChain is for full ancestry.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "TraceChain",
-        "kind": "trace",
-        "componentPath": "components/shared/links/TraceChain.vue",
-        "purpose": "Canonical lineage breadcrumb chain for entity ancestry.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "ActionToolbar",
-        "kind": "layout",
-        "componentPath": "components/shared/ActionToolbar.vue",
-        "purpose": "Shared section/header action row used by hubs, tabs, and list pages instead of ad hoc header flex markup.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "ResponsiveGrid",
-        "kind": "layout",
-        "componentPath": "components/shared/ResponsiveGrid.vue",
-        "purpose": "Token-backed responsive repeated-item grid.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "StateBlock",
-        "kind": "layout",
-        "componentPath": "components/shared/StateBlock.vue",
-        "purpose": "Standard loading, empty, and error states.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "TableFrame",
-        "kind": "layout",
-        "componentPath": "components/shared/TableFrame.vue",
-        "purpose": "Standard token-backed frame for PrimeVue DataTable surfaces, including table header background.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "StandardDialog",
-        "kind": "layout",
-        "componentPath": "components/shared/StandardDialog.vue",
-        "purpose": "Standard modal shell with footer and responsive sizing.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      },
-      {
-        "key": "StandardPage",
-        "kind": "layout",
-        "componentPath": "components/shared/StandardPage.vue",
-        "purpose": "Standard page shell with header and breadcrumbs.",
-        "docs": [
-          "components/shared/README.md"
-        ]
-      }
-    ],
-    "components": [
-      {
-        "key": "sheetDesign",
-        "typeId": "sheet_design",
-        "group": "production",
-        "labelKey": "entities.sheetDesign",
-        "propName": "design",
-        "status": "hidden",
-        "trace": true,
-        "docs": [
-          "server/packs/facade/sheet-designs/README.md"
-        ],
-        "componentPath": "components/entities/SheetDesign/SheetDesignCard.vue",
-        "fieldPaths": []
-      },
-      {
-        "key": "cassette",
-        "typeId": "cassette",
-        "group": "production",
-        "labelKey": "entities.cassette",
-        "propName": "cassette",
-        "status": "interactive",
-        "trace": true,
-        "docs": [
-          "components/entities/Cassette/README.md",
-          "server/packs/facade/cassettes/README.md"
-        ],
-        "componentPath": "components/entities/Cassette/CassetteCard.vue",
-        "fieldPaths": []
-      },
-      {
-        "key": "entityRevision",
-        "typeId": "entity_revision",
-        "group": "system",
-        "labelKey": "entities.entityRevision",
-        "propName": "revision",
-        "status": "hidden",
-        "trace": true,
-        "docs": [
-          "components/entities/EntityRevision/README.md",
-          "server/features/instance-revisions/README.md"
-        ],
-        "componentPath": null,
-        "fieldPaths": []
-      },
-      {
-        "key": "penTemplate",
-        "typeId": "pen_template",
-        "group": "master",
-        "labelKey": "entities.penTemplate",
-        "propName": "pen",
-        "status": "hidden",
-        "trace": false,
-        "docs": [
-          "server/features/instances/README.md"
-        ],
-        "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
-        "fieldPaths": []
-      },
-      {
-        "key": "layerStandard",
-        "typeId": "layer_standard",
-        "group": "master",
-        "labelKey": "entities.layerStandard",
-        "propName": "standard",
-        "status": "hidden",
-        "trace": false,
-        "docs": [
-          "server/features/instances/README.md"
-        ],
-        "componentPath": "components/entities/LayerStandard/LayerStandardCard.vue",
-        "fieldPaths": []
-      },
-      {
-        "key": "user",
-        "typeId": "user",
-        "group": "system",
-        "labelKey": "entities.user",
-        "propName": "user",
-        "status": "hidden",
-        "trace": false,
-        "docs": [
-          "server/features/users/README.md"
-        ],
-        "componentPath": "components/entities/User/UserCard.vue",
-        "fieldPaths": []
-      },
-      {
-        "key": "organization",
-        "typeId": "organization",
-        "group": "system",
-        "labelKey": "entities.organization",
-        "propName": "organization",
-        "status": "hidden",
-        "trace": false,
-        "docs": [
-          "server/features/organizations/README.md"
-        ],
-        "componentPath": "components/entities/Organization/OrganizationCard.vue",
-        "fieldPaths": []
-      },
-      {
-        "key": "artifact",
-        "typeId": "artifact",
-        "group": "system",
-        "labelKey": "entities.artifact",
-        "propName": "artifact",
-        "status": "hidden",
-        "trace": true,
-        "docs": [
-          "server/features/artifacts/README.md"
-        ],
-        "componentPath": "components/entities/Artifact/ArtifactCard.vue",
-        "fieldPaths": []
-      },
-      {
-        "key": "artifactTemplate",
-        "typeId": "artifact_template",
-        "group": "master",
-        "labelKey": "entities.artifactTemplate",
-        "propName": "artifactTemplate",
-        "status": "hidden",
-        "trace": false,
-        "docs": [
-          "server/features/artifact-templates/README.md"
-        ],
-        "componentPath": null,
-        "fieldPaths": []
-      }
-    ],
-    "tokens": {
-      "designTokens": {
-        "palette": {
-          "primary": {
-            "50": "#fafafa",
-            "100": "#f4f4f5",
-            "200": "#e4e4e7",
-            "300": "#d4d4d8",
-            "400": "#a1a1aa",
-            "500": "#71717a",
-            "600": "#52525b",
-            "700": "#3f3f46",
-            "800": "#27272a",
-            "900": "#18181b",
-            "950": "#09090b"
-          },
-          "accent": {
-            "50": "#feeef2",
-            "100": "#fddbe4",
-            "200": "#fbb9c9",
-            "300": "#fb8ba7",
-            "400": "#fc4d7b",
-            "500": "#ff0040",
-            "600": "#e1003c",
-            "700": "#be0033",
-            "800": "#9b0029",
-            "900": "#7b0021",
-            "950": "#4e0015"
-          }
-        },
-        "color": {
-          "primary": "var(--p-primary-color)",
-          "primaryInk": "var(--ck-primary-ink)",
-          "primaryContrast": "var(--p-primary-contrast-color)",
-          "accent": "var(--p-accent-color)",
-          "accentInk": "var(--ck-accent-ink)",
-          "accentContrast": "var(--p-accent-contrast-color)",
-          "text": "var(--p-text-color)",
-          "textMuted": "var(--p-text-muted-color)",
-          "content": "var(--p-content-background)",
-          "contentBorder": "var(--p-content-border-color)",
-          "page": "var(--ck-page-background)",
-          "processCanvas": "var(--ck-process-canvas-background)",
-          "chrome": "var(--ck-chrome-background)",
-          "chromeForeground": "var(--ck-chrome-foreground)",
-          "chromeMuted": "var(--ck-chrome-muted)",
-          "chromeSubtle": "var(--ck-chrome-subtle)",
-          "chromeBorder": "var(--ck-chrome-border)",
-          "subtle": "var(--ck-subtle-background)",
-          "raised": "var(--ck-surface-raised)",
-          "primarySurface": "var(--ck-surface-primary)",
-          "borderSubtle": "var(--ck-border-subtle)",
-          "selection": "var(--ck-selection-background)"
-        },
-        "layout": {
-          "pageMaxWidth": "1600px",
-          "gridGap": "1.25rem",
-          "boundedGridItemMinWidth": "24rem",
-          "boundedGridItemMaxWidth": "32rem",
-          "compactPreviewWidth": "10rem",
-          "detailsGap": "1.5rem",
-          "dialogSm": "24rem",
-          "dialogMd": "42rem",
-          "dialogLg": "56rem",
-          "dialogXl": "72rem",
-          "supportChatWidth": "25rem",
-          "supportChatHeight": "31.25rem",
-          "supportChatAdminHeight": "calc(100vh - 12rem)",
-          "supportChatMessageMax": "85%",
-          "supportChatAdminMessageMax": "80%",
-          "entityPopoverMinWidth": "18.75rem",
-          "swatchSize": "2.625rem",
-          "floatingMenuMinWidth": "12.5rem",
-          "previewDialogHeight": "95vh",
-          "tableActionColumnWidth": "3rem",
-          "boardColumnMaxHeight": "calc(100dvh - 16rem)"
-        },
-        "typography": {
-          "ui": "'IBM Plex Sans', sans-serif",
-          "mono": "'IBM Plex Mono', monospace",
-          "serif": "'IBM Plex Serif', serif",
-          "roles": {
-            "page-title": {
-              "fontFamily": "ui",
-              "fontSize": "clamp(1.75rem, 1.5rem + 1vw, 2.25rem)",
-              "lineHeight": "1.15",
-              "fontWeight": "700"
-            },
-            "section-heading": {
-              "fontFamily": "ui",
-              "fontSize": "1.25rem",
-              "lineHeight": "1.5rem",
-              "fontWeight": "700"
-            },
-            "body": {
-              "fontFamily": "ui",
-              "fontSize": "1rem",
-              "lineHeight": "1.5rem",
-              "fontWeight": "400"
-            },
-            "label": {
-              "fontFamily": "ui",
-              "fontSize": "0.875rem",
-              "lineHeight": "1.25rem",
-              "fontWeight": "600",
-              "letterSpacing": "0.02em"
-            },
-            "supporting": {
-              "fontFamily": "ui",
-              "fontSize": "0.75rem",
-              "lineHeight": "1rem",
-              "fontWeight": "400"
-            },
-            "metric": {
-              "fontFamily": "ui",
-              "fontSize": "1.75rem",
-              "lineHeight": "2rem",
-              "fontWeight": "700",
-              "fontVariantNumeric": "tabular-nums"
-            },
-            "technical": {
-              "fontFamily": "mono",
-              "fontSize": "0.875rem",
-              "lineHeight": "1.25rem",
-              "fontWeight": "400"
-            },
-            "prose": {
-              "fontFamily": "serif",
-              "fontSize": "1rem",
-              "lineHeight": "1.625",
-              "fontWeight": "400"
-            },
-            "editor": {
-              "fontFamily": "serif",
-              "fontSize": "1.125rem",
-              "lineHeight": "1.625",
-              "fontWeight": "400"
-            }
-          }
-        },
-        "status": {
-          "info": "var(--ck-status-info)",
-          "success": "var(--ck-status-success)",
-          "warning": "var(--ck-status-warning)",
-          "danger": "var(--ck-status-danger)",
-          "neutral": "var(--ck-status-neutral)"
-        },
-        "entityTone": {
-          "command": "var(--ck-entity-tone-command)",
-          "fabrication": "var(--ck-entity-tone-fabrication)",
-          "output": "var(--ck-entity-tone-output)",
-          "material": "var(--ck-entity-tone-material)",
-          "system": "var(--ck-entity-tone-system)"
-        },
-        "signal": {
-          "identity": "var(--ck-signal-identity)",
-          "entity": "var(--ck-signal-entity)",
-          "reference": "var(--ck-signal-reference)",
-          "structure": "var(--ck-signal-structure)",
-          "structure-muted": "var(--ck-signal-structure-muted)",
-          "data": "var(--ck-signal-data)",
-          "quantity": "var(--ck-signal-quantity)",
-          "decision": "var(--ck-signal-decision)",
-          "projection": "var(--ck-signal-projection)",
-          "external": "var(--ck-signal-external)",
-          "value": "var(--ck-signal-value)",
-          "effect": "var(--ck-signal-effect)",
-          "temporal": "var(--ck-signal-temporal)"
-        }
-      },
-      "cssVariableTokens": {
-        "--ck-page-background": "var(--p-surface-100)",
-        "--ck-process-canvas-background": "var(--p-surface-50)",
-        "--ck-chrome-background": "var(--p-surface-100)",
-        "--ck-chrome-foreground": "var(--p-text-color)",
-        "--ck-chrome-muted": "var(--p-text-muted-color)",
-        "--ck-chrome-subtle": "var(--p-surface-200)",
-        "--ck-chrome-border": "var(--p-content-border-color)",
-        "--ck-subtle-background": "var(--p-surface-200)",
-        "--ck-surface-raised": "var(--p-content-background)",
-        "--ck-surface-primary": "color-mix(in srgb, var(--p-primary-color) 7%, var(--p-content-background))",
-        "--ck-border-subtle": "var(--p-content-border-color)",
-        "--ck-selection-background": "color-mix(in srgb, var(--p-accent-color) 20%, transparent)",
-        "--ck-scrollbar-thumb": "color-mix(in srgb, var(--p-text-color) 32%, transparent)",
-        "--ck-scrollbar-thumb-hover": "color-mix(in srgb, var(--p-text-color) 55%, transparent)",
-        "--ck-primary-ink": "#3f3f46",
-        "--ck-accent-ink": "#be0033",
-        "--ck-font-ui": "'IBM Plex Sans', sans-serif",
-        "--ck-font-mono": "'IBM Plex Mono', monospace",
-        "--ck-font-serif": "'IBM Plex Serif', serif",
-        "--ck-status-info": "var(--p-primary-color)",
-        "--ck-status-success": "var(--p-emerald-600)",
-        "--ck-status-warning": "var(--p-amber-700)",
-        "--ck-status-danger": "var(--p-red-600)",
-        "--ck-status-neutral": "var(--p-surface-500)",
-        "--ck-entity-tone-command": "#ff4b00",
-        "--ck-entity-tone-fabrication": "#dc3a45",
-        "--ck-entity-tone-output": "#3f5eff",
-        "--ck-entity-tone-material": "#0d9069",
-        "--ck-entity-tone-system": "#795ee5",
-        "--ck-signal-identity": "var(--p-surface-500)",
-        "--ck-signal-entity": "var(--ck-entity-tone-command)",
-        "--ck-signal-reference": "var(--ck-entity-tone-output)",
-        "--ck-signal-structure": "var(--ck-entity-tone-system)",
-        "--ck-signal-structure-muted": "color-mix(in srgb, var(--ck-signal-structure) 55%, var(--p-text-muted-color))",
-        "--ck-signal-data": "var(--ck-entity-tone-material)",
-        "--ck-signal-quantity": "#d39700",
-        "--ck-signal-decision": "var(--ck-accent-500)",
-        "--ck-signal-projection": "var(--ck-entity-tone-system)",
-        "--ck-signal-external": "var(--ck-entity-tone-output)",
-        "--ck-signal-value": "var(--ck-entity-tone-system)",
-        "--ck-signal-effect": "var(--ck-entity-tone-fabrication)",
-        "--ck-signal-temporal": "var(--ck-entity-tone-output)",
-        "--ck-page-max-width": "1600px",
-        "--ck-grid-gap": "1.25rem",
-        "--ck-bounded-grid-item-min-width": "24rem",
-        "--ck-bounded-grid-item-max-width": "32rem",
-        "--ck-compact-preview-width": "10rem",
-        "--ck-details-gap": "1.5rem",
-        "--ck-dialog-sm": "24rem",
-        "--ck-dialog-md": "42rem",
-        "--ck-dialog-lg": "56rem",
-        "--ck-dialog-xl": "72rem",
-        "--ck-support-chat-width": "25rem",
-        "--ck-support-chat-height": "31.25rem",
-        "--ck-support-chat-admin-height": "calc(100vh - 12rem)",
-        "--ck-support-chat-message-max": "85%",
-        "--ck-support-chat-admin-message-max": "80%",
-        "--ck-entity-popover-min-width": "18.75rem",
-        "--ck-swatch-size": "2.625rem",
-        "--ck-floating-menu-min-width": "12.5rem",
-        "--ck-preview-dialog-height": "95vh",
-        "--ck-table-action-column-width": "3rem",
-        "--ck-board-column-max-height": "calc(100dvh - 16rem)",
-        "--ck-primary-50": "#fafafa",
-        "--ck-primary-100": "#f4f4f5",
-        "--ck-primary-200": "#e4e4e7",
-        "--ck-primary-300": "#d4d4d8",
-        "--ck-primary-400": "#a1a1aa",
-        "--ck-primary-500": "#71717a",
-        "--ck-primary-600": "#52525b",
-        "--ck-primary-700": "#3f3f46",
-        "--ck-primary-800": "#27272a",
-        "--ck-primary-900": "#18181b",
-        "--ck-primary-950": "#09090b",
-        "--ck-accent-50": "#feeef2",
-        "--ck-accent-100": "#fddbe4",
-        "--ck-accent-200": "#fbb9c9",
-        "--ck-accent-300": "#fb8ba7",
-        "--ck-accent-400": "#fc4d7b",
-        "--ck-accent-500": "#ff0040",
-        "--ck-accent-600": "#e1003c",
-        "--ck-accent-700": "#be0033",
-        "--ck-accent-800": "#9b0029",
-        "--ck-accent-900": "#7b0021",
-        "--ck-accent-950": "#4e0015"
-      },
-      "tailwindThemeExtension": {
-        "colors": {
-          "primary": {
-            "50": "var(--p-primary-50)",
-            "100": "var(--p-primary-100)",
-            "200": "var(--p-primary-200)",
-            "300": "var(--p-primary-300)",
-            "400": "var(--p-primary-400)",
-            "500": "var(--p-primary-500)",
-            "600": "var(--p-primary-600)",
-            "700": "var(--p-primary-700)",
-            "800": "var(--p-primary-800)",
-            "900": "var(--p-primary-900)",
-            "950": "var(--p-primary-950)",
-            "DEFAULT": "var(--p-primary-color)",
-            "ink": "var(--ck-primary-ink)",
-            "contrast": "var(--p-primary-contrast-color)"
-          },
-          "accent": {
-            "50": "var(--p-accent-50)",
-            "100": "var(--p-accent-100)",
-            "200": "var(--p-accent-200)",
-            "300": "var(--p-accent-300)",
-            "400": "var(--p-accent-400)",
-            "500": "var(--p-accent-500)",
-            "600": "var(--p-accent-600)",
-            "700": "var(--p-accent-700)",
-            "800": "var(--p-accent-800)",
-            "900": "var(--p-accent-900)",
-            "950": "var(--p-accent-950)",
-            "DEFAULT": "var(--p-accent-color)",
-            "ink": "var(--ck-accent-ink)",
-            "contrast": "var(--p-accent-contrast-color)"
-          },
-          "content": "var(--p-content-background)",
-          "content-border": "var(--p-content-border-color)",
-          "primary-surface": "var(--ck-surface-primary)",
-          "page": "var(--ck-page-background)",
-          "process-canvas": "var(--ck-process-canvas-background)",
-          "chrome": "var(--ck-chrome-background)",
-          "chrome-foreground": "var(--ck-chrome-foreground)",
-          "chrome-muted": "var(--ck-chrome-muted)",
-          "chrome-subtle": "var(--ck-chrome-subtle)",
-          "chrome-border": "var(--ck-chrome-border)",
-          "subtle": "var(--ck-subtle-background)",
-          "muted": "var(--p-text-muted-color)",
-          "status": {
-            "info": "var(--ck-status-info)",
-            "success": "var(--ck-status-success)",
-            "warning": "var(--ck-status-warning)",
-            "danger": "var(--ck-status-danger)",
-            "neutral": "var(--ck-status-neutral)"
-          },
-          "entity": {
-            "command": "var(--ck-entity-tone-command)",
-            "fabrication": "var(--ck-entity-tone-fabrication)",
-            "output": "var(--ck-entity-tone-output)",
-            "material": "var(--ck-entity-tone-material)",
-            "system": "var(--ck-entity-tone-system)"
-          },
-          "signal": {
-            "identity": "var(--ck-signal-identity)",
-            "entity": "var(--ck-signal-entity)",
-            "reference": "var(--ck-signal-reference)",
-            "structure": "var(--ck-signal-structure)",
-            "structure-muted": "var(--ck-signal-structure-muted)",
-            "data": "var(--ck-signal-data)",
-            "quantity": "var(--ck-signal-quantity)",
-            "decision": "var(--ck-signal-decision)",
-            "projection": "var(--ck-signal-projection)",
-            "external": "var(--ck-signal-external)",
-            "value": "var(--ck-signal-value)",
-            "effect": "var(--ck-signal-effect)",
-            "temporal": "var(--ck-signal-temporal)"
-          },
-          "surface": {
-            "0": "var(--p-surface-0)",
-            "50": "var(--p-surface-50)",
-            "100": "var(--p-surface-100)",
-            "200": "var(--p-surface-200)",
-            "300": "var(--p-surface-300)",
-            "400": "var(--p-surface-400)",
-            "500": "var(--p-surface-500)",
-            "600": "var(--p-surface-600)",
-            "700": "var(--p-surface-700)",
-            "800": "var(--p-surface-800)",
-            "900": "var(--p-surface-900)",
-            "950": "var(--p-surface-950)"
-          }
-        },
-        "maxWidth": {
-          "app": "var(--ck-page-max-width)",
-          "dialog-sm": "var(--ck-dialog-sm)",
-          "dialog-md": "var(--ck-dialog-md)",
-          "dialog-lg": "var(--ck-dialog-lg)",
-          "dialog-xl": "var(--ck-dialog-xl)",
-          "support-chat": "var(--ck-support-chat-width)",
-          "support-chat-message": "var(--ck-support-chat-message-max)",
-          "support-chat-admin-message": "var(--ck-support-chat-admin-message-max)",
-          "entity-popover": "var(--ck-entity-popover-min-width)",
-          "floating-menu": "var(--ck-floating-menu-min-width)"
-        },
-        "width": {
-          "swatch": "var(--ck-swatch-size)",
-          "support-chat": "var(--ck-support-chat-width)"
-        },
-        "height": {
-          "swatch": "var(--ck-swatch-size)",
-          "support-chat": "var(--ck-support-chat-height)",
-          "support-chat-admin": "var(--ck-support-chat-admin-height)",
-          "preview-dialog": "var(--ck-preview-dialog-height)"
-        },
-        "maxHeight": {
-          "board-column": "var(--ck-board-column-max-height)"
-        },
-        "minHeight": {
-          "support-chat": "var(--ck-support-chat-height)"
-        },
-        "borderRadius": {
-          "ui": "var(--p-border-radius-md)",
-          "panel": "var(--p-border-radius-lg)"
-        },
-        "fontFamily": {
-          "sans": "var(--ck-font-ui)",
-          "mono": "var(--ck-font-mono)",
-          "serif": "var(--ck-font-serif)"
-        },
-        "boxShadow": {
-          "card": "var(--p-card-shadow)",
-          "overlay": "var(--p-overlay-popover-shadow)"
-        }
-      }
-    }
-  },
   "validations": {
-    "ok": true,
-    "issues": []
-  }
+    "issues": [],
+    "ok": true
+  },
+  "workflows": []
 }

@@ -39,7 +39,8 @@ const SKIP_DIRS = new Set([
   '.git',
   // Agent session worktrees are ephemeral per-session checkouts: scanning
   // them flags every committed README passage against its own copies while
-  // parallel sessions run.
+  // parallel sessions run. `.agent-wt*` are the same sessions' scratch
+  // checkouts (root README Development notes).
   '.agent-worktrees',
   'coverage',
   'dist',
@@ -61,7 +62,7 @@ function walk(dir) {
     return out;
   }
   for (const entry of entries) {
-    if (SKIP_DIRS.has(entry)) continue;
+    if (SKIP_DIRS.has(entry) || entry.startsWith('.agent-wt')) continue;
     const full = path.join(dir, entry);
     let st;
     try {
