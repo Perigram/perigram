@@ -76,6 +76,17 @@ export default defineNuxtConfig({
                 preset: Re_L,
                 options: {
                     darkModeSelector: '.dark-mode',
+                    // The theme rides a CSS layer so unlayered app styles —
+                    // every Tailwind utility and main.css override — always
+                    // win specificity ties, whatever the bundle concatenation
+                    // order does. Before this, the built bundle placed the
+                    // theme after the utilities and flipped each tie the
+                    // dev runtime resolved the other way (struck-through
+                    // border-0 / p-0 with visible borders and padding on
+                    // staging).
+                    cssLayer: {
+                        name: 'primevue'
+                    }
                 },
             },
         },
