@@ -143,7 +143,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   const tableFile = await tableUpload.json();
 
   const actions = await app.activeActions();
-  const workbookAction = actions.find(action => action.actionKind === 'createEntity' && action.typeId === TABLE_TYPE);
+  const workbookAction = actions.find(action => (action.kind || action.actionKind) === 'createEntity' && action.typeId === TABLE_TYPE);
   expect(workbookAction, 'an active process exposes a workbook create action').toBeTruthy();
   const tableRun = await app.executeAction(workbookAction.id, {
     data: {
