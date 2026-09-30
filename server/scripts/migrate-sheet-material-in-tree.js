@@ -31,6 +31,60 @@ const FIELDS = [
     ['materialThicknessField', 'thickness', { base: 'quantity', unit: 'mm' }]
 ];
 
+// The tree compiler walks canvas nodes and declares edges, not the ctsTypes
+// map: a converted class needs its ctsField canvas nodes and ownership
+// wires or it compiles fieldless ("file requires payload or fields") and
+// every children reference to it dangles. Idempotent over both the
+// typeRef conversion and earlier partial conversions.
+function completeClassAuthoring(data) {
+    const classNode = (data.graph?.nodes || []).find(node => String(node.id) === CLASS_ID);
+    if (!classNode) return { nodes: 0, edges: 0 };
+    let addedNodes = 0;
+    let addedEdges = 0;
+
+    if (classNode.data?.semanticId !== `ctsClass:${CLASS_ID}`) {
+        classNode.data = { ...classNode.data, semanticId: `ctsClass:${CLASS_ID}` };
+    }
+
+    const base = classNode.position || { x: 0, y: 0 };
+    for (const [id, name, descriptor] of FIELDS) {
+        const fieldRecord = (data.ctsTypes || {})[id];
+        if (!fieldRecord) continue;
+        let fieldNode = (data.graph.nodes || []).find(node => String(node.id) === id);
+        if (!fieldNode) {
+            fieldNode = {
+                id,
+                type: 'ctsField',
+                position: { x: base.x - 640, y: base.y + 40 + 60 * addedNodes },
+                data: { refId: id, semanticId: `ctsField:${id}`, typeId: TYPE_ID, name, descriptor }
+            };
+            data.graph.nodes.push(fieldNode);
+            addedNodes += 1;
+        } else if (fieldNode.data?.typeId !== TYPE_ID) {
+            // The designer's projection leaves record-authored fields
+            // unbound (typeId ''); an unbound field declares nowhere.
+            fieldNode.data = { ...fieldNode.data, typeId: TYPE_ID };
+            addedNodes += 1;
+        }
+        const edgeId = `declares:${id}-${CLASS_ID}`;
+        if (!(data.graph.edges || []).some(edge => String(edge.id) === edgeId)) {
+            data.graph.edges.push({
+                id: edgeId,
+                source: id,
+                target: CLASS_ID,
+                sourceHandle: null,
+                targetHandle: null,
+                type: 'default',
+                role: 'type',
+                label: 'declares',
+                data: {}
+            });
+            addedEdges += 1;
+        }
+    }
+    return { nodes: addedNodes, edges: addedEdges };
+}
+
 const dryRun = !process.argv.includes('--apply');
 const db = await connectDB();
 
@@ -64,7 +118,17 @@ for (const definition of definitions) {
         continue;
     }
     if (!refs.length) {
-        console.log(`[${label}] references ${TYPE_ID} but carries no typeRef for it — left untouched, inspect by hand`);
+        if (!tree[CLASS_ID]) {
+            console.log(`[${label}] references ${TYPE_ID} but carries no typeRef for it — left untouched, inspect by hand`);
+            continue;
+        }
+        const completed = completeClassAuthoring(data);
+        if (!completed.nodes && !completed.edges) continue;
+        console.log(`[${label}] completing ${CLASS_ID} authoring: +${completed.nodes} field nodes, +${completed.edges} declares edges`);
+        if (!dryRun) await db.collection('process_definitions').updateOne({ _id: definition._id }, { $set: {
+            'data.graph.nodes': data.graph.nodes,
+            'data.graph.edges': data.graph.edges
+        } });
         continue;
     }
     const typeRef = refs[0];
@@ -88,12 +152,15 @@ for (const definition of definitions) {
         return { ...node, id: CLASS_ID, type: 'ctsClass', data: { ...node.data, refId: CLASS_ID } };
     });
 
-    console.log(`[${label}] typeRef ${refId} → in-tree class ${CLASS_ID} (+4 fields), ${edges.length} edges, ${nodes.length} nodes`);
+    data.graph.edges = edges;
+    data.graph.nodes = nodes;
+    const completed = completeClassAuthoring(data);
+    console.log(`[${label}] typeRef ${refId} → in-tree class ${CLASS_ID} (+4 fields, +${completed.nodes} field nodes, +${completed.edges} declares edges)`);
     if (dryRun) continue;
     await db.collection('process_definitions').updateOne({ _id: definition._id }, { $set: {
         'data.ctsTypes': nextTree,
-        'data.graph.edges': edges,
-        'data.graph.nodes': nodes
+        'data.graph.edges': data.graph.edges,
+        'data.graph.nodes': data.graph.nodes
     } });
 }
 
