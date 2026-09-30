@@ -148,46 +148,46 @@
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="definitions">
-              <div class="flex flex-col gap-2">
-                <div
-                  v-for="process in processDefinitions"
-                  :key="process._id"
-                  class="flex flex-col gap-1 rounded-ui border border-content-border bg-content px-3 py-2"
-                  :class="{ 'border-primary': String(process._id) === String(selectedProcessId) }"
-                >
-                  <div v-if="renamingDefinitionId === String(process._id)" class="flex items-center gap-2">
+              <Listbox
+                :model-value="selectedProcessId"
+                :options="processDefinitions"
+                option-label="identity.name"
+                option-value="_id"
+                data-key="_id"
+                :aria-label="$t('processDesigner.definitions')"
+                @update:model-value="value => selectProcessDefinition(value)"
+              >
+                <template #option="{ option }">
+                  <div v-if="renamingDefinitionId === String(option._id)" class="flex w-full items-center gap-2" @click.stop>
                     <InputText
                       v-model="renamingDefinitionName"
                       class="min-w-0 flex-1"
                       size="small"
                       :aria-label="$t('common.rename')"
-                      @keydown.enter.prevent="applyDefinitionRename(process)"
+                      @keydown.enter.prevent.stop="applyDefinitionRename(option)"
                     />
                     <Button
                       icon="pi pi-check"
                       class="shrink-0"
                       size="small"
                       text
-                      :loading="definitionBusyId === String(process._id)"
+                      :loading="definitionBusyId === String(option._id)"
                       :disabled="!renamingDefinitionName.trim()"
-                      @click="applyDefinitionRename(process)"
+                      @click.stop="applyDefinitionRename(option)"
                     />
                   </div>
-                  <div v-else class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      class="min-w-0 flex-[1_1_0%] basis-0 truncate text-left"
-                      :title="normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id)"
-                      @click="selectProcessDefinition(process._id)"
-                    >
-                      {{ [normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id), process.states?.main === 'ACTIVE' ? $t('processDesigner.activeSet') : null].filter(Boolean).join(' · ') }}
-                    </button>
+                  <div v-else class="flex w-full items-center gap-2">
+                    <span
+                      class="min-w-0 flex-1 truncate"
+                      :title="normalizeProcessDisplayName(option.identity?.name || option.identity?.uid || option._id)"
+                    >{{ [normalizeProcessDisplayName(option.identity?.name || option.identity?.uid || option._id), option.states?.main === 'ACTIVE' ? $t('processDesigner.activeSet') : null].filter(Boolean).join(' · ') }}</span>
                     <ToggleSwitch
                       class="shrink-0"
-                      :model-value="process.states?.main === 'ACTIVE'"
-                      :loading="definitionBusyId === String(process._id)"
+                      :model-value="option.states?.main === 'ACTIVE'"
+                      :loading="definitionBusyId === String(option._id)"
                       :aria-label="$t('processDesigner.activate')"
-                      @update:model-value="value => toggleDefinitionActive(process, value)"
+                      @update:model-value="value => toggleDefinitionActive(option, value)"
+                      @click.stop
                     />
                     <Button
                       icon="pi pi-history"
@@ -195,7 +195,7 @@
                       size="small"
                       text
                       :aria-label="$t('processDesigner.versions')"
-                      @click="toggleDefinitionHistory(process)"
+                      @click.stop="toggleDefinitionHistory(option)"
                     />
                     <Button
                       icon="pi pi-ellipsis-v"
@@ -205,42 +205,42 @@
                       severity="secondary"
                       :aria-label="$t('processDesigner.definitionActions')"
                       aria-haspopup="true"
-                      :aria-controls="`definition-menu-${process._id}`"
-                      @click="event => toggleDefinitionMenu(event, process)"
+                      :aria-controls="`definition-menu-${option._id}`"
+                      @click.stop="event => toggleDefinitionMenu(event, option)"
                     />
                     <Menu
-                      :ref="instance => setDefinitionMenuRef(process._id, instance)"
-                      :id="`definition-menu-${process._id}`"
-                      :model="definitionMenuItems(process)"
+                      :ref="instance => setDefinitionMenuRef(option._id, instance)"
+                      :id="`definition-menu-${option._id}`"
+                      :model="definitionMenuItems(option)"
                       popup
                     />
                   </div>
                   <div
-                    v-if="historyDefinitionId === String(process._id)"
-                    class="flex flex-col gap-1 border-l border-content-border pl-3"
+                    v-if="historyDefinitionId === String(option._id)"
+                    class="flex w-full flex-col gap-1"
                   >
-                  <div v-if="historyLoading" class="text-muted text-supporting">…</div>
-                  <div
-                    v-for="(entry, index) in definitionHistoryEntries"
-                    v-else-if="definitionHistoryEntries.length"
-                    :key="`${entry.at}-${index}`"
-                    class="flex items-center gap-2 text-supporting"
-                  >
-                    <span class="min-w-0 flex-1 truncate">{{ formatHistoryEntry(entry) }}</span>
-                    <Button
-                      icon="pi pi-undo"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      :aria-label="$t('common.restore')"
-                      :loading="definitionBusyId === String(process._id)"
-                      @click="restoreDefinitionVersion(process, entry)"
-                    />
+                    <div v-if="historyLoading" class="text-muted text-supporting">…</div>
+                    <div
+                      v-for="(entry, index) in definitionHistoryEntries"
+                      v-else-if="definitionHistoryEntries.length"
+                      :key="`${entry.at}-${index}`"
+                      class="flex items-center gap-2 text-supporting"
+                    >
+                      <span class="min-w-0 flex-1 truncate">{{ formatHistoryEntry(entry) }}</span>
+                      <Button
+                        icon="pi pi-undo"
+                        class="shrink-0"
+                        size="small"
+                        text
+                        :aria-label="$t('common.restore')"
+                        :loading="definitionBusyId === String(option._id)"
+                        @click.stop="restoreDefinitionVersion(option, entry)"
+                      />
+                    </div>
+                    <div v-else class="text-muted text-supporting">—</div>
                   </div>
-                  <div v-else class="text-muted text-supporting">—</div>
-                </div>
-              </div>
-            </div>
+                </template>
+              </Listbox>
             </TabPanel>
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
@@ -621,6 +621,7 @@ import Menu from 'primevue/menu';
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
+import Listbox from 'primevue/listbox';
 import Message from 'primevue/message';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Panel from 'primevue/panel';
@@ -1977,8 +1978,7 @@ async function toggleDefinitionHistory(process) {
 }
 
 function formatHistoryEntry(entry) {
-  const at = entry.at ? new Date(entry.at).toLocaleString() : '';
-  return [at, entry.actor].filter(Boolean).join(' · ');
+  return entry.at ? new Date(entry.at).toLocaleString() : '';
 }
 
 async function restoreDefinitionVersion(process, entry) {
