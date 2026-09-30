@@ -36,15 +36,16 @@
         </div>
     </div>
 
-    <!-- Mobile fallback: no workspace tabs on mobile, so the accepted call
-         opens the full-screen dialog. -->
+    <!-- Mobile: no workspace tabs, so the accepted call IS the screen —
+         a full-bleed sheet (edge-to-edge, viewport height), not a
+         floating dialog. -->
     <StandardDialog
         v-model:visible="callDialog"
         :header="$t('call.title')"
-        size="full"
+        size="sheet"
         :show-default-footer="false"
     >
-        <div class="flex h-preview-dialog flex-col">
+        <div class="flex min-h-0 flex-1 flex-col">
             <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
         </div>
     </StandardDialog>

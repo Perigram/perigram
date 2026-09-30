@@ -867,3 +867,18 @@ mobile detail mounts it edge-to-edge with no height cap. The chat dock
 and incoming calls keep the `full` size. The earlier popup pass was
 invisible compliance cleanup — this is the visible redesign the owner
 asked for, on the surface they were looking at.
+
+### Agent Notes (2026-09-30, mobile opens route — popups die)
+
+Owner verdict: the item-popup contract was slop. Both mobile popups are
+gone — record opens (openMobileInstance) and workspace-entity opens
+(openRequestedWorkspaceEntity) route to the compiled detail screen via
+detailRouteForInstance; the bounded directory dialog and the mobile
+detail sheet (plus their state) are deleted. Desktop keeps tab opens.
+
+### Agent Notes (2026-09-30, call popup is a sheet)
+
+The mobile accepted-call dialog was a floating full-size card (margins,
+rounded, fixed preview height). It mounts the sheet size now —
+edge-to-edge, viewport height, the panel fills it. The invite card
+keeps its floating toast shape.

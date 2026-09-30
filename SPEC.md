@@ -39,8 +39,7 @@ internals.
 
 Mobile devices scale the whole UI through the root font-size (the rem
 basis PrimeVue components and the typography roles share). Mobile record
-opens are full-bleed page sheets (edge-to-edge, viewport height, no
-desktop dialog chrome) — not floating dialogs.
+opens ROUTE to the compiled detail screen — no popup middleman.
 
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be
