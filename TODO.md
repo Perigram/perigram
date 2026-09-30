@@ -565,7 +565,9 @@ through the running app; the only "File not found" responses are three
 legacy voice messages (`6aaa96492e4c627e5b3fd2df`, `6aaa958b2e4c627e5b3fd219`,
 `6aaafd6721f27e65eab86ebc`) whose blobs are gone from every GridFS bucket
 (purge casualties from the Sep-29 incident) while their messages remain;
-no download-path code defect found. Blocking sends fixed on
+no download-path code defect found — **verdict corrected the same night
+(see the fifth-round note below: a real route defect made every
+non-ASCII filename 404)**. Blocking sends fixed on
 `agent/chat-sendfix-20260930`: the send saga owned the whole composer
 (`isLoading` disabled the send; text/files staged during an upload were
 wiped when it settled) — sends now snapshot and detach the draft at click
@@ -579,6 +581,20 @@ focused specs (localization, support), and the full
 `e2e/chat-file-upload.spec.js` green on merged `local`; fresh artifact in
 `test-results/chat-file-upload.json` (download 200, range 206,
 materialized child payload verified).
+
+Fifth round (same night, owner supplied a failing URL): the 404 verdict
+was wrong. `Content-Disposition` carried the stored filename raw; header
+values are Latin-1 only, so any non-ASCII name (the owner's Cyrillic call
+recording `Запись встречи…webm`) threw `ERR_INVALID_CHAR` inside the
+route, and the blanket catch dressed it up as `404 File not found` —
+ASCII-named files (every E2E fixture) masked it. Fixed on
+`agent/file-disposition-20260930`: RFC 6266 disposition (stripped-ASCII
+fallback + `filename*=UTF-8''…`), blanket catch removed so only a real
+meta miss 404s, and the extension map gained the media families
+(webm/ogg/mp3/wav/m4a/mov) so stored-contentType-less media serves
+playable types instead of octet-stream. E2E extended with a
+Cyrillic-named upload (200 + `filename*`) and green; the owner's URL now
+serves all 47,976,363 bytes inline as `video/webm`.
 
 ## Process Designer
 
