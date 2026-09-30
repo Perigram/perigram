@@ -135,9 +135,10 @@ describe('headless definition authoring', () => {
 
   it('preserves authored relation selection and socket defaults across a vocabulary gap', () => {
     const context = authoring();
-    // Bind against the full domain first: the relation selection derives.
+    // Bind against the full domain first: the relation selection derives
+    // (part carries the declared placed-on relation).
     context.drop('relatedEntities', { id: 'gapTables' });
-    context.configure('gapTables', { typeId: 'sheet' });
+    context.configure('gapTables', { typeId: 'part' });
     const derived = context.record('gapTables').relationKey;
     expect(derived).toBeTruthy();
     // Re-seat on a domain that does not know the type: the sync must not
