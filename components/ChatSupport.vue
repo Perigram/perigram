@@ -476,9 +476,15 @@
                                 <div
                                     v-if="messageItem.message || (messageItem.instanceRefs || []).length"
                                     class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
-                                    :class="isOwnMessage(messageItem)
-                                        ? 'bg-primary text-primary-contrast'
-                                        : 'bg-subtle'"
+                                    :class="[
+                                        // A voice message's transcription is caption
+                                        // chrome on the lower surface — never the
+                                        // sender's primary bubble (SPEC: chat).
+                                        isAudioOnlyMessage(messageItem) ? 'bg-subtle' : isOwnMessage(messageItem)
+                                            ? 'bg-primary text-primary-contrast'
+                                            : 'bg-subtle',
+                                        isAudioOnlyMessage(messageItem) ? 'order-last' : ''
+                                    ]"
                                 >
                                     <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
                                         <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
@@ -1664,6 +1670,12 @@ const transcribingMessageIds = ref(new Set())
 
 const canTranscribe = (messageItem) => transcriptionAvailable.value
     && (messageItem.attachments || []).length === 1
+    && messageItem.attachments[0].kind === 'audio'
+
+// Audio-only voice messages: their text is a transcription (the service
+// writes it into `message`), rendering under the player on the subtle
+// surface regardless of sender.
+const isAudioOnlyMessage = (messageItem) => (messageItem.attachments || []).length === 1
     && messageItem.attachments[0].kind === 'audio'
     && !messageItem.attachments[0].transcription
     && !String(messageItem.message || '').trim()
