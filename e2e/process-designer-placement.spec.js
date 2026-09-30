@@ -12,16 +12,17 @@ async function nodeTransforms(page) {
     .map(el => (el.getAttribute('style') || '').match(/translate\([^)]*\)/)?.[0] || ''));
 }
 
-async function paintedBands(page) {
+// Bands paint as hairline separators (LaneBands): each band's TOP is a
+// bordered div; the vertical lattice of separators is the painted lane
+// geometry.
+async function bandSeparatorTops(page) {
   return page.evaluate(() => {
-    const root = document.querySelector('.vue-flow .-z-10');
+    const root = document.querySelector('.vue-flow');
     if (!root) return [];
-    return Array.from(root.children)
-      .map(el => ({
-        top: Number((el.style.top || '').replace('px', '')) || 0,
-        height: Number((el.style.height || '').replace('px', '')) || 0
-      }))
-      .filter(band => band.height > 0);
+    return Array.from(root.querySelectorAll('div.border-t'))
+      .map(el => Number((el.style.top || '').replace('px', '')))
+      .filter(top => Number.isFinite(top))
+      .sort((left, right) => left - right);
   });
 }
 
@@ -59,19 +60,22 @@ test('palette add places at the viewport center and lanes wrap their cards', asy
   expect(secondPlacement).toContain(firstPlacement[0]);
   expect(secondPlacement[0]).not.toBe(secondPlacement[1]);
 
-  // the painted bands wrap the cards: some band contains each card, with
-  // the card's top inside the band's padded interior
-  const bands = await paintedBands(app.page);
-  expect(bands.length).toBeGreaterThan(0);
+  // the painted lane lattice wraps the cards: separators exist, every
+  // card sits inside the lattice (not above the stack), and the cards
+  // seat near the top of their lane (the hug) rather than floating free
+  const tops = await bandSeparatorTops(app.page);
+  expect(tops.length).toBeGreaterThan(1);
   const yOf = transform => Number(transform.match(/translate\((\d+)px,\s*(\d+)px\)/)?.[2]);
+  const lastTop = tops[tops.length - 1];
   for (const transform of secondPlacement) {
     const y = yOf(transform);
-    const wrapping = bands.find(band => y >= band.top && y + 96 <= band.top + band.height + 1);
-    expect(wrapping, `a painted band wraps the card at y=${y} (bands: ${JSON.stringify(bands)})`).toBeTruthy();
+    expect(y, `card y=${y} sits inside the lane lattice (tops: ${tops.join(',')})`).toBeGreaterThanOrEqual(tops[0]);
+    expect(y - lastTop, `card seats in the bottom lane near its top (y=${y}, lane top=${lastTop})`).toBeGreaterThanOrEqual(20);
+    expect(y - lastTop).toBeLessThan(400);
   }
 
   await testInfo.attach('palette-placement.json', {
-    body: JSON.stringify({ first: firstPlacement, second: secondPlacement, bands }, null, 2),
+    body: JSON.stringify({ first: firstPlacement, second: secondPlacement, bandTops: tops }, null, 2),
     contentType: 'application/json'
   });
   await app.expectCleanRuntime();

@@ -581,7 +581,9 @@ describe('deriveLaneFacts', () => {
       membershipOf: () => 'unassigned'
     });
     expect(derived.data.lane).toBeUndefined();
-    expect(derived.data.laneY).toBe(170 - 300);
+    // above its own band: clamped into it — authored offsets are never
+    // negative, the node seats at its band's top
+    expect(derived.data.laneY).toBe(0);
   });
 
   it('leaves nodes above the stack and below it correctly', () => {
