@@ -124,6 +124,10 @@ function relationEntriesFor(type, view) {
   }
   for (const [name, descriptor] of Object.entries(type.fields || {})) {
     if (descriptor?.base !== 'ref') continue;
+    // A slot-pinned ref opted out of relation semantics (the pack's
+    // operator-carried provenance refs live as data rows); only
+    // relation-slot refs declare relations.
+    if (descriptor.slot && descriptor.slot !== 'relations') continue;
     for (const target of descriptor.accepts || []) push(name, target);
   }
   return entries;
