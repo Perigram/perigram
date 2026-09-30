@@ -40,7 +40,7 @@
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label>{{ $t('typesPane.class') }}</label>
+          <label>{{ $t('processDesigner.declarationClass') }}</label>
           <Select
             :model-value="node.data.class"
             :options="classOptions"

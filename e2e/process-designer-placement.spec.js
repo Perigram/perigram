@@ -19,7 +19,7 @@ async function bandSeparatorTops(page) {
   return page.evaluate(() => {
     const root = document.querySelector('.vue-flow');
     if (!root) return [];
-    return Array.from(root.querySelectorAll('div.border-t'))
+    return Array.from(root.querySelectorAll('.lane-band'))
       .map(el => Number((el.style.top || '').replace('px', '')))
       .filter(top => Number.isFinite(top))
       .sort((left, right) => left - right);

@@ -13,8 +13,8 @@ import { clearTypeMigrationSteps, declarationPostFailure } from '~/utils/process
 // `resetCtsRegistry`, and every refresh re-derives the designer option
 // lists from the same projection the compiler consumes.
 //
-// Authoring a type happens in the types pane (pages/organization/types.vue)
-// or on the canvas declaration nodes; the canvas composes instances.
+// Authoring a type happens on the canvas declaration nodes; the canvas
+// composes instances.
 export function useProcessDesignerTypes({
   nodes,
   edges,

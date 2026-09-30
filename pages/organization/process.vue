@@ -97,16 +97,11 @@
       </div>
 
       <template #palette>
-        <div class="flex h-full min-h-0 flex-col">
-          <div class="flex shrink-0 items-center justify-end px-2 pt-2">
-            <Button icon="pi pi-database" severity="secondary" text rounded size="small" :aria-label="$t('typesPane.title')" v-tooltip.left="$t('typesPane.title')" @click="navigateTo('/organization/types')" />
-          </div>
-          <OperationPalette
-            :groups="paletteListboxGroups"
-            :placeholder="$t('processDesigner.searchOperations')"
-            @pick="item => (item.action ? item.action() : addNode(item))"
-          />
-        </div>
+        <OperationPalette
+          :groups="paletteListboxGroups"
+          :placeholder="$t('processDesigner.searchOperations')"
+          @pick="item => (item.action ? item.action() : addNode(item))"
+        />
       </template>
 
       <template #inspector>
