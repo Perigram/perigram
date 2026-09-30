@@ -39,11 +39,11 @@
           @node-drag-stop="onNodeDragStop"
           @nodes-change="onCanvasNodesChange"
         >
-          <template #node-ctsType="props"><CtsTypeNode v-bind="props" signal="structure" /></template>
-          <template #node-ctsClass="props"><ClassNode v-bind="props" signal="structure" /></template>
-          <template #node-ctsField="props"><FieldNode v-bind="props" signal="structure" @rename="value => renameDeclarationNode(props, value)" /></template>
-          <template #node-ctsState="props"><StateNode v-bind="props" signal="structure" @rename="value => renameDeclarationNode(props, value)" /></template>
-          <template #node-processNode="props"><ProcessNode v-bind="props" :signal="signalForNode(props)" /></template>
+          <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
+          <template #node-ctsClass="props"><ClassNode v-bind="props" /></template>
+          <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
           <template #zoom-pane>
             <LaneBands
               :bands="laneBands"
@@ -995,8 +995,7 @@ const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = u
 
 // Palette groups for the chip palettes: localized group labels and
 // per-item labels (the filter matches them), descriptions for the chip
-// tooltip, and the shared category signal (chips and canvas nodes read
-// the same token).
+// tooltip, and the shared category signal (the chip dot reads it).
 const toPaletteGroups = groups => (groups || []).map(group => ({
   id: group.id,
   label: paletteGroupLabel(group.id),
@@ -1009,20 +1008,6 @@ const toPaletteGroups = groups => (groups || []).map(group => ({
 })).filter(group => group.items.length);
 const paletteChipGroups = computed(() => toPaletteGroups(paletteGroups.value));
 const contextPaletteChipGroups = computed(() => toPaletteGroups(contextPaletteGroups.value));
-
-// Canvas nodes stripe with the same signal as the chip that creates them:
-// operation kinds resolve through the palette catalog, declaration nodes
-// are structure by definition.
-const signalByKind = computed(() => {
-  const map = new Map();
-  for (const group of designer.paletteGroups || []) {
-    for (const item of group.items) {
-      if (item.kind) map.set(item.kind, signalForPaletteGroup(group.id));
-    }
-  }
-  return map;
-});
-const signalForNode = node => signalByKind.value.get(node.data?.kind) || 'effect';
 const lifecycleModes = computed(() => [
   { label: t('processDesigner.lifecycleModeDefaultCreated'), value: 'defaultCreated' },
   { label: t('processDesigner.lifecycleModeDomainDefault'), value: 'domainDefault' },
