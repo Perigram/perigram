@@ -161,24 +161,6 @@ export const facadeFileTypes = [
     }]
   },
   {
-    // The declared material (SPEC §16 `Material`): the sheet stock a
-    // nesting run cuts from — standard sheet dimensions plus thickness.
-    // Class `file` (value identity, referenced); instances are children of
-    // the org-authored order container.
-    id: 'sheet-material',
-    class: 'file',
-    scope: 'system',
-    version: 1,
-    fields: {
-      code: { base: 'string', identifier: true },
-      width: { base: 'quantity', unit: 'mm' },
-      height: { base: 'quantity', unit: 'mm' },
-      thickness: { base: 'quantity', unit: 'mm' }
-    },
-    name: 'Sheet material',
-    glyph: 'pi pi-box'
-  },
-  {
     // Derived: sheet designs are produced by nesting runs (and refined
     // in the editor from cassette refs) — the legacy construction
     // exclusion, now declared. No construct modes; editor edits.

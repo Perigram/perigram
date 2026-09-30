@@ -74,16 +74,6 @@ nesting inputs, and per-piece traceability reference.
   pipeline) carry their own geometry and are referenced directly, not
   baked.
 
-## The sheet-material type
-
-`sheet-material` is the declared material (SPEC §16's `Material`): the
-sheet stock a nesting run cuts from. Class `file` (value identity,
-referenced — `code` is the identifier, `width`/`height`/`thickness` are
-`mm` quantities). Instances are created through the generic machinery
-(`genericCreate`) and ride an org-authored order container's children
-edge; `nesting.solve` resolves its sheet parameters from the bound
-instance.
-
 ## Modules
 
 - `src/pack.js` — the browser-safe declaration data: `facadeFileTypes`
