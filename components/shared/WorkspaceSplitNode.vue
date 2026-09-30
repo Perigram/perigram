@@ -73,16 +73,6 @@ const panePanelPt = {
   // to shrink below its content for the tablist to overflow and scroll.
   contentContainer: { class: 'flex min-h-0 min-w-0 flex-1 flex-col' },
   contentWrapper: { class: 'flex min-h-0 min-w-0 flex-1 flex-col' },
-  content: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0' }
+  content: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !p-0' }
 };
 </script>
-
-<style scoped>
-/* Same pane contract as the pt above, stated so style order cannot flip it:
-   a plain .p-0 utility ties with the theme's .p-panel-content padding rule,
-   and the production bundle loads app css before the injected theme — the
-   tie must not depend on that order. */
-:deep(.p-panel-content) {
-  padding: 0;
-}
-</style>
