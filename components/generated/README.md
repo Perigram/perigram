@@ -449,4 +449,7 @@ from the compiled manifest.
   minus explorer fields. Explorer rows and editor pages keep their
   records hydrated through the instances store pool for nesting and
   page props; lazily
-  fetched explorer children stay session-local.
+  fetched explorer children stay session-local. The persisted state is
+  applied after mount: production Vue does not rectify hydration
+  mismatches, so SSR and the hydration render stay identical and the
+  workspace swap-in rides normal reactivity.
