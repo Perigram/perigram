@@ -437,6 +437,11 @@
                             <div
                                 class="flex min-w-0 max-w-full flex-col gap-1"
                                 :class="[
+                                    // Hug the bubble: the row must not stretch
+                                    // full width, or the ±2rem menu overhang
+                                    // lands outside the thread column (whose
+                                    // overflow-y-auto forces overflow-x auto).
+                                    isOwnMessage(messageItem) ? 'self-end' : 'self-start',
                                     isOwnMessage(messageItem) ? 'items-end' : 'items-start',
                                     swipeDrag.id === messageItem._id ? '' : 'transition-transform',
                                     highlightKey === String(messageItem._id) ? 'animate-pulse' : ''
@@ -2498,13 +2503,8 @@ const executeCreateAction = async (action, data) => {
 const attachCreatedInstance = (action, result) => {
     if (!result || typeof result !== 'object') return
     const instance = result.created || (!result.owner ? (result.entity || result) : null)
-<<<<<<< HEAD
     const id = instance?._id?.toString?.() || instance?._id || instance?.id || instance?.identity?.uid || ''
-    const type = action.relationMutation?.targetType || action.typeId
-=======
-    const id = entity?._id?.toString?.() || entity?._id || entity?.id || entity?.identity?.uid || ''
     const type = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId
->>>>>>> agent/relation-entry-mutations-191940
     if (!id || !type) return
     if (!instanceRefs.value.some(ref => ref.type === type && ref.id === id)) {
         instanceRefs.value.push({
