@@ -1,5 +1,4 @@
 // Layered arrangement for the process canvas — the Tidy command's engine.
-// Contract (canonical): components/process-designer/README.md
 // "Auto-arrangement (Tidy)" and "Lanes". Pure: nodes, edges, lane band
 // membership in → positions plus content-hugging band geometry out.
 //
@@ -355,8 +354,7 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   return { positions: arranged, bands: bandGeometry().geometry };
 }
 
-// The lane container pass (contract: components/process-designer/README.md
-// "Lanes"). Node vertical coordinates are LANE-RELATIVE authored facts;
+// The lane container pass ("Lanes"). Node vertical coordinates are LANE-RELATIVE authored facts;
 // given membership (`membershipOf(node)` → band id or null) and each
 // node's lane offset (`laneYOf(node)` → number), derive the full layout:
 // every band hugs its content (height = member offset extent + padding,

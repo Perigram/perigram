@@ -86,7 +86,7 @@ const CAPABILITY_FEATURES = [
   // check keeps guarding shape.
   'artifact-templates'
 ];
-const IGNORE = ['_template', 'README.md', 'index.js'];
+const IGNORE = ['_template', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];
 const LEGACY_RAW_FIELD_PATTERN = /\braw\.(name|slug|serial|reference|type|geometry|parameters|metadata|organizationId|currentOrganizationId|warehouseId|params)\b/;
 const ROOT_TO_JSON_ALIAS_PATTERN = new RegExp(`\\b(${ENTITY_ROOT_ALIAS_FIELDS.join('|')}):\\s*this\\.`);
@@ -348,7 +348,7 @@ jsFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
 
-  if (relFile.startsWith('server/core/') && !relFile.endsWith('README.md') && /(@perigram\/domain-cnc|packages\/domain-cnc)/.test(content)) {
+  if (relFile.startsWith('server/core/') && /(@perigram\/domain-cnc|packages\/domain-cnc)/.test(content)) {
     console.error(`❌ ${relFile} imports CNC domain directly — use server/runtime/perigram-registry.js`);
     errors++;
   }

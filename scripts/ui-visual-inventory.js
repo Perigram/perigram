@@ -1,8 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { DESIGN_SYSTEM_PRIMITIVES } from '../utils/design-system-contract.js';
-
 export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/ChatSupport.vue': 'layout',
   'components/calls/CallPanel.vue': 'layout',
@@ -83,7 +78,6 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   ]],
 });
 
-const REGISTERED_PRIMITIVE_PATHS = new Set(DESIGN_SYSTEM_PRIMITIVES.map(primitive => primitive.componentPath));
 
 const VISUAL_CONCERNS = [
   ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl|\[[0-9.]+(?:px|rem|em)\])|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|mono|serif)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\])|leading-(?:none|tight|snug|normal|relaxed|loose|\[[^\]]+\]))\b/g],
@@ -92,17 +86,6 @@ const VISUAL_CONCERNS = [
   ['remove:state', /\b(?:active|disabled|focus|focus-visible|hover|invalid):[^\s"'`]+/g],
   ['remove:important-override', /(?:^|\s)![\w\[][^\s"'`]*/gm]
 ];
-
-const walkVueFiles = (dir, files = []) => {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const target = path.join(dir, entry.name);
-    if (entry.isDirectory()) walkVueFiles(target, files);
-    else if (entry.name.endsWith('.vue')) files.push(target);
-  }
-  return files;
-};
-
-export const inventoryId = (file) => `ui-${file.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 
 export const scopedStyleDeclarations = (source) => Array.from(
   source.match(/<style\s+scoped[^>]*>([\s\S]*?)<\/style>/)?.[1]?.matchAll(/(?:^|[;{])\s*([a-z-]+)\s*:/gm) || [],
@@ -159,48 +142,3 @@ export const analyzeVueVisuals = (file, source) => {
 
   return findings.length ? findings : ['compliant'];
 };
-
-export const repositoryVueInventory = (repoRoot) => [
-  ...['components', 'layouts', 'pages'].flatMap(dir => walkVueFiles(path.join(repoRoot, dir))),
-  path.join(repoRoot, 'error.vue')
-]
-  .filter(file => fs.existsSync(file))
-  .map((absolutePath) => {
-    const file = path.relative(repoRoot, absolutePath);
-    return {
-      id: inventoryId(file),
-      file,
-      findings: analyzeVueVisuals(file, fs.readFileSync(absolutePath, 'utf8'))
-    };
-  })
-  .sort((a, b) => a.file.localeCompare(b.file));
-
-export const inventoryOwnership = file => REGISTERED_PRIMITIVE_PATHS.has(file)
-  ? 'shared/domain primitive'
-  : 'derived usage';
-
-const updateAudit = (repoRoot) => {
-  const auditPath = path.join(repoRoot, 'docs/UI_COMPONENT_AUDIT.md');
-  const source = fs.readFileSync(auditPath, 'utf8');
-  const rows = repositoryVueInventory(repoRoot).map(({ id, file, findings }) =>
-    `| \`${id}\` | \`${file}\` | ${inventoryOwnership(file)} | ${findings.join('; ')} |`
-  );
-  const inventory = [
-    '## Component Inventory',
-    '',
-    'This generated matrix records durable ownership plus current source-derived',
-    'visual findings. Counts are occurrences, not exemptions. Run',
-    '`node scripts/ui-visual-inventory.js` after an intentional visual change;',
-    '`shared/design-system.spec.js` fails when source and this matrix diverge.',
-    '',
-    '| ID | Path | Primary ownership | Current disposition |',
-    '|---|---|---|---|',
-    ...rows,
-    ''
-  ].join('\n');
-  fs.writeFileSync(auditPath, `${source.slice(0, source.indexOf('## Component Inventory'))}${inventory}`);
-};
-
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  updateAudit(path.resolve(fileURLToPath(new URL('..', import.meta.url))));
-}

@@ -78,7 +78,7 @@
       <!-- The organizations section is the settings-side management face:
            every membership with switch-in-place, plus the one create
            entry (organization creation lives here, not in the popover —
-           layouts/README.md owns the account-control contract). -->
+           
       <section class="flex flex-col gap-2">
         <span class="text-muted text-supporting">{{ t('profile.myOrganizations') }}</span>
         <Button

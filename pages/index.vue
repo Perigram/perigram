@@ -76,7 +76,7 @@ async function redirectIfAuthenticated() {
     // The home screen is the default screen: the entry ladder ends at the
     // stable home route, so a missing or broken active definition still lands
     // organization members on the workspace's definition-independent
-    // surfaces (see pages/README.md).
+    // surfaces.
     await navigateTo(resolveProcessEntryRoute({
       screens: authStore.screenManifest,
       navigation: authStore.navigationManifest

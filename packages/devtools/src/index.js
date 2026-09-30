@@ -123,7 +123,6 @@ export function summarizeUiComponents(contracts = [], componentInventory = {}) {
     propName: contract.propName,
     status: contract.status,
     trace: contract.trace,
-    docs: contract.docs || [],
     componentPath: componentInventory[contract.key]?.componentPath || null,
     fieldPaths: componentInventory[contract.key]?.fieldPaths || []
   }));
@@ -134,8 +133,7 @@ export function summarizeUiPrimitives(primitives = []) {
     key: primitive.key,
     kind: primitive.kind,
     componentPath: primitive.componentPath,
-    purpose: primitive.purpose,
-    docs: primitive.docs || []
+    purpose: primitive.purpose
   }));
 }
 
@@ -176,7 +174,6 @@ export function validateUiPrimitives(primitives = []) {
     if (!primitive.kind) issues.push('missing kind');
     if (!primitive.componentPath) issues.push('missing component path');
     if (!primitive.purpose) issues.push('missing purpose');
-    if (!Array.isArray(primitive.docs) || primitive.docs.length === 0) issues.push('missing docs');
     return issues.map(issue => ({ key: primitive.key || 'unknown', issue }));
   });
 }
@@ -311,27 +308,6 @@ export function validateAttachmentKinds(attachmentKinds = {}) {
     if (!artifact.preview?.mode) issues.push({ key, issue: 'missing preview kind' });
     return issues;
   });
-}
-
-export function queryDocs(corpus = [], query = '') {
-  const needle = String(query || '').trim().toLowerCase();
-  if (!needle) return [];
-
-  return corpus
-    .map(document => {
-      const content = String(document.content || '');
-      const index = content.toLowerCase().indexOf(needle);
-      if (index === -1) return null;
-
-      const start = Math.max(0, index - 120);
-      const end = Math.min(content.length, index + needle.length + 120);
-      return {
-        path: document.path,
-        title: document.title || document.path,
-        snippet: content.slice(start, end).replace(/\s+/g, ' ').trim()
-      };
-    })
-    .filter(Boolean);
 }
 
 export function validateDefinitionSet(definitions = []) {

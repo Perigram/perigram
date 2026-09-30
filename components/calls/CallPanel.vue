@@ -1,5 +1,5 @@
 <template>
-    <!-- Bounded videocall surface (contract: components/calls/README.md):
+    <!-- Bounded videocall surface:
          the stage owns every pixel of height and the panel never
          page-scrolls — only the grid and the film strip scroll inside
          their own boxes. All controls live in one docked bar below the

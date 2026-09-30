@@ -1,7 +1,7 @@
 // Flat state value vocabulary (SPEC §7): a state value is one flat string.
 // Nesting is structural — authored by wiring a state node into another state
 // node and compiled by the process compiler — and is never encoded in this
-// value map (see packages/processes/README.md, CTS SPEC §7).
+// value map (CTS SPEC §7).
 
 function normalizePolicy(policy = {}) {
   if (policy == null) return null;

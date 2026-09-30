@@ -45,18 +45,14 @@ const cncWorkflows = Object.fromEntries(declaredWorkflows.map(declaration => {
   return [declaration.id, normalizeWorkflow({ regions })];
 }));
 import { frameworkTypes } from '../packages/cts/src/index.js';
-import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
 import { normalizeType, renderPolicyFor } from '../packages/cts/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
 import {
   analyzeVueVisuals,
-  inventoryId,
-  inventoryOwnership,
   INLINE_STYLE_EXCEPTIONS,
   inlineStyleAttributes,
   renderStyleBindings,
-  repositoryVueInventory,
   SCOPED_EXCEPTION_PROPERTIES,
   SCOPED_STYLE_EXCEPTIONS,
   scopedStyleDeclarations,
@@ -87,72 +83,9 @@ const usedVueFiles = () => ['components', 'layouts', 'pages']
   ))
   .map((file) => path.relative(REPO_ROOT, file));
 
-const repositoryVueFiles = () => [
-  ...['components', 'layouts', 'pages'].flatMap((dir) => walkFiles(
-    path.join(REPO_ROOT, dir),
-    (file) => file.endsWith('.vue')
-  )),
-  path.join(REPO_ROOT, 'error.vue')
-]
-  .filter((file) => fs.existsSync(file))
-  .map((file) => path.relative(REPO_ROOT, file))
-  .sort();
-
 describe('Design system manifest', () => {
-  it('reconciles every repository Vue file and design-system mechanism with the canonical audit', () => {
-    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
-    const rows = Array.from(source.matchAll(/^\| `(ui-[^`]+)` \| `([^`]+\.vue)` \|/gm));
-    const documentedFiles = rows.map(([, , file]) => file).sort();
-    const expectedFiles = repositoryVueFiles();
-    const expectedMechanisms = [
-      'aura',
-      'token-source',
-      'primevue-projection',
-      'tailwind-projection',
-      'css-variable-projection',
-      'preset',
-      'tailwind-aliases',
-      'global-css',
-      'runtime-overrides',
-      'scoped-css',
-      'primitive-registry',
-      'runtime-registry',
-      'ui-lab',
-      'enforcement'
-    ];
-    const documentedMechanisms = Array.from(source.matchAll(/^\| `(mechanism-[^`]+)` \|/gm))
-      .map(([, id]) => id.replace('mechanism-', ''))
-      .sort();
 
-    expect(documentedFiles).toEqual(expectedFiles);
-    expect(new Set(documentedFiles).size).toBe(documentedFiles.length);
-    expect(rows.filter(([, id, file]) => id !== inventoryId(file))).toEqual([]);
-    expect(documentedMechanisms).toEqual(expectedMechanisms.sort());
-  });
 
-  it('reconciles current visual findings with every canonical inventory row', () => {
-    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
-    const documented = new Map(Array.from(
-      source.matchAll(/^\| `(ui-[^`]+)` \| `([^`]+\.vue)` \| [^|]+ \| ([^|]+) \|$/gm),
-      match => [match[2], match[3].trim()]
-    ));
-
-    for (const { file, findings } of repositoryVueInventory(REPO_ROOT)) {
-      expect(documented.get(file), file).toBe(findings.join('; '));
-    }
-  });
-
-  it('derives component ownership from the primitive registry', () => {
-    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
-    const documented = new Map(Array.from(
-      source.matchAll(/^\| `ui-[^`]+` \| `([^`]+\.vue)` \| ([^|]+) \|/gm),
-      match => [match[1], match[2].trim()]
-    ));
-
-    for (const file of repositoryVueFiles()) {
-      expect(documented.get(file), file).toBe(inventoryOwnership(file));
-    }
-  });
 
   it('declares the standard entity card variants', () => {
     expect(DESIGN_SYSTEM_VARIANTS).toEqual(['card', 'compact', 'inline']);
@@ -174,23 +107,16 @@ describe('Design system manifest', () => {
       expect(entity.attachments).toBeTruthy();
       expect(entity.data).toBeTruthy();
 
-      for (const doc of entry.docs) {
-        expect(fs.existsSync(doc), `${entry.key} doc missing: ${doc}`).toBe(true);
-      }
     }
   });
 
-  it('declares shared design-system primitives with existing components and docs', () => {
+  it('declares shared design-system primitives with existing components', () => {
     expect(DESIGN_SYSTEM_PRIMITIVES.length).toBeGreaterThan(0);
 
     for (const primitive of DESIGN_SYSTEM_PRIMITIVES) {
       expect(primitive.key).toBeTruthy();
       expect(primitive.kind).toBeTruthy();
       expect(fs.existsSync(path.join(REPO_ROOT, primitive.componentPath)), primitive.componentPath).toBe(true);
-
-      for (const doc of primitive.docs || []) {
-        expect(fs.existsSync(path.join(REPO_ROOT, doc)), `${primitive.key} doc missing: ${doc}`).toBe(true);
-      }
     }
   });
 

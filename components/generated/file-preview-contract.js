@@ -1,5 +1,5 @@
 // File payload preview contract: the pure half of the file-surface
-// decision helpers (see components/generated/README.md). Kept free of
+// decision helpers. Kept free of
 // component imports so card/preview surfaces resolve payload preview
 // policy without pulling the editor-surface registry graph.
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';

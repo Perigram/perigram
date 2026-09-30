@@ -1,4 +1,4 @@
-// Screen composition (see README.md): projects a compiled screen contract
+// Screen composition: projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
 import { resolveSurface, resolveChrome, childrenModeFor, estimateRegionWeight, screenDensityFor, resolveListControls } from './index.js';

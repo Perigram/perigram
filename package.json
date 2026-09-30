@@ -25,12 +25,10 @@
     "framework:list-routes": "node scripts/framework-inspect.js list-routes",
     "framework:list-commands": "node scripts/framework-inspect.js list-commands",
     "framework:list-ui-primitives": "node scripts/framework-inspect.js list-ui-primitives",
-    "framework:query-docs": "node scripts/framework-inspect.js query-docs",
     "framework:manifest": "node scripts/framework-inspect.js check-manifest",
     "framework:write-manifest": "node scripts/framework-inspect.js write-manifest",
     "framework:validate": "node scripts/framework-inspect.js validate",
     "agent:scope-check": "node scripts/check-agent-scope.js",
-    "docs:validate": "node scripts/check-docs.js",
     "icons:build": "node scripts/build-entity-icons.js",
     "test:durable": "node --test server/features/process-definitions/run-repository.spec.js"
   },

@@ -1,7 +1,7 @@
 <script setup>
 // `/screens` has no surface of its own: the home screen is the default
-// screen, so the bare route points at the stable home route (see
-// pages/README.md).
+// screen, so the bare route points at the stable home route.
+
 definePageMeta({
   layout: 'app',
   middleware: 'auth'

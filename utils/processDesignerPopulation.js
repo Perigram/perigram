@@ -1,5 +1,5 @@
 // Presentation population primacy for the process canvas (canonical
-// contract: components/process-designer/README.md — node UI contract
+// node UI contract
 // "Cards" and "Lanes"). The one predicate every consumer routes through:
 // the remove operation is presentation-secondary (plain content surface,
 // hidden in the clean view) while remaining a lane effect whose grants

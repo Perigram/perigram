@@ -396,7 +396,7 @@ const inviteForm = ref({
 
 // Targeted invitation state: invitee search runs through the directory
 // feature (name-only, cross-tenant) and the selected user receives a
-// single-handshake invitation (see server/features/invitations/README.md).
+// single-handshake invitation.
 const inviteSearch = ref('');
 const inviteResults = ref([]);
 const inviteSearching = ref(false);

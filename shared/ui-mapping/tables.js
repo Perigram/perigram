@@ -1,4 +1,4 @@
-// Default matcher tables for the UI mapping contract (see README.md).
+// Default matcher tables for the UI mapping contract.
 // Pure data: component keys are strings resolved by the app-side registry;
 // no Vue, PrimeVue, or domain names live here.
 

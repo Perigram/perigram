@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BaseEntity, createStatusState } from './index.js';
 
 // The storage round-trip contract (canonical contract in
-// server/core/blocks/README.md): toJSON() output is the persisted document,
+// toJSON() output is the persisted document,
 // so re-parsing it must preserve the current lifecycle state and its
 // transition evidence instead of surfacing `states: null` on re-read.
 describe('BaseEntity state storage round-trip', () => {

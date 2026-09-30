@@ -2315,7 +2315,7 @@ const loadNewChatUsers = async () => {
 }
 
 // Directory search over the new-chat picker: the typed query searches
-// users by name (see server/features/directory/README.md) across every
+// users by name across every
 // organization — direct threads are open between any two accounts, and
 // the picker lists every match except the caller's own entry.
 const newChatSearch = ref('')
