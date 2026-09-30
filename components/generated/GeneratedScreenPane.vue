@@ -13,7 +13,7 @@
       @close="$emit('close')"
     />
 
-    <div class="min-h-0 flex-1 overflow-auto p-4 pt-1.5">
+    <div class="min-h-0 flex-1 overflow-auto p-4">
       <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
       <StateBlock v-else-if="notFound" state="error" :message="$t('generatedScreen.notFound')" />
       <!-- Screens render through the ui-mapping engine — the same CTS
