@@ -11,7 +11,11 @@ programming environment, it should be the cleanest and most elegant thing ever s
 operations, architecture, mapping cts to interface, nodes UI/UX: contracts/layouts/etc unified, core behavior tested, all the legacy removed, all architectural inconsistencies cleaned. Nodes represent CTS, ensure anything can be programmed with it. Types created, instances mutated/deleted, fields modified, data structures managed, and so on.
 
 
-## UI 
+## UI
+
+All UI is written in raw, unmodified PrimeVue plus the repo's registered
+shared primitives. No hand-rolled div/button chrome, no custom controls.
+Raw IDs and other technical identifiers are never shown in user-facing UI.
 
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be
