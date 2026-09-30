@@ -253,9 +253,6 @@
     "components": [
       {
         "componentPath": "components/entities/SheetDesign/SheetDesignCard.vue",
-        "docs": [
-          "server/packs/facade/sheet-designs/README.md"
-        ],
         "fieldPaths": [],
         "group": "production",
         "key": "sheetDesign",
@@ -267,10 +264,6 @@
       },
       {
         "componentPath": "components/entities/Cassette/CassetteCard.vue",
-        "docs": [
-          "components/entities/Cassette/README.md",
-          "server/packs/facade/cassettes/README.md"
-        ],
         "fieldPaths": [],
         "group": "production",
         "key": "cassette",
@@ -282,10 +275,6 @@
       },
       {
         "componentPath": null,
-        "docs": [
-          "components/entities/EntityRevision/README.md",
-          "server/features/instance-revisions/README.md"
-        ],
         "fieldPaths": [],
         "group": "system",
         "key": "entityRevision",
@@ -297,9 +286,6 @@
       },
       {
         "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
-        "docs": [
-          "server/features/instances/README.md"
-        ],
         "fieldPaths": [],
         "group": "master",
         "key": "penTemplate",
@@ -311,9 +297,6 @@
       },
       {
         "componentPath": "components/entities/LayerStandard/LayerStandardCard.vue",
-        "docs": [
-          "server/features/instances/README.md"
-        ],
         "fieldPaths": [],
         "group": "master",
         "key": "layerStandard",
@@ -325,9 +308,6 @@
       },
       {
         "componentPath": "components/entities/User/UserCard.vue",
-        "docs": [
-          "server/features/users/README.md"
-        ],
         "fieldPaths": [],
         "group": "system",
         "key": "user",
@@ -339,9 +319,6 @@
       },
       {
         "componentPath": "components/entities/Organization/OrganizationCard.vue",
-        "docs": [
-          "server/features/organizations/README.md"
-        ],
         "fieldPaths": [],
         "group": "system",
         "key": "organization",
@@ -353,9 +330,6 @@
       },
       {
         "componentPath": "components/entities/Artifact/ArtifactCard.vue",
-        "docs": [
-          "server/features/artifacts/README.md"
-        ],
         "fieldPaths": [],
         "group": "system",
         "key": "artifact",
@@ -367,9 +341,6 @@
       },
       {
         "componentPath": null,
-        "docs": [
-          "server/features/artifact-templates/README.md"
-        ],
         "fieldPaths": [],
         "group": "master",
         "key": "artifactTemplate",
@@ -401,195 +372,126 @@
     "primitives": [
       {
         "componentPath": "components/shared/InstanceCard.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "InstanceCard",
         "kind": "entity-chrome",
         "purpose": "Standard entity card chrome with identity, optional trace, optional status, content, and footer slots."
       },
       {
         "componentPath": "components/shared/InstancePage.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "InstancePage",
         "kind": "entity-layout",
         "purpose": "Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots."
       },
       {
         "componentPath": "components/shared/InstanceSelect.vue",
-        "docs": [
-          "components/shared/README.md",
-          "docs/DESIGN_SYSTEM.md"
-        ],
         "key": "InstanceSelect",
         "kind": "entity-input",
         "purpose": "PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger."
       },
       {
         "componentPath": "components/shared/InstanceMultiSelect.vue",
-        "docs": [
-          "components/shared/README.md",
-          "docs/DESIGN_SYSTEM.md"
-        ],
         "key": "InstanceMultiSelect",
         "kind": "entity-input",
         "purpose": "PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger."
       },
       {
         "componentPath": "components/shared/blocks/DataBlock.vue",
-        "docs": [
-          "components/shared/README.md",
-          "utils/README.md"
-        ],
         "key": "DataBlock",
         "kind": "block",
         "purpose": "Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies."
       },
       {
         "componentPath": "components/shared/state/InstanceState.vue",
-        "docs": [
-          "components/shared/README.md",
-          "utils/README.md"
-        ],
         "key": "InstanceState",
         "kind": "status",
         "purpose": "Interactive status display and workflow-derived transition actions."
       },
       {
         "componentPath": "components/shared/state/StateHistory.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "StateHistory",
         "kind": "status",
         "purpose": "Status audit timeline for entity lifecycle events."
       },
       {
         "componentPath": "components/shared/DrawingCanvas.vue",
-        "docs": [
-          "components/shared/README.md",
-          "utils/README.md"
-        ],
         "key": "DrawingCanvas",
         "kind": "block",
         "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions."
       },
       {
         "componentPath": "components/shared/DesignerSurface.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "DesignerSurface",
         "kind": "layout",
         "purpose": "Shared full-height flex boundary for operational designer route, pane, and dialog hosts."
       },
       {
         "componentPath": "components/shared/DesignerWorkspace.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "DesignerWorkspace",
         "kind": "layout",
         "purpose": "Shared responsive palette/canvas/inspector workspace for operational designers."
       },
       {
         "componentPath": "components/shared/DesignerDialog.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "DesignerDialog",
         "kind": "layout",
         "purpose": "Viewport-sized dialog host for standalone designer launches."
       },
       {
         "componentPath": "components/shared/ThreeViewport.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "ThreeViewport",
         "kind": "viewport",
         "purpose": "Shared Three.js renderer lifecycle and selectable scene viewport for designers."
       },
       {
         "componentPath": "components/shared/GeometryPreview.vue",
-        "docs": [
-          "components/shared/README.md",
-          "docs/DESIGN_SYSTEM.md"
-        ],
         "key": "GeometryPreview",
         "kind": "block",
         "purpose": "Token-backed SVG preview for DXF layers and polygon geometry stored in data.geometry.preview."
       },
       {
         "componentPath": "components/shared/links/TraceLink.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "TraceLink",
         "kind": "trace",
         "purpose": "Single related-entity link used inside rows, status locations, and custom relation fields; TraceChain is for full ancestry."
       },
       {
         "componentPath": "components/shared/links/TraceChain.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "TraceChain",
         "kind": "trace",
         "purpose": "Canonical lineage breadcrumb chain for entity ancestry."
       },
       {
         "componentPath": "components/shared/ActionToolbar.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "ActionToolbar",
         "kind": "layout",
         "purpose": "Shared section/header action row used by hubs, tabs, and list pages instead of ad hoc header flex markup."
       },
       {
         "componentPath": "components/shared/ResponsiveGrid.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "ResponsiveGrid",
         "kind": "layout",
         "purpose": "Token-backed responsive repeated-item grid."
       },
       {
         "componentPath": "components/shared/StateBlock.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "StateBlock",
         "kind": "layout",
         "purpose": "Standard loading, empty, and error states."
       },
       {
         "componentPath": "components/shared/TableFrame.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "TableFrame",
         "kind": "layout",
         "purpose": "Standard token-backed frame for PrimeVue DataTable surfaces, including table header background."
       },
       {
         "componentPath": "components/shared/StandardDialog.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "StandardDialog",
         "kind": "layout",
         "purpose": "Standard modal shell with footer and responsive sizing."
       },
       {
         "componentPath": "components/shared/StandardPage.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
         "key": "StandardPage",
         "kind": "layout",
         "purpose": "Standard page shell with header and breadcrumbs."
@@ -1256,6 +1158,12 @@
       "kind": "lineage",
       "source": "organization",
       "target": "process_definition",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
+      "target": "supportMessage",
       "via": "lineage.organizationId"
     },
     {

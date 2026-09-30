@@ -1,4 +1,4 @@
-// Canonical instance-filter vocabulary (see README.md): one structured
+// Canonical instance-filter vocabulary: one structured
 // filter tree the server list transport, the generated-screen composition,
 // and the collection toolbar all speak. Pure data and pure functions — no
 // Vue, Nuxt, Mongo, or domain imports. The flat transport map compiled

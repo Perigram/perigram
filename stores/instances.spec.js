@@ -4,7 +4,7 @@ import { useAuthStore } from './auth';
 import { useInstancesStore } from './instances';
 import { emitInstanceCreated, emitInstanceDeleted, emitInstanceUpdated } from '~/utils/instance-events.js';
 
-// The client state model contract (stores/README.md): cache key
+// The client state model contract: cache key
 // canonicalization, endpoint resolution mirroring the server resolver,
 // list observations, coalesced reads, event reconciliation, and the
 // mutation boundary.

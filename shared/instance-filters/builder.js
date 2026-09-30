@@ -1,4 +1,4 @@
-// Builder edit model (see README.md): the user-facing projection of the
+// Builder edit model: the user-facing projection of the
 // canonical filter tree. One combinator over predicate rows with per-row
 // negation — the surface AND/OR/NOT is made of. Pure data and functions.
 

@@ -102,7 +102,7 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   return raws.map(raw => new Organization(raw));
 }
 
-// Directory discovery (see ../directory/README.md): matches organizations by
+// Directory discovery: matches organizations by
 // name across tenants and is consumed exclusively by the directory feature
 // for search cards; ordinary list queries stay membership-scoped.
 export async function directorySearch(query, limit = 10) {

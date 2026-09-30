@@ -74,8 +74,7 @@ const screen = computed(() => {
     || synthesizedDetailScreen(screenKey.value)
     // Home is the default screen: an unresolvable key (no active
     // definition, one that no longer compiles, a stale bookmark) renders
-    // the home workspace instead of an error surface. Canonical contract:
-    // pages/README.md (Public Entry).
+    // the home workspace instead of an error surface.
     || resolveDefaultHomeScreen(authStore.screenManifest);
   return {
     ...base,

@@ -1,4 +1,4 @@
-// The design-system vocabulary (docs/DESIGN_SYSTEM.md): status chrome, UI
+// The design-system vocabulary: status chrome, UI
 // lab variants/groups/primitives, the per-entity demo contracts, the
 // residual fact vocabulary for undeclared master data, and the surface
 // chrome contracts. One home, app-level — this is presentation vocabulary,
@@ -153,41 +153,41 @@ export const DESIGN_SYSTEM_GROUPS = [
 ];
 
 export const DESIGN_SYSTEM_PRIMITIVES = [
-  { key: 'InstanceCard', kind: 'entity-chrome', componentPath: 'components/shared/InstanceCard.vue', purpose: 'Standard entity card chrome with identity, optional trace, optional status, content, and footer slots.', docs: ['components/shared/README.md'] },
-  { key: 'InstancePage', kind: 'entity-layout', componentPath: 'components/shared/InstancePage.vue', purpose: 'Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots.', docs: ['components/shared/README.md'] },
-  { key: 'InstanceSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceSelect.vue', purpose: 'PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
-  { key: 'InstanceMultiSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceMultiSelect.vue', purpose: 'PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
-  { key: 'DataBlock', kind: 'block', componentPath: 'components/shared/blocks/DataBlock.vue', purpose: 'Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies.', docs: ['components/shared/README.md', 'utils/README.md'] },
-  { key: 'InstanceState', kind: 'status', componentPath: 'components/shared/state/InstanceState.vue', purpose: 'Interactive status display and workflow-derived transition actions.', docs: ['components/shared/README.md', 'utils/README.md'] },
-  { key: 'StateHistory', kind: 'status', componentPath: 'components/shared/state/StateHistory.vue', purpose: 'Status audit timeline for entity lifecycle events.', docs: ['components/shared/README.md'] },
-  { key: 'DrawingCanvas', kind: 'block', componentPath: 'components/shared/DrawingCanvas.vue', purpose: 'Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions.', docs: ['components/shared/README.md', 'utils/README.md'] },
-  { key: 'DesignerSurface', kind: 'layout', componentPath: 'components/shared/DesignerSurface.vue', purpose: 'Shared full-height flex boundary for operational designer route, pane, and dialog hosts.', docs: ['components/shared/README.md'] },
-  { key: 'DesignerWorkspace', kind: 'layout', componentPath: 'components/shared/DesignerWorkspace.vue', purpose: 'Shared responsive palette/canvas/inspector workspace for operational designers.', docs: ['components/shared/README.md'] },
-  { key: 'DesignerDialog', kind: 'layout', componentPath: 'components/shared/DesignerDialog.vue', purpose: 'Viewport-sized dialog host for standalone designer launches.', docs: ['components/shared/README.md'] },
-  { key: 'ThreeViewport', kind: 'viewport', componentPath: 'components/shared/ThreeViewport.vue', purpose: 'Shared Three.js renderer lifecycle and selectable scene viewport for designers.', docs: ['components/shared/README.md'] },
-  { key: 'GeometryPreview', kind: 'block', componentPath: 'components/shared/GeometryPreview.vue', purpose: 'Token-backed SVG preview for DXF layers and polygon geometry stored in data.geometry.preview.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
-  { key: 'TraceLink', kind: 'trace', componentPath: 'components/shared/links/TraceLink.vue', purpose: 'Single related-entity link used inside rows, status locations, and custom relation fields; TraceChain is for full ancestry.', docs: ['components/shared/README.md'] },
-  { key: 'TraceChain', kind: 'trace', componentPath: 'components/shared/links/TraceChain.vue', purpose: 'Canonical lineage breadcrumb chain for entity ancestry.', docs: ['components/shared/README.md'] },
-  { key: 'ActionToolbar', kind: 'layout', componentPath: 'components/shared/ActionToolbar.vue', purpose: 'Shared section/header action row used by hubs, tabs, and list pages instead of ad hoc header flex markup.', docs: ['components/shared/README.md'] },
-  { key: 'ResponsiveGrid', kind: 'layout', componentPath: 'components/shared/ResponsiveGrid.vue', purpose: 'Token-backed responsive repeated-item grid.', docs: ['components/shared/README.md'] },
-  { key: 'StateBlock', kind: 'layout', componentPath: 'components/shared/StateBlock.vue', purpose: 'Standard loading, empty, and error states.', docs: ['components/shared/README.md'] },
-  { key: 'TableFrame', kind: 'layout', componentPath: 'components/shared/TableFrame.vue', purpose: 'Standard token-backed frame for PrimeVue DataTable surfaces, including table header background.', docs: ['components/shared/README.md'] },
-  { key: 'StandardDialog', kind: 'layout', componentPath: 'components/shared/StandardDialog.vue', purpose: 'Standard modal shell with footer and responsive sizing.', docs: ['components/shared/README.md'] },
-  { key: 'StandardPage', kind: 'layout', componentPath: 'components/shared/StandardPage.vue', purpose: 'Standard page shell with header and breadcrumbs.', docs: ['components/shared/README.md'] }
+  { key: 'InstanceCard', kind: 'entity-chrome', componentPath: 'components/shared/InstanceCard.vue', purpose: 'Standard entity card chrome with identity, optional trace, optional status, content, and footer slots.' },
+  { key: 'InstancePage', kind: 'entity-layout', componentPath: 'components/shared/InstancePage.vue', purpose: 'Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots.' },
+  { key: 'InstanceSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceSelect.vue', purpose: 'PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger.' },
+  { key: 'InstanceMultiSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceMultiSelect.vue', purpose: 'PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger.' },
+  { key: 'DataBlock', kind: 'block', componentPath: 'components/shared/blocks/DataBlock.vue', purpose: 'Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies.' },
+  { key: 'InstanceState', kind: 'status', componentPath: 'components/shared/state/InstanceState.vue', purpose: 'Interactive status display and workflow-derived transition actions.' },
+  { key: 'StateHistory', kind: 'status', componentPath: 'components/shared/state/StateHistory.vue', purpose: 'Status audit timeline for entity lifecycle events.' },
+  { key: 'DrawingCanvas', kind: 'block', componentPath: 'components/shared/DrawingCanvas.vue', purpose: 'Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions.' },
+  { key: 'DesignerSurface', kind: 'layout', componentPath: 'components/shared/DesignerSurface.vue', purpose: 'Shared full-height flex boundary for operational designer route, pane, and dialog hosts.' },
+  { key: 'DesignerWorkspace', kind: 'layout', componentPath: 'components/shared/DesignerWorkspace.vue', purpose: 'Shared responsive palette/canvas/inspector workspace for operational designers.' },
+  { key: 'DesignerDialog', kind: 'layout', componentPath: 'components/shared/DesignerDialog.vue', purpose: 'Viewport-sized dialog host for standalone designer launches.' },
+  { key: 'ThreeViewport', kind: 'viewport', componentPath: 'components/shared/ThreeViewport.vue', purpose: 'Shared Three.js renderer lifecycle and selectable scene viewport for designers.' },
+  { key: 'GeometryPreview', kind: 'block', componentPath: 'components/shared/GeometryPreview.vue', purpose: 'Token-backed SVG preview for DXF layers and polygon geometry stored in data.geometry.preview.' },
+  { key: 'TraceLink', kind: 'trace', componentPath: 'components/shared/links/TraceLink.vue', purpose: 'Single related-entity link used inside rows, status locations, and custom relation fields; TraceChain is for full ancestry.' },
+  { key: 'TraceChain', kind: 'trace', componentPath: 'components/shared/links/TraceChain.vue', purpose: 'Canonical lineage breadcrumb chain for entity ancestry.' },
+  { key: 'ActionToolbar', kind: 'layout', componentPath: 'components/shared/ActionToolbar.vue', purpose: 'Shared section/header action row used by hubs, tabs, and list pages instead of ad hoc header flex markup.' },
+  { key: 'ResponsiveGrid', kind: 'layout', componentPath: 'components/shared/ResponsiveGrid.vue', purpose: 'Token-backed responsive repeated-item grid.' },
+  { key: 'StateBlock', kind: 'layout', componentPath: 'components/shared/StateBlock.vue', purpose: 'Standard loading, empty, and error states.' },
+  { key: 'TableFrame', kind: 'layout', componentPath: 'components/shared/TableFrame.vue', purpose: 'Standard token-backed frame for PrimeVue DataTable surfaces, including table header background.' },
+  { key: 'StandardDialog', kind: 'layout', componentPath: 'components/shared/StandardDialog.vue', purpose: 'Standard modal shell with footer and responsive sizing.' },
+  { key: 'StandardPage', kind: 'layout', componentPath: 'components/shared/StandardPage.vue', purpose: 'Standard page shell with header and breadcrumbs.' }
 ];
 
 
 export const DESIGN_SYSTEM_ENTITY_CONTRACTS = [
-  ['sheetDesign', 'sheet_design', 'production', 'entities.sheetDesign', 'design', 'createMockSheetDesign', 'hidden', true, ['server/packs/facade/sheet-designs/README.md']],
-  ['cassette', 'cassette', 'production', 'entities.cassette', 'cassette', 'createMockCassette', 'interactive', true, ['components/entities/Cassette/README.md', 'server/packs/facade/cassettes/README.md']],
-  ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true, ['components/entities/EntityRevision/README.md', 'server/features/instance-revisions/README.md']],
-  ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false, ['server/features/instances/README.md']],
-  ['layerStandard', 'layer_standard', 'master', 'entities.layerStandard', 'standard', 'createMockLayerStandard', 'hidden', false, ['server/features/instances/README.md']],
-  ['user', 'user', 'system', 'entities.user', 'user', 'createMockUser', 'hidden', false, ['server/features/users/README.md']],
-  ['organization', 'organization', 'system', 'entities.organization', 'organization', 'createMockOrganization', 'hidden', false, ['server/features/organizations/README.md']],
-  ['artifact', 'artifact', 'system', 'entities.artifact', 'artifact', 'createMockArtifact', 'hidden', true, ['server/features/artifacts/README.md']],
-  ['artifactTemplate', 'artifact_template', 'master', 'entities.artifactTemplate', 'artifactTemplate', 'createMockArtifactTemplate', 'hidden', false, ['server/features/artifact-templates/README.md']]
-].map(([key, typeId, group, labelKey, propName, factoryName, status, trace, docs]) => ({
+  ['sheetDesign', 'sheet_design', 'production', 'entities.sheetDesign', 'design', 'createMockSheetDesign', 'hidden', true],
+  ['cassette', 'cassette', 'production', 'entities.cassette', 'cassette', 'createMockCassette', 'interactive', true],
+  ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true],
+  ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false],
+  ['layerStandard', 'layer_standard', 'master', 'entities.layerStandard', 'standard', 'createMockLayerStandard', 'hidden', false],
+  ['user', 'user', 'system', 'entities.user', 'user', 'createMockUser', 'hidden', false],
+  ['organization', 'organization', 'system', 'entities.organization', 'organization', 'createMockOrganization', 'hidden', false],
+  ['artifact', 'artifact', 'system', 'entities.artifact', 'artifact', 'createMockArtifact', 'hidden', true],
+  ['artifactTemplate', 'artifact_template', 'master', 'entities.artifactTemplate', 'artifactTemplate', 'createMockArtifactTemplate', 'hidden', false]
+].map(([key, typeId, group, labelKey, propName, factoryName, status, trace]) => ({
   key,
   typeId,
   group,
@@ -195,8 +195,7 @@ export const DESIGN_SYSTEM_ENTITY_CONTRACTS = [
   propName,
   factoryName,
   status,
-  trace,
-  docs
+  trace
 }));
 
 export const DESIGN_SYSTEM_SURFACE_CONTRACTS = createEntitySurfaceContracts(DESIGN_SYSTEM_ENTITY_CONTRACTS);
@@ -228,7 +227,6 @@ export function validateDesignSystemContracts(entries = DESIGN_SYSTEM_ENTITY_CON
     if (!entry.factoryName) issues.push('missing factory name');
     if (!['interactive', 'hidden', 'readonly'].includes(entry.status)) issues.push('invalid status policy');
     if (typeof entry.trace !== 'boolean') issues.push('invalid trace policy');
-    if (!Array.isArray(entry.docs) || entry.docs.length === 0) issues.push('missing docs');
     if (!DESIGN_SYSTEM_SURFACE_CONTRACTS[entry.key]) issues.push('missing surface contract');
 
     return issues.map((issue) => ({ key: entry.key || 'unknown', issue }));

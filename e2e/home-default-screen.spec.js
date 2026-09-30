@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures.js';
 
-// The home screen is the default screen (pages/README.md, Public Entry):
+// The home screen is the default screen:
 // an organization whose active definition compiles to no screens — the
 // bootstrap empty process every new organization starts with — still
 // enters the home workspace with its definition-independent surfaces,

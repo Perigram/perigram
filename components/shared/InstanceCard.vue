@@ -292,7 +292,7 @@ const inlineExecuteActionRef = inject('instanceInlineExecuteAction', null);
 
 const { t } = useI18n();
 const registry = useRegistryStore();
-// Render-policy icons are the single icon source (stores/README.md):
+// Render-policy icons are the single icon source:
 // the legacy instanceUiFor table died with the per-surface icon drift.
 const instanceConfig = computed(() => ({ icon: registry.iconFor(props.typeId) }));
 const displayPlan = computed(() => resolveInstanceDisplayContract({

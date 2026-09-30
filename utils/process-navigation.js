@@ -27,7 +27,6 @@ export function resolveVisibleScreens(screens = [], permissions = {}) {
 // navigable screens. Sourceless on purpose: the home workspace renders its
 // definition-independent surfaces (chats, calls, profile) from an empty
 // contract; the manifest only ever ADDS type sections. Canonical contract:
-// pages/README.md (Public Entry).
 export function defaultHomeScreen() {
   const screenKey = 'home';
   return {

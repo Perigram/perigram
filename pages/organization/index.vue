@@ -103,8 +103,7 @@ const createOrganization = async () => {
   }
 };
 
-// Targeted invitations for this account (see
-// server/features/invitations/README.md): accept makes the membership
+// Targeted invitations for this account: accept makes the membership
 // active in a single handshake, so the store must re-hydrate afterwards.
 const invitations = ref([]);
 const respondingInviteId = ref(null);

@@ -2237,7 +2237,7 @@ function decorateEdges(items = []) {
 }
 
 // Wire styling encodes WHAT TRAVELS (node UI contract in
-// components/process-designer/README.md): solid = instances (the entity
+// solid = instances (the entity
 // spine between operations), dashed = values, dotted = events — the one
 // wire family allowed color, the primary accent. Declaration bindings
 // keep the demuted structure dashed family as the second association

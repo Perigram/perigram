@@ -5,8 +5,7 @@ import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useRegistryStore } from './registry';
 import { useOutboxStore } from './outbox';
 
-// The single instance cache and transport boundary (canonical contract in
-// stores/README.md). Records are keyed by type key, then id; each entry
+// The single instance cache and transport boundary. Records are keyed by type key, then id; each entry
 // carries the raw wire DTO plus, when the registry knows the type, the
 // derived CTS instance shape. List results are cached observations; single
 // reads and mutations coalesce per type:id. Endpoint resolution mirrors the
@@ -236,7 +235,7 @@ export const useInstancesStore = defineStore('instances', () => {
         }
         // Framework party types are directory-visible beyond the caller's
         // memberships: the directory card is the cross-tenant fallback
-        // (name-level only — see server/features/directory/README.md).
+        // (name-level only).
         return directoryFallback(typeKey, id, fetchOptions);
       })
       .catch(err => {

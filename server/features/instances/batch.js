@@ -3,8 +3,7 @@ import { CLASS_COLLECTIONS, lineageKeyForParent } from '~/packages/cts/src/index
 import { hasInstanceAccess } from '../../core/access/service.js';
 import { declarationForType } from './service.js';
 
-// The table-import batch construction (contract: server/features/
-// instances/README.md). N rows as one call: every row constructs through
+// The table-import batch construction. N rows as one call: every row constructs through
 // the target type's registered construction handler behind the same
 // access-engine call as `patch`, quantity expands into N identical
 // children (per-piece nesting and traceability need distinct records),

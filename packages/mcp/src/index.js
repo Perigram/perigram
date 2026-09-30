@@ -12,7 +12,6 @@ export function createReadOnlyToolHandlers({
   listSummaries = () => [],
   listCommands = () => [],
   validateUiContracts = () => ({ ok: true, issues: [] }),
-  queryDocs = () => [],
   validateTransition = () => ({ ok: false, reason: 'validator_missing' })
 }) {
   return {
@@ -28,7 +27,6 @@ export function createReadOnlyToolHandlers({
     list_summaries: async () => listSummaries(),
     list_commands: async () => listCommands(),
     validate_ui_contracts: async () => validateUiContracts(),
-    query_docs: async ({ query }) => queryDocs(query),
     simulate_transition: async ({ type, currentState, targetState, role }) => {
       const workflow = await getWorkflow(type);
       return validateTransition({ workflow, currentState, targetState, role });

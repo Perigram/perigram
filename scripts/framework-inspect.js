@@ -16,6 +16,7 @@ import {
 } from '../utils/design-system-contract.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
 import { composeSystemDeclarations } from '../server/packs/declarations.js';
+import { extractDataModels } from '../server/utils/extract-data-models.js';
 
 // The registry view is the domain catalog (one source): entities and
 // workflows project from the mounted declarations.
@@ -30,7 +31,6 @@ const cncTasks = frameworkTaskDefinitions;
 const cncSummaries = [];
 import {
   createFrameworkManifest,
-  queryDocs,
   summarizeDefinitions,
   summarizeRoutes,
   summarizeWorkflows,
@@ -82,30 +82,28 @@ const COMPATIBILITY_ALIASES = {
 
 const workflows = Object.entries(cncWorkflows).map(([type, workflow]) => ({ type, workflow }));
 const routes = summarizeRoutes(cncDomain.ui.endpoints);
-const dataModelFields = loadDataModelFields('server/DATA_MODEL.md');
+const collectionToEntity = new Map(cncEntities.map(entity => [entity.collection, entity.type]));
+const fieldOrderScore = (name) => {
+  if (name === 'identity') return 1;
+  if (name === 'origin') return 2;
+  if (name === 'status') return 3;
+  if (name === 'lineage') return 4;
+  if (name === 'attachments') return 5;
+  if (name.startsWith('data')) return 10;
+  return 20;
+};
+const dataModelFields = (await extractDataModels()).flatMap(model => {
+  const typeId = collectionToEntity.get(model.collection) || singularizeCollection(model.collection);
+  const fields = [...model.fields].sort((a, b) =>
+    fieldOrderScore(a.name) - fieldOrderScore(b.name) || a.name.localeCompare(b.name));
+  return fields.flatMap(field => {
+    const entries = [{ typeId, collection: model.collection, name: field.name }];
+    if (typeId === 'cassette') entries.push({ typeId: 'cassette_template', collection: model.collection, name: field.name });
+    return entries;
+  });
+});
 const componentInventory = createComponentInventory();
 const manifest = createManifest();
-const docsCorpus = loadDocs([
-  'README.md',
-  'server/README.md',
-  'server/features/README.md',
-  'server/core/blocks/README.md',
-  'server/core/machines/README.md',
-  'components/README.md',
-  'components/shared/README.md',
-  'composables/README.md',
-  'utils/README.md',
-  'test-data/README.md',
-  'i18n/README.md',
-  'packages/README.md',
-  'packages/core/README.md',
-  'packages/workflows/README.md',
-  'packages/facade/README.md',
-  'packages/devtools/README.md',
-  'packages/mcp/README.md',
-  'docs/FRAMEWORK_EXTRACTION_STATUS.md',
-  'docs/DESIGN_SYSTEM.md'
-]);
 
 const handlers = createReadOnlyToolHandlers({
   listEntities: () => cncEntities,
@@ -120,7 +118,6 @@ const handlers = createReadOnlyToolHandlers({
   listSummaries: () => manifest.summaries,
   listCommands: () => manifest.commands,
   validateUiContracts: () => manifest.validations,
-  queryDocs: query => queryDocs(docsCorpus, query),
   validateArchitecture: () => {
     const result = spawnSync( process.execPath, ['scripts/check-arch.js'], { encoding: 'utf8' });
     return {
@@ -199,12 +196,6 @@ async function main() {
     return;
   }
 
-  if (command === 'query-docs') {
-    const query =  process.argv.slice(3).join(' ') || 'framework';
-    print(queryDocs(docsCorpus, query));
-    return;
-  }
-
   if (command === 'validate') {
     const definitionResult = validateDefinitionSet(cncEntities);
     const architectureResult = await handlers.validate_architecture();
@@ -229,7 +220,6 @@ async function main() {
       uiComponents: await handlers.list_ui_components(),
       uiPrimitives: await handlers.list_ui_primitives(),
       relationships: await handlers.list_relationships(),
-      docs: await handlers.query_docs({ query: 'workflow' }),
       transition: await handlers.simulate_transition({
         type: 'queue',
         currentState: 'DRAFT',
@@ -251,7 +241,6 @@ async function main() {
       'list-relationships',
       'list-summaries',
       'list-commands',
-      'query-docs',
       'manifest',
       'write-manifest',
       'check-manifest',
@@ -312,46 +301,10 @@ function contractFieldPaths(key) {
     .sort();
 }
 
-function loadDataModelFields(path) {
-  if (!existsSync(path)) return [];
-  const collectionToEntity = new Map(cncEntities.map(entity => [entity.collection, entity.type]));
-  const fields = [];
-  let collection = null;
-
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const heading = line.match(/^###\s+(.+)$/);
-    if (heading) {
-      collection = heading[1].trim();
-      continue;
-    }
-
-    const field = line.match(/^\|\s+`([^`]+)`\s+\|/);
-    if (!field || !collection) continue;
-
-    const typeId = collectionToEntity.get(collection) || singularizeCollection(collection);
-    fields.push({ typeId, collection, name: field[1] });
-    if (typeId === 'cassette') {
-      fields.push({ typeId: 'cassette_template', collection, name: field[1] });
-    }
-  }
-
-  return fields;
-}
-
 function singularizeCollection(collection) {
   return collection
     .replace(/ies$/, 'y')
     .replace(/s$/, '');
-}
-
-function loadDocs(paths) {
-  return paths
-    .filter(path => existsSync(path))
-    .map(path => ({
-      path,
-      title: path,
-      content: readFileSync(path, 'utf8')
-    }));
 }
 
 function stableStringify(value) {

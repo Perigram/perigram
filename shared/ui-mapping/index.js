@@ -1,4 +1,4 @@
-// UI mapping contract (see README.md): one matcher table + one resolver per
+// UI mapping contract: one matcher table + one resolver per
 // concern, total and deterministic. Pure functions over CTS descriptors,
 // client-bundle type records, and compiled action records.
 import { normalizeFilter, instanceMatchesFilter } from '#shared/instance-filters/index.js';

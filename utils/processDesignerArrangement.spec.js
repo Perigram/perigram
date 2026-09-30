@@ -1,5 +1,5 @@
 // Layered-arrangement contract (canonical home:
-// components/process-designer/README.md "Auto-arrangement"): the pure
+// "Auto-arrangement"): the pure
 // Tidy pass — deterministic, idempotent, lane-preserving, flow-directed.
 import { describe, expect, it } from 'vitest';
 import { arrangeProcessGraph, deriveLaneFacts, laneContainerLayout } from '~/utils/processDesignerArrangement.js';
