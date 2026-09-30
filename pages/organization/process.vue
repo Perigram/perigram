@@ -111,7 +111,6 @@
               <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
               <Tab value="definitions">{{ $t('processDesigner.definitions') }}</Tab>
               <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
-              <Tab value="screens">{{ $t('organization.screens') }}</Tab>
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="definitions">
@@ -290,15 +289,230 @@
                   />
                 </div>
                 <div v-if="selectedRoleRecord" class="flex flex-col gap-3">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.label') }}</label>
-                    <InputText v-model="selectedRoleRecord.label" @change="saveSelectedRole" />
+                  <!-- Rename/delete live behind the row menu (SPEC "Role
+                       management"): destructive and identity actions are
+                       never first-plane. -->
+                  <div class="flex items-center gap-2">
+                    <template v-if="renamingRoleId === selectedRoleId">
+                      <InputText
+                        v-model="renamingRoleLabel"
+                        class="min-w-0 flex-1"
+                        size="small"
+                        :aria-label="$t('common.rename')"
+                        @keydown.enter.prevent.stop="applyRoleRename"
+                        @click.stop
+                      />
+                      <Button
+                        icon="pi pi-check"
+                        class="shrink-0"
+                        size="small"
+                        text
+                        :disabled="!renamingRoleLabel.trim()"
+                        @click="applyRoleRename"
+                      />
+                    </template>
+                    <template v-else>
+                      <strong class="min-w-0 flex-1 truncate text-label">{{ selectedRoleRecord.label || selectedRoleId }}</strong>
+                      <Button
+                        icon="pi pi-ellipsis-v"
+                        class="shrink-0"
+                        size="small"
+                        text
+                        severity="secondary"
+                        :aria-label="$t('processDesigner.roleActions')"
+                        aria-haspopup="true"
+                        aria-controls="role-detail-menu"
+                        @click="toggleRoleMenu"
+                      />
+                      <Menu ref="roleMenuRef" id="role-detail-menu" :model="roleMenuItems" popup />
+                    </template>
                   </div>
-                  <div class="flex flex-wrap gap-1">
+                  <div v-if="selectedRoleAccessSummary.length" class="flex flex-wrap gap-1">
                     <Tag v-for="item in selectedRoleAccessSummary" :key="item.key" :value="`${item.text} · ${item.contributor.label}`" size="small" />
                   </div>
-                  <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedRole" />
-                  <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" outlined size="small" @click="navigateTo('/organization/users')" />
+                  <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" text size="small" class="self-start" @click="navigateTo('/organization/users')" />
+                </div>
+
+                <!-- Screens live with their role (SPEC "Role management"):
+                     per-role compiled stations; the authored-station editor
+                     only when the edited screen belongs to this role. -->
+                <div v-if="selectedRoleId" class="flex flex-col gap-4">
+
+                  <Message v-if="compiledPreviewError" severity="error">{{ compiledPreviewError }}</Message>
+                  <div
+                    v-for="screen in screensForSelectedRole"
+                    :key="screen.id"
+                    class="flex flex-col gap-2 rounded-ui bg-subtle p-3"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="min-w-0 truncate text-label">{{ screen.label || screen.id }}</span>
+                      <div class="flex shrink-0 items-center gap-1">
+                        <Tag v-if="!isAuthoredStation(screen)" :value="$t('processDesigner.inferredStation')" severity="info" size="small" />
+                        <Tag v-if="screen.typeId" :value="screen.typeId" severity="secondary" size="small" />
+                        <Tag :value="screen.template" size="small" />
+                        <Button
+                          v-if="!isAuthoredStation(screen)"
+                          icon="pi pi-pencil"
+                          :label="$t('processDesigner.customizeStation')"
+                          size="small"
+                          text
+                          @click="customizeStation(screen)"
+                        />
+                      </div>
+                    </div>
+                    <GeneratedMappingScreen
+                      :screen="screen"
+                      :contract="compiledPreviewContract"
+                      :bundle="compiledPreviewBundle"
+                    />
+                    <small class="truncate text-muted">{{ screen.route || screen.id }}</small>
+                  </div>
+                  <!-- Zero stations (nothing inferred, nothing authored) is the
+                       delta-only contract: stations exist only as inference
+                       over role grants, so the tab explains where they come
+                       from instead of rendering nothing. -->
+                  <StateBlock
+                    v-if="!screensForSelectedRole.length && !compiledPreviewError"
+                    :message="$t('processDesigner.noCompiledScreens')"
+                    :description="$t('processDesigner.noCompiledScreensHint')"
+                  >
+                    <template #actions>
+                      <Button
+                        :label="$t('processDesigner.openRolesTab')"
+                        icon="pi pi-users"
+                        size="small"
+                        severity="secondary"
+                        outlined
+                        @click="inspectTab = 'roles'"
+                      />
+                    </template>
+                  </StateBlock>
+                  <div class="flex flex-wrap gap-2">
+                    <Tag
+                      v-for="screen in screenList"
+                      :key="screen.id"
+                      :value="screen.label || screen.id"
+                      :severity="selectedScreenId === screen.id ? 'success' : 'secondary'"
+                      class="cursor-pointer"
+                      @click="selectedScreenId = screen.id"
+                    />
+                  </div>
+                  <div v-if="selectedScreenBelongsToRole" class="flex flex-col gap-3">
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.screenId') }}</label>
+                        <InputText :model-value="selectedScreenRecord.id" disabled />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.label') }}</label>
+                        <InputText v-model="selectedScreenRecord.label" />
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.screenTemplate') }}</label>
+                        <Select v-model="selectedScreenRecord.template" :options="screenTemplateOptions" option-label="label" option-value="value" @change="syncSelectedScreenUi" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.screenPlacement') }}</label>
+                        <Select v-model="selectedScreenRecord.placement" :options="screenPlacementOptions" option-label="label" option-value="value" />
+                      </div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.screenRoute') }}</label>
+                      <InputText v-model="selectedScreenRecord.route" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.typeId') }}</label>
+                        <Select v-model="selectedScreenRecord.typeId" :options="optionalTypeIdOptions" option-label="label" option-value="value" @change="syncSelectedScreenUi" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.roleIds') }}</label>
+                        <MultiSelect v-model="selectedScreenRecord.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <label>{{ $t('processDesigner.sources') }}</label>
+                        <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addSource')" size="small" text @click="addSelectedScreenSource" />
+                      </div>
+                      <div v-for="(source, index) in selectedScreenRecord.sources" :key="index" class="flex flex-col gap-2">
+                        <div class="grid grid-cols-2 gap-2">
+                          <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceId') }}</label><InputText :model-value="source.id" size="small" @update:model-value="value => screenEditing.renameSource(selectedScreenRecord, source, value)" /></div>
+                          <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceLabel') }}</label><InputText v-model="source.label" size="small" /></div>
+                          <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.typeId') }}</label><Select :model-value="source.typeId" :options="typeIdOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceTypeId(selectedScreenRecord, source, value)" /></div>
+                          <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceMode') }}</label><Select :model-value="source.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceMode(selectedScreenRecord, source, value)" /></div>
+                          <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredFeature') }}</label><Select v-model="source.required.feature" :options="screenFeatureOptions" option-label="label" option-value="value" size="small" /></div>
+                          <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredLevel') }}</label><Select v-model="source.required.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" /></div>
+                        </div>
+                        <div v-if="source.mode === 'single'" class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.identifier') }}</label>
+                          <InputText v-model="source.identifier" size="small" />
+                        </div>
+                        <div v-else class="flex flex-col gap-2">
+                          <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.filters') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addFilter')" size="small" text @click="screenEditing.addScalar(source.filters, 'path', '')" /></div>
+                          <div v-for="row in screenEditing.scalarRows(source.filters)" :key="row.key" class="flex items-center gap-2">
+                            <InputText class="min-w-0 flex-1" :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(source.filters, row.key, event.target.value)" />
+                            <Select class="min-w-0 flex-1" :model-value="row.type" :options="screenScalarTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(source.filters, row.key, value)" />
+                            <InputNumber v-if="row.type === 'number'" class="min-w-0 flex-1" v-model="source.filters[row.key]" size="small" />
+                            <Checkbox v-else-if="row.type === 'boolean'" v-model="source.filters[row.key]" binary :aria-label="$t('processDesigner.value')" />
+                            <InputText v-else class="min-w-0 flex-1" v-model="source.filters[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
+                            <Button class="shrink-0" icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(source.filters, row.key)" />
+                          </div>
+                          <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.lineageBindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addLineageBinding')" size="small" text @click="screenEditing.addLineageBinding(source)" /></div>
+                          <div v-for="(binding, bindingIndex) in source.lineageBindings" :key="bindingIndex" class="grid grid-cols-2 gap-2">
+                            <div v-for="field in screenLineageBindingFields" :key="field" class="flex flex-col gap-1"><label>{{ $t(`processDesigner.lineageBindingFields.${field}`) }}</label><InputText v-model="binding[field]" size="small" /></div>
+                            <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeLineageBinding(source, bindingIndex)" />
+                          </div>
+                        </div>
+                        <div class="flex justify-end"><Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenSource(index)" /></div>
+                      </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <label>{{ $t('processDesigner.regions') }}</label>
+                        <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRegion')" size="small" text @click="addSelectedScreenRegion" />
+                      </div>
+                      <div v-for="(region, index) in selectedScreenRecord.regions" :key="index" class="grid grid-cols-2 gap-2">
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionId') }}</label><InputText v-model="region.id" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionLabel') }}</label><InputText v-model="region.label" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionSlot') }}</label><Select v-model="region.slot" :options="screenSlotOptions" option-label="label" option-value="value" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionSource') }}</label><Select v-model="region.sourceId" :options="selectedScreenSourceOptions" option-label="label" option-value="value" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.surface') }}</label><Select v-model="region.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('common.actions.title') }}</label><MultiSelect v-model="region.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" size="small" class="w-full" /></div>
+                        <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenRegion(index)" />
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.requiredFeature') }}</label>
+                        <Select v-model="selectedScreenRecord.required.feature" :options="screenFeatureOptions" option-label="label" option-value="value" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.requiredLevel') }}</label>
+                        <Select v-model="selectedScreenRecord.required.level" :options="accessLevelOptions" option-label="label" option-value="value" />
+                      </div>
+                    </div>
+                    <Button icon="pi pi-filter" :label="$t('processDesigner.editGrantConditions')" severity="secondary" outlined size="small" @click="openGrantEditor('screen', 0, selectedScreenRecord.required.feature)" />
+                    <div class="flex flex-col gap-2">
+                      <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.bindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addBinding')" size="small" text @click="screenEditing.addScalar(selectedScreenRecord.bindings, 'binding')" /></div>
+                      <div v-for="row in screenEditing.scalarRows(selectedScreenRecord.bindings)" :key="row.key" class="flex items-center gap-2">
+                        <InputText class="min-w-0 flex-1" :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(selectedScreenRecord.bindings, row.key, event.target.value)" />
+                        <Select class="min-w-0 flex-1" :model-value="row.type" :options="screenBindingTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(selectedScreenRecord.bindings, row.key, value)" />
+                        <InputNumber v-if="row.type === 'number'" class="min-w-0 flex-1" v-model="selectedScreenRecord.bindings[row.key]" size="small" />
+                        <Checkbox v-else-if="row.type === 'boolean'" v-model="selectedScreenRecord.bindings[row.key]" binary :aria-label="$t('processDesigner.value')" />
+                        <InputText v-else class="min-w-0 flex-1" v-model="selectedScreenRecord.bindings[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
+                        <Button class="shrink-0" icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(selectedScreenRecord.bindings, row.key)" />
+                      </div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('common.actions.title') }}</label>
+                      <MultiSelect v-model="selectedScreenRecord.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedScreenUi" />
+                    </div>
+                    <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedScreen" />
+                  </div>
+                  <StateBlock v-else :message="$t('processDesigner.selectScreen')" />
                 </div>
 
                 <Panel v-if="socketList.length" :header="$t('processDesigner.sockets')" toggleable collapsed>
@@ -350,187 +564,24 @@
               </div>
             </TabPanel>
 
-            <TabPanel value="screens">
-              <div class="flex flex-col gap-4">
-                <Message v-if="compiledPreviewError" severity="error">{{ compiledPreviewError }}</Message>
-                <div
-                  v-for="screen in compiledScreenPreview"
-                  :key="screen.id"
-                  class="flex flex-col gap-2 rounded-ui bg-subtle p-3"
-                >
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="min-w-0 truncate text-label">{{ screen.label || screen.id }}</span>
-                    <div class="flex shrink-0 items-center gap-1">
-                      <Tag v-if="!isAuthoredStation(screen)" :value="$t('processDesigner.inferredStation')" severity="info" size="small" />
-                      <Tag v-if="screen.typeId" :value="screen.typeId" severity="secondary" size="small" />
-                      <Tag :value="screen.template" size="small" />
-                      <Button
-                        v-if="!isAuthoredStation(screen)"
-                        icon="pi pi-pencil"
-                        :label="$t('processDesigner.customizeStation')"
-                        size="small"
-                        text
-                        @click="customizeStation(screen)"
-                      />
-                    </div>
-                  </div>
-                  <GeneratedMappingScreen
-                    :screen="screen"
-                    :contract="compiledPreviewContract"
-                    :bundle="compiledPreviewBundle"
-                  />
-                  <small class="truncate text-muted">{{ screen.route || screen.id }}</small>
-                </div>
-                <!-- Zero stations (nothing inferred, nothing authored) is the
-                     delta-only contract: stations exist only as inference
-                     over role grants, so the tab explains where they come
-                     from instead of rendering nothing. -->
-                <StateBlock
-                  v-if="!compiledScreenPreview.length && !compiledPreviewError"
-                  :message="$t('processDesigner.noCompiledScreens')"
-                  :description="$t('processDesigner.noCompiledScreensHint')"
-                >
-                  <template #actions>
-                    <Button
-                      :label="$t('processDesigner.openRolesTab')"
-                      icon="pi pi-users"
-                      size="small"
-                      severity="secondary"
-                      outlined
-                      @click="inspectTab = 'roles'"
-                    />
-                  </template>
-                </StateBlock>
-                <div class="flex flex-wrap gap-2">
-                  <Tag
-                    v-for="screen in screenList"
-                    :key="screen.id"
-                    :value="screen.label || screen.id"
-                    :severity="selectedScreenId === screen.id ? 'success' : 'secondary'"
-                    class="cursor-pointer"
-                    @click="selectedScreenId = screen.id"
-                  />
-                </div>
-                <div v-if="selectedScreenRecord" class="flex flex-col gap-3">
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.screenId') }}</label>
-                      <InputText :model-value="selectedScreenRecord.id" disabled />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.label') }}</label>
-                      <InputText v-model="selectedScreenRecord.label" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.screenTemplate') }}</label>
-                      <Select v-model="selectedScreenRecord.template" :options="screenTemplateOptions" option-label="label" option-value="value" @change="syncSelectedScreenUi" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.screenPlacement') }}</label>
-                      <Select v-model="selectedScreenRecord.placement" :options="screenPlacementOptions" option-label="label" option-value="value" />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.screenRoute') }}</label>
-                    <InputText v-model="selectedScreenRecord.route" />
-                  </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.typeId') }}</label>
-                      <Select v-model="selectedScreenRecord.typeId" :options="optionalTypeIdOptions" option-label="label" option-value="value" @change="syncSelectedScreenUi" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.roleIds') }}</label>
-                      <MultiSelect v-model="selectedScreenRecord.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <label>{{ $t('processDesigner.sources') }}</label>
-                      <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addSource')" size="small" text @click="addSelectedScreenSource" />
-                    </div>
-                    <div v-for="(source, index) in selectedScreenRecord.sources" :key="index" class="flex flex-col gap-2">
-                      <div class="grid grid-cols-2 gap-2">
-                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceId') }}</label><InputText :model-value="source.id" size="small" @update:model-value="value => screenEditing.renameSource(selectedScreenRecord, source, value)" /></div>
-                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceLabel') }}</label><InputText v-model="source.label" size="small" /></div>
-                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.typeId') }}</label><Select :model-value="source.typeId" :options="typeIdOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceTypeId(selectedScreenRecord, source, value)" /></div>
-                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceMode') }}</label><Select :model-value="source.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceMode(selectedScreenRecord, source, value)" /></div>
-                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredFeature') }}</label><Select v-model="source.required.feature" :options="screenFeatureOptions" option-label="label" option-value="value" size="small" /></div>
-                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredLevel') }}</label><Select v-model="source.required.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" /></div>
-                      </div>
-                      <div v-if="source.mode === 'single'" class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.identifier') }}</label>
-                        <InputText v-model="source.identifier" size="small" />
-                      </div>
-                      <div v-else class="flex flex-col gap-2">
-                        <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.filters') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addFilter')" size="small" text @click="screenEditing.addScalar(source.filters, 'path', '')" /></div>
-                        <div v-for="row in screenEditing.scalarRows(source.filters)" :key="row.key" class="flex items-center gap-2">
-                          <InputText class="min-w-0 flex-1" :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(source.filters, row.key, event.target.value)" />
-                          <Select class="min-w-0 flex-1" :model-value="row.type" :options="screenScalarTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(source.filters, row.key, value)" />
-                          <InputNumber v-if="row.type === 'number'" class="min-w-0 flex-1" v-model="source.filters[row.key]" size="small" />
-                          <Checkbox v-else-if="row.type === 'boolean'" v-model="source.filters[row.key]" binary :aria-label="$t('processDesigner.value')" />
-                          <InputText v-else class="min-w-0 flex-1" v-model="source.filters[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
-                          <Button class="shrink-0" icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(source.filters, row.key)" />
-                        </div>
-                        <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.lineageBindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addLineageBinding')" size="small" text @click="screenEditing.addLineageBinding(source)" /></div>
-                        <div v-for="(binding, bindingIndex) in source.lineageBindings" :key="bindingIndex" class="grid grid-cols-2 gap-2">
-                          <div v-for="field in screenLineageBindingFields" :key="field" class="flex flex-col gap-1"><label>{{ $t(`processDesigner.lineageBindingFields.${field}`) }}</label><InputText v-model="binding[field]" size="small" /></div>
-                          <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeLineageBinding(source, bindingIndex)" />
-                        </div>
-                      </div>
-                      <div class="flex justify-end"><Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenSource(index)" /></div>
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <label>{{ $t('processDesigner.regions') }}</label>
-                      <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRegion')" size="small" text @click="addSelectedScreenRegion" />
-                    </div>
-                    <div v-for="(region, index) in selectedScreenRecord.regions" :key="index" class="grid grid-cols-2 gap-2">
-                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionId') }}</label><InputText v-model="region.id" size="small" /></div>
-                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionLabel') }}</label><InputText v-model="region.label" size="small" /></div>
-                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionSlot') }}</label><Select v-model="region.slot" :options="screenSlotOptions" option-label="label" option-value="value" size="small" /></div>
-                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionSource') }}</label><Select v-model="region.sourceId" :options="selectedScreenSourceOptions" option-label="label" option-value="value" size="small" /></div>
-                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.surface') }}</label><Select v-model="region.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" size="small" /></div>
-                      <div class="flex flex-col gap-1"><label>{{ $t('common.actions.title') }}</label><MultiSelect v-model="region.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" size="small" class="w-full" /></div>
-                      <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenRegion(index)" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.requiredFeature') }}</label>
-                      <Select v-model="selectedScreenRecord.required.feature" :options="screenFeatureOptions" option-label="label" option-value="value" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.requiredLevel') }}</label>
-                      <Select v-model="selectedScreenRecord.required.level" :options="accessLevelOptions" option-label="label" option-value="value" />
-                    </div>
-                  </div>
-                  <Button icon="pi pi-filter" :label="$t('processDesigner.editGrantConditions')" severity="secondary" outlined size="small" @click="openGrantEditor('screen', 0, selectedScreenRecord.required.feature)" />
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.bindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addBinding')" size="small" text @click="screenEditing.addScalar(selectedScreenRecord.bindings, 'binding')" /></div>
-                    <div v-for="row in screenEditing.scalarRows(selectedScreenRecord.bindings)" :key="row.key" class="flex items-center gap-2">
-                      <InputText class="min-w-0 flex-1" :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(selectedScreenRecord.bindings, row.key, event.target.value)" />
-                      <Select class="min-w-0 flex-1" :model-value="row.type" :options="screenBindingTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(selectedScreenRecord.bindings, row.key, value)" />
-                      <InputNumber v-if="row.type === 'number'" class="min-w-0 flex-1" v-model="selectedScreenRecord.bindings[row.key]" size="small" />
-                      <Checkbox v-else-if="row.type === 'boolean'" v-model="selectedScreenRecord.bindings[row.key]" binary :aria-label="$t('processDesigner.value')" />
-                      <InputText v-else class="min-w-0 flex-1" v-model="selectedScreenRecord.bindings[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
-                      <Button class="shrink-0" icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(selectedScreenRecord.bindings, row.key)" />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('common.actions.title') }}</label>
-                    <MultiSelect v-model="selectedScreenRecord.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedScreenUi" />
-                  </div>
-                  <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedScreen" />
-                </div>
-                <StateBlock v-else :message="$t('processDesigner.selectScreen')" />
-              </div>
-            </TabPanel>
+
           </TabPanels>
         </Tabs>
+
+        <!-- Role delete confirmation: warns when the role carries load in
+             any definition (lanes/grants/screens/actions). -->
+        <StandardDialog v-model:visible="roleDeleteVisible" :header="$t('processDesigner.deleteRole')">
+          <div class="flex flex-col gap-4">
+            <Message v-if="roleDeleteUsage && roleDeleteUsage.names.length" severity="warn">
+              {{ $t('processDesigner.roleInUseBy', { count: roleDeleteUsage.names.length, names: roleDeleteUsage.names.join(', ') }) }}
+            </Message>
+            <span class="text-body">{{ $t('processDesigner.deleteRoleConfirm', { name: selectedRoleRecord?.label || selectedRoleId }) }}</span>
+            <div class="flex justify-end gap-2">
+              <Button :label="$t('common.cancel')" text @click="roleDeleteVisible = false" />
+              <Button :label="$t('common.delete')" severity="danger" outlined :loading="roleDeleteBusy" @click="deleteRoleConfirmed" />
+            </div>
+          </div>
+        </StandardDialog>
         </div>
       </template>
 
@@ -1640,6 +1691,21 @@ const grantEditorPermissions = computed(() => {
   const grant = grantForEditorTarget(target);
   return { [target.feature]: [withoutKeys(grant || { level: 'read' }, ['roleId', 'feature'])] };
 });
+// Screens render per role under the Roles tab (SPEC "Role management"):
+// a compiled station belongs to a role through its roleIds; unscoped
+// stations render under every role rather than being orphaned.
+const screensForSelectedRole = computed(() => compiledScreenPreview.value.filter(screen => {
+  const roleIds = screen.roleIds;
+  return !Array.isArray(roleIds) || !roleIds.length || roleIds.includes(selectedRoleId.value);
+}));
+
+const selectedScreenBelongsToRole = computed(() => {
+  const record = selectedScreenRecord.value;
+  if (!record || !selectedRoleId.value) return false;
+  const roleIds = record.roleIds;
+  return !Array.isArray(roleIds) || !roleIds.length || roleIds.includes(selectedRoleId.value);
+});
+
 const compiledScreenPreview = computed(() => Object.values(compiledPreview.value?.screens || {})
   .filter(screen => screen && typeof screen === 'object' && !Array.isArray(screen))
   .sort((left, right) => String(left.label || left.id).localeCompare(String(right.label || right.id))));
@@ -1664,7 +1730,7 @@ function schedulePreviewRecompute() {
     clearTimeout(previewRecomputeTimer);
     previewRecomputeTimer = null;
   }
-  if (inspectTab.value !== 'screens') {
+  if (inspectTab.value !== 'roles') {
     previewRecomputeSequence += 1;
     return;
   }
@@ -2307,7 +2373,7 @@ function processDefinitionSnapshot() {
 }
 
 function recomputeProcessPreview(shouldApply = () => true) {
-  if (inspectTab.value !== 'screens') return;
+  if (inspectTab.value !== 'roles') return;
   if (!draft.value?.data) {
     compiledPreview.value = null;
     compiledPreviewError.value = '';
@@ -2496,6 +2562,78 @@ async function saveSelectedRole() {
   }
 }
 
+// Role detail menu + inline rename (SPEC "Role management"): identity and
+// destructive actions are menu items, never first-plane controls.
+const roleMenuRef = ref(null);
+const renamingRoleId = ref(null);
+const renamingRoleLabel = ref('');
+
+function toggleRoleMenu(event) {
+  roleMenuRef.value?.toggle(event);
+}
+
+const roleMenuItems = computed(() => [
+  {
+    label: t('common.rename'),
+    icon: 'pi pi-pencil',
+    command: () => startRoleRename()
+  },
+  {
+    label: t('common.delete'),
+    icon: 'pi pi-trash',
+    command: () => confirmRoleDelete()
+  }
+]);
+
+function startRoleRename() {
+  if (!selectedRoleRecord.value) return;
+  renamingRoleId.value = selectedRoleId.value;
+  renamingRoleLabel.value = selectedRoleRecord.value.label || '';
+}
+
+async function applyRoleRename() {
+  const label = renamingRoleLabel.value.trim();
+  if (!label || !selectedRoleRecord.value || renamingRoleId.value !== selectedRoleId.value) return;
+  selectedRoleRecord.value.label = label;
+  renamingRoleId.value = null;
+  await saveSelectedRole();
+}
+
+// Delete confirmation with a usage warning: a role that carries load in
+// ANY definition (lanes/grants/screens/actions) says so before it goes.
+const roleDeleteVisible = ref(false);
+const roleDeleteBusy = ref(false);
+const roleDeleteUsage = ref(null);
+
+async function confirmRoleDelete() {
+  if (!selectedRoleId.value) return;
+  const roleId = selectedRoleId.value;
+  const names = [];
+  for (const definition of processDefinitions.value) {
+    try {
+      const full = definition.data ? definition : await persistence.loadById(String(definition._id));
+      const summary = deriveRoleAccessSummary({ process: full, roleIds: [roleId] });
+      const used = summary.profiles.length || summary.screens.length || summary.actions.length || summary.transitions.length;
+      if (used) names.push(normalizeProcessDisplayName(full.identity?.name || full.identity?.uid || full._id));
+    } catch {
+      // A definition that cannot be read does not block the delete; it
+      // just cannot vouch for the role being unused.
+    }
+  }
+  roleDeleteUsage.value = { names };
+  roleDeleteVisible.value = true;
+}
+
+async function deleteRoleConfirmed() {
+  roleDeleteBusy.value = true;
+  try {
+    await removeSelectedRole();
+    roleDeleteVisible.value = false;
+  } finally {
+    roleDeleteBusy.value = false;
+  }
+}
+
 async function removeSelectedRole() {
   if (!selectedRoleId.value) return;
   const removedRoleId = selectedRoleId.value;
@@ -2518,6 +2656,10 @@ function isAuthoredStation(screen) {
 }
 
 function customizeStation(screen) {
+  // The editor lives under the owning role now: customize selects that
+  // role first so the station's editor is on screen.
+  const ownerRole = Array.isArray(screen.roleIds) && screen.roleIds.length ? screen.roleIds[0] : null;
+  if (ownerRole && roles.value[ownerRole]) selectedRoleId.value = ownerRole;
   screenEditing.customize(screen);
 }
 
