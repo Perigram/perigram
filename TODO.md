@@ -663,3 +663,10 @@ surface classes are now literal in utils/processDesignerSignals.js
 (signalBgClass) and tailwind.config scans utils/. Group labels are back
 (localized paletteGroups block restored) — chips group under small
 muted labels; dot + stripe share the one signal map.
+
+### Agent Notes (2026-09-30, node stripes removed)
+
+Owner call: the DesignerNodeCard signal stripe read badly — removed for
+now (the signal prop, stripe markup, and the node-side signal mapping
+all died; chip dots keep the one signal map). Revivable from history if
+wanted later.
