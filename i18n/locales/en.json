@@ -3242,7 +3242,18 @@
     "addRecordField": "Add field",
     "declarationClass": "Class",
     "edgeKey": "key",
-    "edgeOnRemove": "on remove"
+    "edgeOnRemove": "on remove",
+    "paletteGroups": {
+      "entities": "Types",
+      "values": "Values",
+      "listTree": "Lists and trees",
+      "operations": "Operations",
+      "typeBindingHint": "Wire this node into a construct or read node to bind its type.",
+      "types": "Types",
+      "instances": "Entities",
+      "control": "Flow",
+      "services": "Services"
+    }
   },
   "generatedScreen": {
     "home": "Home",

@@ -3242,7 +3242,18 @@
     "addRecordField": "Добавить поле",
     "declarationClass": "Класс",
     "edgeKey": "ключ",
-    "edgeOnRemove": "при удалении"
+    "edgeOnRemove": "при удалении",
+    "paletteGroups": {
+      "entities": "Типы",
+      "values": "Значения",
+      "listTree": "Списки и деревья",
+      "operations": "Операции",
+      "typeBindingHint": "Соедините этот узел с construct или read, чтобы привязать тип.",
+      "types": "Типы",
+      "instances": "Сущности",
+      "control": "Поток",
+      "services": "Сервисы"
+    }
   },
   "generatedScreen": {
     "home": "Главная",

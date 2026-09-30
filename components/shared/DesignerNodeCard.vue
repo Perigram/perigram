@@ -3,7 +3,7 @@
     <span
       v-if="signal"
       class="absolute inset-y-0 left-0 w-1"
-      :class="`bg-signal-${signal}`"
+      :class="signalBgClass(signal)"
       aria-hidden="true"
     ></span>
     <slot />
@@ -19,6 +19,7 @@
 // category accent (utils/processDesignerSignals.js): the same token
 // colors the palette chip that creates the node.
 import { computed } from 'vue';
+import { signalBgClass } from '~/utils/processDesignerSignals.js';
 
 const props = defineProps({
   selected: { type: Boolean, default: false },

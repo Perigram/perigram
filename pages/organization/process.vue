@@ -82,12 +82,12 @@
         </div>
         <OperationPalette
           ref="contextPaletteSearch"
-          :items="contextPaletteItems"
+          :groups="contextPaletteChipGroups"
           :placeholder="contextPalette.socket ? $t('processDesigner.compatibleOperations') : $t('processDesigner.addOperation')"
           @pick="addContextNode"
           @close="closeContextPalette"
         />
-        <Message v-if="!contextPaletteItems.length" class="m-2 shrink-0" severity="secondary" size="small">
+        <Message v-if="!contextPaletteChipGroups.length" class="m-2 shrink-0" severity="secondary" size="small">
           {{ $t('processDesigner.noCompatibleOperations') }}
         </Message>
       </div>
@@ -98,7 +98,7 @@
 
       <template #palette>
         <OperationPalette
-          :items="paletteItems"
+          :groups="paletteChipGroups"
           :placeholder="$t('processDesigner.searchOperations')"
           @pick="item => (item.action ? item.action() : addNode(item))"
         />
@@ -720,7 +720,7 @@ function activeOrganizationId() {
     || null;
 }
 
-const { paletteLabel, paletteDescription } = createPaletteText({ t, te });
+const { paletteLabel, paletteDescription, paletteGroupLabel } = createPaletteText({ t, te });
 
 // CTS declaration layer: the palette, entity/field/status option lists, and
 // compilation all derive from one source — the organization's type registry
@@ -993,17 +993,22 @@ const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = u
   isCompatible: contextItemCompatible
 });
 
-// Palette items for the chip palettes: flat, localized, with the shared
-// category signal (chips and canvas nodes read the same token).
-const toPaletteItems = groups => (groups || []).flatMap(group =>
-  group.items.map(item => ({
+// Palette groups for the chip palettes: localized group labels and
+// per-item labels (the filter matches them), descriptions for the chip
+// tooltip, and the shared category signal (chips and canvas nodes read
+// the same token).
+const toPaletteGroups = groups => (groups || []).map(group => ({
+  id: group.id,
+  label: paletteGroupLabel(group.id),
+  items: group.items.map(item => ({
     ...item,
     label: paletteLabel(item),
     description: paletteDescription(item),
     signal: signalForPaletteGroup(group.id)
-  })));
-const paletteItems = computed(() => toPaletteItems(paletteGroups.value));
-const contextPaletteItems = computed(() => toPaletteItems(contextPaletteGroups.value));
+  }))
+})).filter(group => group.items.length);
+const paletteChipGroups = computed(() => toPaletteGroups(paletteGroups.value));
+const contextPaletteChipGroups = computed(() => toPaletteGroups(contextPaletteGroups.value));
 
 // Canvas nodes stripe with the same signal as the chip that creates them:
 // operation kinds resolve through the palette catalog, declaration nodes
