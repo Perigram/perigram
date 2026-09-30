@@ -563,7 +563,7 @@ function applyActionResult(action = {}, result = null) {
   if (result.owner) applyInstanceSnapshot(action.typeId, result.owner);
   if (result.created) {
     for (const entity of mappedMutationItems(result.created) || [result.created]) {
-      applyInstanceSnapshot(action.relationMutation?.targetType || action.typeId, entity);
+      applyInstanceSnapshot([].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId, entity);
     }
   }
   if (!result.owner && !result.created) {

@@ -803,7 +803,7 @@ export async function executeActiveProcessAction({ actionId, instanceId, data = 
     if (data?.relationCreator) {
       const creatorId = action.relationMutation.creator?.actionId;
       const creatorAction = creatorId && compiled.actions?.[creatorId];
-      if (!creatorAction || creatorAction.typeId !== action.relationMutation.targetType) {
+      if (!creatorAction || ![].concat(action.relationMutation.targetTypes || []).includes(creatorAction.typeId)) {
         throw createError({ statusCode: 400, message: 'Relation action has no compatible creator' });
       }
       const created = await executeDataflowActionRun({
@@ -867,10 +867,10 @@ async function resolveManualRelationMutation(typeId, targetId, mutation = {}, ac
   const contract = action.relationMutation;
   const key = contract?.key;
   const targetValue = getByPath(mutation, `relations.${key}`);
-  const targetRef = normalizeRelationRef(targetValue, contract?.targetType);
+  const targetRef = normalizeRelationRef(targetValue, contract?.targetTypes);
   await assertRelationTargetAvailable(targetRef, contract, auth);
   const replacementRef = mutation.relationReplaces
-    ? normalizeRelationRef(mutation.relationReplaces, contract?.targetType)
+    ? normalizeRelationRef(mutation.relationReplaces, contract?.targetTypes)
     : null;
 
   const service = getAppRegistry().getInstanceService(typeId);
@@ -881,7 +881,7 @@ async function resolveManualRelationMutation(typeId, targetId, mutation = {}, ac
 
   if (contract.cardinality !== 'many') {
     if (contract.operation === 'unlink' && currentValue) {
-      const currentRef = normalizeRelationRef(currentValue, contract.targetType);
+      const currentRef = normalizeRelationRef(currentValue, contract.targetTypes);
       if (`${currentRef.type}:${currentRef.id}` !== `${targetRef.type}:${targetRef.id}`) {
         throw createError({ statusCode: 400, message: `Selected ${contract.targetType} is not linked through ${key}` });
       }
@@ -894,7 +894,7 @@ async function resolveManualRelationMutation(typeId, targetId, mutation = {}, ac
   }
 
   const refs = (Array.isArray(currentValue) ? currentValue : currentValue ? [currentValue] : [])
-    .map(item => normalizeRelationRef(item, contract.targetType));
+    .map(item => normalizeRelationRef(item, contract.targetTypes));
   const targetKey = `${targetRef.type}:${targetRef.id}`;
   const replacementKey = replacementRef ? `${replacementRef.type}:${replacementRef.id}` : '';
   if (replacementRef && !refs.some(ref => `${ref.type}:${ref.id}` === replacementKey)) {
@@ -1469,12 +1469,17 @@ async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
   }
 }
 
-function normalizeRelationRef(value, targetType) {
-  const ref = normalizeInstanceRef(typeof value === 'object' ? value : { type: targetType, id: value });
-  if (!ref || normalizeTypeId(ref.type) !== normalizeTypeId(targetType)) {
-    throw createError({ statusCode: 400, message: `Relation target must be ${targetType}` });
+// Relation refs validate against the entry's ACCEPTED types: each stored
+// ref carries its own type (a relation entry may accept a union of target
+// types), and a type-less wire value defaults to the single accepted type.
+function normalizeRelationRef(value, targetTypes = []) {
+  const accepted = [].concat(targetTypes || []).filter(Boolean);
+  const ref = normalizeInstanceRef(typeof value === 'object' ? value : { type: accepted[0], id: value });
+  if (!ref) throw createError({ statusCode: 400, message: 'Relation target must be an instance reference' });
+  if (!accepted.some(typeId => normalizeTypeId(ref.type) === normalizeTypeId(typeId))) {
+    throw createError({ statusCode: 400, message: `Relation target must be one of ${accepted.join(', ')}` });
   }
-  return { ...ref, type: targetType };
+  return { ...ref, type: ref.type };
 }
 
 async function persistProcessEntityPatch(typeId, targetId, patch, auth) {

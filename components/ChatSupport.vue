@@ -2498,8 +2498,13 @@ const executeCreateAction = async (action, data) => {
 const attachCreatedInstance = (action, result) => {
     if (!result || typeof result !== 'object') return
     const instance = result.created || (!result.owner ? (result.entity || result) : null)
+<<<<<<< HEAD
     const id = instance?._id?.toString?.() || instance?._id || instance?.id || instance?.identity?.uid || ''
     const type = action.relationMutation?.targetType || action.typeId
+=======
+    const id = entity?._id?.toString?.() || entity?._id || entity?.id || entity?.identity?.uid || ''
+    const type = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId
+>>>>>>> agent/relation-entry-mutations-191940
     if (!id || !type) return
     if (!instanceRefs.value.some(ref => ref.type === type && ref.id === id)) {
         instanceRefs.value.push({

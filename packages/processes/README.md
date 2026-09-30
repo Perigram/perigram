@@ -649,13 +649,16 @@ only an actual array or data tree uses the collection rule; a scalar fallback
 is one broadcast item and satisfies by the scalar rules.
 Relations composed by the process graph are executable process contracts even
 when they are not global CNC-domain relations. A manual effect that consumes a
-composed relation derives `Link <target>` for the owner action surface and a
-contextual `Unlink <target>` operation for each rendered linked reference. Both
-carry the exact relation key, target type, cardinality, and access grants. Link
-prompts for a target; Unlink receives the already-rendered target reference and
-therefore never opens an entity selector.
-The compiled contract preserves the authored owner type, entry key, target
-type, and scalar/array cardinality. Array cardinality is inferred from the
+composed relation derives one `Link <relation>` / `Unlink <relation>` pair per
+authored relation ENTRY for the owner action surface (never per-target
+buttons): the caption names the relation's authored field label, the prompt
+accepts every declared target type of the entry (an authored ref field may
+wire several targets — the union stays one entry and one storage key), and
+Unlink receives the already-rendered target reference, so it never opens an
+entity selector. The compiled contract carries the relation key, the accepted
+target types, cardinality, and access grants (each accepted type's read).
+The compiled contract preserves the authored owner type, entry key, accepted
+target types, and scalar/array cardinality. Array cardinality is inferred from the
 typed Collect Array output when the relation entry is not a global domain
 relation; a same-target domain relation does not rename an independently
 authored graph entry.

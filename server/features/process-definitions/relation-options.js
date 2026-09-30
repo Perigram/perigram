@@ -25,7 +25,7 @@ export function resolveRelationOptionPath({ ownerType, sourceType, lineageBindin
   const bridgeActions = Object.values(actions).filter(action => (
     action.typeId === ownerParent.parentType
     && action.relationMutation?.operation === 'link'
-    && action.relationMutation.targetType === sourceParent.parentType
+    && [].concat(action.relationMutation.targetTypes || []).includes(sourceParent.parentType)
   ));
   if (bridgeActions.length !== 1) return null;
 
