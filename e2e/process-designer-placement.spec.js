@@ -74,8 +74,45 @@ test('palette add places at the viewport center and lanes wrap their cards', asy
     expect(y - lastTop).toBeLessThan(400);
   }
 
+  // a drop into a lane is accepted: drag the first card into the top
+  // lane — it seats inside that lane (top inset), everything else stays
+  const card = app.page.locator('.vue-flow__node').first();
+  const box = await card.boundingBox();
+  const laneSeparator = await app.page.locator('.vue-flow div.border-t').first().boundingBox();
+  // drag by the card header: the selected card's inline editor overlays
+  // the body and swallows pointer events
+  await app.page.mouse.move(box.x + 30, box.y + 12);
+  await app.page.mouse.down();
+  await app.page.mouse.move(box.x + 180, laneSeparator.y + 30, { steps: 15 });
+  await app.page.mouse.up();
+  await app.page.waitForTimeout(1500);
+  const afterDrop = await nodeTransforms(app.page);
+  expect(afterDrop.length).toBe(2);
+  const droppedY = yOf(afterDrop.find(transform => transform !== firstPlacement[0]) ?? afterDrop[0]);
+  expect(droppedY, `dropped card seats inside the top lane (y=${droppedY}, lane top=${tops[0]})`).toBeGreaterThanOrEqual(tops[0] + 20);
+  expect(droppedY).toBeLessThan(tops[1]);
+
+  // the lane facts persist with the draft: save and read the graph back
+  await app.page.getByRole('button', { name: /^save$/i }).first().click();
+  await app.page.waitForTimeout(1800);
+  const definitions = await app.request.get('/api/process-definitions');
+  const list = await definitions.json();
+  const latest = (Array.isArray(list) ? list : list.definitions || [])
+    .filter(definition => definition.updatedAt)
+    .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)))[0];
+  const loaded = await app.request.get(`/api/process-definitions/${latest._id}`);
+  expect(loaded.ok(), await loaded.text()).toBeTruthy();
+  const definition = await loaded.json();
+  const droppedX = Number(afterDrop[0].match(/translate\((\d+)px/)?.[1] || 0);
+  const laneFactNode = (definition.data.graph?.nodes || []).find(node => (
+    Math.abs((node.position?.x || 0) - droppedX) < 5 && node.data?.laneY !== undefined
+  ));
+  expect(laneFactNode, 'the dropped card persists its lane membership and offset').toBeTruthy();
+  expect(laneFactNode.data.lane).toBeTruthy();
+  expect(laneFactNode.data.laneY).toBeGreaterThanOrEqual(0);
+
   await testInfo.attach('palette-placement.json', {
-    body: JSON.stringify({ first: firstPlacement, second: secondPlacement, bandTops: tops }, null, 2),
+    body: JSON.stringify({ first: firstPlacement, second: secondPlacement, afterDrop, bandTops: tops, savedLaneFacts: { lane: laneFactNode.data.lane, laneY: laneFactNode.data.laneY } }, null, 2),
     contentType: 'application/json'
   });
   await app.expectCleanRuntime();
