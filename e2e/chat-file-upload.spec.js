@@ -69,6 +69,19 @@ test.describe('chat file uploads', () => {
     expect(download.headers()['content-disposition']).toContain('attachment');
     outcomes.common.downloadStatus = download.status();
 
+    // A non-ASCII filename must download too: raw header bytes beyond
+    // Latin-1 are illegal in Content-Disposition, so the route carries
+    // the real name RFC 6266-style (ASCII fallback + filename*).
+    const uploadUnicode = await request.post('http://localhost:3000/api/files/upload?bucket=files', {
+      multipart: { file: { name: 'Запись встречи.webm', mimeType: 'video/webm', buffer: PNG_BYTES } }
+    });
+    expect(uploadUnicode.ok(), await uploadUnicode.text()).toBeTruthy();
+    const storedUnicode = await uploadUnicode.json();
+    const downloadUnicode = await request.get(`http://localhost:3000/api/files/download/${storedUnicode.id}?bucket=files&download=1`);
+    expect(downloadUnicode.status(), await downloadUnicode.text()).toBe(200);
+    expect(downloadUnicode.headers()['content-disposition']).toContain(`filename*=UTF-8''`);
+    outcomes.common.unicodeDownloadStatus = downloadUnicode.status();
+
     // Media ranges: playback/seeking rides 206 partial responses. The
     // end is clamped to the representation length (RFC 9110 remainder
     // rule) — 0-99 on 70 bytes serves 0-69.

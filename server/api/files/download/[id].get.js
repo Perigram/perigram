@@ -14,40 +14,40 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const bucket = query.bucket || 'uploads';
 
-  try {
-    const meta = await filesService.findFileMeta(id, bucket);
-    if (!meta) throw new Error('not found');
-    const contentType = filesService.contentTypeForFile(meta);
-    const disposition = query.download === '1' ? 'attachment' : 'inline';
-    const baseHeaders = {
-      'Content-Type': contentType,
-      'Content-Disposition': `${disposition}; filename="${meta.filename.replace(/"/g, '')}"`
-    };
+  const meta = await filesService.findFileMeta(id, bucket);
+  if (!meta) throw createError({ statusCode: 404, message: 'File not found' });
+  const contentType = filesService.contentTypeForFile(meta);
+  // Header values carry Latin-1 bytes only: a non-ASCII filename rides the
+  // RFC 6266 filename* parameter, with a stripped-ASCII fallback.
+  const asciiName = String(meta.filename || 'file').replace(/"/g, '').replace(/[^\x20-\x7e]/g, '_');
+  const encodedName = encodeURIComponent(String(meta.filename || 'file'));
+  const disposition = query.download === '1' ? 'attachment' : 'inline';
+  const baseHeaders = {
+    'Content-Type': contentType,
+    'Content-Disposition': `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`
+  };
 
-    const total = Number(meta.length) || 0;
-    const range = total ? parseRangeHeader(getRequestHeader(event, 'range'), total) : null;
+  const total = Number(meta.length) || 0;
+  const range = total ? parseRangeHeader(getRequestHeader(event, 'range'), total) : null;
 
-    if (range) {
-      setResponseHeaders(event, {
-        ...baseHeaders,
-        'Accept-Ranges': 'bytes',
-        'Content-Range': `bytes ${range.start}-${range.end}/${total}`,
-        'Content-Length': String(range.end - range.start + 1)
-      });
-      setResponseStatus(event, 206);
-      const stream = await filesService.getFileRangeStream(id, bucket, range.start, range.end);
-      return sendStream(event, stream);
-    }
-
+  if (range) {
     setResponseHeaders(event, {
       ...baseHeaders,
-      ...(total ? { 'Accept-Ranges': 'bytes', 'Content-Length': String(total) } : {})
+      'Accept-Ranges': 'bytes',
+      'Content-Range': `bytes ${range.start}-${range.end}/${total}`,
+      'Content-Length': String(range.end - range.start + 1)
     });
-    const stream = await filesService.getFileStream(id, bucket);
+    setResponseStatus(event, 206);
+    const stream = await filesService.getFileRangeStream(id, bucket, range.start, range.end);
     return sendStream(event, stream);
-  } catch (err) {
-    throw createError({ statusCode: 404, message: 'File not found' });
   }
+
+  setResponseHeaders(event, {
+    ...baseHeaders,
+    ...(total ? { 'Accept-Ranges': 'bytes', 'Content-Length': String(total) } : {})
+  });
+  const stream = await filesService.getFileStream(id, bucket);
+  return sendStream(event, stream);
 });
 
 // Single ranges only (`bytes=a-b`, `bytes=a-`, `bytes=-n` suffix);
