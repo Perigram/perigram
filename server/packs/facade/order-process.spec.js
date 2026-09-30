@@ -258,12 +258,16 @@ function composeOrderTree() {
   authoring.declareTypeRef({ id: 'csvRef', typeId: 'csv-table' });
   authoring.declareTypeRef({ id: 'cassetteRef', typeId: 'cassette' });
   authoring.declareTypeRef({ id: 'designRef', typeId: 'cassette-design' });
-  authoring.declareTypeRef({ id: 'materialRef', typeId: 'sheet-material' });
+  authoring.declareClass({ id: 'materialClass', typeId: 'sheet-material', class: 'file', name: 'Sheet material' });
+  authoring.declareField({ id: 'materialCode', ownerClassId: 'materialClass', name: 'code', descriptor: { base: 'string', identifier: true } });
+  authoring.declareField({ id: 'materialWidth', ownerClassId: 'materialClass', name: 'width', descriptor: { base: 'quantity', unit: 'mm' } });
+  authoring.declareField({ id: 'materialHeight', ownerClassId: 'materialClass', name: 'height', descriptor: { base: 'quantity', unit: 'mm' } });
+  authoring.declareField({ id: 'materialThickness', ownerClassId: 'materialClass', name: 'thickness', descriptor: { base: 'quantity', unit: 'mm' } });
   authoring.declareField({ id: 'tableField', ownerClassId: 'orderClass', name: 'table', descriptor: { base: 'ref' } });
   authoring.wireDeclaration('xlsxRef', 'tableField', 'targets');
   authoring.wireDeclaration('csvRef', 'tableField', 'targets');
   authoring.wireDeclaration('orderClass', 'designRef', 'children', { key: 'contents' });
-  authoring.wireDeclaration('orderClass', 'materialRef', 'children', { key: 'contents' });
+  authoring.wireDeclaration('orderClass', 'materialClass', 'children', { key: 'contents' });
   authoring.wireDeclaration('orderClass', 'attemptClass', 'children', { key: 'contents' });
 
   return authoring;
@@ -313,7 +317,7 @@ function composeOrderGraph(authoring, tableType) {
   authoring.drop('literalList', { id: 'thicknesses' });
   authoring.configure('thicknesses', { type: { base: 'number', nullable: false, unit: 'mm' }, value: [4, 6] });
   authoring.drop('construct', { id: 'materials' });
-  authoring.wireDeclaration('materialRef', 'materials', 'binds');
+  authoring.wireDeclaration('materialClass', 'materials', 'binds');
   authoring.configure('materials', { access: adminAccess });
 
   authoring.drop('extractProjection', { id: 'polygons' });
@@ -325,6 +329,7 @@ function composeOrderGraph(authoring, tableType) {
 
   authoring.drop('forEachEntity', { id: 'loop' });
   authoring.configure('loop', { type: { base: 'entity', typeId: 'sheet-material' } });
+  // (the material type is the in-tree class, posted with the tree)
 
   authoring.drop('getField', { id: 'matWidth' });
   authoring.configure('matWidth', { typeId: 'sheet-material' });
@@ -456,6 +461,10 @@ describe.each(['xlsx-workbook', 'csv-table'])('the order process authored in-tre
   it('carries its vocabulary in-tree: posted declarations compile from its own canvas', async () => {
     const { declarations } = await composeApplyAndRun();
     expect(declarations).toEqual([
+      {
+        id: 'sheet-material', class: 'file', name: 'Sheet material',
+        fields: { code: { base: 'string', identifier: true }, width: { base: 'quantity', unit: 'mm' }, height: { base: 'quantity', unit: 'mm' }, thickness: { base: 'quantity', unit: 'mm' } }
+      },
       { id: 'nesting-attempt', class: 'item', name: 'Nesting attempt', fields: { label: { base: 'string', identifier: true }, result: { base: 'json' } } },
       {
         id: 'facade-order', class: 'group', name: 'Facade order',
