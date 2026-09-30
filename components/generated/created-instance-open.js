@@ -17,7 +17,7 @@ import { detailRouteForInstance, instanceIdentifier } from '~/components/generat
 //    silent.
 export function resolveCreatedInstanceOpen({ action = {}, result = null, screenKey = '', manifest = [] } = {}) {
   const entity = createdEntity(action, result);
-  const typeId = action.relationMutation?.targetType || action.typeId || '';
+  const typeId = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId || '';
   if (!entity || !typeId) return null;
   const identifier = instanceIdentifier(entity);
   if (!identifier) return null;

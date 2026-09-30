@@ -190,7 +190,7 @@ global.fetch = vi.fn(async (_url, options = {}) => {
 });
 
 import { startRun } from '../../features/process-definitions/service.js';
-import { validateActivatableProcess } from '../../features/process-definitions/compiler-adapter.js';
+import { validateActivatableProcess, declarationOverlayDomain } from '../../features/process-definitions/compiler-adapter.js';
 import { instanceServiceResolver } from '../../features/instances/service.js';
 import * as processRepository from '../../features/process-definitions/repository.js';
 import * as filesService from '../../features/files/service.js';
@@ -287,6 +287,23 @@ describe.each(['xlsx-workbook', 'csv-table'])('the order process authored in-tre
     const definition = composeOrderGraph(authoring, tableType);
     const validation = validateActivatableProcess(definition, domain, { role_admin: { label: 'Admin' } });
     expect(validation.errors || []).toEqual([]);
+
+    // The order's `table` relation entry accepts BOTH table types (one
+    // authored ref field, two declared targets): it compiles to ONE link
+    // action accepting the union, captioned by the authored field label —
+    // never per-target buttons or raw type ids.
+    const { compileProcessDefinition } = await import('#packages/processes/src/index.js');
+    const { tryAcceptGraphProtocol } = await import('../../features/process-definitions/compiler-adapter.js');
+    const accepted = tryAcceptGraphProtocol(definition, domain).definition;
+    const compiled = compileProcessDefinition(accepted, declarationOverlayDomain(definition, domain), {
+      roles: { role_admin: { label: 'Admin' } }
+    });
+    const tableLinks = Object.values(compiled.actions || {})
+      .filter(action => action.relationMutation?.key === 'table' && action.relationMutation.operation === 'link');
+    expect(tableLinks).toHaveLength(1);
+    expect([...tableLinks[0].relationMutation.targetTypes].sort()).toEqual(['csv-table', 'xlsx-workbook']);
+    expect(tableLinks[0].label).toMatch(/^Link /);
+    expect(tableLinks[0].label).not.toMatch(/csv|xlsx/i);
 
     processRepository.findById.mockResolvedValue({
       _id: 'process-order',

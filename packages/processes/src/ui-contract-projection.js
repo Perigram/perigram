@@ -146,7 +146,7 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   if (action.relationMutation) {
     projected.relation = {
       key: action.relationMutation.key,
-      targetType: action.relationMutation.targetType,
+      targetTypes: action.relationMutation.targetTypes || [],
       cardinality: action.relationMutation.cardinality || 'scalar'
     };
   }

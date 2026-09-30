@@ -2257,7 +2257,7 @@ const attachCreatedInstance = (action, result) => {
     if (!result || typeof result !== 'object') return
     const instance = result.created || (!result.owner ? (result.entity || result) : null)
     const id = entity?._id?.toString?.() || entity?._id || entity?.id || entity?.identity?.uid || ''
-    const type = action.relationMutation?.targetType || action.typeId
+    const type = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId
     if (!id || !type) return
     if (!instanceRefs.value.some(ref => ref.type === type && ref.id === id)) {
         instanceRefs.value.push({

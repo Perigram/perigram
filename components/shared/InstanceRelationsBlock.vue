@@ -124,7 +124,7 @@ function unlinkEntries(relation = {}, item = {}) {
       action.typeId === props.typeId
       && action.relationMutation?.operation === 'unlink'
       && action.relationMutation?.key === key
-      && action.relationMutation?.targetType === item.typeId
+      && [].concat(action.relationMutation?.targetTypes || []).includes(item.typeId)
     ))
     .map(action => ({
       actionId: action.id,

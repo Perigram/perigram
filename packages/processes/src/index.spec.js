@@ -2306,7 +2306,7 @@ describe('@perigram/processes compiler', () => {
       },
       blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
     };
-    const compiled = compileProcessDefinition({
+    const definition = {
       dataflowVersion: 4,
       roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
       producerOutputs: producerOutputRecords([
@@ -2370,15 +2370,16 @@ describe('@perigram/processes compiler', () => {
           { id: 'relations-create', source: 'relations', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
         ]
       }
-    }, relationDomain);
+    };
+    const compiled = compileProcessDefinition(definition, relationDomain);
 
     expect(compiled.actions['create:link:libraries']).toMatchObject({
-      label: 'Link library',
+      label: 'Link libraries',
       actionKind: 'updateEntity',
       typeId: 'project',
       relationMutation: {
         key: 'libraries',
-        targetType: 'library',
+        targetTypes: ['library'],
         cardinality: 'many',
         operation: 'link',
         creator: expect.objectContaining({ actionId: 'library', typeId: 'library' })
@@ -2386,8 +2387,8 @@ describe('@perigram/processes compiler', () => {
     });
     expect(compiled.roles.role_admin.actions.find(action => action.actionId === 'create:link:libraries')?.construction).toBeNull();
     expect(compiled.actions['create:unlink:libraries']).toMatchObject({
-      label: 'Unlink library',
-      relationMutation: { key: 'libraries', targetType: 'library', operation: 'unlink' },
+      label: 'Unlink libraries',
+      relationMutation: { key: 'libraries', targetTypes: ['library'], operation: 'unlink' },
       inputPolicy: { prompt: false, fields: [] }
     });
     expect(compiled.actions['create:link:artifact']).toMatchObject({
@@ -2413,6 +2414,14 @@ describe('@perigram/processes compiler', () => {
       'create:link:libraries',
       'create:unlink:libraries'
     ]));
+
+    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'artifacts', level: 'write' }));
+    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'libraries', level: 'write' }));
+    expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
+      'create:link:libraries',
+      'create:unlink:libraries'
+    ]));
+
   });
 
   it('expands the userCreatable attachment-kind selector on declared creator inputs', () => {
