@@ -186,14 +186,9 @@ builds only).
   cache-first worker from an earlier prod build would serve stale code
   through hard refreshes — hashed prod names make network fetches safe);
   `plugins/pwa.client.js` registers the worker without a build plugin.
-  Only successful (`response.ok`, same-origin) responses are cached: an
-  error body cached during a broken deploy would keep answering
-  cache-first after the server is fixed (staging 2026-09-30 — fonts/icons
-  served 500s from a poisoned cache while the origin was healthy, reading
-  as "discarded" CSS rules). Bumping the `CACHE` name purges every client
-  cache on the next activate — the heal path for already-poisoned
-  browsers; dev additionally self-heals by unregistering workers on every
-  load.
+  Only successful (`response.ok`, same-origin) responses are cached —
+  error bodies must never enter a cache-first cache. Bumping the `CACHE`
+  name purges every client cache on activate.
 - Dev loads self-heal the origin: every dev page load unregisters all
   service-worker registrations and deletes their caches, so a worker left
   by an earlier production build cannot keep serving stale code; only

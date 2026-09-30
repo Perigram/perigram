@@ -61,11 +61,7 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request).then((cached) => {
             if (cached) return cached
             return fetch(event.request).then((response) => {
-                // Cache-first poisons permanently: an error response cached
-                // during a broken deploy keeps serving after the server is
-                // fixed (staging 2026-09-30 — fonts/icons answered 500s from
-                // cache while the origin was healthy, "discarded" css rules).
-                // Only successful same-origin responses enter the cache.
+                // Only successful same-origin responses are cached.
                 if (response.ok && response.type === 'basic') {
                     const copy = response.clone()
                     event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, copy)))
