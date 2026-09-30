@@ -16,7 +16,7 @@
              already carries h-full, and merging a second height utility
              there resolves by CSS order — that produced the content-driven
              (growing) dialog. -->
-        <div v-if="visibleModel" class="h-support-chat max-h-dvh">
+        <div v-if="visibleModel" class="h-support-chat max-h-support-chat-viewport-max">
             <slot />
         </div>
     </Dialog>

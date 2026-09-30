@@ -205,7 +205,7 @@ describe('Design system manifest', () => {
     expect(primeComponentTokens).toEqual({
       panel: { root: { background: 'transparent', borderColor: 'transparent' } },
       panelmenu: { panel: { background: 'transparent' } },
-      listbox: { root: { background: 'transparent', borderColor: 'transparent' } },
+      listbox: { root: { borderColor: 'transparent' } },
       splitter: { gutter: { background: 'transparent' } },
       card: { root: { shadow: 'none' } },
       datatable: {
