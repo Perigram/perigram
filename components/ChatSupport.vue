@@ -523,8 +523,8 @@
                                         @click.stop="transcribeAudioMessage(messageItem)"
                                     />
                                     <span
-                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
-                                        :class="isOwnMessage(messageItem) ? '-right-8' : '-left-8'"
+                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
+                                        :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
                                     >
                                         <Button
                                             icon="pi pi-ellipsis-v"
