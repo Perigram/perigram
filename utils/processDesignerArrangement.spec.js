@@ -2,7 +2,7 @@
 // components/process-designer/README.md "Auto-arrangement"): the pure
 // Tidy pass — deterministic, idempotent, lane-preserving, flow-directed.
 import { describe, expect, it } from 'vitest';
-import { arrangeProcessGraph, settleLaneGeometry } from '~/utils/processDesignerArrangement.js';
+import { arrangeProcessGraph } from '~/utils/processDesignerArrangement.js';
 
 const BAND_A = { id: 'role:a', kind: 'role', label: 'A', top: 0, height: 340 };
 const BAND_B = { id: 'role:b', kind: 'role', label: 'B', top: 340, height: 340 };
@@ -448,71 +448,5 @@ describe('arrangeProcessGraph', () => {
       second.has(node.id) ? { ...node, position: second.get(node.id) } : node
     )) });
     expect([...third]).toEqual([...first]);
-  });
-});
-
-describe('settleLaneGeometry', () => {
-  const BAND_A = { id: 'role:a', kind: 'role', label: 'A', top: 0, height: 340 };
-  const BAND_B = { id: 'role:b', kind: 'role', label: 'B', top: 340, height: 340 };
-
-  function settle({ nodes, bandOfNodeId, bands = [BAND_A, BAND_B] }) {
-    return settleLaneGeometry({ nodes, bands, bandOfNodeId });
-  }
-
-  it('wraps a lane around a card dropped below its content', () => {
-    // Band A holds e1 at y 24; e2 is dropped far below the old bounds —
-    // the band must grow around it, keeping the drop offset.
-    const nodes = [
-      { id: 'e1', type: 'processNode', position: { x: 0, y: 24 } },
-      { id: 'e2', type: 'processNode', position: { x: 420, y: 900 } }
-    ];
-    const { bands, shifts } = settle({ nodes, bandOfNodeId: new Map([['e1', BAND_A], ['e2', BAND_A]]) });
-    const bandA = bands[0];
-    const seatedE2 = 900 + shifts.get('role:a');
-    expect(bandA.height).toBe(Math.max(150, seatedE2 + 140 + 24 - bandA.top));
-    expect(seatedE2).toBeGreaterThan(24 + 140);
-    // No re-sort: e1 keeps the top seat, e2 keeps its distance below it.
-    expect(24 + shifts.get('role:a')).toBe(24);
-  });
-
-  it('shifts lower lanes down when a lane grows', () => {
-    const nodes = [
-      { id: 'e1', type: 'processNode', position: { x: 0, y: 24 } },
-      { id: 'e2', type: 'processNode', position: { x: 420, y: 900 } },
-      { id: 'b1', type: 'processNode', position: { x: 0, y: 400 } }
-    ];
-    const { bands, shifts } = settle({
-      nodes,
-      bandOfNodeId: new Map([['e1', BAND_A], ['e2', BAND_A], ['b1', BAND_B]])
-    });
-    const [bandA, bandB] = bands;
-    expect(bandA.top).toBe(0);
-    expect(bandB.top).toBe(bandA.top + bandA.height);
-    const seatedB1 = 400 + shifts.get('role:b');
-    expect(seatedB1).toBeGreaterThanOrEqual(bandB.top + 24);
-  });
-
-  it('keeps an empty lane as a minimum-height drop target', () => {
-    const nodes = [{ id: 'e1', type: 'processNode', position: { x: 0, y: 24 } }];
-    const { bands } = settle({ nodes, bandOfNodeId: new Map([['e1', BAND_A]]) });
-    expect(bands[1].height).toBe(150);
-    expect(bands[1].top).toBe(bands[0].top + bands[0].height);
-  });
-
-  it('is idempotent: settling a settled canvas moves nothing', () => {
-    const nodes = [
-      { id: 'e1', type: 'processNode', position: { x: 0, y: 24 } },
-      { id: 'e2', type: 'processNode', position: { x: 420, y: 194 } },
-      { id: 'b1', type: 'processNode', position: { x: 0, y: 500 } }
-    ];
-    const bandOfNodeId = new Map([['e1', BAND_A], ['e2', BAND_A], ['b1', BAND_B]]);
-    const first = settle({ nodes, bandOfNodeId });
-    const seated = nodes.map(node => ({
-      ...node,
-      position: { ...node.position, y: node.position.y + first.shifts.get(bandOfNodeId.get(node.id).id) }
-    }));
-    const second = settle({ nodes: seated, bandOfNodeId });
-    expect([...second.shifts.values()].every(shift => shift === 0)).toBe(true);
-    expect(second.bands).toEqual(first.bands);
   });
 });

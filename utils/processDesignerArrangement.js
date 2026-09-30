@@ -354,30 +354,3 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   }
   return { positions: arranged, bands: bandGeometry().geometry };
 }
-
-// The settle pass (contract: components/process-designer/README.md
-// "Lanes"): lane bounds wrap their nodes, recalculated on the fly. Given
-// each node's band and position, derive per-band content-wrapped heights,
-// stack the bands in their given order, and return the uniform shift that
-// seats each band's content at its top — relative order inside a lane is
-// never touched.
-export function settleLaneGeometry({ nodes = [], bands = [], bandOfNodeId } = {}) {
-  const shifts = new Map();
-  const geometry = [];
-  let top = 0;
-  for (const band of bands) {
-    const members = nodes.filter(node => bandOfNodeId?.get(node.id) === band);
-    let height = LANE_MIN_HEIGHT;
-    let shift = 0;
-    if (members.length) {
-      const minY = Math.min(...members.map(node => node.position?.y || 0));
-      const bottom = Math.max(...members.map(node => (node.position?.y || 0) + cardHeightOf(node)));
-      height = Math.max(LANE_MIN_HEIGHT, bottom - minY + 2 * LANE_INSET);
-      shift = top + LANE_INSET - minY;
-    }
-    shifts.set(band.id, shift);
-    geometry.push({ ...band, top, height });
-    top += height;
-  }
-  return { bands: geometry, shifts };
-}
