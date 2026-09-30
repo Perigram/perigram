@@ -41,12 +41,16 @@ Editing the pipeline means editing that branch.
   (512 MB upload limit). **Rollback to the hera K3s ingress:** point `$f`
   back to `http://192.168.0.248:80` in that block and `nginx -s reload`.
 - Data plane (inline in deploy.yml, no credentials — lab LAN/NetBird):
-  `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit` (hera mongo),
-  `BASE_URL=https://perigram.sodalab.pro`, calls on the zeus LiveKit
-  (`ws://10.77.219.223:7880` over NetBird, keys inline — browsers must be
-  NetBird-connected to join staging calls), local STT + qwen on the
-  data-worker peer (`10.77.167.148:31135/:31136`), and recordings in the
-  `livekit-egress` bucket on `192.168.0.15:8333`. The previous
+  `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true`
+  (hera mongo; `directConnection=true` is required — the single-node
+  replica set advertises its own hostname to clients, and from outside the
+  mongo network that name does not resolve, the driver topology closes, and
+  every API 500s while pages still render — the 2026-09-30 "broken layouts"
+  staging incident), `BASE_URL=https://perigram.sodalab.pro`, calls on the
+  zeus LiveKit (`ws://10.77.219.223:7880` over NetBird, keys inline —
+  browsers must be NetBird-connected to join staging calls), local STT + qwen
+  on the data-worker peer (`10.77.167.148:31135/:31136`), and recordings in
+  the `livekit-egress` bucket on `192.168.0.15:8333`. The previous
   `https://livekit.sodalab.pro` edge and hera `:7880` internal URL are the
   revert path when a public edge is wanted again.
 - Call recordings need an external egress plane beside the LiveKit server
