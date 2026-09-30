@@ -858,19 +858,6 @@ export function packPaletteGroups(projectionContracts = {}, serviceContracts = {
   return [...sections.values()].filter(group => group.items.length);
 }
 
-// Typed producer paths (SPEC §8 palette law): one pre-bound "all" source
-// per listable type — the entity streams a graph starts from, dropped
-// bound instead of configured.
-export function typedSourcePaletteItems(entities = [], isListable = () => true) {
-  return entities
-    .filter(entity => entity?.type && isListable(entity.type))
-    .map(entity => paletteItem(`all:${entity.type}`, 'cts.read', {
-      label: `All ${entity.label || entity.type}`,
-      description: `All ${entity.label || entity.type}`,
-      preset: { select: 'all', typeId: entity.type }
-    }));
-}
-
 // Type catalog palette (SPEC §20/§21, L2): registry types are draggable
 // composables — one bound construct per constructible type, plus one
 // variant per declared construct operator (the org-authored `via`). One
@@ -938,14 +925,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
     ...servicesPaletteGroups(domain.serviceContracts || {}),
     ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
       ...group,
-      // Typed producer paths join the entity sources beside the generic
-      // read presets: one pre-bound "all" drop per listable type.
-      ...(group.id === 'instances' ? {
-        items: [...group.items, ...typedSourcePaletteItems(
-          entities,
-          typeId => (capabilities ? Boolean(capabilityFor(typeId)?.list) : true)
-        )]
-      } : {})
+      items: group.items
     }))
   ];
 
