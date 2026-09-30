@@ -458,38 +458,6 @@
                                     </span>
                                 </button>
                                 <div
-                                    v-if="messageItem.attachment?.kind === 'audio' || messageItem.attachment?.kind === 'video'"
-                                    class="flex w-full max-w-full items-center gap-1"
-                                >
-                                    <audio
-                                        v-if="messageItem.attachment?.kind === 'audio'"
-                                        :src="attachmentUrl(messageItem.attachment)"
-                                        controls
-                                        preload="metadata"
-                                        class="min-w-0 max-w-full"
-                                    />
-                                    <video
-                                        v-else
-                                        :src="attachmentUrl(messageItem.attachment)"
-                                        controls
-                                        preload="metadata"
-                                        playsinline
-                                        class="min-w-0 max-w-full"
-                                    />
-                                    <Button
-                                        v-if="canTranscribe(messageItem)"
-                                        class="shrink-0"
-                                        icon="pi pi-spell-check"
-                                        severity="secondary"
-                                        text
-                                        rounded
-                                        size="small"
-                                        :aria-label="$t('support.transcribe')"
-                                        :loading="transcribingMessageIds.has(messageItem._id)"
-                                        @click.stop="transcribeAudioMessage(messageItem)"
-                                    />
-                                </div>
-                                <div
                                     v-if="messageItem.message || (messageItem.instanceRefs || []).length"
                                     class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
                                     :class="isOwnMessage(messageItem)
@@ -517,6 +485,38 @@
                                             @click.stop="openMessageMenu($event, messageItem)"
                                         />
                                     </span>
+                                </div>
+                                <div
+                                    v-if="messageItem.attachment?.kind === 'audio' || messageItem.attachment?.kind === 'video'"
+                                    class="flex max-w-full items-center gap-1"
+                                >
+                                    <audio
+                                        v-if="messageItem.attachment?.kind === 'audio'"
+                                        :src="attachmentUrl(messageItem.attachment)"
+                                        controls
+                                        preload="metadata"
+                                        class="min-w-0 max-w-full"
+                                    />
+                                    <video
+                                        v-else
+                                        :src="attachmentUrl(messageItem.attachment)"
+                                        controls
+                                        preload="metadata"
+                                        playsinline
+                                        class="min-w-0 max-w-full"
+                                    />
+                                    <Button
+                                        v-if="canTranscribe(messageItem)"
+                                        class="shrink-0"
+                                        icon="pi pi-eye"
+                                        severity="secondary"
+                                        text
+                                        rounded
+                                        size="small"
+                                        :aria-label="$t('support.transcribe')"
+                                        :loading="transcribingMessageIds.has(messageItem._id)"
+                                        @click.stop="transcribeAudioMessage(messageItem)"
+                                    />
                                 </div>
                                 <div v-else class="group relative w-full">
                                     <span
