@@ -259,7 +259,12 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       // stays authored until a full domain syncs.
       if (typeIsKnown(node)) {
         const relations = relationKeysForEntity(typeIdOf(node));
-        if (!relations.some(relation => relation.key === node.relationKey)) node.relationKey = relations[0]?.key || '';
+        // A known type with no exposed relations is a vocabulary gap too
+        // (partial domain, load race): the authored selection survives;
+        // validation owns the report when it is genuinely wrong.
+        if (relations.length && !relations.some(relation => relation.key === node.relationKey)) {
+          node.relationKey = relations[0]?.key || '';
+        }
       }
     }
   }
