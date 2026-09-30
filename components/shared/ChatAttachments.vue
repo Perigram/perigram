@@ -29,14 +29,24 @@
         playsinline
         class="min-w-0 max-w-full w-72 rounded-ui"
       />
-      <audio
+      <span
         v-for="attachment in audio"
         :key="attachment.fileId"
-        :src="url(attachment)"
-        controls
-        preload="metadata"
-        class="min-w-0 max-w-full"
-      />
+        class="flex min-w-0 max-w-full flex-col gap-1"
+      >
+        <audio
+          :src="url(attachment)"
+          controls
+          preload="metadata"
+          class="min-w-0 max-w-full"
+        />
+        <!-- Transcription rides under its player on the lower (subtle)
+             inset surface — caption chrome, not a second bubble. -->
+        <span
+          v-if="attachment.transcription"
+          class="rounded-ui bg-subtle px-2 py-1 text-supporting [overflow-wrap:anywhere]"
+        >{{ attachment.transcription }}</span>
+      </span>
       <span v-if="documents.length" class="flex max-w-full flex-col gap-1">
         <span
           v-for="attachment in documents"
