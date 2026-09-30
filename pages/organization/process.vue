@@ -148,105 +148,95 @@
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="definitions">
-              <Listbox
-                :model-value="selectedProcessId"
-                :options="processDefinitions"
-                option-label="identity.name"
-                option-value="_id"
-                data-key="_id"
-                :aria-label="$t('processDesigner.definitions')"
-                @update:model-value="value => selectProcessDefinition(value)"
-              >
-                <template #option="{ option }">
-                  <!-- One root node: the Listbox option itself is a flex
-                       row with hidden overflow, so sibling roots would lay
-                       out side by side inside it. -->
-                  <div class="flex w-full min-w-0 flex-col gap-1">
-                  <div v-if="renamingDefinitionId === String(option._id)" class="flex w-full items-center gap-2" @click.stop>
-                    <InputText
-                      v-model="renamingDefinitionName"
-                      class="min-w-0 flex-1"
-                      size="small"
-                      :aria-label="$t('common.rename')"
-                      @keydown.enter.prevent.stop="applyDefinitionRename(option)"
-                    />
-                    <Button
-                      icon="pi pi-check"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      :loading="definitionBusyId === String(option._id)"
-                      :disabled="!renamingDefinitionName.trim()"
-                      @click.stop="applyDefinitionRename(option)"
-                    />
-                  </div>
-                  <div v-else class="flex w-full items-center gap-2">
-                    <span
-                      class="min-w-0 flex-1 truncate"
-                      :title="normalizeProcessDisplayName(option.identity?.name || option.identity?.uid || option._id)"
-                    >{{ [normalizeProcessDisplayName(option.identity?.name || option.identity?.uid || option._id), option.states?.main === 'ACTIVE' ? $t('processDesigner.activeSet') : null].filter(Boolean).join(' · ') }}</span>
-                    <ToggleSwitch
-                      class="shrink-0"
-                      :model-value="option.states?.main === 'ACTIVE'"
-                      :loading="definitionBusyId === String(option._id)"
-                      :aria-label="$t('processDesigner.activate')"
-                      @update:model-value="value => toggleDefinitionActive(option, value)"
-                      @click.stop
-                    />
-                    <Button
-                      icon="pi pi-history"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      :aria-label="$t('processDesigner.versions')"
-                      @click.stop="toggleDefinitionHistory(option)"
-                    />
-                    <Button
-                      icon="pi pi-ellipsis-v"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      severity="secondary"
-                      :aria-label="$t('processDesigner.definitionActions')"
-                      aria-haspopup="true"
-                      :aria-controls="`definition-menu-${option._id}`"
-                      @click.stop="event => toggleDefinitionMenu(event, option)"
-                    />
-                    <Menu
-                      :ref="instance => setDefinitionMenuRef(option._id, instance)"
-                      :id="`definition-menu-${option._id}`"
-                      :model="definitionMenuItems(option)"
-                      popup
-                    />
-                  </div>
-                  <div
-                    v-if="historyDefinitionId === String(option._id)"
-                    class="flex w-full flex-col gap-1"
-                    @click.stop
-                  >
-                    <div v-if="historyLoading" class="text-muted text-supporting">…</div>
-                    <div
-                      v-for="(entry, index) in definitionHistoryEntries"
-                      v-else-if="definitionHistoryEntries.length"
-                      :key="`${entry.at}-${index}`"
-                      class="flex items-center gap-2 text-supporting"
-                    >
-                      <span class="min-w-0 flex-1 truncate">{{ formatHistoryEntry(entry) }}</span>
-                      <Button
-                        icon="pi pi-undo"
-                        class="shrink-0"
-                        size="small"
-                        text
-                        :aria-label="$t('common.restore')"
-                        :loading="definitionBusyId === String(option._id)"
-                        @click.stop="restoreDefinitionVersion(option, entry)"
-                      />
+              <TableFrame>
+                <DataTable
+                  :expanded-rows="expandedDefinitionRows"
+                  :value="processDefinitions"
+                  data-key="_id"
+                  :pt="definitionTablePt"
+                  @update:expanded-rows="onDefinitionRowsUpdate"
+                  @row-click="event => selectProcessDefinition(event.data._id)"
+                >
+                  <Column expander class="w-8" />
+                  <Column field="identity.name">
+                    <template #body="{ data }">
+                      <div v-if="renamingDefinitionId === String(data._id)" class="flex w-full items-center gap-2" @click.stop>
+                        <InputText
+                          v-model="renamingDefinitionName"
+                          class="min-w-0 flex-1"
+                          size="small"
+                          :aria-label="$t('common.rename')"
+                          @keydown.enter.prevent.stop="applyDefinitionRename(data)"
+                        />
+                        <Button
+                          icon="pi pi-check"
+                          class="shrink-0"
+                          size="small"
+                          text
+                          :loading="definitionBusyId === String(data._id)"
+                          :disabled="!renamingDefinitionName.trim()"
+                          @click.stop="applyDefinitionRename(data)"
+                        />
+                      </div>
+                      <span
+                        v-else
+                        class="flex w-full min-w-0 items-center gap-2"
+                        :title="normalizeProcessDisplayName(data.identity?.name || data.identity?.uid || data._id)"
+                      >{{ [normalizeProcessDisplayName(data.identity?.name || data.identity?.uid || data._id), data.states?.main === 'ACTIVE' ? $t('processDesigner.activeSet') : null].filter(Boolean).join(' · ') }}</span>
+                    </template>
+                  </Column>
+                  <Column class="text-right">
+                    <template #body="{ data }">
+                      <div class="flex justify-end gap-1" @click.stop>
+                        <ToggleSwitch
+                          :model-value="data.states?.main === 'ACTIVE'"
+                          :loading="definitionBusyId === String(data._id)"
+                          :aria-label="$t('processDesigner.activate')"
+                          @update:model-value="value => toggleDefinitionActive(data, value)"
+                        />
+                        <Button
+                          icon="pi pi-ellipsis-v"
+                          size="small"
+                          text
+                          severity="secondary"
+                          :aria-label="$t('processDesigner.definitionActions')"
+                          aria-haspopup="true"
+                          :aria-controls="`definition-menu-${data._id}`"
+                          @click.stop="event => toggleDefinitionMenu(event, data)"
+                        />
+                        <Menu
+                          :ref="instance => setDefinitionMenuRef(data._id, instance)"
+                          :id="`definition-menu-${data._id}`"
+                          :model="definitionMenuItems(data)"
+                          popup
+                        />
+                      </div>
+                    </template>
+                  </Column>
+                  <template #expansion="{ data }">
+                    <div v-if="historyDefinitionId === String(data._id)" class="flex flex-col gap-1">
+                      <div v-if="historyLoading" class="text-muted text-supporting">…</div>
+                      <div
+                        v-for="(entry, index) in definitionHistoryEntries"
+                        v-else-if="definitionHistoryEntries.length"
+                        :key="`${entry.at}-${index}`"
+                        class="flex items-center gap-2 text-supporting"
+                      >
+                        <span class="min-w-0 flex-1 truncate">{{ formatHistoryEntry(entry) }}</span>
+                        <Button
+                          icon="pi pi-undo"
+                          size="small"
+                          text
+                          :aria-label="$t('common.restore')"
+                          :loading="definitionBusyId === String(data._id)"
+                          @click.stop="restoreDefinitionVersion(data, entry)"
+                        />
+                      </div>
+                      <div v-else class="text-muted text-supporting">—</div>
                     </div>
-                    <div v-else class="text-muted text-supporting">—</div>
-                  </div>
-                  </div>
-                </template>
-              </Listbox>
+                  </template>
+                </DataTable>
+              </TableFrame>
             </TabPanel>
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
@@ -627,7 +617,8 @@ import Menu from 'primevue/menu';
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import Listbox from 'primevue/listbox';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
 import Message from 'primevue/message';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Panel from 'primevue/panel';
@@ -641,6 +632,7 @@ import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import TableFrame from '~/components/shared/TableFrame.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
@@ -1963,16 +1955,12 @@ const historyDefinitionId = ref(null);
 const definitionHistoryEntries = ref([]);
 const historyLoading = ref(false);
 
-async function toggleDefinitionHistory(process) {
-  const id = String(process._id);
-  if (historyDefinitionId.value === id) {
-    historyDefinitionId.value = null;
-    return;
-  }
+async function loadDefinitionHistory(id) {
   historyDefinitionId.value = id;
   historyLoading.value = true;
   try {
-    const full = process.data ? process : await persistence.loadById(id);
+    const cached = processDefinitions.value.find(process => String(process._id) === id);
+    const full = cached?.data ? cached : await persistence.loadById(id);
     upsertProcessDefinition(full);
     definitionHistoryEntries.value = [...(full.data?.history || [])].reverse();
   } catch (error) {
@@ -1982,6 +1970,21 @@ async function toggleDefinitionHistory(process) {
     historyLoading.value = false;
   }
 }
+
+// One expanded row at a time: the entries ref is single-slot, so the
+// latest expansion wins and loads its history.
+const expandedDefinitionRows = ref([]);
+
+function onDefinitionRowsUpdate(rows) {
+  const next = rows?.length ? [rows[rows.length - 1]] : [];
+  expandedDefinitionRows.value = next;
+  if (next.length) loadDefinitionHistory(String(next[0]._id));
+}
+
+const definitionTablePt = {
+  root: { class: 'bg-transparent' },
+  headerRow: { class: 'hidden' }
+};
 
 function formatHistoryEntry(entry) {
   return entry.at ? new Date(entry.at).toLocaleString() : '';
