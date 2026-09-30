@@ -19,7 +19,7 @@
                 <div
                     v-for="op in outbox.operations"
                     :key="op.id"
-                    class="flex flex-col gap-1 rounded border [border-color:var(--ck-chrome-border)] bg-subtle p-2 text-body"
+                    class="flex flex-col gap-1 rounded-ui bg-subtle p-2 text-body"
                 >
                     <div class="flex items-center justify-between gap-2">
                         <span class="truncate text-label">{{ op.method }} {{ shortPath(op.url) }}</span>

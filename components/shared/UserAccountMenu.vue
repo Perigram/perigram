@@ -16,7 +16,7 @@
           text
           severity="secondary"
           size="small"
-          class="w-full !justify-start"
+          :pt="startJustified"
           @click="runItem(item)"
         />
       </section>
@@ -89,7 +89,7 @@
           text
           severity="secondary"
           size="small"
-          class="w-full !justify-start"
+          :pt="startJustified"
           :loading="switchingTo === (org._id?.toString() || org.id?.toString())"
           @click="switchToOrganization(org)"
         />
@@ -99,7 +99,7 @@
           text
           severity="secondary"
           size="small"
-          class="w-full !justify-start"
+          :pt="startJustified"
           @click="openCreateOrg"
         />
       </section>
@@ -134,7 +134,7 @@
       data-testid="user-menu-trigger"
       type="button"
       @click="toggle"
-      class="p-0.5 rounded-full overflow-hidden border-2 border-transparent transition-colors"
+      class="p-0.5 rounded-full overflow-hidden"
       text
     >
       <Avatar
@@ -158,6 +158,10 @@ import Avatar from 'primevue/avatar';
 import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
+
+// PrimeVue centers button content; the menu rows read left-aligned. The
+// cascade rule: internals restyle through pt, never !utility overrides.
+const startJustified = { root: { style: 'justify-content: flex-start' } };
 import ToggleSwitch from 'primevue/toggleswitch';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';

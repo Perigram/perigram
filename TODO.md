@@ -739,3 +739,20 @@ render under every role), the authored-station editor only under its
 owning role, and customizeStation selects the owning role first. The
 compiled-preview recompute gate moved from the screens tab to roles.
 SSR smoke updated: screens tab label absent, roles pane renders.
+
+### Agent Notes (2026-09-30, popup sweep)
+
+Popups audited with the analyzer and brought compliant: UserAccountMenu
+(profile/org settings) drops its !justify-start overrides for a pt-based
+alignment object and the avatar trigger loses its hand-rolled ring;
+OfflineOutboxBadge becomes a token inset; CallFloatingWindow sizes on
+the standard scale (h-136 w-120 max-h-dvh) with the frame carried by
+shadow/surface instead of hand borders; ChatSupportDialog's documented
+Dialog width rides a pinned inline-layout exception and its cap becomes
+max-h-dvh; EntityPopup caps at max-h-dvh. Analyzer now exempts the
+semantic primary/status background token families (same standing as
+process-canvas), and inline-style exceptions may carry a layout category
+(besides data-driven). NameEditPopover/InstanceActionsPopover were
+already compliant. Preview popups were structurally PrimeVue already
+(StandardDialog + generated surfaces) — the debt was chrome, not
+structure.

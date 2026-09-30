@@ -81,6 +81,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
     ':style="labelStyle"',
     ':style="{ left: `${corridor.x}px`, width: `${corridor.width}px`, top: `${corridor.top}px`, height: `${corridor.height}px` }"'
   ]],
+  'components/shared/ChatSupportDialog.vue': ['layout', [":style=\"{ width: 'min(94vw, 25rem)' }\""]],
   'pages/organization/process.vue': ['data-driven', [
     ':style="selectionDialStyle"',
     ':style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"'
@@ -91,7 +92,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
 const VISUAL_CONCERNS = [
   ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl|\[[0-9.]+(?:px|rem|em)\])|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|mono|serif)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\])|leading-(?:none|tight|snug|normal|relaxed|loose|\[[^\]]+\]))\b/g],
   ['centralize:layout', /\b(?:basis|gap|grid-cols|grid-rows|h|max-h|max-w|min-h|min-w|m[trblxy]?|p[trblxy]?|w)-\[[^\]]+\]/g],
-  ['replace:chrome', /(?:\bbg-(?!(?:content|subtle|chrome|process-canvas|primary-surface|signal-)[\w-]*\b)[\w-]+\b|(?<![-\w])border(?:-[trblxy])?(?:-(?:0|2|4|8|primary|transparent|dashed|double))?(?!-)\b|(?<![-\w])rounded\b(?!-)|\bshadow-(?!(?:card|overlay)\b)[\w-]+\b|\[box-shadow:[^\]]+\])/g],
+  ['replace:chrome', /(?:\bbg-(?!(?:content|subtle|chrome|process-canvas|primary(?:-surface)?|signal-?|status-?)[\w-]*\b)[\w-]+\b|(?<![-\w])border(?:-[trblxy])?(?:-(?:0|2|4|8|primary|transparent|dashed|double))?(?!-)\b|(?<![-\w])rounded\b(?!-)|\bshadow-(?!(?:card|overlay)\b)[\w-]+\b|\[box-shadow:[^\]]+\])/g],
   ['remove:state', /\b(?:active|disabled|focus|focus-visible|hover|invalid):[^\s"'`]+/g],
   ['remove:important-override', /(?:^|\s)![a-z][a-z0-9]*(?:-[a-z0-9]+)+\b/g]
 ];

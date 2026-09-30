@@ -32,6 +32,11 @@ first-plane. Deleting warns first when the role carries load in any
 definition (its lane, grants, screens, or actions). Screens are not a
 separate tab — they render per role under Roles.
 
+Popups (profile/org settings, org/user previews, floating call window,
+status badges) are raw PrimeVue: Popover/StandardDialog own the surface
+and chrome, no hand-rolled borders or !utility overrides on PrimeVue
+internals.
+
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be
 preserved (panes and sidebar w/ chats and calls). "Screens" should go to panes/tabs, top-level menu still
