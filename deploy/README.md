@@ -42,7 +42,11 @@ Editing the pipeline means editing that branch.
   `keepalive 32` — a new TCP connection per proxied request lost its first
   SYN to port-collision drops on the zeus→poseidon path, stalling asset
   loads ~1s each and breaking first paint; the keepalive pool keeps warm
-  upstream connections instead. **Rollback to the hera K3s ingress:** point
+  upstream connections instead. The http block also carries `gzip on` with
+  `gzip_proxied any` for html/json/svg: the proxied SSR document is
+  ~740KB raw and streamed uncompressed for seconds over a thin WAN
+  uplink, painting the shell unstyled until CSS lands; compressed it
+  ships at ~100KB. **Rollback to the hera K3s ingress:** point
   the upstream back to `http://192.168.0.248:80` in that block and
   `nginx -s reload`.
 - Data plane (inline in deploy.yml, no credentials — lab LAN/NetBird):
