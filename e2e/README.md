@@ -98,6 +98,11 @@ noise.
 - `process-designer-boot.spec.js`: boots the process designer against a seeded
   species process, verifies the canvas renders, and creates plus saves a new
   draft from the dock (regression for the reported dead designer).
+- `process-designer-placement.spec.js`: pins the lane explicit-placement
+  contract — a palette add lands once inside the visible viewport, no
+  deferred pass moves it afterwards, and later adds never move existing
+  cards (regression for the automatic lane settle that teleported new nodes
+  and re-seated saved layouts).
 - `artifact-and-designer-ui.spec.js`: uploads and replaces a real DXF artifact,
   verifies viewer dispatch and revision creation, and proves incompatible
   conversion requests fail at the HTTP boundary.
