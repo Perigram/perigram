@@ -1678,11 +1678,6 @@ const fetchTranscriptionAvailability = async () => {
     }
 }
 
-const canTranscribe = (messageItem) => transcriptionAvailable.value
-    && messageItem.attachment?.kind === 'audio'
-    && !messageItem.attachment?.transcription
-    && !String(messageItem.message || '').trim()
-
 const replaceMessage = (messageItem) => {
     const id = String(messageItem?._id || '')
     if (!id) return
