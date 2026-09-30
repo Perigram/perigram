@@ -49,7 +49,11 @@ block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated projection of CTS semantics. Its
 groups are declaration items, type-bound constructs, effect species, typed
-instance sources/navigation, values, collections, and flow. Registered
+instance sources/navigation, values, collections, flow, registered
+services (one pre-bound drop per pack service), and file-data projections
+(one pre-bound extract drop per declared file-data projection — a distinct
+section, because reading a table is file data-level work, not data
+algebra). Registered
 services derive their ports from declared operator signatures. The exhaustive
 runtime catalog is not an authoring palette: packet matching, transport
 adapters, and producer identity remain compiler/runtime concerns.
@@ -66,6 +70,16 @@ Record-carried semantics are configured on the record through the seam and
 the inspector: `collection.join` keys (`leftKey`/`rightKey`),
 `value.recordField` (`path` plus authored output type), and
 `record.construct` (`fields`).
+
+One home per operation (SPEC §8 palette law): `value.compare` owns value
+comparison, `predicate.field` owns field-path comparison, and `value.logic`
+composes boolean algebra only (the null tests stay on it as unary boolean
+tests). Stored graphs authored before the split carry comparison ops on
+`value.logic`; `normalizeProcessNodesForDomain` migrates them one-way to
+`value.compare` at the load boundary. Current species ports mint
+`entityRef` — the `entity` spelling survives only inside the persisted-v4
+compatibility tier and the wire coercion (`types.js`), and every
+producer-output acceptance rule recognizes both spellings.
 
 ## Headless definition authoring
 

@@ -153,7 +153,7 @@ describe('native CTS process execution contract', () => {
     expect(transition.inputs.map(port => port.id)).toEqual(['in', 'entity', 'note', 'state']);
     expect(read.inputs.map(port => port.id)).toEqual(['entity']);
     expect(field.inputs.map(port => port.id)).toEqual(['entity', 'field']);
-    expect(field.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entity', typeId: 'panel' } });
+    expect(field.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entityRef', typeId: 'panel' } });
   });
 
   it('derives native construct and consumer actions without replacing the process-node record', () => {

@@ -296,6 +296,7 @@ describe('process designer domain contract', () => {
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',
       'source.literalList',
+      'value.compare',
       'value.logic',
       'value.string',
       'value.recordField',

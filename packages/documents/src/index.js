@@ -82,7 +82,7 @@ export const documentsTypes = Object.freeze([
     preview: 'workbook',
     glyph: 'pi pi-file-excel',
     name: 'XLSX workbook',
-    revisions: 'content',
+    creation: ['upload'],
     projections: rowsProjection
   }),
   documentType({
@@ -101,14 +101,12 @@ export const documentsTypes = Object.freeze([
 
 // Editor bindings (SPEC §21): the shared text/csv editor saves through
 // the revisioned instance payload transport; `revisions: 'content'` on
-// the types is what makes them editor-replaceable. The workbook's editor
-// is the import mapper (see the table-import surface in
-// components/generated/file-surfaces.js): a workbook's authoring act is
-// becoming typed instances.
+// the types is what makes them editor-replaceable. A workbook has no
+// bespoke editor: its authoring act is being read by process graphs
+// through the declared `rows` projection (SPEC §8 p extract).
 export const documentsEditors = Object.freeze([
   { type: 'text-document', surface: 'text-editor', modes: ['edit'] },
-  { type: 'csv-table', surface: 'csv-editor', modes: ['edit'] },
-  { type: 'xlsx-workbook', surface: 'table-import', modes: ['edit'] }
+  { type: 'csv-table', surface: 'csv-editor', modes: ['edit'] }
 ]);
 
 export const documentsPack = Object.freeze({

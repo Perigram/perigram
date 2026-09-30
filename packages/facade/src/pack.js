@@ -1,20 +1,23 @@
 // The facade pack's declaration content (SPEC §21): browser-safe data only —
 // file types with editors, the nesting service registration, attachment
-// kinds. `server/packs/cnc` binds these declarations to services; the
-// framework registry and the client type system consume the data.
+// kinds. `server/packs/facade` binds these declarations to server behavior;
+// the framework registry and the client type system consume the data.
 //
 // This is the whole of what the facade domain means in the type system:
-// cassette (OCCS file edited by the cassette designer), sheet design,
-// facade design, and the nesting solver. Everything else that once was
-// the legacy tables is either framework machinery or legacy app surface pending
-// deletion.
+// cassette (OCCS file edited by the cassette designer), cassette design,
+// sheet design, and the nesting solver.
 
 export const facadeFileTypes = [
   {
+    // A file type, full stop (SPEC §13): records ride the generic
+    // per-class instance service, the OCCS template document is the
+    // payload (§3 blob home) and the only home, and the geometry
+    // revision chain is the generic payload-replacement machinery over
+    // the declared `geometry` scope.
     id: 'cassette',
     class: 'file',
     scope: 'system',
-    version: 1,
+    version: 2,
     payload: {
       mime: 'application/perigram+occs',
       accept: ['.occs'],
@@ -23,16 +26,20 @@ export const facadeFileTypes = [
       // (graph-tree geometry), like every declared preview mode.
       preview: 'occs',
       // The designer is the main entry: blank-create opens the cassette
-      // designer (the legacy invariant — created templates open with the
-      // default OCCS document).
+      // designer; the first save fills the payload.
       creation: ['editor']
     },
     fields: {
-      name: { base: 'string' }
+      name: { base: 'string', identifier: true },
+      // PARAMETRIC templates carry an OCCS payload; STANDARD templates
+      // carry the uploaded DXF payload plus extracted geometry fields.
+      templateType: { base: 'enum', values: ['PARAMETRIC', 'STANDARD'] },
+      parameters: { base: 'list', itemType: { base: 'string' }, nullable: true },
+      // STANDARD import outputs, computed at import — never inputs.
+      mapping: { base: 'json', constructible: false },
+      polygonParts: { base: 'json', constructible: false },
+      layerData: { base: 'json', constructible: false }
     },
-    // The declared lifecycle (SPEC §7): the type declaration owns initial
-    // state — construction no longer carries a lifecycle-entry socket. The
-    // legacy domain workflow table is not a process-visible contract.
     states: {
       main: {
         initial: 'ACTIVE',
@@ -49,26 +56,21 @@ export const facadeFileTypes = [
       icon: 'pi pi-box',
       groups: [
         { id: 'geometry', fields: [
-          // Cassette renderable geometry exists in several stored shapes:
-          // the baked geometry preview, or the raw layer/polygon parts
-          // uploaded templates store. The preview channel walks them in
-          // order (the DataBlock fallbackPaths vocabulary), so generated
-          // card previews never depend on which construction path baked
-          // the record.
-          { path: 'data.geometry.preview', fallbackPaths: ['data.layerData', 'data.polygonParts', 'data.definition'], label: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
-        ] },
-        { id: 'provenance', fields: [
-          { path: 'data.geometryRevisionId', label: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }
+          // Cassette renderable geometry walks the stored shapes in
+          // order (the DataBlock fallbackPaths vocabulary); the OCCS
+          // definition itself previews through the payload channel, so
+          // generated card previews never depend on which construction
+          // path produced the record.
+          { path: 'data.polygonParts', fallbackPaths: ['data.layerData'], label: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
         ] }
       ]
     },
     // Compact-snapshot preview contract (SPEC §4): the chat/embed preview
-    // keeps the thumbnail-critical geometry and template identity, and
-    // compacts `data.geometry` when present.
+    // keeps the thumbnail-critical geometry and template identity — the
+    // OCCS document never rides snapshots (the payload channel owns it).
     snapshot: [
-      'data.type', 'data.definition', 'data.materialPool', 'data.parameters',
-      'data.description', 'data.revisions', 'data.sheetDesignIds', 'data.results',
-      'data.geometry', 'data.layerData', 'data.polygonParts'
+      'data.templateType', 'data.parameters', 'data.mapping',
+      'data.polygonParts', 'data.layerData'
     ],
     operators: {
       edit: { id: 'edit', species: 'mutate', input: { base: 'ref', accepts: ['cassette'] } }

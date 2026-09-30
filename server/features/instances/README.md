@@ -121,26 +121,6 @@ hand-written services.
   is the generated detail surfaces' inline-edit persistence path; the
   process effect boundary keeps its own `processUpdate` with execution
   auth.
-- Batch construction (`createBatch`, `POST /api/instances/:type/batch`):
-  the table-import transport — N rows as one call. The body names the
-  construction `mode` (one of the type's registered create modes;
-  `genericCreate` default), `rows` of wire-shaped construction drafts
-  (`identity.name`, `data` field leaves, optional `quantity` expanded
-  server-side into N identical children — per-piece nesting and
-  traceability need distinct records), an optional `parent`
-  (`{typeId, id}` resolved through the declared children edge and
-  stamped as `lineage.<lineageKey>` on every row), and an optional
-  `source` (`{typeId, id}` of the imported table instance, recorded in
-  each row's provenance `{op: 'table-import', sources, effective:
-  {mapping}}`). Rows are field-whitelisted against the declaration (a
-  mapping that targets undeclared fields is refused, not silently
-  dropped); total expansion is capped (500). Each row constructs through
-  the type's registered construction handler — `genericCreate` for org
-  types, the pack-bound `bake` for `cassette-design` — behind the same
-  access-engine call as `patch`, evaluated against the would-be record
-  (draft lineage plus initial status) so status-scoped create grants
-  decide. The response returns every created DTO; the importing surface
-  owns pool refresh.
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 

@@ -29,6 +29,7 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
 
 const props = defineProps({
   cassetteId: {
@@ -74,41 +75,33 @@ const PREVIEW_LAYER_PRIORITY = [
 ];
 const resolvedPreviewLayerNames = ref(null);
 
-const cassetteType = (cassette) => cassette?.data?.type || '';
-const cassetteDefinition = (cassette) => cassette?.data?.definition || {};
+const cassetteType = (cassette) => cassette?.data?.templateType || '';
 const isOccsCassetteDefinition = (definition) => Boolean(definition?.occs && definition?.documentType);
-const cassetteMapping = (cassette) => cassetteDefinition(cassette)?.mapping || {};
 const hasRenderableGeometry = (cassette) => Boolean(
-  cassette?.data?.geometry?.preview ||
-  cassette?.data?.geometry?.data ||
-  cassette?.data?.geometry?.points ||
   cassette?.data?.layerData?.length ||
-  cassette?.data?.polygonParts?.length ||
-  cassette?.data?.geometry?.data?.layerData?.length ||
-  cassette?.data?.geometry?.data?.polygonParts?.length
+  cassette?.data?.polygonParts?.length
 );
-const hasBakedPreviewGeometry = (cassette) => Boolean(
-  cassette?.data?.geometry?.preview ||
-  cassette?.data?.geometry?.data ||
-  cassette?.data?.geometry?.points ||
-  cassette?.data?.layerData?.length ||
-  cassette?.data?.polygonParts?.length ||
-  cassette?.data?.geometry?.data?.layerData?.length ||
-  cassette?.data?.geometry?.data?.polygonParts?.length
-);
-;
+const hasBakedPreviewGeometry = (cassette) => hasRenderableGeometry(cassette);
 
 const loadCassette = async () => {
   if (props.cassette) return props.cassette;
   const cid = props.cassetteId?.toString();
   if (!cid) return null;
-  return await $fetch(`/api/cassettes/${cid}`).catch(() => null);
+  return await $fetch(`/api/instances/cassette/${cid}`).catch(() => null);
 };
 
-const setDxfSource = (dxfId, mapping = {}) => {
-  canvasSource.value = `/api/files/download/${dxfId}?bucket=cassettes`;
-  canvasSourceType.value = 'dxf-url';
-  canvasLayerMapping.value = mapping;
+// The OCCS document rides the payload (§3): fetch and parse it. Returns
+// null for payload-less or non-JSON payloads — geometry fields render
+// those.
+const cassettePayloadDefinition = async (cassette) => {
+  const url = instancePayloadFileUrl(cassette?.attachments?.primary);
+  if (!url) return null;
+  try {
+    const definition = await $fetch(url, { responseType: 'text' }).then(JSON.parse);
+    return isOccsCassetteDefinition(definition) ? definition : null;
+  } catch {
+    return null;
+  }
 };
 
 const setGeometrySource = (cassette) => {
@@ -147,12 +140,9 @@ const updateThumbnail = async () => {
     props.cassetteId,
     props.cassette?._id,
     props.cassette?.updatedAt,
-    props.cassette?.data?.definition,
-    props.cassette?.data?.geometry,
-    props.cassette?.data?.layerData,
-    props.cassette?.data?.polygonParts,
-    props.cassette?.data?.geometry?.data?.layerData,
-    props.cassette?.data?.geometry?.data?.polygonParts,
+    props.cassette?.attachments?.primary?.fileId,
+    props.cassette?.data?.layerData?.length,
+    props.cassette?.data?.polygonParts?.length,
     props.dimensions
   ]);
   if (currentKey === lastRenderKey && canvasSource.value) return;
@@ -172,16 +162,12 @@ const updateThumbnail = async () => {
       return;
     }
 
-    if (cassette.data?.geometry?.dxfId) {
-      setDxfSource(cassette.data.geometry.dxfId, cassetteMapping(cassette));
-      return;
-    }
-
-    const type = cassetteType(cassette);
-    const definition = cassetteDefinition(cassette);
-    if (isOccsCassetteDefinition(definition)) {
-      setOccsSource(definition);
-      return;
+    if (cassetteType(cassette) === 'PARAMETRIC') {
+      const definition = await cassettePayloadDefinition(cassette);
+      if (definition) {
+        setOccsSource(definition);
+        return;
+      }
     }
 
   } finally {

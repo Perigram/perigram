@@ -63,10 +63,11 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     // Legacy render.label/icon adopt to name/glyph at the boundary.
     expect(cassette.name).toBe('Cassette');
     expect(cassette.glyph).toBe('pi pi-box');
-    // No explicit flag on the legacy declaration: the first string field
-    // is minted as the identifier at the boundary (frozen, overridable).
+    // The declared identifier flag wins at the boundary.
     expect(cassette.identifier).toBe('name');
-    expect(cassette.sections).toEqual([{ id: 'summary', label: null, fields: ['name'] }]);
+    expect(cassette.sections).toEqual([
+      { id: 'summary', label: null, fields: ['name', 'templateType', 'parameters', 'mapping', 'polygonParts', 'layerData'] }
+    ]);
 
     const sheetDesign = typeRecordFor(bundle, 'sheet-design');
     expect(sheetDesign.name).toBe('Sheet design');

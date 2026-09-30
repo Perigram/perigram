@@ -23,32 +23,13 @@ preview contract in
 | `pdf-document` | `application/pdf` (25 MB) | `pdf` | |
 | `text-document` | `text/markdown` (10 MB) | `text` | markdown by default — the rich text editor converts HTML ↔ markdown on save/load; `revisions: 'content'`; creation protocol `editor` |
 | `csv-table` | `text/csv` (10 MB) | `table` | `revisions: 'content'`; creation protocol `editor` |
-| `xlsx-workbook` | spreadsheet xlsx (25 MB) | `workbook` | first-sheet table preview |
+| `xlsx-workbook` | spreadsheet xlsx (25 MB) | `workbook` | creation protocol `upload`; no bespoke editor — the workbook's authoring act is being read by graphs (`rows` projection) |
 | `docx-document` | wordprocessing docx (25 MB) | `download` | no bounded preview — the payload downloads |
 
 Creation protocols project as construct `via` modes: `upload`/`capture`
 add a typed `file` input (accept/capture attrs) to the generated create
 dialog; `editor` constructs a blank instance whose first editor save
 fills the payload.
-
-## The table-import surface
-
-`xlsx-workbook` binds the `table-import` editor surface: opening a
-workbook's detail opens the import mapper — the workbook's purpose is to
-become typed instances, so the import IS the authoring act on that data.
-The mapper parses the payload client-side (the same SheetJS read the
-workbook preview uses), walks sheet/header-row/range, maps columns to the
-target type's declared fields (identifier, field leaves, quantity), and
-constructs through the instances batch transport
-(`POST /api/instances/:type/batch` — the contract lives in
-[server/features/instances/README.md](../../server/features/instances/README.md)),
-with the workbook recorded as each row's provenance source. For
-pack types with a bespoke construction mode the batch route runs that
-mode's handler (`cassette-design` rows bake from a template ref plus
-parameter columns — see
-[packages/facade](../../packages/facade/README.md)). `csv-table` keeps
-the csv editor (it edits in place); its import path rides the same batch
-transport when needed.
 
 ## The rows projection
 
@@ -64,9 +45,8 @@ column selection); the projection carries none.
 The declaration resolves through the pack-mounted handler
 (`server/packs/documents/table-rows.js` binds
 `documents.tableRows`): it loads the payload once and runs the same
-SheetJS read for both payload kinds. The client import mapper's parse is
-presentation (interactive sheet/header/range walking); the projection is
-the data seam.
+SheetJS read for both payload kinds. The workbook preview renders from
+the same parse shape; the projection is the one data seam.
 
 ## Editor bindings
 

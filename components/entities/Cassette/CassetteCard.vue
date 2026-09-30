@@ -8,10 +8,6 @@
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="cassette" />
         <DataBlock type-id="cassette" :entity="cassetteForDisplay" :fields="FIELDS" />
-        <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
-          <small class="text-muted">{{ $t('revision.currentGeometry') }}</small>
-          <InstanceInlineRef type="entityRevision" :id="geometryRevisionId" />
-        </div>
       </div>
     </InstanceCard>
   </div>
@@ -36,12 +32,10 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const definition = computed(() => props.cassette.data?.definition || {});
 const parameterNames = computed(() => {
-  const raw = props.cassette.data?.parameters || definition.value.parameters || [];
+  const raw = props.cassette.data?.parameters || [];
   return Array.isArray(raw) ? raw : Object.keys(raw);
 });
-const geometryRevisionId = computed(() => props.cassette.data?.revisions?.geometry?.currentId || null);
 const cassetteForDisplay = computed(() => ({
   ...props.cassette,
   data: {

@@ -1,6 +1,5 @@
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
-import TableImportSurface from '~/components/generated/TableImportSurface.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
@@ -83,18 +82,6 @@ export const fileSurfaceRegistry = {
         persistence: textInstancePersistence(page.entity, typeId, 'csv'),
         format: 'csv'
       })
-    }
-  },
-  // The workbook's editor is the import mapper: parse the payload
-  // client-side, map columns onto a target type's declared vocabulary,
-  // construct through the instances batch transport.
-  'table-import': {
-    action: 'generic',
-    workspacePage: {
-      labelKey: 'tableImport.title',
-      icon: 'pi pi-table',
-      component: TableImportSurface,
-      props: (page, typeId) => ({ entity: page.entity, typeId })
     }
   }
 };

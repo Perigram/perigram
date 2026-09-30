@@ -384,6 +384,22 @@ output type and either a stored `field` path or a pack-mounted handler),
 and `cts.field` projects a row path — together the only entity→value
 gates; the graph never authors paths into stored payloads.
 
+Palette law (owner's words, 2026-09-30): the type system dictates
+everything. The process base-type list is the authority — a declaration,
+projection output, or service signature that names a base outside it is a
+validation error, never silently degraded. Instances are managed the
+dataflow way: the packet tree (branches, items, graft/flatten/zip) is the
+one data model, and every palette node is list-aware through it. One home
+per operation: field-value reads live on the record elimination form
+(`value.recordField`) and the entity gate (`cts.field`); filtering owns
+comparison predicates; boolean algebra composes them. `entity` is legacy
+slang — current authoring vocabulary names references as `entityRef`, and
+the untyped `entity` spelling survives only inside the persisted-v4
+compatibility tier. File-data operations (decomposing a workbook or CSV
+into row values) are a pack-owned palette section, visibly distinct from
+core value operations: a graph reader sees that reading a table is file
+data-level work, not generic data algebra.
+
 An editor is `p(T) -> ui` plus `construct(T)` or `mutate(Ref(T))`, bound to a
 surface. "An editor that produces other files" is a `k` from the editor's
 save — no new species.

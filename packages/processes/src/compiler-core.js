@@ -272,6 +272,13 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
         entries: node.entries.map(({ cardinality, operation, ...entry }) => entry)
       };
     }
+    // Palette law (SPEC §8): `value.logic` composes boolean algebra only.
+    // Stored graphs authored before the split carried comparison ops on
+    // it; loads migrate them one-way to `value.compare` (the value
+    // comparison home) with the operation preserved.
+    if (node?.kind === 'value.logic' && ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'].includes(node.operation)) {
+      return [id, { ...node, kind: 'value.compare' }];
+    }
     if (node?.kind === 'effect.archiveEntity' && node.typeId) {
       const workflow = domain.workflows?.[node.typeId];
       const archiveTransition = Object.values(workflow?.regions || {})
@@ -4609,8 +4616,8 @@ function validateDataflowEdges(process, domain) {
     }
     if (compatibility.ok) {
       const portTypeId = sourcePort.type?.typeId || sourcePort.type?.itemType?.typeId || '';
-      const portEntityStream = sourcePort.type?.base === 'entity'
-        || (sourcePort.type?.base === 'array' && sourcePort.type?.itemType?.base === 'entity');
+      const portEntityStream = ['entity', 'entityRef'].includes(sourcePort.type?.base)
+        || (sourcePort.type?.base === 'array' && ['entity', 'entityRef'].includes(sourcePort.type?.itemType?.base));
       if (portEntityStream && portTypeId) {
         const producerOutputId = resolveSourceProducerOutputId(process, sourceRecord, sourcePort);
         if (producerOutputId) {
