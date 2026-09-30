@@ -141,11 +141,11 @@ resolution, exact declared-edge traversal, and field projection. **Values**,
 Both the rail palette and the canvas context palette render through one
 component, `OperationPalette.vue`: searchable chip groups — localized
 group labels above wraps of small PrimeVue Buttons (no icons). Each
-chip's dot carries the item's category signal, and the SAME signal token
-stripes the canvas node the chip creates
+chip's dot carries the item's category signal
 (`utils/processDesignerSignals.js` is the single group→signal map;
-`DesignerNodeCard` owns the stripe; signal classes are literal in the
-util because Tailwind compiles from source text).
+signal classes are literal in the util because Tailwind compiles from
+source text). Canvas nodes carry no category accent — the frame is
+plain.
 There is no raw-id source, producer join, fixed-arity list constructor, block
 substrate, or hidden predicate input. Unknown service operators fail with a
 named diagnostic.
