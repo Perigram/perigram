@@ -1,7 +1,7 @@
 # COMPONENT: Components
 
 ## Style Guide
-- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states.
+- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls. Interactive rows, pickers, and single-select lists are PrimeVue primitives (`Listbox` with rich `#option` templates, `Select`, `Menu`); link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns.
 - **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
 - **Motion:** Motion is contextual behavior, not an application theme concern.
   Keep interaction-specific motion inside the owning derived composition, use
@@ -15,6 +15,10 @@
   helper bubbles, notes, tips, or empty-state prose unless the user workflow is
   otherwise ambiguous or blocked. Controls, placement, icons, and typed data
   labels should carry the interface before explanatory copy is added.
+- **No Technical IDs in UI:** Never render database ids, type ids, actor ids,
+  or other code-only identifiers in user-facing surfaces; resolve them to
+  display names or omit them. Timestamps render locale-formatted, ids do not
+  render at all.
 - **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/README.md](./shared/README.md) for the full list.
 - **Use Variants:** Components support visual variants (`inline`, `compact`, `card`).
 - **Localization:** User-facing static template copy and visible component

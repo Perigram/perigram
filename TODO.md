@@ -2,6 +2,22 @@
 
 ## UI
 
+- [x] Definitions pane (process designer): hand-rolled div/button rows
+  instead of PrimeVue; history rows leaked raw actor ids
+  (`user-…` rendered as text)
+
+### Agent Notes (2026-09-30)
+
+Rewrote the Definitions tab as a PrimeVue `Listbox` with a rich `#option`
+template (chats-inbox pattern): option click selects/loads, activation
+`ToggleSwitch`, history disclosure, and the ellipsis `Menu` live inside the
+option with `@click.stop` guards; the hand-rolled bordered row `div`s and
+the raw `<button>` name row are gone, as is the raw `border-l` on history
+rows. `formatHistoryEntry` now renders the timestamp only — the raw actor
+id is never displayed (AGENTS.md UI rule). Rule made explicit for agents in
+`components/README.md` Style Guide (raw PrimeVue + no technical ids in UI)
+and in `SPEC.md` (## UI).
+
 - [x] Kanban of a parents table showed the CHILD type's state lanes (empty)
   — machine vocabulary seeding leaked unscoped state tokens into every
   producer

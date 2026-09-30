@@ -628,12 +628,15 @@ Apply saves, validates, and activates as one operation, while the result
 remains visible as feedback on the canvas.
 
 The right pane owns **definitions management** (the Definitions tab):
-one row per definition — name (click loads to designer, inline rename),
-the activation switch (on = member of the additive active set — the
-switch is the state signal, no status badges), delete, and a history
-disclosure listing activation versions (`data.history`, newest first)
-with restore (the snapshot becomes the definition's data and goes live
-through activation). The activation contract lives in
+a PrimeVue `Listbox` of definitions — one option per definition whose
+rich `#option` template carries the name (option click loads it to the
+designer, inline rename), the activation switch (on = member of the
+additive active set — the switch is the state signal, no status badges),
+delete, and a history disclosure listing activation versions
+(`data.history`, newest first) with restore (the snapshot becomes the
+definition's data and goes live through activation). History rows render
+the timestamp only — actor ids never appear in the UI. The activation
+contract lives in
 [process-definitions](../../server/features/process-definitions/README.md).
 
 Selection actions follow the quiet-card policy: nodes carry no per-node
