@@ -926,6 +926,10 @@ function unreachableNodeDiagnostics(process = {}) {
   }
   const warnings = [];
   for (const [nodeId, record] of recordsByGraphId) {
+    // The loop closer is control-plane machinery — the bracket of its
+    // forEach region, never a value source — dead-end semantics do not
+    // apply to it.
+    if (String(record?.kind) === 'control.forEachEnd') continue;
     if (reachingOperational.has(nodeId)) continue;
     warnings.push(`Process node ${nodeId} (${humanizedKindLabel(record?.kind)}) is non-operational: its values cannot reach any persistence effect`);
   }
