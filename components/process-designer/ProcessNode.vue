@@ -24,13 +24,17 @@
         class="w-24 shrink-0"
         @update:model-value="updateValueType"
       />
-      <TypedValueControl
-        :base="record.type?.base || 'json'"
-        :type-id="record.type?.typeId || record.typeId || ''"
-        :model-value="record.value"
-        class="min-w-0 flex-1"
-        @update:model-value="value => update({ value })"
-      />
+      <!-- The wrapper carries the flex classes: TypedValueControl is a
+           fragment (v-if chain, no single root), so classes on the
+           component itself never reach the rendered control. -->
+      <div class="min-w-0 flex-1">
+        <TypedValueControl
+          :base="record.type?.base || 'json'"
+          :type-id="record.type?.typeId || record.typeId || ''"
+          :model-value="record.value"
+          @update:model-value="value => update({ value })"
+        />
+      </div>
       <div v-if="oneLineOutput" class="relative flex shrink-0 items-center pr-3" :title="socketTitle(oneLineOutput)">
         <DesignerSocketHandle :socket="oneLineOutput" side="right" :title="socketTitle(oneLineOutput)" />
       </div>
@@ -83,14 +87,14 @@
           class="min-w-0 flex-1"
           @update:model-value="updateOperation"
         />
-        <TypedValueControl
-          v-if="opKind === 'source.literalItem'"
-          :base="record.type?.base || 'json'"
-          :type-id="record.type?.typeId || record.typeId || ''"
-          :model-value="record.value"
-          class="min-w-0 flex-1"
-          @update:model-value="value => update({ value })"
-        />
+        <div v-if="opKind === 'source.literalItem'" class="min-w-0 flex-1">
+          <TypedValueControl
+            :base="record.type?.base || 'json'"
+            :type-id="record.type?.typeId || record.typeId || ''"
+            :model-value="record.value"
+            @update:model-value="value => update({ value })"
+          />
+        </div>
       </div>
       <Textarea
         v-if="['source.literalList', 'source.literalTree'].includes(opKind)"
@@ -110,7 +114,7 @@
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
-          <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
+          <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5 w-full min-w-0" @mousedown.stop @click.stop>
             <TypedValueControl
               :base="row.input.base"
               :type-id="row.input.type?.typeId || ''"
