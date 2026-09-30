@@ -27,7 +27,7 @@ jobs:
           docker rm -f perigram-staging || true
           docker run -d --name perigram-staging --restart unless-stopped \
             --network=host \
-            -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit \
+            -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
             -e BASE_URL=https://perigram.sodalab.pro \
             -e NUXT_PUBLIC_BASE_URL=https://perigram.sodalab.pro \
             -e LIVEKIT_PUBLIC_URL=ws://10.77.219.223:7880 \
