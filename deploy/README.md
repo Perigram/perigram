@@ -38,8 +38,13 @@ Editing the pipeline means editing that branch.
 - Public edge: nginx on zeus — the `tls-front-443` / `tls-front` /
   `tls-portprobe` containers share `/home/storage/nginx-mixed.conf`; the
   `perigram.sodalab.pro` server block proxies to `http://192.168.0.230:3001`
-  (512 MB upload limit). **Rollback to the hera K3s ingress:** point `$f`
-  back to `http://192.168.0.248:80` in that block and `nginx -s reload`.
+  (512 MB upload limit) through the `perigram_staging` upstream with
+  `keepalive 32` — a new TCP connection per proxied request lost its first
+  SYN to port-collision drops on the zeus→poseidon path, stalling asset
+  loads ~1s each and breaking first paint; the keepalive pool keeps warm
+  upstream connections instead. **Rollback to the hera K3s ingress:** point
+  the upstream back to `http://192.168.0.248:80` in that block and
+  `nginx -s reload`.
 - Data plane (inline in deploy.yml, no credentials — lab LAN/NetBird):
   `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true`
   (hera mongo; `directConnection=true` is required — the single-node
