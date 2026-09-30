@@ -1,6 +1,6 @@
 <template>
   <Listbox
-    :model-value="selected"
+    :key="pickSeq"
     :options="groups"
     option-group-label="label"
     option-group-children="items"
@@ -32,23 +32,25 @@ import { ref } from 'vue';
 
 // The operation palette for the process designer: one filterable grouped
 // list (PrimeVue Listbox owns the filter box, group headers, and option
-// rows). Selection is momentary: a pick emits once and the model returns
-// to null — the palette keeps no highlight, and a plain click on the same
-// operation always re-selects (PrimeVue otherwise swallows clicks on an
-// option it already marks selected). Groups carry precomputed localized
-// `label`s (the filter matches them) and per-item `description`s for the
-// row tooltip. Used by both the rail palette and the canvas context
-// palette.
+// rows). This is an ACTION list, not a selection list: Listbox keeps an
+// internal selected value that a controlled null model does not clear,
+// and a plain re-click of a deep-equal option takes the deselect path
+// (emits null) — swallowing the second add of the same operation. The
+// palette therefore remounts itself after every pick (`:key` bump), so
+// every click or Enter is a fresh select. Groups carry precomputed
+// localized `label`s (the filter matches them) and per-item
+// `description`s for the row tooltip. Used by both the rail palette and
+// the canvas context palette.
 defineProps({
   groups: { type: Array, default: () => [] },
   placeholder: { type: String, default: '' }
 });
 const emit = defineEmits(['pick', 'close']);
-const selected = ref(null);
+const pickSeq = ref(0);
 
 function pick(item) {
   if (!item) return;
   emit('pick', item);
-  selected.value = null;
+  pickSeq.value++;
 }
 </script>
