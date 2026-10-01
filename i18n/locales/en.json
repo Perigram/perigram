@@ -146,6 +146,7 @@
     "attachmentLimit": "Up to {count} attachments per message",
     "fileNotAccepted": "{name}: this chat does not accept that file type",
     "download": "Download {name}",
+    "attachmentPreview": "Preview {name}",
     "attachmentPhoto": "Photo",
     "attachmentVideo": "Video",
     "attachmentVoice": "Voice message",

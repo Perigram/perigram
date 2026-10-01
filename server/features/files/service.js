@@ -77,7 +77,15 @@ const EXTENSION_CONTENT_TYPES = Object.freeze({
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.txt': 'text/plain',
+  '.webm': 'video/webm',
   '.webp': 'image/webp',
+  '.m4a': 'audio/mp4',
+  '.mov': 'video/quicktime',
+  '.mp3': 'audio/mpeg',
+  '.oga': 'audio/ogg',
+  '.ogg': 'audio/ogg',
+  '.opus': 'audio/ogg',
+  '.wav': 'audio/wav',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 });
 

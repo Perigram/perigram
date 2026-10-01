@@ -186,51 +186,7 @@
       </div>
     </div>
 
-    <!-- The mobile directory dialog: user/organization opens on mobile
-         viewports render in place (bounded surface, no route). -->
-    <StandardDialog v-model:visible="directoryDialogVisible" size="md">
-      <DirectoryDetailSurface
-        v-if="directoryDialogRequest"
-        :key="`${directoryDialogRequest.typeId}:${directoryDialogRequest.instanceId}`"
-        :type-id="directoryDialogRequest.typeId"
-        :instance-id="directoryDialogRequest.instanceId"
-        bounded
-      />
-    </StandardDialog>
 
-    <!-- The mobile item page: the compiled detail surface in a dialog.
-         Close is the dialog's own affordance (and the record header's
-         back button — the navigation channel); expand routes to the
-         full detail screen when the popup's bounds are not enough. -->
-    <StandardDialog
-      v-model:visible="mobileDetailVisible"
-      size="full"
-      :show-default-footer="false"
-    >
-      <template #header>
-        <div class="flex w-full min-w-0 items-center justify-between gap-2 pr-6">
-          <span class="min-w-0 truncate text-label">{{ mobileDetailTitle }}</span>
-          <Button
-            icon="pi pi-external-link"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('common.expand')"
-            :title="$t('common.expand')"
-            @click="expandMobileDetail"
-          />
-        </div>
-      </template>
-      <div class="max-h-[70vh] overflow-y-auto">
-        <GeneratedDetailScreen
-          v-if="mobileDetailScreen"
-          :screen="mobileDetailScreen"
-          :navigation="mobileDetailNavigation"
-          @open-instance="openMobileInstance"
-        />
-      </div>
-    </StandardDialog>
   </div>
 </template>
 
@@ -738,52 +694,20 @@ const mobileTypeScreen = computed(() => (
   mobileHomeTabs.value.find(tab => tab.key === mobileHomeTabKey.value)?.screen || null
 ));
 
-// Mobile instance opens mount the ITEM POPUP: the compiled detail
-// screen in a dialog, in place — the record header's back button (the
-// SurfaceHeader navigation channel) and the dialog's own close dismiss
-// it, and the expand control routes to the full detail screen when the
-// popup's bounds are not enough.
-const mobileDetail = ref(null);
-const mobileDetailVisible = ref(false);
-const mobileDetailScreen = computed(() => {
-  if (!mobileDetail.value) return null;
-  const base = resolveDetailScreen({
-    screens: authStore.screenManifest || [],
-    typeId: mobileDetail.value.typeId
-  });
-  if (!base) return null;
-  return {
-    ...base,
-    scope: {
-      ...(base.scope || {}),
-      instanceId: mobileDetail.value.instanceId,
-      [`${mobileDetail.value.typeId}Id`]: mobileDetail.value.instanceId
-    }
-  };
-});
-const mobileDetailTitle = computed(() => (
-  mobileDetail.value ? instanceLabelOf(mobileDetail.value.typeId, mobileDetail.value.instanceId) : ''
-));
-const mobileDetailNavigation = computed(() => (mobileDetailVisible.value
-  ? { icon: 'pi pi-arrow-left', label: t('common.back'), command: () => { mobileDetailVisible.value = false; } }
-  : null));
-
-function openMobileInstance(instance = {}) {
-  if (!instance?.type || !instance?.id) return;
-  mobileDetail.value = { typeId: instance.type, instanceId: instance.id };
-  mobileDetailVisible.value = true;
-}
-
-function expandMobileDetail() {
-  const current = mobileDetail.value;
-  if (!current) return;
+// Mobile record opens ROUTE to the compiled detail screen — no popup
+// middleman (owner call 2026-09-30: the item-popup contract was slop).
+function routeInstanceToScreen(typeId, instanceId) {
   const route = detailRouteForInstance({
-    entity: { _id: current.instanceId },
-    typeId: current.typeId,
+    entity: { _id: instanceId },
+    typeId,
     manifest: authStore.screenManifest
   });
-  mobileDetailVisible.value = false;
   if (route) navigateTo(route);
+  return Boolean(route);
+}
+
+function openMobileInstance(instance = {}) {
+  routeInstanceToScreen(instance.type, instance.id);
 }
 
 function typeLabelOf(typeId = '') {
@@ -909,7 +833,11 @@ function applyPersistedWorkspaceState(key) {
   paneTree.value = state.paneTree;
   activePaneId.value = state.activePaneId;
   paneSequence.value = state.paneSequence;
-  openedEntityRefs.value = state.openedEntityRefs;
+  // Tabs can outlive their type (registry churn rewrites type ids): dead
+  // references drop on restore instead of rendering id-fallback rows and
+  // hammering unknown collections with 404s.
+  openedEntityRefs.value = (state.openedEntityRefs || [])
+    .filter(reference => registryStore.typeRecord(reference.typeId));
   openedPageRefs.value = state.openedPageRefs;
   openedScreenRefs.value = state.openedScreenRefs || [];
   sidebarCollapsed.value = Boolean(state.sidebarCollapsed);
@@ -947,6 +875,10 @@ watch(
 watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
   const loaded = await Promise.all(refs.map(async reference => {
+    // Persisted tabs can outlive their type (registry churn): a dead
+    // typeId has no collection to read and only produces 404 noise —
+    // it drops here instead of hydrating.
+    if (!registryStore.typeRecord(reference.typeId)) return null;
     const existing = workspaceEntityItems.value.find(item => (
       item.type === reference.typeId && instanceId(item.entity) === reference.instanceId
     ));
@@ -988,19 +920,11 @@ function openRequestedWorkspaceEntity(event) {
   event?.preventDefault?.();
   const { typeId, instanceId } = event?.detail || {};
   if (!typeId || !instanceId) return;
-  if (isMobileViewport.value && entityWorkspacePageIdFor(typeId)) {
-    directoryDialogRequest.value = { typeId, instanceId };
-    return;
-  }
+  if (isMobileViewport.value && routeInstanceToScreen(typeId, instanceId)) return;
   openInstanceTab(typeId, instanceId);
 }
 
 const isMobileViewport = ref(false);
-const directoryDialogRequest = ref(null);
-const directoryDialogVisible = computed({
-  get: () => Boolean(directoryDialogRequest.value),
-  set: (value) => { if (!value) directoryDialogRequest.value = null; }
-});
 let mobileViewportQuery = null;
 function readMobileViewport() {
   isMobileViewport.value = Boolean(typeof window !== 'undefined'

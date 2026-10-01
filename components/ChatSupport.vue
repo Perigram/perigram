@@ -710,52 +710,53 @@
                          (a choice when several children accept the file),
                          and removal before send. Uploads ride the attach
                          popover. -->
-                    <div v-if="pendingFiles.length" class="mb-2 flex flex-col gap-1" data-testid="chat-pending-files">
+                    <div v-if="composerStagedRows.length" class="mb-2 flex max-h-44 flex-col gap-1 overflow-y-auto" data-testid="chat-pending-files">
                         <div
-                            v-for="(pending, index) in pendingFiles"
-                            :key="pending.key"
+                            v-for="row in composerStagedRows"
+                            :key="row.key"
                             class="flex max-w-full min-w-0 flex-col gap-1"
                         >
                             <div class="inline-flex max-w-full min-w-0 items-center gap-2 rounded-ui bg-subtle px-2 py-1">
                             <img
-                                v-if="pending.kind === 'image' && pending.url"
-                                :src="pending.url"
+                                v-if="row.kind === 'image' && row.url"
+                                :src="row.url"
                                 alt=""
                                 class="h-8 w-8 shrink-0 rounded-ui object-cover"
                             >
-                            <i v-else :class="pendingFileIcon(pending)" class="shrink-0 text-muted" aria-hidden="true" />
-                            <span class="min-w-0 flex-1 truncate text-supporting">{{ pending.file.name }}</span>
-                            <small v-if="pending.file.size" class="shrink-0 text-muted text-supporting">{{ formatFileSize(pending.file.size) }}</small>
+                            <i v-else :class="pendingFileIcon(row)" class="shrink-0 text-muted" aria-hidden="true" />
+                            <span class="min-w-0 flex-1 truncate text-supporting">{{ row.file.name }}</span>
+                            <small v-if="row.file.size" class="shrink-0 text-muted text-supporting">{{ formatFileSize(row.file.size) }}</small>
                             <Select
-                                v-if="pending.candidates.length > 1"
-                                :model-value="pending.targetTypeId"
-                                :options="pending.candidates"
+                                v-if="!row.outgoing && row.candidates.length > 1"
+                                :model-value="row.targetTypeId"
+                                :options="row.candidates"
                                 option-label="label"
                                 option-value="typeId"
                                 class="w-40 shrink-0"
                                 :aria-label="$t('support.attachmentTargetType')"
-                                @update:model-value="value => setPendingTarget(index, value)"
+                                @update:model-value="value => setPendingTarget(row.key, value)"
                             />
                             <span
-                                v-else-if="pending.targetTypeId"
+                                v-else-if="row.targetTypeId"
                                 class="inline-flex min-w-0 shrink-0 items-center gap-1 text-muted text-supporting"
-                                :title="pendingTargetLabel(pending)"
+                                :title="pendingTargetLabel(row)"
                             >
-                                <i :class="instances.iconFor(pending.targetTypeId)" class="shrink-0" aria-hidden="true" />
-                                <span class="max-w-32 truncate">{{ pendingTargetLabel(pending) }}</span>
+                                <i :class="instances.iconFor(row.targetTypeId)" class="shrink-0" aria-hidden="true" />
+                                <span class="max-w-32 truncate">{{ pendingTargetLabel(row) }}</span>
                             </span>
                             <Button
+                                v-if="!row.outgoing"
                                 icon="pi pi-times"
                                 text
                                 rounded
                                 size="small"
                                 :aria-label="$t('common.delete')"
-                                @click="removePendingFile(index)"
+                                @click="removePendingFile(row.key)"
                             />
                             </div>
                             <ProgressBar
-                                v-if="pending.progress != null && pending.progress < 1"
-                                :value="Math.round(pending.progress * 100)"
+                                v-if="row.progress != null && row.progress < 1"
+                                :value="Math.round(row.progress * 100)"
                                 class="w-full"
                                 :show-value="false"
                             />
@@ -835,7 +836,7 @@
                             <Button
                                 icon="pi pi-send"
                                 severity="primary"
-                                :disabled="!canSendComposerDraft || isLoading"
+                                :disabled="!canSendComposerDraft"
                                 :aria-label="$t('support.send')"
                                 @click="sendMessage"
                             />
@@ -1116,7 +1117,6 @@ const supportChatStore = useSupportChatStore()
 
 const message = ref('')
 const messages = ref([])
-const isLoading = ref(false)
 const messagesContainer = ref(null)
 const MESSAGES_PAGE_SIZE = 50
 const hasMoreMessages = ref(false)
@@ -1355,8 +1355,20 @@ const receiveTyping = (payload) => {
     // file; instance chats only accept files the composer target's
     // declared file children take (the server re-validates every send).
     const pendingFiles = ref([])
+    // Files already riding an in-flight send: they keep the staged-chip
+    // anatomy (progress bar included) but cannot be retargeted or removed,
+    // and a failed send puts them back at the head of `pendingFiles`.
+    const outgoingFiles = ref([])
+    const composerStagedRows = computed(() => [
+        ...outgoingFiles.value.map(item => ({ ...item, outgoing: true })),
+        ...pendingFiles.value
+    ])
     const ATTACHMENT_LIMIT = 10
     let pendingFileSeq = 0
+    // Bumped whenever the staging strips are cleared wholesale (conversation
+    // switch, target change): an in-flight send that later fails must not
+    // resurrect its files into a different composer.
+    let stagedGeneration = 0
 
     const { typeById: typeViewById } = useFileTypeView()
 const { uploadChatFile } = useChatFileUpload()
@@ -1413,9 +1425,9 @@ const { uploadChatFile } = useChatFileUpload()
         return `${(size / (1024 * 1024)).toFixed(1)} MB`
     }
 
-    const setPendingTarget = (index, typeId) => {
-        pendingFiles.value = pendingFiles.value.map((item, position) => (
-            position === index ? { ...item, targetTypeId: typeId || '' } : item
+    const setPendingTarget = (key, typeId) => {
+        pendingFiles.value = pendingFiles.value.map(item => (
+            item.key === key ? { ...item, targetTypeId: typeId || '' } : item
         ))
     }
 
@@ -1426,17 +1438,19 @@ const { uploadChatFile } = useChatFileUpload()
         || localizedTypeIdLabel(pending.targetTypeId)
     )
 
-    const removePendingFile = (index) => {
-        const pending = pendingFiles.value[index]
+    const removePendingFile = (key) => {
+        const pending = pendingFiles.value.find(item => item.key === key)
         if (pending?.url) URL.revokeObjectURL(pending.url)
-        pendingFiles.value = pendingFiles.value.filter((_, position) => position !== index)
+        pendingFiles.value = pendingFiles.value.filter(item => item.key !== key)
     }
 
     const clearPendingFiles = () => {
-        for (const pending of pendingFiles.value) {
+        for (const pending of [...pendingFiles.value, ...outgoingFiles.value]) {
             if (pending.url) URL.revokeObjectURL(pending.url)
         }
         pendingFiles.value = []
+        outgoingFiles.value = []
+        stagedGeneration++
     }
 
     const stageChatFiles = (files = []) => {
@@ -1501,59 +1515,80 @@ const { uploadChatFile } = useChatFileUpload()
     }
 
     const updatePendingProgress = (key, ratio) => {
-        pendingFiles.value = pendingFiles.value.map(item => (
+        outgoingFiles.value = outgoingFiles.value.map(item => (
             item.key === key ? { ...item, progress: Math.max(item.progress || 0, ratio) } : item
         ));
     }
 
-const sendMessage = async () => {
+// Sends detach their draft at click time and chain: the composer stays
+// live (typing, staging, even the next send) while uploads run, nothing
+// staged meanwhile is discarded when an earlier send settles, and bodies
+// still land in send order. A failed send restores exactly what it took.
+let sendChain = Promise.resolve()
+
+const sendMessage = () => {
     if (!canSendComposerDraft.value || !activeConversation.value) return
 
-    isLoading.value = true
+    const sendingFiles = pendingFiles.value
+    const sendingText = message.value
+    const sendingRefs = [...instanceRefs.value]
+    const sendingReply = replyTo.value
+    const sendingComposerInstance = composerInstance.value
+    const conversation = activeConversation.value
+    const sendingGeneration = stagedGeneration
+    pendingFiles.value = []
+    message.value = ''
+    instanceRefs.value = []
+    replyTo.value = null
+    outgoingFiles.value = [...outgoingFiles.value, ...sendingFiles]
 
-    try {
+    const settleFailure = () => {
+        if (stagedGeneration !== sendingGeneration) return
+        outgoingFiles.value = outgoingFiles.value.filter(item => !sendingFiles.some(sent => sent.key === item.key))
+        pendingFiles.value = [...sendingFiles, ...pendingFiles.value]
+        if (!message.value.trim()) message.value = sendingText
+        instanceRefs.value = [...sendingRefs, ...instanceRefs.value]
+        replyTo.value = replyTo.value || sendingReply
+    }
+
+    sendChain = sendChain.then(async () => {
         // Files upload first; a failed upload keeps the staged set intact
         // for retry.
         const attachments = []
-        for (const pending of pendingFiles.value) {
+        for (const pending of sendingFiles) {
             attachments.push(await uploadPendingFile(pending))
         }
-        const payloadInstanceRefs = instanceRefs.value.map(ref => ({
-            type: ref.type,
-            id: ref.id,
-            label: ref.label
-        }))
         await $fetch('/api/support/messages', {
             method: 'POST',
             body: {
-                message: message.value,
-                recipientUserId: activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
-                conversationKey: activeConversation.value.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
-                instance: activeConversation.value.conversationKind === 'instance'
-                    ? (composerInstance.value || {
-                        type: activeConversation.value.typeId,
-                        id: activeConversation.value.instanceId
+                message: sendingText,
+                recipientUserId: conversation.conversationKind === 'direct' ? participantUserId(conversation) : null,
+                conversationKey: conversation.conversationKind === 'group' ? conversation.conversationKey : null,
+                instance: conversation.conversationKind === 'instance'
+                    ? (sendingComposerInstance || {
+                        type: conversation.typeId,
+                        id: conversation.instanceId
                     })
                     : null,
-                parentMessageId: replyTo.value?._id || null,
-                instanceRefs: payloadInstanceRefs,
+                parentMessageId: sendingReply?._id || null,
+                instanceRefs: sendingRefs.map(ref => ({
+                    type: ref.type,
+                    id: ref.id,
+                    label: ref.label
+                })),
                 attachments: attachments.length ? attachments : null
             }
         })
-        message.value = ''
-        instanceRefs.value = []
-        clearPendingFiles()
-        replyTo.value = null
-    } catch (error) {
-        // A failed send keeps the typed text and staged files for retry
-        // but releases the reply lock, so the composer (and target strip)
-        // never wedges.
-        replyTo.value = null
+        for (const pending of sendingFiles) {
+            if (pending.url) URL.revokeObjectURL(pending.url)
+        }
+        outgoingFiles.value = outgoingFiles.value.filter(item => !sendingFiles.some(sent => sent.key === item.key))
+    }).catch(error => {
+        settleFailure()
         console.error('Failed to send message:', error)
         toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 6000 })
-    } finally {
-        isLoading.value = false
-    }
+    })
+    return sendChain
 }
 
 const { onlineUserIds } = useConnections()
@@ -1645,6 +1680,16 @@ const stopAndSendVoiceRecording = () => {
         teardownRecording()
         if (!blob.size || !activeConversation.value) return
         voiceSending.value = true
+        // The draft detaches at send start, matching the text composer's
+        // sends: text typed while the recording uploads belongs to the next
+        // message, and a failed voice send restores it.
+        const sendingText = message.value
+        const sendingReply = replyTo.value
+        const conversation = activeConversation.value
+        const sendingComposerInstance = composerInstance.value
+        const sendingVoiceTargetTypeId = voiceTargetTypeId.value
+        message.value = ''
+        replyTo.value = null
         try {
             const recorded = new File(
                 [blob],
@@ -1655,28 +1700,28 @@ const stopAndSendVoiceRecording = () => {
             await $fetch('/api/support/messages', {
                 method: 'POST',
                 body: {
-                    message: message.value,
-                    recipientUserId: activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
-                    conversationKey: activeConversation.value?.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
-                    instance: activeConversation.value?.conversationKind === 'instance'
-                        ? (composerInstance.value || {
-                            type: activeConversation.value.typeId,
-                            id: activeConversation.value.instanceId
+                    message: sendingText,
+                    recipientUserId: conversation.conversationKind === 'direct' ? participantUserId(conversation) : null,
+                    conversationKey: conversation.conversationKind === 'group' ? conversation.conversationKey : null,
+                    instance: conversation.conversationKind === 'instance'
+                        ? (sendingComposerInstance || {
+                            type: conversation.typeId,
+                            id: conversation.instanceId
                         })
                         : null,
-                    parentMessageId: replyTo.value?._id || null,
+                    parentMessageId: sendingReply?._id || null,
                     attachments: [{
                         kind: 'audio',
                         fileId: uploaded.id,
                         mimeType,
                         durationSeconds,
-                        ...(voiceTargetTypeId.value ? { targetTypeId: voiceTargetTypeId.value } : {})
+                        ...(sendingVoiceTargetTypeId ? { targetTypeId: sendingVoiceTargetTypeId } : {})
                     }]
                 }
             })
-            message.value = ''
-            replyTo.value = null
         } catch (error) {
+            if (!message.value.trim()) message.value = sendingText
+            replyTo.value = replyTo.value || sendingReply
             console.error('Failed to send voice message:', error)
             toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 })
         } finally {

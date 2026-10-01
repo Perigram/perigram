@@ -18,17 +18,27 @@
     </template>
     <template v-else>
       <!-- One image renders at natural aspect inside fixed bounds; a set
-           renders as fixed-size gallery tiles. -->
-      <Image
+           renders as fixed-size gallery tiles. Either opens the standard
+           full dialog on click — no ad-hoc lightbox chrome. -->
+      <button
         v-if="images.length === 1"
-        class="max-w-full rounded-ui [&_img]:h-auto [&_img]:max-h-64 [&_img]:max-w-full [&_img]:rounded-ui"
-        :src="url(images[0])"
-        :alt="images[0].name || ''"
-        preview
-      />
+        type="button"
+        class="block max-w-full cursor-zoom-in rounded-ui bg-transparent p-0"
+        :aria-label="$t('support.attachmentPreview', { name: images[0].name || '' })"
+        @click="previewAttachment = images[0]"
+      >
+        <img class="h-auto max-h-64 max-w-full rounded-ui" :src="url(images[0])" :alt="images[0].name || ''">
+      </button>
       <span v-else-if="images.length" :class="galleryClass" data-testid="chat-attachment-gallery">
         <span v-for="attachment in images" :key="attachment.fileId" class="h-28 w-28 overflow-hidden rounded-ui">
-          <Image class="h-full w-full [&_img]:h-full [&_img]:w-full [&_img]:object-cover" :src="url(attachment)" :alt="attachment.name || ''" preview />
+          <button
+            type="button"
+            class="block h-full w-full cursor-zoom-in rounded-ui bg-transparent p-0"
+            :aria-label="$t('support.attachmentPreview', { name: attachment.name || '' })"
+            @click="previewAttachment = attachment"
+          >
+            <img class="h-full w-full object-cover" :src="url(attachment)" :alt="attachment.name || ''">
+          </button>
         </span>
       </span>
       <video
@@ -71,13 +81,28 @@
       </span>
     </template>
   </span>
+  <StandardDialog
+    :visible="Boolean(previewAttachment)"
+    size="full"
+    :show-default-footer="false"
+    @update:visible="value => { if (!value) previewAttachment = null }"
+  >
+    <div class="flex h-preview-dialog items-center justify-center">
+      <img
+        v-if="previewAttachment"
+        class="max-h-full max-w-full object-contain"
+        :src="url(previewAttachment)"
+        :alt="previewAttachment.name || ''"
+      >
+    </div>
+  </StandardDialog>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Button from 'primevue/button';
-import Image from 'primevue/image';
 import { useI18n } from 'vue-i18n';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { chatAttachmentUrl } from '~/utils/chat-file-targets.js';
 
 const props = defineProps({
@@ -88,6 +113,11 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+
+// Full-dialog expansion for any rendered image (single or gallery tile):
+// the descriptor is held, not a precomputed URL, so the dialog serves the
+// same bucket-honoring URL as the inline render.
+const previewAttachment = ref(null);
 
 const ofKind = (kind) => (props.attachments || []).filter(attachment => attachment?.kind === kind);
 const images = computed(() => ofKind('image'));

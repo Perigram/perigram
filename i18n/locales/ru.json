@@ -146,6 +146,7 @@
     "attachmentLimit": "Не больше {count} вложений в сообщении",
     "fileNotAccepted": "{name}: этот чат не принимает такой тип файла",
     "download": "Скачать {name}",
+    "attachmentPreview": "Открыть {name}",
     "attachmentPhoto": "Фото",
     "attachmentVideo": "Видео",
     "attachmentVoice": "Голосовое сообщение",

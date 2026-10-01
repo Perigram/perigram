@@ -38,7 +38,8 @@ and chrome, no hand-rolled borders or !utility overrides on PrimeVue
 internals.
 
 Mobile devices scale the whole UI through the root font-size (the rem
-basis PrimeVue components and the typography roles share).
+basis PrimeVue components and the typography roles share). Mobile record
+opens ROUTE to the compiled detail screen — no popup middleman.
 
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
 correct data bindings, and everything speaks contracts. Current Home workspace ideas should be

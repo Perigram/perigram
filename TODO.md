@@ -559,6 +559,43 @@ inside the feature commit `d364f75f` instead of a separate `neo:`
 commit — commit-split deviation acknowledged here rather than rewriting
 history.
 
+Fourth round (same night, owner live-testing reports). Downloads "404":
+verified against the live stack and DB — every stored blob serves 200
+through the running app; the only "File not found" responses are three
+legacy voice messages (`6aaa96492e4c627e5b3fd2df`, `6aaa958b2e4c627e5b3fd219`,
+`6aaafd6721f27e65eab86ebc`) whose blobs are gone from every GridFS bucket
+(purge casualties from the Sep-29 incident) while their messages remain;
+no download-path code defect found — **verdict corrected the same night
+(see the fifth-round note below: a real route defect made every
+non-ASCII filename 404)**. Blocking sends fixed on
+`agent/chat-sendfix-20260930`: the send saga owned the whole composer
+(`isLoading` disabled the send; text/files staged during an upload were
+wiped when it settled) — sends now snapshot and detach the draft at click
+time (outgoing rows keep progress), chain so bodies land in click order,
+restore exactly what they took on failure, and voice sends follow the
+same rule; the staged strip is height-bounded so the dock cannot squeeze
+the thread. Image previews left the PrimeVue `Image` mask (stock toolbar
+reads as half-screen controls on narrow viewports) for the repo's
+`StandardDialog` at full size. Guards (check-arch, docs:validate),
+focused specs (localization, support), and the full
+`e2e/chat-file-upload.spec.js` green on merged `local`; fresh artifact in
+`test-results/chat-file-upload.json` (download 200, range 206,
+materialized child payload verified).
+
+Fifth round (same night, owner supplied a failing URL): the 404 verdict
+was wrong. `Content-Disposition` carried the stored filename raw; header
+values are Latin-1 only, so any non-ASCII name (the owner's Cyrillic call
+recording `Запись встречи…webm`) threw `ERR_INVALID_CHAR` inside the
+route, and the blanket catch dressed it up as `404 File not found` —
+ASCII-named files (every E2E fixture) masked it. Fixed on
+`agent/file-disposition-20260930`: RFC 6266 disposition (stripped-ASCII
+fallback + `filename*=UTF-8''…`), blanket catch removed so only a real
+meta miss 404s, and the extension map gained the media families
+(webm/ogg/mp3/wav/m4a/mov) so stored-contentType-less media serves
+playable types instead of octet-stream. E2E extended with a
+Cyrillic-named upload (200 + `filename*`) and green; the owner's URL now
+serves all 47,976,363 bytes inline as `video/webm`.
+
 ## Process Designer
 
 - [ ] Need to create proper definitions management interface; and multiple of them can be active (summarized on
@@ -857,3 +894,41 @@ overrides). One knob in main.css app-shell section.
 Owner call: mobile scales UP, not down — touch targets and text grow
 together (18px root below the 48rem break). Direction corrected from
 the first cut.
+
+### Agent Notes (2026-09-30, mobile item popup is a page sheet)
+
+The mobile ITEM POPUP was a desktop dialog at full size — margins,
+rounded corners, 70vh cap. StandardDialog gains a `sheet` size: pt-driven
+root (m-0 h-dvh max-w-full rounded-none) and a flexing scroll body; the
+mobile detail mounts it edge-to-edge with no height cap. The chat dock
+and incoming calls keep the `full` size. The earlier popup pass was
+invisible compliance cleanup — this is the visible redesign the owner
+asked for, on the surface they were looking at.
+
+### Agent Notes (2026-09-30, mobile opens route — popups die)
+
+Owner verdict: the item-popup contract was slop. Both mobile popups are
+gone — record opens (openMobileInstance) and workspace-entity opens
+(openRequestedWorkspaceEntity) route to the compiled detail screen via
+detailRouteForInstance; the bounded directory dialog and the mobile
+detail sheet (plus their state) are deleted. Desktop keeps tab opens.
+
+### Agent Notes (2026-09-30, call sheet reverted)
+
+The sheet experiment broke the call dialog (collapsed layout, no
+expand) — pt styling shipped unseen. Reverted to the known-good full
+size + preview height; the dead sheet size is removed from
+StandardDialog. A proper mobile call surface needs design review with
+the owner first.
+
+### Agent Notes (2026-09-30, call window size + resize)
+
+Root cause of the shrunken window: the popup sweep replaced the
+arbitrary sizes with h-136/w-120 — numeric utilities that do not exist
+in Tailwind's default spacing scale, so no CSS applied and the flex
+window collapsed to content. Sizes are now token-backed
+(w/h-call-window with min caps, tailwind aliases from the token
+source), and the window is user-resizable: a bottom-left grip grows it
+up-left (anchored top-right during the gesture, like the drag header),
+clamped to the token minimums and the viewport, persisted in
+localStorage. The size binding pins a data-driven inline exception.
