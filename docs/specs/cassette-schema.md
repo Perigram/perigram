@@ -1,3 +1,12 @@
+```yaml
+doc_id: PERIGRAM-SPECS-CASSETTE-SCHEMA-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-01-09
+updated: 2026-09-30
+```
+
 ## Cassette JSON Specification v1.0
 
 ### Format Overview

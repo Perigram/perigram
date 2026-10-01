@@ -1,5 +1,14 @@
 # Nodi3d Operation Contract
 
+```yaml
+doc_id: PERIGRAM-SPECS-NODI-OPERATION-CONTRACT-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-06-08
+updated: 2026-09-30
+```
+
 This contract defines how Perigram compiles OCCS cassette documents into Nodi3d
 graphs. It is not an OCCS schema extension. OCCS remains the saved cassette
 format; this contract describes the CAD backend manifest and compiler rules.

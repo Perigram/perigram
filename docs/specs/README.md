@@ -1,5 +1,14 @@
 # COMPONENT: Documentation Specs
 
+```yaml
+doc_id: PERIGRAM-SPECS-README-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-06-01
+updated: 2026-09-30
+```
+
 `docs/specs` contains schema-level design notes for data and interchange
 formats. These files describe contracts and intended structures; they are not
 runtime modules.

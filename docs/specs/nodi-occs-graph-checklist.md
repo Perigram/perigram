@@ -1,5 +1,14 @@
 # Nodi3d OCCS Graph Build Sheet
 
+```yaml
+doc_id: PERIGRAM-SPECS-NODI-OCCS-GRAPH-CHECKLIST-001
+classification: reference
+status: draft
+owner: product-owner
+created: 2026-06-08
+updated: 2026-09-30
+```
+
 Use this while creating Nodi3d graphs. Build the first slice only, then expand.
 The formal manifest rules live in
 [nodi-operation-contract.md](./nodi-operation-contract.md).
