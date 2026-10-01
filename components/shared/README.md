@@ -789,12 +789,13 @@ transcription stay in the host composer.
   [layouts/README.md](../../layouts/README.md); nothing else routes away).
   The profile settings dialog hosts the personal surface in a sectioned
   layout: identity block (avatar, name, active organization, trailing
-  avatar-action icon Buttons), icon-led preference rows (language,
-  notifications), and the Organizations section speaking the account
-  popover's row language — menu-style `Button` entries (building icon,
-  active organization marked by the success check) that close the dialog
-  and open the organization's in-home pane, plus the create-organization
-  entry (the only popover-external home of organization creation).
+  avatar-action icon Buttons), plain preference rows (label + PrimeVue
+  component — language, notifications; no icon ornaments), and the
+  Organizations section speaking the account popover's row language —
+  menu-style `Button` entries (building icon, active organization marked
+  by the success check) that close the dialog and open the organization's
+  in-home pane, plus the create-organization entry (the only
+  popover-external home of organization creation).
   The trigger is customizable through the scoped `#trigger` slot (default
   is the round avatar button), and callers inject leading actions through
   the scoped `#items` slot (receives the popover's `hide`, so an injected

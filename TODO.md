@@ -106,6 +106,17 @@ severity system (single primary action default, others text, destructive
 danger text). Verified served live by DOM probe; screenshots at
 `/tmp/opencode/popups/`.
 
+### Agent Notes (2026-10-01, fourth pass — icon ornaments out)
+
+Owner called it: the pass-3 "icon-led preference rows" (free-floating
+`pi-globe`/`pi-bell` `<i>` elements in hand-built rows) are hand-rolled
+chrome, not a PrimeVue pattern — PrimeVue carries icons on components
+(`Button icon`, menu items), never as ornaments in DIY rows. Removed;
+preference rows are plain label + component again. The sectioned
+structure (identity with trailing actions, Preferences header,
+Organizations section) and the directory action-row severity system
+stay.
+
 - [x] Definitions pane (process designer): hand-rolled div/button rows
   instead of PrimeVue; history rows leaked raw actor ids
   (`user-…` rendered as text)
