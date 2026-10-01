@@ -413,6 +413,8 @@
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
                             @touchcancel="onTouchCancel(messageItem)"
+                            @click="openMessageMenuFromRow($event, messageItem)"
+                            @contextmenu="openMessageMenuFromRow($event, messageItem, true)"
                         >
                             <!-- Swipe reveal icon: it sits in the gap the
                                  dragged row vacates (right edge for own
@@ -494,7 +496,7 @@
                                          button itself. The menu aligns with the bubble's vertical
                                          center, beside its outer edge. -->
                                     <span
-                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
+                                        class="absolute top-1/2 -translate-y-1/2 block opacity-60 transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                         :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
                                     >
                                         <Button
@@ -516,20 +518,8 @@
                                         :attachments="messageItem.attachments"
                                         class="min-w-0 max-w-full"
                                     />
-                                    <Button
-                                        v-if="canTranscribe(messageItem)"
-                                        class="shrink-0"
-                                        icon="pi pi-eye"
-                                        severity="secondary"
-                                        text
-                                        rounded
-                                        size="small"
-                                        :aria-label="$t('support.transcribe')"
-                                        :loading="transcribingMessageIds.has(messageItem._id)"
-                                        @click.stop="transcribeAudioMessage(messageItem)"
-                                    />
                                     <span
-                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
+                                        class="absolute top-1/2 -translate-y-1/2 block opacity-60 transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                         :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
                                     >
                                         <Button
@@ -633,7 +623,7 @@
                          fights the composer density. -->
                     <div
                         v-if="activeConversation.conversationKind === 'instance' && (stripChildren.length || stripTrail.length)"
-                        class="flex flex-col gap-1 pb-1"
+                        class="flex flex-col gap-1"
                         data-testid="instance-target-strip"
                     >
                         <div class="flex items-center gap-1 overflow-x-auto">
@@ -690,7 +680,7 @@
                     <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted text-body">
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
                     </div>
-                    <div v-if="instanceRefs.length" class="mb-2 flex flex-wrap gap-2">
+                    <div v-if="instanceRefs.length" class="flex flex-wrap gap-2">
                         <div
                             v-for="ref in instanceRefs"
                             :key="`${ref.type}-${ref.id}`"
@@ -717,7 +707,7 @@
                          (a choice when several children accept the file),
                          and removal before send. Uploads ride the attach
                          popover. -->
-                    <div v-if="composerStagedRows.length" class="mb-2 flex max-h-44 flex-col gap-1 overflow-y-auto" data-testid="chat-pending-files">
+                    <div v-if="composerStagedRows.length" class="flex max-h-44 flex-col gap-1 overflow-y-auto" data-testid="chat-pending-files">
                         <div
                             v-for="row in composerStagedRows"
                             :key="row.key"
@@ -769,7 +759,7 @@
                             />
                         </div>
                     </div>
-                    <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-status-warning text-supporting">
+                    <div v-if="recipientLimitedRefs.length" class="flex flex-col gap-1 text-status-warning text-supporting">
                         <small
                             v-for="ref in recipientLimitedRefs"
                             :key="`${ref.type}-${ref.id}`"
@@ -1761,11 +1751,14 @@ const canTranscribe = (messageItem) => transcriptionAvailable.value
     && !String(messageItem.message || '').trim()
     && !messageItem.attachments[0].transcription
 
-// Reply-quote icon for a quoted message's first attachment.
-const parentAttachmentIcon = (messageItem) => {
-    const kind = (messageItem?.attachments || [])[0]?.kind
-    return kind === 'video' ? 'pi pi-video' : 'pi pi-microphone'
-}
+// Reply-quote icon for a quoted message's first attachment, by kind —
+// replies to images/files must not wear the voice microphone.
+const parentAttachmentIcon = (source = {}) => ({
+    image: 'pi pi-image',
+    video: 'pi pi-video',
+    audio: 'pi pi-microphone',
+    file: 'pi pi-file'
+}[(source?.attachments || [])[0]?.kind] || 'pi pi-file')
 
 const fetchTranscriptionAvailability = async () => {
     try {
@@ -2123,6 +2116,9 @@ const selectComposerInstance = (chip) => {
 const messageMenu = ref(null)
 const messageMenuTarget = ref(null)
 const messageMenuItems = computed(() => {
+    const target = messageMenuTarget.value
+    if (!target) return []
+    const transcribing = transcribingMessageIds.value.has(target._id)
     const items = [{
         label: t('support.reply'),
         icon: 'pi pi-reply',
@@ -2132,10 +2128,24 @@ const messageMenuItems = computed(() => {
             messageMenuTarget.value = null
         }
     }]
+    // Transcription rides the menu like every message action; the pending
+    // run stays visible through the in-thread indicator.
+    if (canTranscribe(target)) {
+        items.push({
+            label: t('support.transcribe'),
+            icon: transcribing ? 'pi pi-spin pi-spinner' : 'pi pi-eye',
+            disabled: transcribing,
+            command: () => {
+                messageMenu.value?.hide?.()
+                transcribeAudioMessage(messageMenuTarget.value)
+                messageMenuTarget.value = null
+            }
+        })
+    }
     // One download entry per attachment, labeled by a cropped file name —
     // the every-kind download affordance beside the inline file-chip
     // buttons.
-    for (const attachment of messageMenuTarget.value?.attachments || []) {
+    for (const attachment of target.attachments || []) {
         const name = attachment.name || attachment.mimeType || attachment.fileId
         items.push({
             label: t('support.download', { name: name.length > 32 ? `${name.slice(0, 29)}…` : name }),
@@ -2167,6 +2177,19 @@ const messageMenuItems = computed(() => {
 const openMessageMenu = (event, messageItem) => {
     messageMenuTarget.value = messageItem || null
     messageMenu.value?.toggle(event)
+}
+
+// The context menu opens from a plain tap on the message, a long-press
+// (contextmenu), or the row's ellipsis action — media-only messages carry
+// no text bubble, so the row-level paths are the only ones that reach
+// them. Touches that land on interactive children (media elements and
+// their native controls, the reply-quote jump, links, inputs) or select
+// text never open it.
+const openMessageMenuFromRow = (event, messageItem, longPress = false) => {
+    if (event?.target?.closest?.('button, a, video, audio, input, textarea, [data-no-menu]')) return
+    if (!longPress && typeof window !== 'undefined' && String(window.getSelection?.() || '').length) return
+    if (longPress) event?.preventDefault?.()
+    openMessageMenu(event, messageItem)
 }
 
 // Replies quote the target inline in the composer; sending carries the

@@ -474,6 +474,26 @@ feed its back button through the new slot.
 
 ## Chats
 
+- [ ] Message context menu reachable everywhere; transcribe rides the menu;
+  reply quotes carry the attachment's kind icon (owner report 2026-10-01:
+  no menu access on mobile, media rows had no action surface, replies to
+  images/files wore the microphone icon).
+
+### Agent Notes (2026-10-01)
+
+Implemented on `agent/chat-menu-20261001`. The menu opens from a plain tap
+on the message row, a long-press (contextmenu), or the ellipsis — now
+visible on every viewport (subtle on mobile, hover-revealed on desktop)
+— with interactive children guarded (media elements and their native
+controls, the reply-quote jump, links, text selection never trigger it).
+Media-only messages, previously unreachable, get all actions this way.
+Transcribe moved from the standalone eye button into the menu (disabled
+with a spinner item while running; the in-thread pending row stays the
+visible progress). `parentAttachmentIcon` now maps by attachment kind —
+replies to images/files no longer show the microphone. The composer dock's
+context rows (reply quote, refs, staged files, warnings, target strip)
+ride the dock's own `gap-2` rhythm instead of per-strip ad-hoc margins.
+
 - [ ] Any-file uploads in chats (SPEC §Chat files): images/videos preview
   inline with galleries for sets, download for every attachment; instance
   chat uploads materialize as child file instances of the chat's composer

@@ -57,7 +57,12 @@ the `artifact` entity and its overload die when chat/proof/capture/upload flows 
 
 Any file may be attached to chat messages. Images and videos preview inline
 (single items and their sets as galleries); every attachment offers a
-download. Voice message transcription shows its progress in the thread: a
+download. Message actions (reply, transcribe, per-attachment downloads,
+copy) live in one context menu, reachable on every viewport and for every
+message shape — tap or long-press the message, or use the row action;
+media-only messages are never orphaned without actions. Replies quote the
+target with its first attachment's kind icon. Voice message transcription
+shows its progress in the thread: a
 pending indicator renders where the transcript will appear, until the
 message updates in place. When a message belongs to an instance chat, each
 attached file
