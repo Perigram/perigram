@@ -103,8 +103,55 @@
                              today, date otherwise) up top; the latest-message
                              preview with the own-last read mark below. The
                              row menu (pin/archive) is an absolute hover
-                             overlay so it never shifts the layout. -->
-                        <div class="group relative flex w-full min-w-0 items-start gap-2 md:gap-3">
+                             overlay so it never shifts the layout; on touch
+                             a left swipe unveils the same actions as a
+                             sticky rail (one row at a time, tap to dismiss). -->
+                        <div
+                            class="relative flex w-full min-w-0 items-start overflow-hidden md:overflow-visible"
+                            @touchstart="onRowTouchStart($event, option)"
+                            @touchmove="onRowTouchMove($event, option)"
+                            @touchend="onRowTouchEnd(option)"
+                            @touchcancel="onRowTouchEnd(option)"
+                            @click="onRowContentClick($event, option)"
+                        >
+                            <span
+                                class="absolute inset-y-0 right-0 flex items-center gap-1 pr-1 opacity-0 transition-opacity md:hidden"
+                                :class="rowRailVisible(option) ? 'opacity-100' : ''"
+                                aria-hidden="true"
+                            >
+                                <Button
+                                    icon="pi pi-thumbtack"
+                                    severity="secondary"
+                                    text
+                                    rounded
+                                    size="small"
+                                    :aria-label="option.pinned ? $t('support.unpin') : $t('support.pin')"
+                                    @click.stop="toggleRowPinned(option)"
+                                />
+                                <Button
+                                    :icon="option.archived ? 'pi pi-inbox' : 'pi pi-box'"
+                                    severity="secondary"
+                                    text
+                                    rounded
+                                    size="small"
+                                    :aria-label="option.archived ? $t('support.unarchive') : $t('support.archive')"
+                                    @click.stop="toggleRowArchived(option)"
+                                />
+                                <Button
+                                    icon="pi pi-check-square"
+                                    severity="secondary"
+                                    text
+                                    rounded
+                                    size="small"
+                                    :aria-label="$t('support.markRead')"
+                                    @click.stop="markRowRead(option)"
+                                />
+                            </span>
+                            <div
+                                class="group relative flex w-full min-w-0 items-start gap-2 md:gap-3"
+                                :class="rowDrag.key === option.conversationKey ? '' : 'transition-transform'"
+                                :style="rowContentStyle(option)"
+                            >
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'instance'"
@@ -190,6 +237,7 @@
                                         @click.stop="openConversationMenu($event, option)"
                                     />
                                 </span>
+                        </div>
                         </div>
                     </template>
                 </Listbox>
@@ -2476,6 +2524,74 @@ const conversationMenuItems = computed(() => {
         }
     ]
 })
+
+// Inbox row swipe (touch): a left swipe unveils a sticky action rail —
+// pin, archive, mark read — the same gesture language as the message rows.
+// One row reveals at a time; a content tap dismisses the reveal instead of
+// selecting, and vertical list scrolling stays native (horizontal intent
+// gate mirrors the message swipe).
+const INBOX_RAIL_REVEAL = 112
+const revealedRowKey = ref('')
+let rowSwipe = null
+const rowDrag = ref({ key: '', dx: 0 })
+
+const rowOffset = (option) => {
+    if (rowDrag.value.key === option.conversationKey) return rowDrag.value.dx
+    return revealedRowKey.value === option.conversationKey ? -INBOX_RAIL_REVEAL : 0
+}
+const rowContentStyle = (option) => ({ transform: `translateX(${rowOffset(option)}px)` })
+const rowRailVisible = (option) => rowOffset(option) < 0
+
+const onRowTouchStart = (event, option) => {
+    const touch = event.touches?.[0]
+    if (!touch) return
+    rowSwipe = { key: option.conversationKey, x: touch.clientX, y: touch.clientY, horizontal: false, dx: 0 }
+}
+
+const onRowTouchMove = (event, option) => {
+    if (!rowSwipe || rowSwipe.key !== option.conversationKey) return
+    const touch = event.touches?.[0]
+    if (!touch) return
+    const dx = touch.clientX - rowSwipe.x
+    const dy = touch.clientY - rowSwipe.y
+    if (!rowSwipe.horizontal) {
+        if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.2) return
+        rowSwipe.horizontal = true
+    }
+    // Drags are relative to the current reveal so a revealed row can be
+    // pushed back or pulled deeper without a jump.
+    const base = revealedRowKey.value === option.conversationKey ? -INBOX_RAIL_REVEAL : 0
+    rowSwipe.dx = Math.min(0, Math.max(-(INBOX_RAIL_REVEAL + 24), base + dx))
+    rowDrag.value = { key: option.conversationKey, dx: rowSwipe.dx }
+}
+
+const onRowTouchEnd = (option) => {
+    const swipe = rowSwipe
+    rowSwipe = null
+    rowDrag.value = { key: '', dx: 0 }
+    if (!swipe || swipe.key !== option.conversationKey || !swipe.horizontal) return
+    revealedRowKey.value = swipe.dx < -(INBOX_RAIL_REVEAL / 2) ? option.conversationKey : ''
+}
+
+const onRowContentClick = (event, option) => {
+    if (revealedRowKey.value && revealedRowKey.value === option.conversationKey) {
+        event.stopPropagation()
+        revealedRowKey.value = ''
+    }
+}
+
+const toggleRowPinned = (option) => {
+    revealedRowKey.value = ''
+    supportChatStore.setConversationPref(option.conversationKey, { pinned: !option.pinned })
+}
+const toggleRowArchived = (option) => {
+    revealedRowKey.value = ''
+    supportChatStore.setConversationPref(option.conversationKey, { archived: !option.archived })
+}
+const markRowRead = (option) => {
+    revealedRowKey.value = ''
+    supportChatStore.markRead(option.conversationKey)
+}
 
 const openConversationMenu = (event, option) => {
     conversationMenuTarget.value = option || null
