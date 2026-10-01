@@ -72,23 +72,18 @@
         </div>
       </div>
       <Divider class="m-0" />
-      <!-- Icon-led preference rows mirror the organization rows below:
-           leading icon, label, control trailing. -->
+      <!-- Preference rows are PrimeVue form rows: label + component, no
+           icon ornaments — icons live on components (Button/Menu), not
+           free-floating in hand-built rows. -->
       <div class="flex flex-col gap-2">
         <span class="text-muted text-supporting">{{ t('profile.preferences') }}</span>
         <div class="flex items-center justify-between gap-3">
-          <div class="flex min-w-0 items-center gap-2">
-            <i class="pi pi-globe text-muted" aria-hidden="true" />
-            <span class="text-body">{{ t('profile.language') }}</span>
-          </div>
+          <span class="text-body">{{ t('profile.language') }}</span>
           <LanguageSwitcher />
         </div>
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 flex-col gap-0.5">
-            <div class="flex items-center gap-2">
-              <i class="pi pi-bell text-muted" aria-hidden="true" />
-              <span class="text-body">{{ t('notifications.settingsLabel') }}</span>
-            </div>
+            <span class="text-body">{{ t('notifications.settingsLabel') }}</span>
             <small v-if="notifications.permission.value === 'denied'" class="text-muted">{{ t('notifications.blockedHelp') }}</small>
             <small v-else-if="notifications.enabled.value && !notifications.pushAvailable.value" class="text-muted">{{ t('notifications.pushUnavailableHelp') }}</small>
           </div>
