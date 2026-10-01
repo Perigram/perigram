@@ -58,6 +58,26 @@ too): `utils/instance-shape`, `components/generated/detail-action-ownership`,
 
 ## UI
 
+- [ ] User settings popup and users/orgs directory popups: raw PrimeVue
+  organization per the components Style Guide (real Buttons for avatar
+  actions, flat `Listbox` membership rows) replacing the hand-rolled rows.
+
+### Agent Notes (2026-10-01, popup PrimeVue pass)
+
+Session `agent/popup-primevue-20261001`. Violations found in the settings
+popup (`UserAccountMenu`) and the users/orgs popup body
+(`DirectoryDetailSurface`): the avatar upload was a `<label>` wearing
+PrimeVue button CSS classes; organization memberships and directory
+memberships were hand-rolled `<button>` rows with bespoke radius/hover
+utilities (the exact chrome the Style Guide forbids); org-name fallback
+rendered raw db ids. Reworked: avatar actions are real icon Buttons
+(hidden input triggered by ref), both membership lists are flat
+borderless `Listbox`s with single-line `#option` rows (chats-inbox
+anatomy), the active organization is the selected row, and the id
+fallbacks are gone. Account-control contract (layouts README) unchanged:
+every entry still opens the organization's in-home pane; creation stays
+in the settings section. Dead `switchingTo` state removed.
+
 - [x] Definitions pane (process designer): hand-rolled div/button rows
   instead of PrimeVue; history rows leaked raw actor ids
   (`user-…` rendered as text)

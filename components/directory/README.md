@@ -25,7 +25,10 @@ into these panes through the shared workspace-open seam.
   richer facts render only when the DTO carries them.
 - Membership rows render only organizations the viewer can themselves
   resolve (cross-tenant org names are not readable) and open them through
-  the workspace-open seam — never a route.
+  the workspace-open seam — never a route. They render as a flat
+  borderless `Listbox` (the settings-popup content pattern: the dialog or
+  pane is the surface, sections separate with dividers); the viewer's
+  active organization is the selected row.
 - The active organization's PANE renders its real page: the generated
   organization overview (identity header + management entries) from the
   hydrated manifest; the popup (`bounded`) keeps the directory profile —
