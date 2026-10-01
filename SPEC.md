@@ -1,3 +1,12 @@
+```yaml
+doc_id: PERIGRAM-SPEC-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-09-26
+updated: 2026-10-01
+```
+
 This spec is human-write only. 
 
 This project gets migrated from cnc-domain to process programming with "cts" types in Process Designer. Everything that is legacy (hardcoded

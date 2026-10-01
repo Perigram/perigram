@@ -1,5 +1,15 @@
 # UI Component Audit
 
+```yaml
+doc_id: PERIGRAM-UI-COMPONENT-AUDIT-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-06-12
+updated: 2026-09-30
+```
+
+
 Date: 2026-08-21
 
 This is the canonical human-readable UI inventory. It separates PrimeVue/Aura

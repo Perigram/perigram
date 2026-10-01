@@ -1,5 +1,15 @@
 # Perigram Design System
 
+```yaml
+doc_id: PERIGRAM-DESIGN-SYSTEM-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-05-14
+updated: 2026-09-30
+```
+
+
 ## Source Of Truth
 
 Perigram uses PrimeVue 4, Tailwind utilities, and a small app token layer. The design system is code-driven:

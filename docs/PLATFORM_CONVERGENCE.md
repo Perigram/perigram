@@ -1,5 +1,15 @@
 # Platform Convergence Roadmap
 
+```yaml
+doc_id: PERIGRAM-PLATFORM-CONVERGENCE-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-09-22
+updated: 2026-09-30
+```
+
+
 The platform's core idea is an invariant, not a feature: the platform holds
 no business truth. Everything about how an organization runs is a typed
 declaration the organization authors; the platform compiles declarations into

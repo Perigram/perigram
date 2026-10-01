@@ -1,5 +1,15 @@
 # System Architecture
 
+```yaml
+doc_id: PERIGRAM-SYSTEM-ARCHITECTURE-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-05-22
+updated: 2026-09-30
+```
+
+
 Multi-tenant CNC manufacturing app built on a type-system core: domain
 vocabulary is authored as CTS type declarations (packs and org-authored),
 compiled by the process compiler into runtime contracts, and served by
