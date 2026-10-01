@@ -81,15 +81,17 @@
       </template>
 
       <!-- Action row: the surface owns its actions — panes and dialogs have
-           no page-level action chrome. -->
+           no page-level action chrome. One severity system: the single
+           primary action is the default button, the rest are text,
+           destructive stays danger text. -->
       <div class="mt-auto flex flex-wrap justify-end gap-2" @click.stop>
         <template v-if="entry.type === 'user'">
           <Button
             v-if="entry.directory?.isSelf"
             :label="$t('nav.profile')"
             icon="pi pi-user"
+            text
             severity="secondary"
-            outlined
             size="small"
             @click="navigateTo('/profile')"
           />
@@ -99,8 +101,8 @@
           <Button
             v-if="canChat"
             icon="pi pi-comments"
+            text
             severity="secondary"
-            outlined
             size="small"
             :aria-label="$t('support.openChat')"
             data-testid="directory-user-chat"
@@ -123,8 +125,6 @@
             v-if="entry.directory?.isMember && !isActiveOrganization"
             :label="$t('profile.switchOrganization')"
             icon="pi pi-arrow-right-arrow-left"
-            severity="secondary"
-            outlined
             size="small"
             :loading="switching"
             @click="switchToOrganization"

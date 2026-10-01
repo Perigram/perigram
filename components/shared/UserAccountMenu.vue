@@ -29,52 +29,66 @@
     :header="t('nav.profile')"
     :show-default-footer="false"
   >
-    <div class="flex w-80 flex-col gap-4">
-      <div class="flex items-center gap-3">
-        <Avatar
-          :image="authStore.userData.avatarUrl || null"
-          :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
-          shape="circle"
-          size="xlarge"
-          class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-        />
-        <div class="flex min-w-0 flex-1 flex-col gap-1">
-          <span class="truncate text-label">{{ authStore.userData.name || t('common.user') }}</span>
-          <div class="flex items-center gap-1">
-            <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
-            <Button
-              icon="pi pi-camera"
-              text
-              rounded
-              size="small"
-              severity="secondary"
-              :title="t('common.upload')"
-              :aria-label="t('common.upload')"
-              :loading="avatarBusy"
-              @click="avatarInput?.click()"
-            />
-            <Button
-              v-if="authStore.userData.avatarUrl"
-              icon="pi pi-trash"
-              text
-              rounded
-              size="small"
-              severity="danger"
-              :aria-label="t('common.delete')"
-              :loading="avatarBusy"
-              @click="removeAvatar"
-            />
+    <div class="flex flex-col gap-4">
+      <!-- Identity: avatar and name lead, avatar actions trail top-right. -->
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <Avatar
+            :image="authStore.userData.avatarUrl || null"
+            :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
+            shape="circle"
+            size="xlarge"
+            class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+          />
+          <div class="flex min-w-0 flex-col gap-1">
+            <span class="truncate text-label">{{ authStore.userData.name || t('common.user') }}</span>
+            <small v-if="activeOrganizationName" class="text-muted text-supporting">{{ activeOrganizationName }}</small>
           </div>
         </div>
+        <div class="flex shrink-0 items-center gap-1">
+          <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
+          <Button
+            icon="pi pi-camera"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :title="t('common.upload')"
+            :aria-label="t('common.upload')"
+            :loading="avatarBusy"
+            @click="avatarInput?.click()"
+          />
+          <Button
+            v-if="authStore.userData.avatarUrl"
+            icon="pi pi-trash"
+            text
+            rounded
+            size="small"
+            severity="danger"
+            :aria-label="t('common.delete')"
+            :loading="avatarBusy"
+            @click="removeAvatar"
+          />
+        </div>
       </div>
+      <Divider class="m-0" />
+      <!-- Icon-led preference rows mirror the organization rows below:
+           leading icon, label, control trailing. -->
       <div class="flex flex-col gap-2">
+        <span class="text-muted text-supporting">{{ t('profile.preferences') }}</span>
         <div class="flex items-center justify-between gap-3">
-          <span class="text-body">{{ t('profile.language') }}</span>
+          <div class="flex min-w-0 items-center gap-2">
+            <i class="pi pi-globe text-muted" aria-hidden="true" />
+            <span class="text-body">{{ t('profile.language') }}</span>
+          </div>
           <LanguageSwitcher />
         </div>
         <div class="flex items-center justify-between gap-3">
-          <div class="flex min-w-0 flex-col">
-            <span class="text-body">{{ t('notifications.settingsLabel') }}</span>
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-bell text-muted" aria-hidden="true" />
+              <span class="text-body">{{ t('notifications.settingsLabel') }}</span>
+            </div>
             <small v-if="notifications.permission.value === 'denied'" class="text-muted">{{ t('notifications.blockedHelp') }}</small>
             <small v-else-if="notifications.enabled.value && !notifications.pushAvailable.value" class="text-muted">{{ t('notifications.pushUnavailableHelp') }}</small>
           </div>
@@ -217,6 +231,7 @@ const orgForm = reactive({ name: '', email: '' });
 const avatarInput = ref(null);
 
 const activeOrganizationId = computed(() => authStore.userData.organizationId?.toString() || null);
+const activeOrganizationName = computed(() => authStore.organizationData?.identity?.name || '');
 const organizationOptions = computed(() => authStore.userOrganizations.map(org => ({
   orgId: org._id?.toString() || org.id?.toString(),
   label: org.identity?.name || org.name || org.identity?.uid || ''

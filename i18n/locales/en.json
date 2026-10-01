@@ -883,6 +883,7 @@
     "logout": "Logout",
     "settings": "Settings",
     "language": "Language",
+    "preferences": "Preferences",
     "languageHelp": "Choose your preferred interface language.",
     "account": "Account",
     "billing": "Billing",
