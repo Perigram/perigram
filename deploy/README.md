@@ -85,6 +85,15 @@ Auth-only values still come from Forgejo repository secrets
 |---|---|---|
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web Push | empty = push disabled, as before |
 
+Web Push enablement runbook: generate a key pair once with
+`npx web-push generate-vapid-keys` (`web-push` ships with the app
+dependencies), store the two values as the secrets above, and push to
+`staging` — the workflow passes them through as `NUXT_VAPID_PUBLIC_KEY` /
+`NUXT_VAPID_PRIVATE_KEY` and the redeploy reconfigures push. Until both
+secrets exist the server reports push disabled
+(`/api/notifications/config` → `enabled: false`) and the profile
+notifications toggle shows that only in-tab delivery is active.
+
 `NUXT_MONGODB_URI` / `LIVEKIT_*` / `TRANSCRIPTION_*` / `MEETINGS_*` no longer
 come from secrets (see Contract — the service plane is inline). ConfigBot/Ollama
 env is intentionally absent on this deploy — it is a prod-only,

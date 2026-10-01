@@ -73,6 +73,17 @@ whose target declares no accepting child refuse the upload at pick time;
 common chats (support/direct/group) and party-target chats (the
 organization chat) keep files as plain unlinked attachments.
 
+## PWA
+
+Offline is a first-class state, not an error page: without a connection the
+app loads its last known shell and data (HTML navigations, app chunks,
+`GET /api/**` reads serve the last successful responses), and mutations
+queue in the outbox and replay on reconnect. Enabled notifications must
+actually arrive: in-tab while a tab is live, closed-tab through Web Push —
+which requires the deployed server to run with VAPID keys configured, and
+the settings toggle must tell the user when closed-tab delivery is
+unavailable instead of failing silently.
+
 ## Server
 
 A type is executable from its declaration alone: generic instance services serve everything,

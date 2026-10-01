@@ -1,5 +1,27 @@
 # TODO
 
+## PWA offline restore and push surfacing (2026-10-01)
+
+- [ ] Service worker serves the app offline again: network-first caches for
+  HTML navigations, `/_nuxt/` chunks, and `GET /api/**` (SSE stream
+  excluded), static decoration stays cache-first (SPEC §PWA).
+- [ ] Notifications toggle surfaces that closed-tab delivery is unavailable
+  when the server runs without VAPID keys, instead of silently skipping
+  the push subscription.
+- [ ] Deploy runbook for generating and wiring the VAPID key pair.
+
+### Agent Notes (2026-10-01)
+
+Session `agent/pwa-offline-push-20261001`. Root cause of the "broken page
+offline": the offline read/shell capability (workbox shell + NetworkFirst
+`/api/**` from `ddbac40f`) was dropped in the hand-rolled SW rewrite
+(`1774c6e7`) — only the mutation outbox survived, while the root README
+kept claiming "offline-capable" and `composables/README.md` kept claiming
+cached `GET /api/**`. Root cause of silent notifications: the deploy runs
+with empty `VAPID_*` secrets (push disabled by contract), and
+`useBrowserNotifications.subscribePush` silently returns on
+`enabled: false` — the toggle cannot show the difference.
+
 ## Graph-native order flow de-slop (2026-09-30)
 
 - [x] Delete the ad-hoc table-import pipeline (surface, batch transport,

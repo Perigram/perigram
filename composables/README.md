@@ -180,7 +180,7 @@ section).
 ## useBrowserNotifications
 
 ```js
-const { permission, enabled, busy, canEnable, enable, disable, show } = useBrowserNotifications();
+const { permission, enabled, busy, canEnable, pushAvailable, refreshPushConfig, enable, disable, show } = useBrowserNotifications();
 ```
 
 Owns desktop-notification consent and delivery: the persisted
@@ -188,6 +188,10 @@ Owns desktop-notification consent and delivery: the persisted
 flow (invoked only from the profile preferences toggle, never on load), the
 Web Push subscribe/unsubscribe round-trip through the registered service
 worker, and the guarded `show()` used by `plugins/notifications.client.js`.
+`pushAvailable` mirrors the server's push configuration
+(`/api/notifications/config`) and is refreshed by the settings surface on
+open, so the toggle can state that closed-tab delivery is unavailable
+instead of failing silently (runbook: deploy README, Configuration).
 The plugin derives the three notification kinds from the connections stream
 (`support.inbox` messages, `call.invite` calls with a WebAudio ring loop,
 `entityChanged` status transitions on the org topic) and respects visibility:
