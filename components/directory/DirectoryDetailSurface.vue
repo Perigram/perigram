@@ -8,7 +8,7 @@
     </div>
     <template v-else>
       <!-- Identity header (the generated overview carries its own) -->
-      <div v-if="!overviewScreen" class="flex items-start gap-4">
+      <div v-if="!overviewScreen" class="flex items-center gap-4">
         <Avatar
           :image="avatarUrl"
           :label="!avatarUrl ? (entry.identity?.name || '?').charAt(0).toUpperCase() : null"
@@ -16,47 +16,36 @@
           shape="circle"
           class="shrink-0 [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
         />
-        <div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
           <span class="truncate text-section-heading">{{ entry.identity?.name }}</span>
-          <small v-if="entry.type === 'user' && entry.directory?.sharesOrganization" class="text-muted">
+          <small v-if="entry.type === 'user' && entry.directory?.sharesOrganization" class="text-muted text-supporting">
             {{ activeOrganizationName }}
           </small>
-          <div class="mt-1 flex flex-wrap gap-2">
-            <Tag v-if="entry.type === 'organization' && entry.data?.type" :value="entry.data.type" severity="secondary" />
-            <small v-if="entry.type === 'user' && organizationMemberships.length" class="text-muted">
-              {{ organizationMemberships.length }} {{ $t('profile.myOrganizations') }}
-            </small>
-          </div>
         </div>
       </div>
 
       <!-- User surface: flat hosted column — the dialog or pane is the
-           surface, sections separate with dividers, never boxed panels
-           (the settings-popup content pattern). -->
+           surface, sections separate with dividers, rows speak the
+           account menu's language (menu-style entries, active-org check). -->
       <template v-if="entry.type === 'user'">
         <template v-if="detailedFields.length">
           <Divider class="m-0" />
           <DataBlock type-id="user" :entity="detailed" :fields="detailedFields" />
         </template>
-        <template v-if="organizationMemberships.length">
+        <template v-if="membershipOptions.length">
           <Divider class="m-0" />
-          <Listbox
-            :model-value="activeOrganizationId"
-            :options="membershipOptions"
-            option-label="name"
-            option-value="orgId"
-            data-key="orgId"
-            class="w-full border-0"
-            :aria-label="t('profile.myOrganizations')"
-            @update:model-value="openOrganization"
-          >
-            <template #option="{ option }">
-              <div class="flex w-full min-w-0 items-center gap-3" :data-directory-org="option.orgId">
-                <Avatar icon="pi pi-building" shape="circle" class="shrink-0 bg-subtle text-muted" />
-                <span class="min-w-0 flex-1 truncate">{{ option.name }}</span>
-              </div>
-            </template>
-          </Listbox>
+          <Button
+            v-for="org in membershipOptions"
+            :key="org.orgId"
+            :label="org.name"
+            :icon="org.orgId === activeOrganizationId ? 'pi pi-check text-status-success' : 'pi pi-building'"
+            text
+            severity="secondary"
+            size="small"
+            :pt="startJustified"
+            :data-directory-org="org.orgId"
+            @click="openOrganization(org.orgId)"
+          />
         </template>
       </template>
 
@@ -190,7 +179,6 @@ import { computed, onMounted, ref, watch } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
-import Listbox from 'primevue/listbox';
 import Tag from 'primevue/tag';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
@@ -216,6 +204,9 @@ const props = defineProps({
 const authStore = useAuthStore();
 const toast = useToast();
 const { t } = useI18n();
+
+// Menu rows rest left-aligned like the account popover's entries.
+const startJustified = { root: { style: 'justify-content: flex-start' } };
 
 const entry = ref(null);
 const detailed = ref({});

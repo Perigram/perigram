@@ -38,9 +38,9 @@
           size="xlarge"
           class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
         />
-        <div class="flex min-w-0 flex-1 flex-col">
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
           <span class="truncate text-label">{{ authStore.userData.name || t('common.user') }}</span>
-          <div class="mt-1 flex items-center gap-1">
+          <div class="flex items-center gap-1">
             <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
             <Button
               icon="pi pi-camera"
@@ -67,46 +67,41 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center justify-between gap-3">
-        <span class="text-muted text-supporting">{{ t('profile.language') }}</span>
-        <LanguageSwitcher />
-      </div>
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex min-w-0 flex-col">
-          <span class="text-muted text-supporting">{{ t('notifications.settingsLabel') }}</span>
-          <small v-if="notifications.permission.value === 'denied'" class="text-muted">{{ t('notifications.blockedHelp') }}</small>
-          <small v-else-if="notifications.enabled.value && !notifications.pushAvailable.value" class="text-muted">{{ t('notifications.pushUnavailableHelp') }}</small>
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-body">{{ t('profile.language') }}</span>
+          <LanguageSwitcher />
         </div>
-        <ToggleSwitch
-          :model-value="notifications.enabled.value"
-          :disabled="notifications.busy.value || !notifications.canEnable.value"
-          @update:model-value="toggleNotifications"
-        />
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex min-w-0 flex-col">
+            <span class="text-body">{{ t('notifications.settingsLabel') }}</span>
+            <small v-if="notifications.permission.value === 'denied'" class="text-muted">{{ t('notifications.blockedHelp') }}</small>
+            <small v-else-if="notifications.enabled.value && !notifications.pushAvailable.value" class="text-muted">{{ t('notifications.pushUnavailableHelp') }}</small>
+          </div>
+          <ToggleSwitch
+            :model-value="notifications.enabled.value"
+            :disabled="notifications.busy.value || !notifications.canEnable.value"
+            @update:model-value="toggleNotifications"
+          />
+        </div>
       </div>
       <Divider class="m-0" />
-      <!-- The organizations section is the settings-side management face:
-           every membership with switch-in-place, plus the one create
-           entry (organization creation lives here, not in the popover —
-           layouts/README.md owns the account-control contract). -->
-      <section class="flex flex-col gap-2">
+      <!-- The organizations section speaks the account popover's row
+           language: menu-style entries with the active-org check, so the
+           popover and the settings popup read as one control. -->
+      <section class="flex flex-col gap-1">
         <span class="text-muted text-supporting">{{ t('profile.myOrganizations') }}</span>
-        <Listbox
-          :model-value="activeOrganizationId"
-          :options="organizationOptions"
-          option-label="label"
-          option-value="orgId"
-          data-key="orgId"
-          class="w-full border-0"
-          :aria-label="t('profile.myOrganizations')"
-          @update:model-value="openOrganizationPane"
-        >
-          <template #option="{ option }">
-            <div class="flex w-full min-w-0 items-center gap-2">
-              <Avatar icon="pi pi-building" shape="circle" class="shrink-0 bg-subtle text-muted" />
-              <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
-            </div>
-          </template>
-        </Listbox>
+        <Button
+          v-for="org in organizationOptions"
+          :key="org.orgId"
+          :label="org.label"
+          :icon="org.orgId === activeOrganizationId ? 'pi pi-check text-status-success' : 'pi pi-building'"
+          text
+          severity="secondary"
+          size="small"
+          :pt="startJustified"
+          @click="openOrganizationPane(org.orgId)"
+        />
         <Button
           :label="t('auth.createOrg')"
           icon="pi pi-plus"
@@ -172,7 +167,6 @@ import Avatar from 'primevue/avatar';
 import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
-import Listbox from 'primevue/listbox';
 
 // PrimeVue centers button content; the menu rows read left-aligned. The
 // cascade rule: internals restyle through pt, never !utility overrides.
