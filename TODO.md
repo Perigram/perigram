@@ -1,33 +1,5 @@
 # TODO
 
-## CI validation gate for the deploy pipeline (2026-10-01) — assigned to the infra agent
-
-- [ ] `.forgejo/workflows/deploy.yml` runs the repository guards before the
-  image build and redeploy; a failing guard fails the deploy (SPEC §CI).
-- [ ] CI guard set reconciled with the canonical local list in the root
-  README (Development): focused vitest specs (`shared/…`, `utils/sw.spec.js`,
-  `utils/outbox.spec.js`), `node scripts/check-arch.js`,
-  `npm run docs:validate`; decide explicitly whether
-  `npm run framework:validate` and the SSR smoke belong in CI (both need
-  `npx nuxi prepare` first — the fresh-worktree rule in the root README).
-- [ ] `deploy/README.md` pipeline contract and the root README Development
-  section say guards run in CI, not only agent-local.
-- [ ] Proven end-to-end: a deliberately failing spec on a throwaway branch
-  blocks the deploy; reverting it lets the deploy through.
-
-Constraints (verified 2026-10-01, save the rediscovery):
-
-- The `deploy` job's container is `docker:cli` plus `apk add git` — there is
-  no node/npm in it. Options: a separate `validate` job with a node image
-  (`container: node:22`, deploy `needs: [validate]`), `docker run --rm
-  -v "$PWD:/src" -w /src node:22 …` steps inside the existing job, or a
-  multi-stage Dockerfile whose build stage runs the guards.
-- `npm ci` is mandatory in CI — the runner has no `node_modules` cache
-  (the anonymous-volume story in the root README is dev-stack only).
-- Follow the AGENTS.md session rules: own worktree + branch, `fix:` and
-  `neo:` commits separated, merge to `local`, then push `local` → `staging`
-  to exercise the pipeline for real.
-
 ## PWA offline restore and push surfacing (2026-10-01)
 
 - [ ] Service worker serves the app offline again: network-first caches for
