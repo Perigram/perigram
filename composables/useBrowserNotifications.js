@@ -9,12 +9,23 @@ export const useBrowserNotifications = () => {
     const permission = ref(notificationPermission());
     const enabled = ref(readNotificationSetting());
     const busy = ref(false);
+    const pushAvailable = ref(false);
 
     const canEnable = computed(() => permission.value === 'granted' || permission.value === 'default');
 
+    async function fetchPushConfig() {
+        const config = await $fetch('/api/notifications/config').catch(() => null);
+        pushAvailable.value = Boolean(config?.enabled && config.publicKey);
+        return config;
+    }
+
+    function refreshPushConfig() {
+        return fetchPushConfig();
+    }
+
     async function subscribePush() {
         if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-        const config = await $fetch('/api/notifications/config').catch(() => null);
+        const config = await fetchPushConfig();
         if (!config?.enabled || !config.publicKey) return;
         const registration = await navigator.serviceWorker.ready;
         const existing = await registration.pushManager.getSubscription();
@@ -102,6 +113,8 @@ export const useBrowserNotifications = () => {
         enabled,
         busy,
         canEnable,
+        pushAvailable,
+        refreshPushConfig,
         enable,
         disable,
         show
