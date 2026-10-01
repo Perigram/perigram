@@ -1,5 +1,15 @@
 # Remote Access Runbook
 
+```yaml
+doc_id: PERIGRAM-REMOTE-ACCESS-001
+classification: reference
+status: active
+owner: product-owner
+created: 2026-06-14
+updated: 2026-09-30
+```
+
+
 Hosts and access paths for the current self-hosted setup. This file
 intentionally does not store private keys, sudo passwords, VPN configs,
 cookies, or tokens — secrets live only in a password manager, SOPS
@@ -50,7 +60,8 @@ Obsidian, or chat transcripts.
 
 ## Legacy: R240 / WireGuard
 
-The previous topology ran everything on R240 (`192.168.0.106`, WireGuard
+The previous topology ran everything on R240 (LAN address of that era,
+`192.168.0.100` since 2026-09-16 — OPS-20260916-002; WireGuard
 endpoint `78.30.216.48:51820`, interface `perigram-r330`, app on `:7100`,
 Forgejo on `:3002`, Swarm service `perigram_app`, webhook autodeploy). None of
 it is part of the current deploy path; the machine is routinely powered off

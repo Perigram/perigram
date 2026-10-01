@@ -1,5 +1,15 @@
 # AGENTS.md
 
+```yaml
+doc_id: PERIGRAM-AGENTS-001
+classification: reference
+status: active
+owner: product-owner
+created: 2025-10-22
+updated: 2026-09-30
+```
+
+
 This repository operates in strict documentation-first mode. This file is the
 operating protocol only. It deliberately contains no project facts: no file
 paths, no commands, no technologies, no architecture. All project knowledge
