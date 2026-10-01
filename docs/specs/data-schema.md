@@ -1,4 +1,14 @@
 # Nesting Data Schema
+
+```yaml
+doc_id: PERIGRAM-SPECS-DATA-SCHEMA-001
+classification: reference
+status: active
+owner: product-owner
+created: 2025-11-22
+updated: 2026-09-30
+```
+
 _Industrial-grade data structures for 2D vector cassette nesting platform_
 
 **Current Scope:** Store multi-layer DXF cassettes, map user layers to standards via hand-mapping, display with user-defined pens and doc templates.
