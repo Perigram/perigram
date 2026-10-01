@@ -518,9 +518,18 @@
                                         :attachments="messageItem.attachments"
                                         class="min-w-0 max-w-full"
                                     />
+                                    <!-- Media-only rows have no tappable bubble
+                                         (the elements eat taps and long-presses
+                                         for playback), so the ellipsis stays
+                                         mounted there on touch too — the only
+                                         message shape that needs it. -->
                                     <span
                                         class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
-                                        :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
+                                        :class="[
+                                            isOwnMessage(messageItem) ? '-left-8' : '-right-8',
+                                            !messageItem.message && !(messageItem.instanceRefs || []).length
+                                                ? 'max-md:block max-md:opacity-60' : ''
+                                        ]"
                                     >
                                         <Button
                                             icon="pi pi-ellipsis-v"
