@@ -87,6 +87,14 @@ which requires the deployed server to run with VAPID keys configured, and
 the settings toggle must tell the user when closed-tab delivery is
 unavailable instead of failing silently.
 
+## CI
+
+A push to `staging` deploys only when the repository guards pass in CI: the
+deploy pipeline runs the same validation an agent runs locally (focused
+vitest specs, the architecture guard, the docs guard) before the image
+build and redeploy. A failing guard blocks the deploy instead of shipping
+a broken build to staging.
+
 ## Server
 
 A type is executable from its declaration alone: generic instance services serve everything,
