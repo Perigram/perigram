@@ -1,9 +1,11 @@
-const CACHE = 'perigram-static-v4'
-// No '/_nuxt/' here on purpose: in dev that path serves live source modules,
-// and a cache-first worker (registered earlier by a prod build on the same
-// origin) would keep answering with stale code through any hard refresh.
-// Prod chunks are content-hashed, so network fetches are always correct.
-const CACHED_PREFIXES = ['/icons/', '/fonts/', '/favicon/', '/icon.svg', '/manifest.webmanifest']
+const STATIC_CACHE = 'perigram-static-v5'
+const RUNTIME_CACHE = 'perigram-runtime-v1'
+// Caching contract lives in the root README (PWA section): static
+// decoration is cache-first; navigations, /_nuxt/ chunks, and GET /api/**
+// reads are network-first with offline cache fallback. The /api/connections
+// SSE stream is never intercepted. Only successful same-origin responses
+// are cached.
+const STATIC_PREFIXES = ['/icons/', '/fonts/', '/favicon/', '/icon.svg', '/manifest.webmanifest']
 
 self.addEventListener('install', () => {
     self.skipWaiting()
@@ -47,27 +49,60 @@ self.addEventListener('notificationclick', (event) => {
 
 self.addEventListener('activate', (event) => {
     event.waitUntil((async () => {
+        const keep = [STATIC_CACHE, RUNTIME_CACHE]
         const keys = await caches.keys()
-        await Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
+        await Promise.all(keys.filter((key) => !keep.includes(key)).map((key) => caches.delete(key)))
         await self.clients.claim()
     })())
 })
 
+function cachePut(cacheName, event, response) {
+    if (!response || !response.ok || response.type !== 'basic') return Promise.resolve()
+    const copy = response.clone()
+    return caches.open(cacheName).then((cache) => cache.put(event.request, copy))
+}
+
+// Fresh while online, last-known while offline; a never-cached URL that
+// cannot be fetched rejects and the app's own error handling takes over.
+function networkFirst(event) {
+    event.respondWith(
+        fetch(event.request)
+            .then((response) => {
+                event.waitUntil(cachePut(RUNTIME_CACHE, event, response))
+                return response
+            })
+            .catch(() => caches.match(event.request).then((cached) => cached
+                || Promise.reject(new Error('offline and not cached'))))
+    )
+}
+
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url)
     if (event.request.method !== 'GET' || url.origin !== self.location.origin) return
-    if (!CACHED_PREFIXES.some((prefix) => url.pathname === prefix || url.pathname.startsWith(prefix))) return
-    event.respondWith(
-        caches.match(event.request).then((cached) => {
-            if (cached) return cached
-            return fetch(event.request).then((response) => {
-                // Only successful same-origin responses are cached.
-                if (response.ok && response.type === 'basic') {
-                    const copy = response.clone()
-                    event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, copy)))
-                }
-                return response
-            })
-        })
-    )
+    if (url.pathname.startsWith('/api/connections')) return
+    if (STATIC_PREFIXES.some((prefix) => url.pathname === prefix || url.pathname.startsWith(prefix))) {
+        event.respondWith(
+            caches.match(event.request).then((cached) => cached
+                || fetch(event.request).then((response) => {
+                    event.waitUntil(cachePut(STATIC_CACHE, event, response))
+                    return response
+                }))
+        )
+        return
+    }
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_nuxt/')) {
+        networkFirst(event)
+        return
+    }
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    event.waitUntil(cachePut(RUNTIME_CACHE, event, response))
+                    return response
+                })
+                .catch(() => caches.match(event.request)
+                    .then((cached) => cached || caches.match('/')))
+        )
+    }
 })

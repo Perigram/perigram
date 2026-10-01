@@ -181,14 +181,20 @@ The app is an installable, offline-capable PWA with a hand-rolled service
 worker (`public/sw.js`, registered by `plugins/pwa.client.js` in production
 builds only).
 
-- Fonts, icons, and the manifest are cached cache-first; `/_nuxt/` app
-  chunks are never worker-cached (dev serves live modules there, and a
-  cache-first worker from an earlier prod build would serve stale code
-  through hard refreshes — hashed prod names make network fetches safe);
-  `plugins/pwa.client.js` registers the worker without a build plugin.
-  Only successful (`response.ok`, same-origin) responses are cached —
-  error bodies must never enter a cache-first cache. Bumping the `CACHE`
-  name purges every client cache on activate.
+- Static decoration — fonts, icons, the favicon set, the manifest — is
+  cached cache-first; only successful (`response.ok`, same-origin)
+  responses are ever cached — error bodies must not enter a cache. Bumping
+  the worker's cache version purges every client cache on activate.
+- Everything the app needs to load and read offline — HTML navigations,
+  `/_nuxt/` app chunks, and `GET /api/**` reads — is cached network-first:
+  online loads stay fresh from the network, offline loads fall back to the
+  last successful response, and a navigation that misses the cache
+  entirely falls back to the cached root shell. The `/api/connections`
+  SSE stream is never intercepted or cached. (`/_nuxt/` was once excluded
+  from caching entirely — that concern targets cache-first staleness;
+  network-first serves fresh code whenever the network is reachable, so
+  the hashed chunk names make the offline copy safe. Dev is unaffected:
+  no worker is registered there at all.)
 - Dev loads self-heal the origin: every dev page load unregisters all
   service-worker registrations and deletes their caches, so a worker left
   by an earlier production build cannot keep serving stale code; only

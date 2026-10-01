@@ -67,6 +67,7 @@
         <div class="flex min-w-0 flex-col">
           <span class="text-muted text-supporting">{{ t('notifications.settingsLabel') }}</span>
           <small v-if="notifications.permission.value === 'denied'" class="text-muted">{{ t('notifications.blockedHelp') }}</small>
+          <small v-else-if="notifications.enabled.value && !notifications.pushAvailable.value" class="text-muted">{{ t('notifications.pushUnavailableHelp') }}</small>
         </div>
         <ToggleSwitch
           :model-value="notifications.enabled.value"
@@ -149,7 +150,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
@@ -186,6 +187,11 @@ const avatarBusy = ref(false);
 // settings surface — nothing routes away); organization creation opens
 // from the organizations group.
 const notifications = useBrowserNotifications();
+// The hint under the toggle must reflect the server's push configuration,
+// not just local consent — refresh it every time the settings popup opens.
+watch(profileVisible, (visible) => {
+  if (visible) notifications.refreshPushConfig();
+});
 const toggleNotifications = async (value) => {
   if (value) {
     const granted = await notifications.enable();

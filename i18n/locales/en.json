@@ -854,6 +854,7 @@
     "settingsLabel": "Desktop notifications",
     "settingsHelp": "Messages, incoming calls, and status changes notify while the app is hidden; closed-tab delivery uses Web Push.",
     "blockedHelp": "Notifications are blocked for this site in browser settings.",
+    "pushUnavailableHelp": "Web Push is disabled on this server — notifications arrive only while a Perigram tab is open.",
     "messageTitle": "New message",
     "messageBody": "You have a new chat message",
     "callTitle": "Incoming call",

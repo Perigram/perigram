@@ -49,11 +49,14 @@ All notifications derive from the canonical
 `composables/useBrowserNotifications.js` owns permission state, the persisted
 consent flag, and the push subscribe/unsubscribe flow (subscribing through
 the registered service worker, whose `push`/`notificationclick` handlers show
-and route the notification). `plugins/notifications.client.js` derives the
-three notification kinds from the connections stream and plays the ring/ping
-sounds from `utils/notification-sounds.js`. The profile preferences tab
-exposes the enable toggle; permission is only requested from that user
-gesture.
+and route the notification); it also exposes the server's push availability
+(`pushAvailable`, refreshed whenever the settings popup opens) so the toggle
+surfaces in-tab-only delivery when the server runs without VAPID keys
+(runbook: deploy README, Configuration). `plugins/notifications.client.js`
+derives the three notification kinds from the connections stream and plays
+the ring/ping sounds from `utils/notification-sounds.js`. The profile
+preferences tab exposes the enable toggle; permission is only requested from
+that user gesture.
 
 ## Files
 
