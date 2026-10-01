@@ -168,6 +168,7 @@
     "unpin": "Unpin",
     "archive": "Archive",
     "unarchive": "Unarchive",
+    "markRead": "Mark read",
     "archivedConversations": "Archived conversations",
     "noArchivedConversations": "No archived conversations",
     "backToChats": "Back to chats",
