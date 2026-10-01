@@ -57,7 +57,10 @@ the `artifact` entity and its overload die when chat/proof/capture/upload flows 
 
 Any file may be attached to chat messages. Images and videos preview inline
 (single items and their sets as galleries); every attachment offers a
-download. When a message belongs to an instance chat, each attached file
+download. Voice message transcription shows its progress in the thread: a
+pending indicator renders where the transcript will appear, until the
+message updates in place. When a message belongs to an instance chat, each
+attached file
 becomes an instance of the instance's class' declared child type that
 accepts its upload (payload traits + upload creation protocol); the sender
 picks the child type when several accept the same file. Instance chats

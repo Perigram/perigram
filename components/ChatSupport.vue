@@ -543,6 +543,13 @@
                                         />
                                     </span>
                                 </div>
+                                <span
+                                    v-if="transcribingMessageIds.has(messageItem._id)"
+                                    class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting"
+                                >
+                                    <i class="pi pi-spin pi-spinner shrink-0" aria-hidden="true" />
+                                    <span class="min-w-0 truncate">{{ $t('support.transcribing') }}</span>
+                                </span>
                                 <span class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting order-last">
                                     {{ formatTime(messageItem.timestamp) }}
                                     <!-- Messages linked to lower instances keep a
@@ -1751,10 +1758,8 @@ const isAudioOnlyMessage = (messageItem) => (messageItem.attachments || []).leng
 // message text itself) means it is already transcribed.
 const canTranscribe = (messageItem) => transcriptionAvailable.value
     && isAudioOnlyMessage(messageItem)
-    && !messageItem.message
-    && !messageItem.attachments[0].transcription
-    && !messageItem.attachments[0].transcription
     && !String(messageItem.message || '').trim()
+    && !messageItem.attachments[0].transcription
 
 // Reply-quote icon for a quoted message's first attachment.
 const parentAttachmentIcon = (messageItem) => {
