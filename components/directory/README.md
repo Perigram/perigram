@@ -25,11 +25,10 @@ into these panes through the shared workspace-open seam.
   richer facts render only when the DTO carries them.
 - Membership rows render only organizations the viewer can themselves
   resolve (cross-tenant org names are not readable) and open them through
-  the workspace-open seam — never a route. They are menu-style `Button`
-  rows in the account popover's language (building icon, active
-  organization marked by the success check) — the flat hosted-column
-  pattern: the dialog or pane is the surface, sections separate with
-  dividers.
+  the workspace-open seam — never a route. Sections are PrimeVue-owned:
+  `Panel` headers carry the section chrome (Details, My Organizations,
+  Partners) and memberships render as an inline `Menu` (building icon,
+  active organization marked by the success check).
 - The active organization's PANE renders its real page: the generated
   organization overview (identity header + management entries) from the
   hydrated manifest; the popup (`bounded`) keeps the directory profile —

@@ -787,15 +787,14 @@ transcription stay in the host composer.
   membership's in-home pane (the directory surface — the account-control
   contract is owned by
   [layouts/README.md](../../layouts/README.md); nothing else routes away).
-  The profile settings dialog hosts the personal surface in a sectioned
-  layout: identity block (avatar, name, active organization, trailing
-  avatar-action icon Buttons), plain preference rows (label + PrimeVue
-  component — language, notifications; no icon ornaments), and the
-  Organizations section speaking the account popover's row language —
-  menu-style `Button` entries (building icon, active organization marked
-  by the success check) that close the dialog and open the organization's
-  in-home pane, plus the create-organization entry (the only
-  popover-external home of organization creation).
+  The profile settings dialog hosts the personal surface as PrimeVue-owned
+  sections: identity block (avatar, name, active organization, trailing
+  avatar-action icon Buttons), then `Panel`s — Preferences (label +
+  component rows: language, notifications) and My Organizations, whose
+  entries are an inline `Menu` (building icon, active organization marked
+  by the success check, create entry after a separator) that closes the
+  dialog and opens the organization's in-home pane; organization creation
+  lives only here, outside the popover.
   The trigger is customizable through the scoped `#trigger` slot (default
   is the round avatar button), and callers inject leading actions through
   the scoped `#items` slot (receives the popover's `hide`, so an injected

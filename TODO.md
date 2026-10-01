@@ -117,6 +117,18 @@ structure (identity with trailing actions, Preferences header,
 Organizations section) and the directory action-row severity system
 stay.
 
+### Agent Notes (2026-10-01, fifth pass — Panel/Menu own the structure)
+
+Owner verdict on pass 4: still a div mess — the PrimeVue components sat
+inside hand-assembled div/span/small section soup. Fifth pass
+(`agent/popup-panel-menu-20261001`): `Panel` owns section chrome
+(Preferences, My Organizations in the settings popup; Details, My
+Organizations, Partners in the directory surface) and inline `Menu`
+owns the row lists (org entries with building/check icons, separator,
+create entry). Dividers and hand-rolled section-label spans are gone;
+the identity block (Avatar + name + subtitle + trailing icon Buttons)
+remains semantic layout per the components Layout rule.
+
 - [x] Definitions pane (process designer): hand-rolled div/button rows
   instead of PrimeVue; history rows leaked raw actor ids
   (`user-…` rendered as text)
