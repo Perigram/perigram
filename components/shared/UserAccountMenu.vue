@@ -41,10 +41,18 @@
         <div class="flex min-w-0 flex-1 flex-col">
           <span class="truncate text-label">{{ authStore.userData.name || t('common.user') }}</span>
           <div class="mt-1 flex items-center gap-1">
-            <label class="p-button p-component p-button-text p-button-secondary p-button-sm cursor-pointer overflow-hidden" :title="t('common.upload')" :aria-label="t('common.upload')">
-              <input type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
-              <i class="pi pi-camera" aria-hidden="true" />
-            </label>
+            <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
+            <Button
+              icon="pi pi-camera"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              :title="t('common.upload')"
+              :aria-label="t('common.upload')"
+              :loading="avatarBusy"
+              @click="avatarInput?.click()"
+            />
             <Button
               v-if="authStore.userData.avatarUrl"
               icon="pi pi-trash"
@@ -82,18 +90,23 @@
            layouts/README.md owns the account-control contract). -->
       <section class="flex flex-col gap-2">
         <span class="text-muted text-supporting">{{ t('profile.myOrganizations') }}</span>
-        <Button
-          v-for="org in authStore.userOrganizations"
-          :key="org._id?.toString() || org.id?.toString()"
-          :label="org.identity?.name || org.name || org.identity?.uid || org._id?.toString()"
-          :icon="(org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building'"
-          text
-          severity="secondary"
-          size="small"
-          :pt="startJustified"
-          :loading="switchingTo === (org._id?.toString() || org.id?.toString())"
-          @click="switchToOrganization(org)"
-        />
+        <Listbox
+          :model-value="activeOrganizationId"
+          :options="organizationOptions"
+          option-label="label"
+          option-value="orgId"
+          data-key="orgId"
+          class="w-full border-0"
+          :aria-label="t('profile.myOrganizations')"
+          @update:model-value="openOrganizationPane"
+        >
+          <template #option="{ option }">
+            <div class="flex w-full min-w-0 items-center gap-2">
+              <Avatar icon="pi pi-building" shape="circle" class="shrink-0 bg-subtle text-muted" />
+              <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
+            </div>
+          </template>
+        </Listbox>
         <Button
           :label="t('auth.createOrg')"
           icon="pi pi-plus"
@@ -159,6 +172,7 @@ import Avatar from 'primevue/avatar';
 import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
+import Listbox from 'primevue/listbox';
 
 // PrimeVue centers button content; the menu rows read left-aligned. The
 // cascade rule: internals restyle through pt, never !utility overrides.
@@ -206,23 +220,25 @@ const toggleNotifications = async (value) => {
 const createOrgVisible = ref(false);
 const creatingOrg = ref(false);
 const orgForm = reactive({ name: '', email: '' });
-const switchingTo = ref('');
+const avatarInput = ref(null);
+
+const activeOrganizationId = computed(() => authStore.userData.organizationId?.toString() || null);
+const organizationOptions = computed(() => authStore.userOrganizations.map(org => ({
+  orgId: org._id?.toString() || org.id?.toString(),
+  label: org.identity?.name || org.name || org.identity?.uid || ''
+})));
+
+function openOrganizationPane(orgId) {
+  if (!orgId) return;
+  profileVisible.value = false;
+  openInstanceInWorkspace({ typeId: 'organization', instanceId: orgId });
+}
 
 function openCreateOrg() {
   orgForm.email = authStore.userData.email || '';
   createOrgVisible.value = true;
 }
 
-// Settings-side organization entries follow the account-control contract:
-// every membership opens the organization's in-home pane (the directory
-// surface); the popup closes so the pane is visible. Context switching
-// stays in that pane's own member actions.
-async function switchToOrganization(org) {
-  const organizationId = org?._id?.toString() || org?.id?.toString();
-  if (!organizationId) return;
-  profileVisible.value = false;
-  openInstanceInWorkspace({ typeId: 'organization', instanceId: organizationId });
-}
 const createOrganization = async () => {
   creatingOrg.value = true;
   try {

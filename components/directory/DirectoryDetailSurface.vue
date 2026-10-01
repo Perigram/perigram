@@ -40,22 +40,23 @@
         </template>
         <template v-if="organizationMemberships.length">
           <Divider class="m-0" />
-          <div class="flex flex-col gap-1">
-            <button
-              v-for="row in organizationMemberships"
-              :key="row.membership.organizationId"
-              type="button"
-              class="flex w-full items-center gap-3 rounded-[var(--p-border-radius-md)] border-0 bg-transparent p-2 text-left cursor-pointer hover:bg-subtle"
-              :data-directory-org="row.membership.organizationId"
-              @click="openOrganization(row.membership.organizationId)"
-            >
-              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-subtle">
-                <i class="pi pi-building" aria-hidden="true" />
-              </span>
-              <span class="min-w-0 flex-1 truncate">{{ row.organization.identity?.name }}</span>
-              <Tag v-if="row.active" :value="$t('common.active')" severity="success" />
-            </button>
-          </div>
+          <Listbox
+            :model-value="activeOrganizationId"
+            :options="membershipOptions"
+            option-label="name"
+            option-value="orgId"
+            data-key="orgId"
+            class="w-full border-0"
+            :aria-label="t('profile.myOrganizations')"
+            @update:model-value="openOrganization"
+          >
+            <template #option="{ option }">
+              <div class="flex w-full min-w-0 items-center gap-3" :data-directory-org="option.orgId">
+                <Avatar icon="pi pi-building" shape="circle" class="shrink-0 bg-subtle text-muted" />
+                <span class="min-w-0 flex-1 truncate">{{ option.name }}</span>
+              </div>
+            </template>
+          </Listbox>
         </template>
       </template>
 
@@ -189,6 +190,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
+import Listbox from 'primevue/listbox';
 import Tag from 'primevue/tag';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
@@ -242,6 +244,10 @@ const organizationMemberships = computed(() => {
     })
     .filter(Boolean);
 });
+const membershipOptions = computed(() => organizationMemberships.value.map(({ membership, organization }) => ({
+  orgId: String(membership.organizationId),
+  name: organization.identity?.name || organization.name || organization.identity?.uid || ''
+})));
 const partnership = computed(() => {
   if (props.typeId !== 'organization') return null;
   return partnerships.value.find(item =>
