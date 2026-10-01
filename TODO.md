@@ -91,6 +91,21 @@ the directory identity header lost its Tag/count soup (org type stays a
 DataBlock fact, membership count is evident from the section), and both
 identity headers share the same shape.
 
+### Agent Notes (2026-10-01, third pass — measured redesign)
+
+Owner verdict on the second pass: net visual change ≈ none — pass 2
+restored the original idiom, a round trip. Third pass
+(`agent/popup-redesign3-20261001`), driven by a DOM probe of the running
+dialog: the settings popup had one flat column (identity, rows, and nav
+all the same weight, avatar actions orphaned under the name) and the
+directory action row mixed outlined/text/default severities. Now:
+settings dialog is sectioned (identity with trailing actions and the
+active-org subtitle, icon-led preference rows under a Preferences
+header, Organizations section), and the directory action row runs one
+severity system (single primary action default, others text, destructive
+danger text). Verified served live by DOM probe; screenshots at
+`/tmp/opencode/popups/`.
+
 - [x] Definitions pane (process designer): hand-rolled div/button rows
   instead of PrimeVue; history rows leaked raw actor ids
   (`user-…` rendered as text)
