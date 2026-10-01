@@ -789,12 +789,11 @@ transcription stay in the host composer.
   [layouts/README.md](../../layouts/README.md); nothing else routes away).
   The profile settings dialog hosts the personal surface — avatar
   (upload/remove through the user avatar API via real icon Buttons), language,
-  notifications — and the Organizations section: a flat borderless
-  `Listbox` of memberships (single-line `#option` rows; the active
-  organization is the selected row) whose entries follow the same contract —
-  close the dialog and open the organization's in-home pane — plus the
-  create-organization entry (the only popover-external home of
-  organization creation).
+  notifications — and the Organizations section, which speaks the account
+  popover's row language: menu-style `Button` entries (building icon, the
+  active organization marked by the success check) that close the dialog and
+  open the organization's in-home pane, plus the create-organization entry
+  (the only popover-external home of organization creation).
   The trigger is customizable through the scoped `#trigger` slot (default
   is the round avatar button), and callers inject leading actions through
   the scoped `#items` slot (receives the popover's `hide`, so an injected

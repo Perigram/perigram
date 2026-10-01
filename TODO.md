@@ -78,6 +78,19 @@ fallbacks are gone. Account-control contract (layouts README) unchanged:
 every entry still opens the organization's in-home pane; creation stays
 in the settings section. Dead `switchingTo` state removed.
 
+### Agent Notes (2026-10-01, second pass — row language over selection UI)
+
+Owner verdict on the first pass: the `Listbox` reads as an ugly boxed
+inset, and the rest of the layout stayed untouched. Second pass
+(`agent/popup-rows-20261001`): organization entries are navigation rows,
+not a selection list — both popups now speak the account popover's
+established idiom (menu-style `Button` rows, building icon, success-check
+on the active org), so popover and settings popup read as one control.
+Settings rows are one pattern (`text-body` label left, control right),
+the directory identity header lost its Tag/count soup (org type stays a
+DataBlock fact, membership count is evident from the section), and both
+identity headers share the same shape.
+
 - [x] Definitions pane (process designer): hand-rolled div/button rows
   instead of PrimeVue; history rows leaked raw actor ids
   (`user-…` rendered as text)
