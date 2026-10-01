@@ -71,56 +71,31 @@
           />
         </div>
       </div>
-      <Divider class="m-0" />
-      <!-- Preference rows are PrimeVue form rows: label + component, no
-           icon ornaments — icons live on components (Button/Menu), not
-           free-floating in hand-built rows. -->
-      <div class="flex flex-col gap-2">
-        <span class="text-muted text-supporting">{{ t('profile.preferences') }}</span>
-        <div class="flex items-center justify-between gap-3">
-          <span class="text-body">{{ t('profile.language') }}</span>
-          <LanguageSwitcher />
-        </div>
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex min-w-0 flex-col gap-0.5">
-            <span class="text-body">{{ t('notifications.settingsLabel') }}</span>
-            <small v-if="notifications.permission.value === 'denied'" class="text-muted">{{ t('notifications.blockedHelp') }}</small>
-            <small v-else-if="notifications.enabled.value && !notifications.pushAvailable.value" class="text-muted">{{ t('notifications.pushUnavailableHelp') }}</small>
+      <!-- Sections and rows are owned by PrimeVue: Panel carries section
+           chrome, Menu the organization entries. -->
+      <Panel :header="t('profile.preferences')">
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-body">{{ t('profile.language') }}</span>
+            <LanguageSwitcher />
           </div>
-          <ToggleSwitch
-            :model-value="notifications.enabled.value"
-            :disabled="notifications.busy.value || !notifications.canEnable.value"
-            @update:model-value="toggleNotifications"
-          />
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex min-w-0 flex-col gap-0.5">
+              <span class="text-body">{{ t('notifications.settingsLabel') }}</span>
+              <small v-if="notifications.permission.value === 'denied'" class="text-muted">{{ t('notifications.blockedHelp') }}</small>
+              <small v-else-if="notifications.enabled.value && !notifications.pushAvailable.value" class="text-muted">{{ t('notifications.pushUnavailableHelp') }}</small>
+            </div>
+            <ToggleSwitch
+              :model-value="notifications.enabled.value"
+              :disabled="notifications.busy.value || !notifications.canEnable.value"
+              @update:model-value="toggleNotifications"
+            />
+          </div>
         </div>
-      </div>
-      <Divider class="m-0" />
-      <!-- The organizations section speaks the account popover's row
-           language: menu-style entries with the active-org check, so the
-           popover and the settings popup read as one control. -->
-      <section class="flex flex-col gap-1">
-        <span class="text-muted text-supporting">{{ t('profile.myOrganizations') }}</span>
-        <Button
-          v-for="org in organizationOptions"
-          :key="org.orgId"
-          :label="org.label"
-          :icon="org.orgId === activeOrganizationId ? 'pi pi-check text-status-success' : 'pi pi-building'"
-          text
-          severity="secondary"
-          size="small"
-          :pt="startJustified"
-          @click="openOrganizationPane(org.orgId)"
-        />
-        <Button
-          :label="t('auth.createOrg')"
-          icon="pi pi-plus"
-          text
-          severity="secondary"
-          size="small"
-          :pt="startJustified"
-          @click="openCreateOrg"
-        />
-      </section>
+      </Panel>
+      <Panel :header="t('profile.myOrganizations')">
+        <Menu :model="organizationMenuItems" class="w-full" :pt="flatMenu" />
+      </Panel>
     </div>
   </StandardDialog>
   <!-- Organization creation is opened from the settings popup's
@@ -173,9 +148,10 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
-import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
+import Panel from 'primevue/panel';
+import Menu from 'primevue/menu';
 
 // PrimeVue centers button content; the menu rows read left-aligned. The
 // cascade rule: internals restyle through pt, never !utility overrides.
@@ -226,11 +202,23 @@ const orgForm = reactive({ name: '', email: '' });
 const avatarInput = ref(null);
 
 const activeOrganizationId = computed(() => authStore.userData.organizationId?.toString() || null);
+// Menu rows sit inside a Panel body — the Panel owns the padding.
+const flatMenu = { root: { style: 'padding: 0' } };
 const activeOrganizationName = computed(() => authStore.organizationData?.identity?.name || '');
 const organizationOptions = computed(() => authStore.userOrganizations.map(org => ({
   orgId: org._id?.toString() || org.id?.toString(),
   label: org.identity?.name || org.name || org.identity?.uid || ''
 })));
+
+const organizationMenuItems = computed(() => [
+  ...organizationOptions.value.map(org => ({
+    label: org.label || t('common.unnamed'),
+    icon: org.orgId === activeOrganizationId.value ? 'pi pi-check text-status-success' : 'pi pi-building',
+    command: () => openOrganizationPane(org.orgId)
+  })),
+  { separator: true },
+  { label: t('auth.createOrg'), icon: 'pi pi-plus', command: openCreateOrg }
+]);
 
 function openOrganizationPane(orgId) {
   if (!orgId) return;

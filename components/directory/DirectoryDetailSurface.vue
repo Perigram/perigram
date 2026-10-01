@@ -24,29 +24,15 @@
         </div>
       </div>
 
-      <!-- User surface: flat hosted column — the dialog or pane is the
-           surface, sections separate with dividers, rows speak the
-           account menu's language (menu-style entries, active-org check). -->
+      <!-- Sections are owned by PrimeVue: Panel carries the section
+           chrome, Menu the organization entries. -->
       <template v-if="entry.type === 'user'">
-        <template v-if="detailedFields.length">
-          <Divider class="m-0" />
+        <Panel v-if="detailedFields.length" :header="$t('common.details')">
           <DataBlock type-id="user" :entity="detailed" :fields="detailedFields" />
-        </template>
-        <template v-if="membershipOptions.length">
-          <Divider class="m-0" />
-          <Button
-            v-for="org in membershipOptions"
-            :key="org.orgId"
-            :label="org.name"
-            :icon="org.orgId === activeOrganizationId ? 'pi pi-check text-status-success' : 'pi pi-building'"
-            text
-            severity="secondary"
-            size="small"
-            :pt="startJustified"
-            :data-directory-org="org.orgId"
-            @click="openOrganization(org.orgId)"
-          />
-        </template>
+        </Panel>
+        <Panel v-if="membershipOptions.length" :header="$t('profile.myOrganizations')">
+          <Menu :model="membershipMenuItems" class="w-full" :pt="flatMenu" />
+        </Panel>
       </template>
 
       <!-- Organization surface -->
@@ -61,22 +47,20 @@
           :screen="overviewScreen"
         />
         <template v-else>
-          <template v-if="detailedFields.length || hasOrganizationFacts">
-            <Divider class="m-0" />
+          <Panel v-if="detailedFields.length || hasOrganizationFacts" :header="$t('common.details')">
             <DataBlock
               type-id="organization"
               :entity="factSource"
               :fields="detailedFields.length ? detailedFields : ORGANIZATION_FACTS"
             />
-          </template>
-          <template v-if="partnership">
-            <Divider class="m-0" />
+          </Panel>
+          <Panel v-if="partnership" :header="$t('partnerships.title')">
             <div class="flex items-center gap-2">
               <Tag :value="$t(`partnerships.status.${partnership.status}`)" :severity="partnershipSeverity" />
               <small v-if="partnership.direction === 'incoming'" class="text-muted">{{ $t('partnerships.incoming') }}</small>
               <small v-else class="text-muted">{{ $t('partnerships.outgoing') }}</small>
             </div>
-          </template>
+          </Panel>
         </template>
       </template>
 
@@ -177,8 +161,9 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import Avatar from 'primevue/avatar';
+import Panel from 'primevue/panel';
+import Menu from 'primevue/menu';
 import Button from 'primevue/button';
-import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
@@ -205,8 +190,8 @@ const authStore = useAuthStore();
 const toast = useToast();
 const { t } = useI18n();
 
-// Menu rows rest left-aligned like the account popover's entries.
-const startJustified = { root: { style: 'justify-content: flex-start' } };
+// Menu rows sit inside a Panel body — the Panel owns the padding.
+const flatMenu = { root: { style: 'padding: 0' } };
 
 const entry = ref(null);
 const detailed = ref({});
@@ -238,6 +223,11 @@ const organizationMemberships = computed(() => {
 const membershipOptions = computed(() => organizationMemberships.value.map(({ membership, organization }) => ({
   orgId: String(membership.organizationId),
   name: organization.identity?.name || organization.name || organization.identity?.uid || ''
+})));
+const membershipMenuItems = computed(() => membershipOptions.value.map(org => ({
+  label: org.name,
+  icon: org.orgId === activeOrganizationId.value ? 'pi pi-check text-status-success' : 'pi pi-building',
+  command: () => openOrganization(org.orgId)
 })));
 const partnership = computed(() => {
   if (props.typeId !== 'organization') return null;
