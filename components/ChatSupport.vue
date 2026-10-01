@@ -496,7 +496,7 @@
                                          button itself. The menu aligns with the bubble's vertical
                                          center, beside its outer edge. -->
                                     <span
-                                        class="absolute top-1/2 -translate-y-1/2 block opacity-60 transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
                                         :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
                                     >
                                         <Button
@@ -519,7 +519,7 @@
                                         class="min-w-0 max-w-full"
                                     />
                                     <span
-                                        class="absolute top-1/2 -translate-y-1/2 block opacity-60 transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
                                         :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
                                     >
                                         <Button
