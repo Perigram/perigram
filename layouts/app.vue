@@ -93,8 +93,8 @@
               screens keep a home fallback. The profile trigger remains the
               bar's only action. Tab internals are adapted for the bottom
               bar through pt (see bottomBar pt objects in the script):
-              PrimeVue runtime styles load after Tailwind, so utility
-              classes cannot restyle tab strip internals. -->
+              inline pt styles outrank every stylesheet rule, so the
+              adaptation cannot be flipped by build-time CSS order. -->
             <div class="mx-auto flex max-w-md items-center gap-1">
                 <Tabs :value="mobileTabValue" class="min-w-0 flex-1" @update:value="selectMobileTab">
                     <TabList class="w-full" :pt="bottomBarTabListPt">
@@ -216,9 +216,9 @@
     // type screen in its mobile branch).
     const { tabs: mobileHomeTabs, activeKey: mobileHomeTabKey, selectTab: selectMobileHomeTab } = useMobileHomeTabs()
 
-    // Bottom-bar adaptation of the Aura tab strip, applied through pt because
-    // PrimeVue runtime styles load after Tailwind and override utility
-    // classes on tab internals. The strip paints no surface (chrome owns the
+    // Bottom-bar adaptation of the Aura tab strip, applied through pt —
+    // inline styles stay immune to stylesheet cascade questions entirely.
+    // The strip paints no surface (chrome owns the
     // bar), drops its own bottom border line and sliding accent bar, and the
     // selected indicator moves to the tab's top edge — the edge nearest the
     // content — while tabs stretch to equal widths across the full bar.

@@ -76,9 +76,28 @@ export default defineNuxtConfig({
                 preset: Re_L,
                 options: {
                     darkModeSelector: '.dark-mode',
+                    // All PrimeVue style blocks emit into the `primevue`
+                    // cascade layer. Unlayered CSS (Tailwind utilities, app
+                    // css) then beats them in EVERY build — without this,
+                    // the production bundle inlines PrimeVue styles after
+                    // the app CSS and every equal-specificity tie
+                    // (utilities on p-* elements) flips against the app.
+                    cssLayer: {
+                        name: 'primevue',
+                        order: 'tailwind-base, primevue, tailwind-utilities'
+                    }
                 },
             },
         },
+    },
+
+    // The Tailwind module's own CSS template injection is off: main.css is
+    // the single emission point (its @tailwind directives are layer-wrapped
+    // in the same declared order as the PrimeVue layer above). With both
+    // active the built document carried two full Tailwind blocks whose
+    // position against PrimeVue's inline blocks decided the cascade.
+    tailwindcss: {
+        cssPath: false
     },
 
     i18n: {
