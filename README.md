@@ -1,5 +1,15 @@
 # SYSTEM: Perigram Demo
 
+```yaml
+doc_id: PERIGRAM-README-001
+classification: reference
+status: active
+owner: product-owner
+created: 2018-06-10
+updated: 2026-09-30
+```
+
+
 Perigram is a process programming platform: organizations author typed
 declarations, the process compiler turns them into runtime contracts, and
 generic instance services run every declared type. This repository is the
