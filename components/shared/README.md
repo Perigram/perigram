@@ -580,7 +580,9 @@ status-history actor chat); every other type opens the composed instance
 thread. Popup-originated threads (comments and chat actions, the floating
 launcher) render in the shared bottom-right chat popup
 (`ChatSupportDialog`: the token-sized, non-modal drawer card), whose expand
-action pins the conversation as a home-workspace pane tab; the sidebar
+action pins the conversation as a home-workspace pane tab (mobile has no
+tabs: expand routes to `/chats` with the thread preset through the
+shared chat target, consumed on chat mount); the sidebar
 PanelMenu's Chats entry opens that general chats pane tab directly. The
 thread header's title opens the entity popup (`EntityPopup.vue` +
 `useEntityPopup`) — titled by display name (never an id); group headers

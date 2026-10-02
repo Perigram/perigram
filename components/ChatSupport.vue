@@ -2455,6 +2455,7 @@ onMounted(() => {
     if (authStore.userIsSet) supportChatStore.connect()
     fetchTranscriptionAvailability()
     if (chatTarget.value?.userId || chatTarget.value?.instanceKey) openDirectTarget()
+    else if (chatTarget.value?.conversationKey) openConversationByKey(chatTarget.value.conversationKey)
 })
 onBeforeUnmount(() => {
     if (unsubscribeConversation) {
