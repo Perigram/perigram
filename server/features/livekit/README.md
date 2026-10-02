@@ -45,10 +45,16 @@ call's conversation chat, not as floating dialogs.
 
 Call recordings ride an **external egress plane**: a LiveKit server deployed
 with Redis and a `livekit/egress` container, uploading finished MP4s to an
-S3-compatible recordings bucket the app can read anonymously. The egress
-deployment owns the write credentials and the LiveKit server's API keys; the
-app never does. Only rooms with a conversation — direct and group calls —
-are recordable; org rooms have no conversation thread to record into.
+S3-compatible recordings bucket the app can read anonymously. Egress ignores
+its own config-level storage for outputs that arrive without one
+([livekit/egress#1254](https://github.com/livekit/egress/issues/1254)), so
+the app attaches the upload target inline to every egress request; the
+upload credentials and endpoints ride the app env like the LiveKit keys. The
+upload endpoint is resolved by the egress plane itself (a plane-local
+address), while the read endpoint is whatever the app can fetch anonymously
+— typically the recordings path served by the app's public edge. Only rooms
+with a conversation — direct and group calls — are recordable; org rooms
+have no conversation thread to record into.
 
 - `POST /api/livekit/recordings` `{ room }` starts a room-composite egress
   after the same `authorizeRoom` admission as token minting (org rooms
@@ -109,8 +115,10 @@ diarization-capable provider.
 | `LIVEKIT_INTERNAL_URL` | `ws://livekit:7880` (server-to-server RoomService; defaults to `LIVEKIT_PUBLIC_URL`). The compose app container cannot reach the published `localhost:7880`, so `listActiveRooms` must use the network-internal address. |
 | `LIVEKIT_API_KEY` | `devkey` |
 | `LIVEKIT_API_SECRET` | `devsecret` |
-| `LIVEKIT_RECORDINGS_S3_ENDPOINT` | — | Recordings bucket endpoint (S3-compatible, anonymous read); unset disables the ended-file import. |
+| `LIVEKIT_RECORDINGS_S3_ENDPOINT` | — | Recordings bucket read endpoint (anonymous GET `{endpoint}/{bucket}/{filename}`); unset disables the ended-file import. On the zeus plane this is the app edge's recordings path (`https://perigram.sodalab.pro/recordings`). |
 | `LIVEKIT_RECORDINGS_S3_BUCKET` | — | Recordings bucket name the egress plane uploads into. |
+| `LIVEKIT_RECORDINGS_S3_ACCESS_KEY` / `LIVEKIT_RECORDINGS_S3_SECRET_KEY` | — | Bucket write credentials attached inline to egress requests (see Recordings). Unset disables uploads — egress then fails the output locally. |
+| `LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT` | — | S3 API endpoint the egress plane uploads through — resolved on the plane host (e.g. `http://127.0.0.1:8333` for the garage plane on zeus), never by the app. |
 
 Dev keys are fixed in `livekit.dev.yaml`; production must override all three.
 

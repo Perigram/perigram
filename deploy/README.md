@@ -56,22 +56,33 @@ Editing the pipeline means editing that branch.
   mongo network that name does not resolve, the driver topology closes, and
   every API 500s while pages still render — the 2026-09-30 "broken layouts"
   staging incident), `BASE_URL=https://perigram.sodalab.pro`, calls on the
-  zeus LiveKit (`ws://10.77.219.223:7880` over NetBird, keys inline —
-  browsers must be NetBird-connected to join staging calls), local STT + qwen
-  on the data-worker peer (`10.77.167.148:31135/:31136`), and recordings in
-  the `livekit-egress` bucket on `192.168.0.15:8333`. The previous
-  `https://livekit.sodalab.pro` edge and hera `:7880` internal URL are the
-  revert path when a public edge is wanted again.
+  zeus LiveKit through the public `wss://livekit.sodalab.pro` edge (keys
+  inline — the nginx `livekit.sodalab.pro` server block proxies to the zeus
+  plane `192.168.0.15:7880` with websocket upgrade headers; RoomService
+  traffic from the runner rides the LAN address `ws://192.168.0.15:7880`,
+  since poseidon is not a NetBird peer), local STT + qwen on the
+  data-worker peer (`10.77.167.148:31135/:31136`), and recordings in the
+  `livekit-egress` garage bucket — read through the app edge
+  (`https://perigram.sodalab.pro/recordings/...` → garage web `:3902`),
+  uploaded with the inline garage key through the plane-local S3 API
+  (`http://127.0.0.1:8333`, see
+  [the livekit feature](../server/features/livekit/README.md#recordings)).
 - Call recordings need an external egress plane beside the LiveKit server
   the app targets: Redis, a `livekit/egress` container (SYS_ADMIN for
   Chrome), and an S3-compatible bucket readable by the app
-  (`LIVEKIT_RECORDINGS_S3_ENDPOINT`/`BUCKET` env). A working plane already
-  exists on zeus (LiveKit `ws://10.77.219.223:7880` over NetBird with UDP
-  50100-50200, egress uploading to the `livekit-egress` bucket on
-  `192.168.0.15:8333`); hera has neither Redis nor egress — replicating the
-  zeus shape there is the production step. Nothing in the app deploy
-  workflow changes; the recording routes fail until a plane exists for the
-  targeted server.
+  (`LIVEKIT_RECORDINGS_S3_*` env). The working plane on zeus runs
+  host-networked (`/srv/livekit/docker-compose.yml`): LiveKit with
+  `rtc.udp_port: 50100` (a single UDP mux port — a `port_range_*`-only
+  config parses but binds **no** UDP socket, and every peer connection
+  dies with `could not establish pc connection`), redis and the garage S3
+  API bound to localhost, garage's web endpoint (`:3902`) public through
+  the perigram vhost. UFW on zeus allows 7880/7881/tcp and 50100/udp from
+  the LAN; the NetBird `wt0` interface is accept-all.
+- The nginx edge containers bind-mount the **single file**
+  `/home/storage/nginx-mixed.conf`; an edit that replaces the file (editors
+  and `sed -i` do) leaves the running containers pinned to the old inode —
+  `nginx -s reload` then reloads stale config. Restart the `tls-front*`
+  containers after editing it.
 - The nginx config also carries a dormant `staging.perigram.sodalab.pro`
   server block (same target); it is unreachable until a DNS record exists
   for that name. It can be activated or deleted independently.
