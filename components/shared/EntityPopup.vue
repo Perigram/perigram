@@ -7,17 +7,18 @@
     v-model:visible="visible"
     :size="isDirectoryType ? 'md' : 'xl'"
     :show-default-footer="false"
+    maximizable
   >
     <template #header>
       <div class="flex w-full min-w-0 items-center justify-between gap-2 pr-6">
         <span class="min-w-0 truncate text-label">{{ title }}</span>
         <Button
+          v-if="expandable"
           icon="pi pi-external-link"
           text
           rounded
           size="small"
           severity="secondary"
-          class="hidden md:inline-flex"
           :aria-label="$t('common.expand')"
           :title="$t('common.expand')"
           @click="expand"
@@ -52,6 +53,8 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
 import { resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
+import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
+import { useCallRouting } from '~/composables/useCallRouting.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { useInstancesStore } from '~/stores/instances';
@@ -62,6 +65,7 @@ import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useI18n } from 'vue-i18n';
 
 const { request, close } = useEntityPopup();
+const { isMobileViewport } = useCallRouting();
 const instances = useInstancesStore();
 const authStore = useAuthStore();
 const { typeById } = useFileTypeView();
@@ -121,6 +125,27 @@ function expand() {
   if (!current) return;
   close();
   openInstanceInWorkspace({ typeId: current.typeId, instanceId: current.instanceId });
+}
+
+// The expand step-up renders only where it has somewhere to go: desktop
+// always (the home pane), mobile only for records with a routed page
+// (a compiled detail screen or the active organization's overview) —
+// every popup also carries PrimeVue's own maximize toggle.
+function expandable() {
+  if (!isMobileViewport()) return true;
+  const current = request.value;
+  if (!current) return false;
+  if (current.typeId === 'organization' && isActiveOrganization(current.instanceId)) return true;
+  return Boolean(detailRouteForInstance({
+    entity: { _id: current.instanceId },
+    typeId: current.typeId,
+    manifest: authStore.screenManifest
+  }));
+}
+
+function isActiveOrganization(instanceId = '') {
+  const activeId = authStore.organizationData?._id || authStore.userData?.organizationId || '';
+  return Boolean(activeId) && String(instanceId) === String(activeId);
 }
 
 function openInstance({ screenKey: detailKey, typeId, instanceId } = {}) {

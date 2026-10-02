@@ -924,10 +924,27 @@ function openRequestedWorkspaceEntity(event) {
   if (!typeId || !instanceId) return;
   if (isMobileViewport.value) {
     if (routeInstanceToScreen(typeId, instanceId)) return;
+    // The active organization's real page is the org overview system
+    // screen — the directory profile popup is for other records.
+    if (typeId === 'organization' && isActiveOrganization(instanceId)) {
+      navigateTo(organizationOverviewRoute());
+      return;
+    }
     entityPopup.open({ typeId, instanceId: String(instanceId) });
     return;
   }
   openInstanceTab(typeId, instanceId);
+}
+
+function isActiveOrganization(instanceId = '') {
+  const activeId = authStore.organizationData?._id || authStore.userData?.organizationId || '';
+  return Boolean(activeId) && String(instanceId) === String(activeId);
+}
+
+function organizationOverviewRoute() {
+  return authStore.screenManifest.find(screen => (
+    screen.kind === 'system' && screen.template === 'organizationOverview'
+  ))?.route || '/organization';
 }
 
 const isMobileViewport = ref(false);
