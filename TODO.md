@@ -1,5 +1,27 @@
 # TODO
 
+## Chat popup expand routes on mobile; poisoned persisted tab ids drop (2026-10-02)
+
+- [ ] The chat popup's expand landed on an empty home on mobile (pending
+  chat tab consumed by a workspace with no panes) — it routes to
+  `/chats` with the thread preset through the shared chat target now.
+- [ ] Persisted workspace tabs carrying corrupted ids (literal
+  "null"/"undefined" strings) produced `/api/directory/:type/null` 404s
+  on every home mount — the hydration watcher drops them.
+
+### Agent Notes (2026-10-02)
+
+Session `agent/chat-expand-mobile-20261002`. Owner console trace pinned
+both: `ChatSupport.vue:3043 → chat-workspace-open.js:38 → navigateTo`
+ending on the empty home (the org-open bug's twin — desktop-only tab
+flow with no mobile branch), and
+`GeneratedHomeWorkspace.vue:879-888 → instances.js:255` fetching
+`/api/directory/organization/null` from a persisted entity ref whose id
+is the string "null" (falsy guards can't catch it). Expand now presets
+`{ conversationKey }` chat targets consumed by ChatSupport on mount,
+and the hydration watcher rejects empty/"null"/"undefined" ids before
+the readable-reference resolution.
+
 ## Own organization opens its page on mobile; expand restored with real targets (2026-10-02)
 
 - [ ] The active organization on mobile routed into the directory popup
