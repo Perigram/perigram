@@ -57,6 +57,18 @@ export const useBrowserNotifications = () => {
         await subscription.unsubscribe().catch(() => null);
     }
 
+    /**
+     * Self-heal for consents stored while the server ran without VAPID
+     * keys: an enabled consent with granted permission must end in a
+     * server-known subscription, whenever push becomes available.
+     * `subscribePush` is idempotent (re-registers an existing browser
+     * subscription) and silent while the server reports push disabled.
+     */
+    async function reconcilePush() {
+        if (!enabled.value || permission.value !== 'granted') return;
+        await subscribePush().catch(() => null);
+    }
+
     async function enable() {
         if (!canEnable.value || busy.value) return false;
         busy.value = true;
@@ -115,6 +127,7 @@ export const useBrowserNotifications = () => {
         canEnable,
         pushAvailable,
         refreshPushConfig,
+        reconcilePush,
         enable,
         disable,
         show

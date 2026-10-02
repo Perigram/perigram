@@ -10,6 +10,10 @@ export default defineNuxtPlugin((nuxtApp) => {
     if (typeof window === 'undefined') return
     const authStore = useAuthStore()
     const notifications = useBrowserNotifications()
+    // Consents granted before the server had VAPID keys must converge to a
+    // server-known subscription once push exists; fire-and-forget so app
+    // start never waits on the service worker.
+    notifications.reconcilePush()
     const { $i18n } = nuxtApp
     const t = (key, params = {}) => ($i18n?.t ? $i18n.t(key, params) : key)
 
