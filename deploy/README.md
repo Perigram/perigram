@@ -56,9 +56,11 @@ Editing the pipeline means editing that branch.
   mongo network that name does not resolve, the driver topology closes, and
   every API 500s while pages still render — the 2026-09-30 "broken layouts"
   staging incident), `BASE_URL=https://perigram.sodalab.pro`, calls on the
-  zeus LiveKit through the public `wss://livekit.sodalab.pro` edge (keys
-  inline — the nginx `livekit.sodalab.pro` server block proxies to the zeus
-  plane `192.168.0.15:7880` with websocket upgrade headers; RoomService
+  zeus LiveKit through the app origin (`wss://perigram.sodalab.pro/livekit`
+  → the plane's 7880 with websocket upgrade headers — one hostname for every
+  client network the app itself works on; the dedicated
+  `livekit.sodalab.pro` server block stays as an alias, keys
+  inline; RoomService
   traffic from the runner rides the LAN address `ws://192.168.0.15:7880`,
   since poseidon is not a NetBird peer), local STT + qwen on the
   data-worker peer (`10.77.167.148:31135/:31136`) — reached through
