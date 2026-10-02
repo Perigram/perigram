@@ -1,33 +1,19 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useAuthStore } from './auth';
 import { useConnections } from '~/composables/useConnections.js';
 import { roomForConversationKey } from '~/utils/call-rooms.js';
 
 /**
- * Global call-activity store and the app's call line state machine.
- *
- * Activity half: the server publishes `call.invite` on the callee's user
- * topic when a room is rung and `call.activity` on the participants'
- * user/org topics for every LiveKit room webhook (see
- * `server/features/livekit/service.js`); the store subscribes once for the
- * whole app so the sidebar, chats, and the floating notifications all see
- * the same snapshot without per-surface polling.
- *
- * Line half — one explicit state machine owns the user's call so every
- * surface agrees (this is what used to let one surface keep "ringing"
- * after another accepted the same call):
- *
- *   idle ──invite──▶ ringing ──accept──▶ joining ──CallPanel connected──▶ in-call
- *     ▲                 │                                    │              │
- *     └── decline/TTL ──┘◄────────────────────────────────────┴── leave ─────┘
- *
- * `acceptInvite` routes the call to the home workspace tab; surface-specific
- * fallbacks (mobile dialog, floating window when no workspace exists) are
- * chosen by the callers through the store's floating/pending fields.
+ * Global call-activity store and the app's call line state machine. The
+ * canonical contract (line states, room-scoped ringing, surface transfers)
+ * lives in components/calls/README.md; the store subscribes once for the
+ * whole app so every surface sees the same snapshot without per-surface
+ * polling.
  */
 export const useCallsStore = defineStore('calls', () => {
     const authStore = useAuthStore();
+    const connections = useConnections();
 
     const activeRooms = ref([]);
     const recordings = ref([]);
@@ -44,6 +30,7 @@ export const useCallsStore = defineStore('calls', () => {
     const parkedRoom = ref('');
     const transferRoom = ref('');
     const liveRooms = new Map();
+    const joinedRooms = new Set();
 
     let unsubscribeUser = null;
     let unsubscribeOrg = null;
@@ -59,10 +46,13 @@ export const useCallsStore = defineStore('calls', () => {
 
     async function refresh() {
         if (process.server || !authStore.userIsSet) return;
+        let roomsLoaded = false;
         try {
             activeRooms.value = await $fetch('/api/livekit/active-rooms');
+            roomsLoaded = true;
         } catch {
-            activeRooms.value = [];
+            // Keep the last known snapshot: a failed refetch must not read
+            // as "no calls running".
         }
         try {
             // Recording state rides the same refresh as active rooms:
@@ -71,29 +61,30 @@ export const useCallsStore = defineStore('calls', () => {
             // subscription.
             recordings.value = await $fetch('/api/livekit/recordings');
         } catch {
-            recordings.value = [];
+            // Same policy as rooms: keep the last known snapshot.
         }
-        reconcileInvitesWithSnapshot();
+        if (roomsLoaded) reconcileInvitesWithSnapshot();
     }
 
     function roomRecording(room = '') {
         return recordings.value.find(item => item.room === room) || null;
     }
 
-    // Room-scoped ring lifecycle: an invite lives while its room is alive —
-    // the caller (or anyone) staying in it. When a refreshed snapshot no
-    // longer lists the room, the ring stops immediately instead of waiting
-    // out its TTL. Fresh invites get a grace window so a snapshot taken just
-    // before the invite arrived cannot dismiss it.
-    const INVITE_SNAPSHOT_GRACE_MS = 5000;
-
+    // Room-scoped ring lifecycle: an invite is dropped only after its room
+    // was observed running and then disappeared from the snapshot — the
+    // caller (or anyone) was in it and left. A room the snapshot never saw
+    // running never dismisses an invite: invites are published before the
+    // caller joins, and a caller still on the pre-join screen must not kill
+    // the callee's ring.
     function reconcileInvitesWithSnapshot() {
-        const liveRooms = new Set(activeRooms.value.map(item => item.room));
-        const now = Date.now();
+        const running = new Set(activeRooms.value.map(item => item.room));
         for (const invite of [...incoming.value]) {
-            if (liveRooms.has(invite.room)) continue;
-            if (now - (invite.at || 0) < INVITE_SNAPSHOT_GRACE_MS) continue;
-            if (activeRoom.value === invite.room) continue;
+            if (running.has(invite.room)) {
+                invite.wasRunning = true;
+                continue;
+            }
+            if (!invite.wasRunning) continue;
+            if (joinedRooms.has(invite.room)) continue;
             dismissIncoming(invite.room);
         }
     }
@@ -118,7 +109,9 @@ export const useCallsStore = defineStore('calls', () => {
             conversationKey: payload.conversationKey || '',
             from: payload.from || '',
             fromName: payload.fromName || '',
-            at: Date.now()
+            // Set by reconcileInvitesWithSnapshot once a snapshot lists the
+            // room; only then can a later absence dismiss the invite.
+            wasRunning: false
         };
         incoming.value = [...incoming.value, invite];
         if (status.value === 'idle' || status.value === 'ringing') status.value = 'ringing';
@@ -149,10 +142,13 @@ export const useCallsStore = defineStore('calls', () => {
         pendingTabRoom.value = '';
     }
 
-    // CallPanel reports the live connection; joining the room stops every
-    // remaining ring for it (the fix for surfaces that kept ringing).
+    // CallPanel reports live connections; joining the room stops every
+    // remaining ring for it (the fix for surfaces that kept ringing). The
+    // machine tolerates concurrent rooms: in-call holds until the last
+    // joined room is left.
     function joinRoom(room = '') {
         if (!room) return;
+        joinedRooms.add(room);
         activeRoom.value = room;
         status.value = 'in-call';
         for (const invite of incoming.value.filter(item => item.room === room)) {
@@ -162,7 +158,12 @@ export const useCallsStore = defineStore('calls', () => {
     }
 
     function leaveRoom(room = '') {
-        if (room && activeRoom.value !== room) return;
+        if (!room) return;
+        joinedRooms.delete(room);
+        if (joinedRooms.size) {
+            if (activeRoom.value === room) activeRoom.value = [...joinedRooms][0];
+            return;
+        }
         activeRoom.value = '';
         status.value = incoming.value.length ? 'ringing' : 'idle';
     }
@@ -190,6 +191,13 @@ export const useCallsStore = defineStore('calls', () => {
         if (!room) return;
         transferRoom.value = room;
         floatingRoom.value = '';
+    }
+
+    // A transfer that cannot complete (the source panel was never connected,
+    // so nothing will be parked): the adopting surface falls back to its own
+    // pre-join stage.
+    function abortTransfer(room = '') {
+        if (room && transferRoom.value === room) transferRoom.value = '';
     }
 
     // Surface transfer: park the connected room (its CallPanel is unmounting
@@ -233,13 +241,23 @@ export const useCallsStore = defineStore('calls', () => {
         if (payload?.type === 'call.activity') scheduleRefresh();
     }
 
+    // Webhook events published while the connections stream was down never
+    // arrive; a stream re-open therefore refetches the snapshot so missed
+    // activity self-heals.
+    let streamWasOpen = false;
+    watch(connections.status, (next) => {
+        if (next !== 'open') return;
+        if (streamWasOpen) refresh();
+        streamWasOpen = true;
+    });
+
     function connect() {
         if (connected.value || process.server || !authStore.userIsSet) return;
         if (userId.value && !unsubscribeUser) {
-            unsubscribeUser = useConnections().subscribe(`user:${userId.value}`, handleUserEvent);
+            unsubscribeUser = connections.subscribe(`user:${userId.value}`, handleUserEvent);
         }
         if (organizationId.value && !unsubscribeOrg) {
-            unsubscribeOrg = useConnections().subscribe(`org:${organizationId.value}`, scheduleRefresh);
+            unsubscribeOrg = connections.subscribe(`org:${organizationId.value}`, scheduleRefresh);
         }
         connected.value = true;
         refresh();
@@ -265,6 +283,7 @@ export const useCallsStore = defineStore('calls', () => {
         recordings.value = [];
         status.value = 'idle';
         activeRoom.value = '';
+        joinedRooms.clear();
         pendingTabRoom.value = '';
         floatingRoom.value = '';
         transferRoom.value = '';
@@ -297,6 +316,7 @@ export const useCallsStore = defineStore('calls', () => {
         closeFloating,
         popOutToFloating,
         beginTransferToTab,
+        abortTransfer,
         parkLiveRoom,
         takeLiveRoom,
         dropLiveRoom,

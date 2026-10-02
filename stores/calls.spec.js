@@ -1,11 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { nextTick, ref } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { useAuthStore } from './auth.js';
 import { useCallsStore } from './calls.js';
 
-vi.mock('~/composables/useConnections.js', () => ({
-    useConnections: () => ({ subscribe: () => () => {} })
-}));
+vi.mock('~/composables/useConnections.js', async () => {
+    const { ref } = await import('vue');
+    let connectionStatus = ref('idle');
+    return {
+        // Swaps the ref so each test's store watcher binds to a fresh
+        // stream status; earlier stores keep watching the detached ref.
+        resetConnectionStatus: () => { connectionStatus = ref('idle'); },
+        getConnectionStatus: () => connectionStatus,
+        useConnections: () => ({ status: connectionStatus, subscribe: () => () => {} })
+    };
+});
 
 describe('calls store line machine', () => {
     beforeEach(() => {
@@ -75,6 +84,19 @@ describe('calls store line machine', () => {
         expect(store.activeRoom).toBe('');
     });
 
+    it('holds in-call until the last joined room is left', () => {
+        const store = useCallsStore();
+        store.joinRoom('call:group:g1');
+        store.joinRoom('call:direct:other:me');
+        expect(store.activeRoom).toBe('call:direct:other:me');
+        store.leaveRoom('call:direct:other:me');
+        expect(store.status).toBe('in-call');
+        expect(store.activeRoom).toBe('call:group:g1');
+        store.leaveRoom('call:group:g1');
+        expect(store.status).toBe('idle');
+        expect(store.activeRoom).toBe('');
+    });
+
     it('expires unanswered invites by TTL', () => {
         const store = useCallsStore();
         store.pushIncoming(inviteFrom('call:direct:caller:me'));
@@ -86,23 +108,60 @@ describe('calls store line machine', () => {
     it('stops ringing when the room dies while the invite is unanswered', async () => {
         const store = useCallsStore();
         store.pushIncoming(inviteFrom('call:direct:caller:me'));
-        // The caller left before the callee answered: the next snapshot no
-        // longer lists the room, and the invite is past its grace window.
+        // The caller joined (the snapshot observed the room running), then
+        // left before the callee answered: the next snapshot no longer
+        // lists the room and the invite is past observing it.
+        vi.stubGlobal('$fetch', vi.fn()
+            .mockResolvedValueOnce([{ room: 'call:direct:caller:me', kind: 'direct', participants: 1 }])
+            .mockResolvedValueOnce([]));
+        await store.refresh();
+        expect(store.incoming).toHaveLength(1);
         vi.stubGlobal('$fetch', vi.fn().mockResolvedValue([]));
-        vi.advanceTimersByTime(6000);
         await store.refresh();
         expect(store.incoming).toEqual([]);
         expect(store.status).toBe('idle');
     });
 
-    it('keeps fresh invites alive against a snapshot taken before the invite', async () => {
+    it('keeps invites alive while the caller has not joined yet', async () => {
         const store = useCallsStore();
         store.pushIncoming(inviteFrom('call:direct:caller:me'));
+        // The room never appeared in a snapshot (the caller is still on the
+        // pre-join screen): its absence must not read as "the call ended".
         vi.stubGlobal('$fetch', vi.fn().mockResolvedValue([]));
         await store.refresh();
-        // Within the grace window the ring survives even though the stale
-        // snapshot does not list the room yet.
+        await store.refresh();
         expect(store.incoming).toHaveLength(1);
+    });
+
+    it('keeps the last known snapshot when a refetch fails', async () => {
+        const store = useCallsStore();
+        vi.stubGlobal('$fetch', vi.fn()
+            .mockResolvedValueOnce([{ room: 'call:group:g1', kind: 'group', participants: 2 }])
+            .mockResolvedValueOnce([]));
+        await store.refresh();
+        expect(store.activeRooms).toHaveLength(1);
+        vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(new Error('boom')));
+        await store.refresh();
+        expect(store.activeRooms).toHaveLength(1);
+    });
+
+    it('refetches the snapshot when the connections stream re-opens', async () => {
+        const connections = await import('~/composables/useConnections.js');
+        connections.resetConnectionStatus();
+        useCallsStore();
+        const fetchMock = vi.fn().mockResolvedValue([]);
+        vi.stubGlobal('$fetch', fetchMock);
+        const connectionStatus = connections.getConnectionStatus();
+        connectionStatus.value = 'idle';
+        await nextTick();
+        connectionStatus.value = 'open';
+        await nextTick();
+        expect(fetchMock).not.toHaveBeenCalled();
+        connectionStatus.value = 'error';
+        await nextTick();
+        connectionStatus.value = 'open';
+        await nextTick();
+        expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it('maps a conversation to its ongoing room from the live snapshot', async () => {

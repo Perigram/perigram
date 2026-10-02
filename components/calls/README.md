@@ -86,22 +86,32 @@ ring banners kept ringing after an accept elsewhere). `CallPanel` reports
 `joinRoom`/`leaveRoom`, and joining also stops any remaining ring for the
 room.
 
-The machine tracks the local user's own participation; the room lifecycle
-— alive while *anyone* is in it — rides the activity snapshot: webhook
+The machine tracks the local user's own participation and tolerates
+concurrent rooms: `in-call` holds while any joined room is live and falls
+back to ringing/idle only when the last one is left. The room lifecycle —
+alive while *anyone* is in it — rides the activity snapshot: webhook
 `call.activity` events debounce into an `active-rooms` refetch that the
 server filters to rooms with at least one participant, and that snapshot
 drives the sidebar rows and the chat ongoing-call banner. Ringing is
-room-scoped as well: each refreshed snapshot drops invites whose room is
-no longer running (with a grace window so a snapshot taken just before an
-invite cannot dismiss it), so a caller hanging up before the callee
-answers stops the ring immediately instead of waiting out the 30s TTL.
+room-scoped as well: an invite is dropped only after its room was
+observed running and then disappeared from the snapshot, so a caller
+hanging up before the callee answers stops the ring immediately. A room
+the snapshot never saw running — the caller is still on the pre-join
+screen, since invites are published before the caller joins — never
+dismisses an invite; it lives out its 30s TTL. A failed refetch keeps the
+last known snapshot, and the snapshot is refetched when the connections
+stream re-opens after a drop, so missed webhook events self-heal instead
+of silently staling every surface.
 
 Surface transfers keep the WebRTC connection alive: popping a call out of
 its workspace tab (or docking a floating call back) marks the room as
 transferring; the unmounting `CallPanel` strips its listeners and parks
 the live room in the store, and the adopting panel rebinds the same
 events, rebuilds tiles from the current participants/publications, and
-continues the call without reconnecting.
+continues the call without reconnecting. Transferring a call that has not
+connected yet aborts the transfer — the adopting surface falls back to
+its own pre-join stage — and a panel that unmounts mid-join never reports
+the room joined.
 
 ## Surface routing
 

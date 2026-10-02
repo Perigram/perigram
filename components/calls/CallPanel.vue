@@ -258,6 +258,9 @@ const stage = ref('prejoin');
 const error = ref('');
 const reconnecting = ref(false);
 const connected = ref(false);
+// True while this panel waits for a parked room from a transferring
+// surface; cleared on adoption or when the transfer aborts.
+const awaitingTransfer = ref(false);
 const micEnabled = ref(false);
 const cameraEnabled = ref(false);
 const sharing = ref(false);
@@ -300,6 +303,9 @@ const audioSink = ref(null);
 
 let livekitRoom = null;
 let LiveKit = null;
+// Set on unmount: an in-flight join() must never report a room joined from
+// a panel that no longer exists.
+let disposed = false;
 const tileVideos = new Map();
 const attachedAudio = new Map();
 const reactionEls = new Map();
@@ -484,6 +490,7 @@ const stripTiles = computed(() => tiles.filter(tile => tile !== spotlightTile.va
 const adoptLiveRoom = () => {
     const entry = callsStore.takeLiveRoom(props.room);
     if (!entry) return false;
+    awaitingTransfer.value = false;
     ({ room: livekitRoom, LiveKit } = entry);
     bindRoomEvents(livekitRoom);
     const local = livekitRoom.localParticipant;
@@ -583,6 +590,7 @@ const bindRoomEvents = (room) => {
             connected.value = false;
             reconnecting.value = false;
             teardownMedia();
+            callsStore.leaveRoom(props.room);
             // A dropped connection while the panel stays mounted returns to
             // the pre-join stage instead of stranding an empty stage with a
             // disabled dock; deliberate leaves unmount the panel anyway.
@@ -603,6 +611,11 @@ const join = async (prejoin = {}) => {
         bindRoomEvents(livekitRoom);
 
         await livekitRoom.connect(grant.url, grant.token);
+        if (disposed) {
+            livekitRoom.disconnect().catch(() => {});
+            livekitRoom = null;
+            return;
+        }
         const local = livekitRoom.localParticipant;
         micEnabled.value = await local.setMicrophoneEnabled(prejoin.micEnabled !== false, {
             deviceId: prejoin.deviceId?.audioinput || undefined
@@ -610,6 +623,11 @@ const join = async (prejoin = {}) => {
         cameraEnabled.value = await local.setCameraEnabled(Boolean(prejoin.cameraEnabled), {
             deviceId: prejoin.deviceId?.videoinput || undefined
         });
+        if (disposed) {
+            livekitRoom.disconnect().catch(() => {});
+            livekitRoom = null;
+            return;
+        }
         syncTile(local.identity, local.name, { muted: !micEnabled.value });
         for (const participant of livekitRoom.remoteParticipants.values()) {
             syncTile(participant.identity, participant.name);
@@ -635,11 +653,21 @@ watch(() => callsStore.parkedRoom, name => {
     if (name === props.room && stage.value !== 'connected') adoptLiveRoom();
 }, { immediate: true });
 
+// A transfer that aborts (the source panel was never connected, so nothing
+// will be parked) drops the connecting stage back to pre-join.
+watch(() => callsStore.transferRoom, name => {
+    if (awaitingTransfer.value && name !== props.room && !connected.value) {
+        awaitingTransfer.value = false;
+        if (stage.value === 'connecting') stage.value = 'prejoin';
+    }
+});
+
 onMounted(() => {
     // Transferred calls wait briefly for the parked room; show the
     // connecting state instead of the pre-join screen while the handoff
     // completes.
     if (callsStore.transferRoom === props.room && !callsStore.parkedRoom) {
+        awaitingTransfer.value = true;
         stage.value = 'connecting';
     }
 });
@@ -767,7 +795,6 @@ const teardownMedia = () => {
     sustainedSpeakerKey.value = '';
     speakerCandidateKey = '';
     tiles.splice(0, tiles.length);
-    callsStore.leaveRoom(props.room);
 };
 
 const leave = async () => {
@@ -775,10 +802,12 @@ const leave = async () => {
     livekitRoom = null;
     connected.value = false;
     teardownMedia();
+    callsStore.leaveRoom(props.room);
     emit('closed');
 };
 
 onBeforeUnmount(() => {
+    disposed = true;
     // Surface transfer (pop-out or dock): another surface is taking this
     // call, so park the live connection instead of dropping it. Every other
     // unmount leaves the call.
@@ -793,9 +822,13 @@ onBeforeUnmount(() => {
         teardownMedia();
         return;
     }
+    // A pending transfer this panel can never fulfill (it never connected)
+    // must not strand the adopting surface on the connecting stage.
+    callsStore.abortTransfer(props.room);
     livekitRoom?.disconnect().catch(() => {});
     livekitRoom = null;
     teardownMedia();
+    callsStore.leaveRoom(props.room);
 });
 </script>
 

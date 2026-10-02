@@ -183,19 +183,25 @@ async function fetchLiveKitRooms() {
     const { apiKey, apiSecret, internalUrl } = config();
     const httpBase = internalUrl.replace(/^ws/, 'http');
     const token = jwt.sign({ iss: apiKey, sub: apiKey, video: { roomList: true } }, apiSecret, { expiresIn: '1m' });
+    let response;
     try {
-        const response = await fetch(`${httpBase}/twirp/livekit.RoomService/ListRooms`, {
+        response = await fetch(`${httpBase}/twirp/livekit.RoomService/ListRooms`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({})
         });
-        if (!response.ok) throw new Error(`LiveKit ListRooms responded ${response.status}`);
-        const body = await response.json();
-        return Array.isArray(body?.rooms) ? body.rooms : [];
     } catch (error) {
         console.error('Failed to list LiveKit rooms:', error);
-        return [];
+        throw createError({ statusCode: 502, message: 'LiveKit room service is unreachable' });
     }
+    if (!response.ok) {
+        throw createError({ statusCode: 502, message: `LiveKit ListRooms responded ${response.status}` });
+    }
+    const body = await response.json().catch(() => null);
+    if (!Array.isArray(body?.rooms)) {
+        throw createError({ statusCode: 502, message: 'LiveKit ListRooms returned an unexpected payload' });
+    }
+    return body.rooms;
 }
 
 /**
