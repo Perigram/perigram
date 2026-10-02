@@ -180,7 +180,9 @@ describe('livekit recordings', () => {
     expect(mocks.filesService.uploadFile).toHaveBeenCalledWith(
       Buffer.from('mp4-bytes'),
       'call-recording-EG_1.mp4',
-      expect.objectContaining({ kind: 'call-recording', room: DIRECT_ROOM })
+      expect.objectContaining({ kind: 'call-recording', room: DIRECT_ROOM }),
+      'files',
+      'video/mp4'
     );
     expect(mocks.meetingsSummarize).toHaveBeenCalledWith({
       record: expect.objectContaining({ egressId: 'EG_1' }),

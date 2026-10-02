@@ -361,7 +361,7 @@ async function importRecordingFile(record, result) {
     const uploaded = await filesService.uploadFile(buffer, `call-recording-${record.egressId}.mp4`, {
         kind: 'call-recording',
         room: record.room
-    });
+    }, 'files', 'video/mp4');
     const durationSeconds = Math.round(Number(result.duration || 0));
     const message = await insertRecordingMessage({
         conversationKey: record.conversationKey,
