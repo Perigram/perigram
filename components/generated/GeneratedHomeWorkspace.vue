@@ -202,6 +202,7 @@ import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
+import { useEntityPopup } from '~/composables/useEntityPopup';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import { consumePendingWorkspacePage, workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
@@ -250,6 +251,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
+const entityPopup = useEntityPopup();
 const instances = useInstancesStore();
 const registryStore = useRegistryStore();
 const supportChatStore = useSupportChatStore();
@@ -920,7 +922,11 @@ function openRequestedWorkspaceEntity(event) {
   event?.preventDefault?.();
   const { typeId, instanceId } = event?.detail || {};
   if (!typeId || !instanceId) return;
-  if (isMobileViewport.value && routeInstanceToScreen(typeId, instanceId)) return;
+  if (isMobileViewport.value) {
+    if (routeInstanceToScreen(typeId, instanceId)) return;
+    entityPopup.open({ typeId, instanceId: String(instanceId) });
+    return;
+  }
   openInstanceTab(typeId, instanceId);
 }
 

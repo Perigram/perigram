@@ -104,7 +104,19 @@
           <!-- The pane IS the organization view: management surfaces are
                reached through the home shell's organization entries, not
                route-away buttons from the pane. Switching context
-               rehydrates the workspace in place. -->
+               rehydrates the workspace in place. The chat entry follows
+               the detail-surface conversation contract — members open the
+               org's own instance thread from the record. -->
+          <Button
+            v-if="entry.directory?.isMember"
+            icon="pi pi-comments"
+            text
+            severity="secondary"
+            size="small"
+            :aria-label="$t('support.openChat')"
+            data-testid="directory-org-chat"
+            @click="openOrgChat"
+          />
           <Button
             v-if="entry.directory?.isMember && !isActiveOrganization"
             :label="$t('profile.switchOrganization')"
@@ -330,6 +342,14 @@ function openOrganization(organizationId) {
 function openChat() {
   openInstanceChat({
     type: 'user',
+    id: entry.value?._id,
+    name: entry.value?.identity?.name || ''
+  });
+}
+
+function openOrgChat() {
+  openInstanceChat({
+    type: 'organization',
     id: entry.value?._id,
     name: entry.value?.identity?.name || ''
   });
