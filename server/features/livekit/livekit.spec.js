@@ -85,6 +85,30 @@ describe('livekit recordings', () => {
     });
   });
 
+  it('carries inline s3 storage on the egress output when upload env is set', async () => {
+    process.env.LIVEKIT_RECORDINGS_S3_ACCESS_KEY = 'GKtest';
+    process.env.LIVEKIT_RECORDINGS_S3_SECRET_KEY = 'secret-test';
+    process.env.LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT = 'http://127.0.0.1:8333/';
+    const fetchMock = vi.fn(async () => twirpResponse({ egress_id: 'EG_2', status: 'EGRESS_ACTIVE' }));
+    vi.stubGlobal('fetch', fetchMock);
+    mocks.repository.insert.mockImplementation(async (record) => ({ _id: 'rec-2', ...record }));
+
+    await livekitService.startRoomRecording(auth, DIRECT_ROOM);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body).file_outputs[0].s3).toEqual({
+      access_key: 'GKtest',
+      secret: 'secret-test',
+      region: 'garage',
+      endpoint: 'http://127.0.0.1:8333',
+      bucket: 'livekit-egress',
+      force_path_style: true
+    });
+    delete process.env.LIVEKIT_RECORDINGS_S3_ACCESS_KEY;
+    delete process.env.LIVEKIT_RECORDINGS_S3_SECRET_KEY;
+    delete process.env.LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT;
+  });
+
   it('rejects org rooms, foreign rooms, and double starts', async () => {
     // The caller's own org room passes admission (no active process in the
     // test auth) and fails on the missing conversation instead.

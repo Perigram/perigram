@@ -229,6 +229,30 @@ const recordingsStore = () => ({
 });
 
 /**
+ * Storage attached to every egress file output. Egress ignores its
+ * config-level storage for outputs that arrive without one
+ * (livekit/egress#1254), so the request must carry the upload target
+ * inline. The upload endpoint is resolved by the egress plane itself — a
+ * plane-local address (garage S3 API on the plane host), never one the
+ * app must reach; the app only passes the string through.
+ */
+const egressStorage = () => {
+    const accessKey = process.env.LIVEKIT_RECORDINGS_S3_ACCESS_KEY || '';
+    const secretKey = process.env.LIVEKIT_RECORDINGS_S3_SECRET_KEY || '';
+    const uploadEndpoint = (process.env.LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT || '').replace(/\/+$/, '');
+    const { bucket } = recordingsStore();
+    if (!accessKey || !secretKey || !uploadEndpoint || !bucket) return null;
+    return {
+        access_key: accessKey,
+        secret: secretKey,
+        region: 'garage',
+        endpoint: uploadEndpoint,
+        bucket,
+        force_path_style: true
+    };
+};
+
+/**
  * Room → conversation mapping for recordings: direct and group rooms mirror
  * the support conversation keys; org rooms have no conversation thread, so
  * they are not recordable.
@@ -251,10 +275,14 @@ export async function startRoomRecording(auth, room = '') {
     if ((await repository.findActiveByRoom(room)).length) {
         throw createError({ statusCode: 409, message: 'Room is already recording' });
     }
+    const storage = egressStorage();
     const egress = await egressTwirp('StartRoomCompositeEgress', {
         room_name: room,
         audio_only: false,
-        file_outputs: [{ filepath_pattern: '{room_id}-{time}.mp4' }]
+        file_outputs: [{
+            filepath_pattern: '{room_id}-{time}.mp4',
+            ...(storage ? { s3: storage } : {})
+        }]
     });
     const egressId = String(egress?.egress_id || '');
     if (!egressId) {

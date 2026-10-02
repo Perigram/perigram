@@ -30,16 +30,19 @@ jobs:
             -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
             -e BASE_URL=https://perigram.sodalab.pro \
             -e NUXT_PUBLIC_BASE_URL=https://perigram.sodalab.pro \
-            -e LIVEKIT_PUBLIC_URL=ws://10.77.219.223:7880 \
-            -e LIVEKIT_INTERNAL_URL=ws://10.77.219.223:7880 \
+            -e LIVEKIT_PUBLIC_URL=wss://livekit.sodalab.pro \
+            -e LIVEKIT_INTERNAL_URL=ws://192.168.0.15:7880 \
             -e LIVEKIT_API_KEY=3a75db6bdbfc3048d69dee4b \
             -e LIVEKIT_API_SECRET=WgT04XbkXYjW98T03yh9YNydB3I2p0ho8to67dik0k \
             -e TRANSCRIPTION_PROVIDER=local \
             -e TRANSCRIPTION_LOCAL_BASE_URL=http://10.77.167.148:31135/v1 \
             -e MEETINGS_LLM_BASE_URL=http://10.77.167.148:31136/v1 \
             -e MEETINGS_LLM_MODEL=qwen3:4b \
-            -e LIVEKIT_RECORDINGS_S3_ENDPOINT=http://192.168.0.15:8333 \
+            -e LIVEKIT_RECORDINGS_S3_ENDPOINT=https://perigram.sodalab.pro/recordings \
             -e LIVEKIT_RECORDINGS_S3_BUCKET=livekit-egress \
+            -e LIVEKIT_RECORDINGS_S3_ACCESS_KEY=GK7d316dc71f083d203a07eea1 \
+            -e LIVEKIT_RECORDINGS_S3_SECRET_KEY=16427212686b6234864d9ead9911d3f74e8b27f70bf25c982276e56dfe4d185a \
+            -e LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT=http://127.0.0.1:8333 \
             -e NUXT_VAPID_PUBLIC_KEY \
             -e NUXT_VAPID_PRIVATE_KEY \
             perigram:staging
