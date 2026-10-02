@@ -200,7 +200,6 @@ describe('Design system manifest', () => {
     expect(cssVariableTokens['--ck-page-max-width']).toBe(designTokens.layout.pageMaxWidth);
     expect(tailwindThemeExtension.maxWidth.app).toBe('var(--ck-page-max-width)');
     expect(tailwindThemeExtension.height['support-chat']).toBe('var(--ck-support-chat-height)');
-    expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens).toEqual({
       panel: { root: { background: 'transparent', borderColor: 'transparent' } },

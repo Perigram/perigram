@@ -1,5 +1,27 @@
 # TODO
 
+## Full-dialog surfaces: identifiers and viewport-bounded layout (2026-10-02)
+
+- [ ] Image preview, chat call dialog, and mobile call dialog carried a
+  fixed 95vh body inside full dialogs — always overflowed into scrollable
+  empty space; headers were generic or absent. They are now `fill`
+  StandardDialogs with identifier headers, and the floating call window
+  names its conversation (SPEC §UI popups).
+
+### Agent Notes (2026-10-02)
+
+Session `agent/dialog-fill-20261002`. Root cause of the "scrollable
+nothing": every full dialog put `h-preview-dialog` (95vh) inside
+`size="full"` (`max-w-full m-4`) plus header and padding — the dialog
+scrolled by construction, images centered in an oversized box, and on
+mobile the call dock sat below the fold. `StandardDialog` gained a `fill`
+prop (root capped to viewport, content a non-scrolling flex column) and
+`full` became edge-to-edge on mobile. Headers: image name on the chat
+attachment preview (was headerless), conversation name on the chat call
+dialog, caller name on the mobile invite dialog, and the floating call
+window resolves its label through the same `callRoomLabel` the home
+sidebar uses. The `h-preview-dialog` token is deleted (no users left).
+
 ## PWA offline restore and push surfacing (2026-10-01)
 
 - [ ] Service worker serves the app offline again: network-first caches for

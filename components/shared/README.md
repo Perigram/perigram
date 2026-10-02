@@ -762,7 +762,11 @@ transcription stay in the host composer.
   global PrimeVue panel density.
 - **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome. The root `error.vue` surface uses this primitive for failures and recovery actions.
 - **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains preset-owned.
-- **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
+- **`StandardDialog.vue`**: Dialog wrapper with standardized footer and
+  responsiveness. The `full` size is edge-to-edge on mobile with margins
+  from `md` up; the `fill` prop bounds the dialog root to the viewport and
+  turns the content area into a non-scrolling flex column (media viewers,
+  call surfaces — content owns the layout instead of the dialog scrolling).
 - **Default confirmation host**: the app layout (`layouts/app.vue`) mounts the
   single default-group PrimeVue `ConfirmDialog`; feature surfaces call
   `useConfirm()` without a group and never mount their own host — a second

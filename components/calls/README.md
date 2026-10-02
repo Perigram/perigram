@@ -111,8 +111,11 @@ another route); organizations without a generated home workspace fall back
 to the floating window, and mobile keeps the full-screen dialog. Accepted
 invites and docked calls are parked as `pendingTabRoom` and consumed by
 the home workspace's watcher. The mobile and chat-hosted full-screen call
-dialogs bound their content with the `h-preview-dialog` dimension token
-(the full-dialog height), never the chat-height token.
+dialogs are `fill` `StandardDialog`s: the dialog root is capped to the
+viewport (full-bleed on mobile, viewport-minus-margins on desktop) and
+the content area is a non-scrolling flex column, so the call stage owns
+every pixel and the control dock stays in view; the dialog header names
+the conversation (chat host) or the caller (mobile invites).
 
 ## Media plumbing
 
