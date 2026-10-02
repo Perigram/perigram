@@ -13,7 +13,7 @@
       <div class="flex w-full min-w-0 items-center justify-between gap-2 pr-6">
         <span class="min-w-0 truncate text-label">{{ title }}</span>
         <Button
-          v-if="expandable"
+          v-if="expandable()"
           icon="pi pi-external-link"
           text
           rounded
