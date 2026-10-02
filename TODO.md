@@ -1,5 +1,29 @@
 # TODO
 
+## Mobile org page opens; org record carries its chat entry (2026-10-02)
+
+- [ ] Workspace-open on mobile fell through to a desktop pane tab nobody
+  renders: directory types (user/organization) with no compiled detail
+  screen now open the bounded entity dialog, as the consumer's own
+  contract comment already promised. The organization profile and the
+  active-org overview pane carry the record's conversation affordance
+  (the org's instance thread), matching the detail-surface conversation
+  contract.
+
+### Agent Notes (2026-10-02)
+
+Session `agent/mobile-open-20261002`. Reproduced on the live stack
+(390×844): account menu → org entry → `/home` stays at the empty
+workspace state; `openRequestedWorkspaceEntity` routed mobile only when
+a compiled detail screen existed and otherwise called `openInstanceTab`,
+which no-ops without panes — the "directory types open as the bounded
+home dialog" promise in its comment was never implemented. Org chats in
+the inbox verified NOT broken: a message posted to the org instance
+conversation produces its inbox row immediately; the missing reachability
+was the org page itself plus its absent chat entry. Fixed with the
+`useEntityPopup` channel (dialog mounted by the app shell) and the
+`openInstanceChat` organization target on both org surfaces.
+
 ## Meetings summaries connect to org data (2026-10-02)
 
 - [ ] Ground the meeting summary pipeline in the org's declared types and

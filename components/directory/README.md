@@ -29,6 +29,10 @@ into these panes through the shared workspace-open seam.
   `Panel` headers carry the section chrome (Details, My Organizations,
   Partners) and memberships render as an inline `Menu` (building icon,
   active organization marked by the success check).
+- The organization profile carries the record's conversation affordance
+  for members: the chat entry opens the organization's own instance
+  thread through the shared `openInstanceChat` seam (the active
+  organization's pane overview carries the same entry in its actions).
 - The active organization's PANE renders its real page: the generated
   organization overview (identity header + management entries) from the
   hydrated manifest; the popup (`bounded`) keeps the directory profile —
