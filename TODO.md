@@ -1,5 +1,29 @@
 # TODO
 
+## Entity popup header title, mobile expand, chat inline refs (2026-10-02)
+
+- [ ] EntityPopup's header rendered `{{ title }}` with no `title` defined
+  — empty header, only icon buttons (the reported "no identifier").
+- [ ] Expand on mobile closed and re-opened the same dialog (the mobile
+  workspace-open fallback loops back into the popup); the button is
+  desktop-only now — on mobile the dialog is the terminal surface.
+- [ ] ChatSupport lost its `InstanceInlineRef` import (instance-vocabulary
+  refactor), so inline entity refs in chat messages rendered nothing.
+
+### Agent Notes (2026-10-02)
+
+Session `agent/entity-popup-title-20261002`. Owner console trace proved
+all three: `Property "title" was accessed during render` at
+EntityPopup.vue:13; `expand @ EntityPopup.vue:105 → useEntityPopup set`
+re-opening the dialog; `Failed to resolve component: InstanceInlineRef`
+under ChatSupport. Title restored through the v24 identity pattern
+(`titleFor(dtoToScreenInstance(...))` over the instances cache with
+`resolveReadableReference` fallback). The reported
+`/api/directory/organization/null` 404 did not reproduce — every
+DirectoryDetailSurface mount guards its ids (EntityPopup open, workspace
+page props, mobile fallback); needs the owner's exact click path if it
+survives these fixes.
+
 ## Mobile org page opens; org record carries its chat entry (2026-10-02)
 
 - [ ] Workspace-open on mobile fell through to a desktop pane tab nobody

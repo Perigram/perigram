@@ -612,9 +612,12 @@ profile for `user`/`organization`
 ([components/directory](../directory/README.md)), and the compiled detail
 screen through the generator host
 ([components/generated](../generated/README.md)) for instance types.
-The header carries the record's display name (never an id) with the
-icon-only expand action beside it (the item-popup header pattern — the
-dialog's own close affordance dismisses; there is no footer). Identity
+The header carries the record's display name (never an id; resolved from
+the instances store cache, falling back to its readable-reference
+resolution) with the icon-only expand action beside it — desktop only,
+since on mobile the dialog is the terminal surface and there is no pane
+to step up to (the item-popup header pattern — the dialog's own close
+affordance dismisses; there is no footer). Identity
 opens from the generator swap the popup subject in place. Mounted once by
 the app layout so floating chrome (chat thread headers) can inspect a
 record from any route; the composable state is the single
