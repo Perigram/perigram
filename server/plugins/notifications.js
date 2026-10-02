@@ -1,5 +1,5 @@
-import * as connectionsService from '../features/connections/service.js';
-import { configurePush, notifyUser } from '../features/notifications/service.js';
+import * as connectionsService from '~/server/features/connections/service.js';
+import { configurePush, notifyUser } from '~/server/features/notifications/service.js';
 
 export default defineNitroPlugin(() => {
     const runtimeConfig = useRuntimeConfig();
