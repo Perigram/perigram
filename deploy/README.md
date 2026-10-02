@@ -142,3 +142,7 @@ Retired paths, kept for archaeology until deleted:
 
 - [Remote access runbook](../docs/REMOTE_ACCESS.md)
 - [System README](../README.md)
+
+- `debug-logs.yml` (manual dispatch from Forgejo Actions) prints the last
+  push/notification lines and recent output of the staging container — use it
+  before SSH-ing anywhere to read server-side push diagnostics.
