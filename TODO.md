@@ -1,5 +1,12 @@
 # TODO
 
+## LiveKit grant authorable in the permissions UI (2026-10-02)
+
+- [ ] The process page's grant editor only lists screen-derived features;
+  capability features like `livekit` (SPEC §Calls) cannot be granted from
+  any UI. Add them to the permission feature catalog so orgs can restrict
+  org calls from role settings.
+
 ## Own organization opens its page on mobile; expand restored with real targets (2026-10-02)
 
 - [ ] The active organization on mobile routed into the directory popup

@@ -93,6 +93,14 @@ summary connects to org data: it detects the org's classes, instances, and
 users mentioned in the call, and can create and manage org data as a rich
 summary (outcomes land as typed org data, not loose text).
 
+## Calls
+
+Org calls behave like the org chat: members join by membership. Restricting
+them is a role-settings concern — a declared livekit grant in the process
+access rights withholds admission — and that grant must be authorable from
+the role/permissions UI like every other feature toggle, never by
+hand-editing process data.
+
 ## PWA
 
 Offline is a first-class state, not an error page: without a connection the

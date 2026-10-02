@@ -92,15 +92,12 @@ diarization-capable provider.
   invites on the support conversation contract, snapshots active rooms, and
   verifies + fans webhook events onto the connections layer.
 - Access derives from org membership and conversation/group participation.
-  Org rooms are a Process-Designer-declared service: when the organization
-  has an active compiled process, `call:org:*` admission additionally
-  requires a `livekit` feature grant (read level) in the process access
-  rights, evaluated with the shared grant evaluator. The bundled process
-  templates declare `livekit: 'write'` for their admin role; organizations
-  with an already-active process definition must add the grant (re-instantiate
-  a template or edit its role grants) before org rooms admit under process
-  mode. Direct and group rooms keep the participant contract, which mirrors
-  the process-aware support conversation keys.
+  Org rooms are membership-based like the org chat; a `livekit` feature
+  grant (read level) in the process access rights — evaluated with the
+  shared grant evaluator — restricts admission only for organizations that
+  actually declare the feature in their active process. Direct and group
+  rooms keep the participant contract, which mirrors the process-aware
+  support conversation keys.
 - Webhooks: `POST /api/livekit/webhook` verifies the signed Authorization
   JWT including the `sha256` body-hash claim, then publishes `call.activity`
   events (org rooms → org topic; direct and group rooms → each participant's
