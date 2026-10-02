@@ -57,8 +57,13 @@ export async function notifyUser(userId, payload) {
     )));
     const dead = [];
     results.forEach((result, index) => {
-        if (result.status === 'rejected' && [404, 410].includes(result.reason?.statusCode)) {
-            dead.push(subscriptions[index].endpoint);
+        if (result.status === 'rejected') {
+            const { statusCode, message } = result.reason || {};
+            if ([404, 410].includes(statusCode)) {
+                dead.push(subscriptions[index].endpoint);
+            } else {
+                console.warn(`Push send failed (${statusCode || 'network'}): ${message || 'unreachable'}`);
+            }
         }
     });
     for (const endpoint of dead) {

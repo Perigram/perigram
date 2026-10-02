@@ -12,6 +12,8 @@ export default defineNitroPlugin(() => {
         if (!topic.startsWith('user:')) return;
         const userId = topic.slice('user:'.length);
         if (connectionsService.userPresence(userId) > 0) return;
-        notifyUser(userId, payload).catch(() => null);
+        notifyUser(userId, payload).catch(error => {
+            console.warn('Push notification dispatch failed:', error?.message || error);
+        });
     });
 });
