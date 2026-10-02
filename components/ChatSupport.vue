@@ -909,11 +909,14 @@
         </div>
         <StandardDialog
             v-model:visible="callDialog"
-            :header="$t('call.title')"
             size="full"
+            fill
             :show-default-footer="false"
         >
-            <div class="flex h-preview-dialog flex-col">
+            <template #header>
+                <span class="min-w-0 truncate text-label">{{ callHeaderLabel }}</span>
+            </template>
+            <div class="flex min-h-0 flex-1 flex-col">
                 <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
             </div>
         </StandardDialog>
@@ -1087,6 +1090,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
+import { conversationKeyForRoom } from '~/utils/call-rooms.js'
 import Avatar from 'primevue/avatar'
 import Divider from 'primevue/divider'
 import Listbox from 'primevue/listbox'
@@ -1224,6 +1228,12 @@ const typingActive = computed(() => Boolean(typingName.value))
 useEnterExit(typingIndicatorRef, typingActive, { y: 4, duration: 0.15 })
 const callRoom = ref('')
 const callDialog = ref(false)
+const callHeaderLabel = computed(() => {
+    if (!callDialog.value || !callRoom.value || !activeConversation.value) return t('call.title')
+    return conversationKeyForRoom(callRoom.value) === activeConversation.value.conversationKey
+        ? conversationLabel(activeConversation.value)
+        : t('call.title')
+})
 // The call line machine owns ringing: invites for the open conversation come
 // from the shared calls store, so accepting or declining anywhere clears the
 // ring in every surface (the old local banner kept ringing after an accept

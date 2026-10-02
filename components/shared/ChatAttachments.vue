@@ -84,10 +84,14 @@
   <StandardDialog
     :visible="Boolean(previewAttachment)"
     size="full"
+    fill
     :show-default-footer="false"
     @update:visible="value => { if (!value) previewAttachment = null }"
   >
-    <div class="flex h-preview-dialog items-center justify-center">
+    <template #header>
+      <span class="min-w-0 truncate text-label">{{ previewAttachment?.name || previewAttachment?.mimeType }}</span>
+    </template>
+    <div class="flex min-h-0 flex-1 items-center justify-center">
       <img
         v-if="previewAttachment"
         class="max-h-full max-w-full object-contain"

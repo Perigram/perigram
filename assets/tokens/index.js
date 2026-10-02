@@ -89,7 +89,6 @@ export const designTokens = {
         entityPopoverMinWidth: '18.75rem',
         swatchSize: '2.625rem',
         floatingMenuMinWidth: '12.5rem',
-        previewDialogHeight: '95vh',
         tableActionColumnWidth: '3rem',
         boardColumnMaxHeight: 'calc(100dvh - 16rem)'
     },
@@ -223,7 +222,6 @@ export const cssVariableTokens = {
     '--ck-entity-popover-min-width': designTokens.layout.entityPopoverMinWidth,
     '--ck-swatch-size': designTokens.layout.swatchSize,
     '--ck-floating-menu-min-width': designTokens.layout.floatingMenuMinWidth,
-    '--ck-preview-dialog-height': designTokens.layout.previewDialogHeight,
     '--ck-table-action-column-width': designTokens.layout.tableActionColumnWidth,
     '--ck-board-column-max-height': designTokens.layout.boardColumnMaxHeight,
     ...Object.fromEntries(Object.entries(zincPrimary).map(([step, value]) => [`--ck-primary-${step}`, value])),
@@ -345,7 +343,6 @@ export const tailwindThemeExtension = {
         swatch: 'var(--ck-swatch-size)',
         'support-chat': 'var(--ck-support-chat-height)',
         'support-chat-admin': 'var(--ck-support-chat-admin-height)',
-        'preview-dialog': 'var(--ck-preview-dialog-height)',
         'call-window': 'var(--ck-call-window-height)'
     },
     maxHeight: {

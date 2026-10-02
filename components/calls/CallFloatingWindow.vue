@@ -14,7 +14,7 @@
             @pointerdown="startDrag"
         >
             <i class="pi pi-phone shrink-0 text-primary" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate text-label">{{ $t('call.title') }}</span>
+            <span class="min-w-0 flex-1 truncate text-label">{{ roomLabel }}</span>
             <Button
                 icon="pi pi-window-maximize"
                 severity="secondary"
@@ -51,11 +51,26 @@
 import { computed, onBeforeUnmount, ref } from 'vue';
 import Button from 'primevue/button';
 import CallPanel from '~/components/calls/CallPanel.vue';
+import { useI18n } from 'vue-i18n';
 import { useCallsStore } from '~/stores/calls';
+import { useAuthStore } from '~/stores/auth';
+import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallRouting } from '~/composables/useCallRouting.js';
+import { callRoomLabel } from '~/utils/call-rooms.js';
 
 const callsStore = useCallsStore();
+const authStore = useAuthStore();
+const supportChatStore = useSupportChatStore();
+const { t } = useI18n();
 const { openCallInWorkspaceTab } = useCallRouting();
+
+// The header names the call (conversation or caller), not the generic
+// word — same resolver the home sidebar rows use.
+const roomLabel = computed(() => callRoomLabel(callsStore.floatingRoom, supportChatStore.conversations, {
+    userId: authStore.userData?.userId,
+    orgName: authStore.organizationData?.identity?.name || undefined,
+    fallback: t('call.title')
+}));
 
 const dragging = ref(false);
 let dragState = null;

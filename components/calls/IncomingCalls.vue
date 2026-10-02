@@ -40,11 +40,14 @@
          opens the full-screen dialog. -->
     <StandardDialog
         v-model:visible="callDialog"
-        :header="$t('call.title')"
         size="full"
+        fill
         :show-default-footer="false"
     >
-        <div class="flex h-preview-dialog flex-col">
+        <template #header>
+            <span class="min-w-0 truncate text-label">{{ callHeaderLabel || $t('call.title') }}</span>
+        </template>
+        <div class="flex min-h-0 flex-1 flex-col">
             <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
         </div>
     </StandardDialog>
@@ -64,12 +67,14 @@ const { isMobileViewport, openCallInWorkspaceTab } = useCallRouting();
 
 const callDialog = ref(false);
 const callRoom = ref('');
+const callHeaderLabel = ref('');
 
 const joinInvite = (invite) => {
     callsStore.dismissIncoming(invite.room);
     if (!invite.room) return;
     if (isMobileViewport()) {
         callRoom.value = invite.room;
+        callHeaderLabel.value = invite.fromName || '';
         callDialog.value = true;
         return;
     }
