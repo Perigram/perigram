@@ -33,7 +33,8 @@ All notifications derive from the canonical
   realtime-only.
 - `push_subscriptions` persists one document per browser endpoint, keyed by
   endpoint, owned by the subscribing user; 404/410 sends prune dead
-  endpoints.
+  endpoints, every other send failure logs with its status code (network
+  errors included) instead of disappearing.
 
 ## API
 
