@@ -35,8 +35,8 @@ jobs:
             -e LIVEKIT_API_KEY=3a75db6bdbfc3048d69dee4b \
             -e LIVEKIT_API_SECRET=WgT04XbkXYjW98T03yh9YNydB3I2p0ho8to67dik0k \
             -e TRANSCRIPTION_PROVIDER=local \
-            -e TRANSCRIPTION_LOCAL_BASE_URL=http://10.77.167.148:31135/v1 \
-            -e MEETINGS_LLM_BASE_URL=http://10.77.167.148:31136/v1 \
+            -e TRANSCRIPTION_LOCAL_BASE_URL=http://192.168.0.15:31135/v1 \
+            -e MEETINGS_LLM_BASE_URL=http://192.168.0.15:31136/v1 \
             -e MEETINGS_LLM_MODEL=qwen3:4b \
             -e LIVEKIT_RECORDINGS_S3_ENDPOINT=https://perigram.sodalab.pro/recordings \
             -e LIVEKIT_RECORDINGS_S3_BUCKET=livekit-egress \
