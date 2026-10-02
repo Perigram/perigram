@@ -7,7 +7,6 @@
     v-model:visible="visible"
     :size="isDirectoryType ? 'md' : 'xl'"
     :show-default-footer="false"
-    maximizable
   >
     <template #header>
       <div class="flex w-full min-w-0 items-center justify-between gap-2 pr-6">
