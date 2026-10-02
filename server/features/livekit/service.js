@@ -47,6 +47,10 @@ export const groupCallRoom = (groupId) => `call:group:${groupId}`;
 
 function requireLiveKitGrant(auth, level = 'read') {
     if (!auth.process?.active || !auth.effectivePermissions) return;
+    // The grant restricts only orgs that declare livekit in their process
+    // access rights. Undeclared stays membership-based — org rooms behave
+    // like the org chat, open to members and closed only on purpose.
+    if (!('livekit' in auth.effectivePermissions)) return;
     const granted = hasPermissionGrant({
         permissions: auth.effectivePermissions,
         feature: 'livekit',
@@ -71,8 +75,9 @@ export async function authorizeRoom(auth, room = '') {
         if (auth.isAdmin) return { room, kind: 'org' };
         const isMember = Boolean(auth.organizationId && String(auth.organizationId) === orgId);
         if (!isMember) throw createError({ statusCode: 403, message: 'Forbidden' });
-        // With an active compiled process, org rooms are a declared service:
-        // admission rides the process access rights (livekit feature grant).
+        // Org rooms are membership-based like the org chat; a livekit grant
+        // in the process access rights restricts admission only when the
+        // org actually declares the feature (see requireLiveKitGrant).
         requireLiveKitGrant(auth);
         return { room, kind: 'org' };
     }

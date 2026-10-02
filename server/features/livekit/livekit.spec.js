@@ -68,6 +68,24 @@ describe('livekit recordings', () => {
     expect(livekitService.conversationKeyForRoom(ORG_ROOM)).toBeNull();
   });
 
+  it('admits org rooms by membership unless livekit is declared and withheld', async () => {
+    // Undeclared feature: an active process without livekit in its access
+    // rights keeps org rooms membership-based (the org-chat model).
+    const memberAuth = { userId: 'user-a', organizationId: 'org-1', process: { active: true }, effectivePermissions: { groups: { level: 'admin' } } };
+    await expect(livekitService.authorizeRoom(memberAuth, 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
+
+    // Declared and granted: admission passes.
+    const grantedAuth = { ...memberAuth, effectivePermissions: { livekit: { level: 'write' }, groups: { level: 'admin' } } };
+    await expect(livekitService.authorizeRoom(grantedAuth, 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
+
+    // Declared but withheld for this user: deliberate restriction.
+    const withheldAuth = { ...memberAuth, effectivePermissions: { livekit: null, groups: { level: 'admin' } } };
+    await expect(livekitService.authorizeRoom(withheldAuth, 'call:org:org-1')).rejects.toMatchObject({ statusCode: 403 });
+
+    // Membership still comes first: a declared grant does not admit strangers.
+    await expect(livekitService.authorizeRoom(grantedAuth, ORG_ROOM)).rejects.toMatchObject({ statusCode: 403 });
+  });
+
   it('starts a recording through the egress twirp API', async () => {
     const fetchMock = vi.fn(async () => twirpResponse({ egress_id: 'EG_1', status: 'EGRESS_ACTIVE' }));
     vi.stubGlobal('fetch', fetchMock);
