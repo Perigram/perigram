@@ -1,5 +1,27 @@
 # TODO
 
+## Own organization opens its page on mobile; expand restored with real targets (2026-10-02)
+
+- [ ] The active organization on mobile routed into the directory popup
+  (cropped profile, no management) because the org overview system screen
+  carries no `sources` entry, so `detailRouteForInstance` never matches
+  it. The mobile workspace-open seam now routes the active org to the
+  org overview screen (`/organization`); expand renders wherever it has a
+  target and every popup carries PrimeVue's own maximize toggle.
+
+### Agent Notes (2026-10-02)
+
+Session `agent/active-org-mobile-20261002`. Owner verdict on the previous
+pass: hiding expand removed the affordance instead of fixing it. Root
+cause of "cropped popup for my own org": `organizationOverview` declares
+top-level `typeId` but no `sources`, so the detail-route resolver (which
+keys on `sources[].typeId`) finds nothing for organizations — desktop
+masks this with the pane-overview path, mobile fell to the bounded
+popup. Fixed at the seam (active org → overview route), expand is
+target-aware (desktop pane; mobile routed pages incl. the active org),
+and `maximizable` gives every popup PrimeVue's native full-screen
+toggle.
+
 ## Entity popup header title, mobile expand, chat inline refs (2026-10-02)
 
 - [ ] EntityPopup's header rendered `{{ title }}` with no `title` defined

@@ -614,10 +614,16 @@ screen through the generator host
 ([components/generated](../generated/README.md)) for instance types.
 The header carries the record's display name (never an id; resolved from
 the instances store cache, falling back to its readable-reference
-resolution) with the icon-only expand action beside it — desktop only,
-since on mobile the dialog is the terminal surface and there is no pane
-to step up to (the item-popup header pattern — the dialog's own close
-affordance dismisses; there is no footer). Identity
+resolution) with the icon-only expand action beside it, and the dialog is
+`maximizable` — PrimeVue's own header toggle full-screens any popup. The
+expand step-up renders only where it has somewhere to go: desktop always
+(the home pane tab), mobile only for records with a routed page — a
+compiled detail screen, or the **active organization**, whose real page
+is the org overview system screen (`/organization`) rather than the
+directory profile. On mobile the workspace-open seam routes the active
+org there directly; other records without a routed page open this dialog
+as the bounded terminal surface (the item-popup header pattern — the
+dialog's own close affordance dismisses; there is no footer). Identity
 opens from the generator swap the popup subject in place. Mounted once by
 the app layout so floating chrome (chat thread headers) can inspect a
 record from any route; the composable state is the single
