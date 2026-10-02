@@ -17,6 +17,7 @@
           rounded
           size="small"
           severity="secondary"
+          class="hidden md:inline-flex"
           :aria-label="$t('common.expand')"
           :title="$t('common.expand')"
           @click="expand"
@@ -44,7 +45,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -71,6 +72,22 @@ const visible = computed({
   set: value => { if (!value) close(); }
 });
 const isDirectoryType = computed(() => ['user', 'organization'].includes(request.value?.typeId));
+
+// The header title: the subject's display name (never an id) — cached
+// instance first, then the store's readable-reference resolution.
+const title = ref('');
+watch(request, async (current) => {
+  title.value = '';
+  if (!current) return;
+  const record = typeById(current.typeId);
+  const cached = instances.dtoFor(current.typeId, current.instanceId);
+  const dto = cached
+    || await instances.resolveReadableReference(current.typeId, current.instanceId, { silent: true }).catch(() => null);
+  if (request.value !== current) return;
+  if (dto) {
+    title.value = titleFor(dtoToScreenInstance(dto, record), record, { unnamedLabel: t('common.unnamed') });
+  }
+}, { immediate: true });
 
 
 const detailScreen = computed(() => {

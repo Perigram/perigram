@@ -1091,6 +1091,7 @@
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import { conversationKeyForRoom } from '~/utils/call-rooms.js'
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
 import Avatar from 'primevue/avatar'
 import Divider from 'primevue/divider'
 import Listbox from 'primevue/listbox'
