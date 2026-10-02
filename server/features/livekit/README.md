@@ -28,7 +28,10 @@ conversations ring the organization room.
 caller may enter: the service calls the LiveKit server's
 `RoomService/ListRooms` HTTP API with a signed `roomList` token, keeps only
 `call:` rooms, and filters them through the same `authorizeRoom` admission
-as token minting. Rooms with zero connected participants are skipped:
+as token minting. When the LiveKit server is unreachable or answers out of
+shape, the endpoint fails 502 instead of returning an empty snapshot, so
+callers keep their last known state rather than reading the failure as
+"no active calls". Rooms with zero connected participants are skipped:
 LiveKit keeps emptied rooms alive for the server empty_timeout (default
 300s) after the last participant leaves, and an emptied room must not
 appear as an active call while it waits to be reaped. The home workspace sidebar's Calls entry
