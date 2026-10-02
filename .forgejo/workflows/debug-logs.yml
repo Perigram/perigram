@@ -1,0 +1,12 @@
+name: debug-logs
+on: [workflow_dispatch]
+jobs:
+  logs:
+    runs-on: deploy
+    container:
+      image: docker:cli
+    steps:
+      - name: push and notification lines
+        run: docker logs --tail 500 perigram-staging 2>&1 | grep -iE "push|notification|vapid" | tail -50 || true
+      - name: recent server output
+        run: docker logs --tail 60 perigram-staging 2>&1 || true
