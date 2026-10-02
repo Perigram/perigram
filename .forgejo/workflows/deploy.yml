@@ -30,7 +30,7 @@ jobs:
             -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
             -e BASE_URL=https://perigram.sodalab.pro \
             -e NUXT_PUBLIC_BASE_URL=https://perigram.sodalab.pro \
-            -e LIVEKIT_PUBLIC_URL=wss://livekit.sodalab.pro \
+            -e LIVEKIT_PUBLIC_URL=wss://perigram.sodalab.pro/livekit \
             -e LIVEKIT_INTERNAL_URL=ws://192.168.0.15:7880 \
             -e LIVEKIT_API_KEY=3a75db6bdbfc3048d69dee4b \
             -e LIVEKIT_API_SECRET=WgT04XbkXYjW98T03yh9YNydB3I2p0ho8to67dik0k \
