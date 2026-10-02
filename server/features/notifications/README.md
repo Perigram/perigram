@@ -49,7 +49,10 @@ All notifications derive from the canonical
 `composables/useBrowserNotifications.js` owns permission state, the persisted
 consent flag, and the push subscribe/unsubscribe flow (subscribing through
 the registered service worker, whose `push`/`notificationclick` handlers show
-and route the notification); it also exposes the server's push availability
+and route the notification); on app start it also reconciles an enabled
+consent with granted permission into a server-known subscription, so clients
+that consented while the server ran without VAPID keys converge once push
+becomes available. It also exposes the server's push availability
 (`pushAvailable`, refreshed whenever the settings popup opens) so the toggle
 surfaces in-tab-only delivery when the server runs without VAPID keys
 (runbook: deploy README, Configuration). `plugins/notifications.client.js`
