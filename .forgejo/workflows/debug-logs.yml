@@ -8,4 +8,4 @@ jobs:
     steps:
       - name: dump push-related and recent staging logs
         run: |
-          { docker logs --tail 500 perigram-staging 2>&1 | grep -iE "push|notification|vapid" | tail -60; echo "---RECENT---"; docker logs --tail 40 perigram-staging 2>&1; } | nc -q2 192.168.0.15 3999
+          { docker logs --tail 500 perigram-staging 2>&1 | grep -iE "push|notification|vapid" | tail -60; echo "---RECENT---"; docker logs --tail 40 perigram-staging 2>&1; echo "---END-OF-DUMP---"; } | timeout 8 nc 192.168.0.15 3999
