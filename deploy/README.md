@@ -61,7 +61,10 @@ Editing the pipeline means editing that branch.
   plane `192.168.0.15:7880` with websocket upgrade headers; RoomService
   traffic from the runner rides the LAN address `ws://192.168.0.15:7880`,
   since poseidon is not a NetBird peer), local STT + qwen on the
-  data-worker peer (`10.77.167.148:31135/:31136`), and recordings in the
+  data-worker peer (`10.77.167.148:31135/:31136`) — reached through
+  `192.168.0.15:31135/:31136`, host-network socat forwards on zeus
+  (`stt-forward` / `llm-forward` containers, NetBird upstream), since the
+  runner has no NetBird route — and recordings in the
   `livekit-egress` garage bucket — read through the app edge
   (`https://perigram.sodalab.pro/recordings/...` → garage web `:3902`),
   uploaded with the inline garage key through the plane-local S3 API

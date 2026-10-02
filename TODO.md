@@ -1,5 +1,14 @@
 # TODO
 
+## Meetings summaries connect to org data (2026-10-02)
+
+- [ ] Ground the meeting summary pipeline in the org's declared types and
+  existing instances plus users (SPEC §Meetings): detect mentions in the
+  transcript, link the summary to org entities, and create/manage typed
+  org data from call outcomes instead of posting loose text. Needs a
+  design decision on which declared types the outcomes may create and how
+  orgs control that (protocol file extension or per-org settings).
+
 ## Full-dialog surfaces: identifiers and viewport-bounded layout (2026-10-02)
 
 - [ ] Image preview, chat call dialog, and mobile call dialog carried a

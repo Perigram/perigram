@@ -85,6 +85,14 @@ whose target declares no accepting child refuse the upload at pick time;
 common chats (support/direct/group) and party-target chats (the
 organization chat) keep files as plain unlinked attachments.
 
+## Meetings
+
+Call recordings are sent to the transcription service automatically and
+return to the conversation as a summary. For calls in an organization, the
+summary connects to org data: it detects the org's classes, instances, and
+users mentioned in the call, and can create and manage org data as a rich
+summary (outcomes land as typed org data, not loose text).
+
 ## PWA
 
 Offline is a first-class state, not an error page: without a connection the
