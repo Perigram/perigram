@@ -879,13 +879,17 @@ watch(openedEntityRefs, async refs => {
   const loaded = await Promise.all(refs.map(async reference => {
     // Persisted tabs can outlive their type (registry churn): a dead
     // typeId has no collection to read and only produces 404 noise —
-    // it drops here instead of hydrating.
+    // it drops here instead of hydrating. Corrupted persisted ids (the
+    // literal "null"/"undefined" strings an older persistence bug could
+    // write) drop with them instead of reaching the directory fallback.
+    const persistedId = String(reference.instanceId || '');
     if (!registryStore.typeRecord(reference.typeId)) return null;
+    if (!persistedId || /^(null|undefined)$/.test(persistedId)) return null;
     const existing = workspaceEntityItems.value.find(item => (
       item.type === reference.typeId && instanceId(item.entity) === reference.instanceId
     ));
     const entity = existing?.entity
-      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.typeId), reference.instanceId, { silent: true });
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.typeId), persistedId, { silent: true });
     return entity ? workspaceEntityItem(reference.typeId, entity) : null;
   }));
   if (sequence !== openedEntityLoadSequence) return;
