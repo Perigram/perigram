@@ -6,7 +6,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-06-14
-updated: 2026-09-30
+updated: 2026-10-03
 ```
 
 
@@ -19,7 +19,7 @@ cookies, or tokens — secrets live only in a password manager, SOPS
 
 | Target | Address | Role |
 |---|---|---|
-| zeus | `192.168.0.15` (LAN), SSH alias `r330` (user `storage`, NOPASSWD sudo) | Forgejo (`forgejo` container, `127.0.0.1:3000`), public TLS edge (nginx containers `tls-front-443`/`tls-front`/`tls-portprobe` share `/home/storage/nginx-mixed.conf`), NetBird server, ntfy |
+| zeus | `192.168.0.15` (LAN), SSH alias `cutkit-r330` → NetBird `10.77.219.223:2222` (user `storage`, NOPASSWD sudo; the infractl-managed LAN host entries — `zeus`, `hera`, `poseidon`, … — ProxyJump through it, so LAN SSH also rides the mesh) | Forgejo (`forgejo` container, `127.0.0.1:3000`), public TLS edge (nginx containers `tls-front-443`/`tls-front`/`tls-portprobe` share `/home/storage/nginx-mixed.conf`), NetBird server, ntfy |
 | Staging host / CI runner | `192.168.0.230` (poseidon, backup-01) | Forgejo Actions `deploy` runner (unit `gitea-runner-perigram`, declared in NixOS config); runs the `perigram-staging` container on host network `:3001` |
 | App (public) | `https://perigram.sodalab.pro` → zeus :443 → `192.168.0.230:3001` | The CI deploy (push to `staging` = redeploy of the public app) |
 | hera / perigram-01 | `192.168.0.248` (LAN), wt0 `10.77.8.3` | Data plane: MongoDB `:27017` (db `cutkit`), LiveKit `:7880`; K3s server with the former prod `perigram-app` pod still alive on NodePort `:30080` (fallback path) |
@@ -28,7 +28,10 @@ cookies, or tokens — secrets live only in a password manager, SOPS
 
 ## Workstation Access
 
-- SSH alias `r330` (user `storage`) works over the LAN; no VPN needed.
+- `ssh cutkit-r330` reaches zeus over the NetBird mesh
+  (`10.77.219.223:2222`); LAN host entries in `~/.ssh/config` ProxyJump
+  through it, so `ssh zeus` and friends also ride the mesh rather than a
+  plain LAN path.
 - The `origin` remote is HTTPS `https://forgejo.sodalab.pro/perigram/perigram.git`
   (org-split R-20260927-11); pushes go through the global credential helper
   as `evo`.

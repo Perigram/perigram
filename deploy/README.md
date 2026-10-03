@@ -88,6 +88,15 @@ Editing the pipeline means editing that branch.
   and `sed -i` do) leaves the running containers pinned to the old inode —
   `nginx -s reload` then reloads stale config. Restart the `tls-front*`
   containers after editing it.
+- The `netbird.sodalab.pro` vhost carries `http2 on;` on its listener
+  (2026-10-03): gRPC management streams over TLS `:443` require HTTP/2 via
+  ALPN, and without it a peer enrolled with
+  `https://netbird.sodalab.pro:443` registers but never holds a stream —
+  `RST_STREAM … PROTOCOL_ERROR` reconnect loop, no WireGuard handshakes.
+  Peers on the plain `http://85.174.249.129:8081` path never traverse
+  nginx: signal and relay ride sslh → `127.0.0.1:18081` straight into
+  `netbird-server:80`, which is why the mesh mostly worked while the TLS
+  path was broken.
 - The nginx config also carries a dormant `staging.perigram.sodalab.pro`
   server block (same target); it is unreachable until a DNS record exists
   for that name. It can be activated or deleted independently.
