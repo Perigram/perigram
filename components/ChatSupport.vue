@@ -874,6 +874,7 @@
                                 v-model="message"
                                 @input="handleTypingInput"
                                 @keydown="handleKeyDown"
+                                @paste="handleComposerPaste"
                                 rows="1"
                                 autoResize
                             />
@@ -1402,6 +1403,15 @@ const handleKeyDown = (event) => {
         event.preventDefault()
         sendMessage()
     }
+}
+
+// Clipboard images stage through the same path as picked files (caps,
+// instance-chat gating, previews); plain-text paste falls through.
+const handleComposerPaste = (event) => {
+    const files = [...(event.clipboardData?.files || [])].filter(file => file.type.startsWith('image/'))
+    if (!files.length) return
+    event.preventDefault()
+    stageChatFiles(files)
 }
 
 const handleTypingInput = () => {
