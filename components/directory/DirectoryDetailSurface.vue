@@ -30,7 +30,7 @@
         <Panel v-if="detailedFields.length" :header="$t('common.details')">
           <DataBlock type-id="user" :entity="detailed" :fields="detailedFields" />
         </Panel>
-        <Panel v-if="membershipOptions.length" :header="$t('profile.myOrganizations')">
+        <Panel v-if="membershipOptions.length" :header="$t('profile.organizations')">
           <Menu :model="membershipMenuItems" class="w-full" :pt="flatMenu" />
         </Panel>
       </template>

@@ -889,6 +889,7 @@
     "preferences": "Preferences",
     "authentication": "Authentication",
     "developerTools": "Developer Tools",
+    "organizations": "Organizations",
     "myOrganizations": "My Organizations",
     "noOrganizationHelp": "You are not in an organization yet. Create one to start working.",
     "switchOrganization": "Switch organization",
