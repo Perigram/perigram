@@ -4,7 +4,7 @@ const RUNTIME_CACHE = 'perigram-runtime-v1'
 // decoration is cache-first; navigations, /_nuxt/ chunks, and GET /api/**
 // reads are network-first with offline cache fallback. The /api/connections
 // SSE stream is never intercepted. Only successful same-origin responses
-// are cached.
+// are cached; partial (206) range responses pass through uncached.
 const STATIC_PREFIXES = ['/icons/', '/fonts/', '/favicon/', '/icon.svg', '/manifest.webmanifest']
 
 self.addEventListener('install', () => {
@@ -57,7 +57,9 @@ self.addEventListener('activate', (event) => {
 })
 
 function cachePut(cacheName, event, response) {
-    if (!response || !response.ok || response.type !== 'basic') return Promise.resolve()
+    // Cache.put rejects partial (206) responses, and a partial body keyed to
+    // the full request would corrupt the offline fallback regardless.
+    if (!response || !response.ok || response.status === 206 || response.type !== 'basic') return Promise.resolve()
     const copy = response.clone()
     return caches.open(cacheName).then((cache) => cache.put(event.request, copy))
 }
