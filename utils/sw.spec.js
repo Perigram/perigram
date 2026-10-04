@@ -26,6 +26,10 @@ class FakeCache {
     }
 
     async put(request, response) {
+        // The real Cache API rejects partial responses.
+        if (response.status === 206) {
+            throw new TypeError("Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported")
+        }
         this.entries.set(request.url, response)
     }
 }
@@ -126,6 +130,15 @@ describe('service worker fetch contract', () => {
 
         const offlineEvent = dispatchFetch(get(`${ORIGIN}/_nuxt/entry.abc123.js`), offline)
         expect(await (await offlineEvent.responded()).text()).toBe('fresh')
+    })
+
+    it('passes partial (206) range responses through without caching them', async () => {
+        const event = dispatchFetch(get(`${ORIGIN}/api/files/abc/voice.webm`), () => Promise.resolve(browserResponse('bytes 0-1/2048', { status: 206 })))
+        const response = await event.responded()
+        expect(response.status).toBe(206)
+        expect(await response.text()).toBe('bytes 0-1/2048')
+        await expect(event.waited()).resolves.toBeUndefined()
+        expect((await caches.open(RUNTIME_CACHE)).entries.size).toBe(0)
     })
 
     it('serves cached GET /api/** reads offline and rejects never-cached ones', async () => {

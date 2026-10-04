@@ -193,7 +193,10 @@ builds only).
 
 - Static decoration — fonts, icons, the favicon set, the manifest — is
   cached cache-first; only successful (`response.ok`, same-origin)
-  responses are ever cached — error bodies must not enter a cache. Bumping
+  responses are ever cached — error bodies and `206 Partial Content`
+  range responses (browser media playback against `GET /api/**`) must
+  not enter a cache: the Cache API rejects partials, and a partial body
+  keyed to the full request would poison the offline fallback. Bumping
   the worker's cache version purges every client cache on activate.
 - Everything the app needs to load and read offline — HTML navigations,
   `/_nuxt/` app chunks, and `GET /api/**` reads — is cached network-first:
