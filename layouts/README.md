@@ -95,7 +95,10 @@ sizing on the component silently degrade to `position: relative` and the
 button drifts into the document flow. Every floating surface in the shell
 (the incoming-call stack, the offline outbox badge, the call window)
 anchors the same way, with the launcher between the outbox badge and the
-call surfaces in the stacking order.
+call surfaces in the stacking order. The call window doubles as the
+navigation-proof call host: a call panel unmounting while connected from
+a park-on-unmount host parks its live room there
+(see [components/calls](../components/calls/README.md)).
 
 ## Related
 

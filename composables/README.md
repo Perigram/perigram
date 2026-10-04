@@ -344,6 +344,15 @@ consumes; the staged `File` handle owns the resume, so dropping the draft
 abandons the session for the server-side TTL to reap. Voice recordings
 upload through the same transport.
 
+## useDirectoryUserSearch
+
+Debounced, stale-response-safe directory user search shared by the chat
+pickers (direct, group) and the organization invite dialog (search
+contract: [server/features/directory](../server/features/directory/README.md)).
+`query` drives it, `results` holds the current matches with the caller's
+own entry excluded, `searching` reflects the in-flight request; a query
+under two characters clears the results.
+
 ## useFileTypeView
 
 Organization-scoped cached read of the served CTS type view

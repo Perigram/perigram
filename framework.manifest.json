@@ -515,6 +515,10 @@
         "--ck-border-subtle": "var(--p-content-border-color)",
         "--ck-bounded-grid-item-max-width": "32rem",
         "--ck-bounded-grid-item-min-width": "24rem",
+        "--ck-call-window-height": "34rem",
+        "--ck-call-window-min-height": "20rem",
+        "--ck-call-window-min-width": "22rem",
+        "--ck-call-window-width": "30rem",
         "--ck-chrome-background": "var(--p-surface-100)",
         "--ck-chrome-border": "var(--p-content-border-color)",
         "--ck-chrome-foreground": "var(--p-text-color)",
@@ -539,7 +543,6 @@
         "--ck-grid-gap": "1.25rem",
         "--ck-page-background": "var(--p-surface-100)",
         "--ck-page-max-width": "1600px",
-        "--ck-preview-dialog-height": "95vh",
         "--ck-primary-100": "#f4f4f5",
         "--ck-primary-200": "#e4e4e7",
         "--ck-primary-300": "#d4d4d8",
@@ -622,6 +625,10 @@
           "boardColumnMaxHeight": "calc(100dvh - 16rem)",
           "boundedGridItemMaxWidth": "32rem",
           "boundedGridItemMinWidth": "24rem",
+          "callWindowHeight": "34rem",
+          "callWindowMinHeight": "20rem",
+          "callWindowMinWidth": "22rem",
+          "callWindowWidth": "30rem",
           "compactPreviewWidth": "10rem",
           "detailsGap": "1.5rem",
           "dialogLg": "56rem",
@@ -632,7 +639,6 @@
           "floatingMenuMinWidth": "12.5rem",
           "gridGap": "1.25rem",
           "pageMaxWidth": "1600px",
-          "previewDialogHeight": "95vh",
           "supportChatAdminHeight": "calc(100vh - 12rem)",
           "supportChatAdminMessageMax": "80%",
           "supportChatHeight": "31.25rem",
@@ -860,7 +866,7 @@
           "serif": "var(--ck-font-serif)"
         },
         "height": {
-          "preview-dialog": "var(--ck-preview-dialog-height)",
+          "call-window": "var(--ck-call-window-height)",
           "support-chat": "var(--ck-support-chat-height)",
           "support-chat-admin": "var(--ck-support-chat-admin-height)",
           "swatch": "var(--ck-swatch-size)"
@@ -882,9 +888,14 @@
           "support-chat-message": "var(--ck-support-chat-message-max)"
         },
         "minHeight": {
+          "call-window": "var(--ck-call-window-min-height)",
           "support-chat": "var(--ck-support-chat-height)"
         },
+        "minWidth": {
+          "call-window": "var(--ck-call-window-min-width)"
+        },
         "width": {
+          "call-window": "var(--ck-call-window-width)",
           "support-chat": "var(--ck-support-chat-width)",
           "swatch": "var(--ck-swatch-size)"
         }

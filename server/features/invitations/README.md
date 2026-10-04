@@ -38,8 +38,10 @@ is no second organizational approval round. Declining simply closes the
 invitation.
 
 - `listMine(user)` returns the caller's active targeted invitations
-  (`GET /api/invitations/mine`) — the profile page renders them with
-  accept/decline actions.
+  (`GET /api/invitations/mine`) — the shared `TargetedInvitations` surface
+  renders them with accept/decline actions, mounted both in the account
+  settings popup (above the memberships section, reachable for members of
+  other organizations) and on the orgless organization shell.
 - `respondInvitation(id, user, action)` (`POST /api/invitations/:id/respond`)
   accepts or declines; only the addressed user may respond.
 - The organization-side listing (`listByOrgForUser`) includes targeted

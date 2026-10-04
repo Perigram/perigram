@@ -1045,8 +1045,9 @@ function openCallTab(room = '', meta = {}) {
       label
     }];
   }
-  // Live call stages own their tab: navigating the workspace must not
-  // unmount an active call, so calls always open as a new tab.
+  // Live call stages own their tab: calls always open as a new tab, and
+  // navigating away parks the live room into the shell floating window
+  // (CallPanel park-on-unmount; components/calls README).
   selectPaneTab(activePane.value.id, room, { newTab: true });
 }
 

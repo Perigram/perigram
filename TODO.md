@@ -1,5 +1,33 @@
 # TODO
 
+## Cross-organization chat groups (2026-10-04)
+
+- [ ] Group membership and inbox visibility are user-scope (SPEC §Chat
+  groups): the member picker searches the directory cross-tenant, and the
+  inbox lists groups by participant without an organization filter.
+
+### Agent Notes (2026-10-04)
+
+Session `agent/invitations-calls-chat-20261004`. Implemented: dropped the
+`lineage.organizationId` filter from `findGroupsByParticipant` (groups now
+also load for orgless participants), gave the group dialog the same
+directory-search reach as the direct picker through the new shared
+`useDirectoryUserSearch` composable, and fixed the stale
+"organization-reachable" JSDoc plus the direct-picker template comment
+that contradicted the support README.
+
+## Paste images from clipboard into chat (2026-10-04)
+
+- [ ] Clipboard images pasted into the composer stage through the same
+  path as picked files (SPEC §Chat files).
+
+### Agent Notes (2026-10-04)
+
+Session `agent/invitations-calls-chat-20261004`. Implemented:
+`handleComposerPaste` on the composer Textarea routes `image/*`
+clipboard files through `stageChatFiles`; plain-text paste falls through
+untouched.
+
 ## Directory user popup says "My organizations" over someone else's profile (2026-10-04)
 
 - [x] The memberships Panel reused the settings-popup key

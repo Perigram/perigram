@@ -42,7 +42,10 @@ snapshot live by debounced refetches on `call.activity` events arriving
 on the caller's own `user:` and `org:` topics (which match room
 admission, so events only ever mention joinable rooms). Calls open as
 ephemeral workspace-pane tabs hosting the LiveKit stage beside the
-call's conversation chat, not as floating dialogs.
+call's conversation chat, not as floating dialogs. Navigating away from
+a call surface does not leave the call: the live room parks into the
+shell floating window (surface contract in
+[components/calls](../../../components/calls/README.md)).
 
 ## Recordings
 

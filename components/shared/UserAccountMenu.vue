@@ -93,6 +93,9 @@
           </div>
         </div>
       </Panel>
+      <!-- Targeted invitations render above the memberships section so
+           members of other organizations can reach them. -->
+      <TargetedInvitations />
       <Panel :header="t('profile.myOrganizations')">
         <Menu :model="organizationMenuItems" class="w-full" :pt="flatMenu" />
       </Panel>
@@ -159,6 +162,7 @@ const startJustified = { root: { style: 'justify-content: flex-start' } };
 import ToggleSwitch from 'primevue/toggleswitch';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
+import TargetedInvitations from '~/components/shared/TargetedInvitations.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';

@@ -245,7 +245,9 @@ media bytes. Call recordings imported by the
 [livekit feature](../livekit/README.md#recordings) remain server-authored
 `video` attachment-only messages posted from the recording starter; every
 other attachment is user-uploaded through the composer (voice messages
-included — recorded through `MediaRecorder`, sent as `audio` descriptors).
+included — recorded through `MediaRecorder`, sent as `audio` descriptors;
+images may also be pasted from the clipboard — they stage through the same
+path as picked files, caps and instance-chat gating included).
 Attachment-only messages are valid (empty body). Reply quotes persist the
 parent's attachments, and conversation summaries carry the last message's
 `attachments` so inbox previews render attachment chips.
