@@ -242,11 +242,16 @@ Organization memberships render canonical `OrganizationCard` surfaces
 with visible footer actions: inactive memberships switch context, while the
 active membership has one direct action into the generated organization
 overview. Billing, team, and process navigation stays inside that overview.
-Targeted invitations addressed to the account render above the memberships
-grid with accept/decline actions; accepting completes the single-handshake
-membership (see
+Targeted invitations addressed to the account render through the shared
+`TargetedInvitations` surface: above the memberships section of the account
+settings popup and on the orgless organization shell. Accepting completes the
+single-handshake membership (see
 [invitations](../server/features/invitations/README.md)) and re-hydrates
-auth so the new membership appears immediately.
+auth so the new membership appears immediately. The `/organization` route
+also carries the pending-member state: an account whose memberships are all
+pending (link invitations join that way) has no tenant screens, so the route
+renders the awaiting-approval message instead of the not-found state, and
+`/invitation/:token` re-hydrates auth before navigating there.
 
 `/chats` is the authenticated full-page conversation inbox. Desktop keeps the
 conversation list and selected thread in a two-pane bounded workspace; mobile
