@@ -83,7 +83,16 @@ accepts its upload (payload traits + upload creation protocol); the sender
 picks the child type when several accept the same file. Instance chats
 whose target declares no accepting child refuse the upload at pick time;
 common chats (support/direct/group) and party-target chats (the
-organization chat) keep files as plain unlinked attachments.
+organization chat) keep files as plain unlinked attachments. Images paste
+straight from the clipboard into the composer and ride the same attachment
+flow as picked files.
+
+## Chat groups
+
+Group chats are user-scope: any existing account can be a member, not only
+organization-reachable users. The group record stays homed in the creator's
+organization lineage, but membership, inbox visibility, and conversation
+access are never filtered by organization.
 
 ## Meetings
 
