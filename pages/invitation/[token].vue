@@ -124,7 +124,10 @@ const joinHandler = async () => {
     try {
         await $fetch(`/api/invitations/${token}/join`, { method: 'POST' });
         toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.organizationJoined'), life: 3000 });
-        navigateTo('/organization');
+        // The new membership must be in the hydrated auth state before the
+        // organization route computes which surface it can render.
+        await authStore.setUser();
+        await navigateTo('/organization');
     } catch (err) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: err.message, life: 3000 });
     } finally {
