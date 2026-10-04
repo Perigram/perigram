@@ -112,6 +112,14 @@ continues the call without reconnecting. Transferring a call that has not
 connected yet aborts the transfer — the adopting surface falls back to
 its own pre-join stage — and a panel that unmounts mid-join never reports
 the room joined.
+Navigation uses the same parking machinery: hosts that set
+`parkOnUnmount` (the workspace call tab and the chat call dialog) park
+the live room into the shell floating window when they unmount while
+connected — route change, pane tab switch, or dialog close — and the
+floating window adopts it without reconnecting. The floating window's
+own close button and the mobile dialog hosts keep leave-on-close
+semantics, and on mobile viewports an unmounting panel always leaves:
+the floating window has no mobile surface to rehost a parked room.
 
 ## Surface routing
 
