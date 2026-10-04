@@ -16,7 +16,7 @@
             @click="popOut"
           />
         </div>
-        <CallPanel :room="room" @closed="$emit('closed')" />
+        <CallPanel :room="room" park-on-unmount @closed="$emit('closed')" />
       </div>
       <aside
         v-if="conversationKey"

@@ -917,7 +917,7 @@
                 <span class="min-w-0 truncate text-label">{{ callHeaderLabel }}</span>
             </template>
             <div class="flex min-h-0 flex-1 flex-col">
-                <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
+                <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" park-on-unmount @closed="callDialog = false" />
             </div>
         </StandardDialog>
         <StandardDialog

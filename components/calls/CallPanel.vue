@@ -241,15 +241,21 @@ import CallPrejoin from '~/components/calls/CallPrejoin.vue';
 import CallTile from '~/components/calls/CallTile.vue';
 import { riseAndFade } from '~/composables/useMotion.js';
 import { useCallsStore } from '~/stores/calls';
+import { useCallRouting } from '~/composables/useCallRouting.js';
 import { conversationKeyForRoom } from '~/utils/call-rooms.js';
 import { useToast } from 'primevue/usetoast';
 
 const props = defineProps({
-    room: { type: String, required: true }
+    room: { type: String, required: true },
+    // Hosts that should keep the call alive when they unmount (workspace
+    // tabs, chat surfaces) set this; the floating window and the mobile
+    // dialog hosts keep leave-on-close semantics.
+    parkOnUnmount: { type: Boolean, default: false }
 });
 const emit = defineEmits(['closed']);
 const { t } = useI18n();
 const callsStore = useCallsStore();
+const { isMobileViewport } = useCallRouting();
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '🎉', '👏'];
 const CALL_DATA_TOPIC = 'call.events';
@@ -809,8 +815,7 @@ const leave = async () => {
 onBeforeUnmount(() => {
     disposed = true;
     // Surface transfer (pop-out or dock): another surface is taking this
-    // call, so park the live connection instead of dropping it. Every other
-    // unmount leaves the call.
+    // call, so park the live connection instead of dropping it.
     if (connected.value && callsStore.transferRoom === props.room && livekitRoom) {
         try {
             livekitRoom.removeAllListeners();
@@ -818,6 +823,22 @@ onBeforeUnmount(() => {
             /* listener cleanup is best-effort */
         }
         callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit);
+        livekitRoom = null;
+        teardownMedia();
+        return;
+    }
+    // Navigating away from a park-on-unmount host (route change, pane tab
+    // switch, host dialog close) must not end the call: the live room parks
+    // into the shell floating window, which adopts it without reconnecting.
+    // Desktop only — the floating window has no mobile surface to rehost it.
+    if (connected.value && livekitRoom && props.parkOnUnmount && !isMobileViewport()) {
+        try {
+            livekitRoom.removeAllListeners();
+        } catch {
+            /* listener cleanup is best-effort */
+        }
+        callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit);
+        callsStore.setFloating(props.room);
         livekitRoom = null;
         teardownMedia();
         return;
