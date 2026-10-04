@@ -1,5 +1,17 @@
 # TODO
 
+## Directory user popup says "My organizations" over someone else's profile (2026-10-04)
+
+- [x] The memberships Panel reused the settings-popup key
+  (`profile.myOrganizations` — viewer-voice) on other users' profiles;
+  neutral `profile.organizations` ("Organizations") heads it now.
+
+### Agent Notes (2026-10-04)
+
+Session `agent/user-popup-orgs-label-20261004`. Wording bug introduced
+with the Panel conversion (pass 5): the section label must be neutral in
+the directory popup and viewer-voice only in the owner's settings.
+
 ## LiveKit grant authorable in the permissions UI (2026-10-02)
 
 - [ ] The process page's grant editor only lists screen-derived features;

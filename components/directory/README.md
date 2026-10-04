@@ -26,7 +26,7 @@ into these panes through the shared workspace-open seam.
 - Membership rows render only organizations the viewer can themselves
   resolve (cross-tenant org names are not readable) and open them through
   the workspace-open seam — never a route. Sections are PrimeVue-owned:
-  `Panel` headers carry the section chrome (Details, My Organizations,
+  `Panel` headers carry the section chrome (Details, Organizations,
   Partners) and memberships render as an inline `Menu` (building icon,
   active organization marked by the success check).
 - The organization profile carries the record's conversation affordance
