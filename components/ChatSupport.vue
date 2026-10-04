@@ -931,9 +931,9 @@
             <div class="flex flex-col gap-3" data-testid="new-chat-picker">
                 <!-- The picker's own search: empty query keeps the
                      organization-scoped list; a typed query searches the
-                     directory (name-only) with shared-organization users
-                     first — direct threads are only allowed within that
-                     reach, so farther results stay hidden. -->
+                     directory (name-only, cross-tenant) — direct threads
+                     are open between any two accounts, and every match
+                     except the caller's own entry is listed. -->
                 <IconField>
                     <InputIcon class="pi pi-search" />
                     <InputText
@@ -988,14 +988,25 @@
                     :placeholder="$t('support.groupName')"
                     :aria-label="$t('support.groupName')"
                 />
+                <!-- Same reach as the direct picker: organization members
+                     plus directory matches for the typed query — group
+                     participants are user-scope, not organization-scope. -->
+                <IconField>
+                    <InputIcon class="pi pi-search" />
+                    <InputText
+                        v-model="groupMemberSearch"
+                        type="text"
+                        class="w-full"
+                        :placeholder="$t('directory.searchPlaceholder')"
+                    />
+                </IconField>
                 <InstanceMultiSelect
                     v-model="groupMemberIds"
-                    :options="newChatUsers"
+                    :options="groupMemberOptions"
                     option-label="label"
                     option-value="value"
                     type-id="user"
-                    filter
-                    :loading="newChatUsersLoading"
+                    :loading="newChatUsersLoading || groupMemberSearching"
                     :placeholder="$t('support.selectMembers')"
                     :aria-label="$t('support.selectMembers')"
                     class="w-full"
@@ -1135,6 +1146,7 @@ import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useFileTypeView } from '~/composables/useFileTypeView.js'
 import { useChatFileUpload } from '~/composables/useChatFileUpload.js'
+import { useDirectoryUserSearch } from '~/composables/useDirectoryUserSearch.js'
 import {
     chatFileChildCandidates,
     chatFileAccept,
@@ -2819,52 +2831,48 @@ const loadNewChatUsers = async () => {
     }
 }
 
-// Directory search over the new-chat picker: the typed query searches
-// users by name across every
-// organization — direct threads are open between any two accounts, and
-// the picker lists every match except the caller's own entry.
-const newChatSearch = ref('')
-const newChatDirectoryOptions = ref([])
-const newChatSearching = ref(false)
-let newChatSearchTimer = null
-let newChatSearchSeq = 0
+// Directory search over the chat pickers: a typed query searches users by
+// name across every organization — person threads are open between any two
+// accounts (support README), and every match except the caller's own entry
+// is listed.
+const directoryUserOption = (entry) => ({
+    type: 'user',
+    value: entry._id,
+    label: entry.identity?.name || entry._id,
+    instance: entry
+})
+const { query: newChatSearch, results: newChatDirectoryOptions, searching: newChatSearching } = useDirectoryUserSearch()
 const newChatOptions = computed(() => {
     const query = newChatSearch.value.trim()
-    return query.length >= 2 ? newChatDirectoryOptions.value : newChatUsers.value
+    if (query.length < 2) return newChatUsers.value
+    return newChatDirectoryOptions.value.map(directoryUserOption)
 })
 
-watch(newChatSearch, (value) => {
-    clearTimeout(newChatSearchTimer)
-    const query = value.trim()
-    if (query.length < 2) {
-        newChatDirectoryOptions.value = []
-        newChatSearching.value = false
-        return
+// Group members reach beyond the organization the same way: the merged
+// option list keeps organization members, current directory matches, and
+// already-picked directory entries (so selected chips keep resolving when
+// the query changes).
+const { query: groupMemberSearch, results: groupMemberDirectoryResults, searching: groupMemberSearching } = useDirectoryUserSearch()
+const groupPickedDirectoryOptions = ref([])
+const groupMemberOptions = computed(() => {
+    const byValue = new Map()
+    for (const option of [
+        ...newChatUsers.value,
+        ...groupMemberDirectoryResults.value.map(directoryUserOption),
+        ...groupPickedDirectoryOptions.value
+    ]) {
+        if (option?.value && !byValue.has(option.value)) byValue.set(option.value, option)
     }
-    newChatSearching.value = true
-    newChatSearchTimer = setTimeout(async () => {
-        const seq = ++newChatSearchSeq
-        try {
-            const response = await $fetch('/api/directory/search', {
-                query: { q: query, types: 'user' }
-            })
-            if (seq !== newChatSearchSeq) return
-            const entries = (response?.groups || []).flatMap(group => group.results || [])
-            newChatDirectoryOptions.value = entries
-                .filter(entry => !entry.directory?.isSelf)
-                .map(entry => ({
-                    type: 'user',
-                    value: entry._id,
-                    label: entry.identity?.name || entry._id,
-                    instance: entry
-                }))
-        } catch {
-            if (seq === newChatSearchSeq) newChatDirectoryOptions.value = []
-        } finally {
-            if (seq === newChatSearchSeq) newChatSearching.value = false
-        }
-    }, 300)
+    return [...byValue.values()]
 })
+watch(groupMemberIds, (ids) => {
+    for (const entry of groupMemberDirectoryResults.value) {
+        const value = entry._id
+        if (ids.includes(value) && !groupPickedDirectoryOptions.value.some(option => option.value === value)) {
+            groupPickedDirectoryOptions.value.push(directoryUserOption(entry))
+        }
+    }
+}, { deep: true })
 
 const openNewChatDialog = async () => {
     newChatDialog.value = true
@@ -2894,6 +2902,8 @@ const openNewChatUser = (userId) => {
 const openGroupDialog = async () => {
     groupName.value = ''
     groupMemberIds.value = []
+    groupMemberSearch.value = ''
+    groupPickedDirectoryOptions.value = []
     groupDialog.value = true
     if (!newChatUsers.value.length) await loadNewChatUsers()
 }

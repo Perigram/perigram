@@ -155,13 +155,10 @@ export async function findGroupById(id) {
     return await db.collection(GROUPS_COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
-export async function findGroupsByParticipant(userId, organizationId) {
+export async function findGroupsByParticipant(userId) {
     const db = await connectDB();
     return await db.collection(GROUPS_COLLECTION)
-        .find({
-            participants: String(userId),
-            'lineage.organizationId': toFlexibleId(organizationId)
-        })
+        .find({ participants: String(userId) })
         .sort({ 'identity.name': 1 })
         .toArray();
 }

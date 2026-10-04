@@ -117,7 +117,7 @@ function groupDTO(group = null) {
 /**
  * Group chats are the persisted multi-participant conversation record and the
  * livekit group-call room source: `{ conversationKey: 'group:<id>', room:
- * 'call:group:<id>' }`. Participants must be organization-reachable users,
+ * 'call:group:<id>' }`. Participants are user-scope — any existing account —
  * and the creator is always a participant.
  */
 export async function createGroup(auth, body = {}) {
@@ -398,9 +398,7 @@ export async function listUserConversations(auth) {
     if (!userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
     const [messages, groups] = await Promise.all([
         repository.findConversationMessages(userConversationsMatch(userId, auth.organizationId || null), messageProjection()),
-        auth.organizationId
-            ? repository.findGroupsByParticipant(userId, auth.organizationId)
-            : Promise.resolve([])
+        repository.findGroupsByParticipant(userId)
     ]);
     const personMessages = messages.filter(message => message.conversationKind !== 'instance');
     const summaries = await buildConversationSummaries(personMessages, auth, { groups: groups.map(groupDTO) });

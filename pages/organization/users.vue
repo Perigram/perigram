@@ -298,6 +298,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import { useInstancesStore } from '~/stores/instances';
+import { useDirectoryUserSearch } from '~/composables/useDirectoryUserSearch.js';
 import { useRegistryStore } from '~/stores/registry';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 import { discoverAssignmentBindingRequirements } from '~/packages/processes/src/index.js';
@@ -397,40 +398,10 @@ const inviteForm = ref({
 // Targeted invitation state: invitee search runs through the directory
 // feature (name-only, cross-tenant) and the selected user receives a
 // single-handshake invitation.
-const inviteSearch = ref('');
-const inviteResults = ref([]);
-const inviteSearching = ref(false);
-const selectedInvitee = ref(null);
-const inviting = ref(false);
-const trimmedInviteSearch = computed(() => inviteSearch.value.trim());
-
-watch(inviteSearch, (value) => {
-    clearTimeout(inviteSearchTimer);
-    const normalized = value.trim();
-    if (!selectedInvitee.value && normalized.length < 2) {
-        inviteResults.value = [];
-        inviteSearching.value = false;
-        return;
-    }
-    if (selectedInvitee.value) return;
-    inviteSearching.value = true;
-    inviteSearchTimer = setTimeout(async () => {
-        const seq = ++inviteSearchSeq;
-        try {
-            const response = await $fetch('/api/directory/search', { query: { q: normalized, types: 'user' } });
-            if (seq !== inviteSearchSeq) return;
-            inviteResults.value = (response?.groups || [])
-                .flatMap(group => group.results || [])
-                .filter(user => !user.directory?.isSelf);
-        } catch {
-            if (seq === inviteSearchSeq) inviteResults.value = [];
-        } finally {
-            if (seq === inviteSearchSeq) inviteSearching.value = false;
-        }
-    }, 300);
-});
-let inviteSearchTimer = null;
-let inviteSearchSeq = 0;
+const { query: inviteSearch, results: inviteResults, searching: inviteSearching } = useDirectoryUserSearch()
+const selectedInvitee = ref(null)
+const inviting = ref(false)
+const trimmedInviteSearch = computed(() => inviteSearch.value.trim())
 
 function selectInvitee(user) {
     selectedInvitee.value = user;

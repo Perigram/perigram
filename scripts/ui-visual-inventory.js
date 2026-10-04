@@ -63,6 +63,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
     ':style="workpieceAccentStyle(row.id)"'
   ]],
   'components/ChatSupport.vue': ['data-driven', [
+    ':style="rowContentStyle(option)"',
     ':style="{ opacity: swipeIconOpacity(messageItem) }"',
     ':style="swipeStyle(messageItem)"'
   ]],
