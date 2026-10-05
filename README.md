@@ -255,5 +255,6 @@ builds only).
 | E2E workflow tests | [e2e/README.md](./e2e/README.md) |
 | Scripts and guardrails | [scripts/README.md](./scripts/README.md) |
 | Deploy tooling (Forgejo autodeploy) | [deploy/README.md](./deploy/README.md) |
+| Facade explainer video | [video/README.md](./video/README.md) |
 | Schema specs | [docs/specs/README.md](./docs/specs/README.md) |
 | Codex agent assets | [.codex/README.md](./.codex/README.md) |
