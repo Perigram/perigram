@@ -523,7 +523,6 @@
                                     v-if="messageItem.forwardedFrom"
                                     class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting"
                                 >
-                                    <i class="pi pi-share-alt shrink-0" aria-hidden="true" />
                                     <span class="min-w-0 truncate">
                                         {{ $t('support.forwardedFrom', { name: messageItem.forwardedFrom.senderName || $t('common.user') }) }}
                                     </span>
