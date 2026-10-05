@@ -516,6 +516,32 @@
                                 ]"
                                 :style="swipeStyle(messageItem)"
                             >
+                                <!-- Forwarded provenance leads the message
+                                     (SPEC §Chat thread): a caption line above
+                                     every shape — text, media, or files. -->
+                                <span
+                                    v-if="messageItem.forwardedFrom"
+                                    class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting"
+                                >
+                                    <i class="pi pi-share-alt shrink-0" aria-hidden="true" />
+                                    <span class="min-w-0 truncate">
+                                        {{ $t('support.forwardedFrom', { name: messageItem.forwardedFrom.senderName || $t('common.user') }) }}
+                                    </span>
+                                </span>
+                                <!-- Sender label: group threads lead others'
+                                     runs with the resolved sender (the same
+                                     inline user chip the thread header uses
+                                     for members) — once per run, never for
+                                     the viewer's own messages. -->
+                                <InstanceInlineRef
+                                    v-if="showSenderLabel(messageItem)"
+                                    type="user"
+                                    :id="messageSenderKey(messageItem)"
+                                    :fields="[]"
+                                    fetch
+                                    variant="inline"
+                                    class="max-w-full"
+                                />
                                 <!-- Reply quote: a quote block, not a control —
                                      plain element with quote styling; no PrimeVue
                                      primitive fits without fighting its chrome. -->
@@ -556,12 +582,6 @@
                                         isAudioOnlyMessage(messageItem) ? 'order-last' : ''
                                     ]"
                                 >
-                                    <small
-                                        v-if="messageItem.forwardedFrom"
-                                        class="mb-0.5 block text-muted text-supporting"
-                                    >
-                                        {{ $t('support.forwardedFrom', { name: messageItem.forwardedFrom.senderName || $t('common.user') }) }}
-                                    </small>
                                     <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
                                         <SupportMessageContent :message="bubbleContentMessage(messageItem)" :viewer-user-id="currentUserId" />
                                     </p>
@@ -623,8 +643,18 @@
                                     <i class="pi pi-spin pi-spinner shrink-0" aria-hidden="true" />
                                     <span class="min-w-0 truncate">{{ $t('support.transcribing') }}</span>
                                 </span>
-                                <span class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting order-last">
-                                    {{ formatTime(messageItem.timestamp) }}
+                                <!-- Timestamp trails the sender run: only the
+                                     last message of a run carries it (SPEC
+                                     §Chat thread); the caption row stays
+                                     mounted for the instance leaf link
+                                     regardless. -->
+                                <span
+                                    v-if="messageItem.lastOfSenderRun || lowerInstanceChip(messageItem)"
+                                    class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting order-last"
+                                >
+                                    <template v-if="messageItem.lastOfSenderRun">
+                                        {{ formatTime(messageItem.timestamp) }}
+                                    </template>
                                     <!-- Messages linked to lower instances keep a
                                          subtle, clickable leaf link inside the
                                          caption; it is inline caption text, not a
@@ -2865,6 +2895,20 @@ const openConversationMenu = (event, option) => {
     conversationMenu.value?.toggle(event)
 }
 
+// Sender runs: consecutive messages from one sender within a short window
+// read as one visual unit — the sender label leads, the timestamp trails
+// under the last message only (SPEC §Chat thread). Runs break on sender
+// change, time gap, or a day divider (the gap makes one inevitable).
+const MESSAGE_RUN_WINDOW_MS = 3 * 60 * 1000
+
+const messageSenderKey = (messageItem) => String(messageItem?.senderUserId || messageItem?.sender || '')
+
+const continuesSenderRun = (messageItem, neighbor) => {
+    if (!neighbor || messageSenderKey(messageItem) !== messageSenderKey(neighbor)) return false
+    const gap = Math.abs(new Date(messageItem.timestamp).getTime() - new Date(neighbor.timestamp).getTime())
+    return Number.isFinite(gap) && gap <= MESSAGE_RUN_WINDOW_MS
+}
+
 const messagesList = computed(() => {
     const usedDates = []
     const getDay = (timestamp) => {
@@ -2876,10 +2920,14 @@ const messagesList = computed(() => {
         usedDates.push(dateStr)
         return dateStr
     }
-    return messages.value.map(messageItem => {
+    return messages.value.map((messageItem, index) => {
+        const previous = messages.value[index - 1] || null
+        const next = messages.value[index + 1] || null
         return {
             ...messageItem,
-            day: getDay(messageItem.timestamp)
+            day: getDay(messageItem.timestamp),
+            firstOfSenderRun: !continuesSenderRun(messageItem, previous),
+            lastOfSenderRun: !continuesSenderRun(messageItem, next)
         }
     })
 })
@@ -3265,6 +3313,14 @@ const isOwnMessage = (chatMessage) => {
     }
     return chatMessage.sender === 'user'
 }
+
+// Group threads lead others' sender runs with the resolved sender (SPEC
+// §Chat thread): the same inline user chip the thread header uses for
+// members, once per run; the viewer's own messages carry none.
+const showSenderLabel = (messageItem) => activeConversation.value?.conversationKind === 'group'
+    && Boolean(messageItem?.senderUserId)
+    && !isOwnMessage(messageItem)
+    && messageItem.firstOfSenderRun
 
 const openConversation = async (conversation) => {
     activeConversation.value = conversation
