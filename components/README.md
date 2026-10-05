@@ -1023,7 +1023,15 @@ participant context and render latest
 message entity tokens through `SupportMessageContent`, without per-row
 message-count badges. Message bubbles own a `min-w-0`/`max-w-full` chain with
 `overflow-wrap: anywhere` text wrapping, so long unbroken strings stay inside
-the chat bounds. Conversation history is lazy: the thread loads the newest
+the chat bounds. Messages group into sender runs (SPEC §Chat thread):
+consecutive messages from one sender within a short window render as one
+unit — the timestamp trails under the last message of the run only (the
+instance leaf link keeps its caption row regardless), and group threads
+lead others' runs with the resolved sender through the same inline user
+chip the thread header uses for members (once per run, never for the
+viewer's own messages). Forwarded messages lead their content with the
+forwarded-from caption line (forward icon + original sender) on every
+shape — text, media, or files. Conversation history is lazy: the thread loads the newest
 message page and prepends older pages on scroll-to-top through the
 `limit`/`before` cursor contract, preserving the scroll anchor. Voice messages
 record through `MediaRecorder`, upload through the files endpoint, and render
