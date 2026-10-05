@@ -50,7 +50,9 @@ enters the main bundle).
   the full-screen dialog).
 - `CallFloatingWindow.vue` is the absolute floating call window: a draggable
   fixed panel above the app that hosts a popped-out `CallPanel`. Docking
-  returns the call to a home workspace tab.
+  returns the call to a home workspace tab. The mobile counterpart — the
+  parked-call entry in the top lane with its reopen dialog — lives beside
+  the now-playing dock in [components/media](../media/README.md).
 
 ## Panel chrome
 
@@ -108,18 +110,25 @@ its workspace tab (or docking a floating call back) marks the room as
 transferring; the unmounting `CallPanel` strips its listeners and parks
 the live room in the store, and the adopting panel rebinds the same
 events, rebuilds tiles from the current participants/publications, and
-continues the call without reconnecting. Transferring a call that has not
+continues the call without reconnecting. Parking also hands over the
+LiveKit-attached remote-audio elements: they keep playing in the calls
+store's hidden document-level sink, so a parked room stays audible, and
+the adopting panel moves the same elements into its own sink (never
+re-attaching — a fresh `track.attach()` would double the audio).
+Transferring a call that has not
 connected yet aborts the transfer — the adopting surface falls back to
 its own pre-join stage — and a panel that unmounts mid-join never reports
 the room joined.
 Navigation uses the same parking machinery: hosts that set
-`parkOnUnmount` (the workspace call tab and the chat call dialog) park
-the live room into the shell floating window when they unmount while
-connected — route change, pane tab switch, or dialog close — and the
-floating window adopts it without reconnecting. The floating window's
-own close button and the mobile dialog hosts keep leave-on-close
-semantics, and on mobile viewports an unmounting panel always leaves:
-the floating window has no mobile surface to rehost a parked room.
+`parkOnUnmount` (the workspace call tab, the chat call dialog, and the
+mobile top-lane dialog) park the live room when they unmount while
+connected — route change, pane tab switch, or dialog close. On desktop
+the shell floating window adopts it without reconnecting; on mobile the
+now-playing lane's call entry hosts it (see
+[components/media](../media/README.md)) — expand reopens the full-screen
+dialog whose panel adopts the parked room, and the entry's close leaves
+the call. The floating window's own close button keeps leave-on-close
+semantics.
 
 ## Surface routing
 
@@ -187,6 +196,9 @@ user topic and `call.activity` on the user/org topics, keeps the
 (30s TTL). Consumers:
 
 - the app shell mounts `IncomingCalls` for ring notifications;
+- the app shell mounts the now-playing dock (`components/media`), whose
+  mobile lane carries the parked-call entry for calls that lost their
+  surface (SPEC §Now playing);
 - the generated home sidebar lists ongoing rooms as persistent flat rows
   under the Calls entry (label, participant count, row click joins),
   whose popup flyout lists ringable conversations;

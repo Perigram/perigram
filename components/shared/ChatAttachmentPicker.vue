@@ -1,9 +1,10 @@
 <template>
   <Popover ref="popover">
     <div class="flex w-80 flex-col gap-1">
-      <!-- File upload entry: the same attach surface owns files and entity
-           refs (SPEC.md §Chat files). Hidden input rides the popover; the
-           host stages what it emits. -->
+      <!-- File entries: the same attach surface owns files and entity refs
+           (SPEC.md §Chat files). Hidden inputs ride the popover — device
+           upload and camera capture (photo/video) — and the host stages
+           what they emit. -->
       <input
         ref="fileInput"
         class="hidden"
@@ -13,6 +14,26 @@
         data-testid="chat-file-input"
         @change="onFilesPicked"
       >
+      <input
+        ref="cameraInput"
+        class="hidden"
+        type="file"
+        accept="image/*,video/*"
+        capture="environment"
+        data-testid="chat-camera-input"
+        @change="onFilesPicked"
+      >
+      <Button
+        v-if="filesEnabled"
+        class="justify-start"
+        icon="pi pi-camera"
+        :label="$t('support.captureMedia')"
+        severity="secondary"
+        outlined
+        size="small"
+        data-testid="chat-camera-trigger"
+        @click="cameraInput?.click()"
+      />
       <Button
         v-if="filesEnabled"
         class="justify-start"
@@ -119,6 +140,7 @@ const { t, te } = useI18n()
 
 const popover = ref(null)
 const fileInput = ref(null)
+const cameraInput = ref(null)
 const expandedKeys = ref({})
 const childrenByParentKey = ref(new Map())
 const loadedKeys = ref(new Set())

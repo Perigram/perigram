@@ -1,0 +1,48 @@
+# COMPONENT: Media
+
+Persistent playback surfaces for media and calls that outlive their source
+surface (SPEC §Now playing). One dock host, mounted by the app layout, with
+two placements from one component: a floating card top-right on desktop and
+a lane pinned to the top of the screen on mobile (safe-area aware, beneath
+the bottom-nav stacking).
+
+## Now-playing channel
+
+`stores/media.js` owns the single-play policy: a media element starting
+playback claims the channel and pauses whatever played before it — inline
+players in different messages, or the dock itself. `ChatAttachments` (the
+only inline media renderer today) claims on every `play` and registers the
+playing element with its descriptor; when its surface unmounts while the
+element is still playing (route change, thread switch, dialog close), it
+calls `adopt({ kind, url, title, time })`.
+
+Media elements cannot survive their Vue-managed template parents — Vue's
+unmount removes moved elements too — so the dock re-creates the element
+from the descriptor, seeks to the handed-over position on
+`loadedmetadata`, and continues playback through an explicit `play()`
+(the originating user gesture already unlocked sound; no `autoplay`
+attribute races the seek). Native
+controls remain the interface; the dock's chrome adds identity (icon,
+title, kind) and dismissal. `dismiss()` pauses and clears; `ended` clears
+by itself.
+
+## Parked calls on mobile
+
+`MediaDock` also renders the mobile top-lane entry for a parked call: a
+`callsStore.parkedRoom` with no adopting surface (`floatingRoom` empty —
+desktop's floating window clears its own adoption path). The pill names the
+conversation through the same `callRoomLabel` resolver the home sidebar
+rows use; expand reopens the full-screen call dialog whose `CallPanel`
+adopts the parked room without reconnecting, and close leaves the call
+(`dropLiveRoom`). Remote audio never pauses while parked: the parking
+handoff moves the LiveKit-attached audio elements into the calls store's
+hidden document sink, so the connection and its audio stay live until a
+surface adopts them (see
+[components/calls](../calls/README.md#call-line-state-machine)).
+
+## Related
+
+- [stores](../../stores/README.md)
+- [components/calls](../calls/README.md)
+- [layouts](../../layouts/README.md)
+- [Support chat](../../../server/features/support/README.md)

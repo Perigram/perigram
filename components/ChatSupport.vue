@@ -247,7 +247,25 @@
                 <StateBlock :message="$t('support.selectConversation')" icon="pi pi-comments" />
             </div>
 
-            <section v-if="activeConversation" class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <section
+                v-if="activeConversation"
+                class="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+                @dragenter="onFilesDragEnter"
+                @dragover="onFilesDragOver"
+                @dragleave="onFilesDragLeave"
+                @drop="onFilesDrop"
+            >
+                <!-- Drop area: file drags over the thread stage the dropped
+                     set through the composer's own attachment flow (caps,
+                     instance-chat gating included). -->
+                <div
+                    v-if="filesDragging"
+                    class="pointer-events-none absolute inset-3 z-20 flex flex-col items-center justify-center gap-2 rounded-ui border-2 border-dashed border-chrome-border bg-content text-center"
+                    data-testid="chat-drop-zone"
+                >
+                    <i class="pi pi-upload text-section-heading text-muted" aria-hidden="true" />
+                    <span class="text-label">{{ $t('support.dropFiles') }}</span>
+                </div>
                 <header class="flex shrink-0 items-center gap-2 border-b border-chrome-border px-3 py-3 md:gap-3 md:px-4">
                     <Button
                         v-if="!threadOnly"
@@ -524,20 +542,28 @@
                                     </span>
                                 </button>
                                 <div
-                                    v-if="messageItem.message || (messageItem.instanceRefs || []).length"
+                                    v-if="messageBubbleText(messageItem) || (messageItem.instanceRefs || []).length"
                                     class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
                                     :class="[
-                                        // A voice message's transcription is caption
+                                        // A voice message's transcript is caption
                                         // chrome on the lower surface — never the
-                                        // sender's primary bubble (SPEC: chat).
+                                        // sender's primary bubble (SPEC: chat); it
+                                        // is the viewer's private transcript, so
+                                        // only transcribing viewers see text here.
                                         isAudioOnlyMessage(messageItem) ? 'bg-subtle' : isOwnMessage(messageItem)
                                             ? 'bg-primary text-primary-contrast'
                                             : 'bg-subtle',
                                         isAudioOnlyMessage(messageItem) ? 'order-last' : ''
                                     ]"
                                 >
+                                    <small
+                                        v-if="messageItem.forwardedFrom"
+                                        class="mb-0.5 block text-muted text-supporting"
+                                    >
+                                        {{ $t('support.forwardedFrom', { name: messageItem.forwardedFrom.senderName || $t('common.user') }) }}
+                                    </small>
                                     <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
-                                        <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
+                                        <SupportMessageContent :message="bubbleContentMessage(messageItem)" :viewer-user-id="currentUserId" />
                                     </p>
                                     <!-- Plain wrapper owns hover visibility: PrimeVue's runtime
                                          .p-button display rule would defeat utility classes on the
@@ -828,74 +854,101 @@
                             </span>
                         </small>
                     </div>
-                    <!-- Voice recording replaces the composer row while live:
-                         elapsed timer plus cancel and stop-and-send. -->
-                    <Message v-if="voiceRecording" severity="warn" icon="pi pi-microphone" :closable="false" class="flex-1">
-                        {{ $t('support.recording') }} &middot; {{ formatRecordingDuration(recordingElapsed) }}
-                    </Message>
-                    <div v-if="voiceRecording" class="flex items-center gap-2">
+                    <!-- Voice recording replaces the composer row: one line —
+                         the live badge with the elapsed timer, then
+                         pause/resume, cancel, and stop-and-send. -->
+                    <div
+                        v-if="voiceRecording"
+                        class="flex items-center gap-1 rounded-ui bg-subtle p-1.5"
+                        data-testid="chat-recording-row"
+                    >
+                        <span class="flex min-w-0 shrink-0 items-center gap-2 px-2 text-label">
+                            <i
+                                class="pi pi-circle-fill shrink-0 text-status-danger"
+                                :class="voicePaused ? '' : 'animate-pulse'"
+                                aria-hidden="true"
+                            />
+                            <span class="tabular-nums">{{ formatRecordingDuration(recordingElapsed) }}</span>
+                        </span>
+                        <span v-if="voicePaused" class="min-w-0 flex-1 truncate text-muted text-supporting">
+                            {{ $t('support.recordingPaused') }}
+                        </span>
+                        <span v-else class="flex-1" aria-hidden="true"></span>
+                        <Button
+                            :icon="voicePaused ? 'pi pi-play' : 'pi pi-pause'"
+                            severity="secondary"
+                            text
+                            rounded
+                            class="shrink-0"
+                            :aria-label="voicePaused ? $t('support.resumeRecording') : $t('support.pauseRecording')"
+                            @click="toggleVoiceRecordingPause"
+                        />
                         <Button
                             icon="pi pi-times"
                             severity="secondary"
-                            variant="text"
+                            text
+                            rounded
+                            class="shrink-0"
                             :aria-label="$t('common.cancel')"
                             @click="cancelVoiceRecording"
                         />
                         <Button
                             icon="pi pi-send"
                             severity="primary"
-                            :aria-label="$t('support.stopAndSend')"
+                            rounded
+                            class="shrink-0"
                             :loading="voiceSending"
                             :disabled="voiceSending"
+                            :aria-label="$t('support.stopAndSend')"
                             @click="stopAndSendVoiceRecording"
                         />
                     </div>
-                    <div v-else>
-                        <!-- PrimeVue InputGroup: icon addons sit as direct
-                             children so the group owns their radius; the send
-                             action is the trailing primary button, not an
-                             addon, so it reads as the composer's main
-                             action. -->
-                        <InputGroup>
-                            <InputGroupAddon>
-                                <Button
-                                    icon="pi pi-paperclip"
-                                    severity="secondary"
-                                    variant="text"
-                                    :disabled="attachmentPickerEmpty"
-                                    :aria-label="$t('support.attach')"
-                                    data-testid="chat-attach-trigger"
-                                    @click="openAttachmentPicker($event)"
-                                />
-                            </InputGroupAddon>
-                            <Textarea
-                                :placeholder="$t('support.typeMessage')"
-                                class="min-w-0 flex-1"
-                                v-model="message"
-                                @input="handleTypingInput"
-                                @keydown="handleKeyDown"
-                                @paste="handleComposerPaste"
-                                rows="1"
-                                autoResize
-                            />
-                            <InputGroupAddon v-if="voiceRecordingSupported">
-                                <Button
-                                    icon="pi pi-microphone"
-                                    severity="secondary"
-                                    variant="text"
-                                    :disabled="!voiceRecordingAllowed"
-                                    :aria-label="$t('support.recordVoice')"
-                                    @click="startVoiceRecording"
-                                />
-                            </InputGroupAddon>
-                            <Button
-                                icon="pi pi-send"
-                                severity="primary"
-                                :disabled="!canSendComposerDraft"
-                                :aria-label="$t('support.send')"
-                                @click="sendMessage"
-                            />
-                        </InputGroup>
+                    <!-- Composer: one clean rounded surface — attach action,
+                         a growing borderless field, and a trailing action
+                         that swaps between voice record and send. -->
+                    <div v-else class="flex items-end gap-1 rounded-ui bg-subtle p-1.5" data-testid="chat-composer">
+                        <Button
+                            icon="pi pi-paperclip"
+                            severity="secondary"
+                            text
+                            rounded
+                            class="shrink-0"
+                            :disabled="attachmentPickerEmpty"
+                            :aria-label="$t('support.attach')"
+                            data-testid="chat-attach-trigger"
+                            @click="openAttachmentPicker($event)"
+                        />
+                        <Textarea
+                            :placeholder="$t('support.typeMessage')"
+                            :pt="composerTextareaPt"
+                            class="min-w-0 max-h-40 flex-1 overflow-y-auto"
+                            v-model="message"
+                            @input="handleTypingInput"
+                            @keydown="handleKeyDown"
+                            @paste="handleComposerPaste"
+                            rows="1"
+                            autoResize
+                        />
+                        <Button
+                            v-if="!canSendComposerDraft && voiceRecordingSupported && voiceRecordingAllowed"
+                            icon="pi pi-microphone"
+                            severity="secondary"
+                            text
+                            rounded
+                            class="shrink-0"
+                            :aria-label="$t('support.recordVoice')"
+                            @click="startVoiceRecording"
+                        />
+                        <Button
+                            v-else
+                            icon="pi pi-send"
+                            severity="primary"
+                            rounded
+                            class="shrink-0"
+                            :disabled="!canSendComposerDraft"
+                            :aria-label="$t('support.send')"
+                            @click="sendMessage"
+                        />
                     </div>
                 </div>
                 <ChatAttachmentPicker
@@ -1095,6 +1148,59 @@
                 </label>
             </div>
         </StandardDialog>
+        <StandardDialog
+            v-model:visible="forwardDialog"
+            size="sm"
+            :show-default-footer="false"
+        >
+            <template #header>
+                <span>{{ $t('support.forwardTo') }}</span>
+            </template>
+            <div class="flex flex-col gap-3" data-testid="chat-forward-picker">
+                <StateBlock
+                    v-if="!forwardOptions.length"
+                    :message="$t('support.noConversations')"
+                    icon="pi pi-comments"
+                />
+                <Listbox
+                    v-else
+                    :model-value="null"
+                    :options="forwardOptions"
+                    option-label="label"
+                    option-value="conversationKey"
+                    data-key="conversationKey"
+                    :aria-label="$t('support.forwardTo')"
+                    class="border-0"
+                    :loading="forwarding"
+                    @update:model-value="key => forwardToConversation(key)"
+                >
+                    <template #option="{ option }">
+                        <div class="flex min-w-0 items-center gap-2">
+                            <Avatar
+                                v-if="option.conversationKind === 'group'"
+                                icon="pi pi-users"
+                                shape="circle"
+                                class="shrink-0 bg-subtle text-muted"
+                            />
+                            <Avatar
+                                v-else-if="option.conversationKind === 'instance'"
+                                :icon="instanceConversationIcon(option)"
+                                shape="circle"
+                                class="shrink-0 bg-subtle text-muted"
+                            />
+                            <Avatar
+                                v-else
+                                :image="conversationAvatar(option)"
+                                :label="conversationLabel(option).charAt(0).toUpperCase()"
+                                shape="circle"
+                                class="shrink-0 bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                            />
+                            <span class="min-w-0 flex-1 truncate text-label">{{ conversationLabel(option) }}</span>
+                        </div>
+                    </template>
+                </Listbox>
+            </div>
+        </StandardDialog>
         <Menu ref="messageMenu" :model="messageMenuItems" :popup="true" />
         <Menu ref="conversationMenu" :model="conversationMenuItems" :popup="true" />
     </div>
@@ -1114,10 +1220,7 @@ import InputIcon from 'primevue/inputicon'
 import Select from '~/components/shared/InstanceSelect.vue'
 import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue'
 import Textarea from 'primevue/textarea'
-import InputGroup from 'primevue/inputgroup'
-import InputGroupAddon from 'primevue/inputgroupaddon'
 import Menu from 'primevue/menu'
-import Message from 'primevue/message'
 import ProgressBar from 'primevue/progressbar'
 import ToggleSwitch from 'primevue/toggleswitch'
 import DatePicker from 'primevue/datepicker'
@@ -1398,6 +1501,14 @@ const canDeleteActiveGroup = computed(() => {
     ))
 })
 
+// The composer field sits inside the composer's own rounded surface: the
+// Textarea's input chrome (border, fill, focus ring) goes transparent so
+// the surface owns the visual. Inline pt outranks every stylesheet rule —
+// the app.vue bottom-bar adaptation precedent.
+const composerTextareaPt = {
+    root: { style: { background: 'transparent', borderColor: 'transparent', boxShadow: 'none' } }
+}
+
 const handleKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault()
@@ -1576,6 +1687,33 @@ const { uploadChatFile } = useChatFileUpload()
         }
     }
 
+    // Drop area: file drags over the thread stage the dropped set through
+    // the composer's own attachment flow. The depth counter rides
+    // dragenter/leave (children re-fire both), and only file-carrying
+    // drags count — text selections and element drags pass through.
+    const filesDragDepth = ref(0)
+    const dragHasFiles = (event) => [...(event.dataTransfer?.types || [])].includes('Files')
+    const filesDragging = computed(() => filesDragDepth.value > 0 && chatUploadEnabled.value)
+    const onFilesDragEnter = (event) => {
+        if (!dragHasFiles(event)) return
+        filesDragDepth.value += 1
+    }
+    const onFilesDragOver = (event) => {
+        if (!dragHasFiles(event) || !chatUploadEnabled.value) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+    }
+    const onFilesDragLeave = (event) => {
+        if (!dragHasFiles(event)) return
+        filesDragDepth.value = Math.max(0, filesDragDepth.value - 1)
+    }
+    const onFilesDrop = (event) => {
+        if (!dragHasFiles(event) || !chatUploadEnabled.value) return
+        filesDragDepth.value = 0
+        event.preventDefault()
+        stageChatFiles([...(event.dataTransfer?.files || [])])
+    }
+
     // Ambiguous files (several accepting children, no choice yet) block
     // the send until the sender picks a target type.
     const pendingFilesIncomplete = computed(() => pendingFiles.value
@@ -1687,6 +1825,7 @@ const { onlineUserIds } = useConnections()
 // audio child as its targetTypeId.
 const VOICE_RECORDING_MAX_SECONDS = 600
 const voiceRecording = ref(false)
+const voicePaused = ref(false)
 const voiceSending = ref(false)
 const recordingElapsed = ref(0)
 const voiceRecordingSupported = computed(() => process.client
@@ -1695,8 +1834,11 @@ const voiceRecordingSupported = computed(() => process.client
 let mediaRecorder = null
 let recordedChunks = []
 let recordingStream = null
-let recordingStartedAt = 0
 let recordingTimer = null
+// Pause-aware elapsed accounting: seconds accumulated before the current
+// run plus the live run's span, so the badge freezes while paused.
+let recordingElapsedBase = 0
+let recordingRunStartedAt = 0
 
 const formatRecordingDuration = (seconds) => {
     const total = Math.max(0, Math.floor(seconds))
@@ -1721,7 +1863,41 @@ const teardownRecording = () => {
     mediaRecorder = null
     recordedChunks = []
     voiceRecording.value = false
+    voicePaused.value = false
     recordingElapsed.value = 0
+}
+
+const startRecordingTimer = () => {
+    if (recordingTimer) clearInterval(recordingTimer)
+    recordingTimer = setInterval(() => {
+        recordingElapsed.value = recordingElapsedBase
+            + Math.floor((Date.now() - recordingRunStartedAt) / 1000)
+        if (recordingElapsed.value >= VOICE_RECORDING_MAX_SECONDS) stopAndSendVoiceRecording()
+    }, 500)
+}
+
+const currentRecordingSeconds = () => (voicePaused.value
+    ? recordingElapsedBase
+    : recordingElapsedBase + (Date.now() - recordingRunStartedAt) / 1000)
+
+const toggleVoiceRecordingPause = () => {
+    if (!mediaRecorder || voiceSending.value) return
+    if (mediaRecorder.state === 'recording') {
+        mediaRecorder.pause()
+        recordingElapsedBase = recordingElapsed.value
+        if (recordingTimer) {
+            clearInterval(recordingTimer)
+            recordingTimer = null
+        }
+        voicePaused.value = true
+        return
+    }
+    if (mediaRecorder.state === 'paused') {
+        mediaRecorder.resume()
+        recordingRunStartedAt = Date.now()
+        startRecordingTimer()
+        voicePaused.value = false
+    }
 }
 
 const startVoiceRecording = async () => {
@@ -1737,12 +1913,11 @@ const startVoiceRecording = async () => {
     mediaRecorder.ondataavailable = (event) => {
         if (event.data?.size) recordedChunks.push(event.data)
     }
-    recordingStartedAt = Date.now()
+    recordingElapsedBase = 0
+    recordingRunStartedAt = Date.now()
     recordingElapsed.value = 0
-    recordingTimer = setInterval(() => {
-        recordingElapsed.value = Math.floor((Date.now() - recordingStartedAt) / 1000)
-        if (recordingElapsed.value >= VOICE_RECORDING_MAX_SECONDS) stopAndSendVoiceRecording()
-    }, 500)
+    voicePaused.value = false
+    startRecordingTimer()
     mediaRecorder.start()
     voiceRecording.value = true
 }
@@ -1761,7 +1936,7 @@ const stopAndSendVoiceRecording = () => {
     if (!mediaRecorder || voiceSending.value) return
     const recorder = mediaRecorder
     const mimeType = recorder.mimeType || 'audio/webm'
-    const durationSeconds = Math.max(1, Math.round((Date.now() - recordingStartedAt) / 1000))
+    const durationSeconds = Math.max(1, Math.round(currentRecordingSeconds()))
     recorder.onstop = async () => {
         const blob = new Blob(recordedChunks, { type: mimeType })
         teardownRecording()
@@ -1819,27 +1994,41 @@ const stopAndSendVoiceRecording = () => {
     stopRecordingTracks()
 }
 
-// Audio transcription: the button rides audio-only voice messages while a
-// provider is configured for the caller organization; the updated document
-// replaces the bubble in place — the same contract the `message.updated`
-// conversation event delivers to other viewers.
+// Audio transcription: the action rides audio-only voice messages while a
+// provider is configured for the caller organization. The transcript is
+// private to the caller (stored per user), so the HTTP response is the only
+// delivery — no conversation event carries it to other viewers.
 const transcriptionAvailable = ref(false)
 const transcribingMessageIds = ref(new Set())
 
-// Audio-only voice messages: their text is a transcription (the service
-// writes it into `message`), rendering under the player on the subtle
-// surface regardless of sender. Kind falls back to the MIME derivation —
-// stored descriptors and projected events are not guaranteed to carry it.
+// Audio-only voice messages: their visible text is the viewer's private
+// transcript (the service stores it per user, never on the shared body —
+// only viewers who pressed transcribe see any), rendering under the player
+// on the subtle surface regardless of sender. Kind falls back to the MIME
+// derivation — stored descriptors and projected events are not guaranteed
+// to carry it.
 const isAudioOnlyMessage = (messageItem) => (messageItem.attachments || []).length === 1
     && (messageItem.attachments[0].kind || chatAttachmentKind(messageItem.attachments[0].mimeType || '')) === 'audio'
 
-// The transcribe button rides audio-only voice messages that carry no
-// transcription yet — either signal (the stored provenance flag or the
-// message text itself) means it is already transcribed.
+// The bubble's text: the authored body, or — for audio-only voice messages
+// carrying none — the viewer's transcript. Reply quotes and inbox previews
+// read the authored body alone, so private transcripts never leave the
+// transcribing viewer's bubble.
+const messageBubbleText = (messageItem) => (isAudioOnlyMessage(messageItem) && !String(messageItem.message || '').trim()
+    ? String(messageItem.transcript || '')
+    : String(messageItem.message || ''))
+
+const bubbleContentMessage = (messageItem) => ({
+    ...messageItem,
+    message: messageBubbleText(messageItem)
+})
+
+// The transcribe action rides audio-only voice messages that carry no body
+// and no viewer transcript yet.
 const canTranscribe = (messageItem) => transcriptionAvailable.value
     && isAudioOnlyMessage(messageItem)
     && !String(messageItem.message || '').trim()
-    && !messageItem.attachments[0].transcription
+    && !messageItem.transcript
 
 // Reply-quote icon for a quoted message's first attachment, by kind —
 // replies to images/files must not wear the voice microphone.
@@ -2218,6 +2407,19 @@ const messageMenuItems = computed(() => {
             messageMenuTarget.value = null
         }
     }]
+    // Forwarding needs copy to carry: text, attachments, or both (refs-only
+    // messages describe their source conversation, not a target's).
+    if (String(target.message || '').trim() || (target.attachments || []).length) {
+        items.push({
+            label: t('support.forward'),
+            icon: 'pi pi-share-alt',
+            command: () => {
+                messageMenu.value?.hide?.()
+                openForwardDialog(messageMenuTarget.value)
+                messageMenuTarget.value = null
+            }
+        })
+    }
     // Transcription rides the menu like every message action; the pending
     // run stays visible through the in-thread indicator.
     if (canTranscribe(target)) {
@@ -2267,6 +2469,41 @@ const messageMenuItems = computed(() => {
 const openMessageMenu = (event, messageItem) => {
     messageMenuTarget.value = messageItem || null
     messageMenu.value?.toggle(event)
+}
+
+// Forwarding (support feature README, Forwarding): the target picker lists
+// the inbox's live conversations; picking one posts the server-side forward
+// (fresh message from this user carrying the source's text and
+// attachments, provenance denormalized as `forwardedFrom`).
+const forwardDialog = ref(false)
+const forwardTarget = ref(null)
+const forwarding = ref(false)
+const forwardOptions = computed(() => supportChatStore.conversations
+    .filter(conversation => !conversation.archived
+        && conversation.conversationKey !== activeConversationKey.value))
+
+const openForwardDialog = (messageItem) => {
+    forwardTarget.value = messageItem || null
+    forwardDialog.value = true
+}
+
+const forwardToConversation = async (conversationKey) => {
+    const source = forwardTarget.value
+    if (!source || !conversationKey || forwarding.value) return
+    forwarding.value = true
+    try {
+        await $fetch(`/api/support/messages/${encodeURIComponent(String(source._id))}/forward`, {
+            method: 'POST',
+            body: { conversationKey }
+        })
+        forwardDialog.value = false
+        forwardTarget.value = null
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('support.forwarded'), life: 2000 })
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 6000 })
+    } finally {
+        forwarding.value = false
+    }
 }
 
 // The context menu opens from a plain tap on the message, a long-press
@@ -2447,10 +2684,6 @@ watch(
         unsubscribeConversation = useConnections().subscribe(`conversation:${key}`, (payload) => {
             if (payload?.type === 'typing') {
                 receiveTyping(payload)
-                return
-            }
-            if (payload?.type === 'message.updated') {
-                replaceMessage(payload.message)
                 return
             }
             // Ringing arrives only through the calls store's `call.invite`

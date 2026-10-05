@@ -49,6 +49,7 @@
         preload="metadata"
         playsinline
         class="min-w-0 max-h-64 max-w-full w-72 rounded-ui"
+        @play="onMediaPlay($event, attachment)"
       />
       <audio
         v-for="attachment in audio"
@@ -57,6 +58,7 @@
         controls
         preload="metadata"
         class="min-w-0 max-w-full"
+        @play="onMediaPlay($event, attachment)"
       />
       <span v-if="documents.length" class="flex max-w-full min-w-0 flex-col gap-1">
         <span
@@ -103,11 +105,12 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { chatAttachmentUrl } from '~/utils/chat-file-targets.js';
+import { useMediaStore } from '~/stores/media';
 
 const props = defineProps({
   attachments: { type: Array, default: () => [] },
@@ -117,11 +120,33 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const media = useMediaStore();
 
 // Full-dialog expansion for any rendered image (single or gallery tile):
 // the descriptor is held, not a precomputed URL, so the dialog serves the
 // same bucket-honoring URL as the inline render.
 const previewAttachment = ref(null);
+
+// Now-playing handoff (components/media README): a media element that
+// starts playback claims the app's single-play channel; when this surface
+// unmounts while it is still playing, its descriptor and position go to
+// the dock, which resumes it in its own element.
+const playingMedia = new Map();
+const onMediaPlay = (event, attachment) => {
+  const el = event.target;
+  playingMedia.set(el, {
+    kind: el.tagName.toLowerCase() === 'video' ? 'video' : 'audio',
+    url: url(attachment),
+    title: attachment.name || t(`support.attachment${el.tagName.toLowerCase() === 'video' ? 'Video' : 'Voice'}`)
+  });
+  media.claim(el);
+};
+onBeforeUnmount(() => {
+  for (const [el, meta] of playingMedia) {
+    if (!el.paused && !el.ended) media.adopt({ ...meta, time: el.currentTime });
+  }
+  playingMedia.clear();
+});
 
 const ofKind = (kind) => (props.attachments || []).filter(attachment => attachment?.kind === kind);
 const images = computed(() => ofKind('image'));

@@ -120,6 +120,12 @@ process vocabulary; none may gain new consumers.
   which mirrors the server's derived room-name contract via
   `utils/call-rooms.js`. The machine's canonical contract lives in
   [components/calls](../components/calls/README.md#call-line-state-machine).
+- `media.js`: The app's now-playing channel (see
+  [components/media](../components/media/README.md)): exactly one media
+  element plays across every surface (a starting element claims the channel
+  and pauses the previous one), and a source surface unmounting mid-playback
+  hands its descriptor — kind, streaming URL, title, position — to the
+  app-shell dock, which resumes it in its own element.
 - `instanceEvents.js`: Browser-local instance synchronization and the contract
   refresh hint: polls `/api/instance-events` by cursor and bridges returned
   changes into the browser-local event bus, and (via the connections org

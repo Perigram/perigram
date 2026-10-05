@@ -25,12 +25,26 @@ export const useCallsStore = defineStore('calls', () => {
     const pendingTabRoom = ref('');
     const floatingRoom = ref('');
     // Live rooms parked during a surface transfer (tab → floating window or
-    // the reverse): the WebRTC connection survives; the adopting CallPanel
-    // takes it over.
+    // the reverse) or into the mobile top lane: the WebRTC connection
+    // survives and remote audio keeps playing through the store's hidden
+    // sink; the adopting CallPanel takes the room — and its audio
+    // attachments — over.
     const parkedRoom = ref('');
     const transferRoom = ref('');
     const liveRooms = new Map();
     const joinedRooms = new Set();
+    // Hidden document-level sink keeping parked rooms audible; created
+    // lazily client-side because the store also constructs on the server.
+    let parkedAudioSink = null;
+    function parkedAudioSinkEl() {
+        if (!parkedAudioSink) {
+            parkedAudioSink = document.createElement('div');
+            parkedAudioSink.dataset.parkedCallAudio = '';
+            parkedAudioSink.style.display = 'none';
+            document.body.appendChild(parkedAudioSink);
+        }
+        return parkedAudioSink;
+    }
 
     let unsubscribeUser = null;
     let unsubscribeOrg = null;
@@ -201,12 +215,20 @@ export const useCallsStore = defineStore('calls', () => {
     }
 
     // Surface transfer: park the connected room (its CallPanel is unmounting
-    // because the call moved to the floating window), then hand it to the
-    // adopting panel. The connection is never dropped mid-transfer.
-    function parkLiveRoom(name = '', livekitRoomInstance = null, liveKitLib = null) {
+    // because the call moved to another surface), then hand it to the
+    // adopting panel. The connection is never dropped mid-transfer. The
+    // handed-off audio attachments (track + LiveKit-attached element pairs)
+    // keep playing in the store's hidden sink, so a parked call stays
+    // audible; the adopting panel moves the same elements into its own sink
+    // without a gap.
+    function parkLiveRoom(name = '', livekitRoomInstance = null, liveKitLib = null, audioAttachments = []) {
         if (!name || !livekitRoomInstance) return;
-        liveRooms.set(name, { room: livekitRoomInstance, LiveKit: liveKitLib });
+        liveRooms.set(name, { room: livekitRoomInstance, LiveKit: liveKitLib, audioAttachments });
         parkedRoom.value = name;
+        if (process.client && audioAttachments.length) {
+            const sink = parkedAudioSinkEl();
+            for (const { element } of audioAttachments) sink.appendChild(element);
+        }
     }
 
     function takeLiveRoom(name = '') {
@@ -221,6 +243,14 @@ export const useCallsStore = defineStore('calls', () => {
         const entry = liveRooms.get(name);
         liveRooms.delete(name);
         if (parkedRoom.value === name) parkedRoom.value = '';
+        for (const { track, element } of entry?.audioAttachments || []) {
+            try {
+                if (track) track.detach(element);
+            } catch {
+                /* the track may already be gone */
+            }
+            element?.remove?.();
+        }
         entry?.room?.disconnect?.().catch?.(() => {});
     }
 

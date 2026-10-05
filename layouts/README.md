@@ -93,9 +93,13 @@ utilities on the PrimeVue button: PrimeVue's own `.p-button` rules load
 after Tailwind and win at equal specificity, so `fixed` and explicit
 sizing on the component silently degrade to `position: relative` and the
 button drifts into the document flow. Every floating surface in the shell
-(the incoming-call stack, the offline outbox badge, the call window)
-anchors the same way, with the launcher between the outbox badge and the
-call surfaces in the stacking order. The call window doubles as the
+(the incoming-call stack, the offline outbox badge, the call window, the
+now-playing media dock) anchors the same way, with the launcher between the outbox badge and the
+call surfaces in the stacking order. The now-playing dock
+([components/media](../components/media/README.md)) is the persistent
+host for media and parked calls that outlive their source surface: a
+floating card top-right on desktop and a lane pinned to the top of the
+screen on mobile. The call window doubles as the
 navigation-proof call host: a call panel unmounting while connected from
 a park-on-unmount host parks its live room there
 (see [components/calls](../components/calls/README.md)).

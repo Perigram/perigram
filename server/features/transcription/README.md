@@ -3,8 +3,8 @@
 Transcription is a capability module: it turns stored audio into text through
 an OpenAI-compatible speech-to-text endpoint. It owns no collection — audio
 bytes already live in the [files feature](../files/) (GridFS) and results are
-persisted by the consuming feature (support chat writes the transcript onto
-the message document).
+persisted by the consuming feature (support chat stores the transcript
+per user in its own collection).
 
 ## Providers
 
@@ -87,8 +87,8 @@ to the user, who can retry manually.
 ## Consumers
 
 - Support chat voice messages: `POST /api/support/messages/:id/transcribe`
-  fills the message body with the transcript (see
-  [support](../support/README.md#message-attachments)).
+  stores the transcript per user (never on the shared message document —
+  see [support](../support/README.md#transcription)).
 - `GET /api/transcription/config` reports `{ available }` for the caller's
   organization so clients render transcription affordances only when a
   provider is actually configured.

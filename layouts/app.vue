@@ -163,6 +163,7 @@
         <IncomingCalls v-if="authStore.userIsSet" />
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
         <CallFloatingWindow v-if="authStore.userIsSet" />
+        <MediaDock v-if="authStore.userIsSet" />
         <!-- The app-level default confirmation host: one instance for the
              whole layout. Feature surfaces (chat, calls, generated screens)
              call useConfirm without a group; mounting a second host anywhere
@@ -189,6 +190,7 @@
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
     import IncomingCalls from '~/components/calls/IncomingCalls.vue'
     import CallFloatingWindow from '~/components/calls/CallFloatingWindow.vue'
+    import MediaDock from '~/components/media/MediaDock.vue'
     import { useCallsStore } from '~/stores/calls'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'

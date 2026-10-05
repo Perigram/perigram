@@ -14,6 +14,9 @@ const mocks = vi.hoisted(() => ({
     findById: vi.fn(),
     updateById: vi.fn(),
     findSince: vi.fn(),
+    findTranscript: vi.fn(async () => null),
+    findTranscripts: vi.fn(async () => []),
+    upsertTranscript: vi.fn(),
     insertGroup: vi.fn(),
     findGroupById: vi.fn(),
     findGroupsByParticipant: vi.fn(async () => []),
@@ -527,39 +530,47 @@ describe('support communication service', () => {
       });
     };
 
-    it('transcribes the recording into the message body and publishes message.updated', async () => {
+    it('stores the transcript per user and returns it without touching the shared message', async () => {
       directRecipient();
       mocks.repository.findById.mockResolvedValue(audioMessage);
+      mocks.repository.findTranscript.mockResolvedValue(null);
       mocks.filesService.getFileBuffer.mockResolvedValue(Buffer.from('audio-bytes'));
       mocks.transcriptionService.transcribeAudio.mockResolvedValue({ text: 'hello there', provider: 'local', model: 'whisper-1' });
-      mocks.repository.updateById.mockImplementation(async (id, update) => ({
-        ...audioMessage,
-        message: update.$set.message,
-        attachments: [{
-          ...audioMessage.attachments[0],
-          transcription: update.$set['attachments.$[element].transcription']
-        }]
-      }));
+      mocks.repository.upsertTranscript.mockImplementation(async (input) => ({ messageId: input.messageId, userId: input.userId, text: input.text }));
 
       const message = await supportService.transcribeMessageAudio(auth, 'msg-1');
 
-      expect(message.message).toBe('hello there');
-      expect(message.attachments[0].transcription).toMatchObject({ provider: 'local', model: 'whisper-1' });
+      expect(message).toMatchObject({ _id: 'msg-1', transcript: 'hello there' });
+      expect(message.message).toBe('');
+      expect(message.attachments[0].transcription).toBeUndefined();
       expect(mocks.transcriptionService.transcribeAudio).toHaveBeenCalledWith(expect.objectContaining({
         filename: 'voice-message.webm',
         mimeType: 'audio/webm',
         organizationId: 'org-1'
       }));
-      expect(mocks.repository.updateById).toHaveBeenCalledWith('msg-1', {
-        $set: {
-          message: 'hello there',
-          'attachments.$[element].transcription': { provider: 'local', model: 'whisper-1', transcribedAt: expect.any(Date) }
-        }
-      }, expect.any(Object), { arrayFilters: [{ 'element.fileId': 'gridfs-1' }] });
-      expect(mocks.connectionsPublish).toHaveBeenCalledWith(
-        'conversation:direct:user-a:user-b',
-        expect.objectContaining({ type: 'message.updated', message })
-      );
+      expect(mocks.repository.upsertTranscript).toHaveBeenCalledWith(expect.objectContaining({
+        messageId: 'msg-1',
+        userId: 'user-a',
+        text: 'hello there',
+        provider: 'local',
+        model: 'whisper-1'
+      }));
+      // The transcript is private: the shared message document is never
+      // updated and no conversation event carries it to other viewers.
+      expect(mocks.repository.updateById).not.toHaveBeenCalled();
+      expect(mocks.connectionsPublish).not.toHaveBeenCalled();
+    });
+
+    it('merges the viewer transcript onto message pages', async () => {
+      mocks.repository.find.mockResolvedValue([audioMessage, { ...audioMessage, _id: 'msg-2' }]);
+      mocks.repository.findTranscripts.mockResolvedValue([{ messageId: 'msg-1', text: 'hello there' }]);
+
+      const page = await supportService.listMessages({ conversationKey: 'direct:user-a:user-b' }, {}, 'user-a');
+
+      expect(page[0]).toMatchObject({ _id: 'msg-1', transcript: 'hello there' });
+      expect(page[1]).toMatchObject({ _id: 'msg-2' });
+      expect(page[1].transcript).toBeUndefined();
+      expect(mocks.repository.findTranscripts).toHaveBeenCalledWith('user-a', ['msg-1', 'msg-2']);
     });
 
     it('rejects messages outside the caller\'s conversations', async () => {
@@ -583,29 +594,80 @@ describe('support communication service', () => {
       await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
         .rejects.toMatchObject({ statusCode: 400 });
 
-      mocks.repository.findById.mockResolvedValue({
-        ...audioMessage,
-        attachments: [{ ...audioMessage.attachments[0], transcription: { provider: 'local' } }]
-      });
+      directRecipient();
+      mocks.repository.findById.mockResolvedValue(audioMessage);
+      mocks.repository.findTranscript.mockResolvedValue({ messageId: 'msg-1', userId: 'user-a', text: 'hello there' });
       await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
         .rejects.toMatchObject({ statusCode: 409 });
 
-      directRecipient();
+      mocks.repository.findTranscript.mockResolvedValue(null);
       mocks.repository.findById.mockResolvedValue({ ...audioMessage, message: 'caption' });
       await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
         .rejects.toMatchObject({ statusCode: 409, message: 'Message already carries text' });
-      expect(mocks.repository.updateById).not.toHaveBeenCalled();
+      expect(mocks.repository.upsertTranscript).not.toHaveBeenCalled();
     });
 
     it('surfaces recordings without speech as 422 and writes nothing', async () => {
       directRecipient();
+      mocks.repository.findTranscript.mockResolvedValue(null);
       mocks.repository.findById.mockResolvedValue(audioMessage);
       mocks.filesService.getFileBuffer.mockResolvedValue(Buffer.from('audio-bytes'));
       mocks.transcriptionService.transcribeAudio.mockResolvedValue({ text: '', provider: 'local', model: 'whisper-1' });
 
       await expect(supportService.transcribeMessageAudio(auth, 'msg-1'))
         .rejects.toMatchObject({ statusCode: 422 });
-      expect(mocks.repository.updateById).not.toHaveBeenCalled();
+      expect(mocks.repository.upsertTranscript).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('message forwarding', () => {
+    const sourceMessage = {
+      _id: 'msg-9',
+      conversationKey: 'direct:user-a:user-b',
+      conversationKind: 'direct',
+      participants: ['user-a', 'user-b'],
+      senderUserId: 'user-b',
+      message: 'look at this',
+      attachments: [{ kind: 'image', fileId: 'gridfs-7', mimeType: 'image/png', name: 'facade.png' }],
+      timestamp: new Date('2026-10-01T10:00:00Z')
+    };
+
+    it('sends a fresh message from the forwarder carrying text, attachments, and provenance', async () => {
+      mocks.usersService.getById.mockImplementation(async (id) => ({
+        memberships: [{ organizationId: 'org-1' }],
+        toJSON: () => ({ _id: id, identity: { name: id === 'user-b' ? 'User B' : 'User A' }, data: {} })
+      }));
+      mocks.repository.findById.mockImplementation(async (id) => (id === 'msg-9' ? sourceMessage : null));
+      mocks.repository.insert.mockImplementation(async (record) => record);
+
+      const forwarded = await supportService.forwardMessage(auth, 'msg-9', { conversationKey: 'direct:user-a:user-c' });
+
+      expect(forwarded).toMatchObject({
+        conversationKey: 'direct:user-a:user-c',
+        senderUserId: 'user-a',
+        message: 'look at this',
+        attachments: [{ kind: 'image', fileId: 'gridfs-7' }],
+        forwardedFrom: { senderUserId: 'user-b', senderName: 'User B' }
+      });
+      expect(forwarded.parent).toBeUndefined();
+      expect(mocks.repository.insert).toHaveBeenCalledWith(expect.objectContaining({
+        conversationKey: 'direct:user-a:user-c'
+      }), expect.any(Object));
+    });
+
+    it('rejects sources outside the caller\'s conversations and unknown targets', async () => {
+      mocks.repository.findById.mockResolvedValue({
+        ...sourceMessage,
+        conversationKey: 'direct:user-x:user-y',
+        participants: ['user-x', 'user-y']
+      });
+      await expect(supportService.forwardMessage(auth, 'msg-9', { conversationKey: 'direct:user-a:user-c' }))
+        .rejects.toMatchObject({ statusCode: 403 });
+
+      mocks.repository.findById.mockResolvedValue(sourceMessage);
+      await expect(supportService.forwardMessage(auth, 'msg-9', { conversationKey: 'direct:user-x:user-y' }))
+        .rejects.toMatchObject({ statusCode: 403 });
+      expect(mocks.repository.insert).not.toHaveBeenCalled();
     });
   });
 

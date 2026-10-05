@@ -380,16 +380,29 @@ export function instanceConversationMatch(context, includeChildren = true) {
 /**
  * Reads one conversation page in ascending order. `options.before` is an ISO
  * timestamp cursor for lazy history loads; `options.limit` caps the page so
- * opening a thread renders the newest slice, not the whole history.
+ * opening a thread renders the newest slice, not the whole history. The
+ * optional viewer id merges that user's private transcripts onto the page
+ * (support README, Transcription).
  */
-export async function listMessages(match, options = {}) {
+export async function listMessages(match, options = {}, viewerId = null) {
     const limit = Math.min(
         Math.max(Number.parseInt(options.limit, 10) || MESSAGE_PAGE_DEFAULT, 1),
         MESSAGE_PAGE_MAX
     );
-    return await repository.find(match, messageProjection(), {
+    const page = await repository.find(match, messageProjection(), {
         limit,
         before: options.before || null
+    });
+    return await attachViewerTranscripts(page, viewerId);
+}
+
+async function attachViewerTranscripts(messages = [], viewerId = null) {
+    if (!viewerId || !messages.length) return messages;
+    const rows = await repository.findTranscripts(viewerId, messages.map(message => message._id));
+    const byMessage = new Map(rows.map(row => [String(row.messageId), row.text]));
+    return messages.map(message => {
+        const text = byMessage.get(String(message._id));
+        return text === undefined ? message : { ...message, transcript: text };
     });
 }
 
@@ -686,11 +699,11 @@ async function trustedConversationContext(conversationKey = '') {
 }
 
 /**
- * Converts a voice message into its underlying text message (see the support
- * README, Transcription): the transcript becomes the message body so every
- * text render path — bubble, reply quotes, previews — applies, while the
- * audio descriptor's `transcription` marker records the provenance and
- * blocks re-runs. Provider selection is per organization; instance messages
+ * Converts a voice message into text for the calling user only (see the
+ * support README, Transcription): the transcript persists per user in
+ * `supportTranscripts`, never on the shared message document — the message
+ * body, reply quotes, and inbox previews stay untouched and other viewers
+ * see nothing. Provider selection is per organization; instance messages
  * carry their org, person conversations fall back to the caller's.
  */
 export async function transcribeMessageAudio(auth, messageId = '') {
@@ -705,7 +718,7 @@ export async function transcribeMessageAudio(auth, messageId = '') {
     if (attachment?.kind !== 'audio') {
         throw createError({ statusCode: 400, message: 'Message has no audio attachment' });
     }
-    if (attachment.transcription) {
+    if (await repository.findTranscript(auth.userId, id)) {
         throw createError({ statusCode: 409, message: 'Audio message is already transcribed' });
     }
     if (messageSnippet(message)) {
@@ -727,17 +740,53 @@ export async function transcribeMessageAudio(auth, messageId = '') {
     if (!text) {
         throw createError({ statusCode: 422, message: 'No speech detected in the recording' });
     }
-    const updated = await repository.updateById(id, {
-        $set: {
-            message: text,
-            'attachments.$[element].transcription': { provider, model, transcribedAt: new Date() }
-        }
-    }, messageProjection(), { arrayFilters: [{ 'element.fileId': attachment.fileId }] });
-    publishMessageUpdated(updated);
-    return updated;
+    const stored = await repository.upsertTranscript({
+        messageId: id,
+        userId: auth.userId,
+        text,
+        provider,
+        model
+    });
+    // The caller's page swaps the bubble in place from this response; the
+    // change is private, so no conversation event is published.
+    return { ...message, transcript: stored.text };
 }
 
-async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, recipientUserId = null }) {
+/**
+ * Forwards a message into another conversation (support README, Forwarding):
+ * the caller's copy of the text and attachments rides a fresh message sent
+ * by the forwarder, provenance denormalized as `forwardedFrom`. Instance
+ * refs stay behind — they describe the source conversation's context, not
+ * the target's. Instance-target materialization re-validates every file
+ * against the target's accepting children like any send.
+ */
+export async function forwardMessage(auth, messageId = '', body = {}) {
+    const id = String(messageId || '').trim();
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    if (!id) throw createError({ statusCode: 400, message: 'Message id is required' });
+    const source = await repository.findById(id);
+    if (!source) throw createError({ statusCode: 404, message: 'Message not found' });
+    await getConversationContextByKey(auth, source.conversationKey);
+    const target = await getConversationContextByKey(auth, String(body?.conversationKey || ''));
+    return await insertMessage({
+        context: target,
+        sender: MESSAGE_SENDER.USER,
+        senderUserId: auth.userId,
+        message: source.message,
+        attachments: source.attachments || null,
+        auth,
+        recipientUserId: target.kind === 'direct'
+            ? target.participants.find(participant => participant !== auth.userId)
+            : null,
+        forwardedFrom: {
+            senderUserId: source.senderUserId || '',
+            senderName: await resolveUserName(source.senderUserId),
+            sentAt: source.timestamp || null
+        }
+    });
+}
+
+async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, recipientUserId = null, forwardedFrom = null }) {
     const normalizedAttachments = normalizeAttachments(attachments);
     const materialized = context.kind === 'instance' && normalizedAttachments
         ? await materializeInstanceAttachments(auth, context, normalizedAttachments)
@@ -759,6 +808,7 @@ async function insertMessage({ context, sender, senderUserId, message, instanceR
         instanceRefs: refs,
         ...(materialized.attachments?.length ? { attachments: materialized.attachments } : {}),
         ...(parent ? { parent } : {}),
+        ...(forwardedFrom ? { forwardedFrom } : {}),
         ...instanceFields,
         timestamp: new Date()
     }, messageProjection());
@@ -872,26 +922,6 @@ connectionsService.registerTopicAuthorizer('conversation:', async (auth, topic) 
     return Boolean(context);
 });
 
-/**
- * Transcript fanout: every conversation view that can list the message — its
- * own key plus each aggregated ancestor key along the stored instance path —
- * receives the updated document so open threads swap the bubble in place.
- * No inbox pings: transcription changes no unread state.
- */
-function publishMessageUpdated(message) {
-    const keys = new Set([message.conversationKey]);
-    for (const entry of message.instancePath || []) {
-        keys.add(instanceConversationKey(entry.type, entry.id));
-    }
-    for (const key of keys) {
-        connectionsService.publish(`conversation:${key}`, {
-            type: 'message.updated',
-            conversationKey: key,
-            message
-        });
-    }
-}
-
 function normalizeMessage(message, instanceRefs = [], attachments = null) {
     const text = typeof message === 'string' ? message.trim() : '';
     if (!text && !instanceRefs.length && !attachments?.length) {
@@ -925,6 +955,7 @@ function normalizeAttachments(attachments) {
         }
         const durationSeconds = Number(item.durationSeconds);
         const size = Number(item.size);
+        const targetTypeId = String(item.targetTypeId || '').trim();
         return {
             kind,
             fileId,
@@ -934,6 +965,11 @@ function normalizeAttachments(attachments) {
             ...(Number.isFinite(durationSeconds)
                 ? { durationSeconds: Math.min(Math.max(durationSeconds, 0), ATTACHMENT_DURATION_MAX_SECONDS) }
                 : {}),
+            // The sender's child-type choice for instance targets survives
+            // normalization: materialization validates it against the
+            // server's own candidate set (support README, Message
+            // Attachments). Storage never keeps it.
+            ...(targetTypeId ? { targetTypeId } : {}),
             ...(item.bucket === ATTACHMENT_LEGACY_BUCKET ? { bucket: ATTACHMENT_LEGACY_BUCKET } : {})
         };
     }).filter(Boolean);
@@ -1661,6 +1697,7 @@ function messageProjection() {
         instanceLink: 1,
         instancePath: 1,
         parent: 1,
+        forwardedFrom: 1,
         organizationId: 1
     };
 }

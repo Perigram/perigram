@@ -737,6 +737,50 @@ feed its back button through the new slot.
 
 ## Chats
 
+- [ ] Composer redesign (SPEC §Chat composer): one rounded surface instead of
+  the InputGroup; recording state is one line with badge+timer, pause/resume,
+  cancel, and send.
+- [ ] File staging surfaces (SPEC §Chat composer): drag-and-drop drop area on
+  the thread, and device camera photo/video capture listed beside upload in
+  the attach popover.
+- [ ] Message forwarding (SPEC §Chat composer): forward any message to another
+  conversation from the message menu; the bubble names the original sender.
+- [ ] Private transcription (SPEC §Chat composer): transcripts persist per
+  user, rendered only to viewers who transcribed; body, quotes, and inbox
+  previews never carry them. Includes migrating the legacy public
+  transcripts.
+
+### Agent Notes (2026-10-05)
+
+Session `agent/chats-media-redesign-20261005`. All four implemented.
+Composer: the InputGroup is gone — one `bg-subtle` rounded row (attach,
+borderless auto-growing Textarea with a transparent-chrome pt object,
+trailing mic/send swap); recording replaces the row with badge (pulsing
+dot + timer), pause/resume (`MediaRecorder.pause/resume` with
+pause-aware elapsed accounting), cancel, and send in one line. Files:
+drag-and-drop stages through `stageChatFiles` (depth-counted overlay,
+instance-chat gating respected); the attach popover gained a camera
+capture entry (`capture="environment"`) beside upload. Forwarding:
+`POST /api/support/messages/:id/forward` re-sends text+attachments into
+a target conversation with `forwardedFrom {senderUserId, senderName,
+sentAt}` provenance (instance refs stay behind; instance-target sends
+re-validate materialization like any send); the message menu opens a
+conversation picker. Transcription: `supportTranscripts` stores one
+document per message and viewer; `transcribeMessageAudio` writes there
+(409 on this viewer's existing transcript), message reads merge the
+caller's `transcript`, and no conversation event publishes — the
+`message.updated` fanout and the descriptor `transcription` marker are
+deleted with the client handler. `migrate-support-transcripts.js`
+applied to the dev DB (9 messages → 12 per-viewer transcripts,
+re-run 0). Contradiction found and fixed in passing:
+`normalizeAttachments` dropped the client's `targetTypeId` before
+materialization could read it, breaking the documented ambiguous-child
+choice on sends (support README, Message Attachments) — normalization
+keeps it now and storage still strips it. Live E2E not run: the dev
+container serves the primary checkout, which does not carry this branch
+yet; service behavior is pinned by the rewritten support spec (transcript
+privacy, viewer merge, forward admission/provenance).
+
 - [ ] Message context menu reachable everywhere; transcribe rides the menu;
   reply quotes carry the attachment's kind icon (owner report 2026-10-01:
   no menu access on mobile, media rows had no action surface, replies to
@@ -878,6 +922,32 @@ meta miss 404s, and the extension map gained the media families
 playable types instead of octet-stream. E2E extended with a
 Cyrillic-named upload (200 + `filename*`) and green; the owner's URL now
 serves all 47,976,363 bytes inline as `video/webm`.
+
+## Now playing
+
+- [ ] Persistent media playback (SPEC §Now playing): chat audio/video
+  continues in a floating dock on desktop and a top lane on mobile after
+  leaving the source surface, resuming at the same position; one media item
+  at a time. Mobile calls park into the same lane instead of being dropped,
+  keep remote audio audible while parked, and reopen without reconnecting.
+
+### Agent Notes (2026-10-05)
+
+Session `agent/chats-media-redesign-20261005`. Implemented. `stores/media.js`
+owns the single-play channel (a starting element claims it and pauses the
+previous one); `ChatAttachments` registers playing audio/video and, when its
+surface unmounts mid-playback, hands `{kind, url, title, time}` to the
+app-shell `MediaDock` (`components/media/`), which re-creates the element,
+seeks to the position on `loadedmetadata`, and continues — media elements
+cannot survive their Vue template parents, so the handoff is by descriptor.
+One dock, two placements from one component: floating card top-right on
+desktop, safe-area lane at the top on mobile. Calls: parking now hands the
+LiveKit-attached remote-audio elements into a hidden document-level sink in
+the calls store, so parked rooms stay audible and the adopting panel moves
+the same elements back (never re-attaching, which would double the audio);
+park-on-unmount hosts no longer leave on mobile — the room parks without a
+floating window and the lane's call pill (conversation-labeled) reopens the
+full-screen dialog whose panel adopts it, with close = leave.
 
 ## Process Designer
 
