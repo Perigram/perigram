@@ -87,6 +87,20 @@ organization chat) keep files as plain unlinked attachments. Images paste
 straight from the clipboard into the composer and ride the same attachment
 flow as picked files.
 
+## Chat composer
+
+The composer is one clean rounded surface, never an input group: attach
+action, a growing borderless text field, and one trailing action that swaps
+between voice record and send. While recording, the same single row carries
+the recording badge with the live timer, pause/resume, cancel, and send.
+Files attach three ways: picked through the attach surface, dragged onto the
+thread (a drop area stages them), and captured with the device camera
+(photo/video) listed beside upload. Any message can be forwarded to another
+conversation from the message menu; the forwarded bubble names the original
+sender. Voice transcripts are private: the transcript is stored per user and
+rendered only to those who pressed transcribe — the message body, reply
+quotes, and inbox previews never carry it.
+
 ## Chat groups
 
 Group chats are user-scope: any existing account can be a member, not only
@@ -109,6 +123,15 @@ them is a role-settings concern — a declared livekit grant in the process
 access rights withholds admission — and that grant must be authorable from
 the role/permissions UI like every other feature toggle, never by
 hand-editing process data.
+
+## Now playing
+
+Whatever media is playing persists across navigation: chat audio and video
+continue in a floating dock on desktop and a lane pinned to the top of the
+screen on mobile, resuming at the same playback position; only one media
+item plays at a time. An ongoing call persists the same way — the desktop
+floating window it already has, and a top-lane entry on mobile that reopens
+the call without reconnecting, keeping remote audio audible while parked.
 
 ## PWA
 

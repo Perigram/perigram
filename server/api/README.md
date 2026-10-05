@@ -118,7 +118,9 @@ Routes are grouped into sub-directories corresponding to features:
   home sidebar renders; the instance-options route remains the server-side
   validation and hydration channel for those refs (see
   [support feature](../features/support/README.md)). Voice messages transcribe
-  through `POST /support/messages/:id/transcribe`. The shared chat message
+  through `POST /support/messages/:id/transcribe` into the caller's private
+  transcript; messages forward through `POST /support/messages/:id/forward`.
+  The shared chat message
   component renders both inline tokens and
   structured refs. Initial state loads over these REST routes; message, read,
   and inbox events arrive over the connections stream.

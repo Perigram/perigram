@@ -246,8 +246,10 @@ media bytes. Call recordings imported by the
 `video` attachment-only messages posted from the recording starter; every
 other attachment is user-uploaded through the composer (voice messages
 included — recorded through `MediaRecorder`, sent as `audio` descriptors;
-images may also be pasted from the clipboard — they stage through the same
-path as picked files, caps and instance-chat gating included).
+images may also be pasted from the clipboard, dragged onto the thread's
+drop area, or captured with the device camera beside upload — all staging
+through the same path as picked files, caps and instance-chat gating
+included).
 Attachment-only messages are valid (empty body). Reply quotes persist the
 parent's attachments, and conversation summaries carry the last message's
 `attachments` so inbox previews render attachment chips.
@@ -280,25 +282,42 @@ never materialize: files there stay plain unlinked attachments.
 
 ### Transcription
 
-`POST /api/support/messages/:id/transcribe` converts a voice message into its
-underlying text message through the [transcription
-feature](../transcription/README.md). Admission reuses the conversation
-context resolution (the same check that authorizes SSE topics), and only
-single-attachment `audio` messages qualify (call-recording `video`
-attachments are multi-speaker and excluded): no attachments, an
-already-transcribed audio entry (`transcription` marker on the descriptor),
-or a non-empty message body are rejected with 400/409. On success the
-transcript becomes the message body — the
-bubble keeps its audio player beside the text, and reply quotes and inbox
-previews read the text like any message — while
-`transcription { provider, model, transcribedAt }` on the audio descriptor
-records the provenance. Open viewers receive the updated document as a
-`message.updated`
-event on the conversation topic (along the stored instance path for instance
-messages, like message fanout, but without inbox pings: transcription changes
-no unread state). The provider is resolved per organization
-(`message.organizationId`, falling back to the caller's), so org transcription
-settings decide between the local and cloud endpoints.
+`POST /api/support/messages/:id/transcribe` converts a voice message into
+text through the [transcription
+feature](../transcription/README.md) **for the calling user only**: the
+transcript persists per user in the `supportTranscripts` collection (one
+document per message and viewer) and never touches the shared message
+document. Reads merge the caller's transcripts onto every message page
+(`transcript` on the DTO, viewer-scoped), so reply quotes, inbox previews,
+and other viewers' bubbles — which read the authored body — never carry it.
+Admission reuses the conversation context resolution (the same check that
+authorizes SSE topics), and only single-attachment `audio` messages
+qualify (call-recording `video` attachments are multi-speaker and
+excluded): no attachments, an existing transcript for this viewer, or a
+non-empty message body are rejected with 400/409. On success the endpoint
+returns the updated DTO with `transcript` set; because the change is
+private, no conversation event is published. The provider is resolved per
+organization (`message.organizationId`, falling back to the caller's), so
+org transcription settings decide between the local and cloud endpoints.
+
+Legacy public transcripts (the retired contract that wrote the transcript
+into the message body with a `transcription` marker on the descriptor) are
+migrated per participant by
+`server/scripts/migrate-support-transcripts.js`.
+
+### Forwarding
+
+`POST /api/support/messages/:id/forward` (`{ conversationKey }`) re-sends a
+message into another conversation: the forwarder sends a fresh message
+carrying the source's text and attachment descriptors (same GridFS files,
+`targetTypeId` choices re-validated against the target's accepting children
+on instance chats — an ambiguous match without a choice is rejected like
+any send). Instance refs stay behind: they describe the source
+conversation's context, not the target's. The source must be readable by
+the caller (conversation context resolution) and the target must admit the
+caller as a send target; the new message denormalizes `forwardedFrom
+{ senderUserId, senderName, sentAt }` so bubbles name the original sender
+without joins.
 
 ## API
 
@@ -312,13 +331,14 @@ settings decide between the local and cloud endpoints.
 | `GET /api/support/instance-types` | Returns generated-screen instance source types readable by the current user. |
 | `GET /api/support/instance-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable instance options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
 | `POST /api/support/typing` | Ephemeral typing signal; authorized like a read, published to the conversation topic, never persisted. |
-| `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. |
+| `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. Message pages carry the caller's private transcripts (`transcript`, viewer-scoped). |
 | `GET /api/support/messages?recipientUserId=<id>` | REST snapshot of a direct user conversation. |
 | `GET /api/support/messages?conversationKey=group:<id>` | REST snapshot of a group conversation. |
 | `GET /api/support/messages?limit=<n>&before=<iso>` | Lazy history page: the `n` newest messages older than the cursor, ascending, plus `hasMore`. |
 | `GET /api/support/messages?instance=<type>:<id>&includeChildren=<0|1>` | Instance thread view: composed subtree (default) or the instance's own messages. |
 | `POST /api/support/messages` | Send support, direct (`recipientUserId`), group (`conversationKey`), or instance (`instance {type,id}`) message; optional `parentMessageId` reply quote. Publishes `message`/`read`/inbox events through the connections layer. |
-| `POST /api/support/messages/:id/transcribe` | Transcribes an authorized voice message into its message body through the org-configured transcription provider; publishes `message.updated` on the conversation topic. |
+| `POST /api/support/messages/:id/transcribe` | Transcribes an authorized voice message into the caller's private transcript (per-user storage; the shared body never changes). |
+| `POST /api/support/messages/:id/forward` | Forwards an authorized message's text and attachments into another conversation as a fresh send carrying `forwardedFrom` provenance. |
 | `GET /api/support/admin/:user_id` | REST snapshot of the admin support conversation. |
 | `POST /api/support/admin/:user_id` | Admin reply to a customer support conversation. |
 | `GET /api/support/admin/chatlist` | Admin support-thread list snapshot; excludes direct user conversations. Refreshes via the `admin-support` connections topic. |

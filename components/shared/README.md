@@ -540,10 +540,12 @@ relationship.
 ### `ChatAttachmentPicker.vue`
 The chat composer's attachment surface: a Popover hosting PrimeVue
 `Tree`, both unmodified Aura. No `pt`, padding, border, or background
-overrides. A leading file-upload entry (icon + hidden input constrained
-by the host's `filesAccept`) rides above the tree — files and entity refs
-share the one attach surface — and emits `files` for the host to stage;
-the host passes `filesEnabled`/`filesAccept` from its own upload window.
+overrides. Leading file entries (icon + hidden input) ride above the tree
+— files and entity refs share the one attach surface: device upload
+constrained by the host's `filesAccept`, and camera photo/video capture
+(`capture="environment"`; on desktop browsers the capture hint degrades to
+the platform picker). Both emit `files` for the host to stage, through the
+same caps and instance-chat gating.
 Home-screen sections are the roots and load through the SAME
 compiled home-screen list sources the home sidebar's PanelMenu renders —
 the instances store's `listInstances` with the source's resolved filters —
@@ -671,7 +673,12 @@ four images, three beyond) — deterministic tile geometry, not
 content-sized tracks — and clicking any image opens it centered in a
 full-size `StandardDialog` (the standard modal surface; no component
 -local lightbox chrome). Videos render native `<video controls>` players
-(bounded width and height); audio keeps the native audio player. Every
+(bounded width and height); audio keeps the native audio player. Audio and
+video players claim the app's now-playing channel on `play` (one media
+element plays at a time across surfaces); a source surface unmounting
+while its media still plays hands the descriptor and position to the
+app-level dock, which resumes playback there
+(see [components/media](../media/README.md)). Every
 other file renders a chip row (type-derived icon, cropped name, human-
 readable size) with an inline download anchor, and the message menu
 offers one download entry per attachment for any kind (labels cropped).

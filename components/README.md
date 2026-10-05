@@ -1030,8 +1030,9 @@ record through `MediaRecorder`, upload through the files endpoint, and render
 as a native audio player on the bubble plus a voice chip in previews. While
 the org has a transcription provider configured (`GET
 /api/transcription/config`), audio-only voice messages carry a transcribe
-button beside the player; the request fills the bubble with the transcript in
-place (other viewers sync through the `message.updated` conversation event).
+action in the message menu; the transcript is private to the viewer who
+requested it (stored per user server-side), renders as caption text under
+the player, and never reaches other viewers, reply quotes, or previews.
 Attachments attach through the shared `ChatAttachmentPicker` (see
 [shared components](./shared/README.md)): a raw Popover + Tree hierarchy —
 home-screen sections whose create actions render as inline entries
@@ -1056,11 +1057,14 @@ posting hydrated entity snapshots. The type picker should localize generated
 entity type ids for users instead of exposing raw backend strings. Attachment-
 only messages are valid and must stay sendable when the draft has at least one
 selected entity ref, a recorded voice attachment, or a staged file. File
-uploads ride the SAME attach popover as entity refs (a leading upload
-entry above the tree — no second composer control): staging multiple
+uploads ride the SAME attach popover as entity refs (leading file entries
+above the tree — device upload and camera photo/video capture — no second
+composer control): staging multiple
 files as removable chips (image thumbnails for image files, type icons
 otherwise) whose `attachments[]` render through the shared
-`ChatAttachments` gallery (`components/shared/README.md`). In instance
+`ChatAttachments` gallery (`components/shared/README.md`). Dragging files
+onto the thread stages them through the same attachment flow (a dashed
+drop zone over the messages while a file drag hovers). In instance
 chats the composer resolves the composer target's accepting file children
 through the served type view (`utils/chat-file-targets.js`): the upload
 entry's `accept` is the union of candidate `accept` lists, staged chips
@@ -1080,8 +1084,20 @@ wiped by a settling send; sends chain so bodies land in click order, and a
 failed send restores exactly what it took unless the strips were cleared
 wholesale in between (conversation or target switch). The staging strip is
 height-bounded so the composer dock never squeezes the thread above it,
-and voice sends follow the same detach rule for their text. The
-conversation snapshot
+and voice sends follow the same detach rule for their text.
+The composer is one rounded surface on the subtle token — never a
+PrimeVue `InputGroup`: the attach action and a borderless growing
+`Textarea` (transparent input chrome, capped height) with one trailing
+action that swaps between voice record (while the draft is empty and
+voice is allowed) and send. While recording, the same row renders the
+live badge (pulsing dot plus timer), pause/resume, cancel, and
+stop-and-send in one line. Any message with text or attachments forwards
+from the message menu: the target picker lists the inbox conversations
+and the server-side forward re-sends the content with `forwardedFrom`
+provenance (support feature README, Forwarding). Inline audio/video
+playback hands off to the app-level now-playing dock when the source
+surface unmounts (see [components/media](./media/README.md)).
+The conversation snapshot
 is auth-gated by the store so direct user candidates are not lost behind a
 failed pre-auth request.
 The expanded `/chats` route keeps the persisted-conversation inbox visible as
@@ -1194,6 +1210,7 @@ PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add
 ## Related
 - [components/entities/README.md](./entities/README.md) — manifest-backed entity card contracts
 - [components/shared/README.md](./shared/README.md) — shared block components, layout containers
+- [components/media/README.md](./media/README.md) — persistent now-playing dock for media and parked calls
 - [components/ui-mapping/README.md](./ui-mapping/README.md) — resolver-driven field/surface/screen materializations for the CTS UI mapping contract
 - [composables/README.md](../composables/README.md) — useEntity, useBlocks
 - [server/DATA_MODEL.md](../server/DATA_MODEL.md) — entity data shapes
