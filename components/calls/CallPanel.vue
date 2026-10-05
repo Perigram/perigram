@@ -248,8 +248,8 @@ import { useToast } from 'primevue/usetoast';
 const props = defineProps({
     room: { type: String, required: true },
     // Hosts that should keep the call alive when they unmount (workspace
-    // tabs, chat surfaces) set this; the floating window and the mobile
-    // dialog hosts keep leave-on-close semantics.
+    // tabs, chat surfaces, the mobile top-lane dialog) set this; the
+    // floating window host keeps leave-on-close semantics.
     parkOnUnmount: { type: Boolean, default: false }
 });
 const emit = defineEmits(['closed']);
@@ -314,6 +314,9 @@ let LiveKit = null;
 let disposed = false;
 const tileVideos = new Map();
 const attachedAudio = new Map();
+// Audio attachments adopted with a parked room whose sink element is not
+// mounted yet; flushed into the panel's sink on mount.
+let adoptedAudioAttachments = [];
 const reactionEls = new Map();
 
 const layoutOptions = computed(() => [
@@ -439,6 +442,22 @@ const detachRemoteAudio = (track) => {
     }
 };
 
+// Parking hands the attached audio elements to the store instead of
+// detaching them: they keep playing in the store's hidden sink, so a parked
+// call stays audible, and the adopting panel moves the same elements back
+// into its own sink without re-attaching (which would double the audio).
+const handoffAudioAttachments = () => {
+    const entries = [...attachedAudio.entries()].map(([track, element]) => ({ track, element }));
+    attachedAudio.clear();
+    return entries;
+};
+
+const flushAdoptedAudio = () => {
+    if (!adoptedAudioAttachments.length || !audioSink.value) return;
+    for (const { element } of adoptedAudioAttachments) audioSink.value.appendChild(element);
+    adoptedAudioAttachments = [];
+};
+
 const screenTile = computed(() => tiles.find(tile => tile.isScreen) || null);
 const topSpeakerTile = computed(() => [...tiles]
     .filter(tile => !tile.isScreen)
@@ -498,6 +517,11 @@ const adoptLiveRoom = () => {
     if (!entry) return false;
     awaitingTransfer.value = false;
     ({ room: livekitRoom, LiveKit } = entry);
+    // Seed the adopted audio into the map BEFORE the publication walk, so
+    // handed-over tracks are not attached a second time; the elements move
+    // from the store's sink into this panel's sink on flush.
+    adoptedAudioAttachments = entry.audioAttachments || [];
+    for (const { track, element } of adoptedAudioAttachments) attachedAudio.set(track, element);
     bindRoomEvents(livekitRoom);
     const local = livekitRoom.localParticipant;
     micEnabled.value = local.isMicrophoneEnabled();
@@ -519,6 +543,7 @@ const adoptLiveRoom = () => {
     }
     connected.value = true;
     stage.value = 'connected';
+    flushAdoptedAudio();
     callsStore.joinRoom(props.room);
     return true;
 };
@@ -676,6 +701,9 @@ onMounted(() => {
         awaitingTransfer.value = true;
         stage.value = 'connecting';
     }
+    // Setup-time adoption (an immediate parked-room watcher run) happens
+    // before the sink element exists; move the adopted audio in now.
+    flushAdoptedAudio();
 });
 
 const enumerateDevices = async () => {
@@ -822,23 +850,24 @@ onBeforeUnmount(() => {
         } catch {
             /* listener cleanup is best-effort */
         }
-        callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit);
+        callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit, handoffAudioAttachments());
         livekitRoom = null;
         teardownMedia();
         return;
     }
     // Navigating away from a park-on-unmount host (route change, pane tab
     // switch, host dialog close) must not end the call: the live room parks
-    // into the shell floating window, which adopts it without reconnecting.
-    // Desktop only — the floating window has no mobile surface to rehost it.
-    if (connected.value && livekitRoom && props.parkOnUnmount && !isMobileViewport()) {
+    // and another surface adopts it without reconnecting — the desktop
+    // floating window, or the mobile top lane (components/media README)
+    // when no floating surface follows.
+    if (connected.value && livekitRoom && props.parkOnUnmount) {
         try {
             livekitRoom.removeAllListeners();
         } catch {
             /* listener cleanup is best-effort */
         }
-        callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit);
-        callsStore.setFloating(props.room);
+        callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit, handoffAudioAttachments());
+        if (!isMobileViewport()) callsStore.setFloating(props.room);
         livekitRoom = null;
         teardownMedia();
         return;

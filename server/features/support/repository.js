@@ -5,6 +5,7 @@ const COLLECTION = 'supportMessages';
 const READS_COLLECTION = 'supportConversationReads';
 const GROUPS_COLLECTION = 'chat_groups';
 const PREFS_COLLECTION = 'supportConversationPrefs';
+const TRANSCRIPTS_COLLECTION = 'supportTranscripts';
 
 /**
  * Conversation page read. With `options.limit` the newest `limit` messages
@@ -142,6 +143,39 @@ export async function findOthersReadStates(conversationKeys = [], excludeUserId 
     }
     return Array.from(latestByKey.entries())
         .map(([conversationKey, lastReadAt]) => ({ conversationKey, lastReadAt }));
+}
+
+// Per-user voice-message transcripts (support README, Transcription): one
+// document per message and viewer; the message document never carries them.
+export async function findTranscript(userId, messageId) {
+    if (!userId || !messageId) return null;
+    const db = await connectDB();
+    return await db.collection(TRANSCRIPTS_COLLECTION)
+        .findOne({ userId: String(userId), messageId: String(messageId) });
+}
+
+export async function findTranscripts(userId, messageIds = []) {
+    const ids = messageIds.map(String).filter(Boolean);
+    if (!userId || !ids.length) return [];
+    const db = await connectDB();
+    return await db.collection(TRANSCRIPTS_COLLECTION)
+        .find({ userId: String(userId), messageId: { $in: ids } })
+        .toArray();
+}
+
+export async function upsertTranscript({ messageId, userId, text = '', provider = '', model = '' } = {}) {
+    const db = await connectDB();
+    const now = new Date();
+    const filter = { messageId: String(messageId), userId: String(userId) };
+    await db.collection(TRANSCRIPTS_COLLECTION).updateOne(
+        filter,
+        {
+            $set: { text, provider, model, transcribedAt: now, updatedAt: now },
+            $setOnInsert: { createdAt: now }
+        },
+        { upsert: true }
+    );
+    return await db.collection(TRANSCRIPTS_COLLECTION).findOne(filter);
 }
 
 export async function insertGroup(data) {

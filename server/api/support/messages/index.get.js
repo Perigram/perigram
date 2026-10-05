@@ -22,12 +22,13 @@ export default defineEventHandler(async (event) => {
         ? supportService.instanceConversationMatch(context, query.includeChildren !== '0' && query.includeChildren !== 'false')
         : context.match
     // `limit`/`before` drive lazy history: the newest page loads first and
-    // older pages arrive keyed on the oldest loaded timestamp.
+    // older pages arrive keyed on the oldest loaded timestamp. The viewer's
+    // private transcripts ride the page (support README, Transcription).
     const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || 50, 1), 100)
     const messages = await supportService.listMessages(match, {
         limit,
         before: query.before || null
-    })
+    }, auth.userId)
     await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
 
     return {
