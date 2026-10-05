@@ -737,6 +737,24 @@ feed its back button through the new slot.
 
 ## Chats
 
+- [ ] Thread rendering (SPEC §Chat thread): consecutive same-sender messages
+  group into runs — sender label leads, single timestamp trails the last
+  message; group chats show resolved sender names on others' messages;
+  forwarded messages carry the forwarded-from header on every shape.
+
+### Agent Notes (2026-10-05)
+
+Session `agent/chat-thread-polish-20261005`. Implemented in
+`messagesList` (run flags computed per rendered page, so realtime appends
+and lazy history re-group live): runs break on sender change, a 3-minute
+gap, or a day divider. The timestamp caption renders only on
+`lastOfSenderRun` (the instance leaf link keeps its row regardless);
+group threads lead others' runs with the sender resolved through the same
+inline user chip the thread header uses (`InstanceInlineRef`, once per
+run, never for own messages); the forwarded-from caption (forward icon +
+original sender) moved out of the text bubble to lead every message shape
+— attachment-only forwards show it too.
+
 - [ ] Composer redesign (SPEC §Chat composer): one rounded surface instead of
   the InputGroup; recording state is one line with badge+timer, pause/resume,
   cancel, and send.

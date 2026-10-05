@@ -101,6 +101,14 @@ sender. Voice transcripts are private: the transcript is stored per user and
 rendered only to those who pressed transcribe — the message body, reply
 quotes, and inbox previews never carry it.
 
+## Chat thread
+
+Messages from one sender sent in a row read as one run: the sender label
+leads the run and the timestamp trails it under the last message only.
+Group chats show the sender on others' messages (resolved names, never
+ids). Forwarded messages carry a distinct forwarded-from header above
+their content, on every message shape — text, media, or files.
+
 ## Chat groups
 
 Group chats are user-scope: any existing account can be a member, not only

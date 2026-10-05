@@ -22,7 +22,8 @@ Messages have a deterministic `conversationKey`:
 New writes always persist
 `conversationKey`, `conversationKind`, `participants`, `senderUserId`,
 `message`, `instanceRefs`, `timestamp`, and optionally `attachments` (see
-[Message Attachments](#message-attachments)).
+[Message Attachments](#message-attachments)) or `forwardedFrom` (see
+[Forwarding](#forwarding)).
 
 ### Inbox Preferences and Read Marks
 
@@ -316,8 +317,9 @@ any send). Instance refs stay behind: they describe the source
 conversation's context, not the target's. The source must be readable by
 the caller (conversation context resolution) and the target must admit the
 caller as a send target; the new message denormalizes `forwardedFrom
-{ senderUserId, senderName, sentAt }` so bubbles name the original sender
-without joins.
+{ senderUserId, senderName, sentAt }` so a forwarded-from header line —
+rendered above the message content on every shape, text, media, or
+files — names the original sender without joins.
 
 ## API
 
