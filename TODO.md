@@ -1,5 +1,43 @@
 # TODO
 
+## Chats tree, avatars everywhere, no emails/ids as names (2026-10-06)
+
+- [ ] Avatars render in every chat surface (inbox rows, thread headers,
+  user chips) — a constant letter label was hiding every image (SPEC
+  §Chat thread).
+- [ ] Tighter stacking between consecutive messages (SPEC §Chat thread).
+- [ ] The "Detailed" chats toggle is gone: the chats list is a tree — a
+  top instance chat with involved children chats lists them as a
+  collapsible sub-list; instance thread headers carry lineage breadcrumbs
+  under the name (SPEC §Chat thread).
+- [ ] The org chat shows senders (avatar + name) like group chats (SPEC
+  §Chat thread).
+- [ ] Group headers show member chips plus a members list popup (SPEC
+  §Chat thread).
+- [ ] User emails never render; user surfaces carry a proper send-message
+  action; no inner ids as names anywhere in chat surfaces (SPEC
+  §Chat thread).
+
+### Agent Notes (2026-10-06)
+
+Session `agent/chats-tree-avatars-20261006`. Avatar root cause (live
+browser probe against the dev stack): PrimeVue `Avatar` renders label
+over image, and the chat surfaces passed BOTH `:image` and a constant
+letter `:label` — the letter always won, so no avatar ever rendered
+despite the URLs being present and the image endpoint answering 200 to
+every authenticated caller. Fixed by passing the label only when no image
+exists (inbox row, thread header, forward dialog, `UserChip`). Implemented
+the tree (server leaf rows now carry `parentKey`; client nests leaves
+under their top chat with a disclosure chevron; orphans stay visible),
+TraceChain breadcrumbs under instance titles, sender chips on instance
+threads, group members chips + list popover, tighter message gap, the
+user type's identifier moved from email to name with email filtered from
+user surfaces and labeled send-message actions, and swept every
+id-as-name fallback out of the support service (instance labels, denied
+stubs, participant fallbacks) — unnamed instances localize their type
+label instead. `useChatDetailedView` and its persistence died with the
+Detailed toggle.
+
 ## Chats interaction split and inbox meta (2026-10-06)
 
 - [ ] Message context menu opens on right-click/long-press only; a left
