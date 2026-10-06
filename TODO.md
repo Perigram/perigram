@@ -9,6 +9,19 @@
   (unfold on mount, idle breathe) — see
   [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md).
 
+### Agent Notes (2026-10-06, v2)
+
+Session `agent/rive-mark-v2-20261006`. Owner review: the hinge-fold motion
+was readable but mechanical ("flapping flanges"), so the motion layer was
+redesigned to an exploded axonometric breathe — rigid panels slide along
+their isometric axes (face up, flanges down-out), the rib opens and
+re-locks with a small tuck; idle became a light drift across the static
+folds. Same animation names and consumers. Re-validated end to end:
+verify/inspect clean, locked and exploded poses pixel-checked in CLI
+renders, headless chromium loads with zero console errors (loader loop
+oscillates periodically, sidebar settles locked under idle light). The
+`.riv` shrank 12.7 KB → 5.6 KB (translations instead of vertex morphs).
+
 ### Agent Notes (2026-10-06)
 
 Session `agent/rive-mark-20261006`. Installed Rive CLI 1.3.0 — the
