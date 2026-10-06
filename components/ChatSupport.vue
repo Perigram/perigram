@@ -152,19 +152,22 @@
                                 ]"
                                 :style="rowContentStyle(option)"
                             >
-                            <!-- Every row carries a fixed-width leading cell:
-                                 the tree disclosure for instance rows with
-                                 children, empty otherwise — avatars share one
-                                 left rhythm whether or not a row expands. -->
-                            <span class="flex w-8 shrink-0 items-center justify-center self-start">
+                            <!-- Only instance rows carry the tree disclosure,
+                                 in one fixed-width leading cell so every
+                                 instance row aligns regardless of nesting;
+                                 person and group rows stay flush. -->
+                            <span
+                                v-if="option.conversationKind === 'instance'"
+                                class="flex w-6 shrink-0 items-center justify-center self-center"
+                            >
                                 <Button
-                                    v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
+                                    v-if="hasChatChildren(option)"
                                     :icon="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
                                     severity="secondary"
                                     text
                                     rounded
                                     size="small"
-                                    class="h-6 w-6"
+                                    class="h-5 w-5"
                                     :aria-label="$t('support.chatChildren')"
                                     :aria-expanded="chatTreeExpanded(option)"
                                     @click.stop="toggleChatTree(option)"
@@ -208,10 +211,7 @@
                                     >
                                         {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
                                     </small>
-                                    <!-- The meta column reserves both lines so
-                                         rows with and without a pin/unread
-                                         badge share one height. -->
-                                    <span class="ml-auto flex min-h-10 shrink-0 flex-col items-end justify-between gap-0.5 pl-1">
+                                    <span class="ml-auto flex shrink-0 flex-col items-end gap-0.5 pl-1">
                                         <span class="flex items-center gap-1">
                                             <i
                                                 v-if="isOwnInboxRow(option) && option.lastMessageRead"
