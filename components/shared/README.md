@@ -537,6 +537,23 @@ Revision/provenance rows should use this component with `type="entityRevision"`
 so the shared entity popover shows the immutable revision summary and source
 relationship.
 
+### `UserChip.vue`
+The user identity chip: avatar plus display name for person identity in
+conversation surfaces — group thread sender labels, group header member
+rows — replacing the generic inline-ref face for users. That face is
+wrong for people: `InstanceCard`'s inline variant renders the type glyph
+plus the identifier-flagged field (the served `user` type declares
+`identifier: "email"` and the users glyph) and carries no avatar slot, so
+inline user refs read as "users-icon + email" and other users' avatars
+never render there. The chip resolves its user through the instances
+store's readable-reference seam (org-mates through the users list,
+everyone else through the directory card — both carry `data.avatarUrl`,
+and the avatar image endpoint is open to every authenticated caller), so
+the avatar renders for any reachable person, not just the viewer. A click
+opens the shared entity popup (`useEntityPopup` → the user's directory
+profile). Keep person identity displays on this chip; keep entity refs on
+`InstanceInlineRef`.
+
 ### `ChatAttachmentPicker.vue`
 The chat composer's attachment surface: a Popover hosting PrimeVue
 `Tree`, both unmodified Aura. No `pt`, padding, border, or background
@@ -588,7 +605,7 @@ shared chat target, consumed on chat mount); the sidebar
 PanelMenu's Chats entry opens that general chats pane tab directly. The
 thread header's title opens the entity popup (`EntityPopup.vue` +
 `useEntityPopup`) — titled by display name (never an id); group headers
-carry member chips inline.
+carry member chips inline through [`UserChip.vue`](#userchipvue).
 
 ### `InstanceCard.vue` popup identity slot
 The popover's identity block — type label, status surface, icon+name row, and

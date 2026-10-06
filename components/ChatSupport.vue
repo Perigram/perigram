@@ -18,14 +18,21 @@
                 :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : ''"
             >
                 <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
-                    <label
+                    <!-- The Detailed toggle: the same icon-only toggle the
+                         thread header uses for its children view, reading the
+                         same per-user source inverted (useChatDetailedView). -->
+                    <Button
                         v-if="hasInstanceRows && !showArchived"
-                        class="mr-auto flex items-center gap-1 pl-1 text-muted text-supporting"
-                        :title="$t('support.chatGroupingAll')"
-                    >
-                        <ToggleSwitch v-model="groupingAll" :aria-label="$t('support.chatGroupingAll')" />
-                        <span>{{ $t('support.chatGroupingAll') }}</span>
-                    </label>
+                        icon="pi pi-sitemap"
+                        :severity="groupingAll ? 'primary' : 'secondary'"
+                        text
+                        rounded
+                        size="small"
+                        class="mr-auto"
+                        :aria-label="$t('support.chatGroupingAll')"
+                        :aria-pressed="groupingAll"
+                        @click="groupingAll = !groupingAll"
+                    />
                     <Button
                         v-if="showArchived"
                         icon="pi pi-arrow-left"
@@ -99,13 +106,14 @@
                 >
                     <template #option="{ option }">
                         <!-- Chat-list row: two top-aligned lines — name,
-                             member count, and the smart timestamp (time when
-                             today, date otherwise) up top; the latest-message
-                             preview with the own-last read mark below. The
-                             row menu (pin/archive) is an absolute hover
-                             overlay so it never shifts the layout; on touch
-                             a left swipe unveils the same actions as a
-                             sticky rail (one row at a time, tap to dismiss). -->
+                              member count, and the trailing meta column (read
+                              check before the smart timestamp, pin indicator
+                              and unread-count badge under it) up top; the
+                              latest-message preview below. The row menu
+                              (pin/archive) opens on right-click (long-press on
+                              touch); on touch a left swipe unveils the same
+                              actions as a sticky rail (one row at a time, tap
+                              to dismiss). -->
                         <div
                             class="relative flex w-full min-w-0 items-start overflow-hidden md:overflow-visible"
                             @touchstart="onRowTouchStart($event, option)"
@@ -113,6 +121,7 @@
                             @touchend="onRowTouchEnd(option)"
                             @touchcancel="onRowTouchEnd(option)"
                             @click="onRowContentClick($event, option)"
+                            @contextmenu.prevent="openConversationMenu($event, option)"
                         >
                             <span
                                 class="absolute inset-y-0 right-0 flex items-center gap-1 pr-1 opacity-0 transition-opacity md:hidden"
@@ -148,7 +157,7 @@
                                 />
                             </span>
                             <div
-                                class="group relative flex w-full min-w-0 items-start gap-2 md:gap-3"
+                                class="relative flex w-full min-w-0 items-start gap-2 md:gap-3"
                                 :class="rowDrag.key === option.conversationKey ? '' : 'transition-transform'"
                                 :style="rowContentStyle(option)"
                             >
@@ -190,21 +199,36 @@
                                     >
                                         {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
                                     </small>
-                                    <small v-if="option.timestamp" class="ml-auto shrink-0 pl-1 text-muted text-supporting">
-                                        {{ inboxTimestamp(option.timestamp) }}
-                                    </small>
-                                    <i
-                                        v-if="option.pinned"
-                                        class="pi pi-thumbtack shrink-0 text-muted"
-                                        :aria-label="$t('support.pin')"
-                                    />
+                                    <span class="ml-auto flex shrink-0 flex-col items-end gap-0.5 pl-1">
+                                        <span class="flex items-center gap-1">
+                                            <i
+                                                v-if="isOwnInboxRow(option) && option.lastMessageRead"
+                                                class="pi pi-check shrink-0 text-supporting text-primary"
+                                                :aria-label="$t('support.messageRead')"
+                                            />
+                                            <small v-if="option.timestamp" class="text-muted text-supporting">
+                                                {{ inboxTimestamp(option.timestamp) }}
+                                            </small>
+                                        </span>
+                                        <span
+                                            v-if="option.pinned || option.unreadCount > 0"
+                                            class="flex items-center gap-1"
+                                        >
+                                            <i
+                                                v-if="option.pinned"
+                                                class="pi pi-thumbtack shrink-0 text-supporting text-muted"
+                                                :aria-label="$t('support.pin')"
+                                            />
+                                            <Badge
+                                                v-if="option.unreadCount > 0"
+                                                :value="option.unreadCount"
+                                                severity="danger"
+                                                size="small"
+                                            />
+                                        </span>
+                                    </span>
                                 </div>
                                 <div class="flex min-w-0 items-center gap-1">
-                                    <i
-                                        v-if="isOwnInboxRow(option) && option.lastMessageRead"
-                                        class="pi pi-check shrink-0 text-primary"
-                                        :aria-label="$t('support.messageRead')"
-                                    />
                                     <small class="min-w-0 flex-1 truncate text-muted">
                                         <SupportMessageContent
                                             v-if="option.lastMessage"
@@ -221,22 +245,6 @@
                                     </small>
                                 </div>
                             </div>
-                                <!-- Plain wrapper owns the absolute
-                                     positioning and hover visibility:
-                                     PrimeVue's runtime .p-button position
-                                     rule would defeat utility classes on
-                                     the button itself. -->
-                                <span class="absolute top-1/2 right-0 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                                    <Button
-                                        icon="pi pi-ellipsis-v"
-                                        severity="secondary"
-                                        text
-                                        rounded
-                                        size="small"
-                                        :aria-label="$t('common.more')"
-                                        @click.stop="openConversationMenu($event, option)"
-                                    />
-                                </span>
                         </div>
                         </div>
                     </template>
@@ -348,14 +356,10 @@
                             v-if="activeConversation.conversationKind === 'group'"
                             class="flex min-w-0 flex-wrap items-center gap-1"
                         >
-                            <InstanceInlineRef
+                            <UserChip
                                 v-for="participantId in groupParticipantIds"
                                 :key="participantId"
-                                type="user"
-                                :id="participantId"
-                                :fetch="true"
-                                :fields="[]"
-                                variant="inline"
+                                :user-id="participantId"
                                 class="max-w-full"
                             />
                         </div>
@@ -479,7 +483,7 @@
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
                             @touchcancel="onTouchCancel(messageItem)"
-                            @click="openMessageMenuFromRow($event, messageItem)"
+                            @click="openMessagePopup($event, messageItem)"
                             @contextmenu="openMessageMenuFromRow($event, messageItem, true)"
                         >
                             <!-- Swipe reveal icon: it sits in the gap the
@@ -528,17 +532,13 @@
                                     </span>
                                 </span>
                                 <!-- Sender label: group threads lead others'
-                                     runs with the resolved sender (the same
-                                     inline user chip the thread header uses
-                                     for members) — once per run, never for
-                                     the viewer's own messages. -->
-                                <InstanceInlineRef
+                                     runs with the sender's avatar and name (the
+                                     shared user chip, which opens the entity
+                                     popup) — once per run, never for the
+                                     viewer's own messages. -->
+                                <UserChip
                                     v-if="showSenderLabel(messageItem)"
-                                    type="user"
-                                    :id="messageSenderKey(messageItem)"
-                                    :fields="[]"
-                                    fetch
-                                    variant="inline"
+                                    :user-id="messageSenderKey(messageItem)"
                                     class="max-w-full"
                                 />
                                 <!-- Reply quote: a quote block, not a control —
@@ -1239,7 +1239,9 @@
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import { conversationKeyForRoom } from '~/utils/call-rooms.js'
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
+import UserChip from '~/components/shared/UserChip.vue'
 import Avatar from 'primevue/avatar'
+import Badge from 'primevue/badge'
 import Divider from 'primevue/divider'
 import Listbox from 'primevue/listbox'
 import Button from 'primevue/button'
@@ -1273,6 +1275,8 @@ import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js'
 import { openInstanceChat } from '~/utils/instance-chat.js'
 import { useEntityPopup } from '~/composables/useEntityPopup'
+import { useChatDetailedView } from '~/composables/useChatDetailedView.js'
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js'
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
@@ -1342,12 +1346,18 @@ const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadF
 )
 const executingCreate = ref(false)
 const activeConversation = ref(null)
-// Instance thread state: the children toggle switches between messages linked
-// to the instance itself (default) and the composed subtree view; the toggle
-// beside the title reads "include children", so the pressed/primary state is
-// the subtree view. The composer link target is the latest child chip by
-// default and falls back to the composed instance when nothing is selected.
-const includeChildren = ref(false)
+// Instance thread view: the children toggle beside the title switches between
+// messages linked to the instance itself and the composed subtree view. It
+// reads the shared per-user detailed-view source INVERTED (detailed list ⟺
+// own-messages thread), so the inbox grouping and every open thread agree
+// live — see useChatDetailedView. The composer link target is the latest
+// child chip by default and falls back to the composed instance when
+// nothing is selected.
+const { detailed: chatsDetailed } = useChatDetailedView()
+const includeChildren = computed({
+    get: () => !chatsDetailed.value,
+    set: (value) => { chatsDetailed.value = !value }
+})
 const composerInstance = ref(null)
 let composerInstanceTouched = false
 // Reply state: quoted target for the next send, transient swipe arming, and
@@ -1457,11 +1467,13 @@ const localizedTypeIdLabel = (type) => {
 
 
 // Instance rows ship in both groupings from the inbox snapshot: the joined
-// top-level view (default) and the flat per-instance leaf view.
-const chatGrouping = ref('top')
+// top-level view (default) and the flat per-instance leaf view. The inbox's
+// Detailed toggle is the shared per-user detailed-view source itself
+// (useChatDetailedView); the thread children toggle reads it inverted, so
+// the inbox grouping and every open thread follow one per-user preference.
 const groupingAll = computed({
-    get: () => chatGrouping.value === 'all',
-    set: (value) => { chatGrouping.value = value ? 'all' : 'top' }
+    get: () => chatsDetailed.value,
+    set: (value) => { chatsDetailed.value = value }
 })
 const hasInstanceRows = computed(() => supportChatStore.conversations
     .some(conversation => conversation.conversationKind === 'instance'))
@@ -1476,7 +1488,7 @@ const displayConversations = computed(() => supportChatStore.conversations
         if (['direct', 'group'].includes(conversation.conversationKind)) return true
         if (conversation.conversationKind !== 'instance') return false
         // Top-level grouping hides leaf rows; Detailed shows every instance chat.
-        return chatGrouping.value === 'all' || !conversation.isLeafRow
+        return groupingAll.value || !conversation.isLeafRow
     }))
 
 // One unified inbox: person, group, and instance chats share a single list;
@@ -2377,9 +2389,11 @@ function truncateStripTrail(index) {
     const deepest = stripTrail.value[stripTrail.value.length - 1] || null
     composerInstanceTouched = true
     composerInstance.value = deepest
-    if (!includeChildren.value) includeChildren.value = true
         ? { type: deepest.type, id: deepest.id, name: deepest.name }
         : null
+    // A child target only lands visibly in the composed subtree view; the
+    // own-messages filter would hide the sent message entirely.
+    if (!includeChildren.value) includeChildren.value = true
 }
 
 function resetStripTrail() {
@@ -2392,7 +2406,6 @@ watch(activeConversationKey, () => {
     replyTo.value = null
     composerInstance.value = null
     composerInstanceTouched = false
-    includeChildren.value = false
 })
 
 // Staged files are target-scoped: their child-type choices (and whether
@@ -2535,17 +2548,30 @@ const forwardToConversation = async (conversationKey) => {
     }
 }
 
-// The context menu opens from a plain tap on the message, a long-press
-// (contextmenu), or the row's ellipsis action — media-only messages carry
-// no text bubble, so the row-level paths are the only ones that reach
-// them. Touches that land on interactive children (media elements and
-// their native controls, the reply-quote jump, links, inputs) or select
-// text never open it.
+// The context menu opens from right-click or long-press (contextmenu) and
+// the hover ellipsis action — media-only messages carry no text bubble, so
+// the row-level paths are the only ones that reach them. Touches that land
+// on interactive children (media elements and their native controls, the
+// reply-quote jump, links, inputs) or select text never open it.
 const openMessageMenuFromRow = (event, messageItem, longPress = false) => {
     if (event?.target?.closest?.('button, a, video, audio, input, textarea, [data-no-menu]')) return
     if (!longPress && typeof window !== 'undefined' && String(window.getSelection?.() || '').length) return
     if (longPress) event?.preventDefault?.()
     openMessageMenu(event, messageItem)
+}
+
+// Left click inspects: a message linked to an instance opens that
+// instance's popup (the same entity popup the thread title opens), so a
+// composed thread's rows lead to the exact instance they concern. Clicks
+// on interactive children (inline ref chips, links, media, the reply-quote
+// jump) and text selections keep their own behavior; person threads have
+// no instance to inspect and ignore the click.
+const openMessagePopup = (event, messageItem) => {
+    if (isInteractiveEventTarget(event)) return
+    if (typeof window !== 'undefined' && String(window.getSelection?.() || '').length) return
+    const link = messageItem?.instanceLink
+    if (!link?.type || !link?.id) return
+    openEntityPopup({ typeId: link.type, instanceId: String(link.id) })
 }
 
 // Replies quote the target inline in the composer; sending carries the
@@ -2792,8 +2818,8 @@ const inboxTimestamp = (timestamp) => {
 const isOwnInboxRow = (conversation) => Boolean(conversation.senderUserId)
     && String(conversation.senderUserId) === String(currentUserId.value)
 
-// Row menu: pin/unpin and archive/unarchive, driven by the row's current
-// per-user preferences.
+// Row menu (right-click / long-press): pin/unpin and archive/unarchive,
+// driven by the row's current per-user preferences.
 const conversationMenu = ref(null)
 const conversationMenuTarget = ref(null)
 const conversationMenuItems = computed(() => {

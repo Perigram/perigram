@@ -1,5 +1,44 @@
 # TODO
 
+## Chats interaction split and inbox meta (2026-10-06)
+
+- [ ] Message context menu opens on right-click/long-press only; a left
+  click on an instance-linked message opens that instance's popup (SPEC
+  §Chat files).
+- [ ] Chats list rows: no hover ellipsis, the row menu opens on right-click
+  (SPEC §Chat files).
+- [ ] Inbox row meta: read check before the timestamp (small), pin
+  indicator and unread-count badge under it (SPEC §Chat files).
+- [ ] The inbox "Detailed" toggle is the same icon-only toggle the thread
+  header uses, persisted per user, driving list grouping and thread
+  children view from one source, inverted (SPEC §Chat thread).
+- [ ] Group chat sender display is avatar plus display name, not the
+  identifier/email and type glyph (SPEC §Chat thread).
+
+### Agent Notes (2026-10-06)
+
+Session `agent/chats-context-ui-20261006`. Implemented all five: the
+message row's left click now routes to `openMessagePopup` (entity popup of
+the message's `instanceLink`; interactive children keep their own
+behavior), the inbox hover ellipsis died in favor of
+`@contextmenu` on the row wrapper, the row meta became the trailing
+two-line column, the Detailed/children pair derives from the new shared
+`useChatDetailedView` source (localStorage per user id; conversation
+switches no longer reset it; also fixed the pre-existing mangled
+`truncateStripTrail` body), and group senders plus member chips render
+through the new `components/shared/UserChip.vue`.
+
+Avatar visibility diagnosis (asked alongside): avatars were never blocked
+server-side — `/api/directory/user/:id` and the support service's
+participant snapshots carry `data.avatarUrl` to every authenticated
+viewer, and `GET /api/users/:id/avatar` streams to any authenticated
+caller (verified live). The gap was rendering: `InstanceCard`'s inline
+variant has no avatar slot and labels chips with the type's identifier
+field, and the served `user` type declares `identifier: "email"` and the
+users glyph — so every inline user chip showed "users-icon + email" and
+users only ever saw their own avatar on profile surfaces. `UserChip`
+replaces that face for chat identity displays.
+
 ## Cross-organization chat groups (2026-10-04)
 
 - [ ] Group membership and inbox visibility are user-scope (SPEC §Chat
