@@ -102,29 +102,8 @@
                               touch); on touch a left swipe unveils the same
                               actions as a sticky rail (one row at a time, tap
                               to dismiss). -->
-                        <div class="relative flex w-full min-w-0 items-start">
-                            <!-- The tree disclosure sits in the option gutter
-                                 before the row, outside the overflow-hidden
-                                 swipe subtree: tappable on every viewport,
-                                 never shifting the avatar, so top-level rows
-                                 of every kind stay flush at one left edge and
-                                 only nested children indent. -->
-                            <button
-                                v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
-                                type="button"
-                                class="absolute top-1/2 left-0 z-10 flex h-8 w-5 -translate-x-full -translate-y-1/2 items-center justify-center"
-                                :aria-label="$t('support.chatChildren')"
-                                :aria-expanded="chatTreeExpanded(option)"
-                                @click.stop="toggleChatTree(option)"
-                            >
-                                <i
-                                    :class="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                                    class="text-supporting text-muted"
-                                    aria-hidden="true"
-                                />
-                            </button>
-                            <div
-                            class="relative flex w-full min-w-0 items-start overflow-hidden md:overflow-visible"
+                        <div
+                            class="relative flex w-full min-w-0 items-start"
                             @touchstart="onRowTouchStart($event, option)"
                             @touchmove="onRowTouchMove($event, option)"
                             @touchend="onRowTouchEnd(option)"
@@ -201,6 +180,28 @@
                                     class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
                                     :aria-label="$t('support.online')"
                                 />
+                                <!-- The tree disclosure hugs the avatar's own
+                                     left gutter — vertically centered on the
+                                     avatar, indented with its row, never
+                                     shifting it: top-level rows of every kind
+                                     stay flush at one left edge and only
+                                     nested children indent. The row does not
+                                     clip (the inbox owns the bounds), so the
+                                     gutter stays tappable on touch too. -->
+                                <button
+                                    v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
+                                    type="button"
+                                    class="absolute top-1/2 left-0 z-10 flex h-8 w-5 -translate-x-full -translate-y-1/2 items-center justify-center"
+                                    :aria-label="$t('support.chatChildren')"
+                                    :aria-expanded="chatTreeExpanded(option)"
+                                    @click.stop="toggleChatTree(option)"
+                                >
+                                    <i
+                                        :class="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                                        class="text-supporting text-muted"
+                                        aria-hidden="true"
+                                    />
+                                </button>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex min-w-0 items-center gap-2">
@@ -249,7 +250,6 @@
                                     />
                                 </div>
                             </div>
-                        </div>
                         </div>
                         </div>
                     </template>
@@ -706,11 +706,11 @@
                                         v-if="lowerInstanceChip(messageItem)"
                                         type="button"
                                         class="group flex min-w-0 items-center gap-1 transition-opacity"
-                                        :aria-label="messageItem.instanceLink.name || localizedTypeIdLabel(messageItem.instanceLink.type)"
+                                        :aria-label="instanceLinkLabel(messageItem.instanceLink)"
                                         @click="openLowerInstanceChat(messageItem)"
                                     >
                                         <i :class="instances.iconFor(messageItem.instanceLink.type)" class="shrink-0 scale-90" aria-hidden="true"></i>
-                                        <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ messageItem.instanceLink.name || localizedTypeIdLabel(messageItem.instanceLink.type) }}</span>
+                                        <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ instanceLinkLabel(messageItem.instanceLink) }}</span>
                                     </button>
                                 </span>
                             </div>
@@ -1499,7 +1499,9 @@ const localizedTypeIdLabel = (type) => {
         const translated = t(key)
         if (translated !== key) return translated
     }
-    return type
+    // The served type's own name is the last named fallback — the raw type
+    // id is code-only and never renders (the no-technical-ids rule).
+    return registry.typeRecord(type)?.name || t('common.unnamed')
 }
 
 
@@ -2710,6 +2712,14 @@ const lowerInstanceChip = (messageItem) => {
     return !(messageItem.instanceLink.type === conversation.typeId
         && String(messageItem.instanceLink.id) === String(conversation.instanceId))
 }
+
+// Message instance links denormalized their label at send time; older
+// sends stored the raw instance id as the name — that stale value never
+// renders (the no-technical-ids rule): the live label is the stored name
+// only when it is not the id, else the localized type label.
+const instanceLinkLabel = (link) => (link?.name && link.name !== String(link.id)
+    ? link.name
+    : localizedTypeIdLabel(link?.type))
 
 const openLowerInstanceChat = (messageItem) => {
     const link = messageItem.instanceLink
