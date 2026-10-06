@@ -78,7 +78,9 @@ conversation row opens its menu (pin, archive), and a left swipe on touch
 unveils the same actions as a sticky rail — one row
 at a time, tap to dismiss. Inbox rows trail a small meta column: the
 read check sits before the timestamp, and the pin indicator and the
-unread-count badge share the small row under it. Replies quote the
+unread-count badge share the small row under it. Preview text never
+carries links — the row itself opens the conversation — and rows share
+one rhythm: a fixed leading cell and equal heights. Replies quote the
 target with its first attachment's kind icon. Voice message transcription
 shows its progress in the thread: a
 pending indicator renders where the transcript will appear, until the
