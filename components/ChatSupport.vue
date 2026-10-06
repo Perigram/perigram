@@ -155,10 +155,12 @@
                             <!-- Only instance rows carry the tree disclosure,
                                  in one fixed-width leading cell so every
                                  instance row aligns regardless of nesting;
-                                 person and group rows stay flush. -->
+                                 person and group rows stay flush. The Button
+                                 renders at its natural small size — no
+                                 dimension overrides on PrimeVue controls. -->
                             <span
                                 v-if="option.conversationKind === 'instance'"
-                                class="flex w-6 shrink-0 items-center justify-center self-center"
+                                class="flex w-7 shrink-0 items-center justify-center self-center"
                             >
                                 <Button
                                     v-if="hasChatChildren(option)"
@@ -167,7 +169,6 @@
                                     text
                                     rounded
                                     size="small"
-                                    class="h-5 w-5"
                                     :aria-label="$t('support.chatChildren')"
                                     :aria-expanded="chatTreeExpanded(option)"
                                     @click.stop="toggleChatTree(option)"
