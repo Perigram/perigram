@@ -211,34 +211,14 @@
                                     >
                                         {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
                                     </small>
-                                    <span class="ml-auto flex shrink-0 flex-col items-end gap-0.5 pl-1">
-                                        <span class="flex items-center gap-1">
-                                            <i
-                                                v-if="isOwnInboxRow(option) && option.lastMessageRead"
-                                                class="pi pi-check shrink-0 text-supporting text-primary"
-                                                :aria-label="$t('support.messageRead')"
-                                            />
-                                            <small v-if="option.timestamp" class="text-muted text-supporting">
-                                                {{ inboxTimestamp(option.timestamp) }}
-                                            </small>
-                                        </span>
-                                        <span
-                                            v-if="option.pinned || option.unreadCount > 0"
-                                            class="flex items-center gap-1"
-                                        >
-                                            <i
-                                                v-if="option.pinned"
-                                                class="pi pi-thumbtack shrink-0 text-supporting text-muted"
-                                                :aria-label="$t('support.pin')"
-                                            />
-                                            <Badge
-                                                v-if="option.unreadCount > 0"
-                                                :value="option.unreadCount"
-                                                severity="danger"
-                                                size="small"
-                                            />
-                                        </span>
-                                    </span>
+                                    <i
+                                        v-if="isOwnInboxRow(option) && option.lastMessageRead"
+                                        class="pi pi-check ml-auto shrink-0 text-supporting text-primary"
+                                        :aria-label="$t('support.messageRead')"
+                                    />
+                                    <small v-if="option.timestamp" class="shrink-0 pl-1 text-muted text-supporting">
+                                        {{ inboxTimestamp(option.timestamp) }}
+                                    </small>
                                 </div>
                                 <div class="flex min-w-0 items-center gap-1">
                                     <small class="min-w-0 flex-1 truncate text-muted">
@@ -255,6 +235,18 @@
                                         />
                                         <template v-else>{{ $t('support.noMessages') }}</template>
                                     </small>
+                                    <i
+                                        v-if="option.pinned"
+                                        class="pi pi-thumbtack shrink-0 text-supporting text-muted"
+                                        :aria-label="$t('support.pin')"
+                                    />
+                                    <Badge
+                                        v-if="option.unreadCount > 0"
+                                        :value="option.unreadCount"
+                                        severity="danger"
+                                        size="small"
+                                        class="shrink-0"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -1541,7 +1533,7 @@ const chatRowDepth = (conversation) => {
     }
     return depth
 }
-const CHAT_ROW_INDENT = ['pl-7', 'pl-11', 'pl-14']
+const CHAT_ROW_INDENT = ['pl-4', 'pl-8', 'pl-12']
 const chatRowIndentClass = (conversation) => {
     const depth = chatRowDepth(conversation)
     return depth ? CHAT_ROW_INDENT[Math.min(depth, CHAT_ROW_INDENT.length) - 1] : ''

@@ -445,14 +445,19 @@ async function instanceConversationSummaries(messages, auth) {
         return instanceCache.get(cacheKey);
     };
 
-    // Every messaged instance gets its own chat row.
+    // Every messaged instance gets its own chat row. Labels resolve LIVE
+    // from the instance record (cached); the stored link name survives only
+    // when the record is unreadable AND the stored value is not a stale
+    // id-fallback — surfaces localize the type label for empty names.
     const rowByKey = new Map();
     for (const message of instanceMessages) {
         const link = message.instanceLink;
         const key = instanceConversationKey(link.type, link.id);
-        if (!rowByKey.has(key)) {
-            rowByKey.set(key, instanceSummaryRow(link, message, { isInstanceRoot: link.type === 'organization' }));
-        }
+        if (rowByKey.has(key)) continue;
+        const live = instanceDto(await cachedInstance(link.type, String(link.id)));
+        const storedName = link.name && link.name !== String(link.id) ? link.name : '';
+        const entry = { type: link.type, id: String(link.id), name: instanceName(live) || storedName };
+        rowByKey.set(key, instanceSummaryRow(entry, message, { isInstanceRoot: link.type === 'organization' }));
     }
 
     // Ancestor chains (nearest first, organization root last) walk the

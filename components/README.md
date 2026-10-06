@@ -1013,14 +1013,14 @@ action in the inbox header so the drawer is dismissible from the list too — a 
 raw Listbox of plain avatar+name user rows; picking one opens the direct
 thread, including a direct self-chat. The inbox is a PrimeVue `Listbox` (single selection with keyboard
 navigation and Aura's selected-option state) whose `#option` template renders
-the rich row, top-aligned on two lines: avatar or neutral fallback plus
-online dot; label and member count on the first line beside the trailing
-meta column — the own-last read mark (a small check) before the smart
-timestamp (clock time for today's messages, calendar date otherwise), and
-the small pin indicator plus the per-row unread-count badge under it; the
-single-line latest-message preview through `SupportMessageContent` below.
-The read mark belongs to rows whose newest message is the viewer's own and
-another participant has read it. Instance chats nest by lineage: every
+the rich row of exactly two lines at one constant height: avatar or neutral
+fallback plus online dot; the label and member count with the own-last
+read mark (a small check) before the smart timestamp (clock time for
+today's messages, calendar date otherwise) on the first line; the
+single-line latest-message preview through `SupportMessageContent`
+trailed by the small pin indicator and per-row unread-count badge on the
+second. The read mark belongs to rows whose newest message is the viewer's
+own and another participant has read it. Instance chats nest by lineage: every
 messaged instance has its own row, the org chat roots the tree, and rows
 with children chats carry a disclosure chevron in a fixed leading column
 with nested rows indented by depth (rows whose parent is not visible stay
