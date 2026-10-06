@@ -14,14 +14,13 @@ length e. Face is a 60-degree rhombus (L, T, R, B); each flange is the
 parallelogram hanging under a lower face edge; the V-shaped negative space
 between the flanges is the rib.
 
-Motion is an exploded axonometric breathe: nothing rotates, the three rigid
-panels slide along their own isometric axes (face floats up along its
-normal, flanges drop and splay down-out), so the rib opens and closes like
-a fabrication exploded view. All timelines key only panel translations
-(x/y), the shared brand gradient's endpoints (a light drift across the
-static folds), and panel opacity for the exit. Keyframes sit at equal
-amplitude steps on frames distributed by an ease curve, so linear keyframe
-interpolation follows the eased path.
+Motion is a pen plotter: a bright pen dot runs each contour at constant
+speed, the outline traces behind it (TrimPath on the stroke), the fill
+floods the panel right after its contour closes, the outline ink dissolves
+into the fill, and the dot does one fast inspection lap over the finished
+mark before the line slurps back for the next part. All speeds are exact:
+trim and dot keyframes sit only on contour vertices, where linear
+interpolation equals constant pen speed along the edges.
 """
 
 import math
@@ -43,133 +42,221 @@ FLANGE = [(-W, V), (0.0, 2 * V), (-M, 2.5 * V), (-(W + M), 1.5 * V)]
 GRAD_START = (-68.0, -74.3)     # brand gradient, mark-global direction
 GRAD_END = (68.7, 18.8)
 RED, ORANGE = "FFFF0000", "FFFF6600"
+INK, PEN = "FFFF3300", "FFFFFFFF"
+INK_W, COMET_W = 3.0, 3.5       # stroke thicknesses when visible
 
-# Explode axis per panel (rhombus-local screen space), full amplitude 1.0.
-FACE_ID, FLANGE_L_ID, FLANGE_R_ID = "0:10", "0:15", "0:20"
-FACE_GRAD_ID, FL_L_GRAD_ID, FL_R_GRAD_ID = "0:13", "0:18", "0:23"
-PANEL_VECS = {
-    FACE_ID: (0.0, -14.0),
-    FLANGE_L_ID: (-0.866 * 24, 12.0),
-    FLANGE_R_ID: (0.866 * 24, 12.0),
-}
-GRAD_IDS = [FACE_GRAD_ID, FL_L_GRAD_ID, FL_R_GRAD_ID]
-
-# idle light drift: translates the whole gradient along its own axis
-_gx, _gy = GRAD_END[0] - GRAD_START[0], GRAD_END[1] - GRAD_START[1]
-_glen = math.hypot(_gx, _gy)
-LIGHT_DRIFT = (_gx / _glen * 20.0, _gy / _glen * 20.0)
-
-
-# --- eases -------------------------------------------------------------------
-
-def ease_in_out_cubic(t):
-    return 4 * t ** 3 if t < 0.5 else 1 - (-2 * t + 2) ** 3 / 2
-
-
-def ease_out_cubic(t):
-    return 1 - (1 - t) ** 3
+# Each panel is two shapes sharing one geometry: a fill shape (flood keyed
+# as shape opacity) and an ink shape carrying the trace and comet strokes
+# (dissolve keyed as shape opacity, lap visible purely through its trim
+# window). One visibility mechanism everywhere, and gradients are only
+# ever keyed as absolute endpoints: a zero-length gradient (relative
+# deltas from 0) degenerates and kills the @rive-app/canvas
+# state-machine player, while the direct-animation path tolerates it.
+PANELS = [
+    {"name": "Face", "shape": "0:10", "path": "0:11", "fill": "0:12",
+     "grad": "0:13", "inkshape": "0:80", "inkpath": "0:83",
+     "ink": "0:50", "inkcol": "0:51", "inkt": "0:52", "verts": FACE},
+    {"name": "FlangeL", "shape": "0:15", "path": "0:16", "fill": "0:17",
+     "grad": "0:18", "inkshape": "0:81", "inkpath": "0:84",
+     "ink": "0:53", "inkcol": "0:54", "inkt": "0:55", "verts": FLANGE},
+    {"name": "FlangeR", "shape": "0:20", "path": "0:21", "fill": "0:22",
+     "grad": "0:23", "inkshape": "0:82", "inkpath": "0:85",
+     "ink": "0:56", "inkcol": "0:57", "inkt": "0:58",
+     "verts": [(-x, y) for x, y in FLANGE]},
+]
+PEN_SHAPE = "0:70"
+GRAD_IDS = [p["grad"] for p in PANELS]
 
 
-def ease_in_cubic(t):
-    return t ** 3
+def contour(verts):
+    """(fractions, points) of the closed contour, per cumulative length."""
+    pts = list(verts) + [verts[0]]
+    seg = [math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(pts, pts[1:])]
+    total = sum(seg)
+    fracs, cum = [0.0], 0.0
+    for s in seg:
+        cum += s
+        fracs.append(cum / total)
+    return fracs, pts
+
+
+CONTOURS = [contour(p["verts"]) for p in PANELS]
+
+
+def point_at(i, frac):
+    """Artboard-space point at arc fraction of panel i's contour."""
+    fracs, pts = CONTOURS[i]
+    for k in range(len(fracs) - 1):
+        if fracs[k + 1] >= frac:
+            t = (frac - fracs[k]) / (fracs[k + 1] - fracs[k])
+            a, b = pts[k], pts[k + 1]
+            return (CX + a[0] + (b[0] - a[0]) * t, CY + a[1] + (b[1] - a[1]) * t)
+    return (CX + pts[-1][0], CY + pts[-1][1])
+
+
+# --- keyframe channels -------------------------------------------------------
+# channels[(object_id, prop_key)] -> [(frame, value)] ; prop 37 is a color.
+
+# Visibility is keyed as stroke thickness and gradient opacity, never as
+# color alpha: the web runtime's state-machine player rejects KeyFrameColor
+# timelines (verified by bisection against @rive-app/canvas), while the
+# direct animation path tolerates them. One mechanism everywhere.
+
+def setk(ch, obj, key, frame, value):
+    lst = ch.setdefault((obj, key), [])
+    if lst and lst[-1][0] == frame:
+        lst[-1] = (frame, value)
+    else:
+        lst.append((frame, value))
+
+
+def sweep(ch, obj, key, f0, f1, v0, v1, ease=lambda t: t, steps=3):
+    for i in range(steps + 1):
+        t = i / steps
+        setk(ch, obj, key, f0 + round(ease(t) * (f1 - f0)), v0 + (v1 - v0) * t)
 
 
 def ease_in_out_sine(t):
     return -(math.cos(math.pi * t) - 1) / 2
 
 
-# --- translation tracks ------------------------------------------------------
-
-class MoveTrack:
-    """Panel x/y keyframes: {shape_id: [(frame, dx, dy)]}."""
-
-    def __init__(self):
-        self.points = {sid: [] for sid in PANEL_VECS}
-
-    def pose(self, frame, amp, lags=None):
-        targets = lags if lags else PANEL_VECS
-        for sid in targets:
-            f = frame + lags.get(sid, 0) if lags else frame
-            vec = PANEL_VECS[sid]
-            entry = (f, vec[0] * amp, vec[1] * amp)
-            pts = self.points[sid]
-            if pts and pts[-1][0] == f:
-                pts[-1] = entry
-            else:
-                pts.append(entry)
-
-    def sweep(self, f0, f1, a0, a1, ease, steps, lags=None):
-        for i in range(steps + 1):
-            t = i / steps
-            self.pose(f0 + round(ease(t) * (f1 - f0)), a0 + (a1 - a0) * t, lags)
+def blink(ch, obj, prop, w, f_on, f_off):
+    """Paint fully on through [f_on, f_off], off after (thickness/opacity)."""
+    setk(ch, obj, prop, f_on, w)
+    setk(ch, obj, prop, f_off, w)
+    setk(ch, obj, prop, f_off + 1, 0.0)
 
 
-def move_load():
-    """Locked -> staggered explode -> hold -> re-lock with rib click."""
-    tr = MoveTrack()
-    tr.pose(0, 0)
-    # explode: flanges lead, face follows; slight overshoot then settle
-    for sid, lag in ((FLANGE_L_ID, 0), (FLANGE_R_ID, 3), (FACE_ID, 8)):
-        tr.sweep(12, 44, 0, 1.1, ease_in_out_cubic, 8, {sid: lag})
-        tr.sweep(44, 52, 1.1, 1.0, ease_out_cubic, 3, {sid: lag})
-    # re-lock: face leads home, flanges follow, tiny tuck past locked
-    for sid, lag in ((FACE_ID, 0), (FLANGE_L_ID, 6), (FLANGE_R_ID, 9)):
-        tr.sweep(70, 100, 1.0, -0.07, ease_in_out_cubic, 8, {sid: lag})
-        tr.sweep(100, 110, -0.07, 0.0, ease_out_cubic, 3, {sid: lag})
-    return tr, 120, "loop"
+def trace(ch, i, f0, dur, dot=True):
+    """Panel i: pen runs the contour, trim follows, ink visible."""
+    p, fracs = PANELS[i], CONTOURS[i][0]
+    setk(ch, p["inkshape"], 18, f0, 1.0)
+    setk(ch, p["inkt"], 115, f0, 0.0)
+    for frac in fracs:
+        f = f0 + round(frac * dur)
+        setk(ch, p["inkt"], 115, f, frac)
+        if dot:
+            x, y = point_at(i, frac)
+            setk(ch, PEN_SHAPE, 13, f, x)
+            setk(ch, PEN_SHAPE, 14, f, y)
 
 
-def move_unfold():
-    """Mount: exploded -> staggered fly-in -> lock with rib click."""
-    tr = MoveTrack()
-    tr.pose(0, 1.0)
-    for sid, lag in ((FLANGE_L_ID, 0), (FLANGE_R_ID, 2), (FACE_ID, 6)):
-        tr.sweep(0, 26, 1.0, -0.07, ease_in_out_cubic, 8, {sid: lag})
-        tr.sweep(26, 32, -0.07, 0.0, ease_out_cubic, 3, {sid: lag})
-    return tr, 40, "oneShot"
+def flood(ch, i, f0, f1):
+    sweep(ch, PANELS[i]["shape"], 18, f0, f1, 0.0, 1.0)
 
 
-def move_fold():
-    """Unmount: disperse along the axes and fade."""
-    tr = MoveTrack()
-    tr.pose(0, 0)
-    for sid in PANEL_VECS:
-        tr.sweep(0, 26, 0, 1.0, ease_in_cubic, 6, {sid: 0})
-    return tr, 30, "oneShot"
+def dissolve(ch, i, f0, f1):
+    """Ink dries: the ink shape fades into the flooded fill."""
+    setk(ch, PANELS[i]["inkshape"], 18, f0, 1.0)
+    setk(ch, PANELS[i]["inkshape"], 18, f1, 0.0)
 
 
-def move_idle():
-    """Idle is a light drift, not a translation; panels stay locked."""
-    return None, 240, "loop"
+def inspect_lap(ch, i, f0, dur):
+    """Pen dot runs panel i's contour once more, fast: the inspection pass."""
+    fracs = CONTOURS[i][0]
+    for frac in fracs:
+        f = f0 + round(frac * dur)
+        x, y = point_at(i, frac)
+        setk(ch, PEN_SHAPE, 13, f, x)
+        setk(ch, PEN_SHAPE, 14, f, y)
 
 
-# --- gradient / opacity tracks ----------------------------------------------
-
-def grad_idle():
-    """Light drift keyframes for the three gradients (out-and-back)."""
-    frames = []
-    for f0, f1, d0, d1 in ((0, 120, 0.0, 1.0), (120, 240, 1.0, 0.0)):
-        for i in range(9):
-            t = i / 8
-            frames.append((f0 + round(ease_in_out_sine(t) * (f1 - f0)),
-                           d0 + (d1 - d0) * t))
-    return frames
+def retract(ch, i, f0, dur):
+    """Trim end slurps the contour back to nothing."""
+    p, fracs = PANELS[i], CONTOURS[i][0]
+    setk(ch, p["inkshape"], 18, f0, 1.0)
+    setk(ch, p["inkt"], 115, f0, 1.0)
+    for frac in reversed(fracs):
+        setk(ch, p["inkt"], 115, f0 + dur - round(frac * dur), frac)
 
 
-def opacity_fold():
-    return [(0, 1.0), (12, 1.0), (30, 0.0)]
+def empty(ch, frame):
+    for p in PANELS:
+        setk(ch, p["shape"], 18, frame, 0.0)
+        setk(ch, p["inkshape"], 18, frame, 0.0)
+        setk(ch, p["inkt"], 115, frame, 0.0)
+    setk(ch, PEN_SHAPE, 18, frame, 0.0)
+    setk(ch, PEN_SHAPE, 13, frame, CX + PANELS[0]["verts"][0][0])
+    setk(ch, PEN_SHAPE, 14, frame, CY + PANELS[0]["verts"][0][1])
+
+
+# --- animation timelines -----------------------------------------------------
+
+def draw_pass(ch, f0, dot_on=True):
+    """Face -> left flange -> right flange; fills flood behind the pen."""
+    for i, (off, dur) in enumerate(((0, 32), (36, 24), (64, 24))):
+        f = f0 + off
+        trace(ch, i, f, dur, dot=dot_on)
+        flood(ch, i, f + dur - 6, f + dur + 4)
+        dissolve(ch, i, f + dur - 2, f + dur + 8)
+        if dot_on:
+            blink(ch, PEN_SHAPE, 18, 1.0, f, f + dur)
+
+
+def anim_load():
+    ch = {}
+    empty(ch, 0)
+    draw_pass(ch, 6)                           # traced and flooded by f=98
+    inspect_lap(ch, 0, 116, 12)
+    inspect_lap(ch, 1, 129, 10)
+    inspect_lap(ch, 2, 140, 10)
+    blink(ch, PEN_SHAPE, 18, 1.0, 116, 150)
+    for i, (f, dur) in enumerate(((168, 12), (165, 12), (162, 12))):
+        setk(ch, PANELS[i]["inkshape"], 18, 160, 1.0)
+        sweep(ch, PANELS[i]["shape"], 18, 160, 170, 1.0, 0.0)
+        retract(ch, i, f, dur)
+        setk(ch, PANELS[i]["inkshape"], 18, f + dur + 2, 0.0)
+    empty(ch, 190)
+    return ch, 190, "loop"
+
+
+def anim_unfold():
+    ch = {}
+    empty(ch, 0)
+    draw_pass(ch, 0)
+    return ch, 100, "oneShot"
+
+
+def anim_fold():
+    ch = {}
+    for i, (f, dur) in enumerate(((10, 12), (7, 12), (4, 12))):
+        setk(ch, PANELS[i]["inkt"], 115, 0, 1.0)
+        setk(ch, PANELS[i]["inkshape"], 18, 0, 1.0)
+        sweep(ch, PANELS[i]["shape"], 18, 2, 10, 1.0, 0.0)
+        retract(ch, i, f, dur)
+        setk(ch, PANELS[i]["inkshape"], 18, f + dur + 2, 0.0)
+    return ch, 30, "oneShot"
+
+
+def anim_idle():
+    """Light drift across the static folded panels.
+
+    Endpoints are keyed absolute (base + delta): a zero-length gradient at
+    frame 0 would degenerate and kill the web state-machine player.
+    """
+    gx, gy = GRAD_END[0] - GRAD_START[0], GRAD_END[1] - GRAD_START[1]
+    glen = math.hypot(gx, gy)
+    dx, dy = gx / glen * 20.0, gy / glen * 20.0
+    ch = {}
+    for gid in GRAD_IDS:
+        for key, base, d in ((42, GRAD_START[0], dx), (33, GRAD_START[1], dy),
+                             (34, GRAD_END[0], dx), (35, GRAD_END[1], dy)):
+            sweep(ch, gid, key, 0, 120, base, base + d, ease_in_out_sine, 8)
+            sweep(ch, gid, key, 120, 240, base + d, base, ease_in_out_sine, 8)
+    return ch, 240, "loop"
 
 
 # --- RML emission ------------------------------------------------------------
 
-def shape_rml(name, sid, path_id, fill_id, grad_id, pts, clockwise):
-    verts = "".join(f'<StraightVertex x="{x:.2f}" y="{y:.2f}"/>' for x, y in pts)
-    return f'''<Shape x="{CX}" y="{CY}" name="{name}" id="{sid}">
-            <PointsPath isClockwise="{"true" if clockwise else "false"}" name="{name}Path" id="{path_id}">
+def fill_shape_rml(p):
+    verts = "".join(f'<StraightVertex x="{x:.2f}" y="{y:.2f}"/>' for x, y in p["verts"])
+    cw = "true" if p["name"] != "FlangeR" else "false"
+    return f'''<Shape x="{CX}" y="{CY}" name="{p['name']}" id="{p['shape']}">
+            <PointsPath isClockwise="{cw}" name="{p['name']}Path" id="{p['path']}">
                 {verts}
             </PointsPath>
-            <Fill name="{name}Fill" id="{fill_id}">
-                <LinearGradient startX="{GRAD_START[0]}" startY="{GRAD_START[1]}" endX="{GRAD_END[0]}" endY="{GRAD_END[1]}" id="{grad_id}" name="Brand">
+            <Fill name="{p['name']}Fill" id="{p['fill']}">
+                <LinearGradient startX="{GRAD_START[0]}" startY="{GRAD_START[1]}" endX="{GRAD_END[0]}" endY="{GRAD_END[1]}" id="{p['grad']}" name="Brand">
                     <GradientStop colorValue="{RED}" position="0"/>
                     <GradientStop colorValue="{ORANGE}" position="1"/>
                 </LinearGradient>
@@ -177,55 +264,53 @@ def shape_rml(name, sid, path_id, fill_id, grad_id, pts, clockwise):
         </Shape>'''
 
 
-def keyframe_doubles(values, offset):
-    return "".join(
-        f'<KeyFrameDouble value="{v + offset:.2f}" frame="{f}" interpolationType="linear"/>'
-        for f, v in values)
+def ink_shape_rml(p):
+    verts = "".join(f'<StraightVertex x="{x:.2f}" y="{y:.2f}"/>' for x, y in p["verts"])
+    cw = "true" if p["name"] != "FlangeR" else "false"
+    return f'''<Shape x="{CX}" y="{CY}" opacity="0" name="{p['name']}Ink" id="{p['inkshape']}">
+            <PointsPath isClockwise="{cw}" name="{p['name']}InkPath" id="{p['inkpath']}">
+                {verts}
+            </PointsPath>
+            <Stroke thickness="3" cap="round" join="round" name="{p['name']}Trace" id="{p['ink']}">
+                <SolidColor colorValue="{INK}" id="{p['inkcol']}" name="Ink"/>
+                <TrimPath start="0" end="0" id="{p['inkt']}" name="Trace"/>
+            </Stroke>
+        </Shape>'''
 
 
-def animation_rml(name, aid, move=None, grad_frames=None, opacity_frames=None,
-                  duration=60, loop="oneShot"):
+def animation_rml(name, aid, ch, duration, loop):
+    objs = {}
+    for (obj, key), pts in ch.items():
+        objs.setdefault(obj, []).append((key, pts))
     parts = []
-    if move:
-        for sid, pts in move.points.items():
-            dx = [(f, v) for f, v, _ in pts]
-            dy = [(f, v) for f, _, v in pts]
-            parts.append(f'''<KeyedObject objectId="{sid}">
-                <KeyedProperty propertyKey="13">{keyframe_doubles(dx, CX)}</KeyedProperty>
-                <KeyedProperty propertyKey="14">{keyframe_doubles(dy, CY)}</KeyedProperty>
-            </KeyedObject>''')
-    if grad_frames:
-        dx = [(f, LIGHT_DRIFT[0] * d) for f, d in grad_frames]
-        dy = [(f, LIGHT_DRIFT[1] * d) for f, d in grad_frames]
-        for gid in GRAD_IDS:
-            parts.append(f'''<KeyedObject objectId="{gid}">
-                <KeyedProperty propertyKey="42">{keyframe_doubles(dx, GRAD_START[0])}</KeyedProperty>
-                <KeyedProperty propertyKey="33">{keyframe_doubles(dy, GRAD_START[1])}</KeyedProperty>
-                <KeyedProperty propertyKey="34">{keyframe_doubles(dx, GRAD_END[0])}</KeyedProperty>
-                <KeyedProperty propertyKey="35">{keyframe_doubles(dy, GRAD_END[1])}</KeyedProperty>
-            </KeyedObject>''')
-    if opacity_frames:
-        for sid in PANEL_VECS:
-            parts.append(f'''<KeyedObject objectId="{sid}">
-                <KeyedProperty propertyKey="18">{keyframe_doubles(opacity_frames, 0)}</KeyedProperty>
-            </KeyedObject>''')
+    for obj, props in objs.items():
+        props_xml = []
+        for key, pts in props:
+            frames = "".join(
+                f'<KeyFrameDouble value="{v:.3f}" frame="{f}" interpolationType="linear"/>'
+                for f, v in pts)
+            props_xml.append(f'<KeyedProperty propertyKey="{key}">{frames}</KeyedProperty>')
+        parts.append(f'<KeyedObject objectId="{obj}">{"".join(props_xml)}</KeyedObject>')
     return f'''<LinearAnimation loopValue="{loop}" duration="{duration}" name="{name}" id="{aid}">
             {"".join(parts)}
         </LinearAnimation>'''
 
 
 def build_rml():
-    animations = [
-        animation_rml("load", "0:40", move=move_load()[0],
-                      duration=move_load()[1], loop=move_load()[2]),
-        animation_rml("unfold", "0:41", move=move_unfold()[0],
-                      duration=move_unfold()[1], loop=move_unfold()[2]),
-        animation_rml("idle", "0:42", grad_frames=grad_idle(),
-                      duration=move_idle()[1], loop=move_idle()[2]),
-        animation_rml("fold", "0:43", move=move_fold()[0],
-                      opacity_frames=opacity_fold(),
-                      duration=move_fold()[1], loop=move_fold()[2]),
-    ]
+    animations = []
+    for name, aid, builder in (("load", "0:40", anim_load),
+                               ("unfold", "0:41", anim_unfold),
+                               ("idle", "0:42", anim_idle),
+                               ("fold", "0:43", anim_fold)):
+        ch, dur, loop = builder()
+        animations.append(animation_rml(name, aid, ch, dur, loop))
+
+    fills = [fill_shape_rml(p) for p in PANELS]
+    inks = [ink_shape_rml(p) for p in PANELS]
+    pen = f'''<Shape x="{CX + FACE[0][0]}" y="{CY + FACE[0][1]}" opacity="0" name="Pen" id="{PEN_SHAPE}">
+            <Ellipse width="7" height="7" originX="0.5" originY="0.5" name="PenPath" id="0:71"/>
+            <Fill name="PenFill" id="0:72"><SolidColor colorValue="{PEN}" id="0:73" name="PenColor"/></Fill>
+        </Shape>'''
 
     return f'''<Rive version="1" kind="fragment">
     <Artboard defaultStateMachineId="0:30" width="200" height="200" name="Mark" id="0:1">
@@ -243,12 +328,19 @@ def build_rml():
             </StateMachineLayer>
         </StateMachine>
 
-        {shape_rml("Face", "0:10", "0:11", "0:12", "0:13", FACE, True)}
+        {fills[0]}
 
-        {shape_rml("FlangeL", "0:15", "0:16", "0:17", "0:18", FLANGE, True)}
+        {fills[1]}
 
-        {shape_rml("FlangeR", "0:20", "0:21", "0:22", "0:23",
-                   [(-x, y) for x, y in FLANGE], False)}
+        {fills[2]}
+
+        {inks[0]}
+
+        {inks[1]}
+
+        {inks[2]}
+
+        {pen}
 
         {"".join(animations)}
     </Artboard>
@@ -258,17 +350,14 @@ def build_rml():
 
 # --- preview SVGs ------------------------------------------------------------
 
-def preview_svg(amp, out):
-    def poly(pts, off, fill):
-        p = " ".join(f"{CX + x + off[0]:.1f},{CY + y + off[1]:.1f}" for x, y in pts)
-        return f'<polygon points="{p}" fill="{fill}"/>'
+def preview_svg(out, lineart=False):
+    def poly(pts):
+        p = " ".join(f"{CX + x:.1f},{CY + y:.1f}" for x, y in pts)
+        return p
 
-    shapes = [
-        poly(FACE, (PANEL_VECS[FACE_ID][0] * amp, PANEL_VECS[FACE_ID][1] * amp), "#e0e0e0"),
-        poly(FLANGE, (PANEL_VECS[FLANGE_L_ID][0] * amp, PANEL_VECS[FLANGE_L_ID][1] * amp), "#808080"),
-        poly([(-x, y) for x, y in FLANGE],
-             (PANEL_VECS[FLANGE_R_ID][0] * amp, PANEL_VECS[FLANGE_R_ID][1] * amp), "#808080"),
-    ]
+    style = ('fill="none" stroke="#ff3300" stroke-width="3" stroke-linejoin="round"'
+             if lineart else 'fill="#ff4a1a"')
+    shapes = [f'<polygon points="{poly(p["verts"])}" {style}/>' for p in PANELS]
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" '
            f'viewBox="0 0 200 200"><rect width="200" height="200" fill="#101010"/>'
            f'{"".join(shapes)}</svg>')
@@ -282,8 +371,8 @@ def main():
         f.write(build_rml())
     prev = os.path.join(root, "build", "previews")
     os.makedirs(prev, exist_ok=True)
-    for label, amp in (("locked", 0.0), ("half", 0.5), ("exploded", 1.0)):
-        preview_svg(amp, os.path.join(prev, f"{label}.svg"))
+    preview_svg(os.path.join(prev, "full.svg"))
+    preview_svg(os.path.join(prev, "lineart.svg"), lineart=True)
     print("wrote scene.rml and build/previews/*.svg")
 
 

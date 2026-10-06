@@ -9,6 +9,23 @@
   (unfold on mount, idle breathe) — see
   [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md).
 
+### Agent Notes (2026-10-06, v3)
+
+Session `agent/rive-mark-v3-20261006`. Owner review: the exploded view was
+chaotic and meaningless; the motion was redesigned as a pen plotter — a pen
+dot traces each panel contour at constant speed, fills flood behind the
+pen, and the dot does an inspection lap before the lines retract. Same
+animation names and consumers. Found and fixed a real runtime-only defect
+by browser bisection: keyframing gradient endpoints as relative deltas
+(degenerate zero-length gradient at frame 0) renders fine in the CLI but
+kills the @rive-app/canvas state-machine player — endpoints are now keyed
+absolute, and the project README documents the constraint. TrimPath start
+keyframes also proved unreliable animatedly in the web runtime, so the
+inspection lap is the pen dot alone. Validated end to end: verify/inspect
+clean, all five phases pixel-checked in CLI renders, headless chromium
+shows zero console errors with the loader cycling full→empty→draw→full and
+the sidebar drawing in and settling under the idle light.
+
 ### Agent Notes (2026-10-06, v2)
 
 Session `agent/rive-mark-v2-20261006`. Owner review: the hinge-fold motion

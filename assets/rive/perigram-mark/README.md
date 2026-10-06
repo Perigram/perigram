@@ -7,12 +7,12 @@ web embedding. Parent: [assets README](../../README.md).
 The mark is the folded axonometric cassette from
 [`public/icon.svg`](../../../public/icon.svg): the top rhombus is the face,
 the two lower parallelograms are the flanges, and the V-shaped negative space
-between them is the rib. The animation keeps that identity and puts it in
-motion as an **exploded axonometric breathe**: nothing rotates — the three
-rigid panels slide apart along their own isometric axes (the face floats up
-along its normal, the flanges drop and splay down-out), opening the rib like
-a fabrication exploded view, then re-lock with a small tuck past the locked
-pose so the rib clicks shut.
+between them is the rib. The animation is a **pen plotter** — the language of
+the fabrication domain the platform serves: a bright pen dot runs each
+contour at constant speed, the outline traces behind it, the fill floods the
+panel as its contour closes, the ink dissolves into the fill, the dot makes
+one fast inspection lap over the finished mark, and the lines slurp back for
+the next part. The loop reads as a part being produced over and over.
 
 ## Source of truth
 
@@ -22,28 +22,32 @@ drives everything — the edge length `e`; the face is a 60° rhombus, each
 flange hangs under a lower face edge at exactly one fold depth (`e/2`), and
 `public/icon.svg` is the reference for the shape.
 
-Timelines key only panel translations, the shared brand gradient's endpoints
-(a light drift across the static folds), and panel opacity for the exit.
-Keyframes sit at equal amplitude steps on frames distributed by an ease
-curve, so linear keyframe interpolation follows the eased path. Panel order
-is staggered (flanges lead out, face leads home) for a mechanical but alive
-feel.
+Each panel is two shapes sharing one geometry: a fill shape (the brand
+gradient, red `#FF0000` → orange `#FF6600`, one mark-global direction) and
+an ink shape carrying the trace stroke. Panel visibility is keyed as shape
+opacity — one mechanism everywhere. Trace and pen motion key only contour
+vertices, where linear interpolation equals constant pen speed along the
+edges.
+
+**Gradients are only ever keyed as absolute endpoints.** A zero-length
+gradient (relative deltas from 0) degenerates and kills the
+`@rive-app/canvas` state-machine player — the direct-animation path and the
+Rive CLI tolerate it, so nothing local warns. This was found by bisection
+against the browser runtime; `tools/check_frames.py` plus the demo page
+exist to catch such runtime-only breaks.
 
 ## Animations
 
 | Name | Kind | Duration | Use |
 |---|---|---|---|
-| `load` | loop | 2 s | Loader: locked → staggered explode → hold → re-lock with rib click. |
-| `unfold` | one-shot | 0.67 s | Sidebar mount: exploded → staggered fly-in → lock. |
+| `load` | loop | 3.2 s | Loader: plot face → flanges → hold → inspection lap → retract. |
+| `unfold` | one-shot | 1.7 s | Sidebar mount: the mark draws itself in. |
 | `idle` | loop | 4 s | Sidebar idle: light drifts across the folded panels; geometry static. |
-| `fold` | one-shot | 0.5 s | Sidebar unmount: disperse along the axes and fade. |
+| `fold` | one-shot | 0.5 s | Sidebar unmount: outlines flash on, retract, fill fades. |
 
 The default state machine `Lifecycle` chains `unfold` → `idle` (exit-time
-transition), so a mounted canvas animates in and then holds the locked mark
-under a moving light with no driving code. The three faces share one brand
-gradient (red `#FF0000` → orange `#FF6600`) in one mark-global direction, so
-the gradient reads as one material across the panels and the idle light
-drift stays consistent across the folds.
+transition), so a mounted canvas draws the mark in and holds it under a
+moving light with no driving code.
 
 ## Build and validate
 
@@ -57,7 +61,7 @@ cp build/perigram-mark.riv ../../../public/rive/
 ```
 
 `tools/check_frames.py` pixel-samples screenshots against the expected
-geometry (`locked` and `exploded` poses). The Rive CLI installs with
+phases (`empty`, `draw`, `full`, `lap`). The Rive CLI installs with
 `curl -fsSL https://releases.rive.app/cli/install.sh | bash` — piped through
 `bash`, not `sh`: the script uses bash-only `[[ ]]`, and under `sh` its
 stream check fails open and it fetches a nonexistent `stable/manifest.json`.
