@@ -1615,6 +1615,10 @@ watch([() => activeConversation.value?.conversationKey, () => activeConversation
     )
 }, { immediate: true })
 
+const groupParticipantIds = computed(() => (
+    (activeConversation.value?.participants || []).map(String).filter(Boolean)
+))
+
 // Group members: an overlapping avatar stack in the header (resolved once
 // through the readable-reference seam) and the full member list as a popup
 // of user chips.
@@ -1637,10 +1641,6 @@ watch(groupParticipantIds, async (ids) => {
         }
     }))
 }, { immediate: true })
-
-const groupParticipantIds = computed(() => (
-    (activeConversation.value?.participants || []).map(String).filter(Boolean)
-))
 
 const conversationSubtitle = computed(() => {
     const conversation = activeConversation.value
