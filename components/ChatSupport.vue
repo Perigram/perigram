@@ -1546,7 +1546,7 @@ const chatRowDepth = (conversation) => {
     }
     return depth
 }
-const CHAT_ROW_INDENT = ['pl-4', 'pl-8', 'pl-12']
+const CHAT_ROW_INDENT = ['pl-2', 'pl-4', 'pl-6']
 const chatRowIndentClass = (conversation) => {
     const depth = chatRowDepth(conversation)
     return depth ? CHAT_ROW_INDENT[Math.min(depth, CHAT_ROW_INDENT.length) - 1] : ''
