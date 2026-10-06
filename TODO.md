@@ -1,5 +1,28 @@
 # TODO
 
+## Chat tree rework: org-rooted lineage tree, avatar-stack members (2026-10-06)
+
+- [ ] The chats tree nests by lineage with the org chat as its root (every
+  messaged instance has its own row; SPEC §Chat thread) — the previous
+  rollup-based nesting rendered no tree at all for org chat + top entity
+  chats.
+- [ ] Group headers: overlapping member avatar stack opening the member
+  list popup; sender labels are a small plain avatar + name, no chip
+  chrome (SPEC §Chat thread).
+
+### Agent Notes (2026-10-06)
+
+Session `agent/chat-tree-rework-20261006`. Corrected after owner review:
+the first tree attempt excluded the organization from nesting and only
+nested "leaf" rows under rollup rows, which never applies to the live data
+(org chat + top-level entity chats — no tree rendered). The server now
+emits one row per messaged instance with `parentKey` = nearest row-bearing
+lineage ancestor (org chat included, live-lineage walk), unread counts
+accumulate up the ancestor chain, and the shell total counts root rows.
+The client nests recursively with depth-based indentation. Member headers
+became an AvatarGroup stack (first four + count) opening the UserChip list
+popup; UserChip lost its chip chrome (small avatar + name, caption-size).
+
 ## Chats tree, avatars everywhere, no emails/ids as names (2026-10-06)
 
 - [ ] Avatars render in every chat surface (inbox rows, thread headers,

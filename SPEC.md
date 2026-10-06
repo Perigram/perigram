@@ -118,11 +118,12 @@ ids, never the identifier/email). Forwarded messages carry a distinct
 forwarded-from header above
 their content, on every message shape — text, media, or files.
 
-The chats list is a tree: an instance chat whose instance has children
-chats the user is involved in lists them as a collapsible sub-list under
-itself. Instance thread headers carry their lineage breadcrumbs under the
-name; group thread headers carry member chips with the full member list
-one action away.
+The chats list is a tree rooted at the organization chat: an instance
+chat whose instance has children chats the user is involved in lists them
+as a collapsible sub-list under itself, recursively by lineage. Instance
+thread headers carry their lineage breadcrumbs under the name; group
+thread headers carry an overlapping member avatar stack with the full
+member list one popup away.
 
 User emails never render in user-facing surfaces — they are login data
 only. Where the email used to appear, user surfaces carry a proper

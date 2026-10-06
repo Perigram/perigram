@@ -200,10 +200,13 @@ fanout publishes the message event to every `conversation:instance:*` topic
 along the instance path (aggregated views stay live through one subscription)
 plus one `org:<id>` inbox ping. The user inbox query includes
 `{ conversationKind: 'instance', organizationId }` so org-mates see each
-other's instance messages. Inbox instance chats ship as tree rows: top-level rollup rows plus
-per-instance `isLeafRow` rows carrying their rollup row's conversation key
-as `parentKey` — the client nests leaves as a collapsible children list
-under their top chat. Shell unread totals count top-level rows only.
+other's instance messages. Inbox instance chats ship as lineage tree rows: one row per messaged
+instance (the organization chat included), each carrying the conversation
+key of its nearest row-bearing ancestor as `parentKey` — the org chat
+roots the tree and deeper instances nest under their parent instance's
+chat. Unread counts land on a row and on every ancestor row (roots
+aggregate their subtree, like the composed thread views); shell unread
+totals count root rows only.
 Instance labels are identity names only (`identity.name`/`serial`): never
 uids, raw ids, or type ids — surfaces fall back to the localized type
 label when a name is empty. Rollup nodes are the top-level
