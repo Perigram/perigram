@@ -152,26 +152,24 @@
                                 ]"
                                 :style="rowContentStyle(option)"
                             >
-                            <!-- Instance rows carry the tree disclosure in a
-                                 fixed leading column so chevron-ful and
-                                 chevron-less rows stay aligned. -->
-                            <Button
-                                v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
-                                :icon="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                                severity="secondary"
-                                text
-                                rounded
-                                size="small"
-                                class="-ml-1.5 shrink-0 self-center"
-                                :aria-label="$t('support.chatChildren')"
-                                :aria-expanded="chatTreeExpanded(option)"
-                                @click.stop="toggleChatTree(option)"
-                            />
-                            <span
-                                v-else-if="option.conversationKind === 'instance'"
-                                class="w-4 shrink-0 self-center"
-                                aria-hidden="true"
-                            ></span>
+                            <!-- Every row carries a fixed-width leading cell:
+                                 the tree disclosure for instance rows with
+                                 children, empty otherwise — avatars share one
+                                 left rhythm whether or not a row expands. -->
+                            <span class="flex w-8 shrink-0 items-center justify-center self-start">
+                                <Button
+                                    v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
+                                    :icon="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                                    severity="secondary"
+                                    text
+                                    rounded
+                                    size="small"
+                                    class="h-6 w-6"
+                                    :aria-label="$t('support.chatChildren')"
+                                    :aria-expanded="chatTreeExpanded(option)"
+                                    @click.stop="toggleChatTree(option)"
+                                />
+                            </span>
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'instance'"
@@ -210,7 +208,10 @@
                                     >
                                         {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
                                     </small>
-                                    <span class="ml-auto flex shrink-0 flex-col items-end gap-0.5 pl-1">
+                                    <!-- The meta column reserves both lines so
+                                         rows with and without a pin/unread
+                                         badge share one height. -->
+                                    <span class="ml-auto flex min-h-10 shrink-0 flex-col items-end justify-between gap-0.5 pl-1">
                                         <span class="flex items-center gap-1">
                                             <i
                                                 v-if="isOwnInboxRow(option) && option.lastMessageRead"

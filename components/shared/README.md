@@ -666,7 +666,9 @@ serials) wrap inside the bubble instead of overflowing the chat bounds.
 Messages carrying `attachment.kind === 'audio'` render a leading voice-message
 chip, which is the inbox preview for attachment-only voice messages. The
 `singleLine` prop is the inbox preview mode: the chip row never wraps and
-crops to one line, with text spans carrying the ellipsis. Text
+crops to one line, with text spans carrying the ellipsis, and URLs stay
+plain text — the preview row is the click target that opens the
+conversation, so anchors would steal clicks. Text
 parts parse http(s) URLs into safe anchors (`noopener`, inherit-colored so
 both bubble sides stay readable); trailing punctuation peels off the link and
 stays text. Chat

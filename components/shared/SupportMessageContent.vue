@@ -50,9 +50,14 @@ const trailingRefs = computed(() => (props.message.instanceRefs || [])
 
 const URL_PATTERN = /\bhttps?:\/\/[^\s<>"'`]+/gi;
 
-const renderParts = computed(() => parts.value.flatMap(part => (
-  part.type === 'text' ? withLinks(part.value) : [part]
-)));
+// Preview mode (singleLine) keeps URLs as plain text: the preview row is
+// itself the click target that opens the conversation, so anchors there
+// would steal clicks and navigate away from the list.
+const renderParts = computed(() => (props.singleLine
+  ? parts.value
+  : parts.value.flatMap(part => (
+    part.type === 'text' ? withLinks(part.value) : [part]
+  ))));
 
 /**
  * Text parts split into plain spans and safe http(s) anchors; trailing
