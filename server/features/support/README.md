@@ -204,9 +204,11 @@ other's instance messages. Inbox instance chats ship as lineage tree rows: one r
 instance (the organization chat included), each carrying the conversation
 key of its nearest row-bearing ancestor as `parentKey` — the org chat
 roots the tree and deeper instances nest under their parent instance's
-chat. Unread counts land on a row and on every ancestor row (roots
-aggregate their subtree, like the composed thread views); shell unread
-totals count root rows only.
+chat. Row labels resolve live from the instance record; stored link names
+survive only when not stale id-fallbacks, and empty names localize the
+type label client-side. Unread counts land on a row and on every ancestor
+row (roots aggregate their subtree, like the composed thread views); shell
+unread totals count root rows only.
 Instance labels are identity names only (`identity.name`/`serial`): never
 uids, raw ids, or type ids — surfaces fall back to the localized type
 label when a name is empty. Rollup nodes are the top-level

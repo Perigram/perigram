@@ -76,11 +76,11 @@ inside the message keep their own behavior. The chat list
 carries the same gesture language: a right-click (long-press) on a
 conversation row opens its menu (pin, archive), and a left swipe on touch
 unveils the same actions as a sticky rail — one row
-at a time, tap to dismiss. Inbox rows trail a small meta column: the
-read check sits before the timestamp, and the pin indicator and the
-unread-count badge share the small row under it. Preview text never
-carries links — the row itself opens the conversation; instance rows
-align through one fixed leading disclosure cell. Replies quote the
+at a time, tap to dismiss. Inbox rows are exactly two lines at one constant height: the name with
+the read check and timestamp, and the message preview with the pin
+indicator and unread-count badge trailing it. Preview text never carries
+links — the row itself opens the conversation; instance rows align
+through one fixed leading disclosure cell and compact nesting indents. Replies quote the
 target with its first attachment's kind icon. Voice message transcription
 shows its progress in the thread: a
 pending indicator renders where the transcript will appear, until the
