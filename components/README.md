@@ -1020,11 +1020,11 @@ timestamp (clock time for today's messages, calendar date otherwise), and
 the small pin indicator plus the per-row unread-count badge under it; the
 single-line latest-message preview through `SupportMessageContent` below.
 The read mark belongs to rows whose newest message is the viewer's own and
-another participant has read it. Instance chats nest: a top chat with
-involved children chats carries a disclosure chevron in a fixed leading
-column and lists its leaf chats indented under it when expanded (leaf rows
-arrive with their rollup parent key; leaves whose parent is not visible
-stay top-level). Selection renders as the Listbox
+another participant has read it. Instance chats nest by lineage: every
+messaged instance has its own row, the org chat roots the tree, and rows
+with children chats carry a disclosure chevron in a fixed leading column
+with nested rows indented by depth (rows whose parent is not visible stay
+top-level). Selection renders as the Listbox
 checkmark (`highlightOnSelect` off) — no tinted highlight. A right-click
 (long-press on touch) on a row opens the row menu
 with per-user pin/archive preferences: pinned rows lead the list, archived
@@ -1160,8 +1160,9 @@ title sits the children-messages toggle (a local view switch, default the
 composed subtree), and under the title the thread carries its lineage
 breadcrumbs through the shared `TraceChain` (organization root first;
 links open the ancestor surfaces; unreadable instances render no chain).
-Group thread headers carry their member profiles inline through the shared
-`UserChip` with the full member list one popover away. Instance labels are
+Group thread headers carry an overlapping member avatar stack (resolved
+through the readable-reference seam) that opens the full member list as a
+popup of `UserChip` rows. Instance labels are
 identity names only — never uids or raw ids; unnamed instances fall back
 to the localized type label. Calls start from every non-support thread
 header, entity threads included. On desktop, entity opens from chat

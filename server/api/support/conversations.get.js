@@ -10,10 +10,10 @@ export default defineEventHandler(async (event) => {
     const conversations = await supportService.listUserConversations(auth)
     return {
         data: conversations,
-        // Leaf rows are the flat-view alternative, not extra chats: the
-        // shell badge counts the top-level grouping only.
+        // Nested rows are the same chats as their ancestors' composed
+        // views: the shell badge counts root rows only.
         totalUnread: conversations
-            .filter(item => !item.isLeafRow)
+            .filter(item => !item.parentKey)
             .reduce((sum, item) => sum + Number(item.unreadCount || 0), 0)
     }
 })

@@ -423,97 +423,109 @@ export async function listUserConversations(auth) {
 }
 
 /**
- * Instance chat inbox rows: top-level rollup rows (every message rolls up to
- * the highest instance below the organization root, so lower instances
- * surface as one top-instance chat) plus per-instance leaf rows
- * (`isLeafRow`) that carry the rollup row's conversation key as
- * `parentKey` — the client nests them as a collapsible children list under
- * their top chat. Unread counts key on each row's own conversation key,
- * and shell totals count the top-level rows only.
+ * Instance chat inbox rows: one row per messaged instance (the
+ * organization chat included), nested by live lineage — each row carries
+ * the conversation key of its nearest ancestor with its own row as
+ * `parentKey`, so the org chat roots the tree and deeper instances nest
+ * under their parent instance's chat. Unread counts land on the row
+ * itself and on every ancestor row (roots aggregate their subtree, like
+ * the composed thread views), and shell totals count root rows only.
  */
 async function instanceConversationSummaries(messages, auth) {
     const instanceMessages = messages.filter(message => message.conversationKind === 'instance' && message.instanceLink);
     if (!instanceMessages.length) return [];
 
-    // Rollup nodes are the top-level nodes of the lineage hierarchy trees:
-    // each message joins at the ancestor whose type carries no non-organization
-    // parent binding. The walk uses live lineage (instance lineage keys plus
-    // the compiled bindings), never the stored instancePath, which can be
-    // degraded when ancestors failed to resolve at send time.
     const scopedAuth = await resolveInstanceOptionAuth(auth);
     const instanceCache = new Map();
-    const entryByMessage = new WeakMap();
-    const rollupEntryFor = async (message) => {
-        if (!entryByMessage.has(message)) {
-            entryByMessage.set(message, await topLevelInstanceFor(scopedAuth, message, instanceCache));
-        }
-        return entryByMessage.get(message);
-    };
-
-    const byKey = new Map();
-    const leafByKey = new Map();
-    for (const message of instanceMessages) {
-        const entry = await rollupEntryFor(message);
-        const key = instanceConversationKey(entry.type, entry.id);
-        if (!byKey.has(key)) {
-            byKey.set(key, instanceSummaryRow(entry, message, { isInstanceRoot: entry.type === 'organization' }));
-        }
-        const link = message.instanceLink;
-        const leafKey = instanceConversationKey(link.type, link.id);
-        // Entities that are their own top level already carry a top row; no
-        // duplicate leaf row.
-        if (leafKey !== key && !byKey.has(leafKey) && !leafByKey.has(leafKey)) {
-            leafByKey.set(leafKey, instanceSummaryRow(link, message, { isLeafRow: true, parentKey: key }));
-        }
-    }
-
-    const rows = [...byKey.values(), ...leafByKey.values()];
-    await applyInstanceUnreadCounts(rows, instanceMessages, auth, rollupEntryFor);
-    await applyConversationPrefsAndReads(rows, auth);
-    return rows.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
-}
-
-async function topLevelInstanceFor(scopedAuth, message, cache) {
-    const bindings = scopedAuth.process?.lineageBindings || [];
-    const parentBindingFor = (type) => bindings.find(binding => (
-        binding.childTypeId === type
-        && binding.parentTypeId !== 'organization'
-        && binding.lineageKey
-    ));
     const cachedInstance = async (type, id) => {
         const cacheKey = `${type}:${id}`;
-        if (!cache.has(cacheKey)) {
-            cache.set(cacheKey, await fetchLinkedInstance(scopedAuth, type, id));
+        if (!instanceCache.has(cacheKey)) {
+            instanceCache.set(cacheKey, await fetchLinkedInstance(scopedAuth, type, id));
         }
-        return cache.get(cacheKey);
+        return instanceCache.get(cacheKey);
     };
 
-    let type = message.instanceLink.type;
-    let id = String(message.instanceLink.id);
-    let name = message.instanceLink.name || '';
-    const seen = new Set([`${type}:${id}`]);
-    while (true) {
-        const binding = parentBindingFor(type);
-        if (!binding) break;
-        const instance = instanceDto(await cachedInstance(type, id));
-        const parentId = instance?.lineage?.[binding.lineageKey]
-            ? String(instance.lineage[binding.lineageKey])
-            : '';
-
-        if (!parentId) break;
-        const parentKey = `${binding.parentTypeId}:${parentId}`;
-        if (seen.has(parentKey)) break;
-        const parent = await cachedInstance(binding.parentTypeId, parentId);
-        if (!parent) break;
-        const parentDto = instanceDto(parent);
-        seen.add(parentKey);
-        type = binding.parentTypeId;
-        id = parentId;
-        // The rollup row is the TOP instance: its label is that ancestor's
-        // own name, never the child's, and never an id.
-        name = parentDto?.identity?.name || '';
+    // Every messaged instance gets its own chat row.
+    const rowByKey = new Map();
+    for (const message of instanceMessages) {
+        const link = message.instanceLink;
+        const key = instanceConversationKey(link.type, link.id);
+        if (!rowByKey.has(key)) {
+            rowByKey.set(key, instanceSummaryRow(link, message, { isInstanceRoot: link.type === 'organization' }));
+        }
     }
-    return { type, id, name };
+
+    // Ancestor chains (nearest first, organization root last) walk the
+    // LIVE lineage — instance lineage keys plus the compiled bindings —
+    // never the stored instancePath, which can be degraded when ancestors
+    // failed to resolve at send time.
+    const chainByKey = new Map();
+    const ancestorChainFor = async (type, id) => {
+        const chain = [];
+        const seen = new Set([`${type}:${String(id)}`]);
+        const bindings = scopedAuth.process?.lineageBindings || [];
+        const parentBindingFor = (currentType) => bindings.find(binding => (
+            binding.childTypeId === currentType
+            && binding.parentTypeId !== 'organization'
+            && binding.lineageKey
+        ));
+        let currentType = type;
+        let currentId = String(id);
+        while (currentType) {
+            const binding = parentBindingFor(currentType);
+            const instance = instanceDto(await cachedInstance(currentType, currentId));
+            const parentId = binding && instance?.lineage?.[binding.lineageKey]
+                ? String(instance.lineage[binding.lineageKey])
+                : '';
+            if (!binding || !parentId) break;
+            const parentKey = `${binding.parentTypeId}:${parentId}`;
+            if (seen.has(parentKey)) break;
+            seen.add(parentKey);
+            chain.push({ type: binding.parentTypeId, id: parentId });
+            currentType = binding.parentTypeId;
+            currentId = parentId;
+        }
+        const organizationId = type === 'organization'
+            ? ''
+            : organizationIdOf(instanceDto(await cachedInstance(type, String(id))), scopedAuth);
+        if (organizationId && !seen.has(`organization:${organizationId}`)) {
+            chain.push({ type: 'organization', id: String(organizationId) });
+        }
+        return chain;
+    };
+    for (const key of rowByKey.keys()) {
+        const parsed = parseInstanceKey(key);
+        if (parsed) chainByKey.set(key, await ancestorChainFor(parsed.type, parsed.id));
+    }
+
+    // Nesting: the nearest ancestor that carries its own row.
+    for (const [key, row] of rowByKey) {
+        const parent = (chainByKey.get(key) || [])
+            .find(ancestor => rowByKey.has(instanceConversationKey(ancestor.type, ancestor.id)));
+        if (parent) row.parentKey = instanceConversationKey(parent.type, parent.id);
+    }
+
+    const reads = await repository.findReadStates(auth.userId, [...rowByKey.keys()]);
+    const readsByKey = new Map(reads.map(read => [read.conversationKey, read.lastReadAt]));
+    for (const message of instanceMessages) {
+        if (message.senderUserId === auth.userId) continue;
+        const link = message.instanceLink;
+        const key = instanceConversationKey(link.type, link.id);
+        const targets = new Set([
+            key,
+            ...(chainByKey.get(key) || []).map(ancestor => instanceConversationKey(ancestor.type, ancestor.id))
+        ]);
+        for (const target of targets) {
+            const row = rowByKey.get(target);
+            if (!row) continue;
+            const lastReadAt = readsByKey.get(target) || new Date(0);
+            if (new Date(message.timestamp) > new Date(lastReadAt)) row.unreadCount += 1;
+        }
+    }
+
+    const rows = [...rowByKey.values()];
+    await applyConversationPrefsAndReads(rows, auth);
+    return rows.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
 }
 
 function instanceSummaryRow(entry, message, flags = {}) {
@@ -531,27 +543,6 @@ function instanceSummaryRow(entry, message, flags = {}) {
         unreadCount: 0,
         ...flags
     };
-}
-
-async function applyInstanceUnreadCounts(rows, instanceMessages, auth, rollupEntryFor) {
-    const reads = await repository.findReadStates(auth.userId, rows.map(row => row.conversationKey));
-    const readsByKey = new Map(reads.map(read => [read.conversationKey, read.lastReadAt]));
-    const rowByKey = new Map(rows.map(row => [row.conversationKey, row]));
-    for (const message of instanceMessages) {
-        if (message.senderUserId === auth.userId) continue;
-        const entry = await rollupEntryFor(message);
-        const link = message.instanceLink;
-        const targets = new Set([
-            instanceConversationKey(entry.type, entry.id),
-            instanceConversationKey(link.type, link.id)
-        ]);
-        for (const key of targets) {
-            const row = rowByKey.get(key);
-            if (!row) continue;
-            const lastReadAt = readsByKey.get(row.conversationKey) || new Date(0);
-            if (new Date(message.timestamp) > new Date(lastReadAt)) row.unreadCount += 1;
-        }
-    }
 }
 
 export async function listAdminSupportConversations(auth) {
