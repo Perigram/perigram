@@ -152,27 +152,6 @@
                                 ]"
                                 :style="rowContentStyle(option)"
                             >
-                            <!-- Only instance rows carry the tree disclosure,
-                                 in one fixed-width leading cell so every
-                                 instance row aligns regardless of nesting;
-                                 person and group rows stay flush. -->
-                            <span
-                                v-if="option.conversationKind === 'instance'"
-                                class="flex w-6 shrink-0 items-center justify-center self-center"
-                            >
-                                <Button
-                                    v-if="hasChatChildren(option)"
-                                    :icon="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                                    severity="secondary"
-                                    text
-                                    rounded
-                                    size="small"
-                                    class="h-5 w-5"
-                                    :aria-label="$t('support.chatChildren')"
-                                    :aria-expanded="chatTreeExpanded(option)"
-                                    @click.stop="toggleChatTree(option)"
-                                />
-                            </span>
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'instance'"
@@ -201,6 +180,27 @@
                                     class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
                                     :aria-label="$t('support.online')"
                                 />
+                                <!-- The tree disclosure overlays the gutter
+                                     before the avatar — it never shifts the
+                                     avatar, so every top-level chat (person,
+                                     group, or root instance) stays flush at
+                                     one left edge and only nested children
+                                     indent; a child's expander indents with
+                                     its own row. -->
+                                <button
+                                    v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
+                                    type="button"
+                                    class="absolute top-1/2 left-0 flex h-6 w-5 -translate-x-full -translate-y-1/2 items-center justify-center"
+                                    :aria-label="$t('support.chatChildren')"
+                                    :aria-expanded="chatTreeExpanded(option)"
+                                    @click.stop="toggleChatTree(option)"
+                                >
+                                    <i
+                                        :class="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                                        class="text-supporting text-muted"
+                                        aria-hidden="true"
+                                    />
+                                </button>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex min-w-0 items-center gap-2">
@@ -557,17 +557,6 @@
                                 ]"
                                 :style="swipeStyle(messageItem)"
                             >
-                                <!-- Forwarded provenance leads the message
-                                     (SPEC §Chat thread): a caption line above
-                                     every shape — text, media, or files. -->
-                                <span
-                                    v-if="messageItem.forwardedFrom"
-                                    class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting"
-                                >
-                                    <span class="min-w-0 truncate">
-                                        {{ $t('support.forwardedFrom', { name: messageItem.forwardedFrom.senderName || $t('common.user') }) }}
-                                    </span>
-                                </span>
                                 <!-- Sender label: group threads lead others'
                                      runs with the sender's avatar and name (the
                                      shared user chip, which opens the entity
@@ -603,6 +592,20 @@
                                         </span>
                                     </span>
                                 </button>
+                                <!-- Forwarded provenance rides directly over
+                                     the content it describes (SPEC §Chat
+                                     thread) — the sender label leads the run,
+                                     the caption hugs the message: a caption
+                                     line above every shape — text, media, or
+                                     files. -->
+                                <span
+                                    v-if="messageItem.forwardedFrom"
+                                    class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting"
+                                >
+                                    <span class="min-w-0 truncate">
+                                        {{ $t('support.forwardedFrom', { name: messageItem.forwardedFrom.senderName || $t('common.user') }) }}
+                                    </span>
+                                </span>
                                 <div
                                     v-if="messageBubbleText(messageItem) || (messageItem.instanceRefs || []).length"
                                     class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
