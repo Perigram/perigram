@@ -1021,10 +1021,11 @@ single-line latest-message preview through `SupportMessageContent`
 trailed by the small pin indicator and per-row unread-count badge on the
 second. The read mark belongs to rows whose newest message is the viewer's
 own and another participant has read it. Instance chats nest by lineage: every
-messaged instance has its own row, the org chat roots the tree, and rows
-with children chats carry a disclosure chevron in a fixed leading column
-with nested rows indented by depth (rows whose parent is not visible stay
-top-level). Selection renders as the Listbox
+messaged instance has its own row and the org chat roots the tree; a row
+with children chats carries a disclosure chevron overlaid in the gutter
+before its avatar (nothing shifts — top-level rows of every kind share one
+left edge), and nested rows indent by depth (rows whose parent is not
+visible stay top-level). Selection renders as the Listbox
 checkmark (`highlightOnSelect` off) — no tinted highlight. A right-click
 (long-press on touch) on a row opens the row menu
 with per-user pin/archive preferences: pinned rows lead the list, archived
