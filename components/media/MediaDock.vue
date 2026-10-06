@@ -1,20 +1,21 @@
 <template>
     <!-- The now-playing dock (see this directory's README): one persistent
          app-shell host for media and calls that outlive their source
-         surface. Mobile pins it as a lane at the top of the screen; desktop
-         floats it top-right. The call entry is mobile-only — desktop keeps
-         its own floating call window. -->
+         surface. Mobile integrates it as a full-width strip at the top of
+         the screen; desktop floats the media card top-right, draggable,
+         with the position persisted per browser. The call entry is
+         mobile-only — desktop keeps its own floating call window. -->
     <div
         v-if="media.docked || parkedCallRoom"
-        class="fixed inset-x-0 top-0 z-[997] flex flex-col items-center gap-2 px-2 pt-[max(0.25rem,env(safe-area-inset-top))] md:inset-x-auto md:right-6 md:top-20 md:items-stretch md:px-0 md:pt-0"
+        class="fixed inset-x-0 top-0 z-[997] flex flex-col items-stretch gap-px pt-[env(safe-area-inset-top)] md:contents"
         data-testid="media-dock"
     >
-        <!-- Parked call pill: the room stays connected (audio keeps playing
-             through the store's sink); expand reopens the full call surface,
-             close leaves the call. -->
+        <!-- Parked call strip entry: the room stays connected (audio keeps
+             playing through the store's sink); expand reopens the full call
+             surface, close leaves the call. -->
         <div
             v-if="parkedCallRoom"
-            class="flex w-full max-w-md items-center gap-2 rounded-ui bg-content px-3 py-1.5 shadow-overlay md:hidden"
+            class="flex w-full items-center gap-2 border-b border-chrome-border bg-content px-3 py-1.5 md:hidden"
             data-testid="media-call-pill"
         >
             <i class="pi pi-phone shrink-0 text-primary" aria-hidden="true" />
@@ -42,13 +43,20 @@
         </div>
         <!-- Docked media: the dock's own element resumes the handed-over
              playback at the handed-over position; native controls stay the
-             interface, the chrome adds identity and dismissal. -->
+             interface, the chrome adds identity and dismissal. The identity
+             row is the desktop drag handle (the call-window drag pattern:
+             viewport-clamped left/top, persisted like the call window's
+             size). -->
         <div
             v-if="media.docked"
-            class="flex w-full max-w-md flex-col gap-1 rounded-ui bg-content px-3 py-2 shadow-overlay md:w-80"
+            ref="mediaCard"
+            class="flex w-full flex-col gap-1 border-b border-chrome-border bg-content px-3 py-1.5 md:fixed md:right-6 md:top-20 md:z-[997] md:w-80 md:rounded-ui md:border-0 md:px-3 md:py-2 md:shadow-overlay"
             data-testid="media-card"
         >
-            <div class="flex min-w-0 items-center gap-2">
+            <div
+                class="flex min-w-0 cursor-grab items-center gap-2 max-md:cursor-default"
+                @pointerdown="startDrag"
+            >
                 <i
                     :class="media.docked.kind === 'video' ? 'pi pi-video' : 'pi pi-volume-up'"
                     class="shrink-0 text-muted"
@@ -113,7 +121,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
@@ -130,7 +138,7 @@ const callsStore = useCallsStore();
 const authStore = useAuthStore();
 const supportChatStore = useSupportChatStore();
 
-// A parked room with no adopting surface is the mobile top-lane call: the
+// A parked room with no adopting surface is the mobile strip call: the
 // desktop floating window clears its own room on adoption paths, so this
 // stays empty there.
 const parkedCallRoom = computed(() => (
@@ -157,6 +165,83 @@ const leaveParkedCall = () => {
     callsStore.dropLiveRoom(room);
     callsStore.leaveRoom(room);
 };
+
+// Desktop drag: the media card follows the pointer, clamped to the
+// viewport, and the position persists per browser like the call window's
+// size. Mobile keeps the integrated strip — drags never start there.
+const mediaCard = ref(null);
+const POSITION_KEY = 'perigram:media-dock-position';
+const isDesktop = () => typeof window !== 'undefined'
+    && window.matchMedia('(min-width: 768px)').matches;
+
+const readPersistedPosition = () => {
+    try {
+        const raw = JSON.parse(window.localStorage.getItem(POSITION_KEY) || 'null');
+        if (!raw || !Number.isFinite(raw.left) || !Number.isFinite(raw.top)) return null;
+        return raw;
+    } catch {
+        return null;
+    }
+};
+
+const applyPersistedPosition = () => {
+    if (!mediaCard.value || !isDesktop()) return;
+    const raw = readPersistedPosition();
+    if (!raw) return;
+    mediaCard.value.style.right = 'auto';
+    mediaCard.value.style.left = `${Math.max(0, Math.min(raw.left, window.innerWidth - 80))}px`;
+    mediaCard.value.style.top = `${Math.max(0, Math.min(raw.top, window.innerHeight - 48))}px`;
+};
+watch(mediaCard, applyPersistedPosition);
+watch(() => media.docked?.url, () => {
+    if (mediaCard.value) {
+        mediaCard.value.style.left = '';
+        mediaCard.value.style.top = '';
+        mediaCard.value.style.right = '';
+    }
+    applyPersistedPosition();
+});
+
+let dragState = null;
+const startDrag = (event) => {
+    if (!isDesktop()) return;
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    if (event.target?.closest?.('button, video, audio')) return;
+    const target = mediaCard.value;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    dragState = { target, startX: event.clientX, startY: event.clientY, left: rect.left, top: rect.top };
+    target.style.right = 'auto';
+    window.addEventListener('pointermove', moveDrag);
+    window.addEventListener('pointerup', endDrag);
+    event.preventDefault();
+};
+const moveDrag = (event) => {
+    if (!dragState) return;
+    const nextLeft = dragState.left + event.clientX - dragState.startX;
+    const nextTop = dragState.top + event.clientY - dragState.startY;
+    dragState.target.style.left = `${Math.max(0, Math.min(nextLeft, window.innerWidth - 80))}px`;
+    dragState.target.style.top = `${Math.max(0, Math.min(nextTop, window.innerHeight - 48))}px`;
+};
+const endDrag = () => {
+    if (dragState?.target) {
+        try {
+            window.localStorage.setItem(POSITION_KEY, JSON.stringify({
+                left: parseFloat(dragState.target.style.left),
+                top: parseFloat(dragState.target.style.top)
+            }));
+        } catch {
+            // Storage is best-effort; the session keeps its position.
+        }
+    }
+    dragState = null;
+    window.removeEventListener('pointermove', moveDrag);
+    window.removeEventListener('pointerup', endDrag);
+};
+onBeforeUnmount(() => {
+    window.removeEventListener('pointermove', moveDrag);
+    window.removeEventListener('pointerup', endDrag);
+});
 
 // The dock's element registration follows the rendered kind; the media
 // store needs it so dismissal pauses exactly the dock's playback.
