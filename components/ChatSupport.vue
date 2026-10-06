@@ -103,7 +103,7 @@
                               actions as a sticky rail (one row at a time, tap
                               to dismiss). -->
                         <div
-                            class="relative flex w-full min-w-0 items-start"
+                            class="relative flex w-full min-w-0 items-start overflow-hidden md:overflow-visible"
                             @touchstart="onRowTouchStart($event, option)"
                             @touchmove="onRowTouchMove($event, option)"
                             @touchend="onRowTouchEnd(option)"
@@ -152,6 +152,27 @@
                                 ]"
                                 :style="rowContentStyle(option)"
                             >
+                            <!-- Only instance rows carry the tree disclosure,
+                                 in one fixed-width leading cell so every
+                                 instance row aligns regardless of nesting;
+                                 person and group rows stay flush. -->
+                            <span
+                                v-if="option.conversationKind === 'instance'"
+                                class="flex w-6 shrink-0 items-center justify-center self-center"
+                            >
+                                <Button
+                                    v-if="hasChatChildren(option)"
+                                    :icon="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                                    severity="secondary"
+                                    text
+                                    rounded
+                                    size="small"
+                                    class="h-5 w-5"
+                                    :aria-label="$t('support.chatChildren')"
+                                    :aria-expanded="chatTreeExpanded(option)"
+                                    @click.stop="toggleChatTree(option)"
+                                />
+                            </span>
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'instance'"
@@ -180,28 +201,6 @@
                                     class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
                                     :aria-label="$t('support.online')"
                                 />
-                                <!-- The tree disclosure hugs the avatar's own
-                                     left gutter — vertically centered on the
-                                     avatar, indented with its row, never
-                                     shifting it: top-level rows of every kind
-                                     stay flush at one left edge and only
-                                     nested children indent. The row does not
-                                     clip (the inbox owns the bounds), so the
-                                     gutter stays tappable on touch too. -->
-                                <button
-                                    v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
-                                    type="button"
-                                    class="absolute top-1/2 left-0 z-10 flex h-8 w-5 -translate-x-full -translate-y-1/2 items-center justify-center"
-                                    :aria-label="$t('support.chatChildren')"
-                                    :aria-expanded="chatTreeExpanded(option)"
-                                    @click.stop="toggleChatTree(option)"
-                                >
-                                    <i
-                                        :class="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                                        class="text-supporting text-muted"
-                                        aria-hidden="true"
-                                    />
-                                </button>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex min-w-0 items-center gap-2">
@@ -212,14 +211,22 @@
                                     >
                                         {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
                                     </small>
-                                    <i
-                                        v-if="isOwnInboxRow(option) && option.lastMessageRead"
-                                        class="pi pi-check ml-auto shrink-0 text-supporting text-primary"
-                                        :aria-label="$t('support.messageRead')"
-                                    />
-                                    <small v-if="option.timestamp" class="shrink-0 pl-1 text-muted text-supporting">
-                                        {{ inboxTimestamp(option.timestamp) }}
-                                    </small>
+                                    <!-- The trailing meta group owns the right
+                                         edge whether or not the read check
+                                         renders. -->
+                                    <span
+                                        v-if="(isOwnInboxRow(option) && option.lastMessageRead) || option.timestamp"
+                                        class="ml-auto flex shrink-0 items-center gap-1"
+                                    >
+                                        <i
+                                            v-if="isOwnInboxRow(option) && option.lastMessageRead"
+                                            class="pi pi-check shrink-0 text-supporting text-primary"
+                                            :aria-label="$t('support.messageRead')"
+                                        />
+                                        <small v-if="option.timestamp" class="text-muted text-supporting">
+                                            {{ inboxTimestamp(option.timestamp) }}
+                                        </small>
+                                    </span>
                                 </div>
                                 <div class="flex min-w-0 items-center gap-1">
                                     <small class="min-w-0 flex-1 truncate text-muted">
