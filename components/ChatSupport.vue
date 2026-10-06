@@ -102,7 +102,28 @@
                               touch); on touch a left swipe unveils the same
                               actions as a sticky rail (one row at a time, tap
                               to dismiss). -->
-                        <div
+                        <div class="relative flex w-full min-w-0 items-start">
+                            <!-- The tree disclosure sits in the option gutter
+                                 before the row, outside the overflow-hidden
+                                 swipe subtree: tappable on every viewport,
+                                 never shifting the avatar, so top-level rows
+                                 of every kind stay flush at one left edge and
+                                 only nested children indent. -->
+                            <button
+                                v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
+                                type="button"
+                                class="absolute top-1/2 left-0 z-10 flex h-8 w-5 -translate-x-full -translate-y-1/2 items-center justify-center"
+                                :aria-label="$t('support.chatChildren')"
+                                :aria-expanded="chatTreeExpanded(option)"
+                                @click.stop="toggleChatTree(option)"
+                            >
+                                <i
+                                    :class="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                                    class="text-supporting text-muted"
+                                    aria-hidden="true"
+                                />
+                            </button>
+                            <div
                             class="relative flex w-full min-w-0 items-start overflow-hidden md:overflow-visible"
                             @touchstart="onRowTouchStart($event, option)"
                             @touchmove="onRowTouchMove($event, option)"
@@ -180,27 +201,6 @@
                                     class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
                                     :aria-label="$t('support.online')"
                                 />
-                                <!-- The tree disclosure overlays the gutter
-                                     before the avatar — it never shifts the
-                                     avatar, so every top-level chat (person,
-                                     group, or root instance) stays flush at
-                                     one left edge and only nested children
-                                     indent; a child's expander indents with
-                                     its own row. -->
-                                <button
-                                    v-if="option.conversationKind === 'instance' && hasChatChildren(option)"
-                                    type="button"
-                                    class="absolute top-1/2 left-0 flex h-6 w-5 -translate-x-full -translate-y-1/2 items-center justify-center"
-                                    :aria-label="$t('support.chatChildren')"
-                                    :aria-expanded="chatTreeExpanded(option)"
-                                    @click.stop="toggleChatTree(option)"
-                                >
-                                    <i
-                                        :class="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                                        class="text-supporting text-muted"
-                                        aria-hidden="true"
-                                    />
-                                </button>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex min-w-0 items-center gap-2">
@@ -249,6 +249,7 @@
                                     />
                                 </div>
                             </div>
+                        </div>
                         </div>
                         </div>
                     </template>
