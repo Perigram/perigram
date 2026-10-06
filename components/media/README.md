@@ -2,9 +2,12 @@
 
 Persistent playback surfaces for media and calls that outlive their source
 surface (SPEC §Now playing). One dock host, mounted by the app layout, with
-two placements from one component: a floating card top-right on desktop and
-a lane pinned to the top of the screen on mobile (safe-area aware, beneath
-the bottom-nav stacking).
+two placements from one component: on desktop a floating media card
+top-right whose identity row drags it anywhere in the viewport
+(viewport-clamped, position persisted per browser like the call window's
+size — the same pointer-event pattern); on mobile an integrated full-width
+strip flush at the top of the screen (safe-area aware, hairline-separated
+entries, no floating card chrome), beneath the bottom-nav stacking.
 
 ## Now-playing channel
 

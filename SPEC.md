@@ -159,9 +159,9 @@ hand-editing process data.
 ## Now playing
 
 Whatever media is playing persists across navigation: chat audio and video
-continue in a floating dock on desktop and a lane pinned to the top of the
-screen on mobile, resuming at the same playback position; only one media
-item plays at a time. An ongoing call persists the same way — the desktop
+continue in a draggable floating dock on desktop and a strip integrated at
+the top of the screen on mobile, resuming at the same playback position;
+only one media item plays at a time. An ongoing call persists the same way — the desktop
 floating window it already has, and a top-lane entry on mobile that reopens
 the call without reconnecting, keeping remote audio audible while parked.
 
