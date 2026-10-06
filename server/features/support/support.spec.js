@@ -1050,10 +1050,11 @@ describe('support communication service', () => {
     })).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('joins instance chats at the top-level nodes of the lineage trees', async () => {
-    // Live lineage: the queue carries projectId; the walk climbs to the
-    // project whose type has no non-organization parent binding, even when
-    // the stored instancePath is degraded.
+  it('nests instance chats under the org chat root by live lineage', async () => {
+    // Live lineage: the queue carries projectId; the ancestor walk follows
+    // it even when the stored instancePath is degraded, and rows nest under
+    // their nearest row-bearing ancestor — the org chat roots the tree
+    // (unmessed instances without their own row never create one).
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async (id) => {
         const table = {
@@ -1097,27 +1098,21 @@ describe('support communication service', () => {
       { childTypeId: 'queue', parentTypeId: 'project', lineageKey: 'projectId' }
     ] } });
 
-    // The queue message climbs its live lineage to the project (top-level
-    // type); the org-linked message keeps the organization row; the queue
-    // stays available as a Detailed leaf row.
+    // One row per messaged instance: the org chat roots the tree (its
+    // unread aggregates the nested queue message — the composed view), and
+    // the queue row nests under it; the project has no messages and no row.
     const instanceRows = conversations.filter(item => item.conversationKind === 'instance');
     expect(instanceRows).toEqual([
       expect.objectContaining({
         conversationKey: 'instance:organization:org-1',
         isInstanceRoot: true,
         instanceName: 'Org1',
-        unreadCount: 1
-      }),
-      expect.objectContaining({
-        conversationKey: 'instance:project:project-1',
-        typeId: 'project',
-        instanceName: 'P1',
-        unreadCount: 1
+        unreadCount: 2
       }),
       expect.objectContaining({
         conversationKey: 'instance:queue:queue-1',
-        isLeafRow: true,
         instanceName: 'Queue 1',
+        parentKey: 'instance:organization:org-1',
         unreadCount: 1
       })
     ]);

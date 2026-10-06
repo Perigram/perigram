@@ -1,7 +1,7 @@
 <template>
     <button
         type="button"
-        class="flex min-w-0 max-w-full items-center gap-1.5 rounded-ui bg-subtle px-1.5 py-0.5 text-left transition-opacity hover:opacity-80"
+        class="flex min-w-0 max-w-full items-center gap-1.5 text-left transition-opacity hover:opacity-80"
         :aria-label="displayName"
         @click.stop="open"
     >
@@ -9,7 +9,7 @@
             :image="avatarUrl"
             :label="avatarUrl ? null : displayName.charAt(0).toUpperCase()"
             shape="circle"
-            class="shrink-0 bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+            class="h-5 w-5 shrink-0 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
         />
         <span class="min-w-0 truncate text-supporting">{{ displayName }}</span>
     </button>
