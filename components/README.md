@@ -1,7 +1,7 @@
 # COMPONENT: Components
 
 ## Style Guide
-- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. Cascade law: styles emit in declared layers — `tailwind-base, primevue, tailwind-utilities` (`assets/css/main.css` owns the statement; main.css is the only `@tailwind` site, the module's css injection is off) — so unlayered app CSS and utilities outrank PrimeVue identically in dev and production builds. Before layers, the production bundle inlined PrimeVue after the app CSS and every equal-specificity tie on `p-*` elements silently flipped between dev and staging; `!important` patches for order flips are defects of that old regime, not a pattern. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls, no stuffing composite surfaces into slot templates. Single-select lists and compact rail rows are `Listbox` with single-line `#option` templates (chats-inbox anatomy: content + hover/inline controls, `@click.stop` on triggers); per-row contextual detail (history, pickers, rename) opens a `Popover` anchored at the row's trigger (`NameEditPopover`/`InstanceActionsPopover` precedent) — never inside the option; tabular data grids are `TableFrame` + `DataTable` with `#body` cells; link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns. When unsure which component owns a surface, ask the PrimeVue MCP — do not improvise markup.
+- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. Cascade law: styles emit in declared layers — `tailwind-base, primevue, tailwind-utilities` (`assets/css/main.css` owns the statement; main.css is the only `@tailwind` site, the module's css injection is off) — so unlayered app CSS and utilities outrank PrimeVue identically in dev and production builds. Before layers, the production bundle inlined PrimeVue after the app CSS and every equal-specificity tie on `p-*` elements silently flipped between dev and staging; `!important` patches for order flips are defects of that old regime, not a pattern. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls, no stuffing composite surfaces into slot templates. Single-select lists and compact rail rows are `Listbox` with single-line `#option` templates (chats-inbox anatomy: content + trailing meta, right-click row menu, `@click.stop` on triggers); per-row contextual detail (history, pickers, rename) opens a `Popover` anchored at the row's trigger (`NameEditPopover`/`InstanceActionsPopover` precedent) — never inside the option; tabular data grids are `TableFrame` + `DataTable` with `#body` cells; link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns. When unsure which component owns a surface, ask the PrimeVue MCP — do not improvise markup.
 - **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
 - **Motion:** Motion is contextual behavior, not an application theme concern.
   Keep interaction-specific motion inside the owning derived composition, use
@@ -1009,27 +1009,30 @@ raw Listbox of plain avatar+name user rows; picking one opens the direct
 thread, including a direct self-chat. The inbox is a PrimeVue `Listbox` (single selection with keyboard
 navigation and Aura's selected-option state) whose `#option` template renders
 the rich row, top-aligned on two lines: avatar or neutral fallback plus
-online dot; label, member count, and the smart timestamp (clock time for
-today's messages, calendar date otherwise) on the first line; the
-single-line latest-message preview through `SupportMessageContent` below,
-led by the read mark (a check) when the newest message is the viewer's own
-and another participant has read it. Selection renders as the Listbox
-checkmark (`highlightOnSelect` off) — no tinted highlight. A hover
-ellipsis in a fixed trailing right slot opens the row menu
+online dot; label and member count on the first line beside the trailing
+meta column — the own-last read mark (a small check) before the smart
+timestamp (clock time for today's messages, calendar date otherwise), and
+the small pin indicator plus the per-row unread-count badge under it; the
+single-line latest-message preview through `SupportMessageContent` below.
+The read mark belongs to rows whose newest message is the viewer's own and
+another participant has read it. Selection renders as the Listbox
+checkmark (`highlightOnSelect` off) — no tinted highlight. A right-click
+(long-press on touch) on a row opens the row menu
 with per-user pin/archive preferences: pinned rows lead the list, archived
 rows disappear behind the inbox header's archived toggle (which swaps the
 list to archived conversations with a back affordance). Drawer rows show
 participant context and render latest
-message entity tokens through `SupportMessageContent`, without per-row
-message-count badges. Message bubbles own a `min-w-0`/`max-w-full` chain with
+message entity tokens through `SupportMessageContent`; the per-row unread
+badge counts that conversation only, while the app-shell badge keeps the
+organization-wide total. Message bubbles own a `min-w-0`/`max-w-full` chain with
 `overflow-wrap: anywhere` text wrapping, so long unbroken strings stay inside
 the chat bounds. Messages group into sender runs (SPEC §Chat thread):
 consecutive messages from one sender within a short window render as one
 unit — the timestamp trails under the last message of the run only (the
 instance leaf link keeps its caption row regardless), and group threads
-lead others' runs with the resolved sender through the same inline user
-chip the thread header uses for members (once per run, never for the
-viewer's own messages). Forwarded messages lead their content with the
+lead others' runs with the sender's avatar and display name through the
+shared user chip (`components/shared/UserChip.vue`, once per run, never for
+the viewer's own messages). Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. Conversation history is lazy: the thread loads the newest
 message page and prepends older pages on scroll-to-top through the
@@ -1143,11 +1146,14 @@ chat. Child-entity threads (cassettes, nesting runs, sheet designs) resolve
 server-side through the support service's scoped list resolution when
 direct registry reads deny them. Entity thread titles are the open-entity
 link (a home-workspace tab on desktop, detail route on mobile); beside the
-title sits the children-messages toggle — default off (the entity's own
-messages), pressed/primary = the composed subtree view. The inbox carries a
-"Detailed" grouping toggle
-for entity chats (top-level nodes off, every entity chat on), and group thread headers carry their member profiles
-inline through `InstanceInlineRef`. Calls start from every non-support thread
+title sits the children-messages toggle. That toggle and the inbox's
+"Detailed" grouping toggle for entity chats are ONE persisted per-user view
+preference (`composables/useChatDetailedView.js`: shared state plus
+per-user localStorage), read inverted — Detailed on lists every entity chat
+and keeps threads on the entity's own messages; Detailed off groups the
+inbox to top-level nodes (entities with no resolvable lineage ancestors)
+and composes threads into subtree views. Group thread headers carry their
+member profiles inline through the shared `UserChip`. Calls start from every non-support thread
 header, entity threads included. On desktop, entity opens from chat
 surfaces and standalone lists route through
 `utils/instance-workspace-open.js` — a live pane-tab open when the home
@@ -1165,12 +1171,16 @@ whenever no child is drilled, and exactly one target is always visibly
 selected — the root pill, the deepest lineage pill, or a drilled leaf chip. Replies quote their parent message above the bubble (sender
 name plus snippet or voice marker, without a leading border) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
-open through the desktop hover message menu (PrimeVue Menu with reply and
+open through the message menu — right-click or long-press the message, or
+the desktop hover ellipsis (PrimeVue Menu with reply and
 copy actions, vertically aligned with the bubble's center beside its outer
-edge) and direction-aware swipe-to-reply on mobile: own (right-aligned)
+edge; media-only rows keep the ellipsis mounted on touch too) — and direction-aware swipe-to-reply on mobile: own (right-aligned)
 messages swipe left and opponent messages right, the row follows the
 finger, and a reply icon fades in inside the vacated gap until the release
-past the threshold commits the reply. The composer shows a cancelable
+past the threshold commits the reply. A left click on an instance-linked
+message opens that instance's popup (SPEC §Chat files); interactive
+children inside the message (inline refs, links, media, the reply-quote
+jump) keep their own click behavior. The composer shows a cancelable
 reply bar that renders like the in-bubble quote (sender plus snippet), not
 an alert-style PrimeVue Message. The composer input is a PrimeVue InputGroup — attach
 and voice sit in addons around the textarea while send is the trailing

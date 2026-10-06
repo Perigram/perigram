@@ -68,11 +68,17 @@ Any file may be attached to chat messages. Images and videos preview inline
 (single items and their sets as galleries); every attachment offers a
 download. Message actions (reply, transcribe, per-attachment downloads,
 copy) live in one context menu, reachable on every viewport and for every
-message shape — tap or long-press the message, or use the row action;
-media-only messages are never orphaned without actions. The chat list
-carries the same gesture language: a left swipe on a conversation row
-unveils its actions (pin, archive, mark read) as a sticky rail — one row
-at a time, tap to dismiss. Replies quote the
+message shape — right-click or long-press the message, or use the row
+action; media-only messages are never orphaned without actions. A left
+click on a message linked to an instance opens that instance's popup (the
+same entity popup the thread title opens); clicks on interactive content
+inside the message keep their own behavior. The chat list
+carries the same gesture language: a right-click (long-press) on a
+conversation row opens its menu (pin, archive), and a left swipe on touch
+unveils the same actions as a sticky rail — one row
+at a time, tap to dismiss. Inbox rows trail a small meta column: the
+read check sits before the timestamp, and the pin indicator and the
+unread-count badge share the small row under it. Replies quote the
 target with its first attachment's kind icon. Voice message transcription
 shows its progress in the thread: a
 pending indicator renders where the transcript will appear, until the
@@ -105,9 +111,17 @@ quotes, and inbox previews never carry it.
 
 Messages from one sender sent in a row read as one run: the sender label
 leads the run and the timestamp trails it under the last message only.
-Group chats show the sender on others' messages (resolved names, never
-ids). Forwarded messages carry a distinct forwarded-from header above
+Group chats show the sender on others' messages as avatar plus display
+name (resolved names, never
+ids, never the identifier/email). Forwarded messages carry a distinct
+forwarded-from header above
 their content, on every message shape — text, media, or files.
+
+One per-user "detailed" view preference drives the instance-chat surfaces,
+inverted: the inbox's Detailed toggle and the thread's children toggle are
+the same persisted knob — detailed on lists every instance chat and keeps
+threads on the instance's own messages, detailed off groups the inbox to
+top-level nodes and composes threads into subtree views.
 
 ## Chat groups
 

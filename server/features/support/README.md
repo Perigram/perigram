@@ -87,8 +87,9 @@ rather than pre-creating empty conversations for every reachable organization
 user.
 Conversation summaries include the last message's `instanceRefs` so the inbox can
 render instance chips in message previews.
-The app-shell badge owns unread notification counts; individual drawer rows do
-not show message/unread counts.
+Each row carries its own `unreadCount` (rendered as the per-row badge in
+the inbox's pin slot); the app-shell badge keeps the organization-wide
+total across conversations.
 
 ## Inline Instance References
 
