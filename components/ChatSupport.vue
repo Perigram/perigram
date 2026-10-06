@@ -3534,7 +3534,11 @@ const openDirectTarget = async () => {
 
 const conversationLabel = (conversation) => {
     if (conversation?.conversationKind === 'instance') {
-        return conversation?.instanceName || localizedTypeIdLabel(conversation?.typeId)
+        // A label equal to the instance id is a stale send-time fallback,
+        // never a name (the no-technical-ids rule).
+        const name = conversation?.instanceName
+        return (name && name !== String(conversation.instanceId) ? name : '')
+            || localizedTypeIdLabel(conversation?.typeId)
     }
     if (conversation?.conversationKind === 'group') {
         return conversation?.groupName || t('support.sectionGroups')
