@@ -79,8 +79,9 @@ unveils the same actions as a sticky rail — one row
 at a time, tap to dismiss. Inbox rows are exactly two lines at one constant height: the name with
 the read check and timestamp, and the message preview with the pin
 indicator and unread-count badge trailing it. Preview text never carries
-links — the row itself opens the conversation; instance rows align
-through one fixed leading disclosure cell and compact nesting indents. Replies quote the
+links — the row itself opens the conversation; every top-level row shares
+one left edge, nested children indent by compact steps, and the disclosure
+chevron overlays the gutter before the avatar. Replies quote the
 target with its first attachment's kind icon. Voice message transcription
 shows its progress in the thread: a
 pending indicator renders where the transcript will appear, until the
