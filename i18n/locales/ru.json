@@ -133,10 +133,8 @@
     },
     "sectionDirect": "Личные",
     "sectionGroups": "Группы",
-    "chatGroupingAll": "Подробно",
     "sectionEntities": "Чаты по сущностям",
     "includeChildren": "Включая дочерние сущности",
-    "includesChildren": "Включая дочерние сущности",
     "reply": "Ответить",
     "goToMessage": "К сообщению",
     "instanceChat": "Обсуждение",
@@ -182,7 +180,10 @@
     "noArchivedConversations": "В архиве пусто",
     "backToChats": "К чатам",
     "messageRead": "Прочитано",
-    "newChat": "Новый чат"
+    "newChat": "Новый чат",
+    "sendMessage": "Написать",
+    "members": "Участники",
+    "chatChildren": "Дочерние чаты"
   },
   "footer": {
     "termsAndConditions": "Условия и положения",

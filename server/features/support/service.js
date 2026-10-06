@@ -229,7 +229,10 @@ function instanceIdOf(dto = null) {
 }
 
 function instanceName(dto = null, type = '') {
-    return dto?.identity?.name || dto?.identity?.serial || dto?.identity?.uid || instanceIdOf(dto) || type;
+    // Identity labels only: never the uid, never the raw id, never the type
+    // id — surfaces fall back to the localized type label client-side when
+    // this is empty (the no-technical-ids rule).
+    return dto?.identity?.name || dto?.identity?.serial || '';
 }
 
 function organizationIdOf(dto = null, scopedAuth = {}) {
@@ -307,7 +310,7 @@ export async function getInstanceConversationContext(auth, instanceKey = '') {
         // unreadable lineage simply never climbs.
         instance = {
             _id: parsed.id,
-            identity: { name: parsed.id },
+            identity: {},
             lineage: { organizationId: scopedAuth.organizationId }
         };
     }
@@ -359,7 +362,7 @@ async function buildInstancePath(scopedAuth, type, instance) {
         path.unshift({
             type: 'organization',
             id: String(organizationId),
-            name: org ? instanceName(instanceDto(org)) : 'organization'
+            name: org ? instanceName(instanceDto(org)) : ''
         });
     }
     return path;
@@ -420,12 +423,13 @@ export async function listUserConversations(auth) {
 }
 
 /**
- * Instance chat inbox rows, emitted in both groupings: top-level rows (every
- * message rolls up to the highest instance below the organization root, so
- * lower instances surface as one top-instance chat) and per-instance leaf rows
- * (`isLeafRow`) for the flat view. The client switches between them; unread
- * counts key on each row's own conversation key, and shell totals count the
- * top-level rows only.
+ * Instance chat inbox rows: top-level rollup rows (every message rolls up to
+ * the highest instance below the organization root, so lower instances
+ * surface as one top-instance chat) plus per-instance leaf rows
+ * (`isLeafRow`) that carry the rollup row's conversation key as
+ * `parentKey` — the client nests them as a collapsible children list under
+ * their top chat. Unread counts key on each row's own conversation key,
+ * and shell totals count the top-level rows only.
  */
 async function instanceConversationSummaries(messages, auth) {
     const instanceMessages = messages.filter(message => message.conversationKind === 'instance' && message.instanceLink);
@@ -459,7 +463,7 @@ async function instanceConversationSummaries(messages, auth) {
         // Entities that are their own top level already carry a top row; no
         // duplicate leaf row.
         if (leafKey !== key && !byKey.has(leafKey) && !leafByKey.has(leafKey)) {
-            leafByKey.set(leafKey, instanceSummaryRow(link, message, { isLeafRow: true }));
+            leafByKey.set(leafKey, instanceSummaryRow(link, message, { isLeafRow: true, parentKey: key }));
         }
     }
 
@@ -486,7 +490,7 @@ async function topLevelInstanceFor(scopedAuth, message, cache) {
 
     let type = message.instanceLink.type;
     let id = String(message.instanceLink.id);
-    let name = message.instanceLink.name || id;
+    let name = message.instanceLink.name || '';
     const seen = new Set([`${type}:${id}`]);
     while (true) {
         const binding = parentBindingFor(type);
@@ -505,7 +509,9 @@ async function topLevelInstanceFor(scopedAuth, message, cache) {
         seen.add(parentKey);
         type = binding.parentTypeId;
         id = parentId;
-        name = parentDto?.identity?.name || name;
+        // The rollup row is the TOP instance: its label is that ancestor's
+        // own name, never the child's, and never an id.
+        name = parentDto?.identity?.name || '';
     }
     return { type, id, name };
 }
@@ -516,7 +522,7 @@ function instanceSummaryRow(entry, message, flags = {}) {
         conversationKind: 'instance',
         typeId: entry.type,
         instanceId: entry.id,
-        instanceName: entry.name || entry.id,
+        instanceName: entry.name || '',
         lastMessage: message.message,
         instanceRefs: message.instanceRefs || [],
         attachments: message.attachments || null,
@@ -1273,7 +1279,8 @@ async function resolveConversationParticipant(summary, auth) {
     if (summary.conversationKind === 'support') {
         if (summary.participants[0] && summary.participants[0] !== auth.userId) {
             const user = await usersService.getById(summary.participants[0]).catch(() => null);
-            return user ? user.toJSON() : { _id: summary.participants[0], identity: { name: summary.participants[0] }, data: {} };
+            // Unresolvable users keep an empty name — never their id.
+            return user ? user.toJSON() : { _id: summary.participants[0], identity: {}, data: {} };
         }
         return { _id: 'support', identity: { name: 'Support' }, data: {} };
     }
@@ -1281,7 +1288,7 @@ async function resolveConversationParticipant(summary, auth) {
         || summary.participants[0];
     if (!otherUserId) return null;
     const user = await usersService.getById(otherUserId).catch(() => null);
-    return user ? user.toJSON() : { _id: otherUserId, identity: { name: otherUserId }, data: {} };
+    return user ? user.toJSON() : { _id: otherUserId, identity: {}, data: {} };
 }
 
 export async function getConversationContextByKey(auth, conversationKey) {

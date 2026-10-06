@@ -110,18 +110,25 @@ quotes, and inbox previews never carry it.
 ## Chat thread
 
 Messages from one sender sent in a row read as one run: the sender label
-leads the run and the timestamp trails it under the last message only.
-Group chats show the sender on others' messages as avatar plus display
-name (resolved names, never
+leads the run and the timestamp trails it under the last message only;
+consecutive messages sit close together. Group chats and instance chats
+(the organization chat included) show the sender on others' messages as
+avatar plus display name (resolved names, never
 ids, never the identifier/email). Forwarded messages carry a distinct
 forwarded-from header above
 their content, on every message shape — text, media, or files.
 
-One per-user "detailed" view preference drives the instance-chat surfaces,
-inverted: the inbox's Detailed toggle and the thread's children toggle are
-the same persisted knob — detailed on lists every instance chat and keeps
-threads on the instance's own messages, detailed off groups the inbox to
-top-level nodes and composes threads into subtree views.
+The chats list is a tree: an instance chat whose instance has children
+chats the user is involved in lists them as a collapsible sub-list under
+itself. Instance thread headers carry their lineage breadcrumbs under the
+name; group thread headers carry member chips with the full member list
+one action away.
+
+User emails never render in user-facing surfaces — they are login data
+only. Where the email used to appear, user surfaces carry a proper
+send-message action instead. Instance chat headers, chips, and lists never
+expose inner ids as names: unnamed instances fall back to their localized
+type label.
 
 ## Chat groups
 

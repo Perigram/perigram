@@ -18,21 +18,6 @@
                 :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : ''"
             >
                 <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
-                    <!-- The Detailed toggle: the same icon-only toggle the
-                         thread header uses for its children view, reading the
-                         same per-user source inverted (useChatDetailedView). -->
-                    <Button
-                        v-if="hasInstanceRows && !showArchived"
-                        icon="pi pi-sitemap"
-                        :severity="groupingAll ? 'primary' : 'secondary'"
-                        text
-                        rounded
-                        size="small"
-                        class="mr-auto"
-                        :aria-label="$t('support.chatGroupingAll')"
-                        :aria-pressed="groupingAll"
-                        @click="groupingAll = !groupingAll"
-                    />
                     <Button
                         v-if="showArchived"
                         icon="pi pi-arrow-left"
@@ -109,7 +94,10 @@
                               member count, and the trailing meta column (read
                               check before the smart timestamp, pin indicator
                               and unread-count badge under it) up top; the
-                              latest-message preview below. The row menu
+                              latest-message preview below. Instance chats
+                              nest: a top chat with involved children chats
+                              carries a disclosure and lists them indented
+                              under it. The row menu
                               (pin/archive) opens on right-click (long-press on
                               touch); on touch a left swipe unveils the same
                               actions as a sticky rail (one row at a time, tap
@@ -158,9 +146,32 @@
                             </span>
                             <div
                                 class="relative flex w-full min-w-0 items-start gap-2 md:gap-3"
-                                :class="rowDrag.key === option.conversationKey ? '' : 'transition-transform'"
+                                :class="[
+                                    rowDrag.key === option.conversationKey ? '' : 'transition-transform',
+                                    option.isLeafRow ? 'pl-8' : ''
+                                ]"
                                 :style="rowContentStyle(option)"
                             >
+                            <!-- Instance chats carry the tree disclosure in a
+                                 fixed leading column so chevron-ful and
+                                 chevron-less rows stay aligned. -->
+                            <Button
+                                v-if="option.conversationKind === 'instance' && !option.isLeafRow && hasChatChildren(option)"
+                                :icon="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                                severity="secondary"
+                                text
+                                rounded
+                                size="small"
+                                class="-ml-1.5 shrink-0 self-center"
+                                :aria-label="$t('support.chatChildren')"
+                                :aria-expanded="chatTreeExpanded(option)"
+                                @click.stop="toggleChatTree(option)"
+                            />
+                            <span
+                                v-else-if="option.conversationKind === 'instance' && !option.isLeafRow"
+                                class="w-4 shrink-0 self-center"
+                                aria-hidden="true"
+                            ></span>
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'instance'"
@@ -179,7 +190,7 @@
                                 <Avatar
                                     v-else
                                     :image="conversationAvatar(option)"
-                                    :label="conversationLabel(option).charAt(0).toUpperCase()"
+                                    :label="conversationAvatar(option) ? null : conversationLabel(option).charAt(0).toUpperCase()"
                                     shape="circle"
                                     size="normal"
                                     class="bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
@@ -301,7 +312,7 @@
                     <Avatar
                         v-else
                         :image="conversationAvatar(activeConversation)"
-                        :label="conversationLabel(activeConversation).charAt(0).toUpperCase()"
+                        :label="conversationAvatar(activeConversation) ? null : conversationLabel(activeConversation).charAt(0).toUpperCase()"
                         shape="circle"
                         class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                     />
@@ -350,10 +361,19 @@
                                 @click="includeChildren = !includeChildren"
                             />
                         </div>
-                        <!-- Group threads carry their member profiles inline;
-                             instance threads keep the scope subtitle. -->
+                        <!-- Instance threads carry their lineage breadcrumbs
+                             under the title (TraceChain: org root first,
+                             links open the ancestor surfaces); group threads
+                             carry their member chips inline with the full
+                             list one action away. -->
+                        <TraceChain
+                            v-if="activeConversation.conversationKind === 'instance'"
+                            :entity="chatInstanceRecord"
+                            :type-id="activeConversation.typeId"
+                            class="min-w-0"
+                        />
                         <div
-                            v-if="activeConversation.conversationKind === 'group'"
+                            v-else-if="activeConversation.conversationKind === 'group'"
                             class="flex min-w-0 flex-wrap items-center gap-1"
                         >
                             <UserChip
@@ -362,6 +382,27 @@
                                 :user-id="participantId"
                                 class="max-w-full"
                             />
+                            <Button
+                                icon="pi pi-users"
+                                severity="secondary"
+                                text
+                                rounded
+                                size="small"
+                                class="shrink-0"
+                                :aria-label="$t('support.members')"
+                                data-testid="chat-members-trigger"
+                                @click="toggleMembersList($event)"
+                            />
+                            <Popover ref="membersList" append-to="body">
+                                <div class="flex max-h-72 w-64 flex-col gap-1 overflow-y-auto p-2">
+                                    <UserChip
+                                        v-for="participantId in groupParticipantIds"
+                                        :key="participantId"
+                                        :user-id="participantId"
+                                        class="w-full"
+                                    />
+                                </div>
+                            </Popover>
                         </div>
                         <small v-else-if="conversationSubtitle" class="block truncate text-muted text-supporting">
                             {{ conversationSubtitle }}
@@ -450,7 +491,7 @@
                 </div>
                 <div
                     ref="messagesContainer"
-                    class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 md:p-4 md:gap-4"
+                    class="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5 md:p-4 md:gap-2"
                     @scroll="handleMessagesScroll"
                 >
                     <!-- Lazy history: the newest page renders first; earlier
@@ -665,11 +706,11 @@
                                         v-if="lowerInstanceChip(messageItem)"
                                         type="button"
                                         class="group flex min-w-0 items-center gap-1 transition-opacity"
-                                        :aria-label="messageItem.instanceLink.name"
+                                        :aria-label="messageItem.instanceLink.name || localizedTypeIdLabel(messageItem.instanceLink.type)"
                                         @click="openLowerInstanceChat(messageItem)"
                                     >
                                         <i :class="instances.iconFor(messageItem.instanceLink.type)" class="shrink-0 scale-90" aria-hidden="true"></i>
-                                        <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ messageItem.instanceLink.name }}</span>
+                                        <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ messageItem.instanceLink.name || localizedTypeIdLabel(messageItem.instanceLink.type) }}</span>
                                     </button>
                                 </span>
                             </div>
@@ -1220,7 +1261,7 @@
                             <Avatar
                                 v-else
                                 :image="conversationAvatar(option)"
-                                :label="conversationLabel(option).charAt(0).toUpperCase()"
+                                :label="conversationAvatar(option) ? null : conversationLabel(option).charAt(0).toUpperCase()"
                                 shape="circle"
                                 class="shrink-0 bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                             />
@@ -1263,6 +1304,8 @@ import ChatAttachments from '~/components/shared/ChatAttachments.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
 import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'
+import TraceChain from '~/components/shared/links/TraceChain.vue'
+import Popover from 'primevue/popover'
 import CallPanel from '~/components/calls/CallPanel.vue'
 import { collectActionInputFields, initialPromptValue, promptData, promptedFields } from '~/components/generated/action-inputs.js'
 import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
@@ -1275,7 +1318,6 @@ import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js'
 import { openInstanceChat } from '~/utils/instance-chat.js'
 import { useEntityPopup } from '~/composables/useEntityPopup'
-import { useChatDetailedView } from '~/composables/useChatDetailedView.js'
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js'
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
@@ -1346,18 +1388,12 @@ const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadF
 )
 const executingCreate = ref(false)
 const activeConversation = ref(null)
-// Instance thread view: the children toggle beside the title switches between
-// messages linked to the instance itself and the composed subtree view. It
-// reads the shared per-user detailed-view source INVERTED (detailed list ⟺
-// own-messages thread), so the inbox grouping and every open thread agree
-// live — see useChatDetailedView. The composer link target is the latest
-// child chip by default and falls back to the composed instance when
-// nothing is selected.
-const { detailed: chatsDetailed } = useChatDetailedView()
-const includeChildren = computed({
-    get: () => !chatsDetailed.value,
-    set: (value) => { chatsDetailed.value = !value }
-})
+// Instance thread view: the children toggle beside the title switches
+// between messages linked to the instance itself and the composed subtree
+// view (the server default). The composer link target is the latest child
+// chip by default and falls back to the composed instance when nothing is
+// selected.
+const includeChildren = ref(true)
 const composerInstance = ref(null)
 let composerInstanceTouched = false
 // Reply state: quoted target for the next send, transient swipe arming, and
@@ -1466,18 +1502,28 @@ const localizedTypeIdLabel = (type) => {
 }
 
 
-// Instance rows ship in both groupings from the inbox snapshot: the joined
-// top-level view (default) and the flat per-instance leaf view. The inbox's
-// Detailed toggle is the shared per-user detailed-view source itself
-// (useChatDetailedView); the thread children toggle reads it inverted, so
-// the inbox grouping and every open thread follow one per-user preference.
-const groupingAll = computed({
-    get: () => chatsDetailed.value,
-    set: (value) => { chatsDetailed.value = value }
+// Instance chats nest: every message rolls up to its top instance below
+// the organization root (the top row), and per-instance leaf rows carry
+// that row's key as parentKey — the inbox lists leaves as a collapsible
+// children list under their top chat, so the tree needs no grouping
+// switch.
+const expandedChatKeys = ref(new Set())
+const chatTreeExpanded = (conversation) => expandedChatKeys.value.has(conversation.conversationKey)
+const toggleChatTree = (conversation) => {
+    const next = new Set(expandedChatKeys.value)
+    if (next.has(conversation.conversationKey)) next.delete(conversation.conversationKey)
+    else next.add(conversation.conversationKey)
+    expandedChatKeys.value = next
+}
+const chatChildrenByKey = computed(() => {
+    const byKey = new Map()
+    for (const conversation of supportChatStore.conversations) {
+        if (conversation.conversationKind !== 'instance' || !conversation.isLeafRow || !conversation.parentKey) continue
+        byKey.set(conversation.parentKey, [...(byKey.get(conversation.parentKey) || []), conversation])
+    }
+    return byKey
 })
-const hasInstanceRows = computed(() => supportChatStore.conversations
-    .some(conversation => conversation.conversationKind === 'instance'))
-
+const hasChatChildren = (conversation) => (chatChildrenByKey.value.get(conversation.conversationKey) || []).length > 0
 // Archived conversations live behind the inbox header toggle; the default
 // list hides them.
 const showArchived = ref(false)
@@ -1485,20 +1531,36 @@ const showArchived = ref(false)
 const displayConversations = computed(() => supportChatStore.conversations
     .filter(conversation => {
         if (Boolean(conversation.archived) !== showArchived.value) return false
-        if (['direct', 'group'].includes(conversation.conversationKind)) return true
-        if (conversation.conversationKind !== 'instance') return false
-        // Top-level grouping hides leaf rows; Detailed shows every instance chat.
-        return groupingAll.value || !conversation.isLeafRow
+        return ['direct', 'group'].includes(conversation.conversationKind)
+            || conversation.conversationKind === 'instance'
     }))
 
-// One unified inbox: person, group, and instance chats share a single list;
-// pinned rows lead, everything else follows the latest activity.
-const conversationSections = computed(() => [...displayConversations.value].sort((left, right) => {
+// One unified inbox: person, group, and instance chats share a single
+// list; pinned rows lead, everything else follows the latest activity, and
+// an expanded instance chat lists its involved children chats directly
+// under it.
+const byLatestActivity = (left, right) => {
     if (Boolean(right.pinned) !== Boolean(left.pinned)) return right.pinned ? 1 : -1
     const leftTime = left.timestamp ? new Date(left.timestamp).getTime() : 0
     const rightTime = right.timestamp ? new Date(right.timestamp).getTime() : 0
     return rightTime - leftTime
-}))
+}
+const conversationSections = computed(() => {
+    const isLeafRow = conversation => conversation.conversationKind === 'instance' && conversation.isLeafRow
+    const ordered = [...displayConversations.value.filter(conversation => !isLeafRow(conversation))]
+        .sort(byLatestActivity)
+        .flatMap(conversation => {
+            if (conversation.conversationKind !== 'instance' || !chatTreeExpanded(conversation)) return [conversation]
+            return [conversation, ...(chatChildrenByKey.value.get(conversation.conversationKey) || []).sort(byLatestActivity)]
+        })
+    // Leaves whose top chat is not visible (archived away, missing) stay
+    // reachable instead of vanishing with their parent.
+    const placed = new Set(ordered.map(conversation => conversation.conversationKey))
+    for (const conversation of displayConversations.value) {
+        if (!placed.has(conversation.conversationKey)) ordered.push(conversation)
+    }
+    return ordered
+})
 
 
 
@@ -1510,6 +1572,27 @@ const instanceConversationIcon = (conversation) => (
 
 // The instance thread title links into the instance surface: the generated
 // detail route when the process manifest exposes one.
+// The instance thread's lineage record drives the header breadcrumbs
+// (TraceChain resolves the ancestry and names; unreadable instances simply
+// render no chain).
+const chatInstanceRecord = ref(null)
+watch([() => activeConversation.value?.conversationKey, () => activeConversation.value?.instanceId], async () => {
+    chatInstanceRecord.value = null
+    const conversation = activeConversation.value
+    if (conversation?.conversationKind !== 'instance' || !conversation.instanceId) return
+    chatInstanceRecord.value = await instances.resolveReadableReference(
+        conversation.typeId,
+        String(conversation.instanceId),
+        { silent: true }
+    )
+}, { immediate: true })
+
+// Group members: chips inline, the full list one popover away.
+const membersList = ref(null)
+const toggleMembersList = (event) => {
+    membersList.value?.toggle(event)
+}
+
 
 const groupParticipantIds = computed(() => (
     (activeConversation.value?.participants || []).map(String).filter(Boolean)
@@ -1518,14 +1601,6 @@ const groupParticipantIds = computed(() => (
 const conversationSubtitle = computed(() => {
     const conversation = activeConversation.value
     if (!conversation) return ''
-    if (conversation.conversationKind === 'instance') {
-        return includeChildren.value
-            ? t('support.includesChildren')
-            : localizedTypeIdLabel(conversation.typeId)
-    }
-    if (conversation.conversationKind === 'group') {
-        return t('support.membersCount', { count: (conversation.participants || []).length })
-    }
     if (conversation.conversationKind === 'direct' && participantOnline(conversation)) {
         return t('support.online')
     }
@@ -3339,10 +3414,11 @@ const isOwnMessage = (chatMessage) => {
     return chatMessage.sender === 'user'
 }
 
-// Group threads lead others' sender runs with the resolved sender (SPEC
-// §Chat thread): the same inline user chip the thread header uses for
-// members, once per run; the viewer's own messages carry none.
-const showSenderLabel = (messageItem) => activeConversation.value?.conversationKind === 'group'
+// Group and instance threads lead others' sender runs with the sender's
+// avatar and name (the shared user chip): group members and org-mates in
+// instance chats (the organization chat included) are multi-sender
+// threads — once per run, never for the viewer's own messages.
+const showSenderLabel = (messageItem) => ['group', 'instance'].includes(activeConversation.value?.conversationKind)
     && Boolean(messageItem?.senderUserId)
     && !isOwnMessage(messageItem)
     && messageItem.firstOfSenderRun
@@ -3390,7 +3466,7 @@ const openDirectTarget = async () => {
         participants: [currentUserId.value, chatTarget.value.userId].filter(Boolean),
         participant: {
             _id: chatTarget.value.userId,
-            identity: { name: chatTarget.value.name || chatTarget.value.userId },
+            identity: { name: chatTarget.value.name || '' },
             data: {}
         }
     }

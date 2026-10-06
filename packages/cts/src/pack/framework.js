@@ -20,8 +20,12 @@ export const frameworkTypes = [
     version: 1,
     name: 'User',
     fields: {
-      email: { base: 'string', identifier: true, label: 'profile.email', display: 'email' },
-      name: { base: 'string', nullable: true }
+      // Email stays a declared field (login identity) but is never the
+      // identifier: identities render the display name, and user surfaces
+      // never render the email at all (SPEC §Chat thread / the
+      // no-technical-ids rule).
+      email: { base: 'string', label: 'profile.email', display: 'email' },
+      name: { base: 'string', identifier: true }
     }
   },
   // Framework machinery types: file storage, revisions, process definitions.

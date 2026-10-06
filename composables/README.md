@@ -330,20 +330,6 @@ showing records that are only visible through another assigned role.
 
 ---
 
-## useChatDetailedView
-
-One persisted source for the chats "detailed" view
-(SPEC §Chat thread): a per-user boolean in shared Nuxt state
-(`useState`) mirrored to localStorage under a user-id-scoped key, so every
-mounted chat surface — the floating drawer, the `/chats` rail, instance
-detail panels — agrees live and the choice survives reloads. The inbox's
-Detailed grouping toggle reads the boolean directly (on = every instance
-chat listed, off = top-level nodes only); the instance-thread children
-toggle reads it INVERTED (detailed = the entity's own messages, not
-detailed = the composed subtree view). Toggling either control writes the
-same source, and conversation switches never reset it
-(`components/README.md` → the chat surface contract).
-
 ## useChatFileUpload
 
 The chat composer's file transport (the server contract lives in

@@ -549,9 +549,12 @@ never render there. The chip resolves its user through the instances
 store's readable-reference seam (org-mates through the users list,
 everyone else through the directory card — both carry `data.avatarUrl`,
 and the avatar image endpoint is open to every authenticated caller), so
-the avatar renders for any reachable person, not just the viewer. A click
-opens the shared entity popup (`useEntityPopup` → the user's directory
-profile). Keep person identity displays on this chip; keep entity refs on
+the avatar renders for any reachable person, not just the viewer (the
+letter label renders only while no image resolves — PrimeVue `Avatar`
+renders label over image, so a constant label hides every avatar; see the
+style guide in [components/README.md](../README.md)). A click opens the
+shared entity popup (`useEntityPopup` → the user's directory profile).
+Keep person identity displays on this chip; keep entity refs on
 `InstanceInlineRef`.
 
 ### `ChatAttachmentPicker.vue`

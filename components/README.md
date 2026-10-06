@@ -1,7 +1,12 @@
 # COMPONENT: Components
 
 ## Style Guide
-- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. Cascade law: styles emit in declared layers — `tailwind-base, primevue, tailwind-utilities` (`assets/css/main.css` owns the statement; main.css is the only `@tailwind` site, the module's css injection is off) — so unlayered app CSS and utilities outrank PrimeVue identically in dev and production builds. Before layers, the production bundle inlined PrimeVue after the app CSS and every equal-specificity tie on `p-*` elements silently flipped between dev and staging; `!important` patches for order flips are defects of that old regime, not a pattern. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls, no stuffing composite surfaces into slot templates. Single-select lists and compact rail rows are `Listbox` with single-line `#option` templates (chats-inbox anatomy: content + trailing meta, right-click row menu, `@click.stop` on triggers); per-row contextual detail (history, pickers, rename) opens a `Popover` anchored at the row's trigger (`NameEditPopover`/`InstanceActionsPopover` precedent) — never inside the option; tabular data grids are `TableFrame` + `DataTable` with `#body` cells; link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns. When unsure which component owns a surface, ask the PrimeVue MCP — do not improvise markup.
+- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. Cascade law: styles emit in declared layers — `tailwind-base, primevue, tailwind-utilities` (`assets/css/main.css` owns the statement; main.css is the only `@tailwind` site, the module's css injection is off) — so unlayered app CSS and utilities outrank PrimeVue identically in dev and production builds. Before layers, the production bundle inlined PrimeVue after the app CSS and every equal-specificity tie on `p-*` elements silently flipped between dev and staging; `!important` patches for order flips are defects of that old regime, not a pattern. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls, no stuffing composite surfaces into slot templates. Single-select lists and compact rail rows are `Listbox` with single-line `#option` templates (chats-inbox anatomy: content + trailing meta, nested tree rows, right-click row menu, `@click.stop` on triggers); per-row contextual detail (history, pickers, rename) opens a `Popover` anchored at the row's trigger (`NameEditPopover`/`InstanceActionsPopover` precedent) — never inside the option; tabular data grids are `TableFrame` + `DataTable` with `#body` cells; link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns. When unsure which component owns a surface, ask the PrimeVue MCP — do not improvise markup.
+- **Avatar labels:** PrimeVue `Avatar` renders label over icon over
+  image — a constant letter `:label` next to `:image` hides every avatar
+  image. Pass the label only when no image resolves
+  (`:label="imageUrl ? null : letter"`); this once made every chat avatar
+  render as its letter while the image endpoint answered 200.
 - **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
 - **Motion:** Motion is contextual behavior, not an application theme concern.
   Keep interaction-specific motion inside the owning derived composition, use
@@ -1015,7 +1020,11 @@ timestamp (clock time for today's messages, calendar date otherwise), and
 the small pin indicator plus the per-row unread-count badge under it; the
 single-line latest-message preview through `SupportMessageContent` below.
 The read mark belongs to rows whose newest message is the viewer's own and
-another participant has read it. Selection renders as the Listbox
+another participant has read it. Instance chats nest: a top chat with
+involved children chats carries a disclosure chevron in a fixed leading
+column and lists its leaf chats indented under it when expanded (leaf rows
+arrive with their rollup parent key; leaves whose parent is not visible
+stay top-level). Selection renders as the Listbox
 checkmark (`highlightOnSelect` off) — no tinted highlight. A right-click
 (long-press on touch) on a row opens the row menu
 with per-user pin/archive preferences: pinned rows lead the list, archived
@@ -1028,11 +1037,12 @@ organization-wide total. Message bubbles own a `min-w-0`/`max-w-full` chain with
 `overflow-wrap: anywhere` text wrapping, so long unbroken strings stay inside
 the chat bounds. Messages group into sender runs (SPEC §Chat thread):
 consecutive messages from one sender within a short window render as one
-unit — the timestamp trails under the last message of the run only (the
-instance leaf link keeps its caption row regardless), and group threads
-lead others' runs with the sender's avatar and display name through the
-shared user chip (`components/shared/UserChip.vue`, once per run, never for
-the viewer's own messages). Forwarded messages lead their content with the
+tight stack — the timestamp trails under the last message of the run only
+(the instance leaf link keeps its caption row regardless), and group and
+instance threads (the organization chat included) lead others' runs with
+the sender's avatar and display name through the shared user chip
+(`components/shared/UserChip.vue`, once per run, never for the viewer's
+own messages). Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. Conversation history is lazy: the thread loads the newest
 message page and prepends older pages on scroll-to-top through the
@@ -1146,14 +1156,14 @@ chat. Child-entity threads (cassettes, nesting runs, sheet designs) resolve
 server-side through the support service's scoped list resolution when
 direct registry reads deny them. Entity thread titles are the open-entity
 link (a home-workspace tab on desktop, detail route on mobile); beside the
-title sits the children-messages toggle. That toggle and the inbox's
-"Detailed" grouping toggle for entity chats are ONE persisted per-user view
-preference (`composables/useChatDetailedView.js`: shared state plus
-per-user localStorage), read inverted — Detailed on lists every entity chat
-and keeps threads on the entity's own messages; Detailed off groups the
-inbox to top-level nodes (entities with no resolvable lineage ancestors)
-and composes threads into subtree views. Group thread headers carry their
-member profiles inline through the shared `UserChip`. Calls start from every non-support thread
+title sits the children-messages toggle (a local view switch, default the
+composed subtree), and under the title the thread carries its lineage
+breadcrumbs through the shared `TraceChain` (organization root first;
+links open the ancestor surfaces; unreadable instances render no chain).
+Group thread headers carry their member profiles inline through the shared
+`UserChip` with the full member list one popover away. Instance labels are
+identity names only — never uids or raw ids; unnamed instances fall back
+to the localized type label. Calls start from every non-support thread
 header, entity threads included. On desktop, entity opens from chat
 surfaces and standalone lists route through
 `utils/instance-workspace-open.js` — a live pane-tab open when the home

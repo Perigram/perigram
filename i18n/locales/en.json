@@ -133,10 +133,8 @@
     },
     "sectionDirect": "Direct",
     "sectionGroups": "Groups",
-    "chatGroupingAll": "Detailed",
     "sectionEntities": "Entity chats",
     "includeChildren": "Include child entities",
-    "includesChildren": "Includes child entities",
     "reply": "Reply",
     "goToMessage": "Go to message",
     "instanceChat": "Conversation",
@@ -182,7 +180,10 @@
     "noArchivedConversations": "No archived conversations",
     "backToChats": "Back to chats",
     "messageRead": "Read",
-    "newChat": "New chat"
+    "newChat": "New chat",
+    "sendMessage": "Send message",
+    "members": "Members",
+    "chatChildren": "Child chats"
   },
   "footer": {
     "termsAndConditions": "Terms and Conditions",

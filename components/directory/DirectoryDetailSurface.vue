@@ -84,12 +84,11 @@
                reach. -->
           <Button
             v-if="canChat"
-            icon="pi pi-comments"
-            text
-            severity="secondary"
+            :label="$t('support.sendMessage')"
+            icon="pi pi-send"
             size="small"
-            :aria-label="$t('support.openChat')"
             data-testid="directory-user-chat"
+            :aria-label="$t('support.sendMessage')"
             @click="openChat"
           />
           <Button
@@ -213,6 +212,9 @@ const loading = ref(true);
 const { typeById } = useFileTypeView();
 const detailedFields = computed(() => (detailed.value?._id
   ? resolveInstanceDisplayFields({ typeId: props.typeId, surface: 'card', typeRecord: typeById(props.typeId) })
+      // The user email is login data, never a display fact (SPEC §Chat
+      // thread / no-technical-ids rule).
+      .filter(field => !(props.typeId === 'user' && field.path.endsWith('.email')))
   : []));
 const avatarUrl = computed(() => (props.typeId === 'user' ? entry.value?.data?.avatarUrl || null : null));
 const activeOrganizationId = computed(() =>
