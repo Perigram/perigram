@@ -7,12 +7,13 @@ web embedding. Parent: [assets README](../../README.md).
 The mark is the folded axonometric cassette from
 [`public/icon.svg`](../../../public/icon.svg): the top rhombus is the face,
 the two lower parallelograms are the flanges, and the V-shaped negative space
-between them is the rib. The animation is a **pen plotter** — the language of
-the fabrication domain the platform serves: a bright pen dot runs each
-contour at constant speed, the outline traces behind it, the fill floods the
-panel as its contour closes, the ink dissolves into the fill, the dot makes
-one fast inspection lap over the finished mark, and the lines slurp back for
-the next part. The loop reads as a part being produced over and over.
+between them is the rib. The animation is the **cassette clamp**: both
+flanges spring up behind the face by exactly one fold depth, so the rib
+squeezes from a wide V to a tight V (the overlap hides behind the face,
+which owns the top draw slot; the face nods 1.5 units in counter-motion),
+then the clamp springs back open with a small overshoot. One rapid
+deformation in a seamless ~0.9 s loop — readable at favicon size, and the
+negative-space rib does the acting.
 
 ## Source of truth
 
@@ -22,15 +23,9 @@ drives everything — the edge length `e`; the face is a 60° rhombus, each
 flange hangs under a lower face edge at exactly one fold depth (`e/2`), and
 `public/icon.svg` is the reference for the shape.
 
-Each panel is two shapes sharing one geometry: a fill shape (the brand
-gradient, red `#FF0000` → orange `#FF6600`, one mark-global direction) and
-an ink shape carrying the trace stroke. Panel visibility is keyed as shape
-opacity — one mechanism everywhere. Trace and pen motion key only contour
-vertices, where linear interpolation equals constant pen speed along the
-edges.
-
-**Gradients are only ever keyed as absolute endpoints.** A zero-length
-gradient (relative deltas from 0) degenerates and kills the
+Timelines key only shape translations, plus gradient endpoints for the idle
+light drift. **Gradients are only ever keyed as absolute endpoints.** A
+zero-length gradient (relative deltas from 0) degenerates and kills the
 `@rive-app/canvas` state-machine player — the direct-animation path and the
 Rive CLI tolerate it, so nothing local warns. This was found by bisection
 against the browser runtime; `tools/check_frames.py` plus the demo page
@@ -40,14 +35,14 @@ exist to catch such runtime-only breaks.
 
 | Name | Kind | Duration | Use |
 |---|---|---|---|
-| `load` | loop | 3.2 s | Loader: plot face → flanges → hold → inspection lap → retract. |
-| `unfold` | one-shot | 1.7 s | Sidebar mount: the mark draws itself in. |
+| `load` | loop | 0.9 s | Loader: clamp shut with overshoot, hold, spring open, settle. |
+| `unfold` | one-shot | 0.5 s | Sidebar mount: the cassette opens — flanges drop from behind the face. |
 | `idle` | loop | 4 s | Sidebar idle: light drifts across the folded panels; geometry static. |
-| `fold` | one-shot | 0.5 s | Sidebar unmount: outlines flash on, retract, fill fades. |
+| `fold` | one-shot | 0.5 s | Sidebar unmount: clamp shut. |
 
 The default state machine `Lifecycle` chains `unfold` → `idle` (exit-time
-transition), so a mounted canvas draws the mark in and holds it under a
-moving light with no driving code.
+transition), so a mounted canvas opens from the clamped pose and holds the
+logo under a moving light with no driving code.
 
 ## Build and validate
 
@@ -61,7 +56,7 @@ cp build/perigram-mark.riv ../../../public/rive/
 ```
 
 `tools/check_frames.py` pixel-samples screenshots against the expected
-phases (`empty`, `draw`, `full`, `lap`). The Rive CLI installs with
+phases (`open` and `clamped`). The Rive CLI installs with
 `curl -fsSL https://releases.rive.app/cli/install.sh | bash` — piped through
 `bash`, not `sh`: the script uses bash-only `[[ ]]`, and under `sh` its
 stream check fails open and it fetches a nonexistent `stable/manifest.json`.

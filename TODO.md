@@ -9,6 +9,19 @@
   (unfold on mount, idle breathe) — see
   [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md).
 
+### Agent Notes (2026-10-07, v4)
+
+Session `agent/rive-mark-v4-20261007`. Owner review: the plotter was
+narrative (screensaver), not a loader; redesigned as the cassette clamp —
+both flanges spring up one fold depth behind the face, the rib gap
+squeezes to a tight V, and the clamp springs back open, 0.9 s seamless
+loop, translation keyframes only. Same animation names and consumers;
+scene shrank to the three fill shapes. Validated: verify/inspect clean,
+open/clamped phases pixel-checked in CLI renders, headless chromium shows
+zero console errors with the loader clamping continuously (flange-band
+coverage dips on every cycle) and the sidebar opening from the clamped
+pose into idle.
+
 ### Agent Notes (2026-10-06, v3)
 
 Session `agent/rive-mark-v3-20261006`. Owner review: the exploded view was
