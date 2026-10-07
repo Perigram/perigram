@@ -2,20 +2,27 @@
 
 A standalone [fframes](https://github.com/dmtrKovalenko/fframes) project (Rust
 + SVG scenes, GPU-rendered, ffmpeg-encoded) that produces the PerigramFacade
-explainer: a 53-second, 1920×1080 @ 30 fps video walking the parametric
-cassette lifecycle from facade design to production. It is a separate Rust
-crate — the Nuxt build never imports it.
+explainer: a 25.6-second, 1920×1080 @ 30 fps video following one cassette
+geometry through its whole lifecycle — authored flat, folded up, baked into
+variants, nested onto a sheet, cut free and folded again into the facade wall.
+It is a separate Rust crate — the Nuxt build never imports it.
 
 ## Plot
 
 | # | Scene | Duration | What it shows |
 |---|---|---|---|
-| 0 | `TitleScene` | 4.5 s | Wordmark with the Perigram mark; a facade elevation assembles from folded isometric cassettes (two accent-tinted pieces). |
-| 1 | `TemplateScene` | 10 s | Authoring the OCCS template: full flat-pattern anatomy with expression dimensions `A`/`B`/`R`, a live parameter panel with a folded preview that morphs with the values, and the semantic layer legend. |
-| 2 | `BakeScene` | 9 s | Baking cassette-designs: parameter pills fly from the template drawing and land as folded pieces with fixed numeric dimensions — evaluated once, never re-propagated. |
-| 3 | `NestScene` | 11 s | `nesting.solve` packing: the nine baked pieces fly onto a 2500 × 1250 mm material sheet (rotated placements, per-piece marks) with a pieces/sheets/efficiency stat column. |
-| 4 | `SheetScene` | 8.5 s | The generated sheet-design record: piece marks, summary sidebar, the `entity_revision · scope: geometry` note and the `LAYOUT_DXF` export stamp. |
-| 5 | `ProductionScene` | 10 s | A cut head walks one notched `cut.outer` contour, the piece frees and folds up into the finished cassette, then the five-stage recap strip (template → bake → nest → sheet → cut) and end card. |
+| 0 | `TitleScene` | 2.8 s | Wordmark with the rotating-core mark and one line. |
+| 1 | `AuthorScene` | 7.2 s | The flat pattern traces itself in (contour, fold routes, bolt holes, hanger notches, mark); `A`/`B` settle once with dimension lines visible only while changing; then the same geometry folds up in place — returns +90°, mounting lips −90° — while the camera yaws to show the tray. |
+| 2 | `BakeScene` | 4.6 s | The folded template splits into three baked variants with fixed dimensions, then all three unfold flat, shrink and land as the first three placements on the incoming sheet. |
+| 3 | `NestScene` | 5.0 s | The remaining solver placements stamp in with landing rings; the efficiency number counts up to 77.0 % once and fades out. |
+| 4 | `CutScene` | 6.0 s | A cut head walks one `PFC-001` contour with sparks, the piece frees, folds up into the finished cassette (same two-level fold as authoring) and flies into the facade wall assembling from this run's pieces; the end line closes the loop. |
+
+Scene boundaries are handoffs, not resets: the folded piece that ends
+`AuthorScene` opens `BakeScene` at the same screen position, and the baked
+pieces that end `BakeScene` are the first three placements of `NestScene`'s
+sheet. Text appears only while it carries data: parameter values during the
+morph, piece ids and dimensions on baked pieces, piece marks on the sheet, one
+efficiency number.
 
 ## Visual identity
 
@@ -24,12 +31,11 @@ Everything is traced from the app, not invented:
 - Surfaces and text: the dark-theme zinc tokens from
   [assets/tokens](../../assets/tokens/README.md) — page `#09090b`, cards
   `#18181b`, subtle `#27272a`, borders `#3f3f46`, ink `#fafafa`, muted
-  `#a1a1aa` — with the Perigram accent `#ff0040` for stage chips and signals.
+  `#a1a1aa` — with the Perigram accent `#ff0040` for signals.
 - Drawing layers: the sheet-design preview palette
   (`LAYER_STYLES` in [sheet designs](../../server/packs/facade/sheet-designs/README.md))
-  — `cut.outer` red, `contour.cassette_face` blue tint, `fold.route` amber
-  dashed, `code.cassette_mark` emerald, `dimension.cassette` violet dotted,
-  `contour.material_sheet` slate dashed.
+  — `cut.outer` red, `fold.route` amber dashed, `code.cassette_mark` emerald,
+  `dimension.cassette` violet dotted, `contour.material_sheet` slate dashed.
 - Logo: the Perigram mark from `public/icon.svg` (isometric cube, red-orange
   gradient) traced into `logo()`.
 - Fonts: IBM Plex Sans (display/UI) and IBM Plex Mono (technical), the app's
@@ -37,47 +43,53 @@ Everything is traced from the app, not invented:
 
 ## Cassette anatomy
 
-The flat pattern (`flat_pattern`) reproduces the OCCS evaluator's actual
-output, not an invented approximation: the union of the face with four
-return flanges that each span exactly their parent edge — side returns run
-the full face height, top/bottom returns only the face width — leaving the
-stepped L-shaped corner relief of the ground-truth 12-gon contour.
-`groundtruth.mjs` regenerates that ground truth by running the app's own
-evaluator (`node video/groundtruth.mjs` from the repo root) so the Rust
-geometry can be diffed against it after any change. On top of the contour:
-fold-route dashes on the four face/flange junctions, bolt holes through the
-side returns, two integral-cut hanger clips (`hangerClipCutPolygon`: wide
-notch through the top return edge, narrow slot rising into the flange), and
-the three-line production mark (name / template id / WP) on the root face.
-Detail levels (`Full`/`Std`/`Tiny`) keep small placed pieces readable.
-`folded_cassette` projects the same piece isometrically (recentered on the
-projected centroid) and animates the flange fold angle: at fold 0 it is the
-exact flat pattern, at 1 the folded tray with the corner steps opened into
-relief gaps. Piece sizes, sheet size, the layout and the efficiency number
-are illustrative demo constants defined once in `src/lib.rs` (`PIECES`,
-`SHEET_MM`, `LAYOUT`, `EFFICIENCY`).
+A cassette is the OCCS graph tree the Cassette Designer authors: a root face
+with a return flange (+90°) on every edge, and mounting-flange lips (−90°,
+the tree's `mounting_flange` role) on the side returns — so the fold is
+two-level, exactly what `foldAngle: '-90'` produces in the app. The flat
+pattern is the union of those faces: side returns run the full face height,
+top/bottom returns only the face width (the evaluator's stepped contour), the
+lips widen the side steps, and the two integral-cut hanger clips break the
+top return's outer edge with the true `hangerClipCutPolygon` shape
+(width 42, height 28, hook depth 12, slot 14.7 — edge-breaking cuts dispatch
+through `cut.outer`). Bolt holes are `cut.hole` circles (d = 5) through the
+side returns; the mark is the name / template id / WP triple on the root face.
+
+`groundtruth.mjs` regenerates the evaluator's geometry for both the simple
+four-return cassette and the complex one with mounting lips (`node
+video/groundtruth.mjs` from the repo root); `src/lib.rs` carries the resulting
+contours as unit-test constants so the Rust drawing stays diffed against the
+app's own evaluator.
+
+The folded cassette is not a separate drawing: `cassette_faces` builds every
+face once (polygon, holes, fold angle, junction line), the flat pattern draws
+them coplanar, and the folded piece folds the same faces about their junction
+lines with composed rotations — the same face/fold graph algorithm as
+`buildCassetteV2FoldedPreview` in [utils](../../utils/cassetteV2FoldedPreview.js).
+At fold 0 the folded piece is the exact flat pattern; holes and hanger notches
+ride their flanges; the corner steps open into relief gaps as the returns
+rise. Piece sizes, sheet size, the layout and the efficiency number are
+illustrative demo constants defined once in `src/lib.rs` (`SPECS`, `SHEET_MM`,
+`LAYOUT`, `EFFICIENCY`).
 
 ## Motion
 
-Every scene rides a slow camera push (1.0 → 1.035) with a slide-in on the
-cross-fade window. The Perigram mark carries the Rive mark's rotating-core
-motion — the face square spins in its own plane (90°-periodic, constant
-velocity) in the title, and decelerates to rest on the end card; at phase 0
-it is vertex-identical to `public/icon.svg`. The title wordmark lands
-word-by-word, wall cassettes fly in from depth with a breathing drift, the
-template preview yaws slowly and the contour pulses when a parameter
-settles, baked pieces bob with pulsing status dots, nested pieces land with
-expanding rings and the efficiency gauge sweeps, the `LAYOUT_DXF` stamp
-slams with an impact ring, and the cut head throws sparks before the piece
-folds up on a spring.
+Every scene rides a slow camera push (1.0 → 1.035). The Perigram mark carries
+the Rive mark's rotating-core motion (the face square spins in its own plane,
+90°-periodic). The flat pattern traces in with a dash-offset walk, dimensions
+pulse once when a parameter settles, the fold is a spring with the light
+sweeping as walls rise, baked pieces bob apart, nested pieces land with
+expanding rings, the cut head throws sparks, and the freed piece folds up on
+a spring before flying into the breathing wall.
+
 ## Layout
 
 | File | Role |
 | --- | --- |
-| `src/lib.rs` | The video: palette/logo helpers, flat-pattern and folded-cassette geometry, the piece/sheet model, and the six scenes. |
+| `src/lib.rs` | The video: palette/logo helpers, the cassette face model (flat + folded from one geometry), the piece/sheet model, the five scenes, and the ground-truth/fold unit tests. |
 | `src/main.rs` | The fframes command line (Skia/Vulkan backend, libx264 encode). |
 | `media/` | IBM Plex Sans/Mono TTFs embedded into the binary. |
-| `groundtruth.mjs` | Regenerates the evaluator's OCCS geometry (cut contour, fold routes, mark) to diff the Rust drawing against. |
+| `groundtruth.mjs` | Regenerates the evaluator's OCCS geometry (cut contour with and without mounting lips, fold routes, mark) to diff the Rust drawing against. |
 | `tests/frames.rs` | Snapshot test of settled frames plus an every-frame problem inspection — the render guard for changes. |
 
 ## Requirements and build
@@ -90,6 +102,17 @@ from source when the feature set has no archive). On Debian/Ubuntu:
 sudo apt-get install -y yasm nasm ffmpeg libx264-dev libx265-dev libopus-dev \
   libclang-dev clang ninja-build libvpx-dev libasound2-dev
 ```
+
+The crate links ffmpeg through the prebuilt `ffmpeg-sys-fframes` archive,
+which expects system x264 ABI **163** (Ubuntu 22.04-era `libx264-dev`). On
+newer systems (x264 164/165) the link fails with an undefined
+`x264_encoder_open_163`; build that exact x264 from the
+[mirror](https://github.com/mirror/x264) (last commit before the
+`X264_BUILD 164` bump) with `./configure --disable-cli --enable-static
+--disable-asm` and point the linker at it, e.g.
+`RUSTFLAGS="-L /path/to/x264/lib"`. Without the `clang` package, bindgen
+also needs gcc's wrapper headers:
+`BINDGEN_EXTRA_CLANG_ARGS="-isystem /usr/lib/gcc/x86_64-linux-gnu/<ver>/include"`.
 
 ## Work on it
 
