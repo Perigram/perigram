@@ -37,20 +37,39 @@ Everything is traced from the app, not invented:
 
 ## Cassette anatomy
 
-The flat pattern (`flat_pattern`) follows the OCCS contracts
-([OCCS utilities](../../utils/occs/README.md)): outer cut contour with 45°
-corner relief notches where perpendicular returns meet, face with dashed fold
-routes at the return junctions, bolt holes through the side returns, two
-integral-cut hanger clips (`hangerClipCutPolygon`: wide notch through the top
-edge, narrow slot rising into the flange), an optional hem fold line, and the
-production mark (name + template id/workpiece) on the root face. Detail levels
-(`Full`/`Std`/`Tiny`) keep small placed pieces readable. `folded_cassette`
-projects the same piece isometrically and animates the flange fold angle, so
-scenes can show flat drawing and folded part of the same cassette; piece sizes,
-sheet size, the layout and the efficiency number are illustrative demo
-constants defined once in `src/lib.rs` (`PIECES`, `SHEET_MM`, `LAYOUT`,
-`EFFICIENCY`).
+The flat pattern (`flat_pattern`) reproduces the OCCS evaluator's actual
+output, not an invented approximation: the union of the face with four
+return flanges that each span exactly their parent edge — side returns run
+the full face height, top/bottom returns only the face width — leaving the
+stepped L-shaped corner relief of the ground-truth 12-gon contour.
+`groundtruth.mjs` regenerates that ground truth by running the app's own
+evaluator (`node video/groundtruth.mjs` from the repo root) so the Rust
+geometry can be diffed against it after any change. On top of the contour:
+fold-route dashes on the four face/flange junctions, bolt holes through the
+side returns, two integral-cut hanger clips (`hangerClipCutPolygon`: wide
+notch through the top return edge, narrow slot rising into the flange), and
+the three-line production mark (name / template id / WP) on the root face.
+Detail levels (`Full`/`Std`/`Tiny`) keep small placed pieces readable.
+`folded_cassette` projects the same piece isometrically (recentered on the
+projected centroid) and animates the flange fold angle: at fold 0 it is the
+exact flat pattern, at 1 the folded tray with the corner steps opened into
+relief gaps. Piece sizes, sheet size, the layout and the efficiency number
+are illustrative demo constants defined once in `src/lib.rs` (`PIECES`,
+`SHEET_MM`, `LAYOUT`, `EFFICIENCY`).
 
+## Motion
+
+Every scene rides a slow camera push (1.0 → 1.035) with a slide-in on the
+cross-fade window. The Perigram mark carries the Rive mark's rotating-core
+motion — the face square spins in its own plane (90°-periodic, constant
+velocity) in the title, and decelerates to rest on the end card; at phase 0
+it is vertex-identical to `public/icon.svg`. The title wordmark lands
+word-by-word, wall cassettes fly in from depth with a breathing drift, the
+template preview yaws slowly and the contour pulses when a parameter
+settles, baked pieces bob with pulsing status dots, nested pieces land with
+expanding rings and the efficiency gauge sweeps, the `LAYOUT_DXF` stamp
+slams with an impact ring, and the cut head throws sparks before the piece
+folds up on a spring.
 ## Layout
 
 | File | Role |
@@ -58,6 +77,7 @@ constants defined once in `src/lib.rs` (`PIECES`, `SHEET_MM`, `LAYOUT`,
 | `src/lib.rs` | The video: palette/logo helpers, flat-pattern and folded-cassette geometry, the piece/sheet model, and the six scenes. |
 | `src/main.rs` | The fframes command line (Skia/Vulkan backend, libx264 encode). |
 | `media/` | IBM Plex Sans/Mono TTFs embedded into the binary. |
+| `groundtruth.mjs` | Regenerates the evaluator's OCCS geometry (cut contour, fold routes, mark) to diff the Rust drawing against. |
 | `tests/frames.rs` | Snapshot test of settled frames plus an every-frame problem inspection — the render guard for changes. |
 
 ## Requirements and build
