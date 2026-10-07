@@ -9,6 +9,21 @@
   (unfold on mount, idle breathe) — see
   [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md).
 
+### Agent Notes (2026-10-07, v5)
+
+Session `agent/rive-mark-v5-20261007`. Owner review: the clamp was not
+smart or beautiful; redesigned as the rotating core — the face is a true
+square in the isometric plane and turns in its own plane about the normal,
+so the projected rhombus morphs rhombus/rectangle at 90-degree periodicity
+(constant-velocity, seamless loop) while the projected extent never
+exceeds the rest rhombus: the flanges and rib gap are never touched.
+Spinning reads as working (loader), rest as idle (sidebar). Same animation
+names and consumers. Validated: verify/inspect clean, rest/45-degree/mount
+poses pixel-checked in CLI renders against the projection math, headless
+chromium shows zero console errors with the loader core rotating steadily
+(corner-zone coverage swings on every sample) and the sidebar settling
+into rest under the idle light.
+
 ### Agent Notes (2026-10-07, v4)
 
 Session `agent/rive-mark-v4-20261007`. Owner review: the plotter was
