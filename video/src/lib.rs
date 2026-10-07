@@ -1,12 +1,16 @@
 //! PerigramFacade — parametric cassettes, from facade design to production.
 //!
 //! Visual identity mirrors the app: zinc dark surfaces, IBM Plex Sans/Mono,
-//! the Perigram mark (isometric cube, red-orange gradient) and the OCCS layer
-//! palette from the sheet-design preview styles. Cassette anatomy follows the
-//! OCCS contracts: face + return flanges folded 90° at fold routes, corner
-//! relief notches, integral-cut T-slot hanger clips, bolt holes and the
-//! multi-line production mark. Six scenes walk template → bake → nest →
-//! sheet design → cut. 1920x1080, 30 fps.
+//! the Perigram mark (isometric folded cassette, red-orange gradient, with
+//! the rotating-core motion from the Rive mark) and the OCCS layer palette
+//! from the sheet-design preview styles. Cassette geometry follows the OCCS
+//! evaluator's actual output: the flat pattern is the union of the face and
+//! four return flanges that each span exactly their parent edge, so the
+//! outer contour is a stepped 12-gon with L-shaped corner relief (verified
+//! against `evaluateOccsCassetteTemplate` ground truth); fold routes run on
+//! the face/flange junctions, integral-cut hanger clips break the top return
+//! edge, and the production mark is the name / template id / WP triple.
+//! Scenes walk template → bake → nest → sheet design → cut. 1920x1080, 30fps.
 use fframes::{
     AnimateRuntimeInput, AudioMap, Color, Duration, FFramesContext, FontQuery, Frame, Overlap,
     Scene, Scenes, Svgr, TextOverflow, Transform, Video,
@@ -169,7 +173,7 @@ impl Video for FacadeVideoVideo<'_> {
                 <rect width="1920" height="1080" fill={BG} />
                 {grid}
                 {ctx.render_scenes(&frame)}
-                {logo(1668.0, 34.0, 44.0, "chrome")}
+                {logo(1668.0, 34.0, 44.0, "chrome", 0.0)}
                 <text x="1766" y="66" text-anchor="end" font-family={MONO} font-size="24" font-weight={W_REG} fill={MUTED} letter-spacing="2">"PERIGRAM / FACADE PACK"</text>
             </svg>
         )
@@ -178,11 +182,30 @@ impl Video for FacadeVideoVideo<'_> {
 
 // ---- shared helpers ----
 
-/// The Perigram mark (public/icon.svg): an isometric cube of three rhombi on
-/// the red-orange brand gradient, traced into the 128-unit logo box.
-fn logo<'a>(x: f32, y: f32, size: f32, id: &'a str) -> Svgr<'a> {
+/// The Perigram mark (public/icon.svg, per the Rive mark spec): a folded
+/// axonometric cassette — top rhombus the face, lower parallelograms the
+/// flanges, V gap the rib — on the brand gradient. `phase` spins the face
+/// square in its own plane (rotating core, 90°-periodic; 0 = rest).
+fn logo<'a>(x: f32, y: f32, size: f32, id: &'a str, phase: f32) -> Svgr<'a> {
     let s = size / 128.0;
     let grad_id = format!("grad-{id}");
+    let (cx, cy) = (64.0, 50.9);
+    // Rotating core: the face is a true square (±a) in the isometric plane;
+    // in-plane rotation by `phase` morphs rhombus → rectangle → rhombus.
+    // a = 19.4 reproduces the icon rhombus (width 2e·0.866·…, height 2a).
+    let a = 19.4_f32;
+    let (sin_p, cos_p) = phase.sin_cos();
+    let mut d = String::from("M");
+    for (i, &(ux, uy)) in [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)].iter().enumerate() {
+        let (c0, c1) = (ux * a, uy * a);
+        let (rx, ry) = (c0 * cos_p - c1 * sin_p, c0 * sin_p + c1 * cos_p);
+        let (px, py) = (cx + 0.866 * (rx - ry), cy + 0.5 * (rx + ry));
+        if i > 0 {
+            d.push('L');
+        }
+        d.push_str(&format!("{px:.2} {py:.2} "));
+    }
+    d.push('Z');
     fframes::svgr!(
         <g transform={format!("translate({x} {y}) scale({s})")}>
             <defs>
@@ -191,7 +214,7 @@ fn logo<'a>(x: f32, y: f32, size: f32, id: &'a str) -> Svgr<'a> {
                     <stop offset="1" stop-color="#ff6600" />
                 </linearGradient>
             </defs>
-            <path fill={format!("url(#{grad_id})")} d="M30.4 50.9 L64.0 31.5 L97.6 50.9 L64.0 70.3 Z" />
+            <path fill={format!("url(#{grad_id})")} d={d.clone()} />
             <path fill={format!("url(#{grad_id})")} d="M30.4 70.3 L64.0 89.7 L47.2 99.4 L13.5 79.5 Z" />
             <path fill={format!("url(#{grad_id})")} d="M97.6 70.3 L64.0 89.7 L80.8 99.4 L114.4 79.5 Z" />
         </g>
@@ -209,6 +232,19 @@ fn rise(frame: &Frame, start: f32, px: f32) -> f32 {
 /// Whole-scene cross-fade window when scenes overlap.
 fn scene_in(t: f32) -> f32 {
     ((t + 0.35) / 0.35).clamp(0.0, 1.0)
+}
+
+/// Slow camera push for scene life: 1.0 -> 1.035 across `dur`, plus a soft
+/// slide for scene entrances.
+fn camera(t: f32, dur: f32) -> String {
+    let k = 1.0 + 0.035 * (t / dur).clamp(0.0, 1.0);
+    let slide = 42.0 * (1.0 - scene_in(t));
+    format!("translate(960 540) scale({k:.4}) translate(-960 -540) translate({slide:.1} 0)")
+}
+
+/// Ambient loop 0 -> 1 -> 0 over `period` seconds from video start.
+fn breathe(t: f32, period: f32) -> f32 {
+    0.5 - 0.5 * (2.0 * std::f32::consts::PI * t / period).cos()
 }
 
 fn mono_width<'a>(frame: &mut Frame, ctx: &FFramesContext<'a, '_>, text: &'a str, size: usize, weight: u16) -> f32 {
@@ -250,7 +286,7 @@ fn caption<'a>(text: &'a str, t: f32, frame: &Frame) -> Svgr<'a> {
     let o = ramp(frame, t);
     fframes::svgr!(
         <g opacity={o}>
-            <rect x="154" y="944" width="46" height="6" rx="3" fill={ACCENT} />
+            <rect x="154" y="944" width={46.0} height="6" rx="3" fill={ACCENT} />
             <text x="218" y="958" font-family={SANS} font-size="40" font-weight={W_REG} fill={INK}>{text}</text>
         </g>
     )
@@ -290,11 +326,11 @@ fn dim_v<'a>(y1: f32, y2: f32, x: f32, label: &str, size: f32) -> Svgr<'a> {
 
 #[derive(Clone, Copy, PartialEq)]
 enum Detail {
-    /// Template drawing: notches, T-slot hangers, bolts, hem, multi-line mark.
+    /// Template drawing: stepped contour, T-slot hangers, bolts, 3-line mark.
     Full,
-    /// Production piece on a sheet: notches, fold routes, bolts, mark.
+    /// Production piece on a sheet: contour, fold routes, bolts, mark.
     Std,
-    /// Small placed piece: outline, fold routes, mark.
+    /// Small placed piece: contour, fold routes.
     Tiny,
 }
 
@@ -303,28 +339,33 @@ struct PatternOpts {
     scale: f32,
     cut_w: f32,
     detail: Detail,
-    /// Production mark: (template name, instance line).
-    mark: Option<(&'static str, &'static str)>,
+    /// Production mark: (template name, template id, workpiece line).
+    mark: Option<(&'static str, &'static str, &'static str)>,
     /// Body fill of the flat pattern.
     body_fill: &'static str,
     /// Fill used for through-cut openings so they read as holes.
     cutout_fill: &'static str,
 }
 
-/// Octagon contour of the flat pattern: outer rect with 45° corner relief
-/// notches where perpendicular return flanges meet. Points start at the
-/// top-left chamfer end, clockwise.
-fn notched_contour(ow: f32, oh: f32, n: f32) -> Vec<(f32, f32)> {
-    let (hw, hh) = (ow / 2.0, oh / 2.0);
+/// OCCS outer contour: the union of the face with four return flanges that
+/// each span exactly their parent edge. Side returns run the full face
+/// height, top/bottom returns only the face width, leaving L-shaped relief
+/// steps at the corners — the ground-truth 12-gon from the evaluator.
+fn occs_contour(w: f32, h: f32, r: f32) -> Vec<(f32, f32)> {
+    let (hw, hh) = (w / 2.0, h / 2.0);
     vec![
-        (-hw + n, -hh),
-        (hw - n, -hh),
-        (hw, -hh + n),
-        (hw, hh - n),
-        (hw - n, hh),
-        (-hw + n, hh),
-        (-hw, hh - n),
-        (-hw, -hh + n),
+        (hw, hh + r),
+        (-hw, hh + r),
+        (-hw, hh),
+        (-hw - r, hh),
+        (-hw - r, -hh),
+        (-hw, -hh),
+        (-hw, -hh - r),
+        (hw, -hh - r),
+        (hw, -hh),
+        (hw + r, -hh),
+        (hw + r, hh),
+        (hw, hh),
     ]
 }
 
@@ -350,20 +391,29 @@ fn hanger_slot(cx: f32, cy: f32, s: f32) -> String {
         cx - half_w, cx + half_w, cx + half_w, cx + half_slot, cx + half_slot, cx - half_slot, cx - half_slot, cx - half_w)
 }
 
-/// Cassette flat pattern centered on (0, 0): notched outer cut contour, face
-/// with fold routes on the return junctions, bolt holes, integral-cut hanger
-/// slots and the production mark on the root face.
+/// Cassette flat pattern centered on (0, 0): the OCCS stepped cut contour,
+/// face with fold-route dashes on the flange junctions, bolt holes through
+/// the side returns, integral-cut hanger slots breaking the top return edge
+/// and the three-line production mark on the root face.
 fn flat_pattern<'a>(face_w: f32, face_h: f32, o: &PatternOpts) -> Svgr<'a> {
     let s = o.scale;
     let r = o.ret_mm * s;
     let (fw, fh) = (face_w * s, face_h * s);
-    let (ow, oh) = (fw + 2.0 * r, fh + 2.0 * r);
-    let n = r * 0.7;
-    let contour = notched_contour(ow, oh, n);
+    let contour = occs_contour(fw, fh, r);
 
     let mut extras: Vec<Svgr> = vec![];
 
-    // Bolt holes through the left/right return flanges (edge arrays).
+    // Fold routes: the four face/flange junctions.
+    let dash = (r * 0.3).max(4.0);
+    let dash_s = format!("{dash} {}", dash * 0.66);
+    extras.push(fframes::svgr!(
+        <path d={format!("M{} {:.2} V{:.2}", -fw / 2.0, fh / 2.0, -fh / 2.0)} stroke={FOLD} stroke-width={o.cut_w * 0.8} stroke-dasharray={dash_s.clone()} />
+        <path d={format!("M{} {:.2} V{:.2}", fw / 2.0, fh / 2.0, -fh / 2.0)} stroke={FOLD} stroke-width={o.cut_w * 0.8} stroke-dasharray={dash_s.clone()} />
+        <path d={format!("M{:.2} {} H{:.2}", -fw / 2.0, fh / 2.0, fw / 2.0)} stroke={FOLD} stroke-width={o.cut_w * 0.8} stroke-dasharray={dash_s.clone()} />
+        <path d={format!("M{:.2} {} H{:.2}", -fw / 2.0, -fh / 2.0, fw / 2.0)} stroke={FOLD} stroke-width={o.cut_w * 0.8} stroke-dasharray={dash_s} />
+    ));
+
+    // Bolt holes through the left/right return flanges.
     if o.detail != Detail::Tiny && r > 8.0 {
         for sx in [-1.0, 1.0] {
             for sy in [-1.0, 1.0] {
@@ -374,43 +424,34 @@ fn flat_pattern<'a>(face_w: f32, face_h: f32, o: &PatternOpts) -> Svgr<'a> {
         }
     }
 
-    // Integral-cut hanger clips on the top return flange.
-    if o.detail == Detail::Full && fw > 220.0 * s && r >= 28.0 * s {
+    // Integral-cut hanger clips breaking the top return's outer edge.
+    if o.detail == Detail::Full && fw > 200.0 * s && o.ret_mm >= 28.0 {
         for off in [-0.25, 0.25] {
             let cx = off * fw;
-            let cy = -oh / 2.0 + 14.0 * s;
+            let cy = fh / 2.0 + r - 14.0 * s;
             extras.push(fframes::svgr!(
                 <path d={hanger_slot(cx, cy, s)} fill={o.cutout_fill} stroke={CUT} stroke-width={o.cut_w * 0.9} />
             ));
         }
     }
 
-    // Hem fold line near the outer edge of the bottom return.
-    if o.detail == Detail::Full && r > 10.0 {
-        let hem_y = oh / 2.0 - r * 0.4;
-        extras.push(fframes::svgr!(
-            <path d={format!("M{} {hem_y:.2} H{:.2}", -fw / 2.0, fw / 2.0)} stroke={FOLD} stroke-width={o.cut_w * 0.6} stroke-dasharray="4 3" opacity="0.55" />
-        ));
-    }
-
-    // Production mark on the root face: name line + template/workpiece line.
-    if let Some((name, instance)) = o.mark {
+    // Production mark on the root face: name / template id / workpiece.
+    if let Some((name, tpl, wp)) = o.mark {
         if fw > 150.0 {
-            let (mx, my) = (-fw / 2.0 + 8.0, fh / 2.0 - 34.0_f32.max(fh * 0.14));
-            let big = 22.0_f32.min(fh * 0.11);
+            let big = 22.0_f32.min(fh * 0.10);
+            let (mx, my) = (-fw / 2.0 + 8.0, fh / 2.0 - big * 3.4);
             extras.push(fframes::svgr!(
                 <text x={mx} y={my} font-family={MONO} font-size={big} font-weight={W_BOLD} fill={MARK}>{name}</text>
-                <text x={mx} y={my + big * 1.3} font-family={MONO} font-size={big * 0.78} font-weight={W_REG} fill={MARK}>{instance}</text>
+                <text x={mx} y={my + big * 1.15} font-family={MONO} font-size={big * 0.78} font-weight={W_REG} fill={MARK}>{tpl}</text>
+                <text x={mx} y={my + big * 2.2} font-family={MONO} font-size={big * 0.78} font-weight={W_REG} fill={MARK}>{wp}</text>
             ));
         }
     }
 
-    let dash = (r * 0.3).max(4.0);
     fframes::svgr!(
         <g>
             <path d={poly_path(&contour)} fill={o.body_fill} stroke={CUT} stroke-width={o.cut_w} />
             <rect x={-fw / 2.0} y={-fh / 2.0} width={fw} height={fh} fill={FACE_BLUE} opacity="0.06" />
-            <rect x={-fw / 2.0} y={-fh / 2.0} width={fw} height={fh} fill="none" stroke={FOLD} stroke-width={o.cut_w * 0.8} stroke-dasharray={format!("{dash} {}", dash * 0.66)} />
             {extras}
         </g>
     )
@@ -433,16 +474,29 @@ fn lerp_hex(a: &str, b: &str, t: f32) -> String {
     )
 }
 
-/// Folded cassette in isometric projection, centered on (0, 0). `t_fold` 0 is
-/// the flat pattern (flanges coplanar, extending outward), 1 is the folded
-/// tray with all four return flanges up at 90°.
+/// Folded cassette in isometric projection, centered on the projected shape
+/// centroid. `t_fold` 0 is the OCCS flat pattern (flanges coplanar, stepped
+/// corners intact), 1 is the folded tray with all four return flanges up at
+/// 90° — the corner steps open into relief gaps, as in real fabrication.
 fn folded_cassette<'a>(face_w: f32, face_h: f32, ret_mm: f32, s: f32, t_fold: f32, accent_face: bool) -> Svgr<'a> {
     let theta = t_fold * std::f32::consts::FRAC_PI_2;
     let (c, si) = (theta.cos(), theta.sin());
-    let iso = |x: f32, y: f32, z: f32| -> (f32, f32) {
-        let px = (x - y) * 0.866 * s;
-        let py = ((x + y) * 0.5 - z) * s;
-        (px, py)
+    let (w, h, r) = (face_w, face_h, ret_mm);
+    // Project, then recenter on the shape's projected bounding center.
+    let raw = |x: f32, y: f32, z: f32| -> (f32, f32) {
+        ((x - y) * 0.866 * s, ((x + y) * 0.5 - z) * s)
+    };
+    let (mut minx, mut miny, mut maxx, mut maxy) = (f32::MAX, f32::MAX, f32::MIN, f32::MIN);
+    for &(x, y, z) in &[(0.0, 0.0, 0.0), (w, 0.0, 0.0), (w, h, 0.0), (0.0, h, 0.0),
+        (-r * c, -r * c, r * si), (w + r * c, -r * c, r * si), (w + r * c, h + r * c, r * si), (-r * c, h + r * c, r * si)] {
+        let (px, py) = raw(x, y, z);
+        minx = minx.min(px); maxx = maxx.max(px);
+        miny = miny.min(py); maxy = maxy.max(py);
+    }
+    let (offx, offy) = (-(minx + maxx) / 2.0, -(miny + maxy) / 2.0);
+    let iso = move |x: f32, y: f32, z: f32| -> (f32, f32) {
+        let (px, py) = raw(x, y, z);
+        (px + offx, py + offy)
     };
     let quad = |pts: [(f32, f32, f32); 4], fill: &str| -> Svgr<'a> {
         let p: Vec<String> = pts.iter().map(|(x, y, z)| {
@@ -451,36 +505,26 @@ fn folded_cassette<'a>(face_w: f32, face_h: f32, ret_mm: f32, s: f32, t_fold: f3
         }).collect();
         fframes::svgr!(<path d={format!("M{} L{} L{} L{} Z", p[0], p[1], p[2], p[3])} fill={fill.to_string()} stroke={BORDER} stroke-width="1" />)
     };
-    let (w, h, r) = (face_w, face_h, ret_mm);
-
-    // Wall corner points at distance d from the edge: rotated up by theta.
-    let wx0 = |d: f32| -d * c; // x = -d·cosθ (left wall)
-    let wx1 = |d: f32| w + d * c; // right wall
-    let wy0 = |d: f32| -d * c; // back wall
-    let wy1 = |d: f32| h + d * c; // front wall
     let z = r * si;
+    let (xr0, xr1, yb0, yb1) = (-r * c, w + r * c, -r * c, h + r * c);
 
-    // Far walls (inner surfaces visible over the face).
-    let back = quad([(0.0, 0.0, 0.0), (w, 0.0, 0.0), (w, wy0(r), z), (0.0, wy0(r), z)], "#333338");
-    let left = quad([(0.0, 0.0, 0.0), (0.0, h, 0.0), (wx0(r), h, z), (wx0(r), 0.0, z)], "#2c2c31");
-    let face_fill = if accent_face { lerp_hex("#27272a", ACCENT, 0.35) } else { "#27272a".to_owned() };
-    let face = quad([(0.0, 0.0, 0.0), (w, 0.0, 0.0), (w, h, 0.0), (0.0, h, 0.0)], &face_fill);
-    // Near walls (outer surfaces facing the camera).
-    let right = quad([(w, 0.0, 0.0), (w, h, 0.0), (wx1(r), h, z), (wx1(r), 0.0, z)], "#202024");
-    let front = quad([(0.0, h, 0.0), (w, h, 0.0), (w, wy1(r), z), (0.0, wy1(r), z)], "#26262b");
-
-    // At t=0 all flanges are coplanar with the face — flatten fills so the
-    // flat state reads as one sheet.
+    // At t=0 the flanges are coplanar with the face — the flat pattern.
     if t_fold < 0.02 {
         let solid = "#27272a";
         return fframes::svgr!(<g>
-            {quad([(0.0, 0.0, 0.0), (w, 0.0, 0.0), (w, wy0(r), z), (0.0, wy0(r), z)], solid)}
-            {quad([(0.0, 0.0, 0.0), (0.0, h, 0.0), (wx0(r), h, z), (wx0(r), 0.0, z)], solid)}
-            {quad([(w, 0.0, 0.0), (w, h, 0.0), (wx1(r), h, z), (wx1(r), 0.0, z)], solid)}
-            {quad([(0.0, h, 0.0), (w, h, 0.0), (w, wy1(r), z), (0.0, wy1(r), z)], solid)}
+            {quad([(0.0, 0.0, 0.0), (w, 0.0, 0.0), (w, yb0, 0.0), (0.0, yb0, 0.0)], solid)}
+            {quad([(0.0, 0.0, 0.0), (0.0, h, 0.0), (xr0, h, 0.0), (xr0, 0.0, 0.0)], solid)}
+            {quad([(w, 0.0, 0.0), (w, h, 0.0), (xr1, h, 0.0), (xr1, 0.0, 0.0)], solid)}
+            {quad([(0.0, h, 0.0), (w, h, 0.0), (w, yb1, 0.0), (0.0, yb1, 0.0)], solid)}
             {quad([(0.0, 0.0, 0.0), (w, 0.0, 0.0), (w, h, 0.0), (0.0, h, 0.0)], solid)}
         </g>);
     }
+    let back = quad([(0.0, 0.0, 0.0), (w, 0.0, 0.0), (w, yb0, z), (0.0, yb0, z)], "#333338");
+    let left = quad([(0.0, 0.0, 0.0), (0.0, h, 0.0), (xr0, h, z), (xr0, 0.0, z)], "#2c2c31");
+    let face_fill = if accent_face { lerp_hex("#27272a", ACCENT, 0.35) } else { "#27272a".to_owned() };
+    let face = quad([(0.0, 0.0, 0.0), (w, 0.0, 0.0), (w, h, 0.0), (0.0, h, 0.0)], &face_fill);
+    let right = quad([(w, 0.0, 0.0), (w, h, 0.0), (xr1, h, z), (xr1, 0.0, z)], "#202024");
+    let front = quad([(0.0, h, 0.0), (w, h, 0.0), (w, yb1, z), (0.0, yb1, z)], "#26262b");
     fframes::svgr!(<g>
         {back}
         {left}
@@ -515,6 +559,16 @@ fn polyline_walk(pts: &[(f32, f32)], p: f32) -> (f32, f32) {
     pts[0]
 }
 
+fn contour_length(pts: &[(f32, f32)]) -> f32 {
+    let n = pts.len();
+    (0..n)
+        .map(|i| {
+            let (a, b) = (pts[i], pts[(i + 1) % n]);
+            ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt()
+        })
+        .sum()
+}
+
 // ---- scene 1: title ----
 
 #[derive(Debug)]
@@ -531,42 +585,53 @@ impl Scene for TitleScene<'_> {
         let t = frame.seconds();
         let o = scene_in(t);
 
-        // Facade elevation assembling from folded cassettes.
+        // Facade elevation assembling from folded cassettes flying in from depth.
         let (cols, rows) = (5, 4);
         let (pw, ph, pr) = (100.0, 70.0, 16.0);
         let (gap_x, gap_y) = (22.0, 30.0);
         let (ox, oy) = (990.0, 300.0);
+        let drift = 4.0 * breathe(t, 7.0);
         let mut panels: Vec<Svgr> = vec![];
         for r in 0..rows {
             for c in 0..cols {
                 let i = r * cols + c;
-                let start = 0.25 + (c + r) as f32 * 0.09;
+                let start = 0.2 + (c + r) as f32 * 0.09;
                 let p = ramp(&frame, start);
+                let scale_in = (0.62 + 0.38 * p).max(0.5);
                 let x = ox + c as f32 * (pw + ph) * 0.866 * 0.92 + c as f32 * gap_x;
-                let y = oy + r as f32 * ((pw + ph) / 2.0 * 0.92 + pr) + r as f32 * gap_y;
+                let y = oy + r as f32 * ((pw + ph) / 2.0 * 0.92 + pr) + r as f32 * gap_y + drift + (1.0 - p) * 46.0;
                 let accent_piece = i == 7 || i == 13;
-                let scale_in = 0.94 + 0.06 * p;
                 panels.push(fframes::svgr!(
-                    <g opacity={p} transform={format!("translate({x} {}) scale({scale_in})", y + (1.0 - p) * 18.0)}>
+                    <g opacity={p} transform={format!("translate({x} {y}) scale({scale_in})")}>
                         {folded_cassette(pw, ph, pr, 0.92, 1.0, accent_piece)}
                     </g>
                 ));
             }
         }
 
-        let size = fit_size(&mut frame, ctx, self.title, 132, 740);
-        let (first, second) = match self.title.find("Facade") {
-            Some(idx) => (&self.title[..idx], Some(&self.title[idx..])),
-            None => (self.title, None),
+        // Word-by-word wordmark with the rotating-core mark above.
+        let spin = 2.0 * std::f32::consts::PI * t / (1.6 * 4.0);
+        let words: Vec<(&str, bool)> = match self.title.find("Facade") {
+            Some(idx) => vec![(&self.title[..idx], false), (&self.title[idx..], true)],
+            None => vec![(self.title, false)],
         };
-        let w1 = frame
-            .text_width(ctx, FontQuery { family: SANS, size, weight: W_BOLD, ..Default::default() }, first)
-            .map(|w| w as f32)
-            .unwrap_or(size as f32 * first.len() as f32 * 0.55);
-        let second_text = match second {
-            Some(s) => fframes::svgr!(<text x={154.0 + w1 - size as f32 * 0.02} y="560" font-family={SANS} font-size={size} font-weight={W_BOLD} fill={ACCENT} letter-spacing="-3">{s}</text>),
-            None => Svgr::empty(),
-        };
+        let size = fit_size(&mut frame, ctx, self.title, 128, 740);
+        let mut word_texts: Vec<Svgr> = vec![];
+        let mut wx = 154.0f32;
+        for (wi, &(word, accent)) in words.iter().enumerate() {
+            let wpx = frame
+                .text_width(ctx, FontQuery { family: SANS, size, weight: W_BOLD, ..Default::default() }, word)
+                .map(|w| w as f32)
+                .unwrap_or(size as f32 * word.len() as f32 * 0.55);
+            let t0 = 0.1 + wi as f32 * 0.14;
+            word_texts.push(fframes::svgr!(
+                <g transform={Transform::translate(0.0, rise(&frame, t0, 64.0))} opacity={ramp(&frame, t0)}>
+                    <text x={wx} y="560" font-family={SANS} font-size={size} font-weight={W_BOLD} fill={if accent { ACCENT } else { INK }} letter-spacing="-3">{word}</text>
+                </g>
+            ));
+            wx += wpx - size as f32 * 0.02;
+        }
+
         let sub = frame
             .text_fit(
                 ctx,
@@ -580,15 +645,12 @@ impl Scene for TitleScene<'_> {
         let line = (760.0 * ramp(&frame, 0.5)).max(0.5);
 
         fframes::svgr!(
-            <g opacity={o}>
+            <g opacity={o} transform={camera(t, 4.5)}>
                 {panels}
-                <g transform={Transform::translate(0.0, rise(&frame, 0.0, 24.0))} opacity={ramp(&frame, 0.1)}>
-                    {logo(154.0, 330.0, 120.0, "title")}
+                <g transform={Transform::translate(0.0, rise(&frame, 0.0, 24.0))} opacity={ramp(&frame, 0.05)}>
+                    {logo(154.0, 330.0, 120.0, "title", spin)}
                 </g>
-                <g transform={Transform::translate(0.0, rise(&frame, 0.15, 64.0))}>
-                    <text x="154" y="560" font-family={SANS} font-size={size} font-weight={W_BOLD} fill={INK} letter-spacing="-3">{first}</text>
-                    {second_text}
-                </g>
+                {word_texts}
                 <path d="M154 616 H1620" stroke={SURFACE_2} stroke-width="2" />
                 <rect x="154" y="615" width={line} height="3" fill={ACCENT} />
                 <text x="154" y="684" font-family={MONO} font-size="28" font-weight={W_REG} fill={MUTED} letter-spacing="1" opacity={ramp(&frame, 0.7)}>{sub}</text>
@@ -631,17 +693,21 @@ impl Scene for TemplateScene {
         let (fw, fh, rp) = (a * s, b * s, r * s);
         let (ow, oh) = (fw + 2.0 * rp, fh + 2.0 * rp);
         let draw_o = ramp(&frame, 0.2);
+        // Pulse the contour when a parameter settles.
+        let settling = [1.6f32, 3.4, 4.8].iter().any(|&te| (t - te).abs() < 0.35);
+        let glow = if settling { 2.0 } else { 0.0 };
         let drawing = fframes::svgr!(
             <g transform={Transform::translate(cx, cy)} opacity={draw_o}>
-                {flat_pattern(a, b, &PatternOpts { ret_mm: r, scale: s, cut_w: 3.0, detail: Detail::Full, mark: Some(("FCT-01", "tpl_8842 · WP 1")), body_fill: SURFACE, cutout_fill: BG })}
+                {flat_pattern(a, b, &PatternOpts { ret_mm: r, scale: s, cut_w: 3.0 + glow, detail: Detail::Full, mark: Some(("FCT-01", "tpl_8842", "WP 1")), body_fill: SURFACE, cutout_fill: BG })}
                 {dim_h(-ow / 2.0, ow / 2.0, oh / 2.0 + 34.0, "A", 30.0)}
                 {dim_v(-oh / 2.0, oh / 2.0, ow / 2.0 + 34.0, "B", 30.0)}
                 {dim_h(fw / 2.0, ow / 2.0, -oh / 2.0 - 16.0, "R", 22.0)}
             </g>
         );
 
-        // Parameter panel with a live folded preview.
-        let prev_scale = (220.0 / ((a + b) * 0.866)).clamp(0.12, 0.5);
+        // Parameter panel with a live folded preview that slowly yaws.
+        let prev_scale = (200.0 / ((a + b) * 0.866)).clamp(0.12, 0.42);
+        let yaw = 6.0 * breathe(t, 6.0) - 3.0;
         let rows: Vec<Svgr> = [("A", "width", a, 180.0, 300.0, 0.4, 1.6), ("B", "height", b, 360.0, 600.0, 2.0, 3.4), ("R", "return", r, 20.0, 40.0, 3.8, 4.8)]
             .iter()
             .enumerate()
@@ -667,7 +733,7 @@ impl Scene for TemplateScene {
                 <rect x="1250" y="250" width="516" height="590" rx="20" fill={SURFACE} stroke={BORDER} />
                 <text x="1282" y="306" font-family={MONO} font-size="24" font-weight={W_REG} fill={MUTED} letter-spacing="6">"PARAMETERS"</text>
                 <rect x="1282" y="330" width="452" height="216" rx="12" fill={BG} stroke={SURFACE_2} />
-                <g transform={Transform::translate(1508.0, 438.0)} opacity={ramp(&frame, 0.5)}>
+                <g transform={format!("translate(1508.0 438.0) rotate({yaw:.2})")} opacity={ramp(&frame, 0.5)}>
                     {folded_cassette(a, b, r, prev_scale, 1.0, false)}
                 </g>
                 {rows}
@@ -700,7 +766,7 @@ impl Scene for TemplateScene {
         }
 
         fframes::svgr!(
-            <g opacity={o}>
+            <g opacity={o} transform={camera(t, 10.0)}>
                 {scene_label("01", "AUTHOR THE TEMPLATE", 0.1, &frame)}
                 {drawing}
                 {panel}
@@ -736,8 +802,8 @@ impl Scene for BakeScene {
                 <rect x="190" y="310" width="320" height="480" rx="16" fill={SURFACE} stroke={BORDER} />
                 <rect x="190" y="310" width="320" height="60" rx="16" fill={SURFACE_2} />
                 <text x="214" y="348" font-family={MONO} font-size="22" font-weight={W_BOLD} fill={INK}>"FCT-01 · TEMPLATE"</text>
-                <g transform={Transform::translate(350.0, 576.0)}>
-                    {flat_pattern(PIECES[0].w, PIECES[0].h, &PatternOpts { ret_mm: RET_MM, scale: 0.28, cut_w: 2.0, detail: Detail::Std, mark: Some(("FCT-01", "A · B")), body_fill: SURFACE_2, cutout_fill: SURFACE })}
+                <g transform={Transform::translate(350.0, 570.0)}>
+                    {flat_pattern(PIECES[0].w, PIECES[0].h, &PatternOpts { ret_mm: RET_MM, scale: 0.28, cut_w: 2.0, detail: Detail::Std, mark: Some(("FCT-01", "A · B", "")), body_fill: SURFACE_2, cutout_fill: SURFACE })}
                     {dim_h(-53.0, 53.0, 116.0, "A", 20.0)}
                     {dim_v(-102.0, 102.0, 78.0, "B", 20.0)}
                 </g>
@@ -745,7 +811,7 @@ impl Scene for BakeScene {
             </g>
         );
 
-        // Baked cassette-design cards: the folded piece you get.
+        // Baked cassette-design cards: the folded piece you get, gently bobbing.
         let cards: Vec<Svgr> = PIECES
             .iter()
             .enumerate()
@@ -761,7 +827,8 @@ impl Scene for BakeScene {
                 });
                 let scale = 1.0 - 0.08 * (1.0 - settle);
                 let ry = rise(&frame, t0 + 0.45, 36.0);
-                // Folded preview scale: fit the iso footprint into the card body.
+                let bob = 2.5 * breathe(t - t0, 3.4 + i as f32 * 0.5) * settle;
+                let dot_pulse = 0.5 + 0.5 * (std::f32::consts::PI * t / 1.2 + i as f32).sin();
                 let iso_w = (spec.w + spec.h) * 0.866;
                 let iso_h = (spec.w + spec.h) * 0.5 + 2.0 * RET_MM;
                 let fs = (250.0 / iso_w).min(230.0 / iso_h);
@@ -769,9 +836,9 @@ impl Scene for BakeScene {
                     <g opacity={co} transform={format!("translate({x} {ry}) scale({scale})")}>
                         <rect x="0" y="310" width="340" height="480" rx="16" fill={SURFACE} stroke={BORDER} />
                         <rect x="0" y="310" width="340" height="60" rx="16" fill={SURFACE_2} />
-                        <circle cx="312" cy="340" r="7" fill="#22c55e" />
+                        <circle cx="312" cy="340" r="7" fill="#22c55e" opacity={0.55 + 0.45 * dot_pulse} />
                         <text x="24" y="348" font-family={MONO} font-size="22" font-weight={W_BOLD} fill={INK}>{spec.id}</text>
-                        <g transform={Transform::translate(170.0, 540.0)}>
+                        <g transform={format!("translate(170.0 {}) ", 540.0 + bob)}>
                             {folded_cassette(spec.w, spec.h, RET_MM, fs, 1.0, false)}
                         </g>
                         <text x="170" y="742" text-anchor="middle" font-family={MONO} font-size="22" font-weight={W_REG} fill={MUTED}>{format!("{} × {} · baked", spec.w as usize, spec.h as usize)}</text>
@@ -790,7 +857,7 @@ impl Scene for BakeScene {
                 let x1 = 640.0 + i as f32 * 420.0 + 60.0;
                 let p = frame.animate_runtime(AnimateRuntimeInput { on_second: t0, from: 0.0, to: 1.0, animation_runtime: &RT_EASE_IN_OUT });
                 let x = 510.0 + (x1 - 510.0) * p;
-                let y = 460.0 - 60.0 * (std::f32::consts::PI * p).sin();
+                let y = 460.0 - 70.0 * (std::f32::consts::PI * p).sin();
                 let appear = ramp(&frame, t0) * (1.0 - ramp(&frame, t0 + 0.42));
                 let text = format!("A={} · B={}", spec.w as usize, spec.h as usize);
                 let w = mono_est(&text, 24);
@@ -806,7 +873,7 @@ impl Scene for BakeScene {
         let ev_w = mono_width(&mut frame, ctx, ev_text, 22, W_REG);
 
         fframes::svgr!(
-            <g opacity={o}>
+            <g opacity={o} transform={camera(t, 9.0)}>
                 {scene_label("02", "BAKE PRODUCTION PIECES", 0.1, &frame)}
                 {tmpl}
                 {cards}
@@ -849,7 +916,7 @@ impl Scene for NestScene {
             </g>
         );
 
-        // Placed pieces flying in, biggest first.
+        // Placed pieces flying in, biggest first, with a landing pulse.
         let pieces: Vec<Svgr> = LAYOUT
             .iter()
             .enumerate()
@@ -865,9 +932,12 @@ impl Scene for NestScene {
                 let rot = frame.animate_runtime(AnimateRuntimeInput { on_second: t0, from: pl.rot + 14.0, to: pl.rot, animation_runtime: &RT_SPRING });
                 let po = frame.animate_runtime(AnimateRuntimeInput { on_second: t0, from: 0.0, to: 1.0, animation_runtime: &RT_FAST });
                 let mark_o = ramp(&frame, t0 + 0.55);
+                let ring_p = ramp(&frame, t0 + 0.5);
+                let ring_r = 10.0 + 26.0 * ring_p;
                 let detail = if bw * s > 260.0 { Detail::Std } else { Detail::Tiny };
                 fframes::svgr!(
                     <g opacity={po} transform={format!("translate({cx} {cy})")}>
+                        <circle r={ring_r} fill="none" stroke={ACCENT} stroke-width="2" opacity={0.5 * (1.0 - ring_p)} />
                         <g transform={format!("rotate({rot})")}>
                             {flat_pattern(spec.w, spec.h, &PatternOpts { ret_mm: RET_MM, scale: s, cut_w: 1.8, detail, mark: None, body_fill: SURFACE, cutout_fill: BG })}
                         </g>
@@ -877,26 +947,40 @@ impl Scene for NestScene {
             })
             .collect();
 
-        // Stats column.
+        // Stats column with a sweeping efficiency gauge.
         let eff = EFFICIENCY * frame.animate(&fframes::timeline!(
             at 5.0 => 7.0, animate 0.0_f32 => 1.0, EASE_OUT_EXPO,
         ));
+        let gauge = 2.0 * std::f32::consts::PI * (eff / 100.0).clamp(0.0, 1.0);
         let stats: Vec<Svgr> = [("PIECES", format!("{NESTED}")), ("SHEETS", "1".to_owned()), ("EFFICIENCY", format!("{eff:.1}%"))]
             .iter()
             .enumerate()
             .map(|(i, (label, value))| {
                 let y = 380.0 + i as f32 * 120.0;
+                let gauge_arc = if *label == "EFFICIENCY" {
+                    let r = 14.0f32;
+                    let (gx, gy) = (1698.0, y + 40.0);
+                    let large = if gauge > std::f32::consts::PI { 1 } else { 0 };
+                    let (ex, ey) = (gx + r * gauge.sin(), gy - r * gauge.cos());
+                    fframes::svgr!(
+                        <circle cx={gx} cy={gy} r={r} fill="none" stroke={SURFACE_2} stroke-width="5" />
+                        <path d={format!("M{gx} {} A{r} {r} 0 {large} 1 {ex:.2} {ey:.2}", gy - r)} fill="none" stroke={ACCENT} stroke-width="5" stroke-linecap="round" />
+                    )
+                } else {
+                    Svgr::empty()
+                };
                 fframes::svgr!(
                     <g opacity={ramp(&frame, 4.4 + i as f32 * 0.15)} transform={Transform::translate(0.0, rise(&frame, 4.4 + i as f32 * 0.15, 24.0))}>
                         <text x="1480" y={y} font-family={MONO} font-size="24" font-weight={W_REG} fill={MUTED} letter-spacing="3">{*label}</text>
                         <text x="1480" y={y + 62.0} font-family={MONO} font-size="60" font-weight={W_BOLD} fill={INK}>{value.to_string()}</text>
+                        {gauge_arc}
                     </g>
                 )
             })
             .collect();
 
         fframes::svgr!(
-            <g opacity={o}>
+            <g opacity={o} transform={camera(t, 11.0)}>
                 {scene_label("03", "NEST THE SHEET", 0.1, &frame)}
                 {sheet}
                 {pieces}
@@ -925,9 +1009,12 @@ impl Scene for SheetScene {
         let t = frame.seconds();
         let o = scene_in(t);
 
-        // The sheet-design record card.
-        let (sx, sy, s) = (214.0, 388.0, 0.46);
+        // The sheet-design record card. Sheet scale fits the card body.
+        let (card_x, card_y, card_w, card_h) = (154.0, 278.0, 1250.0, 640.0);
+        let s = 0.42;
         let (sh_w, sh_h) = (SHEET_MM.0 * s, SHEET_MM.1 * s);
+        let sx = card_x + (card_w - sh_w) / 2.0;
+        let sy = card_y + 64.0 + (card_h - 64.0 - sh_h) / 2.0;
         let card_o = ramp(&frame, 0.2);
         let pieces: Vec<Svgr> = LAYOUT
             .iter()
@@ -947,18 +1034,23 @@ impl Scene for SheetScene {
             })
             .collect();
 
-        // LAYOUT_DXF stamp.
+        // LAYOUT_DXF stamp with an impact ring.
         let stamp_in = frame.animate_runtime(AnimateRuntimeInput { on_second: 4.6, from: 1.7, to: 1.0, animation_runtime: &RT_SPRING });
+        let ring_p = ramp(&frame, 4.65);
+        let ring_r = 60.0 + 110.0 * ring_p;
         let stamp = fframes::svgr!(
-            <g transform={format!("translate(1054 730) rotate(-6) scale({stamp_in})")} opacity={ramp(&frame, 4.6)}>
-                <rect x="-190" y="-46" width="380" height="92" rx="12" fill={ACCENT} opacity="0.12" />
-                <rect x="-190" y="-46" width="380" height="92" rx="12" fill="none" stroke={ACCENT} stroke-width="4" />
-                <text x="0" y="14" text-anchor="middle" font-family={MONO} font-size="40" font-weight={W_BOLD} fill={ACCENT} letter-spacing="2">"LAYOUT_DXF"</text>
+            <g>
+                <circle cx="1054" cy="700" r={ring_r} fill="none" stroke={ACCENT} stroke-width="3" opacity={0.45 * (1.0 - ring_p)} />
+                <g transform={format!("translate(1054 700) rotate(-6) scale({stamp_in})")} opacity={ramp(&frame, 4.6)}>
+                    <rect x="-190" y="-46" width="380" height="92" rx="12" fill={ACCENT} opacity="0.12" />
+                    <rect x="-190" y="-46" width="380" height="92" rx="12" fill="none" stroke={ACCENT} stroke-width="4" />
+                    <text x="0" y="14" text-anchor="middle" font-family={MONO} font-size="40" font-weight={W_BOLD} fill={ACCENT} letter-spacing="2">"LAYOUT_DXF"</text>
+                </g>
             </g>
         );
         let dxf_out = frame.animate_runtime(AnimateRuntimeInput { on_second: 5.4, from: 0.0, to: 1.0, animation_runtime: &RT_EASE_IN_OUT });
-        let dxf_x = 1230.0 + (1460.0 - 1230.0) * dxf_out;
-        let dxf_y = 700.0 - 260.0 * dxf_out;
+        let dxf_x = 1230.0 + (1508.0 - 1230.0) * dxf_out;
+        let dxf_y = 700.0 + 84.0 * dxf_out - 46.0 * (std::f32::consts::PI * dxf_out).sin();
         let dxf_o = ramp(&frame, 5.35);
 
         let rows: Vec<Svgr> = [("pieces", format!("{NESTED}")), ("sheets", "1".to_owned()), ("efficiency", format!("{EFFICIENCY:.1}%")), ("kerf", "3.0 mm".to_owned())]
@@ -976,16 +1068,15 @@ impl Scene for SheetScene {
             .collect();
 
         fframes::svgr!(
-            <g opacity={o}>
+            <g opacity={o} transform={camera(t, 8.5)}>
                 {scene_label("04", "SHEET DESIGN & DXF", 0.1, &frame)}
                 <g opacity={card_o} transform={Transform::translate(0.0, rise(&frame, 0.2, 40.0))}>
-                    <rect x="154" y="278" width="1250" height="640" rx="16" fill={SURFACE} stroke={BORDER} />
-                    <rect x="154" y="278" width="1250" height="64" rx="16" fill={SURFACE_2} />
+                    <rect x={card_x} y={card_y} width={card_w} height={card_h} rx="16" fill={SURFACE} stroke={BORDER} />
+                    <rect x={card_x} y={card_y} width={card_w} height="64" rx="16" fill={SURFACE_2} />
                     <text x="186" y="320" font-family={MONO} font-size="26" font-weight={W_BOLD} fill={INK}>"SHEET-01"</text>
-                    <text x="1372" y="318" text-anchor="end" font-family={MONO} font-size="22" font-weight={W_REG} fill={MUTED}>"geometry rev · 4"</text>
+                    <text x="1372" y="318" text-anchor="end" font-family={MONO} font-size="22" font-weight={W_REG} fill={MUTED}>"entity_revision · scope: geometry"</text>
                     <rect x={sx} y={sy} width={sh_w} height={sh_h} fill={BG} stroke={SHEET_LINE} stroke-width="2" stroke-dasharray="9 6" />
                     {pieces}
-                    <text x="186" y="878" font-family={MONO} font-size="20" font-weight={W_REG} fill={MUTED} opacity={ramp(&frame, 3.4)}>"entity_revision · scope: geometry"</text>
                 </g>
                 <rect x="1480" y="330" width="286" height="416" rx="16" fill={SURFACE} stroke={BORDER} opacity={ramp(&frame, 1.2)} />
                 {rows}
@@ -1017,19 +1108,15 @@ impl Scene for ProductionScene {
         let t = frame.seconds();
         let o = scene_in(t) * (1.0 - ((t - 9.3) / 0.7).clamp(0.0, 1.0));
 
-        // Phase A: the laser walks one cut.outer contour, the piece releases,
-        // then folds up into the finished cassette.
-        let (cx, cy, s) = (560.0, 500.0, 0.62);
+        // Phase A: the laser walks the OCCS contour, the piece frees, then
+        // folds up into the finished cassette with a spring overshoot.
+        let (cx, cy, s) = (560.0, 480.0, 0.62);
         let spec = &PIECES[0];
         let (ow, oh) = outer_mm(spec, RET_MM);
         let (w, h) = (ow * s, oh * s);
         let r_px = RET_MM * s;
-        let contour_pts = notched_contour(w, h, r_px * 0.7);
-        let per: f32 = contour_pts
-            .windows(2)
-            .map(|p| ((p[1].0 - p[0].0).powi(2) + (p[1].1 - p[0].1).powi(2)).sqrt())
-            .sum::<f32>()
-            + ((contour_pts[0].0 - contour_pts[7].0).powi(2) + (contour_pts[0].1 - contour_pts[7].1).powi(2)).sqrt();
+        let contour_pts = occs_contour(w, h, r_px);
+        let per = contour_length(&contour_pts);
         let p = frame.animate(&fframes::timeline!(
             at 0.8 => 2.8, animate 0.0_f32 => 1.0, EASE_IN_OUT,
         ));
@@ -1037,14 +1124,23 @@ impl Scene for ProductionScene {
             at 2.9 => 3.4, animate 0.0_f32 => 1.0, EASE_OUT_EXPO,
         ));
         let fold = frame.animate(&fframes::timeline!(
-            at 3.8 => 5.0, animate 0.0_f32 => 1.0, EASE_IN_OUT,
+            at 3.8, animate 0.0_f32 => 1.0, Easing::Spring { mass: 1.0, stiffness: 120.0, damping: 14.0 },
         ));
         let flat_fade = 1.0 - fold.clamp(0.0, 1.0).min(1.0);
         let (px, py) = polyline_walk(&contour_pts, p);
         let fx = 24.0 * freed;
         let fy = -24.0 * freed;
-        // The folded payoff reuses the same mm scale, centered a bit lower.
-        let fold_scale = 260.0 / ((spec.w + spec.h) * 0.866) * 1.0;
+        let fold_scale = 260.0 / ((spec.w + spec.h) * 0.866);
+        // Cutting sparks: short radiating ticks around the head.
+        let sparks: Vec<Svgr> = (0..6)
+            .map(|k| {
+                let ang = k as f32 * std::f32::consts::TAU / 6.0 + (t * 9.0).sin() * 0.2;
+                let len = 9.0 + 5.0 * (t * 13.0 + k as f32).sin();
+                let (dx1, dy1) = (ang.cos() * 10.0, ang.sin() * 10.0);
+                let (dx2, dy2) = (ang.cos() * (10.0 + len), ang.sin() * (10.0 + len));
+                fframes::svgr!(<path d={format!("M{dx1:.1} {dy1:.1} L{dx2:.1} {dy2:.1}")} stroke={FOLD} stroke-width="2.5" stroke-linecap="round" opacity={0.85 * (1.0 - freed)} />)
+            })
+            .collect();
         let cut_a = fframes::svgr!(
             <g opacity={1.0 - ramp(&frame, 5.4)}>
                 <text x={cx - w / 2.0} y={cy - h / 2.0 - 28.0} font-family={MONO} font-size="24" font-weight={W_REG} fill={MUTED} opacity={ramp(&frame, 0.4)}>"cut.outer"</text>
@@ -1052,17 +1148,18 @@ impl Scene for ProductionScene {
                     <g transform={format!("translate({fx} {fy})")}>
                         <path d={poly_path(&contour_pts)} fill="#000000" opacity={0.4 * freed} transform={Transform::translate(16.0, 18.0)} />
                         <g opacity={flat_fade}>
-                            {flat_pattern(spec.w, spec.h, &PatternOpts { ret_mm: RET_MM, scale: s, cut_w: 4.0, detail: Detail::Full, mark: Some((spec.id, "FCT-01 · WP 1")), body_fill: SURFACE, cutout_fill: BG })}
+                            {flat_pattern(spec.w, spec.h, &PatternOpts { ret_mm: RET_MM, scale: s, cut_w: 4.0, detail: Detail::Full, mark: Some((spec.id, "FCT-01", "WP 1")), body_fill: SURFACE, cutout_fill: BG })}
                         </g>
                         <path d={poly_path(&contour_pts)} fill="none" stroke={CUT} stroke-width="4" stroke-dasharray={per} stroke-dashoffset={per * (1.0 - p)} />
                     </g>
-                    <g transform={format!("translate({} {}) scale({})", 30.0 * fold, 120.0 * fold, 1.0)} opacity={fold.clamp(0.0, 1.0)}>
-                        {folded_cassette(spec.w, spec.h, RET_MM, fold_scale, fold, false)}
+                    <g transform={format!("translate({} {}) scale({})", 40.0 * fold, 150.0 * fold, 1.0)} opacity={fold.clamp(0.0, 1.0)}>
+                        {folded_cassette(spec.w, spec.h, RET_MM, fold_scale, fold.clamp(0.0, 1.2), false)}
                     </g>
                     <g transform={format!("translate({} {})", px + fx, py + fy)} opacity={(1.0 - freed).max(0.15)}>
                         <circle r="26" fill={CUT} opacity="0.25" />
                         <circle r="9" fill={CUT} />
                         <circle r="3" fill={INK} />
+                        {sparks}
                     </g>
                 </g>
                 <text x={cx} y={cy + h / 2.0 + 74.0} text-anchor="middle" font-family={MONO} font-size="24" font-weight={W_REG} fill={FAINT} opacity={ramp(&frame, 4.4)}>"fold routes up 90° — the cassette takes shape"</text>
@@ -1093,11 +1190,17 @@ impl Scene for ProductionScene {
             })
             .collect();
 
-        let end_size = fit_size(&mut frame, ctx, "PerigramFacade", 84, 900);
+        let end_size = fit_size(&mut frame, ctx, "PerigramFacade", 84, 860);
         let w1 = frame
             .text_width(ctx, FontQuery { family: SANS, size: end_size, weight: W_BOLD, ..Default::default() }, "Perigram")
             .map(|w| w as f32)
             .unwrap_or(360.0);
+        // The mark spins while working, then settles into rest at the end.
+        let settle = ramp(&frame, 7.9);
+        let spin_t = t.min(7.9);
+        let spin_raw = 2.0 * std::f32::consts::PI * spin_t / (1.6 * 4.0);
+        let spin = spin_raw - (spin_raw / (std::f32::consts::FRAC_PI_2)).floor() * std::f32::consts::FRAC_PI_2;
+        let spin_settled = spin * (1.0 - settle);
         let recap = fframes::svgr!(
             <g>
                 <path d="M260 430 H1660" stroke={SURFACE_2} stroke-width="2" />
@@ -1107,7 +1210,7 @@ impl Scene for ProductionScene {
         );
         let end = fframes::svgr!(
             <g opacity={ramp(&frame, 7.4)} transform={Transform::translate(0.0, rise(&frame, 7.4, 30.0))}>
-                {logo(154.0, 660.0, 64.0, "end")}
+                {logo(154.0, 660.0, 64.0, "end", spin_settled)}
                 <text x="250" y="712" font-family={SANS} font-size={end_size} font-weight={W_BOLD} fill={INK} letter-spacing="-2">"Perigram"</text>
                 <text x={250.0 + w1 - end_size as f32 * 0.02} y="712" font-family={SANS} font-size={end_size} font-weight={W_BOLD} fill={ACCENT} letter-spacing="-2">"Facade"</text>
                 <text x="250" y="768" font-family={MONO} font-size="26" font-weight={W_REG} fill={MUTED} letter-spacing="1">"PARAMETRIC CASSETTES — DESIGN TO PRODUCTION"</text>
@@ -1115,7 +1218,7 @@ impl Scene for ProductionScene {
         );
 
         fframes::svgr!(
-            <g opacity={o}>
+            <g opacity={o} transform={camera(t, 10.0)}>
                 {scene_label("05", "PRODUCTION", 0.1, &frame)}
                 {cut_a}
                 {recap}
@@ -1149,10 +1252,7 @@ fn recap_icon_nest() -> Svgr<'static> {
     fframes::svgr!(
         <g>
             <rect x="-54" y="-34" width="108" height="68" fill={BG} stroke={SHEET_LINE} stroke-width="2" stroke-dasharray="7 4" />
-            <rect x="-48" y="-28" width="30" height="26" fill={SURFACE} stroke={CUT} stroke-width="1.5" />
-            <rect x="-12" y="-28" width="30" height="26" fill={SURFACE} stroke={CUT} stroke-width="1.5" />
-            <rect x="-48" y="2" width="30" height="26" fill={SURFACE} stroke={CUT} stroke-width="1.5" />
-            <rect x="24" y="-28" width="24" height="56" fill={SURFACE} stroke={CUT} stroke-width="1.5" transform="rotate(90 36 0)" />
+            <path d="M-48 -28 H-18 V-2 H-48 Z M-12 -28 H18 V-2 H-12 Z M-48 2 H-18 V28 H-48 Z" fill={SURFACE} stroke={CUT} stroke-width="1.5" />
         </g>
     )
 }
@@ -1161,8 +1261,7 @@ fn recap_icon_sheet() -> Svgr<'static> {
     fframes::svgr!(
         <g>
             <rect x="-54" y="-34" width="108" height="68" fill={BG} stroke={SHEET_LINE} stroke-width="2" stroke-dasharray="7 4" />
-            <rect x="-48" y="-28" width="44" height="28" fill={SURFACE} stroke={CUT} stroke-width="1.5" />
-            <rect x="4" y="-28" width="44" height="28" fill={SURFACE} stroke={CUT} stroke-width="1.5" />
+            <path d="M-48 -28 H-4 V0 H-48 Z M2 -28 H46 V0 H2 Z" fill={SURFACE} stroke={CUT} stroke-width="1.5" />
             <rect x="-30" y="14" width="60" height="26" rx="6" fill="none" stroke={ACCENT} stroke-width="2" />
             <text x="0" y="33" text-anchor="middle" font-family={MONO} font-size="18" font-weight={W_BOLD} fill={ACCENT}>"DXF"</text>
         </g>
@@ -1172,7 +1271,7 @@ fn recap_icon_sheet() -> Svgr<'static> {
 fn recap_icon_cut() -> Svgr<'static> {
     fframes::svgr!(
         <g>
-            <rect x="-32" y="-44" width="64" height="88" fill={SURFACE} stroke={CUT} stroke-width="2.5" />
+            <path d="M-32 -44 H32 V44 H-32 Z" fill={SURFACE} stroke={CUT} stroke-width="2.5" stroke-dasharray="304" stroke-dashoffset="258" />
             <circle cx="-32" cy="-44" r="10" fill={CUT} opacity="0.25" />
             <circle cx="-32" cy="-44" r="5" fill={CUT} />
         </g>
