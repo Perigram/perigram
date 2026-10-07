@@ -7,25 +7,31 @@ web embedding. Parent: [assets README](../../README.md).
 The mark is the folded axonometric cassette from
 [`public/icon.svg`](../../../public/icon.svg): the top rhombus is the face,
 the two lower parallelograms are the flanges, and the V-shaped negative space
-between them is the rib. The animation is the **cassette clamp**: both
-flanges spring up behind the face by exactly one fold depth, so the rib
-squeezes from a wide V to a tight V (the overlap hides behind the face,
-which owns the top draw slot; the face nods 1.5 units in counter-motion),
-then the clamp springs back open with a small overshoot. One rapid
-deformation in a seamless ~0.9 s loop — readable at favicon size, and the
-negative-space rib does the acting.
+between them is the rib. In 3D the face is a true square lying in the
+isometric plane; the animation is the **rotating core**: the face square
+turns in its own plane about the isometric normal. A square is 90°-periodic,
+so the projected rhombus morphs rhombus → rectangle → rhombus forever at
+constant angular velocity, and the projected vertical extent never exceeds
+the rest rhombus — the spinning face never touches the flanges or the rib
+gap. The flanges are the stator frame, the face is the rotor, and the
+semantics are one line: **spinning is working, resting is idle**.
 
 ## Source of truth
 
 `tools/generate_scene.py` owns the geometry and motion; `scene.rml` is its
 output and is committed so the project builds without Python. One metric
-drives everything — the edge length `e`; the face is a 60° rhombus, each
-flange hangs under a lower face edge at exactly one fold depth (`e/2`), and
-`public/icon.svg` is the reference for the shape.
+drives everything — the edge length `e`; the face is a 60° rhombus
+reconstructed as the 3D square with corners `(±e/2, ±e/2, 0)` projected
+through `P(x,y,z) = (0.866(x−y), 0.5(x+y) − z)`, each flange hangs under a
+lower face edge at exactly one fold depth (`e/2`), and `public/icon.svg` is
+the reference for the shape.
 
-Timelines key only shape translations, plus gradient endpoints for the idle
-light drift. **Gradients are only ever keyed as absolute endpoints.** A
-zero-length gradient (relative deltas from 0) degenerates and kills the
+Spin keyframes sit at equal angle steps on linearly distributed frames
+(constant angular velocity for `load`; eased for mount/unmount), so linear
+keyframe interpolation follows the circular arc to under 0.25%.
+
+**Gradients are only ever keyed as absolute endpoints.** A zero-length
+gradient (relative deltas from 0) degenerates and kills the
 `@rive-app/canvas` state-machine player — the direct-animation path and the
 Rive CLI tolerate it, so nothing local warns. This was found by bisection
 against the browser runtime; `tools/check_frames.py` plus the demo page
@@ -35,14 +41,14 @@ exist to catch such runtime-only breaks.
 
 | Name | Kind | Duration | Use |
 |---|---|---|---|
-| `load` | loop | 0.9 s | Loader: clamp shut with overshoot, hold, spring open, settle. |
-| `unfold` | one-shot | 0.5 s | Sidebar mount: the cassette opens — flanges drop from behind the face. |
-| `idle` | loop | 4 s | Sidebar idle: light drifts across the folded panels; geometry static. |
-| `fold` | one-shot | 0.5 s | Sidebar unmount: clamp shut. |
+| `load` | loop | 1.6 s | Loader: constant-velocity core rotation; seamless by the square's 90° symmetry. |
+| `unfold` | one-shot | 0.67 s | Sidebar mount: the rotor decelerates into alignment with a small overshoot. |
+| `idle` | loop | 4 s | Sidebar idle: light drifts across the static panels; geometry at rest. |
+| `fold` | one-shot | 0.47 s | Sidebar unmount: the rotor flings out of alignment and fades. |
 
 The default state machine `Lifecycle` chains `unfold` → `idle` (exit-time
-transition), so a mounted canvas opens from the clamped pose and holds the
-logo under a moving light with no driving code.
+transition), so a mounted canvas settles into the logo and rests under a
+moving light with no driving code.
 
 ## Build and validate
 
@@ -56,7 +62,7 @@ cp build/perigram-mark.riv ../../../public/rive/
 ```
 
 `tools/check_frames.py` pixel-samples screenshots against the expected
-phases (`open` and `clamped`). The Rive CLI installs with
+rotation phases (rest and phi angles). The Rive CLI installs with
 `curl -fsSL https://releases.rive.app/cli/install.sh | bash` — piped through
 `bash`, not `sh`: the script uses bash-only `[[ ]]`, and under `sh` its
 stream check fails open and it fetches a nonexistent `stable/manifest.json`.

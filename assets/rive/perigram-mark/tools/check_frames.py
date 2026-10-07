@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Pixel-samples rive screenshots against expected clamp phases.
+"""Pixel-samples rive screenshots against expected core-rotation phases.
 
-Validation helper for the authoring loop. Phases: open (rest, the logo)
-and clamped (flanges risen one fold depth behind the face, rib squeezed).
+Validation helper for the authoring loop. The face is the only moving part;
+flanges and rib gap never change. Phases: rest (phi=0, the logo) and
+phi45 (square corner-on: the wide rectangle, narrower than the rhombus).
 """
+import os
 import sys
 from PIL import Image
 
-E = 52.9147
-W = E * 3**0.5 / 2
-V = E / 2
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
+from generate_scene import W, V, face_screen  # noqa: E402
+
 CX, CY = 100.0, 100.0
 
 
@@ -22,37 +24,43 @@ def is_brand(px):
     return r > 140 and g < 130 and b < 90
 
 
-def main(path, expect):
+def inside(pts, p):
+    """Point-in-polygon for the projected face quad."""
+    x, y = p
+    n, inside_ = len(pts), False
+    for k in range(n):
+        x1, y1 = pts[k]
+        x2, y2 = pts[(k + 1) % n]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            inside_ = not inside_
+    return inside_
+
+
+def main(path, phi):
     img = Image.open(path).convert("RGB")
-    print(path, img.size)
+    quad = face_screen(phi)
+    print(path, f"phi={phi}")
     ok = True
-    for name, x, y, want_fill in expect:
+    checks = [("rhombus corner zone", 0.9 * W, 0.0),
+              ("rectangle corner zone", 0.6 * W, 0.55 * V),
+              ("face center", 0.0, 0.0),
+              ("left flange mid", -W + 20, V + 20),
+              ("rib gap", 0.0, V + 22)]
+    for name, x, y in checks:
         px = sample(img, x, y)
-        filled = is_brand(px)
-        status = "OK " if filled == want_fill else "FAIL"
-        if filled != want_fill:
+        want = inside(quad, (x, y)) if y <= V else (V < y < 2.2 * V and x < -10)
+        # flange zone: only the flange covers it; gap zone: nothing does
+        if name == "left flange mid":
+            want = True
+        if name == "rib gap":
+            want = False
+        got = is_brand(px)
+        status = "OK " if got == want else "FAIL"
+        if got != want:
             ok = False
-        print(f"  {status} {name:30s} ({x:+7.1f},{y:+7.1f}) want={'mark' if want_fill else 'gap':4s} got={px}")
+        print(f"  {status} {name:24s} ({x:+7.1f},{y:+7.1f}) want={'mark' if want else 'gap':4s} got={px}")
     sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":
-    OPEN = [
-        ("face center", 0, 0, True),
-        ("face top", 0, -V + 5, True),
-        ("left flange mid", -W + 20, V + 20, True),
-        ("right flange mid", W - 20, V + 20, True),
-        ("rib gap below face edge", -11.5, 32.5, False),
-        ("rib gap (below B)", 0, V + 22, False),
-        ("below mark", 0, 2.5 * V + 12, False),
-    ]
-    CLAMPED = [
-        ("face center (nodded 1.5)", 0, 1.5, True),
-        ("flange covers old gap", -11.5, 32.5, True),
-        ("mirror flange covers gap", 11.5, 32.5, True),
-        ("old flange mid now empty", -W + 20, V + 20, False),
-        ("tight notch below B", 0, V + 22, False),
-        ("face top still mark", 0, -V + 5, True),
-    ]
-    poses = {"open": OPEN, "clamped": CLAMPED}
-    main(sys.argv[2], poses[sys.argv[1]])
+    main(sys.argv[2], float(sys.argv[1]))
