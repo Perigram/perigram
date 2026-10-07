@@ -2,8 +2,11 @@
 //! `_frame_snapshots/`. The first run only creates them, so look at the PNGs before you
 //! commit them. `FFRAMES_UPDATE_SNAPSHOTS=1 cargo test` accepts intentional changes; failing
 //! frames leave `.actual.png` and `.diff.png` files.
+//!
+//! The ground-truth test pins the Rust `cut.outer` contour to the evaluator's
+//! own output (regenerate with `node video/groundtruth.mjs` from the repo root).
 use fframes::{CpuFrameRenderer, Previewer, RenderOptions, StaticMediaProvider, snapshot};
-use facade_video::{ FacadeVideoMedia, FacadeVideoVideo };
+use facade_video::{FacadeVideoMedia, FacadeVideoVideo};
 
 #[test]
 fn key_frames_match_snapshots() {
@@ -20,7 +23,7 @@ fn key_frames_match_snapshots() {
         &mut previewer,
         &mut CpuFrameRenderer::default(),
         // Settled frames: the middle of a scene, not the end of it where it fades out.
-        &["TitleScene@3s", "TemplateScene@7s", "BakeScene@7.5s", "NestScene@9s", "SheetScene@7s", "ProductionScene@7.5s"],
+        &["TitleScene@2s", "AuthorScene@3.7s", "AuthorScene@6.8s", "BakeScene@2.2s", "NestScene@4.2s", "CutScene@5.2s"],
         &snapshot::SnapshotOptions::default(),
     );
 }
