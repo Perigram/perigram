@@ -9,6 +9,22 @@
   (unfold on mount, idle breathe) — see
   [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md).
 
+### Agent Notes (2026-10-07, v6)
+
+Session `agent/rive-mark-v6-20261007`. Owner picked the walking-fold
+conveyor from a shortlist. Each flange folds flat into a tape-arm along its
+top edge and rigidly rotates 120 degrees around the shared inner corner
+(passing straight up over the face), unfolding into the opposite slot; both
+flanges swap simultaneously, alternating whole mark and sweeping tapes.
+Found and fixed during validation: a straight vertex lerp between the
+mirror poses collapses to zero width mid-sweep (rigid rotation preserves
+it), the sweep's first intermediate keyframe clobbered the flat pose on a
+rounded frame, and the flanges must be declared before the face so the
+tape paints over it mid-crossing. Validated: verify/inspect clean,
+seated/flat/sweep phases pixel-checked in CLI renders, headless chromium
+zero console errors with the loader alternating full flanges and sweeping
+tapes (748 vs ~230 brand px) and the sidebar landing seated into idle.
+
 ### Agent Notes (2026-10-07, v5)
 
 Session `agent/rive-mark-v5-20261007`. Owner review: the clamp was not

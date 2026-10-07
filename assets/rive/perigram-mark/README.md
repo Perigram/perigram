@@ -7,14 +7,14 @@ web embedding. Parent: [assets README](../../README.md).
 The mark is the folded axonometric cassette from
 [`public/icon.svg`](../../../public/icon.svg): the top rhombus is the face,
 the two lower parallelograms are the flanges, and the V-shaped negative space
-between them is the rib. In 3D the face is a true square lying in the
-isometric plane; the animation is the **rotating core**: the face square
-turns in its own plane about the isometric normal. A square is 90°-periodic,
-so the projected rhombus morphs rhombus → rectangle → rhombus forever at
-constant angular velocity, and the projected vertical extent never exceeds
-the rest rhombus — the spinning face never touches the flanges or the rib
-gap. The flanges are the stator frame, the face is the rotor, and the
-semantics are one line: **spinning is working, resting is idle**.
+between them is the rib. The animation is the **walking fold**: the cassette
+feeds itself. Each flange folds flat into a thin tape-arm along its top
+edge, the arm rigidly rotates around the shared inner corner — passing
+straight up over the face mid-sweep — and unfolds into the opposite slot.
+Both flanges swap simultaneously, so the loop alternates between the whole
+mark and the two tapes sweeping past each other across the face. There is
+always a flange's worth of material on screen; the mark reads as material
+perpetually fed through its own folds.
 
 ## Source of truth
 
@@ -41,14 +41,16 @@ exist to catch such runtime-only breaks.
 
 | Name | Kind | Duration | Use |
 |---|---|---|---|
-| `load` | loop | 1.6 s | Loader: constant-velocity core rotation; seamless by the square's 90° symmetry. |
-| `unfold` | one-shot | 0.67 s | Sidebar mount: the rotor decelerates into alignment with a small overshoot. |
+| `load` | loop | 1.2 s | Loader: whole mark, both tapes fold-sweep-unfold into each other's slots, repeat. |
+| `unfold` | one-shot | 0.3 s | Sidebar mount: one simultaneous sweep lands both flanges. |
 | `idle` | loop | 4 s | Sidebar idle: light drifts across the static panels; geometry at rest. |
-| `fold` | one-shot | 0.47 s | Sidebar unmount: the rotor flings out of alignment and fades. |
+| `fold` | one-shot | 0.23 s | Sidebar unmount: fold to tape and fade. |
 
 The default state machine `Lifecycle` chains `unfold` → `idle` (exit-time
-transition), so a mounted canvas settles into the logo and rests under a
-moving light with no driving code.
+transition), so a mounted canvas sweeps its flanges in and rests under a
+moving light with no driving code. The flanges are declared before the face
+so the sweeping tape-arm paints over it; at rest the rib gap keeps them
+from ever overlapping.
 
 ## Build and validate
 
@@ -62,7 +64,7 @@ cp build/perigram-mark.riv ../../../public/rive/
 ```
 
 `tools/check_frames.py` pixel-samples screenshots against the expected
-rotation phases (rest and phi angles). The Rive CLI installs with
+phases (`seated`, `flat`, `sweep`). The Rive CLI installs with
 `curl -fsSL https://releases.rive.app/cli/install.sh | bash` — piped through
 `bash`, not `sh`: the script uses bash-only `[[ ]]`, and under `sh` its
 stream check fails open and it fetches a nonexistent `stable/manifest.json`.

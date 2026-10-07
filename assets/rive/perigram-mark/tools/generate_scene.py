@@ -14,19 +14,14 @@ length e. Face is a 60-degree rhombus (L, T, R, B); each flange is the
 parallelogram hanging under a lower face edge; the V-shaped negative space
 between the flanges is the rib.
 
-In 3D the face is a true square lying in the isometric plane (corners at
-(+/-e/2, +/-e/2, 0); screen = (0.866(x-y), 0.5(x+y) - z)). Motion is the
-rotating core: the face square turns in its own plane about the isometric
-normal. A square is 90-degree periodic, so the projected rhombus morphs
-rhombus -> rectangle -> rhombus forever, and the projected vertical extent
-never exceeds the rest rhombus (max half-height V at rest) — the spinning
-face never touches the flanges or the rib gap. The flanges are the stator
-frame, the face is the rotor; spinning reads as working, resting as idle.
-
-Keyframes sit at equal angle steps on linearly distributed frames (constant
-angular velocity for `load`; eased for the settle in and fling out), so
-linear keyframe interpolation follows the circular arc to within
-1 - cos(step/2) < 0.25%.
+Motion is the walking fold: the cassette feeds itself. Each flange folds
+flat into a thin tape-arm along its top edge, the arm sweep-glides through
+the rib gap to the other side — the per-vertex glide is a pivot around the
+shared inner corner, so the arm sweeps like a wiper and points straight
+down mid-transit — and unfolds into the opposite slot. Both flanges swap
+simultaneously, so the loop alternates: whole mark, two tapes sweeping
+through the throat, whole mark. There is always a full flange's worth of
+material visible; the mark never dissolves.
 
 Gradient endpoints are only ever keyed absolute (base + delta): keying them
 relative to 0 degenerates the gradient and kills the @rive-app/canvas
@@ -41,6 +36,7 @@ E = 52.9147                     # edge length
 W = E * math.sqrt(3) / 2        # half horizontal diagonal
 V = E / 2                       # half vertical diagonal
 M = W / 2                       # flange inner step
+FLAT = 0.12                     # tape-arm thickness as a depth fraction
 
 CX, CY = 100.0, 100.0           # artboard center
 
@@ -54,26 +50,38 @@ GRAD_START = (-68.0, -74.3)     # brand gradient, mark-global direction
 GRAD_END = (68.7, 18.8)
 RED, ORANGE = "FFFF0000", "FFFF6600"
 
-# Face corners in 3D (isometric plane, z = 0), same order as FACE.
-FACE_3D = [(-E / 2, E / 2), (-E / 2, -E / 2), (E / 2, -E / 2), (E / 2, E / 2)]
-
-# Animated face vertex ids (paths of the flanges carry no ids).
-FACE_VERTS = ["0:51", "0:52", "0:53", "0:54"]
+# Animated flange vertex ids (A, Bf, C1, D1 order; face has none).
+FL_VERTS = ["0:51", "0:52", "0:53", "0:54"]
+FR_VERTS = ["0:61", "0:62", "0:63", "0:64"]
 FACE_ID, FLANGE_L_ID, FLANGE_R_ID = "0:10", "0:15", "0:20"
 GRAD_IDS = ["0:13", "0:18", "0:23"]
 
-SPIN_STEP = 7.5                 # degrees between keyframes
+
+def mirror(pts):
+    return [(-x, y) for x, y in pts]
 
 
-def face_screen(phi_deg):
-    """Face vertex screen positions (rhombus-local) at yaw phi."""
-    phi = math.radians(phi_deg)
-    pts = []
-    for x, y in FACE_3D:
-        xr = x * math.cos(phi) - y * math.sin(phi)
-        yr = x * math.sin(phi) + y * math.cos(phi)
-        pts.append((math.sqrt(3) / 2 * (xr - yr), 0.5 * (xr + yr)))
-    return pts
+def rot(pts, pivot, deg):
+    """Rigid rotation of a pose around a pivot (screen coords, y down)."""
+    a = math.radians(deg)
+    c, s = math.cos(a), math.sin(a)
+    px, py = pivot
+    return [(px + (x - px) * c - (y - py) * s,
+             py + (x - px) * s + (y - py) * c) for x, y in pts]
+
+
+def flat_pose(pts):
+    """Collapse the flange onto its top edge (A-Bf), keeping FLAT depth."""
+    a, bf, c1, d1 = pts
+    return [a, bf,
+            (bf[0] + FLAT * (c1[0] - bf[0]), bf[1] + FLAT * (c1[1] - bf[1])),
+            (a[0] + FLAT * (d1[0] - a[0]), a[1] + FLAT * (d1[1] - a[1]))]
+
+
+SEATED_L, SEATED_R = FLANGE, mirror(FLANGE)
+FLAT_L, FLAT_R = flat_pose(SEATED_L), flat_pose(SEATED_R)
+PIVOT = (0.0, 2 * V)          # shared inner corner both arms sweep around
+SWEEP = 120.0                  # degrees; +60 is straight up (over the face)
 
 
 # --- eases -------------------------------------------------------------------
@@ -86,26 +94,12 @@ def ease_out_cubic(t):
     return 1 - (1 - t) ** 3
 
 
-def ease_in_cubic(t):
-    return t ** 3
-
-
 def ease_in_out_sine(t):
     return -(math.cos(math.pi * t) - 1) / 2
 
 
-# --- animation channels ------------------------------------------------------
-# {(object_id, prop_key): [(frame, value)]}; props 24/25 are vertex x/y.
-
-def spin_track(ch, f0, dur, phi0, phi1, ease=lambda t: t):
-    steps = max(2, round(abs(phi1 - phi0) / SPIN_STEP))
-    for i in range(steps + 1):
-        t = i / steps
-        f = f0 + round(ease(t) * dur)
-        for vid, (x, y) in zip(FACE_VERTS, face_screen(phi0 + (phi1 - phi0) * t)):
-            setk(ch, (vid, 24), f, x)
-            setk(ch, (vid, 25), f, y)
-
+# --- keyframe channels -------------------------------------------------------
+# {(vertex_id, prop_key): [(frame, value)]}; props 24/25 are vertex x/y.
 
 def setk(ch, objkey, frame, value):
     lst = ch.setdefault(objkey, [])
@@ -115,29 +109,70 @@ def setk(ch, objkey, frame, value):
         lst.append((frame, value))
 
 
+def morph(ch, verts, f0, dur, p0, p1, ease=ease_in_out_cubic, steps=4):
+    """Vertex-morph one flange between two poses over dur frames."""
+    for i in range(steps + 1):
+        t = i / steps
+        f = f0 + round(ease(t) * dur)
+        for vid, (x0, y0), (x1, y1) in zip(verts, p0, p1):
+            setk(ch, (vid, 24), f, x0 + (x1 - x0) * t)
+            setk(ch, (vid, 25), f, y0 + (y1 - y0) * t)
+
+
+def pose(ch, verts, frame, p):
+    for vid, (x, y) in zip(verts, p):
+        setk(ch, (vid, 24), frame, x)
+        setk(ch, (vid, 25), frame, y)
+
+
+def conveyor(ch, f0, left):
+    """One seated -> sweep -> seated half of the walking-fold cycle.
+
+    The flange folds flat into a tape-arm, the arm rigidly rotates around
+    the shared inner corner (passing straight up over the face at +60
+    degrees), then unfolds into the opposite slot.
+    """
+    fl = FL_VERTS if left else FR_VERTS
+    seat0, flat0 = (SEATED_L, FLAT_L) if left else (SEATED_R, FLAT_R)
+    seat1 = SEATED_R if left else SEATED_L
+    pose(ch, fl, f0, seat0)
+    morph(ch, fl, f0, 5, seat0, flat0)                        # fold to tape
+    steps = 6
+    for i in range(steps + 1):                          # rigid sweep
+        t = i / steps
+        f = f0 + 5 + (max(1, round(ease_in_out_cubic(t) * 8)) if i else 0)
+        pose(ch, fl, f, rot(flat0, PIVOT, SWEEP * t if left else -SWEEP * t))
+    end = rot(flat0, PIVOT, SWEEP if left else -SWEEP)
+    morph(ch, fl, f0 + 13, 5, end, seat1, ease_out_cubic)     # unfold, seat
+
+
 def anim_load():
-    """Constant-velocity core rotation; square symmetry makes it seamless."""
+    """Perpetual self-feeding: whole mark, both tapes sweep-swap, whole mark."""
     ch = {}
-    spin_track(ch, 0, 96, 0.0, 360.0)
-    return ch, 96, "loop"
+    conveyor(ch, 0, left=True)
+    conveyor(ch, 0, left=False)
+    conveyor(ch, 36, left=True)
+    conveyor(ch, 36, left=False)
+    return ch, 72, "loop"
 
 
 def anim_unfold():
-    """Mount: the rotor decelerates into alignment with a small overshoot."""
+    """Mount: one simultaneous sweep lands both flanges in place."""
     ch = {}
-    spin_track(ch, 0, 30, 135.0, -10.0, ease_out_cubic)
-    spin_track(ch, 30, 10, -10.0, 0.0, ease_in_out_cubic)
-    return ch, 40, "oneShot"
+    conveyor(ch, 0, left=True)
+    conveyor(ch, 0, left=False)
+    return ch, 18, "oneShot"
 
 
 def anim_fold():
-    """Unmount: the rotor flings out of alignment and fades."""
+    """Unmount: fold to tape and fade."""
     ch = {}
-    spin_track(ch, 0, 26, 0.0, 90.0, ease_in_cubic)
-    for sid in (FACE_ID, FLANGE_L_ID, FLANGE_R_ID):
-        setk(ch, (sid, 18), 8, 1.0)
-        setk(ch, (sid, 18), 26, 0.0)
-    return ch, 28, "oneShot"
+    morph(ch, FL_VERTS, 0, 5, SEATED_L, FLAT_L)
+    morph(ch, FR_VERTS, 0, 5, SEATED_R, FLAT_R)
+    for sid in (FLANGE_L_ID, FLANGE_R_ID):
+        setk(ch, (sid, 18), 5, 1.0)
+        setk(ch, (sid, 18), 13, 0.0)
+    return ch, 14, "oneShot"
 
 
 def anim_idle():
@@ -211,12 +246,15 @@ def build_rml():
         ch, dur, loop = builder()
         animations.append(animation_rml(name, aid, ch, dur, loop))
 
+    # Flanges declared first paint on top: the sweeping tape-arm
     shapes = (
-        shape_rml("Face", "0:10", "0:11", "0:12", "0:13", FACE, True,
-                  FACE_VERTS),
-        shape_rml("FlangeL", "0:15", "0:16", "0:17", "0:18", FLANGE, True),
-        shape_rml("FlangeR", "0:20", "0:21", "0:22", "0:23",
-                  [(-x, y) for x, y in FLANGE], False),
+    # must stay visible while it crosses the face. At rest the
+    # flanges never overlap the face (the rib gap separates them).
+        shape_rml("FlangeL", "0:15", "0:16", "0:17", "0:18", FLANGE, True,
+                  FL_VERTS),
+        shape_rml("FlangeR", "0:20", "0:21", "0:22", "0:23", mirror(FLANGE),
+                  False, FR_VERTS),
+        shape_rml("Face", "0:10", "0:11", "0:12", "0:13", FACE, True),
     )
 
     return f'''<Rive version="1" kind="fragment">
@@ -249,14 +287,19 @@ def build_rml():
 
 # --- preview SVGs ------------------------------------------------------------
 
-def preview_svg(out, phi):
+def preview_svg(out, mode):
     def poly(pts, fill):
         p = " ".join(f"{CX + x:.1f},{CY + y:.1f}" for x, y in pts)
         return f'<polygon points="{p}" fill="{fill}"/>'
 
-    shapes = [poly(face_screen(phi), "#ff5a1e"),
-              poly(FLANGE, "#e63600"),
-              poly([(-x, y) for x, y in FLANGE], "#e63600")]
+    face = poly(FACE, "#ff5a1e")
+    if mode == "seated":
+        shapes = [face, poly(SEATED_L, "#e63600"), poly(SEATED_R, "#e63600")]
+    elif mode == "flat":
+        shapes = [face, poly(FLAT_L, "#e63600"), poly(FLAT_R, "#e63600")]
+    else:  # mid-sweep: the arm stands vertical over the face
+        mid = rot(FLAT_L, PIVOT, SWEEP / 2)
+        shapes = [face, poly(mid, "#e63600")]
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" '
            f'viewBox="0 0 200 200"><rect width="200" height="200" fill="#101010"/>'
            f'{"".join(shapes)}</svg>')
@@ -270,9 +313,8 @@ def main():
         f.write(build_rml())
     prev = os.path.join(root, "build", "previews")
     os.makedirs(prev, exist_ok=True)
-    for label, phi in (("phi0", 0.0), ("phi22", 22.5), ("phi45", 45.0),
-                       ("phi67", 67.5)):
-        preview_svg(os.path.join(prev, f"{label}.svg"), phi)
+    for mode in ("seated", "flat", "mid"):
+        preview_svg(os.path.join(prev, f"{mode}.svg"), mode)
     print("wrote scene.rml and build/previews/*.svg")
 
 
