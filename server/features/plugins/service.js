@@ -8,6 +8,7 @@
 // Slice 1 carries declaration payloads only: connectors (worker-protocol
 // executors), upgrades, and cross-org execution are later slices.
 import { createError } from 'h3';
+import { randomBytes } from 'node:crypto';
 import * as repository from './repository.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
@@ -16,6 +17,12 @@ import { countInstancesOfType } from '../instances/count.js';
 import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
+import { enqueueTask } from '../../core/tasks/service.js';
+import { composePackServices } from '~/server/packs/declarations.js';
+
+// Connector command ids: plugin.<pluginId>.<serviceId>; the install's
+// claim queue is plugin.<pluginId>@<organizationId>.
+const PLUGIN_COMMAND_PATTERN = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 
 export async function listCatalog() {
   const listings = await repository.listCatalog();
@@ -40,6 +47,12 @@ export async function install({ organizationId, pluginId, auth = {} }) {
   }
   const types = listing.declarations?.types || [];
   if (!types.length) throw createError({ statusCode: 400, message: 'Plugin declares no types' });
+  const services = (listing.declarations?.services || []).filter(service => service?.id && service?.signature);
+  for (const service of services) {
+    if (!PLUGIN_COMMAND_PATTERN.test(`plugin.${listing.pluginId}.${service.id}`)) {
+      throw createError({ statusCode: 400, message: `Plugin service id ${service.id} is not a slug` });
+    }
+  }
 
   // Trial composition on the live org view: every plugin type must define
   // cleanly (no shadowing of system, installed, or org ids) and introduce
@@ -77,7 +90,9 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types }
+    declarations: { types },
+    services,
+    connectorToken: mintConnectorToken()
   });
   invalidateInstanceDeclarations(String(organizationId));
   await ensureInstanceIndexes(registry.resolveView(organizationId));
@@ -89,7 +104,8 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    types: types.map(typeSummary)
+    types: types.map(typeSummary),
+    services: services.map(serviceSummary)
   };
 }
 
@@ -141,7 +157,8 @@ function serializeListing(listing = {}) {
     name: listing.name || listing.pluginId,
     description: listing.description || '',
     version: listing.version || '1',
-    types: (listing.declarations?.types || []).map(typeSummary)
+    types: (listing.declarations?.types || []).map(typeSummary),
+    services: (listing.declarations?.services || []).map(serviceSummary)
   };
 }
 
@@ -151,12 +168,141 @@ function serializeInstall(install = {}) {
     name: install.name || install.pluginId,
     version: install.version || '1',
     installedAt: install.installedAt,
-    types: (install.declarations?.types || []).map(typeSummary)
+    types: (install.declarations?.types || []).map(typeSummary),
+    services: (install.services || []).map(serviceSummary)
   };
 }
 
 function typeSummary(type = {}) {
   return { id: type.id, label: type.label || null, class: type.class || null };
+}
+
+function serviceSummary(service = {}) {
+  return { id: service.id, label: service.render?.label || service.label || service.id };
+}
+
+function mintConnectorToken() {
+  return randomBytes(24).toString('base64url');
+}
+
+// --- Connector services (marketplace SPEC: services execute on external
+// executors through the worker claim protocol) ---
+
+// Service-species records for the projected domain: the palette,
+// compiler, and designer treat them exactly like pack services. The
+// command id and service id are the same plugin-qualified id.
+export async function servicesForOrganization(organizationId) {
+  const installs = await repository.listInstallsByOrganization(organizationId);
+  const services = [];
+  for (const install of installs) {
+    for (const service of install.services || []) {
+      const id = `plugin.${install.pluginId}.${service.id}`;
+      services.push({
+        id,
+        species: 'service',
+        command: id,
+        group: install.name || install.pluginId,
+        signature: service.signature,
+        render: service.render || { label: service.label || service.id }
+      });
+    }
+  }
+  return services;
+}
+
+// The one service list the projected-domain consumers resolve: mounted
+// pack services plus the organization's installed plugin services.
+export async function packServicesForOrganization(organizationId) {
+  return [...composePackServices(), ...await servicesForOrganization(organizationId)];
+}
+
+export async function commandDefinitionFor(commandId, auth = {}) {
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+  const install = await installForCommand(commandId, organizationId);
+  if (!install) return null;
+  return {
+    id: commandId,
+    service: `plugin.${install.pluginId}`,
+    action: 'run',
+    plugin: true
+  };
+}
+
+export async function executeConnectorService(command, { parameters, auth = {} } = {}) {
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+  const install = await installForCommand(command.id, organizationId);
+  if (!install) {
+    throw createError({ statusCode: 404, message: `Command ${command.id} is not installed for this organization` });
+  }
+  const run = await enqueueTask(command.id, {
+    parameters: { value: parameters ?? null }
+  }, auth, {
+    definition: taskContractFor(command.id, install, String(organizationId)),
+    workerType: `plugin.${install.pluginId}@${organizationId}`
+  });
+  // The async boundary: the command result carries the enqueued run, so
+  // a waiting process invocation parks until the connector completes it.
+  return { tasks: [run] };
+}
+
+export async function taskDefinitionFor(taskId, organizationId) {
+  if (!organizationId) return null;
+  const install = await installForCommand(taskId, organizationId);
+  if (!install) return null;
+  return taskContractFor(taskId, install, String(organizationId));
+}
+
+function taskContractFor(taskId, install, organizationId) {
+  return {
+    id: taskId,
+    service: `plugin.${install.pluginId}`,
+    executor: { workerType: `plugin.${install.pluginId}@${organizationId}` },
+    input: {
+      entities: [],
+      // The whole service input record rides one passthrough parameter;
+      // the task runtime validates only declared parameter fields.
+      parameters: [{ name: 'value' }]
+    },
+    output: {}
+  };
+}
+
+async function installForCommand(commandId, organizationId) {
+  const match = String(commandId || '').match(PLUGIN_COMMAND_PATTERN);
+  if (!match || !organizationId) return null;
+  const install = await repository.findInstall(organizationId, match[1]);
+  if (!install) return null;
+  return (install.services || []).some(service => service.id === match[2]) ? install : null;
+}
+
+// The connector panel data: the token authorizes the publisher's
+// executor to claim and complete this install's runs only.
+export async function connectorInfo({ organizationId, pluginId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  return {
+    pluginId: install.pluginId,
+    token: install.connectorToken || null,
+    workerType: `plugin.${install.pluginId}@${organizationId}`,
+    endpoints: {
+      claim: '/api/tasks/claim',
+      heartbeat: '/api/tasks/{runId}/heartbeat',
+      complete: '/api/tasks/{runId}/complete',
+      fail: '/api/tasks/{runId}/fail'
+    }
+  };
+}
+
+export async function regenerateConnectorToken({ organizationId, pluginId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  const token = mintConnectorToken();
+  await repository.setConnectorToken(organizationId, pluginId, token);
+  return { pluginId: install.pluginId, token };
 }
 
 function assertSameOrganization(organizationId, auth = {}) {

@@ -2,7 +2,7 @@ import { requireAuth } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import { facadeDomain } from '~/packages/facade/src/index.js';
-import { composePackServices } from '~/server/packs/declarations.js';
+import { packServicesForOrganization } from '~/server/features/plugins/service.js';
 import { compileRegistryForOrganization } from '~/server/features/cts-types/service.js';
 import { projectEntityProcessCapabilities } from '~/packages/processes/src/index.js';
 
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   const organizationId = resolveOrganizationId(auth);
   const view = await compileRegistryForOrganization(organizationId);
   const domain = projectDomainFromView(view, organizationId, facadeDomain, {
-    packServices: composePackServices()
+    packServices: await packServicesForOrganization(organizationId)
   });
 
   // Resolver-aware bindings: every entity in the projected view resolves

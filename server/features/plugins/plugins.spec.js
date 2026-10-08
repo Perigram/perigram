@@ -13,19 +13,37 @@ vi.mock('../cts-types/repository.js', () => ({
   deleteByTypeId: vi.fn()
 }));
 
+vi.mock('../../core/tasks/service.js', () => ({
+  enqueueTask: vi.fn(async (taskId, input, auth, options) => ({
+    _id: 'run-1',
+    taskId,
+    input,
+    workerType: options?.workerType,
+    status: 'QUEUED'
+  }))
+}));
+
 vi.mock('./repository.js', () => ({
   listCatalog: vi.fn(async () => []),
   findCatalogByPluginId: vi.fn(async () => null),
   listInstallsByOrganization: vi.fn(async () => []),
   findInstall: vi.fn(async () => null),
+  findInstallByConnectorToken: vi.fn(async () => null),
   createInstall: vi.fn(async () => 'install-1'),
   deleteInstall: vi.fn(),
+  setConnectorToken: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null)
 }));
 
 import * as repository from './repository.js';
-import { install, uninstall, listInstalled } from './service.js';
+import * as typeStore from '../cts-types/repository.js';
+import {
+  install, uninstall, listInstalled, servicesForOrganization,
+  packServicesForOrganization, commandDefinitionFor, executeConnectorService,
+  regenerateConnectorToken
+} from './service.js';
+import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
@@ -40,8 +58,24 @@ const coatingListing = {
   declarations: {
     types: [
       { id: 'coating', class: 'item', label: 'Coating', fields: { code: { base: 'string' } } }
+    ],
+    services: [
+      {
+        id: 'match',
+        label: 'Coating match',
+        signature: { input: { base: 'json' }, output: { base: 'json' } }
+      }
     ]
   }
+};
+
+const coatingInstall = {
+  organizationId: ORG,
+  pluginId: 'coatings',
+  name: 'Coatings',
+  version: '2',
+  declarations: coatingListing.declarations,
+  services: coatingListing.declarations.services
 };
 
 beforeEach(() => {
@@ -51,6 +85,8 @@ beforeEach(() => {
   repository.findInstall.mockResolvedValue(null);
   repository.listInstallsByOrganization.mockResolvedValue([]);
   repository.findCatalogByPluginId.mockResolvedValue(null);
+  typeStore.findByTypeId.mockResolvedValue(null);
+  typeStore.listByOrganization.mockResolvedValue([]);
 });
 
 describe('plugin installs', () => {
@@ -62,7 +98,7 @@ describe('plugin installs', () => {
       organizationId: ORG,
       pluginId: 'coatings',
       version: '2',
-      declarations: coatingListing.declarations
+      declarations: { types: coatingListing.declarations.types }
     }));
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
   });
@@ -128,11 +164,93 @@ describe('plugin installs', () => {
       name: 'Coatings',
       version: '2',
       installedAt: new Date('2026-10-08T00:00:00.000Z'),
-      declarations: coatingListing.declarations
+      declarations: coatingListing.declarations,
+      services: coatingListing.declarations.services
     }]);
     const installed = await listInstalled({ organizationId: ORG, auth: AUTH });
     expect(installed).toHaveLength(1);
     expect(installed[0]).toMatchObject({ pluginId: 'coatings', name: 'Coatings', version: '2' });
     expect(installed[0].types).toEqual([{ id: 'coating', label: 'Coating', class: 'item' }]);
+    expect(installed[0].services).toEqual([{ id: 'match', label: 'Coating match' }]);
+  });
+});
+
+describe('connector services', () => {
+  beforeEach(() => {
+    repository.listInstallsByOrganization.mockResolvedValue([coatingInstall]);
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? coatingInstall : null
+    ));
+  });
+
+  it('installs services beside types and mints a connector token', async () => {
+    repository.findInstall.mockResolvedValue(null);
+    repository.listInstallsByOrganization.mockResolvedValue([]);
+    repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
+    const result = await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(result.services).toEqual([{ id: 'match', label: 'Coating match' }]);
+    const persisted = repository.createInstall.mock.calls[0][0];
+    expect(persisted.services).toEqual(coatingListing.declarations.services);
+    expect(persisted.connectorToken).toMatch(/^[A-Za-z0-9_-]{32}$/);
+  });
+
+  it('refuses a service id that is not a slug', async () => {
+    repository.findInstall.mockResolvedValue(null);
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        types: coatingListing.declarations.types,
+        services: [{ id: 'Not A Slug', signature: { input: { base: 'json' }, output: { base: 'json' } } }]
+      }
+    });
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('composes installed services as plugin-qualified species records', async () => {
+    const services = await servicesForOrganization(ORG);
+    expect(services).toHaveLength(1);
+    expect(services[0]).toMatchObject({
+      id: 'plugin.coatings.match',
+      species: 'service',
+      command: 'plugin.coatings.match',
+      group: 'Coatings'
+    });
+    const merged = await packServicesForOrganization(ORG);
+    expect(merged.some(service => service.id === 'nesting.solve')).toBe(true);
+    expect(merged.some(service => service.id === 'plugin.coatings.match')).toBe(true);
+  });
+
+  it('resolves the command definition only for the installing organization', async () => {
+    const command = await commandDefinitionFor('plugin.coatings.match', AUTH);
+    expect(command).toMatchObject({ id: 'plugin.coatings.match', service: 'plugin.coatings', plugin: true });
+    const foreign = await commandDefinitionFor('plugin.coatings.match', { userId: 'u2', organizationId: 'org-2' });
+    expect(foreign).toBeNull();
+  });
+
+  it('executes a connector service as a scoped queued run', async () => {
+    const result = await executeConnectorService(
+      { id: 'plugin.coatings.match', service: 'plugin.coatings' },
+      { parameters: { shade: 'matte' }, auth: AUTH }
+    );
+    expect(result.tasks).toHaveLength(1);
+    expect(enqueueTask).toHaveBeenCalledWith(
+      'plugin.coatings.match',
+      { parameters: { value: { shade: 'matte' } } },
+      AUTH,
+      expect.objectContaining({
+        workerType: `plugin.coatings@${ORG}`,
+        definition: expect.objectContaining({
+          id: 'plugin.coatings.match',
+          executor: { workerType: `plugin.coatings@${ORG}` }
+        })
+      })
+    );
+  });
+
+  it('regenerates the connector token', async () => {
+    const result = await regenerateConnectorToken({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(result.token).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    expect(repository.setConnectorToken).toHaveBeenCalledWith(ORG, 'coatings', result.token);
   });
 });

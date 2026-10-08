@@ -3373,6 +3373,14 @@
     "installConfirmIntro": "This adds to your organization:",
     "installedToast": "Plugin installed",
     "uninstalledToast": "Plugin removed",
-    "uninstallConfirm": "Remove this plugin from the organization? Its types must have no live data."
+    "uninstallConfirm": "Remove this plugin from the organization? Its types must have no live data.",
+    "services": "Services",
+    "connector": "Connector",
+    "token": "Token",
+    "endpoints": "Endpoints",
+    "copy": "Copy",
+    "copied": "Copied",
+    "regenerate": "Regenerate",
+    "tokenRegenerated": "Token regenerated"
   }
 }

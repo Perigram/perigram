@@ -1,4 +1,11 @@
 import { describe, expect, it } from 'vitest';
+
+vi.mock('../plugins/repository.js', () => ({
+  listInstallsByOrganization: vi.fn(async () => []),
+  listDeclarationsByOrganization: vi.fn(async () => []),
+  findDeclarationByTypeId: vi.fn(async () => null),
+  findInstallByConnectorToken: vi.fn(async () => null)
+}));
 import { compileActiveProcessRuntime, resolveCompiledProducerOutputWorkflow } from './runtime.js';
 
 const compiled = {

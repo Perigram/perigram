@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   organizationService: { getProcessConfiguration: vi.fn() }
 }));
+vi.mock('../plugins/repository.js', () => ({
+  listInstallsByOrganization: vi.fn(async () => []),
+  listDeclarationsByOrganization: vi.fn(async () => []),
+  findDeclarationByTypeId: vi.fn(async () => null),
+  findInstallByConnectorToken: vi.fn(async () => null)
+}));
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
   const pack = await import('~/packages/cts/src/pack/cnc.js');

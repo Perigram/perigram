@@ -8,7 +8,9 @@ import { processEffects, processEvents } from '../effects/service.js';
 const TERMINAL_STATUSES = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
 
 export async function enqueueTask(taskId, input = {}, auth = {}, options = {}) {
-  const task = getTaskDefinition(taskId);
+  // Runtime-declared contracts (plugin connectors) pass their definition;
+  // static registry tasks resolve as before.
+  const task = options.definition || getTaskDefinition(taskId);
   if (!task) throw createError({ statusCode: 400, message: `Unknown task: ${taskId}` });
   const normalizedInput = normalizeTaskInput(task, input);
   const existing = await repository.findByIdempotencyKey(taskId, options.idempotencyKey);
@@ -18,7 +20,7 @@ export async function enqueueTask(taskId, input = {}, auth = {}, options = {}) {
     taskId,
     service: task.service,
     executor: task.executor || null,
-    workerType: task.executor?.workerType || task.executor?.target || null,
+    workerType: options.workerType || task.executor?.workerType || task.executor?.target || null,
     status: task.status?.queued || 'QUEUED',
     input: normalizedInput,
     auth: sanitizeAuth(auth),
@@ -94,7 +96,7 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   requireClaim(run, claimToken);
-  const task = getTaskDefinition(run.taskId);
+  const task = await resolveTaskDefinitionFor(run);
   const output = createTaskResult({ taskId: run.taskId, ...result, raw: result });
   const effectContext = {
     auth: run.auth || {},
@@ -142,7 +144,7 @@ export async function failTaskRun(id, error, claimToken = null) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   requireClaim(run, claimToken);
-  const task = getTaskDefinition(run.taskId);
+  const task = await resolveTaskDefinitionFor(run);
   const retryable = !error?.statusCode || error.statusCode >= 500;
   const shouldRetry = retryable && (run.attempts || 0) < (run.maxAttempts || task?.retry?.maxAttempts || 3);
   if (shouldRetry) {
@@ -220,6 +222,18 @@ export async function listTaskRuns(filter = {}) {
 
 export function getTaskDefinition(taskId) {
   return getAppRegistry().getTaskDefinition(taskId);
+}
+
+// Plugin connector tasks carry their contract in the install snapshot,
+// not the static registry: resolve through the plugins feature when the
+// registry misses (the organization rides the run's sanitized auth).
+// Dynamic import keeps the module graph acyclic — the plugins service
+// imports this runtime's enqueueTask.
+async function resolveTaskDefinitionFor(run) {
+  const task = getTaskDefinition(run.taskId);
+  if (task) return task;
+  const { taskDefinitionFor } = await import('../../features/plugins/service.js');
+  return await taskDefinitionFor(run.taskId, run.auth?.organizationId);
 }
 
 export function listTaskDefinitions() {

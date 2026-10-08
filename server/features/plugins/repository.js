@@ -48,6 +48,20 @@ export async function findInstall(organizationId, pluginId) {
   });
 }
 
+export async function findInstallByConnectorToken(token) {
+  const db = await connectDB();
+  if (!token) return null;
+  return await db.collection(INSTALLS_COLLECTION).findOne({ connectorToken: String(token) });
+}
+
+export async function setConnectorToken(organizationId, pluginId, connectorToken) {
+  const db = await connectDB();
+  await db.collection(INSTALLS_COLLECTION).updateOne(
+    { organizationId: String(organizationId), pluginId: String(pluginId) },
+    { $set: { connectorToken, tokenRotatedAt: new Date() } }
+  );
+}
+
 export async function createInstall(install) {
   const db = await connectDB();
   const result = await db.collection(INSTALLS_COLLECTION).insertOne({

@@ -7,7 +7,7 @@ import {
   resolveScreens
 } from '~/packages/processes/src/index.js';
 import { facadeDomain } from '~/packages/facade/src/index.js';
-import { composePackServices } from '~/server/packs/declarations.js';
+import { packServicesForOrganization } from '~/server/features/plugins/service.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { compileClientBundle, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { projectManifestAction, projectUiAction, projectUiScreen } from '~/packages/processes/src/ui-contract-projection.js';
@@ -58,7 +58,7 @@ export async function getActiveCompiledProcess(organizationId) {
 async function getProjectedDomainFor(organizationId) {
   const registry = await compileRegistryForOrganization(organizationId);
   return projectDomainFromView(registry, organizationId, facadeDomain, {
-    packServices: composePackServices()
+    packServices: await packServicesForOrganization(organizationId)
   });
 }
 

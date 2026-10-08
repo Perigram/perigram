@@ -37,11 +37,18 @@ const fail = message => {
   process.exit(1);
 };
 if (!listing.pluginId || typeof listing.pluginId !== 'string') fail('pluginId is required');
+if (!/^[a-z0-9-]+$/.test(listing.pluginId)) fail('pluginId must be a slug');
 if (!listing.name || typeof listing.name !== 'string') fail('name is required');
 const types = listing.declarations?.types;
 if (!Array.isArray(types) || !types.length) fail('declarations.types must be a non-empty array');
 for (const type of types) {
   if (!type?.id || !type?.class) fail(`every type needs id and class (got ${JSON.stringify(type?.id)})`);
+}
+for (const service of listing.declarations?.services || []) {
+  if (!/^[a-z0-9-]+$/.test(service?.id || '')) fail(`service id must be a slug (got ${JSON.stringify(service?.id)})`);
+  if (!service?.signature?.input || !service?.signature?.output) {
+    fail(`service ${service?.id} needs a signature with input and output`);
+  }
 }
 
 const db = await connectDB();

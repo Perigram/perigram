@@ -44,7 +44,7 @@ import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { facadeDomain } from '~/packages/facade/src/index.js';
-import { composePackServices } from '~/server/packs/declarations.js';
+import { packServicesForOrganization } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   applyStatusMigrations,
@@ -2065,7 +2065,7 @@ function getDomain() {
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
   return projectDomainFromView(registry, organizationId, getDomain(), {
-    packServices: composePackServices()
+    packServices: await packServicesForOrganization(organizationId)
   });
 }
 

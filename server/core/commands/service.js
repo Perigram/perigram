@@ -9,7 +9,14 @@ import * as billingService from '../../features/billing/service.js';
 
 export async function executeCommand(commandId, input = {}, auth = {}) {
   const registry = getAppRegistry();
-  const command = registry.getCommandDefinition(commandId);
+  let command = registry.getCommandDefinition(commandId);
+  if (!command) {
+    // Plugin connector services declare their command on the install
+    // snapshot (marketplace SPEC); the registry stays static. Dynamic
+    // import keeps the module graph acyclic.
+    const { commandDefinitionFor } = await import('../../features/plugins/service.js');
+    command = await commandDefinitionFor(commandId, auth);
+  }
   if (!command) throw createError({ statusCode: 400, message: `Unknown command: ${commandId}` });
   const normalizedInput = normalizeCommandInput(input);
   const parameters = validateCommandParameters(command, normalizedInput.parameters);
@@ -35,7 +42,11 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
     });
     assertCommandAccess({ command, entities, auth });
 
-    const handler = registry.getCommandHandler(commandId);
+    let handler = registry.getCommandHandler(commandId);
+    if (!handler && command.plugin) {
+      const { executeConnectorService } = await import('../../features/plugins/service.js');
+      handler = executeConnectorService;
+    }
     if (!handler) throw createError({ statusCode: 500, message: `Command handler not registered: ${commandId}` });
 
     const rawResult = await handler({

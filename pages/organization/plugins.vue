@@ -27,15 +27,26 @@
             </Column>
             <Column :header="$t('common.actions.title')" class="text-right">
               <template #body="{ data }">
-                <Button
-                  icon="pi pi-trash"
-                  :aria-label="$t('plugins.uninstall')"
-                  severity="danger"
-                  size="small"
-                  text
-                  :loading="workingPluginId === data.pluginId"
-                  @click="uninstall(data)"
-                />
+                <div class="flex justify-end gap-2">
+                  <Button
+                    v-if="data.services.length"
+                    icon="pi pi-key"
+                    :aria-label="$t('plugins.connector')"
+                    severity="secondary"
+                    size="small"
+                    text
+                    @click="openConnector(data)"
+                  />
+                  <Button
+                    icon="pi pi-trash"
+                    :aria-label="$t('plugins.uninstall')"
+                    severity="danger"
+                    size="small"
+                    text
+                    :loading="workingPluginId === data.pluginId"
+                    @click="uninstall(data)"
+                  />
+                </div>
               </template>
             </Column>
           </DataTable>
@@ -94,6 +105,15 @@
             {{ type.label || type.id }}
           </li>
         </ul>
+        <template v-if="pendingInstall.services.length">
+          <div class="text-body">{{ $t('plugins.services') }}</div>
+          <ul class="m-0 flex list-none flex-col gap-1 pl-0">
+            <li v-for="service in pendingInstall.services" :key="service.id" class="text-body">
+              <i class="pi pi-bolt mr-2 text-muted" aria-hidden="true" />
+              {{ service.label }}
+            </li>
+          </ul>
+        </template>
       </div>
       <template #footer>
         <Button :label="$t('common.cancel')" text severity="secondary" @click="installDialogVisible = false" />
@@ -103,6 +123,47 @@
           :loading="workingPluginId === pendingInstall?.pluginId"
           @click="confirmInstall"
         />
+      </template>
+    </StandardDialog>
+
+    <StandardDialog
+      v-model:visible="connectorDialogVisible"
+      :header="$t('plugins.connector')"
+      size="md"
+    >
+      <div v-if="connector" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+          <div class="text-muted text-label">{{ $t('plugins.token') }}</div>
+          <div class="flex items-center gap-2">
+            <code class="min-w-0 flex-1 truncate rounded-[var(--p-border-radius-xl)] bg-subtle px-3 py-2 text-technical">{{ connector.token }}</code>
+            <Button
+              icon="pi pi-copy"
+              :aria-label="$t('plugins.copy')"
+              severity="secondary"
+              size="small"
+              text
+              @click="copyToken"
+            />
+          </div>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="text-muted text-label">{{ $t('plugins.endpoints') }}</div>
+          <ul class="m-0 flex list-none flex-col gap-1 pl-0 text-technical">
+            <li v-for="(path, name) in connector.endpoints" :key="name">
+              POST {{ path }} <span class="text-muted">· x-worker-token</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <template #footer>
+        <Button
+          :label="$t('plugins.regenerate')"
+          severity="danger"
+          text
+          :loading="regenerating"
+          @click="regenerateToken"
+        />
+        <Button :label="$t('common.close')" severity="secondary" @click="connectorDialogVisible = false" />
       </template>
     </StandardDialog>
   </StandardPage>
@@ -146,6 +207,9 @@ const loading = ref(true);
 const installDialogVisible = ref(false);
 const pendingInstall = ref(null);
 const workingPluginId = ref(null);
+const connectorDialogVisible = ref(false);
+const connector = ref(null);
+const regenerating = ref(false);
 
 const activeOrganizationId = computed(() =>
   authStore.organizationData?._id
@@ -216,6 +280,39 @@ async function uninstall(item) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
   } finally {
     workingPluginId.value = null;
+  }
+}
+
+async function openConnector(item) {
+  connector.value = null;
+  connectorDialogVisible.value = true;
+  try {
+    connector.value = await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}/connector`);
+  } catch (error) {
+    connectorDialogVisible.value = false;
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+  }
+}
+
+async function copyToken() {
+  if (!connector.value?.token) return;
+  await navigator.clipboard.writeText(connector.value.token);
+  toast.add({ severity: 'info', summary: t('common.success'), detail: t('plugins.copied'), life: 2000 });
+}
+
+async function regenerateToken() {
+  if (!connector.value) return;
+  regenerating.value = true;
+  try {
+    const result = await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(connector.value.pluginId)}/connector/regenerate`, {
+      method: 'POST'
+    });
+    connector.value = { ...connector.value, token: result.token };
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('plugins.tokenRegenerated'), life: 3000 });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+  } finally {
+    regenerating.value = null;
   }
 }
 </script>
