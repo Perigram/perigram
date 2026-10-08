@@ -40,7 +40,11 @@ the central catalog, with mounted domain packs (the facade and its
 dependencies) shown between them as read-only built-ins. Installing opens
 the consent dialog naming the plugin's types and services before the admin
 confirms; the catalog rows of installed plugins carry
-the installed tag instead of the install action. Uninstall is blocked while
+the installed tag instead of the install action. An available catalog
+version pins a `from → to` tag and an upgrade action on the installed row;
+its dialog previews additions, removals, and changed types (the §11
+migration plan) and blocks confirmation while live-data blockers exist.
+Uninstall is blocked while
 any plugin type still has live instances or bound processes — the server
 refusal explains the drain requirement. The route is exposed as a system
 screen gated by `organizations:read`; both mutations stay gated by

@@ -15,12 +15,30 @@ worker-protocol connectors, cross-org execution as the end state, free v1,
   page with consent dialog, system screen, routes, i18n.
 - [x] Slice 2 — connectors: plugin-declared services bound to external
   executors over the worker protocol (per-connector tokens, claim routing).
-- [ ] Slice 3 — upgrades: version bump flow over the type-migration
+- [x] Slice 3 — upgrades: version bump flow over the type-migration
   machinery (diff + plan preview, explicit apply).
 - [ ] Slice 4 — cross-org execution: installed processes running cross-org
   sockets (the live half of OUT-GAP-IN; rides roadmap initiative 3).
 - [ ] Slice 5 — publisher tooling: catalog management surface for the
   platform operator (script is the interim).
+
+### Agent Notes (2026-10-08, slice 3)
+
+Session `agent/plugin-upgrades-20261008`. Upgrades landed as the plugin
+twin of a local Apply: `listInstalled` reports `availableVersion` from
+the catalog; the preview endpoint runs the real SPEC §11 planner
+(`planTypeMigration`) per changed type — additions list as such,
+removals drain-gate like uninstall, uncovered breaking changes on types
+with live instances block, zero-instance types re-break freely
+(authoring-relief parity). Apply trial-composes the org view WITHOUT the
+plugin's old layer (`compileRegistryForOrganization` gained
+`excludePluginId`, threaded through the plugins repository), refuses
+before any write, then persists the new pin (steps stripped per §11),
+executes covered `add-default-field`/rename/retype steps through
+`applyTypeMigrationSteps`, invalidates instance declarations, re-derives
+indexes, and publishes the registry contract-change event. UI: from→to
+tag + upgrade action on installed rows, diff dialog with a warn Message
+on blockers that disables confirm.
 
 ### Agent Notes (2026-10-08, built-ins visibility)
 

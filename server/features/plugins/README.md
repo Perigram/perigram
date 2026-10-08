@@ -53,6 +53,19 @@ executors through the worker protocol.
   holds it; the no-shadowing rule), each type must define cleanly, and
   the compile must introduce no new errors. A refused install writes
   nothing.
+- **Upgrades**: pins move only through an explicit diff-plus-migration
+  apply (`GET`/`POST /api/organizations/:id/plugins/:pluginId/upgrade`).
+  The preview runs the SPEC §11 planner over every changed type
+  (`planTypeMigration`): additions list as such, removals drain-gate like
+  uninstall, uncovered breaking changes on types with live instances
+  block the apply (zero-instance types re-break freely, mirroring org
+  authoring relief), and covered steps — declared on the new
+  declaration's transient `migrate` — execute against instances on
+  apply. The apply trial-composes the org view without the plugin's old
+  layer (`compileRegistryForOrganization`'s `excludePluginId`) so a
+  refused upgrade writes nothing; the persisted pin never carries
+  `migrate`. Services replace with the snapshot; the connector token
+  survives.
 - **Uninstall gate (block until drained)**: live instances of any plugin
   type, or live process definitions binding one, refuse the removal.
   There is no abandon path; the org deletes or migrates first.
@@ -69,6 +82,8 @@ executors through the worker protocol.
 | `GET /api/organizations/:id/plugins` | member (`organizations:read`) | List installed plugins. |
 | `POST /api/organizations/:id/plugins` | `organizations:admin` | Install `{ pluginId }` at the catalog's current version. |
 | `DELETE /api/organizations/:id/plugins/:pluginId` | `organizations:admin` | Uninstall (drain-gated). |
+| `GET /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Upgrade preview: additions, removals, §11 change plans, blockers. |
+| `POST /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Apply the upgrade (gated by the preview's blockers). |
 | `GET /api/organizations/:id/plugins/:pluginId/connector` | `organizations:admin` | Connector panel data: token, claim queue, worker endpoints. |
 | `POST /api/organizations/:id/plugins/:pluginId/connector/regenerate` | `organizations:admin` | Rotate the connector token. |
 
