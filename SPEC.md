@@ -205,3 +205,14 @@ and READMEs (including SYSTEM_ARCHITECTURE) describe the CTS reality.
 ## IN/OUT org data 
 
 Org process sets type OUT (special node that "published") (for friends or public), recipient gets it's structure and acts as it's allowed by type (resond, etc); reply to OUT dictates next IN stucture. So basically external interaction in process definition is OUT-GAP-IN.    
+
+## Plugin marketplace
+
+Organization settings has a plugin management UI: the organization sees available
+plugins (like the facade pack today, third-party tomorrow) and can install or connect
+them at runtime — a true marketplace, not a deploy-time mount.
+
+Open decisions: may a third-party plugin carry server-side code, or only declarations
+plus connected external executors; where plugins are distributed from and who vets
+them; how installs version and upgrade; what happens to live instances when a plugin
+is uninstalled. Until decided, nothing is pre-built (same rule as OUT-GAP-IN).

@@ -1,5 +1,28 @@
 # TODO
 
+## Plugin marketplace: org-settings install/connect UI (2026-10-08)
+
+- [ ] Org settings exposes plugin management: available and installed
+  plugins with install/connect actions (SPEC §Plugin marketplace).
+- [ ] Platform contract for runtime plugin installation. Gated on the
+  owner decisions recorded in SPEC and on OUT-GAP-IN landing first
+  ([docs/PLATFORM_CONVERGENCE.md](./docs/PLATFORM_CONVERGENCE.md) §3) —
+  its guard says nothing is pre-built before the decisions.
+
+### Agent Notes (2026-10-08)
+
+Session `agent/plugin-marketplace-spec-20261008`. Feasibility verdict
+before any code: the pack system is a build-time composition mechanism,
+not a runtime plugin platform. `server/packs/declarations.js` hardcodes
+the mounted-pack list and `server/runtime/app-registry.js` imports pack
+mount modules statically; pack types are `scope: 'system'` in every org
+view (no per-org pack state exists in Mongo); a type with no declaration
+fails loudly (`Unknown type`, server/runtime README), so disabling a pack
+with live instances orphans them; packs carry server-executable code
+(commands, task executors, hook handlers) with no sandboxing or trust
+contract. Desire recorded in SPEC; implementation blocked on the owner's
+open decisions.
+
 ## Animated Perigram mark: adopt in loader and sidebar (2026-10-06)
 
 - [ ] The Rive mark animation (`public/rive/perigram-mark.riv`) replaces the
