@@ -17,6 +17,7 @@ export const mountedPackDeclarations = [
   techDrawingPack,
   {
     id: 'facade',
+    label: facadePackContent.label,
     requires: ['tech-drawing', 'documents'],
     types: facadePackContent.types,
     editors: facadePackContent.editors,
