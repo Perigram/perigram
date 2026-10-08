@@ -13,7 +13,7 @@ worker-protocol connectors, cross-org execution as the end state, free v1,
   view (cts-types composition + instance declaration resolution), install
   gate (no-shadowing + compile), drain-gated uninstall, org-settings Plugins
   page with consent dialog, system screen, routes, i18n.
-- [ ] Slice 2 — connectors: plugin-declared services bound to external
+- [x] Slice 2 — connectors: plugin-declared services bound to external
   executors over the worker protocol (per-connector tokens, claim routing).
 - [ ] Slice 3 — upgrades: version bump flow over the type-migration
   machinery (diff + plan preview, explicit apply).
@@ -21,6 +21,31 @@ worker-protocol connectors, cross-org execution as the end state, free v1,
   sockets (the live half of OUT-GAP-IN; rides roadmap initiative 3).
 - [ ] Slice 5 — publisher tooling: catalog management surface for the
   platform operator (script is the interim).
+
+### Agent Notes (2026-10-08, slice 2)
+
+Session `agent/plugin-connectors-20261008`. Connectors landed on the
+worker claim protocol: listings declare `services` (SPEC §8 signatures),
+installs snapshot them and mint a connector token; installed services
+compose into the projected domain's service list
+(`packServicesForOrganization`, consumed by the designer/compiler/admin
+domain route) and obey the same active-process service gating as pack
+services. Executing `plugin.<x>.<y>` goes through the command runtime's
+plugin fallback: a task run is enqueued on queue
+`plugin.<pluginId>@<orgId>` (runtime-declared contract via
+`enqueueTask`'s `options.definition`; complete/fail resolve it back
+through the plugins feature) and returned as the async boundary — the
+process invocation parks until the executor completes the run. Worker
+endpoints now take dual credentials (`worker-auth.js`): global
+WORKER_TOKEN, or a connector token pinned to its install's queue with no
+task-id targeting. The four task routes' duplicated token checks were
+centralized into that helper. Connector panel (token, endpoints,
+regenerate) lives in the Plugins page. Discovery worth recording: the
+queue-era task surface was dormant (framework task definitions are
+empty; the nesting solver is outbound HTTP from its command handler, NOT
+a claim-protocol worker — the SPEC's old "nesting-worker shape" wording
+was wrong and is corrected); connectors are its first live user. Free v1
+falls out of billing naturally: unknown service ids cost zero tokens.
 
 ### Agent Notes (2026-10-08, slice 1)
 

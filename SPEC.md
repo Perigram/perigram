@@ -219,8 +219,10 @@ A third-party plugin is declarations plus connectors — never in-process code:
   source between system pack types and the org-authored overlay — same
   no-shadowing rule; a colliding type id refuses the install.
 - **Connectors** bind a plugin's declared services to external executors over
-  the worker protocol (out-of-process task claim with a per-connector token) —
-  the nesting-worker shape. The platform stays free of third-party code.
+  the worker claim protocol: the executor polls the app's worker endpoints with
+  a per-install connector token whose claims are pinned to the installing
+  organization's queue for that plugin. The platform stays free of third-party
+  code.
 - Install is consent-gated: the admin sees what the plugin adds (its types and
   required capabilities) and confirms.
 - Uninstall blocks until drained: live instances of a plugin type, or processes

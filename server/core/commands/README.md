@@ -18,7 +18,11 @@ Generic runtime for declared domain commands.
   `billing.mode = prepaidTokens`: checks the active organization account before
   the handler runs and writes a service debit after successful command
   execution.
-- Invokes only handlers registered in the app registry.
+- Invokes handlers registered in the app registry; commands flagged
+  `plugin` (plugin connector services, see
+  [plugins](../../features/plugins/README.md)) fall back to the plugins
+  feature's generic connector handler, which enqueues a worker-protocol
+  task and returns it as the async boundary.
 - Persists run history in `command_runs`.
 - Returns normalized `createCommandResult()` output.
 
@@ -53,4 +57,5 @@ Handlers do business work; access decisions stay in `server/core/access`.
 
 - [Access engine](../access/README.md)
 - [Task runtime](../tasks/README.md)
+- [Plugins](../../features/plugins/README.md)
 - [Runtime registry](../../runtime/README.md)

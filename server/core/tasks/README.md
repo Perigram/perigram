@@ -29,7 +29,11 @@ Generic asynchronous queue backed by `task_runs`.
 - Executes declared task effects after a handler returns and before the run is
   finalized.
 
-Task definitions come from the app registry. Worker-specific payloads and IO live
+Task definitions come from the app registry, or ride the enqueue call as
+runtime-declared contracts (plugin connector services compose theirs from
+the install snapshot — `enqueueTask`'s `options.definition`), in which case
+completion resolves the contract back through the plugins feature.
+Worker-specific payloads and IO live
 in worker processes or feature adapters; this runtime is domain-agnostic.
 
 ## API
@@ -41,12 +45,18 @@ in worker processes or feature adapters; this runtime is domain-agnostic.
 - `POST /api/tasks/:id/fail`
 - `POST /api/tasks/:id/cancel`
 
-All worker endpoints require `WORKER_TOKEN` on the app and matching
-`x-worker-token` from workers.
+All worker endpoints accept two credentials (`server/core/tasks/worker-auth.js`):
+the deployment-wide `WORKER_TOKEN` (global scope, matched against the
+`x-worker-token` header) and per-install plugin connector tokens, whose
+claims are pinned to the installing organization's queue for that plugin
+(`plugin.<pluginId>@<organizationId>`); connector scope may not target
+task ids directly.
 
 ## Files
 
 - `service.js` - queue API, claim-token checks, result normalization.
+- `worker-auth.js` - dual worker credentials: global `WORKER_TOKEN` and
+  per-install plugin connector tokens with queue scoping.
 - `repository.js` - Mongo persistence for `task_runs`.
 - `server/plugins/task-executors.js` - background dispatcher for registered
   app-side executors such as HTTP solver adapters.
