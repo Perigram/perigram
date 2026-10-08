@@ -398,6 +398,7 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
           ...(stateTo ? { to: stateTo } : {})
         }
       } : {}),
+      ...(node.guard ? { guard: node.guard } : {}),
       stateRef: node.stateRef || derived[actionId]?.stateRef || '',
       inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
       outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : [],
@@ -1867,7 +1868,8 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
           upsertWorkflowTransition(region, {
             from,
             to,
-            processRoleIds: actionExposureRoleIdsForInput(action, access, null)
+            processRoleIds: actionExposureRoleIdsForInput(action, access, null),
+            ...(action.guard ? { guard: action.guard } : {})
           });
         }
       }
@@ -1899,7 +1901,8 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
       upsertWorkflowTransition(builder, {
         from,
         to,
-        processRoleIds: actionExposureRoleIdsForInput(action, access, source.window)
+        processRoleIds: actionExposureRoleIdsForInput(action, access, source.window),
+        ...(action.guard ? { guard: action.guard } : {})
       });
     }
   }
@@ -2060,6 +2063,8 @@ function upsertWorkflowTransition(builder, transition) {
       existing.access ||= {};
       existing.access.permissions = mergeTransitionPermissions(existing.access.permissions || [], transition.access.permissions);
     }
+    // First declaration of an edge owns its guard (SPEC §7).
+    if (!existing.guard && transition.guard) existing.guard = transition.guard;
     return;
   }
   builder.transitions.push(transition);
@@ -3738,6 +3743,7 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
         : null,
       inputPolicy: compiledInputPolicy(action, domain),
       stateRef: action.stateRef || null,
+      guard: action.guard || null,
       access: normalizeActionAccess(action.access),
       trigger: {
         mode: action.trigger?.mode || 'manual'

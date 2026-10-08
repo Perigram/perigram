@@ -30,11 +30,12 @@ module layout and how the code maps to the spec's build-order tiers.
   (authored, else the derived `camel(declaringTypeId)+"Id"` fallback — one
   derivation home, consumed by the domain projection, derived indexes, and
   the UI generator); lineage acyclicity (R2).
-- `states.js` — recursive state machines: one initial state per machine,
-  single-parent acyclic trees, canonical dotted paths, guarded transitions,
-  unique intent targets, explicit terminal reachability, and hierarchy-aware
-  entry/transition semantics (R4). Workflow regions remain independent axes;
-  nested machines are state trees inside a region.
+- `states.js` — the state-vocabulary facet of declarations: vocabulary
+  normalization (flat values, terminal flags, per-state display policy)
+  and its readers. Machines themselves are graph-derived (SPEC §7):
+  `compileTreeDeclarations` in `packages/processes/src/designer.js`
+  builds the recursive trees, and transition guards are authored on
+  `cts.transition` records (see SPEC §7).
 - `operators.js` — the six species with typed signatures, event/schedule
   triggers; services and projections are ref-free.
 - `expressions.js` — CEL-semantics expression ASTs: total evaluation with a
@@ -147,7 +148,9 @@ module layout and how the code maps to the spec's build-order tiers.
   run before the process compiler's graph validation. It reads semantic
   records only, and type bindings positionally (`typeId`, species
   `typeId`, legacy species `type`): process-vocabulary descriptor strings
-  and canvas card kinds are never misread as type references.
+  and canvas card kinds are never misread as type references. Transition
+  guards are checked here (SPEC §7): boolean expression ASTs only, field
+  paths rooted at `value` and row-checked.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator. See SPEC §15/§19 for what it owns per key.
 - `compat/graph-protocol.js` — the native species graph protocol (SPEC §20):

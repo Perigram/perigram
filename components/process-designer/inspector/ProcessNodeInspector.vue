@@ -57,6 +57,51 @@
         <small class="text-muted">{{ $t('processDesigner.transitionReferenceHint') }}</small>
       </div>
     </Panel>
+    <Panel v-if="record.kind === 'cts.transition' && typeId" :header="$t('processDesigner.transitionGuard')" class="mt-0">
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-1">
+          <Select
+            :model-value="guardMode"
+            :options="guardModeOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            @update:model-value="setGuardMode"
+          />
+        </div>
+        <div v-for="(condition, index) in guardConditions" :key="index" class="flex items-center gap-2">
+          <Select
+            :model-value="condition.field"
+            :options="guardFieldOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            filter
+            class="min-w-0 flex-1"
+            :placeholder="$t('processDesigner.field')"
+            @update:model-value="value => updateGuardCondition(index, 'field', value)"
+          />
+          <Select
+            :model-value="condition.op"
+            :options="guardOperatorOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="w-16 shrink-0"
+            @update:model-value="value => updateGuardCondition(index, 'op', value)"
+          />
+          <InputText
+            :model-value="condition.value"
+            size="small"
+            class="w-24 shrink-0"
+            @change="event => updateGuardCondition(index, 'value', event.target.value)"
+          />
+          <Button icon="pi pi-times" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeGuardCondition(index)" />
+        </div>
+        <Button icon="pi pi-plus" :label="$t('processDesigner.addGuardCondition')" size="small" text @click="addGuardCondition" />
+        <small class="text-muted">{{ $t('processDesigner.transitionGuardHint') }}</small>
+      </div>
+    </Panel>
     <Panel v-if="producerAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
       <div class="flex flex-col gap-3">
         <div class="flex min-w-0 items-center justify-between gap-2">
@@ -256,6 +301,9 @@ const props = defineProps({
   servicePrincipalOptions: { type: Array, default: () => [] },
   transitionAxisOptions: { type: Array, default: () => [{ label: 'main', value: 'main' }] },
   transitionPathOptions: { type: Function, default: () => [] },
+  // Row-relative field paths of the transition's bound type — guard
+  // conditions select among them (SPEC §7 paths are row-relative).
+  guardFieldOptions: { type: Array, default: () => [] },
   constructionModes: { type: Array, default: () => [] },
   artifactKinds: { type: Array, default: () => [] },
   artifactKindOptions: { type: Array, default: () => [] },
@@ -334,6 +382,81 @@ function updateTransitionReference(key, value) {
   state[key] = value;
   props.record.state = state;
   emit('sync');
+}
+
+// Guard authoring (SPEC §7): the guard is one boolean expression AST over
+// { value }; this editor is a projection over the flat comparison subset —
+// N conditions folded into one and/or chain, one condition the bare
+// comparison. Literals are numbers, booleans, or strings.
+const GUARD_CONDITION_OPS = ['eq', 'ne', 'lt', 'lte', 'gt', 'gte'];
+
+const guardModeOptions = computed(() => [
+  { label: t('processDesigner.guardAll'), value: 'and' },
+  { label: t('processDesigner.guardAny'), value: 'or' }
+]);
+const guardOperatorOptions = computed(() => GUARD_CONDITION_OPS.map(op => ({ label: { eq: '=', ne: '≠', lt: '<', lte: '≤', gt: '>', gte: '≥' }[op], value: op })));
+
+const guardMode = computed(() => (props.record.guard?.op === 'or' ? 'or' : 'and'));
+const guardConditions = computed(() => {
+  const comparisons = [];
+  collectGuardComparisons(props.record.guard, comparisons);
+  return comparisons.map(node => ({
+    field: (node.args[0]?.path || []).slice(1).join('.'),
+    op: GUARD_CONDITION_OPS.includes(node.op) ? node.op : 'eq',
+    value: node.args[1]?.op === 'lit' ? String(node.args[1].value ?? '') : ''
+  }));
+});
+
+function collectGuardComparisons(node, out) {
+  if (!node || typeof node !== 'object') return;
+  if (node.op === 'and' || node.op === 'or') {
+    collectGuardComparisons(node.args?.[0], out);
+    collectGuardComparisons(node.args?.[1], out);
+    return;
+  }
+  if (GUARD_CONDITION_OPS.includes(node.op)) out.push(node);
+}
+
+function writeGuard(conditions, mode) {
+  const comparisons = conditions
+    .filter(condition => condition.field && condition.op)
+    .map(condition => ({
+      op: condition.op,
+      args: [
+        { op: 'field', path: ['value', ...String(condition.field).split('.')] },
+        { op: 'lit', value: parseGuardLiteral(condition.value) }
+      ]
+    }));
+  if (!comparisons.length) delete props.record.guard;
+  else if (comparisons.length === 1) props.record.guard = comparisons[0];
+  else props.record.guard = comparisons.reduce((left, right) => ({ op: mode, args: [left, right] }));
+  emit('sync');
+}
+
+function parseGuardLiteral(value) {
+  const text = String(value ?? '').trim();
+  if (text !== '' && !Number.isNaN(Number(text))) return Number(text);
+  if (text === 'true') return true;
+  if (text === 'false') return false;
+  return text;
+}
+
+function setGuardMode(mode) {
+  writeGuard(guardConditions.value, mode);
+}
+
+function updateGuardCondition(index, key, value) {
+  const conditions = guardConditions.value.map(condition => ({ ...condition }));
+  conditions[index] = { ...conditions[index], [key]: value };
+  writeGuard(conditions, guardMode.value);
+}
+
+function addGuardCondition() {
+  writeGuard([...guardConditions.value, { field: '', op: 'eq', value: '' }], guardMode.value);
+}
+
+function removeGuardCondition(index) {
+  writeGuard(guardConditions.value.filter((_, position) => position !== index), guardMode.value);
 }
 
 function typeIdLabelFor(typeId) {

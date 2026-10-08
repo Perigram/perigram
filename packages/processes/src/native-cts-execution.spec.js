@@ -252,6 +252,47 @@ describe('native CTS process execution contract', () => {
       .toEqual(expect.arrayContaining([expect.objectContaining({ from: 'draft', to: 'active', processRoleIds: ['role_admin'] })]));
   });
 
+  it('compiles a transition guard onto the derived action and the machine edge', () => {
+    const domain = nativeDomain();
+    const guard = {
+      op: 'and',
+      args: [
+        { op: 'lt', args: [{ op: 'field', path: ['value', 'name'] }, { op: 'lit', value: 'zz' }] },
+        { op: 'eq', args: [{ op: 'field', path: ['value', 'name'] }, { op: 'lit', value: 'kept' }] }
+      ]
+    };
+    const definition = graph([{
+      id: 'move',
+      kind: 'cts.transition',
+      typeId: 'panel',
+      state: { axis: 'main', from: 'draft', to: 'active' },
+      guard,
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
+    }]);
+    definition.producerOutputs = {
+      'seed:entity': {
+        producerOutputId: 'seed:entity',
+        nodeId: 'seed',
+        outputSocketId: 'entity',
+        typeId: 'panel',
+        lifecycle: { mode: 'domainDefault' },
+        fields: { read: ['identity.*'], write: [], private: [] }
+      }
+    };
+    definition.ctsTypes = {
+      panel_draft: { id: 'panel_draft', kind: 'state', typeId: 'panel', value: 'draft' },
+      panel_active: { id: 'panel_active', kind: 'state', typeId: 'panel', value: 'active' }
+    };
+
+    const compiled = compileProcessDefinition(definition, domain, {
+      roles: { role_admin: { id: 'role_admin', label: 'Admin' } }
+    });
+    expect(compiled.actions.move.guard).toEqual(guard);
+    expect(compiled.producerOutputs['seed:entity'].workflow.regions.main.transitions)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ from: 'draft', to: 'active', guard })]));
+  });
+
   it('compiles graph-authored lineage from native construct lineage sockets and places the hierarchy', () => {
     const domain = nativeDomain();
     const roles = { role_admin: { id: 'role_admin', label: 'Admin' } };

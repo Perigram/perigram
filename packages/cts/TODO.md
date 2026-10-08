@@ -98,12 +98,16 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
 - [ ] **L2 — graph rebase**: palette = operator registry, sockets carry V
   types, property editors = expression language, R5 dataflow typing.
   > 2026-09-18: declaration persistence landed first (the tree saves with
-  > the draft via `ctsTypes` records; APPLY compiles declarations into the
-  > registry before validation). L2 landed since: the type catalog leads
+  > the draft via `ctsTypes` records; APPLY compiles declarations into
+  > the registry before validation). L2 landed since: the type catalog leads
   > the palette (one bound construct per type, one variant per declared
   > construct operator — typeCatalogPaletteGroups). Remaining L2 slices:
-  > expression property editors on the language tester, transition guards
-  > authored as expressions.
+  > expression property editors on the language tester,
+  > transition guards authored as expressions.
+  > 2026-10-07: transition guards landed (see root TODO "Business process
+  > authoring maturity" — SPEC §7 guard contract, declaration-seam checks,
+  > compile onto machine edges, status-runtime evaluation, inspector
+  > editor). Expression property editors on the language tester remain.
 - [x] **Designer palette derives from the registry**: entity/field/status/
   relation option lists in the designer contract come from the projected
   registry view — authored types are immediately composable in the existing

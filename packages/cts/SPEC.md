@@ -66,6 +66,11 @@ Rules:
   parameters) are typed here, not parked in JSON.
 - Unit conversions are declared (`mm -> m`), never implicit. `Quantity`
   arithmetic unifies units; mismatch is a static error (R3).
+- `Quantity(Number, currency)` is minor-unit-integer money: handlers
+  author amounts as integer minor units (cents) so `add`/`sub` stay
+  exact; displays render decimals. Float-money literals are a defect.
+  (Specified; the row compiler does not yet enforce it — tracked in the
+  root TODO.)
 - `Json` escape: reachable, and inert. Nothing inside it participates in any
   rule of §12. It exists for true externals (raw imported DXF entropy, foreign
   settings). Parking domain payload there is a review defect, not a style
@@ -319,6 +324,26 @@ StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severi
   transition node supplies its state. Validation checks authored state
   values against the draft's own state nodes; nothing outside the draft
   supplies or constrains them.
+- A transition operation may carry a `guard`: a boolean expression AST
+  (§18) evaluated over `{ value }`, where `value` is the operated
+  instance's row — row-relative field paths under the `value` root
+  (`['value','total']`), the §20 field vocabulary. The guard compiles
+  onto the machine edge with its transition (first declaration of an
+  edge wins when several actions declare the same edge). The status
+  runtime re-evaluates the guard atomically at commit against the
+  loaded instance (§18.3): a guard that no longer holds refuses the
+  transition, and the state-actions availability list omits
+  guard-failing edges. Guard field paths are row-checked at the
+  declaration-check seam like every other field reference. Guards are
+  boolean only — comparisons, boolean algebra, field paths, literals;
+  the comprehension forms of §18 are not guard vocabulary.
+- A state may declare a deadline (specified, not built): `deadline:
+  { after: <duration>, to: <state>, guard? }` — the framework compiles
+  declared deadlines into scheduled scan operators that move overdue
+  instances along the declared edge. This stays reaction, not
+  observation (§8): the scan is a trigger, never a standing query.
+  Until built, escalation is authored by hand as a scheduled process.
+  Tracked in the root TODO.
 - An instance persists one flat state string under `state`; the v24
   status block mirrors it. There are no regions and no per-axis active
   paths.

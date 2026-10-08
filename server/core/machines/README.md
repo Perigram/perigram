@@ -24,6 +24,15 @@ graph-derived (SPEC §7) — this module never defines machines itself.
   declaration-derived machine and no system-transition composition: an org
   process that wants a system flow declares its states and transitions
   itself.
+  A compiled transition may carry a `guard` — a boolean expression AST
+  over `{ value }`, the operated instance's row (a §3 instance's flat
+  `fields`; a legacy block doc's merged `data`/`specs`). The engine
+  re-evaluates it atomically at commit against the loaded instance and
+  refuses the transition (409) when it no longer holds; the actions
+  listing omits guard-failing edges (an evaluation error hides the
+  action — execution still surfaces it loudly). Intent availability
+  (`assertIntentAvailable`) does not guard-filter: named-intent callers
+  receive the commit-time refusal.
   Process-authored user transitions are authorized by their compiled
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the

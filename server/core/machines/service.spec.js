@@ -700,4 +700,76 @@ describe('status service lifecycle payloads', () => {
       memberships: [{ organizationId: 'org-1', permissions: {} }]
     })).rejects.toThrow(/Invalid transition from active to new/);
   });
+
+  it('enforces transition guards at commit and hides guard-failing actions', async () => {
+    // SPEC §7/§18.3: a guard is a boolean expression AST over { value } —
+    // the operated instance's stored row. A guard that no longer holds
+    // refuses the transition (409) and the availability list omits the
+    // edge entirely.
+    const id = new ObjectId();
+    await db.collection('items').insertOne({
+      _id: id,
+      type: 'e2e-note',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      name: 'Note',
+      fields: { size: 5 },
+      state: 'new',
+      lineage: { organizationId: 'org-1' }
+    });
+    const machine = {
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'new',
+          states: { new: {}, big: {}, small: {} },
+          transitions: [
+            { from: 'new', to: 'big', guard: { op: 'gte', args: [{ op: 'field', path: ['value', 'size'] }, { op: 'lit', value: 10 }] } },
+            { from: 'new', to: 'small', guard: { op: 'lt', args: [{ op: 'field', path: ['value', 'size'] }, { op: 'lit', value: 10 }] } }
+          ]
+        }
+      }
+    };
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(machine);
+    const auth = { userId: 'admin-1', memberships: [{ organizationId: 'org-1', permissions: {} }] };
+
+    const actions = await statusService.getActions('e2e-note', id.toString(), auth);
+    expect(actions.actions.map(action => action.to)).toEqual(['small']);
+
+    await expect(statusService.transition('e2e-note', id.toString(), 'big', 'admin-1', auth))
+      .rejects.toThrow(/Guard refused transition new -> big/);
+    await statusService.transition('e2e-note', id.toString(), 'small', 'admin-1', auth);
+    const entity = await db.collection('items').findOne({ _id: id });
+    expect(entity.state).toBe('small');
+  });
+
+  it('evaluates guards against legacy block rows', async () => {
+    // A legacy status-block doc keeps its `data`/`specs` blocks: the guard
+    // scope merges them into the same row shape (SPEC §3 seam).
+    const machine = {
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'ACTIVE',
+          states: { ACTIVE: {}, ARCHIVED: { terminal: true } },
+          transitions: [{
+            from: 'ACTIVE',
+            to: 'ARCHIVED',
+            guard: { op: 'eq', args: [{ op: 'field', path: ['value', 'approved'] }, { op: 'lit', value: true }] }
+          }]
+        }
+      }
+    };
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(machine);
+    const auth = { userId: 'admin-1', memberships: [{ organizationId: 'org-1', permissions: {} }] };
+    await db.collection('files').insertOne(cassetteDoc('cassette-g1', { data: { approved: false } }));
+
+    await expect(statusService.transition('cassette', 'cassette-g1', 'ARCHIVED', 'admin-1', auth))
+      .rejects.toThrow(/Guard refused/);
+
+    await db.collection('files').updateOne({ _id: 'cassette-g1' }, { $set: { 'data.approved': true } });
+    await statusService.transition('cassette', 'cassette-g1', 'ARCHIVED', 'admin-1', auth);
+    const doc = await db.collection('files').findOne({ _id: 'cassette-g1' });
+    expect(doc.status.state).toMatchObject({ primary: 'ARCHIVED' });
+  });
 });
