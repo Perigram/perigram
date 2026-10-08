@@ -233,4 +233,6 @@ A third-party plugin is declarations plus connectors — never in-process code:
   run cross-org sockets (the live half of OUT-GAP-IN).
 - v1 carries no monetization; money is wired when there is something to sell.
 
-The user-facing word is "Plugins".
+The user-facing word is "Plugins". Mounted domain packs (the facade pack and
+its dependencies) are not marketplace plugins — they are built into the platform
+and appear in the Plugins section as read-only built-ins.

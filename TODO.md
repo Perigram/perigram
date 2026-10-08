@@ -22,6 +22,17 @@ worker-protocol connectors, cross-org execution as the end state, free v1,
 - [ ] Slice 5 — publisher tooling: catalog management surface for the
   platform operator (script is the interim).
 
+### Agent Notes (2026-10-08, built-ins visibility)
+
+Session `agent/plugin-system-packs-20261008`. Owner expected the facade in
+the plugins list — correct expectation, wrong layer: facade is a build-time
+pack with in-process handlers (outside the decided declarations +
+connectors model), and the catalog was empty because no listing was
+published. Resolved as visibility: mounted packs now show in the Plugins
+section as read-only built-ins (`listSystemPacks` over
+`orderedMountedPacks`, `GET /api/plugins/packs`; the facade mount entry
+gained its label). Catalog publishing remains the script.
+
 ### Agent Notes (2026-10-08, slice 2)
 
 Session `agent/plugin-connectors-20261008`. Connectors landed on the

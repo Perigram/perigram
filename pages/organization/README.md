@@ -36,8 +36,10 @@ every mutation stays gated by `organizations:admin` on the respective side.
 
 `plugins.vue` is the plugin marketplace route (see
 [plugins](../../server/features/plugins/README.md)): the installed list and
-the central catalog. Installing opens the consent dialog naming the plugin's
-types before the admin confirms; the catalog rows of installed plugins carry
+the central catalog, with mounted domain packs (the facade and its
+dependencies) shown between them as read-only built-ins. Installing opens
+the consent dialog naming the plugin's types and services before the admin
+confirms; the catalog rows of installed plugins carry
 the installed tag instead of the install action. Uninstall is blocked while
 any plugin type still has live instances or bound processes — the server
 refusal explains the drain requirement. The route is exposed as a system
