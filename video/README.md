@@ -18,11 +18,15 @@ It is a separate Rust crate — the Nuxt build never imports it.
 | 4 | `CutScene` | 6.0 s | A cut head walks one `PFC-001` contour with sparks, the piece frees, folds up into the finished cassette (same two-level fold as authoring) and flies into the facade wall assembling from this run's pieces; the end line closes the loop. |
 
 Scene boundaries are handoffs, not resets: the folded piece that ends
-`AuthorScene` opens `BakeScene` at the same screen position, and the baked
+`AuthorScene` opens `BakeScene` at the same screen position, the baked
 pieces that end `BakeScene` are the first three placements of `NestScene`'s
-sheet. Text appears only while it carries data: parameter values during the
-morph, piece ids and dimensions on baked pieces, piece marks on the sheet, one
-efficiency number.
+sheet, and `CutScene` opens on the nest's exact final framing (identity
+sheet transform) before its camera push starts. Each pair of neighbours
+cross-fades over a 10-frame overlap in which both scenes render the same
+pixels; the handoff continuity test guards this. Text appears only while it
+carries data: parameter values during the morph, piece ids and dimensions
+on baked pieces, piece marks on the sheet (fading out before the cut
+handoff), one efficiency number.
 
 ## Visual identity
 
@@ -74,13 +78,19 @@ illustrative demo constants defined once in `src/lib.rs` (`SPECS`, `SHEET_MM`,
 
 ## Motion
 
-Every scene rides a slow camera push (1.0 → 1.035). The Perigram mark carries
+One continuous camera push runs over the whole video (1.0 → 1.035 on global
+time): every scene computes the same transform for the same global frame,
+so during a handoff overlap the incoming and outgoing content sits
+pixel-on-pixel instead of jumping the framing. The Perigram mark carries
 the Rive mark's rotating-core motion (the face square spins in its own plane,
 90°-periodic). The flat pattern traces in with a dash-offset walk, dimensions
 pulse once when a parameter settles, the fold is a spring with the light
-sweeping as walls rise, baked pieces bob apart, nested pieces land with
-expanding rings, the cut head throws sparks, and the freed piece folds up on
-a spring before flying into the breathing wall.
+sweeping as walls rise — the folded drawing starts as the exact flat pattern
+(an axis-aligned projection blend) so the flat ↔ folded cross-fade never
+changes the silhouette — baked pieces bob apart, unfold and flatten onto the
+sheet as they fly to their placements, nested pieces land with expanding
+rings, the cut head throws sparks, and the freed piece rises off the flat
+drawing on a spring before flying into the breathing wall.
 
 ## Layout
 
@@ -90,7 +100,7 @@ a spring before flying into the breathing wall.
 | `src/main.rs` | The fframes command line (Skia/Vulkan backend, libx264 encode). |
 | `media/` | IBM Plex Sans/Mono TTFs embedded into the binary. |
 | `groundtruth.mjs` | Regenerates the evaluator's OCCS geometry (cut contour with and without mounting lips, fold routes, mark) to diff the Rust drawing against. |
-| `tests/frames.rs` | Snapshot test of settled frames plus an every-frame problem inspection — the render guard for changes. |
+| `tests/frames.rs` | Snapshot test of settled frames, an every-frame problem inspection, and a scene-handoff continuity check (switch frames must not change the screen) — the render guard for changes. |
 
 ## Requirements and build
 
@@ -113,6 +123,10 @@ newer systems (x264 164/165) the link fails with an undefined
 `RUSTFLAGS="-L /path/to/x264/lib"`. Without the `clang` package, bindgen
 also needs gcc's wrapper headers:
 `BINDGEN_EXTRA_CLANG_ARGS="-isystem /usr/lib/gcc/x86_64-linux-gnu/<ver>/include"`.
+The final link also needs `libfreetype.so` / `libfontconfig.so` dev names:
+when only the runtime `.so.N` files are installed, put symlinks next to the
+static `libx264.a` (e.g. `/tmp/video-libs/`) and pass
+`RUSTFLAGS="-L /tmp/video-libs"`.
 
 ## Work on it
 
