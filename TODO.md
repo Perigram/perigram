@@ -1,27 +1,56 @@
 # TODO
 
-## Plugin marketplace: org-settings install/connect UI (2026-10-08)
+## Plugin marketplace (2026-10-08)
 
-- [ ] Org settings exposes plugin management: available and installed
-  plugins with install/connect actions (SPEC §Plugin marketplace).
-- [ ] Platform contract for runtime plugin installation. Gated on the
-  owner decisions recorded in SPEC and on OUT-GAP-IN landing first
-  ([docs/PLATFORM_CONVERGENCE.md](./docs/PLATFORM_CONVERGENCE.md) §3) —
-  its guard says nothing is pre-built before the decisions.
+Owner decisions: declarations + connectors (no in-process third-party code),
+central platform-published catalog, install consent with declaration diff,
+block-until-drained uninstall, pinned versions with explicit upgrade,
+worker-protocol connectors, cross-org execution as the end state, free v1,
+"Plugins" as the user-facing word (SPEC §Plugin marketplace).
 
-### Agent Notes (2026-10-08)
+- [x] Slice 1 — install contract + Plugins section: catalog collection with
+  publish script, per-org install snapshots as a resolution source in the org
+  view (cts-types composition + instance declaration resolution), install
+  gate (no-shadowing + compile), drain-gated uninstall, org-settings Plugins
+  page with consent dialog, system screen, routes, i18n.
+- [ ] Slice 2 — connectors: plugin-declared services bound to external
+  executors over the worker protocol (per-connector tokens, claim routing).
+- [ ] Slice 3 — upgrades: version bump flow over the type-migration
+  machinery (diff + plan preview, explicit apply).
+- [ ] Slice 4 — cross-org execution: installed processes running cross-org
+  sockets (the live half of OUT-GAP-IN; rides roadmap initiative 3).
+- [ ] Slice 5 — publisher tooling: catalog management surface for the
+  platform operator (script is the interim).
 
-Session `agent/plugin-marketplace-spec-20261008`. Feasibility verdict
-before any code: the pack system is a build-time composition mechanism,
-not a runtime plugin platform. `server/packs/declarations.js` hardcodes
-the mounted-pack list and `server/runtime/app-registry.js` imports pack
-mount modules statically; pack types are `scope: 'system'` in every org
-view (no per-org pack state exists in Mongo); a type with no declaration
-fails loudly (`Unknown type`, server/runtime README), so disabling a pack
-with live instances orphans them; packs carry server-executable code
-(commands, task executors, hook handlers) with no sandboxing or trust
-contract. Desire recorded in SPEC; implementation blocked on the owner's
-open decisions.
+### Agent Notes (2026-10-08, slice 1)
+
+Session `agent/plugin-marketplace-v1-20261008`. Spec written from the
+owner's nine decisions; slice 1 implemented as `server/features/plugins`
+(capability feature, check-arch classified): `plugin_catalog` +
+`plugin_installs` collections, install snapshots pin the declarations
+(catalog changes never reach installed orgs), composition in
+`compileRegistryForOrganization` between system packs and the org overlay,
+`declarationFor`/lineage resolution in instances, install refused on any
+type-id collision (explicit `getType` pre-check — `defineType` keys org and
+system types separately, so the clash otherwise only explodes in
+`resolveView`), uninstall blocked while instances or process bindings live.
+UI: `pages/organization/plugins.vue` + system screen + en/ru i18n. Catalog
+publishing: `server/scripts/plugins-catalog-publish.js`. Validated: plugins,
+cts-types, instances specs (55 green), check-arch, check-docs, SSR smoke.
+
+### Agent Notes (2026-10-08, feasibility)
+
+Session `agent/plugin-marketplace-spec-20261008`. Verdict before any code:
+the pack system is a build-time composition mechanism, not a runtime plugin
+platform — `server/packs/declarations.js` hardcodes the mounted-pack list
+and `server/runtime/app-registry.js` imports pack mount modules statically;
+pack types are `scope: 'system'` in every org view (no per-org pack state
+exists in Mongo); a type with no declaration fails loudly (`Unknown type`,
+server/runtime README), so disabling a pack with live instances orphans
+them; packs carry server-executable code (commands, task executors, hook
+handlers) with no sandboxing or trust contract. Desire recorded in SPEC;
+the marketplace re-shapes plugins as declarations + connectors instead of
+in-process code installs.
 
 ## Animated Perigram mark: adopt in loader and sidebar (2026-10-06)
 

@@ -208,11 +208,27 @@ Org process sets type OUT (special node that "published") (for friends or public
 
 ## Plugin marketplace
 
-Organization settings has a plugin management UI: the organization sees available
-plugins (like the facade pack today, third-party tomorrow) and can install or connect
-them at runtime — a true marketplace, not a deploy-time mount.
+Organization settings has a Plugins section: the organization sees the central
+catalog and its installed plugins, and installs or removes them at runtime.
+The catalog is platform-published; orgs are consumers only.
 
-Open decisions: may a third-party plugin carry server-side code, or only declarations
-plus connected external executors; where plugins are distributed from and who vets
-them; how installs version and upgrade; what happens to live instances when a plugin
-is uninstalled. Until decided, nothing is pre-built (same rule as OUT-GAP-IN).
+A third-party plugin is declarations plus connectors — never in-process code:
+
+- **Declarations** (types now; processes/screens as the exchange grows) install
+  as a pinned snapshot and compose into the org's registry view as a resolution
+  source between system pack types and the org-authored overlay — same
+  no-shadowing rule; a colliding type id refuses the install.
+- **Connectors** bind a plugin's declared services to external executors over
+  the worker protocol (out-of-process task claim with a per-connector token) —
+  the nesting-worker shape. The platform stays free of third-party code.
+- Install is consent-gated: the admin sees what the plugin adds (its types and
+  required capabilities) and confirms.
+- Uninstall blocks until drained: live instances of a plugin type, or processes
+  binding one, refuse the removal. No abandon path.
+- Versions pin at install; upgrading is an explicit diff-plus-migration action,
+  like a local process Apply.
+- The target end state includes cross-org execution: an installed process may
+  run cross-org sockets (the live half of OUT-GAP-IN).
+- v1 carries no monetization; money is wired when there is something to sell.
+
+The user-facing word is "Plugins".

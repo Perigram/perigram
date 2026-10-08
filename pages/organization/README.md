@@ -34,6 +34,16 @@ pending partnership. Partner rows link to the organization directory page.
 The route is exposed as a system screen gated by `organizations:read`, while
 every mutation stays gated by `organizations:admin` on the respective side.
 
+`plugins.vue` is the plugin marketplace route (see
+[plugins](../../server/features/plugins/README.md)): the installed list and
+the central catalog. Installing opens the consent dialog naming the plugin's
+types before the admin confirms; the catalog rows of installed plugins carry
+the installed tag instead of the install action. Uninstall is blocked while
+any plugin type still has live instances or bound processes — the server
+refusal explains the drain requirement. The route is exposed as a system
+screen gated by `organizations:read`; both mutations stay gated by
+`organizations:admin`.
+
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the
 active process definition, and writes assignments through
