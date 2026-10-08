@@ -51,3 +51,43 @@ fn no_problems_in_any_frame() {
         assert!(problems.is_empty(), "frame {frame} ({:.2}s): {problems:?}", report.seconds);
     }
 }
+
+/// The handoff contract (video/README): scene boundaries are handoffs, not
+/// resets. Fails when a switch frame changes what is on screen — the ways it
+/// breaks: the outgoing scene popping off at a different framing, the
+/// incoming scene popping in misaligned, or handed-over content (marks,
+/// detail, drawing mode) changing across the boundary.
+#[test]
+fn scene_handoffs_are_continuous() {
+    let media = FacadeVideoMedia::prepare().unwrap();
+    let video = FacadeVideoVideo::new(&media, "PerigramFacade");
+    let options = RenderOptions {
+        media: Some(&media),
+        scale_resolution: 0.5,
+        ..Default::default()
+    };
+    let mut previewer = Previewer::new(&video, &options).unwrap();
+    let mut renderer = CpuFrameRenderer::default();
+
+    // Scene ranges end at the cumulative duration sums (overlaps only extend
+    // ranges backwards), so those are the switch frames.
+    let mut switch = 0;
+    for &dur in facade_video::DUR_S.iter().take(facade_video::DUR_S.len() - 1) {
+        switch += (dur * facade_video::FPS as f32).round() as usize;
+        let before = previewer.render(switch - 1, &mut renderer).unwrap();
+        let after = previewer.render(switch, &mut renderer).unwrap();
+        let delta = mean_abs_delta(&before.pixels, &after.pixels);
+        assert!(
+            delta < 0.35,
+            "handoff at frame {switch} changes the screen (mean channel delta {delta:.3})"
+        );
+    }
+}
+
+fn mean_abs_delta(a: &[u8], b: &[u8]) -> f32 {
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| (*x as i32 - *y as i32).abs() as f32)
+        .sum::<f32>()
+        / a.len() as f32
+}

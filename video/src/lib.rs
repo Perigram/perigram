@@ -25,6 +25,21 @@ include_media_dir!(pub struct FacadeVideoMedia, "media");
 
 pub const WIDTH: usize = 1920;
 pub const HEIGHT: usize = 1080;
+pub const FPS: usize = 30;
+
+/// Scene durations (s), in timeline order — `duration()` and the shared
+/// camera push both derive from this list.
+pub const DUR_S: [f32; 5] = [2.8, 7.2, 4.6, 5.0, 6.0];
+const TOTAL_S: f32 = DUR_S[0] + DUR_S[1] + DUR_S[2] + DUR_S[3] + DUR_S[4];
+
+/// Scene cross-fade window: every scene overlaps the previous one by this
+/// many frames. fframes starts an overlapping scene's local time at 0 when
+/// the overlap begins, so the incoming scene's fade-in and every
+/// "starts when the handoff completes" beat are keyed after it.
+pub const CROSS_F: usize = 10;
+/// Seconds form of `CROSS_F` for `Overlap::Previous` (fframes truncates it
+/// back to `CROSS_F` frames at 30 fps).
+pub const CROSS: f32 = 0.35;
 
 // Surfaces — the app's dark theme (zinc scale, assets/tokens).
 const BG: &str = "#09090b";
@@ -322,7 +337,7 @@ impl std::fmt::Debug for FacadeVideoVideo<'_> {
 }
 
 impl Video for FacadeVideoVideo<'_> {
-    const FPS: usize = 30;
+    const FPS: usize = FPS;
     const WIDTH: usize = WIDTH;
     const HEIGHT: usize = HEIGHT;
     const BACKGROUND_COLOR: Color = Color::BLACK;
@@ -409,20 +424,29 @@ fn ramp(frame: &Frame, start: f32) -> f32 {
     frame.animate_runtime(AnimateRuntimeInput { on_second: start, from: 0.0, to: 1.0, animation_runtime: &RT_EASE_OUT })
 }
 
+fn ramp_fast(frame: &Frame, start: f32) -> f32 {
+    frame.animate_runtime(AnimateRuntimeInput { on_second: start, from: 0.0, to: 1.0, animation_runtime: &RT_FAST })
+}
+
 fn rise(frame: &Frame, start: f32, px: f32) -> f32 {
     frame.animate_runtime(AnimateRuntimeInput { on_second: start, from: px, to: 0.0, animation_runtime: &RT_SPRING })
 }
 
-/// Whole-scene cross-fade window when scenes overlap.
+/// Whole-scene cross-fade: the incoming scene fades in over exactly the
+/// overlap frames, reaching full opacity precisely when the previous scene's
+/// range ends — the handoff never changes the composite by a frame.
 fn scene_in(t: f32) -> f32 {
-    ((t + 0.35) / 0.35).clamp(0.0, 1.0)
+    (t * FPS as f32 / CROSS_F as f32).clamp(0.0, 1.0)
 }
 
-/// Slow camera push for scene life: 1.0 -> 1.035 across `dur`.
-fn camera(t: f32, dur: f32) -> String {
-    let k = 1.0 + 0.035 * (t / dur).clamp(0.0, 1.0);
-    let slide = 42.0 * (1.0 - scene_in(t));
-    format!("translate(960 540) scale({k:.4}) translate(-960 -540) translate({slide:.1} 0)")
+/// One continuous camera push over the whole video (1.0 -> 1.035 on global
+/// time). Every scene computes the same transform for the same global frame,
+/// so during an overlap the incoming and outgoing content sits pixel-on-pixel
+/// and the handoff never jumps the framing.
+fn camera(frame: &Frame) -> String {
+    let gt = frame.global_index as f32 / frame.fps as f32;
+    let k = 1.0 + 0.035 * (gt / TOTAL_S);
+    format!("translate(960 540) scale({k:.4}) translate(-960 -540)")
 }
 
 /// Ambient loop 0 -> 1 -> 0 over `period` seconds from video start.
@@ -639,19 +663,26 @@ fn iso_raw(p: V3, s: f32) -> (f32, f32) {
 
 /// Folded cassette centered on the projected shape's bounding center.
 /// `t_fold` 0 is the exact flat pattern, 1 the folded cassette with returns
-/// up and lips out; holes and hanger notches ride their faces. Faces are
-/// drawn far-to-near along the iso depth axis (x + y).
-fn folded_piece<'a>(spec: &CassetteSpec, s: f32, t_fold: f32, accent: bool) -> Svgr<'a> {
+/// up and lips out; holes and hanger notches ride their faces. `flatten` 1
+/// projects the fold-0 shape with the flat pattern's own axis-aligned
+/// projection instead of the iso one, so a folded piece can settle onto the
+/// flat drawing (and rise off it) with no silhouette or size change. Faces
+/// are drawn far-to-near along the iso depth axis (x + y).
+fn folded_piece<'a>(spec: &CassetteSpec, s: f32, t_fold: f32, flatten: f32, accent: bool) -> Svgr<'a> {
     let faces = cassette_faces(spec);
     let transforms = fold_transforms(&faces, t_fold);
 
     // Project everything, then recenter on the bounding box.
+    let project_raw = |p: V3| -> (f32, f32) {
+        let (ix, iy) = iso_raw(p, s);
+        (lerp(ix, p[0] * s, flatten), lerp(iy, p[1] * s, flatten))
+    };
     let mut minx = f32::MAX;
     let mut miny = f32::MAX;
     let mut maxx = f32::MIN;
     let mut maxy = f32::MIN;
     let mut probe = |p: V3| {
-        let (px, py) = iso_raw(p, s);
+        let (px, py) = project_raw(p);
         minx = minx.min(px);
         maxx = maxx.max(px);
         miny = miny.min(py);
@@ -670,7 +701,7 @@ fn folded_piece<'a>(spec: &CassetteSpec, s: f32, t_fold: f32, accent: bool) -> S
 
     let light = v_scale([0.45, 0.35, 0.82], 1.0 / v_len([0.45, 0.35, 0.82]));
     let project = |p: V3| -> (f32, f32) {
-        let (px, py) = iso_raw(p, s);
+        let (px, py) = project_raw(p);
         (px + offx, py + offy)
     };
 
@@ -721,12 +752,6 @@ fn folded_piece<'a>(spec: &CassetteSpec, s: f32, t_fold: f32, accent: bool) -> S
     fframes::svgr!(<g>{parts}</g>)
 }
 
-/// Folded iso width over flat width: folding a piece spreads it in iso, so
-/// scene handoffs match widths through this ratio.
-fn folded_flat_ratio(spec: &CassetteSpec) -> f32 {
-    outer_mm(spec).0 / ((spec.a + spec.b) * 0.866)
-}
-
 /// Scale putting a folded spec's iso footprint near `target_w` px wide.
 fn fit_folded_scale(spec: &CassetteSpec, target_w: f32) -> f32 {
     target_w / ((spec.a + spec.b) * 0.866)
@@ -737,6 +762,10 @@ fn fit_folded_scale(spec: &CassetteSpec, target_w: f32) -> f32 {
 /// Sheet scale (px per mm) and origin shared by the bake→nest handoff, the
 /// nest scene and the cut scene's zoom.
 const NEST_S: f32 = 0.42;
+
+/// The nest placements the bake scene's three variants fly to — the bake→nest
+/// handoff: these pieces are already on the sheet when NestScene opens.
+const HANDOFF: [usize; 3] = [1, 0, 3];
 
 fn sheet_frame() -> (f32, f32) {
     (240.0, 317.0)
@@ -760,20 +789,33 @@ fn sheet_svg<'a>(o: f32) -> Svgr<'a> {
     )
 }
 
+/// Detail level of a piece on the sheet: bolt holes only when the piece is
+/// large enough at nest scale.
+fn nest_detail(spec: &CassetteSpec) -> Detail {
+    if outer_mm(spec).0 * NEST_S > 260.0 { Detail::Std } else { Detail::Tiny }
+}
+
+/// A placed flat piece with its mark, in its final sheet orientation
+/// (rotated 90°): the single drawing every sheet view — the bake landing,
+/// the nest placements — hands to the next one.
+fn placed_flat<'a>(spec: &CassetteSpec, cut_w: f32, mark_o: f32) -> Svgr<'a> {
+    let (ow, oh) = outer_mm(spec);
+    let detail = nest_detail(spec);
+    fframes::svgr!(
+        <g transform="rotate(90)">
+            {flat_piece(spec, &FlatOpts { scale: NEST_S, cut_w, detail, mark: None, body_fill: SURFACE })}
+        </g>
+        <text x={-oh * NEST_S / 2.0 + 6.0} y={ow * NEST_S / 2.0 - 7.0} font-family={MONO} font-size="17" font-weight={W_REG} fill={MARK} opacity={mark_o}>{spec.id}</text>
+    )
+}
+
 /// Placed flat piece `i` of the nest layout at its final position/rotation,
 /// with its production mark.
 fn placed_piece<'a>(i: usize, cut_w: f32, mark_o: f32) -> Svgr<'a> {
-    let pl = &LAYOUT[i];
-    let spec = &SPECS[pl.piece];
-    let (ow, oh) = outer_mm(spec);
-    let detail = if ow * NEST_S > 260.0 { Detail::Std } else { Detail::Tiny };
     let (cx, cy) = placement_center(i);
     fframes::svgr!(
         <g transform={format!("translate({cx:.1} {cy:.1})")}>
-            <g transform="rotate(90)">
-                {flat_piece(spec, &FlatOpts { scale: NEST_S, cut_w, detail, mark: None, body_fill: SURFACE })}
-            </g>
-            <text x={-oh * NEST_S / 2.0 + 6.0} y={ow * NEST_S / 2.0 - 7.0} font-family={MONO} font-size="17" font-weight={W_REG} fill={MARK} opacity={mark_o}>{spec.id}</text>
+            {placed_flat(&SPECS[LAYOUT[i].piece], cut_w, mark_o)}
         </g>
     )
 }
@@ -787,12 +829,15 @@ struct TitleScene<'a> {
 
 impl Scene for TitleScene<'_> {
     fn duration(&self) -> Duration<'_> {
-        Duration::Seconds(2.8)
+        Duration::Seconds(DUR_S[0])
     }
 
     fn render_frame<'a>(&'a self, mut frame: Frame, ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
         let t = frame.seconds();
-        let o = scene_in(t);
+        // Fade in from black, and out again over the cross-fade window: the
+        // wordmark is the one scene whose content does not continue in the
+        // next scene, so it must be gone by the handoff.
+        let o = scene_in(t) * (1.0 - ramp_fast(&frame, DUR_S[0] - CROSS));
 
         // Word-by-word wordmark with the rotating-core mark above.
         let spin = 2.0 * std::f32::consts::PI * t / (1.6 * 4.0);
@@ -830,7 +875,7 @@ impl Scene for TitleScene<'_> {
         let line = (760.0 * ramp(&frame, 0.5)).max(0.5);
 
         fframes::svgr!(
-            <g opacity={o} transform={camera(t, 2.8)}>
+            <g opacity={o} transform={camera(&frame)}>
                 <g transform={Transform::translate(0.0, rise(&frame, 0.0, 24.0))} opacity={ramp(&frame, 0.05)}>
                     {logo(154.0, 330.0, 120.0, "title", spin)}
                 </g>
@@ -856,11 +901,11 @@ const AUTHOR_FOLDED_W: f32 = 440.0;
 
 impl Scene for AuthorScene {
     fn duration(&self) -> Duration<'_> {
-        Duration::Seconds(7.2)
+        Duration::Seconds(DUR_S[1])
     }
 
     fn overlap(&self) -> Overlap {
-        Overlap::Previous(0.35)
+        Overlap::Previous(CROSS)
     }
 
     fn render_frame<'a>(&'a self, frame: Frame, _ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
@@ -891,9 +936,11 @@ impl Scene for AuthorScene {
         let fold: f32 = frame.animate_runtime(AnimateRuntimeInput { on_second: 4.6, from: 0.0, to: 1.0, animation_runtime: &RT_FOLD });
         let flat_o = 1.0 - ramp(&frame, 4.75);
         let fold_o = ramp(&frame, 4.6);
-        // Folding spreads the piece in iso; start at the flat width, settle
-        // at the bake handoff width.
-        let s_fold = lerp(s * folded_flat_ratio(spec), fit_folded_scale(spec, AUTHOR_FOLDED_W), ramp(&frame, 4.6));
+        // The folded drawing starts as the exact flat pattern (flatten 1 at
+        // fold 0) and grows to the bake handoff width as the walls rise, so
+        // the flat -> folded cross-fade never changes the silhouette.
+        let s_fold = lerp(s, fit_folded_scale(spec, AUTHOR_FOLDED_W), ramp(&frame, 4.6));
+        let flatten = (1.0 - fold).clamp(0.0, 1.0);
         let live = spec.clone_lived(a, b);
 
         let dim_a = ramp(&frame, 2.1) * (1.0 - ramp(&frame, 3.6));
@@ -916,12 +963,12 @@ impl Scene for AuthorScene {
 
         let folded = fframes::svgr!(
             <g opacity={fold_o} transform={format!("translate({cx} {cy})")}>
-                {folded_piece(&live, s_fold, fold.clamp(0.0, 1.15), false)}
+                {folded_piece(&live, s_fold, fold.clamp(0.0, 1.15), flatten, false)}
             </g>
         );
 
         fframes::svgr!(
-            <g opacity={o} transform={camera(t, 7.2)}>
+            <g opacity={o} transform={camera(&frame)}>
                 {flat}
                 {folded}
             </g>
@@ -942,18 +989,17 @@ impl CassetteSpec {
 #[derive(Debug)]
 struct BakeScene;
 
-/// Fan positions of the three folded variants, and the nest placement each
-/// one flies to (flat, rot 90) — the bake→nest handoff.
+/// Fan positions of the three folded variants; each one flies to its
+/// `HANDOFF` nest placement (flat, rot 90).
 const BAKE_FAN: [(f32, f32); 3] = [(472.0, 520.0), (952.0, 520.0), (1432.0, 520.0)];
-const BAKE_DEST: [usize; 3] = [1, 0, 3];
 
 impl Scene for BakeScene {
     fn duration(&self) -> Duration<'_> {
-        Duration::Seconds(4.6)
+        Duration::Seconds(DUR_S[2])
     }
 
     fn overlap(&self) -> Overlap {
-        Overlap::Previous(0.35)
+        Overlap::Previous(CROSS)
     }
 
     fn render_frame<'a>(&'a self, frame: Frame, _ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
@@ -965,34 +1011,35 @@ impl Scene for BakeScene {
 
         for i in 0..3usize {
             let spec = &SPECS[i];
-            // Split out of the author's folded hero (piece 0 slides to its
-            // fan slot, the others spring out of it).
+            // Split out of the author's folded hero: piece 0 IS the hero, the
+            // other two materialize at its position just before they spring
+            // out (never during the author cross-fade window).
             let split = frame.animate_runtime(AnimateRuntimeInput { on_second: 0.6 + i as f32 * 0.12, from: 0.0, to: 1.0, animation_runtime: &RT_SPRING });
+            let birth = if i == 0 { 1.0 } else { ramp_fast(&frame, 0.4 + (i as f32 - 1.0) * 0.12) };
             let fan_scale = fit_folded_scale(spec, AUTHOR_FOLDED_W);
             let start = lerp_pt(AUTHOR_CENTER, BAKE_FAN[i], split);
             let label_o = ramp(&frame, 1.5 + i as f32 * 0.12);
 
-            // Unfold, shrink and fly to the nest placement.
+            // Unfold, flatten onto the sheet's axis and fly to the nest
+            // placement; the flight's last stretch cross-fades to the placed
+            // flat drawing with the silhouette already matching.
             let t0 = 2.6 + i as f32 * 0.18;
             let p = frame.animate_runtime(AnimateRuntimeInput { on_second: t0, from: 0.0, to: 1.0, animation_runtime: &RT_EASE_IN_OUT });
-            let (dx, dy) = placement_center(BAKE_DEST[i]);
+            let (dx, dy) = placement_center(HANDOFF[i]);
             let pos = lerp_pt(start, (dx, dy), p);
-            let fold_t = 1.0 - p;
+            let fold_t = 1.0 - (p / 0.6).clamp(0.0, 1.0);
+            let flatten = ((p - 0.6) / 0.4).clamp(0.0, 1.0);
             let rot = 90.0 * p;
-            let fscale = lerp(fan_scale, NEST_S * folded_flat_ratio(spec), p);
-            // At the very end the flat pattern drawing takes over from the
-            // coplanar folded one, so the nest scene receives it seamlessly.
+            let fscale = lerp(fan_scale, NEST_S, p);
             let sw = ((p - 0.9) / 0.1).clamp(0.0, 1.0);
-            let (ow, oh) = outer_mm(spec);
 
             parts.push(fframes::svgr!(
-                <g transform={format!("translate({:.1} {:.1}) rotate({rot:.2})", pos.0, pos.1)}>
-                    <g opacity={1.0 - sw}>
-                        {folded_piece(spec, fscale, fold_t, false)}
+                <g opacity={birth} transform={format!("translate({:.1} {:.1})", pos.0, pos.1)}>
+                    <g transform={format!("rotate({rot:.2})")} opacity={1.0 - sw}>
+                        {folded_piece(spec, fscale, fold_t, flatten, false)}
                     </g>
                     <g opacity={sw}>
-                        {flat_piece(spec, &FlatOpts { scale: NEST_S, cut_w: 1.8, detail: Detail::Std, mark: None, body_fill: SURFACE })}
-                        <text x={-oh * NEST_S / 2.0 + 6.0} y={ow * NEST_S / 2.0 - 7.0} font-family={MONO} font-size="17" font-weight={W_REG} fill={MARK} opacity={sw}>{spec.id}</text>
+                        {placed_flat(spec, 1.8, 1.0)}
                     </g>
                 </g>
                 <g opacity={label_o * (1.0 - ramp(&frame, t0))}>
@@ -1002,7 +1049,7 @@ impl Scene for BakeScene {
         }
 
         fframes::svgr!(
-            <g opacity={o} transform={camera(t, 4.6)}>
+            <g opacity={o} transform={camera(&frame)}>
                 {sheet_svg(sheet_o)}
                 {parts}
             </g>
@@ -1015,27 +1062,28 @@ impl Scene for BakeScene {
 #[derive(Debug)]
 struct NestScene;
 
-/// The placements that flew in from the bake scene.
-const HANDOFF: [usize; 3] = [1, 0, 3];
-
 impl Scene for NestScene {
     fn duration(&self) -> Duration<'_> {
-        Duration::Seconds(5.0)
+        Duration::Seconds(DUR_S[3])
     }
 
     fn overlap(&self) -> Overlap {
-        Overlap::Previous(0.35)
+        Overlap::Previous(CROSS)
     }
 
     fn render_frame<'a>(&'a self, frame: Frame, _ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
         let t = frame.seconds();
         let o = scene_in(t);
 
+        // Piece marks fade out before the cut handoff: the cut scene's zoom
+        // would sweep them off the canvas, so the sheet is handed over clean.
+        let mark_out = 1.0 - ramp_fast(&frame, 4.7);
+
         let fly: Vec<usize> = (0..NESTED).filter(|i| !HANDOFF.contains(i)).collect();
         let mut pieces: Vec<Svgr> = vec![];
         for i in 0..NESTED {
             if HANDOFF.contains(&i) {
-                pieces.push(placed_piece(i, 1.8, 1.0));
+                pieces.push(placed_piece(i, 1.8, mark_out));
                 continue;
             }
             let k = fly.iter().position(|&x| x == i).unwrap();
@@ -1048,25 +1096,25 @@ impl Scene for NestScene {
             let ring_p = ramp(&frame, t0 + 0.5);
             let ring_r = 10.0 + 26.0 * ring_p;
             let spec = &SPECS[LAYOUT[i].piece];
-            let mark_o = ramp(&frame, t0 + 0.55);
+            let mark_o = ramp(&frame, t0 + 0.55) * mark_out;
             let (ow, oh) = outer_mm(spec);
-            let detail = if ow * NEST_S > 260.0 { Detail::Std } else { Detail::Tiny };
             pieces.push(fframes::svgr!(
                 <g opacity={po} transform={format!("translate({cx:.1} {cy:.1})")}>
                     <circle r={ring_r} fill="none" stroke={ACCENT} stroke-width="2" opacity={0.5 * (1.0 - ring_p)} />
                     <g transform={format!("rotate({rot:.2})")}>
-                        {flat_piece(spec, &FlatOpts { scale: NEST_S, cut_w: 1.8, detail, mark: None, body_fill: SURFACE })}
+                        {flat_piece(spec, &FlatOpts { scale: NEST_S, cut_w: 1.8, detail: nest_detail(spec), mark: None, body_fill: SURFACE })}
                     </g>
                     <text x={-oh * NEST_S / 2.0 + 6.0} y={ow * NEST_S / 2.0 - 7.0} font-family={MONO} font-size="17" font-weight={W_REG} fill={MARK} opacity={mark_o}>{spec.id}</text>
                 </g>
             ));
         }
 
-        // One number, briefly: the solver's efficiency, then gone.
+        // One number, briefly: the solver's efficiency, then gone — fully
+        // faded before the cut handoff.
         let eff = EFFICIENCY * frame.animate(&fframes::timeline!(
             at 3.4 => 4.4, animate 0.0_f32 => 1.0, EASE_OUT_EXPO,
         ));
-        let eff_o = ramp(&frame, 3.3) * (1.0 - ramp(&frame, 4.7));
+        let eff_o = ramp(&frame, 3.3) * (1.0 - ramp_fast(&frame, 4.55));
         let stats = fframes::svgr!(
             <g opacity={eff_o}>
                 <text x="1470" y="500" font-family={MONO} font-size="22" font-weight={W_REG} fill={MUTED} letter-spacing="3">"NEST EFFICIENCY"</text>
@@ -1075,7 +1123,7 @@ impl Scene for NestScene {
         );
 
         fframes::svgr!(
-            <g opacity={o} transform={camera(t, 5.0)}>
+            <g opacity={o} transform={camera(&frame)}>
                 {sheet_svg(1.0)}
                 {pieces}
                 {stats}
@@ -1180,11 +1228,11 @@ mod tests {
 
 impl Scene for CutScene {
     fn duration(&self) -> Duration<'_> {
-        Duration::Seconds(6.0)
+        Duration::Seconds(DUR_S[4])
     }
 
     fn overlap(&self) -> Overlap {
-        Overlap::Previous(0.35)
+        Overlap::Previous(CROSS)
     }
 
     fn render_frame<'a>(&'a self, frame: Frame, _ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
@@ -1193,10 +1241,14 @@ impl Scene for CutScene {
         let spec = &SPECS[0];
         let (hx, hy) = placement_center(HERO);
 
-        // The sheet zooms onto the hero, then pulls back as it frees.
-        let zoom_k = lerp(2.15, 0.72, ramp(&frame, 3.0));
-        let sheet_tx = 820.0 - hx * zoom_k;
-        let sheet_ty = 500.0 - hy * zoom_k;
+        // The cut opens on the nest's exact final framing (identity sheet
+        // transform), then the camera pushes onto the hero and pans it to
+        // (820, 500), and pulls back again as the piece frees.
+        let zr = ramp(&frame, CROSS);
+        let push_k = lerp(1.0, 2.15, zr);
+        let zoom_k = lerp(push_k, 0.72, ramp(&frame, 3.0));
+        let sheet_tx = lerp(hx, 820.0, zr) - hx * zoom_k;
+        let sheet_ty = lerp(hy, 500.0, zr) - hy * zoom_k;
         let sheet_gone = 1.0 - ramp(&frame, 3.6);
 
         // Cut walk on the hero contour (piece-local px).
@@ -1221,43 +1273,48 @@ impl Scene for CutScene {
             })
             .collect();
 
-        // Fold the freed piece up (keeping the flat footprint), then fly it
-        // into the wall while the scale settles to the wall cell size.
+        // Fold the freed piece up — starting as the exact placed flat
+        // drawing (flatten 1 at fold 0) — then fly it into the wall while
+        // the scale settles to the wall cell size.
         let fold: f32 = frame.animate_runtime(AnimateRuntimeInput { on_second: 2.95, from: 0.0, to: 1.0, animation_runtime: &RT_FOLD });
+        let flatten = (1.0 - fold).clamp(0.0, 1.0);
         let flat_gone = 1.0 - ramp(&frame, 3.1);
         let fly = frame.animate_runtime(AnimateRuntimeInput { on_second: 4.3, from: 0.0, to: 1.0, animation_runtime: &RT_EASE_IN_OUT });
         let cell = wall_cell_center(2, 1);
         let hero_from = (sheet_tx + hx * zoom_k + 26.0, sheet_ty + hy * zoom_k + 26.0);
         let hero_pos = lerp_pt(hero_from, cell, fly);
         let hero_rot = lerp(90.0, 0.0, fly);
-        let s_fold = lerp(NEST_S * zoom_k * folded_flat_ratio(spec), WALL_CELL_SCALE, ramp(&frame, 3.4));
+        let s_fold = lerp(NEST_S * zoom_k, WALL_CELL_SCALE, ramp(&frame, 3.4));
+        let detail = nest_detail(spec);
 
         let hero_svg = fframes::svgr!(
-            <g transform={format!("translate({:.1} {:.1}) rotate({hero_rot:.2})", hero_pos.0, hero_pos.1)}>
-                <g transform={format!("translate({fx:.1} {fy:.1})")} opacity={flat_gone}>
-                    {flat_piece(spec, &FlatOpts { scale: s_local, cut_w: 2.2, detail: Detail::Std, mark: None, body_fill: SURFACE })}
-                    <path d={poly_path(&ctr)} fill="none" stroke={CUT} stroke-width="3" stroke-dasharray={per} stroke-dashoffset={per * (1.0 - p)} />
-                    <g transform={format!("translate({:.1} {:.1})", px, py)} opacity={(1.0 - freed).max(0.0)}>
-                        <circle r="26" fill={CUT} opacity="0.25" />
-                        <circle r="9" fill={CUT} />
-                        <circle r="3" fill={INK} />
-                        {sparks}
+            <g transform={format!("translate({:.1} {:.1})", hero_pos.0, hero_pos.1)}>
+                <g transform={format!("rotate({hero_rot:.2})")}>
+                    <g transform={format!("translate({fx:.1} {fy:.1})")} opacity={flat_gone}>
+                        {flat_piece(spec, &FlatOpts { scale: s_local, cut_w: 1.8 * zoom_k, detail, mark: None, body_fill: SURFACE })}
+                        <path d={poly_path(&ctr)} fill="none" stroke={CUT} stroke-width={3.0 * zoom_k} stroke-dasharray={per} stroke-dashoffset={per * (1.0 - p)} />
+                        <g transform={format!("translate({:.1} {:.1})", px, py)} opacity={(1.0 - freed).max(0.0) * ramp_fast(&frame, 0.4)}>
+                            <circle r="26" fill={CUT} opacity="0.25" />
+                            <circle r="9" fill={CUT} />
+                            <circle r="3" fill={INK} />
+                            {sparks}
+                        </g>
                     </g>
-                </g>
-                <g opacity={ramp(&frame, 2.95)}>
-                    {folded_piece(spec, s_fold, fold.clamp(0.0, 1.15), false)}
+                    <g opacity={ramp(&frame, 2.95)}>
+                        {folded_piece(spec, s_fold, fold.clamp(0.0, 1.15), flatten, false)}
+                    </g>
                 </g>
             </g>
         );
 
-        // The facade wall assembles from this run's pieces.
+        // The facade wall assembles from this run's pieces. No piece marks
+        // here: nest fades them out before the handoff, so the sheet arrives
+        // clean and the zoom never sweeps text off the canvas.
         let wall_o = ramp(&frame, 3.1);
         let mut neighbors: Vec<Svgr> = vec![];
         for i in 0..NESTED {
             if i != HERO {
-                // No piece marks here: the zoom would sweep them off-canvas,
-                // and the nest scene already showed them.
-                neighbors.push(placed_piece(i, 1.4, 0.0));
+                neighbors.push(placed_piece(i, 1.8, 0.0));
             }
         }
         let mut wall_parts: Vec<Svgr> = vec![];
@@ -1278,7 +1335,7 @@ impl Scene for CutScene {
                 let accent = (col == 1 && row == 2) || (col == 3 && row == 0);
                 wall_parts.push(fframes::svgr!(
                     <g opacity={wk} transform={format!("translate({:.1} {:.1}) scale({:.3})", c.0, c.1 + drift + (1.0 - wk) * 40.0, 0.7 + 0.3 * wk)}>
-                        {folded_piece(&SPECS[spec_i], WALL_CELL_SCALE / (0.7 + 0.3 * wk), 1.0, accent)}
+                        {folded_piece(&SPECS[spec_i], WALL_CELL_SCALE / (0.7 + 0.3 * wk), 1.0, 0.0, accent)}
                     </g>
                 ));
             }
@@ -1300,7 +1357,7 @@ impl Scene for CutScene {
         );
 
         fframes::svgr!(
-            <g opacity={o} transform={camera(t, 6.0)}>
+            <g opacity={o} transform={camera(&frame)}>
                 <g opacity={sheet_gone} transform={format!("translate({sheet_tx:.1} {sheet_ty:.1}) scale({zoom_k:.3})")}>
                     {sheet_svg(1.0)}
                     {neighbors}
