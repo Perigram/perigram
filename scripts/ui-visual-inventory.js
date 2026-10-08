@@ -13,6 +13,7 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/ui-mapping/SurfaceHeader.vue': 'layout',
   'pages/organization/users.vue': 'layout',
   'pages/organization/partners.vue': 'layout',
+  'pages/organization/plugins.vue': 'layout',
   'components/shared/blocks/DataBlock.vue': 'layout'
 });
 

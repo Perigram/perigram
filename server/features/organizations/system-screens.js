@@ -3,6 +3,7 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 const ORGANIZATION_OVERVIEW_SCREEN_KEY = 'organization_overview';
 const ORGANIZATION_BILLING_SCREEN_KEY = 'organization_billing';
 const ORGANIZATION_PARTNERS_SCREEN_KEY = 'organization_partners';
+const ORGANIZATION_PLUGINS_SCREEN_KEY = 'organization_plugins';
 const ORGANIZATION_TEAM_SCREEN_KEY = 'organization_team';
 const ORGANIZATION_PROCESS_SCREEN_KEY = 'organization_process';
 
@@ -79,6 +80,24 @@ export function resolveOrganizationSystemScreens(auth = {}) {
       sourceRoute: '/organization/partners',
       typeId: 'organization',
       icon: 'pi pi-handshake',
+      scope: organizationScope,
+      required: { feature: 'organizations', level: 'read' }
+    });
+  }
+
+  if (canReadOrganization) {
+    screens.push({
+      id: ORGANIZATION_PLUGINS_SCREEN_KEY,
+      screenKey: ORGANIZATION_PLUGINS_SCREEN_KEY,
+      labelKey: 'plugins.title',
+      descriptionKey: 'plugins.hint',
+      kind: 'system',
+      template: 'route',
+      placement: 'hub',
+      route: '/organization/plugins',
+      sourceRoute: '/organization/plugins',
+      typeId: 'organization',
+      icon: 'pi pi-puzzle',
       scope: organizationScope,
       required: { feature: 'organizations', level: 'read' }
     });

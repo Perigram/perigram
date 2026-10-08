@@ -3356,5 +3356,23 @@
       "declined": "Declined",
       "terminated": "Terminated"
     }
+  },
+  "plugins": {
+    "title": "Plugins",
+    "hint": "Install and manage organization plugins",
+    "available": "Available",
+    "installed": "Installed",
+    "installedBadge": "Installed",
+    "installedOn": "Installed on",
+    "noneInstalled": "No plugins installed",
+    "noneAvailable": "No plugins in the catalog",
+    "install": "Install",
+    "uninstall": "Remove",
+    "version": "Version",
+    "installConfirmTitle": "Install plugin",
+    "installConfirmIntro": "This adds to your organization:",
+    "installedToast": "Plugin installed",
+    "uninstalledToast": "Plugin removed",
+    "uninstallConfirm": "Remove this plugin from the organization? Its types must have no live data."
   }
 }

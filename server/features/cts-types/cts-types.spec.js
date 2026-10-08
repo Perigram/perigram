@@ -8,6 +8,10 @@ vi.mock('../instances/migrations.js', () => ({
 vi.mock('../process-definitions/service.js', () => ({
   findTypeReferences: vi.fn(async () => [])
 }));
+vi.mock('../plugins/repository.js', () => ({
+  listDeclarationsByOrganization: vi.fn(async () => []),
+  findDeclarationByTypeId: vi.fn(async () => null)
+}));
 
 vi.mock('./repository.js', () => ({
   create: vi.fn(),
@@ -18,6 +22,7 @@ vi.mock('./repository.js', () => ({
 }));
 
 import * as repository from './repository.js';
+import * as pluginInstalls from '../plugins/repository.js';
 import { compileRegistryForOrganization, defineType, removeType, describeOrganizationTypes } from './service.js';
 import { findTypeReferences } from '../process-definitions/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -28,6 +33,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   repository.findByTypeId.mockResolvedValue(null);
   repository.listByOrganization.mockResolvedValue([]);
+  pluginInstalls.listDeclarationsByOrganization.mockResolvedValue([]);
 });
 
 describe('cts type storage', () => {
@@ -42,6 +48,15 @@ describe('cts type storage', () => {
     expect(bundle.bundle.types.filter(type => type.id === 'queue')).toHaveLength(0);
     expect(bundle.bundle.types.filter(type => type.id === 'organization').length).toBeGreaterThan(0);
     expect(bundle.attachmentKinds.OCCS_SOURCE).toMatchObject({ mimeType: 'application/perigram+occs' });
+  });
+
+  it('composes installed plugin declarations as a resolution source beside the org overlay', async () => {
+    pluginInstalls.listDeclarationsByOrganization.mockResolvedValue([
+      { id: 'coating', class: 'item', fields: { code: { base: 'string' } } }
+    ]);
+    const bundle = await describeOrganizationTypes(ORG);
+    expect(bundle.bundle.ok).toBe(true);
+    expect(bundle.bundle.types.filter(type => type.id === 'coating')).toHaveLength(1);
   });
 
   it('serves the composed pack editor bindings with the type view', async () => {

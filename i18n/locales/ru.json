@@ -3356,5 +3356,23 @@
       "declined": "Отклонено",
       "terminated": "Прекращено"
     }
+  },
+  "plugins": {
+    "title": "Плагины",
+    "hint": "Установка плагинов организации и управление ими",
+    "available": "Доступные",
+    "installed": "Установленные",
+    "installedBadge": "Установлен",
+    "installedOn": "Установлен",
+    "noneInstalled": "Плагины не установлены",
+    "noneAvailable": "В каталоге нет плагинов",
+    "install": "Установить",
+    "uninstall": "Удалить",
+    "version": "Версия",
+    "installConfirmTitle": "Установка плагина",
+    "installConfirmIntro": "Это добавит в организацию:",
+    "installedToast": "Плагин установлен",
+    "uninstalledToast": "Плагин удалён",
+    "uninstallConfirm": "Удалить этот плагин из организации? Его типы не должны содержать живых данных."
   }
 }

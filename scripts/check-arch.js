@@ -74,6 +74,7 @@ const CAPABILITY_FEATURES = [
   'notifications',
   'parametric-cassettes',
   'partnerships',
+  'plugins',
   'sessions',
   'states',
   'support',

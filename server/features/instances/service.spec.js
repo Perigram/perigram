@@ -12,6 +12,10 @@ vi.mock('../instance-revisions/service.js', () => ({
 vi.mock('../../core/access/service.js', () => ({
   hasInstanceAccess: vi.fn(() => true)
 }));
+vi.mock('../plugins/repository.js', () => ({
+  listDeclarationsByOrganization: vi.fn(async () => []),
+  findDeclarationByTypeId: vi.fn(async () => null)
+}));
 vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async (organizationId, typeId) => (
     typeId === 'panel'

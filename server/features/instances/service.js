@@ -13,6 +13,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, normalizeType, mimeMatches } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
+import * as pluginInstalls from '../plugins/repository.js';
 import * as repository from './repository.js';
 import { listQueryFilter } from './filters.js';
 import * as filesService from '../files/service.js';
@@ -51,13 +52,16 @@ async function lineageKeysFor(typeId, organizationId = null) {
   if (!organizationId) return staticLineageKeys.get(typeId) || new Set();
   const cacheKey = String(organizationId);
   if (!lineageKeysCache.has(cacheKey)) {
-    let orgDeclarations = [];
+    let overlayDeclarations = [];
     try {
-      orgDeclarations = await typeStore.listByOrganization(organizationId);
+      overlayDeclarations = [
+        ...await pluginInstalls.listDeclarationsByOrganization(organizationId),
+        ...await typeStore.listByOrganization(organizationId)
+      ];
     } catch {
-      orgDeclarations = [];
+      overlayDeclarations = [];
     }
-    lineageKeysCache.set(cacheKey, declaredLineageKeysOf([...staticTypes.values(), ...orgDeclarations]));
+    lineageKeysCache.set(cacheKey, declaredLineageKeysOf([...staticTypes.values(), ...overlayDeclarations]));
   }
   return lineageKeysCache.get(cacheKey).get(typeId) || new Set();
 }
@@ -68,9 +72,16 @@ async function declarationFor(typeId, organizationId = null) {
   let declaration = staticTypes.get(typeId) || null;
   if (!declaration && organizationId) {
     try {
-      declaration = await typeStore.findByTypeId(organizationId, typeId);
+      declaration = await pluginInstalls.findDeclarationByTypeId(organizationId, typeId);
     } catch {
       declaration = null;
+    }
+    if (!declaration) {
+      try {
+        declaration = await typeStore.findByTypeId(organizationId, typeId);
+      } catch {
+        declaration = null;
+      }
     }
   }
   declarationCache.set(cacheKey, declaration);

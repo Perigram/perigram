@@ -10,6 +10,7 @@ import {
 } from '~/packages/cts/src/index.js';
 import { facadeAttachmentKinds } from '~/packages/facade/src/index.js';
 import { composeSystemDeclarations, composePackEditors } from '~/server/packs/declarations.js';
+import * as pluginInstalls from '../plugins/repository.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -54,6 +55,20 @@ export async function compileRegistryForOrganization(organizationId, { emptyType
     registry.defineType(declaration);
   }
   if (organizationId) {
+    // Installed plugin declarations are a resolution source between
+    // system packs and org-authored types (SPEC §Plugin marketplace):
+    // same no-shadowing rule, and a collision is a loud composition
+    // error naming the plugin layer.
+    for (const declaration of await pluginInstalls.listDeclarationsByOrganization(organizationId)) {
+      try {
+        registry.defineType(declaration);
+      } catch (error) {
+        throw createError({
+          statusCode: 500,
+          message: `installed plugin type ${declaration.id} no longer compiles: ${error?.message || error}`
+        });
+      }
+    }
     for (const stored of await repository.listByOrganization(organizationId)) {
       try {
         registry.defineType(stored);
