@@ -14,6 +14,8 @@ import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
+import { applyTypeMigrationSteps } from '../instances/migrations.js';
+import { planTypeMigration } from '~/packages/cts/src/index.js';
 import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
@@ -46,7 +48,15 @@ export async function listInstalled({ organizationId, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'read');
   const installs = await repository.listInstallsByOrganization(organizationId);
-  return installs.map(serializeInstall);
+  return Promise.all(installs.map(async install => ({
+    ...serializeInstall(install),
+    availableVersion: await availableVersionFor(install)
+  })));
+}
+
+async function availableVersionFor(install) {
+  const listing = await repository.findCatalogByPluginId(install.pluginId).catch(() => null);
+  return listing && listing.version !== install.version ? listing.version : null;
 }
 
 export async function install({ organizationId, pluginId, auth = {} }) {
@@ -316,6 +326,167 @@ export async function regenerateConnectorToken({ organizationId, pluginId, auth 
   const token = mintConnectorToken();
   await repository.setConnectorToken(organizationId, pluginId, token);
   return { pluginId: install.pluginId, token };
+}
+
+// --- Upgrades (marketplace SPEC: pinned versions, explicit diff +
+// migration apply, the plugin twin of a local process Apply) ---
+
+export async function upgradePreview({ organizationId, pluginId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const { install, listing } = await loadUpgradePair(organizationId, pluginId);
+  return await buildUpgradePlan(install, listing, organizationId);
+}
+
+export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const { install, listing } = await loadUpgradePair(organizationId, pluginId);
+  const plan = await buildUpgradePlan(install, listing, organizationId);
+  if (plan.blocked.length) {
+    throw createError({
+      statusCode: 409,
+      message: 'Upgrade is blocked — resolve the reported types first',
+      data: { blocked: plan.blocked }
+    });
+  }
+
+  // Trial composition on the org view WITHOUT this plugin's old layer:
+  // every kept/added type must define cleanly and introduce no compile
+  // errors before anything persists.
+  const emptyTypeIds = new Set(plan.changed.filter(change => change.instances === 0).map(change => change.typeId));
+  const registry = await compileRegistryForOrganization(organizationId, {
+    emptyTypeIds,
+    excludePluginId: install.pluginId
+  });
+  const baseline = registry.compile(organizationId);
+  const baselineErrors = new Set(baseline.ok ? [] : baseline.errors);
+  const versionedTypes = [];
+  for (const type of listing.declarations.types) {
+    if (registry.getType(type.id, organizationId)) {
+      throw createError({
+        statusCode: 400,
+        message: `Plugin type ${type.id} is not installable: type id already declared in this organization`
+      });
+    }
+    try {
+      versionedTypes.push(registry.defineType(type));
+    } catch (error) {
+      throw createError({
+        statusCode: 400,
+        message: `Plugin type ${type.id} is not installable: ${error?.message || error}`
+      });
+    }
+  }
+  const compiled = registry.compile(organizationId);
+  const introduced = (compiled.errors || []).filter(error => !baselineErrors.has(error));
+  if (introduced.length) {
+    throw createError({ statusCode: 400, message: introduced.join('; ') });
+  }
+
+  await repository.updateInstallSnapshot(organizationId, pluginId, {
+    version: listing.version,
+    declarations: { types: versionedTypes.map(withoutMigrateSteps) },
+    services: (listing.declarations.services || []).filter(service => service?.id && service?.signature)
+  });
+
+  // Covered breaking changes execute against live instances (SPEC §11
+  // machinery, same as an org type edit): steps come from the new
+  // declaration's transient `migrate` key.
+  const changedById = new Map(plan.changed.map(change => [change.typeId, change]));
+  for (const versioned of versionedTypes) {
+    const change = changedById.get(versioned.id);
+    if (change?.instances > 0 && change.covered && change.steps.length) {
+      await applyTypeMigrationSteps({
+        declaration: versioned,
+        organizationId,
+        steps: change.steps,
+        toVersion: versioned.version,
+        actor: auth.userId
+      });
+    }
+  }
+
+  invalidateInstanceDeclarations(String(organizationId));
+  await ensureInstanceIndexes(registry.resolveView(organizationId));
+  publishOrgContractChanged(String(organizationId), 'registry', {
+    pluginId: String(pluginId),
+    upgradedTo: listing.version
+  });
+  return {
+    pluginId: String(pluginId),
+    version: listing.version,
+    types: versionedTypes.map(typeSummary),
+    services: (listing.declarations.services || []).map(serviceSummary)
+  };
+}
+
+async function loadUpgradePair(organizationId, pluginId) {
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  const listing = await repository.findCatalogByPluginId(pluginId);
+  if (!listing) throw createError({ statusCode: 404, message: 'Plugin is not in the catalog' });
+  if (listing.version === install.version) {
+    throw createError({ statusCode: 409, message: 'Plugin is already at the pinned catalog version' });
+  }
+  const types = listing.declarations?.types || [];
+  if (!types.length) throw createError({ statusCode: 400, message: 'Plugin declares no types' });
+  return { install, listing };
+}
+
+// The diff before the apply: additions, removals (drain-gated), and
+// changed types through the SPEC §11 planner — uncovered breaking
+// changes on types with live instances block the upgrade.
+async function buildUpgradePlan(install, listing, organizationId) {
+  const oldTypes = new Map((install.declarations?.types || []).map(type => [type.id, type]));
+  const newTypes = new Map((listing.declarations?.types || []).map(type => [type.id, type]));
+
+  const added = [...newTypes.keys()].filter(id => !oldTypes.has(id)).map(id => typeSummary(newTypes.get(id)));
+  const removed = [];
+  const changed = [];
+  const blocked = [];
+
+  for (const [id, oldType] of oldTypes) {
+    const instances = await countInstancesOfType(id, organizationId);
+    if (!newTypes.has(id)) {
+      if (instances > 0) {
+        blocked.push({ typeId: id, instances, reason: 'removed with live instances — delete or migrate them first' });
+      } else {
+        removed.push(typeSummary(oldType));
+      }
+      continue;
+    }
+    const plan = planTypeMigration(oldType, newTypes.get(id));
+    if (plan.breaking.length && instances === 0) {
+      changed.push({ typeId: id, label: oldType.label || id, instances: 0, changes: plan.diff.changes, breaking: plan.breaking, covered: true, steps: [] });
+      continue;
+    }
+    if (plan.breaking.length && !plan.covered) {
+      blocked.push({
+        typeId: id,
+        instances,
+        reason: plan.errors.join('; ') || 'breaking change without a covering migration step'
+      });
+    }
+    changed.push({
+      typeId: id,
+      label: oldType.label || id,
+      instances,
+      changes: plan.diff.changes,
+      breaking: plan.breaking,
+      covered: plan.covered,
+      steps: plan.steps.map(step => ({ ...step }))
+    });
+  }
+
+  return { pluginId: install.pluginId, from: install.version, to: listing.version, added, removed, changed, blocked };
+}
+
+// Steps are one-time (SPEC §11): the persisted pin never carries `migrate`.
+function withoutMigrateSteps(declaration = {}) {
+  const next = { ...declaration };
+  delete next.migrate;
+  return next;
 }
 
 function assertSameOrganization(organizationId, auth = {}) {

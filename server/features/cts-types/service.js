@@ -41,7 +41,7 @@ function withoutMigrateSteps(declaration = {}) {
 // probe must be synchronous, so authoring callers pre-count the type
 // being written into `emptyTypeIds`; every other composition passes no
 // probe and refuse-on-breaking holds exactly as before.
-export async function compileRegistryForOrganization(organizationId, { emptyTypeIds = null } = {}) {
+export async function compileRegistryForOrganization(organizationId, { emptyTypeIds = null, excludePluginId = null } = {}) {
   const registry = createTypeRegistry({
     id: `cts-types:${organizationId || 'system'}`,
     hasInstances: emptyTypeIds
@@ -58,8 +58,9 @@ export async function compileRegistryForOrganization(organizationId, { emptyType
     // Installed plugin declarations are a resolution source between
     // system packs and org-authored types (SPEC §Plugin marketplace):
     // same no-shadowing rule, and a collision is a loud composition
-    // error naming the plugin layer.
-    for (const declaration of await pluginInstalls.listDeclarationsByOrganization(organizationId)) {
+    // error naming the plugin layer. Upgrade trials compose the view
+    // without the upgrading plugin's own layer.
+    for (const declaration of await pluginInstalls.listDeclarationsByOrganization(organizationId, { excludePluginId })) {
       try {
         registry.defineType(declaration);
       } catch (error) {

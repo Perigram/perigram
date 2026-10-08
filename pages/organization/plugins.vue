@@ -28,6 +28,18 @@
             <Column :header="$t('common.actions.title')" class="text-right">
               <template #body="{ data }">
                 <div class="flex justify-end gap-2">
+                  <Tag
+                    v-if="data.availableVersion"
+                    :value="`${data.version} → ${data.availableVersion}`"
+                    severity="warn"
+                  />
+                  <Button
+                    v-if="data.availableVersion"
+                    icon="pi pi-arrow-up"
+                    :aria-label="$t('plugins.upgrade')"
+                    size="small"
+                    @click="openUpgrade(data)"
+                  />
                   <Button
                     v-if="data.services.length"
                     icon="pi pi-key"
@@ -184,6 +196,51 @@
         <Button :label="$t('common.close')" severity="secondary" @click="connectorDialogVisible = false" />
       </template>
     </StandardDialog>
+    <StandardDialog
+      v-model:visible="upgradeDialogVisible"
+      :header="$t('plugins.upgradeTitle')"
+      size="md"
+    >
+      <div v-if="upgradePlan" class="flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+          <Tag :value="upgradePlan.from" severity="secondary" />
+          <i class="pi pi-arrow-right text-muted" aria-hidden="true" />
+          <Tag :value="upgradePlan.to" />
+        </div>
+        <div v-if="upgradePlan.added.length" class="flex flex-col gap-1">
+          <div class="text-muted text-label">{{ $t('plugins.added') }}</div>
+          <div class="text-body">{{ upgradePlan.added.map(type => type.label || type.id).join(', ') }}</div>
+        </div>
+        <div v-if="upgradePlan.removed.length" class="flex flex-col gap-1">
+          <div class="text-muted text-label">{{ $t('plugins.removed') }}</div>
+          <div class="text-body">{{ upgradePlan.removed.map(type => type.label || type.id).join(', ') }}</div>
+        </div>
+        <div v-if="upgradePlan.changed.length" class="flex flex-col gap-1">
+          <div class="text-muted text-label">{{ $t('plugins.changed') }}</div>
+          <ul class="m-0 flex list-none flex-col gap-1 pl-0">
+            <li v-for="change in upgradePlan.changed" :key="change.typeId" class="text-body">
+              <i :class="change.breaking.length ? 'pi pi-exclamation-triangle' : 'pi pi-pencil'" class="mr-2 text-muted" aria-hidden="true" />
+              {{ change.label }}
+            </li>
+          </ul>
+        </div>
+        <div v-if="upgradePlan.blocked.length" class="flex flex-col gap-1">
+          <Message severity="warn">
+            {{ upgradePlan.blocked.map(blocked => `${blocked.typeId}: ${blocked.reason}`).join(' · ') }}
+          </Message>
+        </div>
+      </div>
+      <template #footer>
+        <Button :label="$t('common.cancel')" text severity="secondary" @click="upgradeDialogVisible = false" />
+        <Button
+          :label="$t('plugins.upgrade')"
+          icon="pi pi-arrow-up"
+          :disabled="!!upgradePlan?.blocked?.length"
+          :loading="upgrading"
+          @click="confirmUpgrade"
+        />
+      </template>
+    </StandardDialog>
   </StandardPage>
 </template>
 
@@ -196,6 +253,7 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
+import Message from 'primevue/message';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -229,6 +287,9 @@ const workingPluginId = ref(null);
 const connectorDialogVisible = ref(false);
 const connector = ref(null);
 const regenerating = ref(false);
+const upgradeDialogVisible = ref(false);
+const upgradePlan = ref(null);
+const upgrading = ref(false);
 
 const activeOrganizationId = computed(() =>
   authStore.organizationData?._id
@@ -334,6 +395,34 @@ async function regenerateToken() {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
   } finally {
     regenerating.value = null;
+  }
+}
+
+async function openUpgrade(item) {
+  upgradePlan.value = null;
+  upgradeDialogVisible.value = true;
+  try {
+    upgradePlan.value = await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}/upgrade`);
+  } catch (error) {
+    upgradeDialogVisible.value = false;
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+  }
+}
+
+async function confirmUpgrade() {
+  if (!upgradePlan.value) return;
+  upgrading.value = true;
+  try {
+    await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(upgradePlan.value.pluginId)}/upgrade`, {
+      method: 'POST'
+    });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('plugins.upgradedToast'), life: 3000 });
+    upgradeDialogVisible.value = false;
+    await load();
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+  } finally {
+    upgrading.value = null;
   }
 }
 </script>

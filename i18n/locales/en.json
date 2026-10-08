@@ -3382,6 +3382,12 @@
     "copy": "Copy",
     "copied": "Copied",
     "regenerate": "Regenerate",
-    "tokenRegenerated": "Token regenerated"
+    "tokenRegenerated": "Token regenerated",
+    "upgrade": "Upgrade",
+    "upgradeTitle": "Upgrade plugin",
+    "added": "Added",
+    "removed": "Removed",
+    "changed": "Changed",
+    "upgradedToast": "Plugin upgraded"
   }
 }

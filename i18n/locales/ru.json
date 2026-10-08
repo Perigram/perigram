@@ -3382,6 +3382,12 @@
     "copy": "Копировать",
     "copied": "Скопировано",
     "regenerate": "Перевыпустить",
-    "tokenRegenerated": "Токен перевыпущен"
+    "tokenRegenerated": "Токен перевыпущен",
+    "upgrade": "Обновить",
+    "upgradeTitle": "Обновление плагина",
+    "added": "Добавлено",
+    "removed": "Удалено",
+    "changed": "Изменено",
+    "upgradedToast": "Плагин обновлён"
   }
 }

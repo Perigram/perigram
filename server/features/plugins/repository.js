@@ -81,11 +81,24 @@ export async function deleteInstall(organizationId, pluginId) {
   });
 }
 
+// Upgrade apply: replace the pinned snapshot (declarations and services
+// are the pin; the connector token survives).
+export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services }) {
+  const db = await connectDB();
+  await db.collection(INSTALLS_COLLECTION).updateOne(
+    { organizationId: String(organizationId), pluginId: String(pluginId) },
+    { $set: { version, declarations, services: services || [], upgradedAt: new Date() } }
+  );
+}
+
 // The composed plugin layer for the org view (cts-types composition): the
-// installed snapshots' type declarations, install order.
-export async function listDeclarationsByOrganization(organizationId) {
+// installed snapshots' type declarations, install order. Upgrade trials
+// exclude the upgrading plugin's own layer.
+export async function listDeclarationsByOrganization(organizationId, { excludePluginId = null } = {}) {
   const installs = await listInstallsByOrganization(organizationId);
-  return installs.flatMap(install => install.declarations?.types || []);
+  return installs
+    .filter(install => String(install.pluginId) !== String(excludePluginId))
+    .flatMap(install => install.declarations?.types || []);
 }
 
 export async function findDeclarationByTypeId(organizationId, typeId) {

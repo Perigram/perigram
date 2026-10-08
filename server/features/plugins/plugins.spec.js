@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
 vi.mock('../instances/count.js', () => ({ countInstancesOfType: vi.fn(async () => 0) }));
+vi.mock('../instances/migrations.js', () => ({
+  applyTypeMigrationSteps: vi.fn(async () => ({ appliedAt: '2026-10-08T00:00:00.000Z', actor: 'user-1', counts: {}, failures: [] }))
+}));
 vi.mock('../process-definitions/service.js', () => ({ findTypeReferences: vi.fn(async () => []) }));
 vi.mock('../instance-events/service.js', () => ({ publishOrgContractChanged: vi.fn() }));
 vi.mock('../instances/service.js', () => ({ invalidateInstanceDeclarations: vi.fn() }));
@@ -32,6 +35,7 @@ vi.mock('./repository.js', () => ({
   createInstall: vi.fn(async () => 'install-1'),
   deleteInstall: vi.fn(),
   setConnectorToken: vi.fn(),
+  updateInstallSnapshot: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null)
 }));
@@ -41,10 +45,11 @@ import * as typeStore from '../cts-types/repository.js';
 import {
   install, uninstall, listInstalled, servicesForOrganization,
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
-  regenerateConnectorToken
+  regenerateConnectorToken, upgradePreview, applyUpgrade
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
+import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 
@@ -262,5 +267,103 @@ describe('connector services', () => {
     const result = await regenerateConnectorToken({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(result.token).toMatch(/^[A-Za-z0-9_-]{32}$/);
     expect(repository.setConnectorToken).toHaveBeenCalledWith(ORG, 'coatings', result.token);
+  });
+});
+
+describe('upgrades', () => {
+  const installedV2 = {
+    ...coatingInstall,
+    version: '2',
+    declarations: { types: coatingListing.declarations.types }
+  };
+  const listingV3 = {
+    ...coatingListing,
+    version: '3',
+    declarations: {
+      types: [
+        // changed: gains a required field WITH a covering default step
+        {
+          id: 'coating',
+          class: 'item',
+          label: 'Coating',
+          fields: {
+            code: { base: 'string' },
+            gloss: { base: 'string' }
+          },
+          migrate: [{ kind: 'add-default-field', field: 'gloss', value: 'matte' }]
+        },
+        // added
+        { id: 'primer', class: 'item', label: 'Primer', fields: { code: { base: 'string' } } }
+      ],
+      services: coatingListing.declarations.services
+    }
+  };
+
+  beforeEach(() => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? installedV2 : null
+    ));
+    repository.findCatalogByPluginId.mockImplementation(async pluginId => (
+      pluginId === 'coatings' ? listingV3 : null
+    ));
+  });
+
+  it('reports the available catalog version on installed plugins', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([installedV2]);
+    const installed = await listInstalled({ organizationId: ORG, auth: AUTH });
+    expect(installed[0].availableVersion).toBe('3');
+  });
+
+  it('previews additions, changes, and declared migration steps', async () => {
+    const plan = await upgradePreview({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(plan).toMatchObject({ from: '2', to: '3' });
+    expect(plan.added.map(type => type.id)).toEqual(['primer']);
+    expect(plan.changed.map(change => change.typeId)).toEqual(['coating']);
+    expect(plan.blocked).toEqual([]);
+    const coating = plan.changed[0];
+    expect(coating.breaking.length).toBeGreaterThan(0);
+    expect(coating.covered).toBe(true);
+  });
+
+  it('blocks a removed type that still has live instances', async () => {
+    const removedListing = {
+      ...listingV3,
+      declarations: { types: [listingV3.declarations.types[1]], services: [] }
+    };
+    repository.findCatalogByPluginId.mockImplementation(async () => removedListing);
+    countInstancesOfType.mockResolvedValue(4);
+    const plan = await upgradePreview({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(plan.blocked).toEqual([
+      expect.objectContaining({ typeId: 'coating', instances: 4 })
+    ]);
+    await expect(applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 409 });
+    expect(repository.updateInstallSnapshot).not.toHaveBeenCalled();
+    countInstancesOfType.mockResolvedValue(0);
+  });
+
+  it('applies a clean upgrade as the new pinned snapshot and runs covered steps', async () => {
+    countInstancesOfType.mockResolvedValue(7);
+    const result = await applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(result).toMatchObject({ pluginId: 'coatings', version: '3' });
+    const persisted = repository.updateInstallSnapshot.mock.calls[0][2];
+    expect(persisted.version).toBe('3');
+    expect(persisted.declarations.types.map(type => type.id).sort()).toEqual(['coating', 'primer']);
+    // one-time steps never persist (SPEC §11)
+    expect(persisted.declarations.types.some(type => type.migrate)).toBe(false);
+    expect(applyTypeMigrationSteps).toHaveBeenCalledWith(expect.objectContaining({
+      organizationId: ORG,
+      steps: [{ kind: 'add-default-field', field: 'gloss', value: 'matte' }]
+    }));
+    expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
+  });
+
+  it('refuses the upgrade when already at the catalog version', async () => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? installedV2 : null
+    ));
+    repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, version: '2' }));
+    await expect(upgradePreview({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 409 });
   });
 });
