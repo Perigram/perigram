@@ -343,6 +343,16 @@ transition is a real edge. No wildcard
 or enumerated from-state ever enters the machine; the transition inspector
 authors no from-state, and at execution the status engine validates the
 operated instance's current state against exactly those declared edges.
+A transition node may carry a `guard` (SPEC §7): a boolean expression
+AST over `{ value }` with row-relative field paths. It rides the
+derived action onto the machine edge — when several actions declare the
+same edge, the first declaration owns the guard — and the declaration
+check seam row-checks its paths and restricts its vocabulary to the
+boolean expression subset. The status runtime evaluates it at commit
+and hides guard-failing edges from action availability (see
+[server/core/machines/README.md](../../server/core/machines/README.md));
+the transition inspector edits it as a flat all-of/any-of condition
+list, a projection of the same AST.
 The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry

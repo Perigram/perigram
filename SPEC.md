@@ -206,6 +206,25 @@ and READMEs (including SYSTEM_ARCHITECTURE) describe the CTS reality.
 
 Org process sets type OUT (special node that "published") (for friends or public), recipient gets it's structure and acts as it's allowed by type (resond, etc); reply to OUT dictates next IN stucture. So basically external interaction in process definition is OUT-GAP-IN.    
 
+## Process authoring maturity
+
+Business processes are the product; six capabilities in priority order:
+
+1. Transition guards — conditional transitions authored as boolean
+   expressions on the transition operation (CTS SPEC §7), evaluated
+   atomically at commit. No business rule is authorable without them.
+2. State deadlines — per-instance SLA/escalation declared on states;
+   the framework compiles deadlines into scheduled scans (CTS SPEC §7),
+   never a standing query.
+3. Worklist — one per-user inbox of actionable instances derived from
+   status windows and assignments; assignment, due date, claim/release.
+   A projection, not new machinery.
+4. Money — minor-unit-integer currency quantities (CTS SPEC §2).
+5. Run/instance trace — an operator surface answering "where is this
+   instance stuck" from persisted run state and status events.
+6. Cancellation — cancelling an in-flight run invalidates its waiting
+   joins and claims; join arrival sets gain invalidation semantics.
+
 ## Plugin marketplace
 
 Organization settings has a Plugins section: the organization sees the central

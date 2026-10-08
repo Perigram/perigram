@@ -1,5 +1,51 @@
 # TODO
 
+## Business process authoring maturity (2026-10-07)
+
+From the type-system audit (priority order accepted by the owner);
+contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
+[packages/cts/SPEC.md](./packages/cts/SPEC.md) §2/§7.
+
+- [ ] 1 — Transition guards as expressions: `cts.transition` records
+  carry a boolean guard AST over `{ value }` (row-relative paths);
+  compiled onto machine edges; re-evaluated atomically at commit;
+  guard-failing edges omitted from action availability; row-checked at
+  the declaration seam. (Part of the cts TODO's remaining L2 slice.)
+- [ ] 2 — State deadlines: declared deadline facet compiled to scheduled
+  escalation scans (CTS SPEC §7, specified not built).
+- [ ] 3 — Worklist derivation from status windows + assignments.
+- [ ] 4 — Pin money semantics: minor-unit-integer currency quantities
+  (CTS SPEC §2, specified not built).
+- [ ] 5 — Run/instance trace surface (persisted run state + status
+  events already exist; the surface is a projection).
+- [ ] 6 — Cancellation + join invalidation semantics
+  (`orchestration.js` arrival sets are add-only today).
+
+### Agent Notes (2026-10-07, item 1 — transition guards)
+
+Session `agent/process-guards-20261007`. Item 1 implemented end to end:
+`cts.transition` records carry an optional `guard` (boolean expression
+AST over `{ value }`, row-relative paths — SPEC §7). Compile: the guard
+rides the derived action onto the machine edge (`compileWorkflows`,
+first declaration of an edge wins). Checks: the declaration seam
+(`compat/process-checks.js`) restricts guard vocabulary to the boolean
+expression subset and row-checks paths under the `value` root. Runtime:
+the status engine re-evaluates guards atomically at commit (409 on
+refusal) and hides guard-failing edges from `GET /api/state/actions`
+availability (both machine-authority and appended process actions; §3
+flat-row and legacy block docs both scope correctly). Inspector: a flat
+all-of/any-of condition editor on transition nodes — a projection of
+the same AST, no parallel shape. Guard evaluation errors hide the
+action on listing but surface loudly at execution; intent availability
+(`assertIntentAvailable`) deliberately does not guard-filter (named
+callers receive the commit-time refusal). Also corrected a docs
+contradiction found during diagnosis: `packages/cts/README.md`
+described a states.js (guarded transitions, intents, terminal
+reachability) that no longer exists — machines are graph-derived and
+the vocabulary module is thin; the README and SPEC §7 now say so.
+Validated: cts + processes suites (592 tests), machines service spec
+(17, incl. two new guard tests), check-arch, check-docs, SSR smoke.
+
 ## Plugin marketplace (2026-10-08)
 
 Owner decisions: declarations + connectors (no in-process third-party code),
