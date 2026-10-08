@@ -17,7 +17,7 @@ import {
 import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
 import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { getEntityCollection, getInstanceDefinition, normalizeTypeId } from '~/server/runtime/entities.js';
-import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
+import { CLASS_COLLECTIONS, evaluate as evaluateExpression } from '~/packages/cts/src/index.js';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
@@ -187,7 +187,7 @@ export const stateService = {
       }
       throw error;
     }
-    const { entity, machine: loadedMachine } = loaded;
+    const { entity, machine: loadedMachine, instanceDoc } = loaded;
     const primaryState = entity.states
       ? getPrimaryState(entity.states, loadedMachine ? normalizeWorkflow(loadedMachine).initial : undefined)
       : getPrimaryState(entity.status, undefined);
@@ -226,6 +226,16 @@ export const stateService = {
 
       if (!validation.ok) continue;
 
+      // A guard-failing edge is not actionable (SPEC §7): availability
+      // hides it while execution re-evaluates and refuses. An evaluation
+      // error is data-dependent, so it hides the action rather than
+      // failing the endpoint — execution still surfaces it loudly.
+      try {
+        if (!transitionGuardAllows(transition, entity, instanceDoc)) continue;
+      } catch {
+        continue;
+      }
+
       try {
         assertTransitionAccess({ transition, entity, auth });
         await assertTransitionPreflight({
@@ -258,7 +268,9 @@ export const stateService = {
       auth,
       typeId: normalizedTypeId,
       primaryState,
-      machine: normalizedMachine
+      machine: normalizedMachine,
+      entity,
+      instanceDoc
     });
 
     return { typeId: normalizedTypeId, targetId, state: entity.states || createWorkflowState(normalizedMachine), primaryState, actions };
@@ -351,7 +363,7 @@ async function resolveIntentTransition({
   return { typeId: normalizedTypeId, entity, transition, regionId, currentState };
 }
 
-function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', primaryState = '', machine = null } = {}) {
+function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', primaryState = '', machine = null, entity = null, instanceDoc = null } = {}) {
   const region = machine
     ? (machine.regions?.[machine.primaryRegion] || Object.values(machine.regions || {})[0] || null)
     : null;
@@ -359,6 +371,10 @@ function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', prim
   const declared = new Set((region?.transitions || []).map(transition => (
     `${transition.from}->${resolveWorkflowStatePath(region, transition.to) || transition.to}`
   )));
+  const declaredByEdge = new Map((region?.transitions || []).map(transition => [
+    `${transition.from}->${resolveWorkflowStatePath(region, transition.to) || transition.to}`,
+    transition
+  ]));
   const resolvedPrimary = resolve(primaryState);
   const existingTargets = new Set(actions.map(action => `${action.from || ''}->${action.to || ''}`));
   for (const action of auth.roleAssignments?.actions || []) {
@@ -377,6 +393,12 @@ function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', prim
     // The compiled machine is the authority: a manifest action surfaces
     // only when the machine declares the edge it would execute.
     if (region && !declared.has(`${fromState}->${toState}`)) continue;
+    // ... and only while the edge's guard holds for this instance (SPEC §7).
+    try {
+      if (!transitionGuardAllows(declaredByEdge.get(`${fromState}->${toState}`), entity, instanceDoc)) continue;
+    } catch {
+      continue;
+    }
     const key = `${fromState}->${toState}`;
     if (existingTargets.has(key)) continue;
     actions.push({
@@ -390,6 +412,20 @@ function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', prim
     });
     existingTargets.add(key);
   }
+}
+
+// Transition guards (SPEC §7/§18.3): a guard is a boolean expression AST
+// evaluated over { value } — the operated instance's row. A §3 instance
+// stores its row flat under `fields`; a legacy status-block doc keeps the
+// `data`/`specs` blocks, which merge into the same row shape.
+function instanceRowForGuard(entity, instanceDoc) {
+  if (instanceDoc?.fields && typeof instanceDoc.fields === 'object') return instanceDoc.fields;
+  return { ...(entity.data || {}), ...(entity.specs || {}) };
+}
+
+function transitionGuardAllows(transition, entity, instanceDoc) {
+  if (!transition?.guard) return true;
+  return Boolean(evaluateExpression(transition.guard, { value: instanceRowForGuard(entity, instanceDoc) }));
 }
 
 async function performTransition(typeId, targetId, targetState, userId, userRole, metadata = {}, options = {}) {
@@ -462,6 +498,16 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       throw createError({
         statusCode: 400,
         message: `Invalid lifecycle payload for ${normalizedTypeId} status ${targetState}: ${validation.reason}`
+      });
+    }
+
+    // The guard re-evaluates atomically at commit against the loaded
+    // instance (SPEC §18.3): a guard that no longer holds refuses the
+    // transition — a racing transition loses, never merges.
+    if (!transitionGuardAllows(transition, entity, instanceDoc)) {
+      throw createError({
+        statusCode: 409,
+        message: `Guard refused transition ${currentState} -> ${targetState} for ${normalizedTypeId}`
       });
     }
 

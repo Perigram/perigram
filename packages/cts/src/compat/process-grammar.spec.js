@@ -123,6 +123,45 @@ describe('declaration-check phase', () => {
     expect(errors).not.toContainEqual(expect.stringMatching(/identity\.name/));
   });
 
+  it('checks transition guards: boolean vocabulary only, row-relative paths under value', () => {
+    const registry = registryWithOrgType();
+    const errors = checkDeclarationsAgainstCts({
+      data: {
+        ctsTypes: draftStateRecords(),
+        processNodes: {
+          guarded: {
+            kind: 'cts.transition', typeId: 'widget', state: { to: 'done' },
+            guard: {
+              op: 'and',
+              args: [
+                { op: 'lt', args: [{ op: 'field', path: ['value', 'name'] }, { op: 'lit', value: 'zz' }] },
+                { op: 'not', arg: { op: 'eq', args: [{ op: 'field', path: ['value', 'stage'] }, { op: 'lit', value: 'raw' }] } }
+              ]
+            }
+          },
+          offRow: {
+            kind: 'cts.transition', typeId: 'widget', state: { to: 'done' },
+            guard: { op: 'gt', args: [{ op: 'field', path: ['value', 'ghost'] }, { op: 'lit', value: 1 }] }
+          },
+          unrooted: {
+            kind: 'cts.transition', typeId: 'widget', state: { to: 'done' },
+            guard: { op: 'gt', args: [{ op: 'field', path: ['name'] }, { op: 'lit', value: 1 }] }
+          },
+          comprehension: {
+            kind: 'cts.transition', typeId: 'widget', state: { to: 'done' },
+            guard: { op: 'map', list: { op: 'field', path: ['value', 'name'] }, var: 'x', body: { op: 'var', name: 'x' } }
+          }
+        }
+      }
+    }, registry, 'org-1');
+    // The well-formed guard over declared row fields passes.
+    expect(errors).not.toContainEqual(expect.stringMatching(/guarded guard/));
+    expect(errors).not.toContainEqual(expect.stringMatching(/comprehension guard: field/));
+    expect(errors).toContainEqual(expect.stringMatching(/offRow guard: field ghost outside the row/));
+    expect(errors).toContainEqual(expect.stringMatching(/unrooted guard: field path must start at 'value'/));
+    expect(errors).toContainEqual(expect.stringMatching(/comprehension guard: op map is not guard vocabulary/));
+  });
+
   it('org overlay is the view: other orgs see system types only', () => {
     const registry = registryWithOrgType();
     const errors = checkDeclarationsAgainstCts({

@@ -47,6 +47,14 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
   // would misread card kinds such as `ctsField` as referenced type ids.
   const { graph: _presentation, ...semantic } = data;
 
+  // Guard rows are row-relative (SPEC §7/§20): the first path segment
+  // under `value` must be a declared field of the bound type.
+  const rowNamesByType = new Map();
+  for (const type of view.values()) {
+    const names = Object.keys(type.fields || {});
+    if (names.length) rowNamesByType.set(type.id, new Set(names));
+  }
+
   for (const [producerOutputId, output] of Object.entries(data.producerOutputs || {})) {
     if (output?.typeId && !view.has(output.typeId)) {
       errors.push(`Producer output ${producerOutputId} references unknown type ${output.typeId}`);
@@ -98,9 +106,73 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
         }
       }
     }
+    // Transition guards (SPEC §7): boolean expression ASTs over { value }.
+    // Vocabulary is the boolean subset of §18 — comprehensions are not
+    // guard authoring — and field paths are row-checked like any other
+    // field reference.
+    if (kind === 'cts.transition' && node.guard) {
+      errors.push(...checkGuardExpression(node.guard, rowNamesByType.get(typeId), path));
+    }
   });
 
   return errors;
+}
+
+// 'data.job.items' -> 'data.job'; 'identity.name' -> null (managed block,
+// not row-checked); 'fields.width' -> treated as its root segment.
+function fieldRoot(path = '') {
+  const clean = path.replace(/^fields\./, '');
+  const [block, name] = clean.split('.');
+  if ((block === 'data' || block === 'specs') && name) return `${block}.${name}`;
+  return null;
+}
+
+// Guard expression check (SPEC §7): the boolean subset of §18 only —
+// comparisons, and/or/not, field paths rooted at `value`, literals.
+// Row-checking is best-effort like the rest of this phase: types without
+// declared rows skip the path check.
+const GUARD_COMPARISON_OPS = new Set(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']);
+
+function checkGuardExpression(ast, rowNames, path) {
+  const errors = [];
+  visit(ast, 0);
+  return errors;
+
+  function visit(node, depth) {
+    if (!node || typeof node !== 'object' || typeof node.op !== 'string') {
+      errors.push(`${path} guard: expression nodes must carry an op`);
+      return;
+    }
+    if (depth > 32) {
+      errors.push(`${path} guard: expression nesting exceeds 32 levels`);
+      return;
+    }
+    const { op } = node;
+    if (op === 'lit') return;
+    if (op === 'field') {
+      const fieldPath = node.path;
+      if (!Array.isArray(fieldPath) || fieldPath[0] !== 'value' || fieldPath.length < 2) {
+        errors.push(`${path} guard: field path must start at 'value'`);
+      } else if (rowNames && !rowNames.has(String(fieldPath[1]))) {
+        errors.push(`${path} guard: field ${fieldPath.slice(1).join('.')} outside the row`);
+      }
+      return;
+    }
+    if (op === 'not') {
+      visit(node.arg, depth + 1);
+      return;
+    }
+    if (!GUARD_COMPARISON_OPS.has(op) && op !== 'and' && op !== 'or') {
+      errors.push(`${path} guard: op ${op} is not guard vocabulary`);
+      return;
+    }
+    const args = Array.isArray(node.args) ? node.args : [];
+    if (args.length !== 2) {
+      errors.push(`${path} guard: ${op} requires two arguments`);
+      return;
+    }
+    for (const arg of args) visit(arg, depth + 1);
+  }
 }
 
 function allowedFieldRoots(type = {}) {
@@ -111,15 +183,6 @@ function allowedFieldRoots(type = {}) {
     roots.add(`${slotFor(descriptor, type.class)}.${name}`);
   }
   return roots;
-}
-
-// 'data.job.items' -> 'data.job'; 'identity.name' -> null (managed block,
-// not row-checked); 'fields.width' -> treated as its root segment.
-function fieldRoot(path = '') {
-  const clean = path.replace(/^fields\./, '');
-  const [block, name] = clean.split('.');
-  if ((block === 'data' || block === 'specs') && name) return `${block}.${name}`;
-  return null;
 }
 
 function walk(value, visit, path = 'definition') {

@@ -241,6 +241,7 @@
                   :service-principal-options="servicePrincipalOptions"
                   :transition-axis-options="transitionAxisOptions"
                   :transition-path-options="transitionPathOptions"
+                  :guard-field-options="transitionGuardFieldOptions"
                   :construction-modes="constructionModeOptions(nodeTypeId(selectedProcessNode))"
                   :artifact-kinds="artifactCreationKinds(selectedProcessNode)"
                   :artifact-kind-options="artifactUploadKindOptions"
@@ -1589,6 +1590,15 @@ const producerFieldPolicyOptions = computed(() => {
   const typeId = nodeTypeId(selectedProcessNode.value) || selectedEntity.value?.typeId || '';
   if (!typeId) return [];
   return designer.fieldsForEntity(typeId).map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: field.value }));
+});
+// Guard paths are row-relative (SPEC §7/§20): strip the block-slot prefix
+// from the designer's field-schema paths; labels stay authored.
+const transitionGuardFieldOptions = computed(() => {
+  const record = selectedProcessNode.value;
+  if (record?.kind !== 'cts.transition') return [];
+  return designer.fieldsForEntity(nodeTypeId(record))
+    .map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: String(field.value || '').replace(/^(data|specs)\./, '') }))
+    .filter(field => field.value);
 });
 function commandForId(commandId) {
   return facadeDomain.commands?.[commandId] || null;
