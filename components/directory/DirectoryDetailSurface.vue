@@ -185,6 +185,7 @@ import { openInstanceChat } from '~/utils/instance-chat.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 
 // The directory detail surface renders user/organization detail INSIDE the
@@ -199,6 +200,7 @@ const props = defineProps({
 
 const authStore = useAuthStore();
 const toast = useToast();
+const confirm = useConfirm();
 const { t } = useI18n();
 
 // Menu rows sit inside a Panel body — the Panel owns the padding.
@@ -377,8 +379,20 @@ async function requestPartnership() {
   }
 }
 
-async function respondPartnership(action) {
-  if (action === 'cancel' && !window.confirm(t('partnerships.cancelConfirm'))) return;
+function respondPartnership(action) {
+  if (action !== 'cancel') {
+    runPartnershipResponse(action);
+    return;
+  }
+  confirm.require({
+    message: t('partnerships.cancelConfirm'),
+    header: t('common.confirmation'),
+    icon: 'pi pi-exclamation-triangle',
+    accept: () => runPartnershipResponse(action)
+  });
+}
+
+async function runPartnershipResponse(action) {
   responding.value = true;
   try {
     if (action === 'accept' || action === 'decline') {

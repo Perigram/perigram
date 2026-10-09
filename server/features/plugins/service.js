@@ -150,9 +150,14 @@ export async function uninstall({ organizationId, pluginId, auth = {} }) {
     }
   }
   if (blocked.length) {
+    const detail = blocked.map(entry =>
+      entry.instances > 0
+        ? `${entry.typeId}: ${entry.instances} instance(s)`
+        : `${entry.typeId}: bound by ${entry.boundBy.join(', ')}`
+    ).join('; ');
     throw createError({
       statusCode: 409,
-      message: 'Plugin types still have live data — delete or migrate it first',
+      message: `Plugin types still have live data (${detail}) — delete or migrate it first`,
       data: { blocked }
     });
   }
@@ -489,9 +494,14 @@ export async function disablePack({ organizationId, packId, auth = {} }) {
     }
   }
   if (blocked.length) {
+    const detail = blocked.map(entry =>
+      entry.instances > 0
+        ? `${entry.typeId}: ${entry.instances} instance(s)`
+        : `${entry.typeId}: bound by ${entry.boundBy.join(', ')}`
+    ).join('; ');
     throw createError({
       statusCode: 409,
-      message: 'Pack types still have live data — delete or migrate it first',
+      message: `Pack types still have live data (${detail}) — delete or migrate it first`,
       data: { blocked }
     });
   }

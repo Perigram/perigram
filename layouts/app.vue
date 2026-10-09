@@ -167,8 +167,11 @@
         <!-- The app-level default confirmation host: one instance for the
              whole layout. Feature surfaces (chat, calls, generated screens)
              call useConfirm without a group; mounting a second host anywhere
-             else renders the same require twice. -->
+             else renders the same require twice. The Toast host follows the
+             same single-host law: every toast.add() on app surfaces renders
+             here. -->
         <ConfirmDialog />
+        <Toast />
     </div>
 </template>
 
@@ -180,6 +183,7 @@
     import Badge from 'primevue/badge'
     import Menu from 'primevue/menu'
     import ConfirmDialog from 'primevue/confirmdialog'
+    import Toast from 'primevue/toast'
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'

@@ -101,6 +101,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
@@ -130,6 +131,7 @@ const tablePt = {
 
 const { t } = useI18n();
 const toast = useToast();
+const confirm = useConfirm();
 const authStore = useAuthStore();
 
 const partnerships = ref([]);
@@ -231,8 +233,16 @@ async function respond(partnership, action) {
   }
 }
 
-async function cancel(partnership) {
-  if (!window.confirm(t('partnerships.cancelConfirm'))) return;
+function cancel(partnership) {
+  confirm.require({
+    message: t('partnerships.cancelConfirm'),
+    header: t('common.confirmation'),
+    icon: 'pi pi-exclamation-triangle',
+    accept: () => cancelPartnership(partnership)
+  });
+}
+
+async function cancelPartnership(partnership) {
   respondingId.value = partnership._id;
   try {
     await $fetch(`/api/partnerships/${partnership._id}`, { method: 'DELETE' });

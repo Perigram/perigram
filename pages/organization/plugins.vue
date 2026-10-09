@@ -288,6 +288,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
@@ -317,6 +318,7 @@ const tablePt = {
 
 const { t, te, locale } = useI18n();
 const toast = useToast();
+const confirm = useConfirm();
 const authStore = useAuthStore();
 
 const catalog = ref([]);
@@ -455,8 +457,16 @@ async function saveSettings() {
   }
 }
 
-async function uninstall(item) {
-  if (!window.confirm(t('plugins.uninstallConfirm'))) return;
+function uninstall(item) {
+  confirm.require({
+    message: t('plugins.uninstallConfirm'),
+    header: t('common.confirmation'),
+    icon: 'pi pi-exclamation-triangle',
+    accept: () => removeInstalled(item)
+  });
+}
+
+async function removeInstalled(item) {
   workingPluginId.value = item.pluginId;
   try {
     if (item.pack) {
