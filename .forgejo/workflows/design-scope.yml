@@ -1,0 +1,51 @@
+name: design-scope
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [local]
+  workflow_dispatch:
+
+env:
+  # Forgejo logins whose pull requests are confined to
+  # .agents/design-layer.allowlist. The PR author login is the one identity
+  # a contributor cannot choose, so the gate keys on it, never on branch
+  # names. Replace the placeholder with the designer's account.
+  DESIGNER_LOGINS: |
+    designer-placeholder
+
+jobs:
+  design-scope:
+    runs-on: deploy
+    container:
+      image: node:22-alpine
+      options: --add-host forgejo.sodalab.pro:192.168.0.15
+    steps:
+      - name: tools
+        run: apk add --no-cache git
+      - name: check design scope
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          PR_AUTHOR="$(node -p "require(process.env.GITHUB_EVENT_PATH).pull_request?.user?.login || ''")"
+          if [ -z "$PR_AUTHOR" ]; then
+            echo "Not a pull request event; design scope enforcement skipped."
+            exit 0
+          fi
+          if ! printf '%s\n' "$DESIGNER_LOGINS" | grep -qx "$PR_AUTHOR"; then
+            echo "$PR_AUTHOR is not design-scoped; design scope enforcement skipped."
+            exit 0
+          fi
+          PR_BASE="$(node -p "require(process.env.GITHUB_EVENT_PATH).pull_request.base.ref")"
+          PR_NUMBER="$(node -p "require(process.env.GITHUB_EVENT_PATH).pull_request.number")"
+          echo "Enforcing design scope for $PR_AUTHOR (PR #$PR_NUMBER -> $PR_BASE)."
+          git init -q .
+          git remote add origin "https://x-access-token:${TOKEN}@${GITHUB_SERVER_URL#https://}/${GITHUB_REPOSITORY}.git"
+          git fetch -q --no-tags origin \
+            "+refs/heads/${PR_BASE}:refs/remotes/origin/${PR_BASE}" \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr-head"
+          git checkout -q refs/remotes/pr-head
+          node scripts/check-agent-scope.js \
+            --base "refs/remotes/origin/${PR_BASE}" \
+            --allow .agents/design-layer.allowlist

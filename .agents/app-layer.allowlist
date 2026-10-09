@@ -1,0 +1,4 @@
+# Allowed write paths for a top-layer app/composition agent, consumed by
+# scripts/check-agent-scope.js (`npm run agent:scope-check`).
+# Empty means nothing is writable: the repository owner adds composition
+# surfaces here before running a scoped agent session.

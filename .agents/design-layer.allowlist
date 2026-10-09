@@ -1,0 +1,35 @@
+# Allowed write paths for design-scoped contributors, enforced on their
+# pull requests by .forgejo/workflows/design-scope.yml and locally by
+# `npm run design:scope-check -- --base origin/local`.
+# Blank lines and comments are ignored. Extend only by repository owner
+# decision: this file is the designer boundary, not a designer artifact.
+
+# Theme: token module, PrimeVue preset, global stylesheets, tailwind config.
+assets/tokens/**
+assets/presets/**
+assets/css/**
+tailwind.config.js
+
+# Shared primitives, procedural UI surface, and common app chrome.
+components/shared/**
+components/ui-mapping/**
+components/generated/**
+components/Footer.vue
+components/ThemeSwitcher.vue
+components/LanguageSwitcher.vue
+components/README.md
+
+# Layouts and the designer playground pages.
+layouts/**
+pages/test/ui-lab.vue
+pages/test/ui-mapping.vue
+
+# Design system registry, level-2 mapping contract, and boundary spec.
+utils/design-system.js
+utils/design-system-contract.js
+shared/ui-mapping/**
+shared/design-system.spec.js
+framework.manifest.json
+
+# Canonical visual ownership audit.
+docs/UI_COMPONENT_AUDIT.md
