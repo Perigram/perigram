@@ -8,8 +8,7 @@ import * as repository from './repository.js';
 import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
 } from '~/packages/cts/src/index.js';
-import { facadeAttachmentKinds } from '~/packages/facade/src/index.js';
-import { composeSystemDeclarations, composePackEditors } from '~/server/packs/declarations.js';
+import { composeSystemDeclarations, composePackEditors, composePackAttachmentKinds } from '~/server/packs/declarations.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
@@ -88,7 +87,7 @@ export async function describeOrganizationTypes(organizationId) {
   const registry = await compileRegistryForOrganization(organizationId);
   return {
     bundle: compileClientBundle(registry, organizationId),
-    attachmentKinds: facadeAttachmentKinds,
+    attachmentKinds: composePackAttachmentKinds(),
     editors: composePackEditors()
   };
 }

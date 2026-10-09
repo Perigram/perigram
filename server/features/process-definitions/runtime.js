@@ -6,7 +6,7 @@ import {
   resolveNavigation,
   resolveScreens
 } from '~/packages/processes/src/index.js';
-import { facadeDomain } from '~/packages/facade/src/index.js';
+import { composePackDomains } from '~/server/packs/declarations.js';
 import { packServicesForOrganization } from '~/server/features/plugins/service.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { compileClientBundle, projectDomainFromView } from '~/packages/cts/src/index.js';
@@ -57,7 +57,7 @@ export async function getActiveCompiledProcess(organizationId) {
 // entity tables on the pack domain are not projected (SPEC §19).
 async function getProjectedDomainFor(organizationId) {
   const registry = await compileRegistryForOrganization(organizationId);
-  return projectDomainFromView(registry, organizationId, facadeDomain, {
+  return projectDomainFromView(registry, organizationId, composePackDomains(), {
     packServices: await packServicesForOrganization(organizationId)
   });
 }

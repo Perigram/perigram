@@ -18,7 +18,11 @@ composition, `composePackServices()` flattens every mounted pack's
 `services` list — the one service list the process runtime's projected
 domain, the admin domain route, and the designer resolve their
 `packServices` from, so a pack registration reaches every surface without
-a per-surface import.
+a per-surface import. The same law serves attachment kinds and domain
+slices: `composePackAttachmentKinds()` (payload upload contracts for the
+type view) and `composePackDomains()` (operator contracts, block
+vocabulary, and UI metadata for the projected-domain seam) — framework
+code composes the mounted packs and never imports a pack symbol.
 
 Type declarations may carry `projections` (SPEC §8 `p extract`, declared
 next to their type): `{ id, label, output, resolve }` where `resolve` is

@@ -43,7 +43,7 @@ import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { facadeDomain } from '~/packages/facade/src/index.js';
+import { composePackDomains } from '~/server/packs/declarations.js';
 import { packServicesForOrganization } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
@@ -2056,7 +2056,7 @@ function resolveOrganizationId(auth = {}) {
 }
 
 function getDomain() {
-  return getPerigramRegistry().getDomain('facade') || facadeDomain;
+  return composePackDomains();
 }
 
 // The compiler consumes the CTS-projected domain: strangler-converted system

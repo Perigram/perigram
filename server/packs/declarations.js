@@ -10,7 +10,7 @@
 // this list is its whole mount.
 import { techDrawingPack } from '#packages/tech-drawing/src/index.js';
 import { documentsPack } from '#packages/documents/src/index.js';
-import { facadePackContent } from '#packages/facade/src/index.js';
+import { facadePackContent, facadeDomain } from '#packages/facade/src/index.js';
 
 export const mountedPackDeclarations = [
   documentsPack,
@@ -21,7 +21,9 @@ export const mountedPackDeclarations = [
     requires: ['tech-drawing', 'documents'],
     types: facadePackContent.types,
     editors: facadePackContent.editors,
-    services: facadePackContent.services
+    services: facadePackContent.services,
+    attachmentKinds: facadePackContent.attachmentKinds,
+    domain: facadeDomain
   }
 ];
 
@@ -113,4 +115,40 @@ export function composePackEditors(packs = orderedMountedPacks()) {
     }
   }
   return editors;
+}
+
+// Attachment kinds (SPEC §21 payload upload contracts) composed from the
+// mounted packs: the type view serves this composition, never a pack
+// symbol. A kind id claimed by two packs is a mount error.
+export function composePackAttachmentKinds(packs = orderedMountedPacks()) {
+  const kinds = {};
+  for (const pack of packs) {
+    for (const [kind, contract] of Object.entries(pack.attachmentKinds || {})) {
+      if (kinds[kind]) {
+        throw new Error(`duplicate attachment kind ${kind} across packs (last: ${pack.id})`);
+      }
+      kinds[kind] = contract;
+    }
+  }
+  return kinds;
+}
+
+// The mounted packs' domain slices (operator contracts, block vocabulary,
+// UI metadata) merged for the projected-domain seam: framework code
+// composes the mounted packs, never a pack symbol. Key collisions across
+// packs are mount errors — packs never shadow each other.
+export function composePackDomains(packs = orderedMountedPacks()) {
+  const merged = { commands: {}, events: {}, construction: {}, serviceContracts: {} };
+  for (const pack of packs) {
+    const domain = pack.domain || {};
+    for (const key of ['commands', 'events', 'construction', 'serviceContracts']) {
+      for (const [id, value] of Object.entries(domain[key] || {})) {
+        if (merged[key][id]) {
+          throw new Error(`duplicate ${key} id ${id} across packs (last: ${pack.id})`);
+        }
+        merged[key][id] = value;
+      }
+    }
+  }
+  return merged;
 }
