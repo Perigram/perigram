@@ -43,12 +43,7 @@ Routes are grouped into sub-directories corresponding to features:
   persistence, scheduling, and effects to the process-definitions feature
   service. `POST /preview` evaluates pure/read nodes from an unsaved
   definition, bounds returned tree samples, and suppresses effects and
-  control flow. `GET /admin/process-runs` lists the caller organization's
-  durable runs (status, waiting detail — pending step or join arrivals,
-  definition, age), and `POST /admin/process-runs/:runId/cancel` cancels a
-  parked ('waiting') run — outstanding invocations claim cancellation
-  receipts and the run state becomes 'cancelled', which the advancement
-  loop never resumes.
+  control flow.
 - `organizations/:id/billing`: Authenticated organization billing account,
   package catalog, Stripe checkout creation, and payment sync routes. Token
   packages come from runtime config, not from user records or database price

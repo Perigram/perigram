@@ -208,7 +208,8 @@ Org process sets type OUT (special node that "published") (for friends or public
 
 ## Process authoring maturity
 
-Business processes are the product; five capabilities in priority order:
+Business processes are the product; three declaration-language
+capabilities in priority order:
 
 1. Transition guards — conditional transitions authored as boolean
    expressions on the transition operation (CTS SPEC §7), evaluated
@@ -217,10 +218,12 @@ Business processes are the product; five capabilities in priority order:
    the framework compiles deadlines into scheduled scans (CTS SPEC §7),
    never a standing query.
 3. Money — minor-unit-integer currency quantities (CTS SPEC §2).
-4. Run/instance trace — an operator surface answering "where is this
-   instance stuck" from persisted run state and status events.
-5. Cancellation — cancelling an in-flight run invalidates its waiting
-   joins and claims; join arrival sets gain invalidation semantics.
+
+The runtime model is fixed (owner, 2026-10-09): there is one
+organization runtime that uses process definitions as business logic.
+A definition is turned on or off in organization settings — that is the
+whole lifecycle. Execution is not a product concept: no run status, no
+cancellation, no per-run surfaces.
 
 ## Plugin marketplace
 
