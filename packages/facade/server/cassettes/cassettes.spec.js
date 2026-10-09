@@ -20,21 +20,21 @@ vi.mock('h3', () => ({
     return error;
   })
 }));
-vi.mock('../../../features/artifacts/service.js', () => ({
+vi.mock('../../../../server/features/artifacts/service.js', () => ({
   getById: artifactsGetByIdMock,
   createUploaded: vi.fn()
 }));
-vi.mock('../../../features/files/service.js', () => ({
+vi.mock('../../../../server/features/files/service.js', () => ({
   getFileBuffer: getFileBufferMock,
   uploadFile: uploadFileMock
 }));
-vi.mock('../../../features/instances/service.js', () => ({
+vi.mock('../../../../server/features/instances/service.js', () => ({
   instanceServiceResolver: resolverMock
 }));
 
 import { importFromArtifact } from './service.js';
 import { facadePack } from '../index.js';
-import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
+import { createDefaultOccsCassetteTemplateDefinition } from '../../../../utils/occs/templates.js';
 
 const AUTH = { userId: 'user-1', organizationId: 'org-1', role: 'owner' };
 

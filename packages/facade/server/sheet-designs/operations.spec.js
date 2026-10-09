@@ -1,15 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../features/instances/service.js', () => ({
+vi.mock('../../../../server/features/instances/service.js', () => ({
   instanceServiceResolver: vi.fn()
 }));
-vi.mock('../../../core/access/service.js', () => ({
+vi.mock('../../../../server/core/access/service.js', () => ({
   hasInstanceAccess: vi.fn(() => true)
 }));
-vi.mock('../../../features/files/service.js', () => ({
+vi.mock('../../../../server/features/files/service.js', () => ({
   uploadFile: vi.fn(async () => ({ id: 'file-1' }))
 }));
-vi.mock('../../../utils/dxf-writer.js', () => ({
+vi.mock('../../../../server/utils/dxf-writer.js', () => ({
   generateLayeredDxf: vi.fn(({ layers = [] }) => (layers.length ? 'DXF-BYTES' : null))
 }));
 

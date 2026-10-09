@@ -6,7 +6,7 @@
 
 import { createError } from 'h3';
 import { instanceServiceResolver } from '../../../../server/features/instances/service.js';
-import { isOccsDocument } from '#utils/occs/parameters.js';
+import { isOccsDocument } from '../../../../utils/occs/parameters.js';
 import { cassetteDefinition } from './service.js';
 
 let evaluationChain = Promise.resolve();
@@ -229,7 +229,7 @@ export async function evaluateTemplate(cassetteId, dimensions) {
     // The OCCS document rides the payload — the one home.
     const definitionData = await cassetteDefinition(template);
     if (isOccsDocument(definitionData)) {
-      const { evaluateOccsCassetteTemplate } = await import('#utils/occs/evaluate.js');
+      const { evaluateOccsCassetteTemplate } = await import('../../../../utils/occs/evaluate.js');
       return await evaluateOccsCassetteTemplate(definitionData, dimensions, {
         templateId: template._id?.toString?.() || String(cassetteId),
         templateName: template.identity?.name || 'Cassette template'

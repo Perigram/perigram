@@ -1,7 +1,7 @@
 import { createError } from 'h3';
 import * as filesService from '../../../../server/features/files/service.js';
 import { instanceServiceResolver } from '../../../../server/features/instances/service.js';
-import { isOccsDocument, occsParameterNames } from '#utils/occs/parameters.js';
+import { isOccsDocument, occsParameterNames } from '../../../../utils/occs/parameters.js';
 
 // The cassette designer's save (the pack command the graph and generated
 // surfaces drive): the OCCS document is uploaded as the payload — the

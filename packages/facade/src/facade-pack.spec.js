@@ -6,9 +6,9 @@
 // item dead.
 import { describe, expect, it } from 'vitest';
 import { facadeServices, facadeCommands, facadeDomain } from './index.js';
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts/src/index.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../../cts/src/index.js';
 import { composeSystemDeclarations } from '../../../server/packs/declarations.js';
-import { resolveCatalogNodePorts, servicesPaletteGroups, packPaletteGroups } from '#packages/processes/src/index.js';
+import { resolveCatalogNodePorts, servicesPaletteGroups, packPaletteGroups } from '../../processes/src/index.js';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'facade-pack-registration' });

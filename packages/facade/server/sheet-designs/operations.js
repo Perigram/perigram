@@ -8,7 +8,7 @@ import { createError } from 'h3';
 import crypto from 'node:crypto';
 import { instanceServiceResolver } from '../../../../server/features/instances/service.js';
 import { hasInstanceAccess } from '../../../../server/core/access/service.js';
-import { generateLayeredDxf } from '#utils/dxf-writer.js';
+import { generateLayeredDxf } from '../../../../server/utils/dxf-writer.js';
 import * as filesService from '../../../../server/features/files/service.js';
 
 const LAYER_STYLES = {

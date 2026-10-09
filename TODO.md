@@ -46,8 +46,14 @@ plain relative escapes (`~/server/...` and `#services/...` →
 `../../../server/...` per file depth, dxf utils → `#utils/...`, own
 declarations → `../src/index.js`). The first cut used a `#services`
 alias, which vitest/nitro-bundle resolved but raw-Node externals could
-not (subpath imports are package-internal by Node rule) — relative
-imports resolve in every loader; the dead alias is removed. Consumers updated: the app-registry mount, the four thin
+not (subpath imports are package-internal by Node rule). The fix is
+two-fold: every specifier in the package (imports, dynamic imports,
+spec mocks) is a plain relative path verified to resolve on disk, AND
+`nitro.externals.inline` bundles the pack's server side — it consumes
+framework services through `~`-aliased modules only the bundler
+resolves, so externalizing it can never load. A static verifier now
+guards the invariant: no `#`/`~` specifier, no missing relative target,
+anywhere under packages/facade. Consumers updated: the app-registry mount, the four thin
 REST routes, check-arch (pack-owned paths repo-root-relative), the
 framework spec's mount read, README links. The arch guard — the same one
 that correctly refused the first attempt — passes with the facade inside
