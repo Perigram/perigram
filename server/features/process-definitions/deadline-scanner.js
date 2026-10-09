@@ -11,7 +11,7 @@ import { stateService } from '~/server/core/machines/service.js';
 import { getEntityCollection } from '~/server/runtime/entities.js';
 import { declarationForType } from '~/server/features/instances/service.js';
 import { collectionForClass } from '~/server/features/instances/repository.js';
-import { durationMs } from '~/packages/cts/src/index.js';
+import { durationMs } from '#packages/cts/src/index.js';
 
 const BATCH_LIMIT = 200;
 

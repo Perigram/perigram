@@ -2,7 +2,7 @@ import { createError } from 'h3';
 import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
-import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
+import { normalizeWorkflow } from '#packages/workflows/src/index.js';
 import { resolveProcessWorkflow, getActiveCompiledProcess } from '~/server/features/process-definitions/runtime.js';
 import * as repository from './repository.js';
 
