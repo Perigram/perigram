@@ -44,4 +44,4 @@
 ## Related
 
 - [shared components](../../shared/README.md)
-- [sheet design feature](../../../server/packs/facade/sheet-designs/README.md)
+- [sheet design feature](../../../../packages/facade/server/sheet-designs/README.md)

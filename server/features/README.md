@@ -33,7 +33,7 @@ Support capabilities are documented and classified, but do not need empty
 
 This directory is framework-only: domain implementations (the facade
 fabrication domain — cassettes, nesting, sheet designs) live under their
-pack module, [server/packs/facade](../packs/facade/), so the pack is the
+pack module, [server/packs/facade](../../../packages/facade/server/), so the pack is the
 actual deletion unit and no framework feature imports domain code. The
 REST surfaces of pack-owned features keep their stable URLs
 (`/api/cassettes`, `/api/sheet-designs`) as thin route files that import

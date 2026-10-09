@@ -2,7 +2,7 @@
 
 Cards for `cassette` DTOs — §13 file-class instances served by the generic
 instance service (see
-[server/packs/facade/cassettes/README.md](../../../server/packs/facade/cassettes/README.md)).
+[server/packs/facade/cassettes/README.md](../../../../packages/facade/server/cassettes/README.md)).
 
 ## Components
 
@@ -30,4 +30,4 @@ instance service (see
 ## Related
 
 - [components/shared/README.md](../../shared/README.md) - InstanceCard, DataBlock, drawing previews
-- [server/packs/facade/cassettes/README.md](../../../server/packs/facade/cassettes/README.md) - cassette storage contract
+- [server/packs/facade/cassettes/README.md](../../../../packages/facade/server/cassettes/README.md) - cassette storage contract

@@ -49,7 +49,8 @@ files features are rejected at the mount (see
   the `pen-template` and `layer-standard` reference types and their
   system-catalog instances ride the generic instance machinery.
   Declaration data lives in `packages/tech-drawing/src/index.js`.
-- `facade/` — the facade pack: cassette (a §13 file type whose payload is
+- The facade pack's server binding lives inside its package
+  (`packages/facade/server`): cassette (a §13 file type whose payload is
   the OCCS template document), cassette design, sheet design, the pure
   `nesting.solve`
   value service (its handler in `value-services/`), the declared
@@ -65,8 +66,8 @@ files features are rejected at the mount (see
   core framework imports none of it: `artifact-conversions` and
   `generateAttachment` receive their facade executors as pack-registered
   handler overrides, and support's type lists resolve through the
-  registry. Declaration data lives in `packages/facade/src/pack.js`; the
-  pack requires `tech-drawing` and `documents` (pen/layer references and
+  registry. Declaration data lives in `packages/facade/src/pack.js`, the server
+  binding in `packages/facade/server`; the pack requires `tech-drawing` and `documents` (pen/layer references and
   the order table types resolve through the composed view, never by
   importing them).
 

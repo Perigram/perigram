@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, readBody } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
-import { importFromArtifact } from '~/server/packs/facade/cassettes/service';
+import { importFromArtifact } from '#packages/facade/server/cassettes/service';
 
 // Import a cassette template from an existing DXF_SOURCE artifact: the
 // DXF becomes the payload, the extracted cut contour and mapped semantic

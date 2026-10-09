@@ -6,10 +6,10 @@
 // machinery (instanceServiceResolver('sheet-design')).
 import { createError } from 'h3';
 import crypto from 'node:crypto';
-import { instanceServiceResolver } from '../../../features/instances/service.js';
-import { hasInstanceAccess } from '../../../core/access/service.js';
-import { generateLayeredDxf } from '../../../utils/dxf-writer.js';
-import * as filesService from '../../../features/files/service.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
+import { hasInstanceAccess } from '#services/core/access/service.js';
+import { generateLayeredDxf } from '#utils/dxf-writer.js';
+import * as filesService from '#services/features/files/service.js';
 
 const LAYER_STYLES = {
   'contour.material_sheet': { color: '#64748b', weight: 1, dasharray: '8,5' },

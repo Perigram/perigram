@@ -6,10 +6,10 @@
 // extracted geometry) and the template DXF export (payload evaluation or
 // stored layers → DXF).
 import { createError } from 'h3';
-import * as artifactsService from '../../../features/artifacts/service.js';
-import * as filesService from '../../../features/files/service.js';
-import { instanceServiceResolver } from '../../../features/instances/service.js';
-import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../../utils/dxf-extractor.js';
+import * as artifactsService from '#services/features/artifacts/service.js';
+import * as filesService from '#services/features/files/service.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
+import { extractNestingPolygons, extractCurvesFromDXFLayer } from '#utils/dxf-extractor.js';
 import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 
 function buildMappedLayerData(fileBuffer, layerMapping = {}) {

@@ -15,7 +15,8 @@ const perigramAliases = {
 const portableAliases = {
   '#shared': path.resolve(__dirname, './shared'),
   '#packages': path.resolve(__dirname, './packages'),
-  '#utils': path.resolve(__dirname, './utils')
+  '#utils': path.resolve(__dirname, './utils'),
+  '#services': path.resolve(__dirname, './server')
 };
 
 export default defineConfig({
