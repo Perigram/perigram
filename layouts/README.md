@@ -11,6 +11,11 @@ Nuxt layout shells for public and authenticated app surfaces.
   a floating indicator that appears when the browser is offline, a mutation is
   queued in the outbox, or a replay failed. It is the single sync-state
   surface for offline mutations (see the root README PWA section).
+- The layout owns the app-level overlay hosts, one instance each:
+  `<ConfirmDialog />` (default group — feature surfaces call `useConfirm`
+  without a group; a second host renders the same require twice) and
+  `<Toast />` (every `toast.add()` on app surfaces renders here — a page
+  mounting its own host duplicates every toast).
 - The desktop header is hidden on the generated home screen: that route's
   Discord-style workspace overload owns the full viewport and mounts brand,
   communication entries (chats open the shared bottom-right popup and the
