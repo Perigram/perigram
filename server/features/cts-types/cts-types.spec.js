@@ -9,6 +9,9 @@ vi.mock('../process-definitions/service.js', () => ({
   findTypeReferences: vi.fn(async () => [])
 }));
 vi.mock('../plugins/repository.js', () => ({
+  listDisabledPacks: vi.fn(async () => []),
+  enablePack: vi.fn(),
+  disablePack: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null)
 }));
@@ -57,6 +60,16 @@ describe('cts type storage', () => {
     const bundle = await describeOrganizationTypes(ORG);
     expect(bundle.bundle.ok).toBe(true);
     expect(bundle.bundle.types.filter(type => type.id === 'coating')).toHaveLength(1);
+  });
+
+  it('drops disabled packs from the composed org view and its served editors', async () => {
+    pluginInstalls.listDisabledPacks.mockResolvedValue(['facade']);
+    const { bundle, attachmentKinds, editors } = await describeOrganizationTypes(ORG);
+    expect(bundle.ok).toBe(true);
+    expect(bundle.types.some(type => type.id === 'cassette')).toBe(false);
+    expect(editors.some(editor => editor.type === 'cassette')).toBe(false);
+    expect(Object.keys(attachmentKinds)).not.toContain('OCCS_SOURCE');
+    pluginInstalls.listDisabledPacks.mockResolvedValue([]);
   });
 
   it('serves the composed pack editor bindings with the type view', async () => {

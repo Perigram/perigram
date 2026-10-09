@@ -91,8 +91,38 @@ export async function updateInstallSnapshot(organizationId, pluginId, { version,
   );
 }
 
+// Mounted-pack disablement records (SPEC §Plugin marketplace): a record
+// means the pack does not compose for that organization; absence is
+// enabled — zero migration for existing orgs.
+const DISABLEMENTS_COLLECTION = 'pack_disablements';
+
+export async function listDisabledPacks(organizationId) {
+  const db = await connectDB();
+  const records = await db.collection(DISABLEMENTS_COLLECTION)
+    .find({ organizationId: String(organizationId) })
+    .toArray();
+  return records.map(record => String(record.packId));
+}
+
+export async function disablePack(organizationId, packId, actor = null) {
+  const db = await connectDB();
+  await db.collection(DISABLEMENTS_COLLECTION).updateOne(
+    { organizationId: String(organizationId), packId: String(packId) },
+    { $set: { organizationId: String(organizationId), packId: String(packId), disabledAt: new Date(), disabledBy: actor || null } },
+    { upsert: true }
+  );
+}
+
+export async function enablePack(organizationId, packId) {
+  const db = await connectDB();
+  await db.collection(DISABLEMENTS_COLLECTION).deleteOne({
+    organizationId: String(organizationId),
+    packId: String(packId)
+  });
+}
+
 // Connection settings: per-service endpoints and the executor API key.
-export async function updateSettings(organizationId, pluginId, { endpoints, authToken }) {
+export async function updateSettings(organizationId, packId, { endpoints, authToken }) {
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },

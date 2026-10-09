@@ -17,6 +17,7 @@ export const mountedPackDeclarations = [
   techDrawingPack,
   {
     id: 'facade',
+    label: facadePackContent.label,
     requires: ['tech-drawing', 'documents'],
     types: facadePackContent.types,
     editors: facadePackContent.editors,
@@ -71,10 +72,13 @@ export function orderedMountedPacks() {
 
 // System type declarations: every mounted pack's types in dependency order,
 // one system id each.
-export function composeSystemDeclarations() {
+// Pack enablement (SPEC §Plugin marketplace): mounted packs compose for
+// every organization unless the org holds a disablement record. Absence
+// is enabled — zero migration for existing orgs.
+export function composeSystemDeclarations(packs = orderedMountedPacks()) {
   const declarations = [];
   const seen = new Set();
-  for (const pack of orderedMountedPacks()) {
+  for (const pack of packs) {
     for (const declaration of pack.types || []) {
       if (seen.has(declaration.id)) {
         throw new Error(`duplicate system type id ${declaration.id} across packs (last: ${pack.id})`);
