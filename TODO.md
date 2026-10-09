@@ -19,12 +19,13 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
   endpoint/claim mode; plugin settings carry per-service API endpoints and
   the executor API key; agent authoring guide
   ([docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md)).
-- [ ] Sheet-designs §13 migration: `server/packs/facade/sheet-designs` is a
-  legacy v24 entity service (BaseEntity model, own repository + connectDB,
-  15+ framework imports — SPEC §21 transitional). It rides the generic
-  instance machinery like cassette did (one-way data migration, legacy
-  service/model/repository deleted); exports/layered-DXF stay as pack-bound
-  operations. Measured 2026-10-09 as the hard blocker for the physical move.
+- [x] Sheet-designs §13 migration (2026-10-09): the legacy entity service,
+  model, and repository are deleted; sheet-design rides the generic
+  instance machinery, the pack keeps only layout-update and DXF-export
+  operations, the store's legacy feature route is gone, and the one legacy
+  document migrated one-way into a §3 instance
+  (`server/scripts/migrate-sheet-designs-to-instances.js`, applied to the
+  dev db).
 - [ ] SDK seam: the mount's remaining framework imports
   (`instanceServiceResolver`, artifact/files operations, dxf utils) become
   an injected context (mount factory parameters) so pack code holds zero
@@ -34,6 +35,27 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
   moves into `packages/facade/server` (one deletable, independently
   versionable directory), and bake/dxf geometry externalizes behind an
   endpoint like nesting (already external — the FastAPI worker over HTTP).
+
+### Agent Notes (2026-10-09, sheet-designs §13)
+
+Session `agent/sheet-designs-13-20261009`. The measured blocker is gone:
+the legacy v24 entity service (model/repository/service, 569 lines +
+block DTO + redaction + own grants) is deleted. Sheet-design now rides
+the generic instance machinery — the editor's list/load already went
+through `instances.listInstances` and only the store's `FEATURE_ROUTES`
+legacy entry held list/read on the pack API (removed; both GET routes
+deleted). The pack keeps `sheet-designs/operations.js`: the pure
+nesting-geometry helpers, the manual layout update (recomputes geometry/
+preview/summary, writes through the generic patch — access gating and
+revisions belong to the machinery), and the layered-DXF export (PUT stays
+a pack route; `generateAttachment`'s exporter re-signed to the auth
+object). One-way data migration ran against the dev db (1 document,
+legacy collection now empty); the `sheet_designs` index block and the
+`pluralize` special-case died with the collection. Validation: packs +
+instances + cts-types + plugins + workflow-overrides 131, design-system +
+framework 40, ssr 3, check-arch, check-docs, framework:validate — all
+green. Next extraction step: the SDK seam (the mount's three framework
+imports).
 
 ### Agent Notes (2026-10-09, relocation attempt — the measured blocker)
 

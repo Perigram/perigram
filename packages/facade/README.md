@@ -7,6 +7,17 @@ pack's command and event contracts. `server/packs/facade` binds the
 declarations to server services; the framework registry and the client
 type system consume the data.
 
+Sheet designs ride the generic instance machinery (SPEC §13): CRUD,
+access, transitions, and revisions resolve through
+`instanceServiceResolver('sheet-design')` and the standard instances
+routes. The pack keeps only the domain operations
+(`server/packs/facade/sheet-designs/operations.js`): the manual layout
+update (recomputes geometry, preview, and summary, writing through the
+generic patch) and the layered-DXF export (`PUT/GET
+/api/sheet-designs/:id` and the `generateAttachment` DXF exporter).
+Legacy block-shaped `sheet_designs` documents migrated one-way into §3
+file-class instances (`server/scripts/migrate-sheet-designs-to-instances.js`).
+
 The package was mislabeled `@perigram/domain-cnc` by an earlier agent
 session; the legacy entity/workflow/construction tables that rode beside
 these declarations are deleted. What remains here is the whole of the
