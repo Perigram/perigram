@@ -6,6 +6,12 @@ import { connectDB } from '../db/mongo.js';
  *
  * Usage: node server/scripts/plugins-catalog-publish.js <listing.json>
  *
+ * Against the dev compose stack, run it inside the app container (the
+ * replica set advertises the compose hostname, which only resolves on
+ * the compose network):
+ *   docker compose -f docker-compose.dev.yml exec app \
+ *     node server/scripts/plugins-catalog-publish.js <listing.json>
+ *
  * The JSON shape:
  * {
  *   "pluginId": "coatings",
