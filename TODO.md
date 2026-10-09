@@ -133,43 +133,26 @@ contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
   escalation scans (CTS SPEC §7, specified not built).
 - [ ] 3 — Pin money semantics: minor-unit-integer currency quantities
   (CTS SPEC §2, specified not built).
-- [ ] 4 — Run/instance trace surface (persisted run state + status
-  events already exist; the surface is a projection).
-- [ ] 5 — Cancellation + join invalidation semantics
-  (`orchestration.js` arrival sets are add-only today).
 
-### Agent Notes (2026-10-09, items 3–5)
+### Agent Notes (2026-10-09, item 3 — money)
 
-Session `agent/bp-maturity-20261009`. Implementations of items 3–5
-landed (items 1–2 in the notes below). The worklist item originally
-listed here (a per-user inbox page) was reverted the same day: it was
-product surface, not type-system work, and never owner-sanctioned.
+Session `agent/bp-maturity-20261009`. Items 1–3 landed (items 1–2 in the
+notes below). Two items originally listed here — a per-user worklist page
+and a run-trace/cancellation admin surface — were reverted the same day
+on owner direction: product surface, not type-system work, and built on
+an invented product model. The owner's model, recorded in
+[SPEC.md](./SPEC.md) "Process authoring maturity": the organization
+runtime executes definitions as business logic; a definition is active
+or not in org settings, and execution itself is not a product concept.
+Also fixed while there (kept): `DurableRunRepository.transaction()`
+called `db.startSession()` — nonexistent on a Db handle in driver 6.x;
+sessions now start on the client.
 
 **3 — Money**: minor-unit-integer enforcement landed — the row
 validator refuses fractional currency quantities and expression
 arithmetic refuses results that would lose minor units (fractional
 division) instead of rounding (CTS SPEC §2). No existing pack/org data
 uses currency, so the tightening is free.
-
-**4 — Run trace**: `GET /api/admin/process-runs` summarizes the
-organization's durable runs (status, definition, age, error, waiting
-detail: pending step/invocation or join arrival counts);
-`getExecution(runId)` remains the drill-down. Per-instance history was
-already served (`GET /api/state/history`).
-
-**5 — Cancellation**: `cancelRun` on the durable run repository +
-`POST /api/admin/process-runs/:runId/cancel`. Only parked ('waiting')
-runs cancel; outstanding invocations claim cancellation receipts
-revision-guarded (a racing worker receipt either lands before the
-status guard refuses, or finds the invocation receipted), waiting
-steps are skipped, and `'cancelled'` is a status the advancement loop
-never resumes. Terminal/running runs are refused 409.
-
-Incidental bug fixed: `DurableRunRepository.transaction()` called
-`db.startSession()`, which does not exist on a Db handle in driver 6.x
-— every transactional run-repository path (invocation create/receipt/
-fail) was latently broken; sessions now start on the client. Validated
-by the new run-cancel spec exercising the real transaction path.
 
 ### Agent Notes (2026-10-09, item 2 — state deadlines)
 

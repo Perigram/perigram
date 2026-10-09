@@ -120,20 +120,6 @@ recompile and never read this path. Rescans are self-stabilizing: moved
 instances no longer match the state query, and guard/access refusals
 are counted and retried on the next tick.
 
-**Run trace and cancellation.** `GET /api/admin/process-runs` summarizes
-the organization's durable runs from `execution_runs` (`controlScope`
-scopes the org): status, definition, age, error, and — for waiting runs
-— what they wait on (the pending effect's step and invocation, or join
-arrival counts). `getExecution(runId)` on the run repository remains
-the full drill-down (invocations, waits, steps, outputs, receipts).
-`POST /api/admin/process-runs/:runId/cancel` cancels a parked run:
-outstanding invocations claim cancellation receipts (a racing worker
-receipt either landed before the status guard refused the cancel, or
-finds the invocation receipted), waiting steps are skipped, and the run
-state becomes `'cancelled'` — the status the advancement loop never
-picks up again. Terminal and running runs are refused (409); running
-runs belong to their in-flight request.
-
 Durable effect dispatch classifies once (`operationKindOf`) and keeps the
 record's species kind: `cts.construct`/`cts.mutate`/`cts.remove` run through
 the same construction/update/delete adapters as their retired v4 spellings,
