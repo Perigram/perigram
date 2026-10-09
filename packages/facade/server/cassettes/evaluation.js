@@ -5,7 +5,7 @@
  */
 
 import { createError } from 'h3';
-import { instanceServiceResolver } from '../../../features/instances/service.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
 import { cassetteDefinition } from './service.js';
 

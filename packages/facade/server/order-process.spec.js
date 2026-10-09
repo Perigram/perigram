@@ -17,7 +17,7 @@ import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templat
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
 import { composeOrderTree, composeOrderGraph, ORDER_LINEAGE_KEY, emptyAuthoringDomain } from '#test-data/order-process-authoring.js';
 import { compileTreeDeclarations } from '#packages/processes/src/designer.js';
-import { instanceServiceResolver } from '../../features/instances/service.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
 
 const harness = vi.hoisted(() => ({
   fileBuffers: new Map(),
@@ -189,15 +189,15 @@ global.fetch = vi.fn(async (_url, options = {}) => {
   };
 });
 
-import { startRun } from '../../features/process-definitions/service.js';
-import { validateActivatableProcess, declarationOverlayDomain } from '../../features/process-definitions/compiler-adapter.js';
-import { instanceServiceResolver } from '../../features/instances/service.js';
-import * as processRepository from '../../features/process-definitions/repository.js';
-import * as filesService from '../../features/files/service.js';
-import * as ctsTypesService from '../../features/cts-types/service.js';
-import { facadeDomain } from '~/packages/facade/src/index.js';
-import { composePackServices } from '~/server/packs/declarations.js';
-import { projectDomainFromView } from '~/packages/cts/src/index.js';
+import { startRun } from '#services/features/process-definitions/service.js';
+import { validateActivatableProcess, declarationOverlayDomain } from '#services/features/process-definitions/compiler-adapter.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
+import * as processRepository from '#services/features/process-definitions/repository.js';
+import * as filesService from '#services/features/files/service.js';
+import * as ctsTypesService from '#services/features/cts-types/service.js';
+import { facadeDomain } from '../src/index.js';
+import { composePackServices } from '#services/packs/declarations.js';
+import { projectDomainFromView } from '#packages/cts/src/index.js';
 
 const ORG = 'org-order-1';
 const ORDER_LINEAGE_KEY = 'facadeOrderId';

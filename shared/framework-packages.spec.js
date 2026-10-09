@@ -246,7 +246,7 @@ describe('Framework package contracts', () => {
     expect(composition).not.toContain('cncDomain');
     expect(composition).toContain('facadePack');
     expect(composition).toContain('generateAttachment');
-    const facadePackMount = readFileSync('server/packs/facade/index.js', 'utf8');
+    const facadePackMount = readFileSync('packages/facade/server/index.js', 'utf8');
     expect(facadePackMount).toContain('facadeDomain');
     expect(facadePackMount).toContain('saveCassetteTemplate');
   });

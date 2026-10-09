@@ -1,7 +1,7 @@
 import { createError } from 'h3';
-import * as filesService from '../../../features/files/service.js';
-import { instanceServiceResolver } from '../../../features/instances/service.js';
-import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../../utils/dxf-extractor.js';
+import * as filesService from '#services/features/files/service.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
+import { extractNestingPolygons, extractCurvesFromDXFLayer } from '#utils/dxf-extractor.js';
 import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
 import { evaluateOccsCassetteTemplate } from '#utils/occs/evaluate.js';

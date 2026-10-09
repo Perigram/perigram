@@ -1,6 +1,6 @@
 import { defineEventHandler, getRouterParam, setResponseHeader } from 'h3';
 import { requireAuth } from '../../../utils/permissions.js';
-import { generateDxf } from '~/server/packs/facade/sheet-designs/operations.js';
+import { generateDxf } from '#packages/facade/server/sheet-designs/operations.js';
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);

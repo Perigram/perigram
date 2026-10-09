@@ -13,7 +13,7 @@ vi.mock('../../../utils/dxf-writer.js', () => ({
   generateLayeredDxf: vi.fn(({ layers = [] }) => (layers.length ? 'DXF-BYTES' : null))
 }));
 
-import { instanceServiceResolver } from '../../../features/instances/service.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
 import {
   collapseNestingLayoutsByComposition,
   nestingResultForLayout,

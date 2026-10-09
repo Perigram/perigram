@@ -9,7 +9,7 @@ artifact-to-artifact copying, and imports no domain code.
 The declared conversion catalog (ids, labels, source kinds, targets) and the
 entity-target executors arrive through the `convertArtifact` command handler
 override the pack mounts (see
-[server/packs/facade](../../packs/facade/index.js)): the facade pack supplies
+[server/packs/facade](../../../packages/facade/server/index.js)): the facade pack supplies
 `layoutDxfToDxfSource` (copy a `LAYOUT_DXF` into a new revision-backed
 `DXF_SOURCE` artifact) and `dxfSourceToCassette` (import a `DXF_SOURCE`
 through the cassette service's `importFromArtifact()` constructor) with the
@@ -26,5 +26,5 @@ generated process screen can update any loaded target source immediately.
 ## Related
 
 - [Artifacts](../artifacts/README.md)
-- [Cassette templates](../../packs/facade/cassettes/README.md)
+- [Cassette templates](../../../packages/facade/server/cassettes/README.md)
 - [Commands](../../core/commands/README.md)

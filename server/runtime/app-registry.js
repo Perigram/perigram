@@ -1,6 +1,6 @@
 // The framework runtime registry: party/file/process-definition services,
 // framework commands, and pack mounting. This module imports nothing
-// facade-shaped — the facade plug-in (server/packs/facade) is mounted like
+// facade-shaped — the facade plug-in (packages/facade/server) is mounted like
 // any pack, and removing it removes the pack.
 import { createRegistry } from '~/server/core/blocks/index.js';
 
@@ -13,7 +13,7 @@ import * as usersService from '~/server/features/users/service.js';
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
 
-import { facadePack } from '~/server/packs/facade/index.js';
+import { facadePack } from '#packages/facade/server/index.js';
 import { documentsPack } from '~/server/packs/documents/index.js';
 import { frameworkCommandDefinitions } from '~/server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '~/server/core/tasks/definitions.js';

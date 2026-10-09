@@ -3,7 +3,7 @@
 The facade fabrication domain plug-in (SPEC §21). This is the pack that
 owns cassettes (OCCS files with the cassette designer), sheet designs,
 cassette designs, the nesting solver service, and the
-pack's command and event contracts. `server/packs/facade` binds the
+pack's command and event contracts. `packages/facade/server` binds the
 declarations to server services; the framework registry and the client
 type system consume the data.
 
@@ -11,7 +11,7 @@ Sheet designs ride the generic instance machinery (SPEC §13): CRUD,
 access, transitions, and revisions resolve through
 `instanceServiceResolver('sheet-design')` and the standard instances
 routes. The pack keeps only the domain operations
-(`server/packs/facade/sheet-designs/operations.js`): the manual layout
+(`packages/facade/server/sheet-designs/operations.js`): the manual layout
 update (recomputes geometry, preview, and summary, writing through the
 generic patch) and the layered-DXF export (`PUT/GET
 /api/sheet-designs/:id` and the `generateAttachment` DXF exporter).
@@ -61,7 +61,7 @@ nesting inputs, and per-piece traceability reference.
   only (`data.template`, `data.parameters`) — baked geometry never rides
   previews.
 - Construction is exactly three modes, all pack-bound
-  (`server/packs/facade/cassettes/cassette-design-construction.js`):
+  (`packages/facade/server/cassettes/cassette-design-construction.js`):
   **`upload`** — a DXF payload (the upload protocol's file) whose layers
   use the canonical OCCS vocabulary (`cut.outer` carries the nesting
   contour, other layers map by their own names); **`bake`** — an OCCS
@@ -118,8 +118,8 @@ projections, never through a service dereferencing an instance (SPEC §8
 purity — enforced by the signature and handler-mount guards). The
 signature's field names match the `solveNestingValue` handler's parameter
 sockets exactly, and the pack mount binds the handler
-(`server/packs/facade/value-services/solve-nesting.js`). See
-[server/packs/facade/nesting README](../../server/packs/facade/nesting/README.md)
+(`packages/facade/server/value-services/solve-nesting.js`). See
+[packages/facade/server/nesting README](../../packages/facade/server/nesting/README.md)
 for the boundary contract.
 
 `cassette-design` declares the `nesting-polygons` projection (SPEC §16
@@ -137,5 +137,5 @@ composes from a `cts.read` over the target type plus the pure
 ## Related
 
 - [server/packs/README.md](../../server/packs/README.md) — pack mounting.
-- [server/packs/facade/index.js](../../server/packs/facade/index.js) — the server binding.
+- [packages/facade/server/index.js](../../packages/facade/server/index.js) — the server binding.
 - [packages/cts/SPEC.md](../cts/SPEC.md) — §8 operator species, §21 packs.

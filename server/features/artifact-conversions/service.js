@@ -6,7 +6,7 @@ import * as filesService from '../files/service.js';
 // The conversion capability is pack-agnostic machinery: the mounted packs
 // supply the declared conversion catalog (id, label, sourceKinds, target)
 // plus the entity-target executors through the command handler override
-// (see server/packs/facade). This module owns the generic halves — source
+// (see packages/facade/server). This module owns the generic halves — source
 // verification and artifact-to-artifact copying — and imports no domain
 // code: removing the facade pack removes every cassette conversion
 // without breaking this feature.

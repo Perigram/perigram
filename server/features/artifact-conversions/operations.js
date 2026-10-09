@@ -2,7 +2,7 @@ import * as conversionService from './service.js';
 
 // The command handler stays domain-free: the mounted pack's override
 // supplies the declared conversion catalog and entity-target executors
-// (see server/packs/facade). Without a pack, no conversions are known.
+// (see packages/facade/server). Without a pack, no conversions are known.
 export async function convertArtifact({ entities = {}, parameters = {}, auth }, { conversions = [] } = {}) {
   const converted = await conversionService.convertArtifact({
     artifact: entities.artifact,
