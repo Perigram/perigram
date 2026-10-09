@@ -13,7 +13,7 @@ vi.mock('h3', () => ({
     return error;
   })
 }));
-vi.mock('../../../../server/features/instances/service.js', () => ({
+vi.mock('#services/features/instances/service.js', () => ({
   instanceServiceResolver: resolverMock
 }));
 vi.mock('./evaluation.js', () => ({

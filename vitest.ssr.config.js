@@ -21,7 +21,8 @@ const perigramAliases = {
   '@perigram/facade': repo('./packages/facade/src/index.js'),
   '#shared': repo('./shared'),
   '#packages': repo('./packages'),
-  '#utils': repo('./utils')
+  '#utils': repo('./utils'),
+  '#services': repo('./server')
 };
 
 export default defineConfig({

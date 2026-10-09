@@ -51,9 +51,17 @@ two-fold: every specifier in the package (imports, dynamic imports,
 spec mocks) is a plain relative path verified to resolve on disk, AND
 `nitro.externals.inline` bundles the pack's server side — it consumes
 framework services through `~`-aliased modules only the bundler
-resolves, so externalizing it can never load. A static verifier now
-guards the invariant: no `#`/`~` specifier, no missing relative target,
-anywhere under packages/facade. Consumers updated: the app-registry mount, the four thin
+resolves, so externalizing it can never load. The dev pipeline needed the full set: `nitro.noExternal` +
+`externals.inline` in path AND alias-string forms (regexes alone never
+matched nitro's ids) bundle the pack server side in dev and production,
+and the pack's cross-tree imports ride `#services/#utils/#packages`
+aliases — bundled contexts resolve them at build time and externals emit
+absolutely (the hoisted-relative depth bug cannot occur). Verified end to
+end: production build contains the pack bundled with zero hoisted
+externals, and a booted dev server renders the app (HTTP 200) — the
+first move-era fix validated against the real dev pipeline instead of
+proxies. The boot's only ERROR lines are Mongo topology drops from the
+host-side replica-set URI (the dev compose network resolves it). Consumers updated: the app-registry mount, the four thin
 REST routes, check-arch (pack-owned paths repo-root-relative), the
 framework spec's mount read, README links. The arch guard — the same one
 that correctly refused the first attempt — passes with the facade inside

@@ -6,11 +6,11 @@
 // extracted geometry) and the template DXF export (payload evaluation or
 // stored layers → DXF).
 import { createError } from 'h3';
-import * as artifactsService from '../../../../server/features/artifacts/service.js';
-import * as filesService from '../../../../server/features/files/service.js';
-import { instanceServiceResolver } from '../../../../server/features/instances/service.js';
-import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../../../server/utils/dxf-extractor.js';
-import { OCCS_LAYER_CUT_OUTER } from '../../../../utils/occs/layers.js';
+import * as artifactsService from '#services/features/artifacts/service.js';
+import * as filesService from '#services/features/files/service.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
+import { extractNestingPolygons, extractCurvesFromDXFLayer } from '#services/utils/dxf-extractor.js';
+import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 
 function buildMappedLayerData(fileBuffer, layerMapping = {}) {
   return Object.entries(layerMapping).flatMap(([sourceLayer, layer]) => {
@@ -113,6 +113,6 @@ export async function exportDxf(id, dimensions = {}, auth = null) {
 }
 
 async function layeredDxf({ layerData, polygonParts }) {
-  const { generateLayeredDxf } = await import('../../../../server/utils/dxf-writer.js');
+  const { generateLayeredDxf } = await import('#services/utils/dxf-writer.js');
   return generateLayeredDxf({ layerData, polygonParts });
 }

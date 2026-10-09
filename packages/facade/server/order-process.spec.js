@@ -13,11 +13,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ObjectId } from 'mongodb';
 import * as XLSX from 'xlsx/xlsx.mjs';
-import { createDefaultOccsCassetteTemplateDefinition } from '../../../utils/occs/templates.js';
-import { createDefinitionAuthoring } from '../../processes/src/authoring.js';
-import { composeOrderTree, composeOrderGraph, ORDER_LINEAGE_KEY, emptyAuthoringDomain } from '../../../test-data/order-process-authoring.js';
-import { compileTreeDeclarations } from '../../processes/src/designer.js';
-import { instanceServiceResolver } from '../../../server/features/instances/service.js';
+import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
+import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
+import { composeOrderTree, composeOrderGraph, ORDER_LINEAGE_KEY, emptyAuthoringDomain } from '#test-data/order-process-authoring.js';
+import { compileTreeDeclarations } from '#packages/processes/src/designer.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
 
 const harness = vi.hoisted(() => ({
   fileBuffers: new Map(),
@@ -87,14 +87,14 @@ function createFakeDb() {
   };
 }
 
-vi.mock('../../../server/db/mongo.js', () => ({
+vi.mock('#services/db/mongo.js', () => ({
   connectDB: vi.fn(async () => {
     if (!harness.db) harness.db = createFakeDb();
     return harness.db;
   })
 }));
 
-vi.mock('../../../server/features/files/service.js', () => ({
+vi.mock('#services/features/files/service.js', () => ({
   uploadFile: vi.fn(async buffer => {
     const id = `file-${harness.fileBuffers.size + 1}`;
     harness.fileBuffers.set(id, buffer);
@@ -108,19 +108,19 @@ vi.mock('../../../server/features/files/service.js', () => ({
   deleteFile: vi.fn(async () => {})
 }));
 
-vi.mock('../../../server/features/instance-revisions/service.js', () => ({
+vi.mock('#services/features/instance-revisions/service.js', () => ({
   getById: vi.fn(async () => null),
   ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1 } }))
 }));
 
-vi.mock('../../../server/features/instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
+vi.mock('#services/features/instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
 
-vi.mock('../../../server/core/access/service.js', async (importOriginal) => ({
+vi.mock('#services/core/access/service.js', async (importOriginal) => ({
   ...(await importOriginal()),
   hasInstanceAccess: vi.fn(() => true)
 }));
 
-vi.mock('../../../server/core/machines/service.js', async (importOriginal) => {
+vi.mock('#services/core/machines/service.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -131,9 +131,9 @@ vi.mock('../../../server/core/machines/service.js', async (importOriginal) => {
 // The cts-types store mirrors the designer's Apply: declarations posted
 // from the composed tree land here, and the registry compiles them for
 // every later acceptance.
-vi.mock('../../../server/features/cts-types/service.js', async () => {
-  const cts = await import('../../../packages/cts/src/index.js');
-  const declarations = await import('../../../server/packs/declarations.js');
+vi.mock('#services/features/cts-types/service.js', async () => {
+  const cts = await import('#packages/cts/src/index.js');
+  const declarations = await import('#services/packs/declarations.js');
   return {
     compileRegistryForOrganization: vi.fn(async () => {
       const registry = cts.createTypeRegistry({ id: 'order-process-spec' });
@@ -145,14 +145,14 @@ vi.mock('../../../server/features/cts-types/service.js', async () => {
   };
 });
 
-vi.mock('../../../server/features/cts-types/repository.js', async () => {
+vi.mock('#services/features/cts-types/repository.js', async () => {
   return {
     findByTypeId: vi.fn(async (organizationId, typeId) => harness.orgDeclarations.find(declaration => declaration.id === typeId) || null),
     listByOrganization: vi.fn(async () => harness.orgDeclarations)
   };
 });
 
-vi.mock('../../../server/features/process-definitions/repository.js', () => ({
+vi.mock('#services/features/process-definitions/repository.js', () => ({
   find: vi.fn(),
   findById: vi.fn(),
   findActiveByOrganization: vi.fn(),
@@ -163,7 +163,7 @@ vi.mock('../../../server/features/process-definitions/repository.js', () => ({
   getConnection: vi.fn()
 }));
 
-vi.mock('../../../server/features/process-definitions/run-repository.js', async (importOriginal) => {
+vi.mock('#services/features/process-definitions/run-repository.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -189,15 +189,15 @@ global.fetch = vi.fn(async (_url, options = {}) => {
   };
 });
 
-import { startRun } from '../../../server/features/process-definitions/service.js';
-import { validateActivatableProcess, declarationOverlayDomain } from '../../../server/features/process-definitions/compiler-adapter.js';
-import { instanceServiceResolver } from '../../../server/features/instances/service.js';
-import * as processRepository from '../../../server/features/process-definitions/repository.js';
-import * as filesService from '../../../server/features/files/service.js';
-import * as ctsTypesService from '../../../server/features/cts-types/service.js';
-import { facadeDomain } from '../src/index.js';
-import { composePackServices } from '../../../server/packs/declarations.js';
-import { projectDomainFromView } from '../../cts/src/index.js';
+import { startRun } from '#services/features/process-definitions/service.js';
+import { validateActivatableProcess, declarationOverlayDomain } from '#services/features/process-definitions/compiler-adapter.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
+import * as processRepository from '#services/features/process-definitions/repository.js';
+import * as filesService from '#services/features/files/service.js';
+import * as ctsTypesService from '#services/features/cts-types/service.js';
+import { facadeDomain } from '#packages/facade/src/index.js';
+import { composePackServices } from '#services/packs/declarations.js';
+import { projectDomainFromView } from '#packages/cts/src/index.js';
 
 const ORG = 'org-order-1';
 const ORDER_LINEAGE_KEY = 'facadeOrderId';
@@ -292,8 +292,8 @@ describe.each(['xlsx-workbook', 'csv-table'])('the order process authored in-tre
     // authored ref field, two declared targets): it compiles to ONE link
     // action accepting the union, captioned by the authored field label —
     // never per-target buttons or raw type ids.
-    const { compileProcessDefinition } = await import('../../../packages/processes/src/index.js');
-    const { tryAcceptGraphProtocol } = await import('../../../server/features/process-definitions/compiler-adapter.js');
+    const { compileProcessDefinition } = await import('#packages/processes/src/index.js');
+    const { tryAcceptGraphProtocol } = await import('#services/features/process-definitions/compiler-adapter.js');
     const accepted = tryAcceptGraphProtocol(definition, domain).definition;
     const compiled = compileProcessDefinition(accepted, declarationOverlayDomain(definition, domain), {
       roles: { role_admin: { label: 'Admin' } }

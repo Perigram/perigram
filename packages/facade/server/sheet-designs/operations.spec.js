@@ -1,19 +1,19 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../server/features/instances/service.js', () => ({
+vi.mock('#services/features/instances/service.js', () => ({
   instanceServiceResolver: vi.fn()
 }));
-vi.mock('../../../../server/core/access/service.js', () => ({
+vi.mock('#services/core/access/service.js', () => ({
   hasInstanceAccess: vi.fn(() => true)
 }));
-vi.mock('../../../../server/features/files/service.js', () => ({
+vi.mock('#services/features/files/service.js', () => ({
   uploadFile: vi.fn(async () => ({ id: 'file-1' }))
 }));
-vi.mock('../../../../server/utils/dxf-writer.js', () => ({
+vi.mock('#services/utils/dxf-writer.js', () => ({
   generateLayeredDxf: vi.fn(({ layers = [] }) => (layers.length ? 'DXF-BYTES' : null))
 }));
 
-import { instanceServiceResolver } from '../../../../server/features/instances/service.js';
+import { instanceServiceResolver } from '#services/features/instances/service.js';
 import {
   collapseNestingLayoutsByComposition,
   nestingResultForLayout,

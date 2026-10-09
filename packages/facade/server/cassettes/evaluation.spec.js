@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDefaultOccsCassetteTemplateDefinition } from '../../../../utils/occs/templates.js';
+import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 
 const { resolverMock, getFileBufferMock } = vi.hoisted(() => ({
   resolverMock: vi.fn(),
   getFileBufferMock: vi.fn()
 }));
 
-vi.mock('../../../../server/features/instances/service.js', () => ({
+vi.mock('#services/features/instances/service.js', () => ({
   instanceServiceResolver: resolverMock
 }));
-vi.mock('../../../../server/features/files/service.js', () => ({
+vi.mock('#services/features/files/service.js', () => ({
   getFileBuffer: getFileBufferMock,
   uploadFile: vi.fn()
 }));

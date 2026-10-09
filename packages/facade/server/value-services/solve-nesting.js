@@ -15,7 +15,7 @@ import {
   buildValueWorkerRequest,
   enrichNestingResult,
   summarizeNestingResult
-} from '../nesting/projections.js';
+} from '#packages/facade/server/nesting/projections.js';
 
 async function callNestingWorker(request) {
   const url = process.env.NESTING_WORKER_URL || 'http://nesting-worker:8000/nest';

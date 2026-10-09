@@ -21,7 +21,11 @@ const perigramAliases = {
 const portableAliases = {
     '#shared': resolveRoot('./shared'),
     '#packages': resolveRoot('./packages'),
-    '#utils': resolveRoot('./utils')
+    '#utils': resolveRoot('./utils'),
+    // Platform services for bundled pack code (nitro noExternal/inline
+    // bundles packages/facade/server — aliases resolve at bundle time
+    // and keep dev externals absolute).
+    '#services': resolveRoot('./server')
 }
 const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')
 const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{${cssDeclarations(darkCssVariableTokens)}}`
@@ -155,6 +159,13 @@ export default defineNuxtConfig({
                 ...portableAliases
             }
         },
+        ssr: {
+            // Dev-only bundling of the facade pack's server side: the dev
+            // SSR pipeline externalizes packages/ by default, but the pack
+            // consumes framework services through `~`-aliased modules only
+            // the bundler resolves (nitro.noExternal covers production).
+            noExternal: [/packages[/\\]facade[/\\]server/]
+        },
         server: {
             watch: {
                 ignored: [WORKTREE_WATCH_IGNORE]
@@ -165,7 +176,14 @@ export default defineNuxtConfig({
         ...(process.env.NODE_ENV === 'development' ? {
             environments: {
                 client: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } },
-                ssr: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } }
+                ssr: {
+                    dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } },
+                    // Dev-only bundling of the facade pack's server side:
+                    // the SSR environment externalizes packages/ by
+                    // default; the pack consumes `~`-aliased framework
+                    // modules only the bundler resolves.
+                    resolve: { noExternal: [/packages[/\\]facade[/\\]server/] }
+                }
             }
         } : {}),
         css: {
@@ -363,8 +381,13 @@ export default defineNuxtConfig({
             // import (including `~`-aliased modules only the bundler
             // resolves): it must bundle, never externalize — raw Node
             // cannot load the transitive server graph from packages/.
-            /packages[/\\]facade[/\\]server/
+            /packages[/\\]facade[/\\]server/,
+            'packages/facade/server',
+            '#packages/facade/server'
         ],
+        externals: {
+            inline: [/packages[/\\]facade[/\\]server/, 'packages/facade/server', '#packages/facade/server']
+        },
         routeRules: {
             '/icons/**': {
                 headers: {
