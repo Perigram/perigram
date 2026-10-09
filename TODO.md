@@ -1,5 +1,39 @@
 # TODO
 
+## Facade extraction: the domain becomes a separated plugin (2026-10-09)
+
+The owner's standing goal, restated after ten sessions missed it: the facade
+domain is separated into a plugin — code leaves the platform, the platform
+mounts it as an independently versioned unit, orgs manage it from the
+Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
+
+- [ ] Cut every framework→facade import — the server framework composes
+  mounted packs, never the facade symbol. Started 2026-10-09: the five
+  `facadeAttachmentKinds`/`facadeDomain` imports are gone (composition via
+  `composePackAttachmentKinds`/`composePackDomains`); the app-side remains
+  (nuxt alias, editor components, check-arch script).
+- [ ] Connectorize the facade's executable handlers (bake/convertDxf/upload/
+  import-export; nesting already external) behind the connector protocol.
+- [ ] Move `packages/facade` + `server/packs/facade` into their own
+  versioned unit mounted by the platform; editor surfaces ride the surface
+  registry.
+- [ ] Per-org enable/install of the facade pack through the Plugins section.
+
+### Agent Notes (2026-10-09, cut 1)
+
+Session `agent/facade-extraction-1-20261009`. Owner verdict on the marketplace
+slices: the goal was never a third-party catalog — it was separating the
+facade. The marketplace machinery stays (it is the management plane the
+separated facade will land in), but the extraction is now the tracked task.
+Cut the five server-framework imports of facade symbols
+(`facadeAttachmentKinds` in cts-types; `facadeDomain` in
+process-definitions service/runtime/system-view and the admin domain route):
+the type view serves `composePackAttachmentKinds()` and the projected-domain
+seam passes `composePackDomains()` — both composed from mounted packs in
+`server/packs/declarations.js` with loud collision errors, matching the file's
+composition law. `getDomain()`'s registry fallback died with the import (the
+registry's own domain definitions remain for capability binding).
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);

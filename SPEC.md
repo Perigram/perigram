@@ -231,6 +231,13 @@ Organization settings has a Plugins section: the organization sees the central
 catalog and its installed plugins, and installs or removes them at runtime.
 The catalog is platform-published; orgs are consumers only.
 
+The driving goal of the plugin work: **the facade domain itself is separated
+into a plugin** — its code leaves the platform, the platform mounts it as an
+independently versioned unit, and organizations manage it from the Plugins
+section. Every framework→facade import is a defect against this (SPEC §Server
+already forbids them); executable facade handlers move behind the connector
+protocol; editor surfaces ride the surface registry.
+
 A third-party plugin is declarations plus connectors — never in-process code:
 
 - **Declarations** (types now; processes/screens as the exchange grows) install
