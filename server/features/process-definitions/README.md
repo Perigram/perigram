@@ -108,6 +108,18 @@ persist the current records. Draft acceptance overlays the draft's declaration
 graph on the projected CTS domain and validates the same recursive state/edge
 records that APPLY posts.
 
+The deadline scanner (`deadline-scanner.js`, wired by the
+`deadline-scanner` nitro plugin) lives here because its input is the
+activation-written compiled snapshot: on an interval it resolves every
+organization's ACTIVE definitions, walks their compiled machines' states
+for declared deadlines (CTS SPEC §7), and moves overdue instances —
+`stateChangedAt` (or the legacy `status.timestamp`) older than the
+declared duration — through the status engine as SYSTEM. Scan input is
+the stored `data.compiled` snapshot only; auth decisions always
+recompile and never read this path. Rescans are self-stabilizing: moved
+instances no longer match the state query, and guard/access refusals
+are counted and retried on the next tick.
+
 Durable effect dispatch classifies once (`operationKindOf`) and keeps the
 record's species kind: `cts.construct`/`cts.mutate`/`cts.remove` run through
 the same construction/update/delete adapters as their retired v4 spellings,

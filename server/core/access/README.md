@@ -7,6 +7,10 @@ Centralized authorization for entity services, workflow transitions, and command
 - `assertEntityAccess()`: Checks one entity against a feature permission level.
 - `assertCommandAccess()`: Checks command permission requirements before a handler runs.
 - `assertTransitionAccess()`: Checks workflow transition access requirements.
+  A transition authorizes by process role, by permission grants, or by the
+  system actor (`access.system`); `system: true` with no role or permission
+  grants names the system actor alone — non-system callers are refused
+  (deadline edges compile exactly that shape, SPEC §7).
 - `createLineageFilter()`: Builds the active-organization lineage filter, with
   membership-derived filtering only for legacy auth contexts that do not carry
   an active organization id.

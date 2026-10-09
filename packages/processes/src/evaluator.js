@@ -17,7 +17,7 @@ import {
   transposeDataPacket,
   treeStats
 } from './data-tree.js';
-import { operationKindOf } from '../../cts/src/index.js';
+import { operationKindOf, durationMs } from '../../cts/src/index.js';
 import { MAKE_LIST_INPUTS, dynamicBlocks, entityBlocks } from './node-catalog.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';
 
@@ -618,7 +618,7 @@ function executeDateTime(record, packets) {
         ? Number(adjustment) * 3_600_000
         : record.operation === 'addMinutes'
           ? Number(adjustment) * 60_000
-          : durationMilliseconds(adjustment);
+          : durationMs(adjustment);
     date.setTime(date.getTime() + direction * milliseconds);
     return date.toISOString();
   }, { matching: record.matching });
@@ -645,14 +645,6 @@ function dateValue(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) throw new Error(`Invalid date ${value}`);
   return date;
-}
-
-function durationMilliseconds(value) {
-  if (typeof value === 'number') return value;
-  const match = String(value || '').match(/^P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/);
-  if (!match) throw new Error(`Invalid duration ${value}`);
-  return (Number(match[1] || 0) * 86_400 + Number(match[2] || 0) * 3_600
-    + Number(match[3] || 0) * 60 + Number(match[4] || 0)) * 1_000;
 }
 
 function required(inputs, id, record) {

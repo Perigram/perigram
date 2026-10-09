@@ -318,6 +318,7 @@ function instanceService(typeId) {
     const now = new Date().toISOString();
     // §3: the row is one flat fields map (data/specs split is wire-only)
     const fields = { ...(draft.data || {}), ...(draft.specs || {}) };
+    const state = initialStateFor(draft);
     const doc = {
       _id: new ObjectId(),
       type: typeId,
@@ -327,7 +328,8 @@ function instanceService(typeId) {
       // declared identifier field's value (same precedence toDto reads).
       name: draft.identity?.name ?? wireIdentityName({ fields }, declaration),
       fields,
-      state: initialStateFor(draft),
+      state,
+      ...(state ? { stateChangedAt: now } : {}),
       lineage: wireLineage,
       ...(draft.relations ? { relations: draft.relations } : {}),
       ...(payload ? { payload } : {}),

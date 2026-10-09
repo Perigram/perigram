@@ -3262,6 +3262,7 @@
     "guardAny": "any of",
     "addGuardCondition": "Add condition",
     "transitionGuardHint": "Checked against the instance before the transition commits; a failing guard hides the action.",
+    "stateDeadline": "Deadline",
     "auto": "Auto",
     "fieldDisplayLabel": "Label",
     "fieldDisplayKind": "Display",

@@ -221,6 +221,7 @@
                   :diagnostics="classDeclarationDiagnostics"
                   :type-options="declarationTypeOptions"
                   :type-anchor-options="typeAnchorOptions"
+                  :state-options="declarationStateOptions"
                   @sync="syncNodeData"
                   @update-name="value => updateClassName(selectedNode, value)"
                   @update-display-role="({ flag, value }) => setFieldDisplayRole(selectedNode, flag, value)"
@@ -1599,6 +1600,18 @@ const transitionGuardFieldOptions = computed(() => {
   return designer.fieldsForEntity(nodeTypeId(record))
     .map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: String(field.value || '').replace(/^(data|specs)\./, '') }))
     .filter(field => field.value);
+});
+// Deadline targets are declared state values: same-type records plus
+// unscoped tokens, the state node itself excluded (SPEC §7).
+const declarationStateOptions = computed(() => {
+  const node = selectedNode.value;
+  if (node?.type !== 'ctsState') return [];
+  const typeId = node.data?.typeId ?? null;
+  const selfId = String(node.data?.refId || node.id);
+  return Object.values(draft.value?.data?.ctsTypes || {})
+    .filter(record => record?.kind === 'state' && record.value && String(record.id) !== selfId
+      && (typeId == null || record.typeId === typeId || record.typeId == null))
+    .map(record => ({ label: record.label || record.value, value: record.value }));
 });
 function commandForId(commandId) {
   return facadeDomain.commands?.[commandId] || null;

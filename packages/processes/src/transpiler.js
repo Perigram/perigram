@@ -139,7 +139,8 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
         terminal: data.terminal === true,
         ...(data.label ? { label: data.label } : {}),
         ...(data.severity ? { severity: data.severity } : {}),
-        ...(data.icon ? { icon: data.icon } : {})
+        ...(data.icon ? { icon: data.icon } : {}),
+        ...(data.deadline ? { deadline: data.deadline } : {})
       } : {})
     };
   }
@@ -273,6 +274,7 @@ function projectDeclarationRecords(records = {}, x) {
           value: record.value || '',
           severity: record.severity || null,
           icon: record.icon || null,
+          ...(record.deadline ? { deadline: record.deadline } : {}),
           // Authored booleans project so the rebuild (which writes them
           // explicitly from node data) reproduces the record exactly.
           terminal: record.terminal === true

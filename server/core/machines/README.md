@@ -33,6 +33,19 @@ graph-derived (SPEC §7) — this module never defines machines itself.
   action — execution still surfaces it loudly). Intent availability
   (`assertIntentAvailable`) does not guard-filter: named-intent callers
   receive the commit-time refusal.
+  A compiled transition may instead be a deadline edge (`deadline: true`
+  with system-only access): declared on the state record (SPEC §7),
+  executable only by the system actor, and driven by the deadline
+  scanner — never a user action.
+  Every flat state write stamps `stateChangedAt` (the §3 entered-state
+  clock, SPEC §3/§7): creation through the instance boundary and every
+  status transition. The deadline scanner
+  ([server/features/process-definitions](../../features/process-definitions/README.md))
+  sweeps the organizations' active compiled machines on an interval
+  (`DEADLINE_SCAN_INTERVAL_MS`, default 60s, disabled at `0`) and moves
+  overdue instances through this engine's transition boundary as SYSTEM
+  with `source: { kind: 'deadline' }` — stamps, guards, lifecycle
+  validation, and hooks unchanged.
   Process-authored user transitions are authorized by their compiled
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the

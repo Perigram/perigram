@@ -10,8 +10,9 @@ hand-written services.
 
 - Storage: per-class collections (`files`, `items`, `groups`, `processes`)
   with the type id as discriminator; documents carry the §3 stored shape —
-  `type`, `typeVersion`, `name`, flat `fields`, one canonical active leaf
-  path per declared state axis under `states`, `lineage` (pure tree edges),
+  `type`, `typeVersion`, `name`, flat `fields`, the flat `state` string and
+  its `stateChangedAt` entered-state clock (the deadline clock, SPEC §7),
+  `lineage` (pure tree edges),
   `relations`, the top-level `organizationId` tenancy slot, `payload` (iff
   the type declares payload traits), and `provenance` (set by the construct
   boundary, never patched).

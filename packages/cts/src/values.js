@@ -148,3 +148,13 @@ export function containsRef(descriptor = {}) {
   if (descriptor.base === 'variant') return Object.values(descriptor.payloads || {}).some(containsRef);
   return false;
 }
+
+// ISO-8601 duration -> milliseconds: the one duration parser (deadline
+// facets, duration arithmetic, and scans all parse through here).
+export function durationMs(value) {
+  if (typeof value === 'number') return value;
+  const match = String(value || '').match(/^P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/);
+  if (!match) throw new Error(`Invalid ISO-8601 duration ${value}`);
+  return (Number(match[1] || 0) * 86_400 + Number(match[2] || 0) * 3_600
+    + Number(match[3] || 0) * 60 + Number(match[4] || 0)) * 1_000;
+}

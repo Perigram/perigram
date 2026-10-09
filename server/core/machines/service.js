@@ -754,7 +754,10 @@ function storedStateAxes(states = {}) {
 // status block belongs to static-registry collections only.
 function instanceStateSetFromStatus(status = {}) {
   const primary = status?.state?.primary;
-  return typeof primary === 'string' && primary ? { state: primary } : {};
+  if (typeof primary !== 'string' || !primary) return {};
+  // The flat write carries the deadline clock (SPEC §3/§7): when the
+  // current state was entered.
+  return { state: primary, stateChangedAt: new Date().toISOString() };
 }
 
 function statusPrimaryForRegion(workflow = {}, regionId = '', state = '') {

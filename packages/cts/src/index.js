@@ -2,7 +2,7 @@ export {
   UNITS, quantity, convert, unify
 } from './units.js';
 export {
-  describeType, checkValue, describeLabel, containsRef, FIELD_BASES, DISPLAY_KINDS
+  describeType, checkValue, describeLabel, containsRef, durationMs, FIELD_BASES, DISPLAY_KINDS
 } from './values.js';
 export {
   normalizeRow, rowToSchema, checkFields
