@@ -4,7 +4,7 @@ import {
   rowToSchema, checkFields,
   createTypeRegistry, validateInstance, schemaFor, normalizeType,
   diffTypes, requireCompatible, normalizeMigrateSteps, planTypeMigration,
-  evaluate, checkMatch,
+  evaluate, checkMatch, checkValue,
   normalizeOperator,
   renderPolicyFor, compileClientBundle,
   cncTypePack, partyTypes, nestingOperators, packFixtures,
@@ -187,6 +187,16 @@ describe('expressions (totality, CEL semantics)', () => {
     const sum = evaluate({ op: 'add', args: [{ op: 'lit', value: quantity(500, 'mm') }, { op: 'lit', value: quantity(0.5, 'm') }] });
     expect(sum).toEqual(quantity(1, 'm'));
     expect(() => evaluate({ op: 'add', args: [{ op: 'lit', value: quantity(1, 'mm') }, { op: 'lit', value: quantity(1, 'min') }] })).toThrow(/Unit mismatch/);
+  });
+
+  it('currency stays in integer minor units (rows and arithmetic)', () => {
+    expect(checkValue({ base: 'quantity', unit: 'currency' }, quantity(1250, 'currency'))).toEqual([]);
+    expect(checkValue({ base: 'quantity', unit: 'currency' }, quantity(12.5, 'currency')))
+      .toEqual(['currency quantities are integer minor units (e.g. cents)']);
+    const total = evaluate({ op: 'add', args: [{ op: 'lit', value: quantity(500, 'currency') }, { op: 'lit', value: quantity(250, 'currency') }] });
+    expect(total).toEqual(quantity(750, 'currency'));
+    expect(() => evaluate({ op: 'div', args: [{ op: 'lit', value: quantity(100, 'currency') }, { op: 'lit', value: quantity(3, 'currency') }] }))
+      .toThrow(/integer minor units/);
   });
 
   it('match exhaustiveness is compile-checked', () => {

@@ -88,7 +88,13 @@ export function checkValue(descriptor, value) {
       return isPlainObject(value) || typeof value === 'string' || Array.isArray(value) ? [] : ['expected json/blob payload'];
     case 'quantity': {
       if (!isPlainObject(value) || typeof value.value !== 'number') return ['expected { value, unit } quantity'];
-      return value.unit === descriptor.unit ? [] : [`expected unit ${descriptor.unit}, got ${value.unit}`];
+      if (value.unit !== descriptor.unit) return [`expected unit ${descriptor.unit}, got ${value.unit}`];
+      // Minor-unit money (SPEC §2): currency values are integer minor
+      // units — floats are the classic billing defect, refused at the row.
+      if (descriptor.unit === 'currency' && !Number.isInteger(value.value)) {
+        return ['currency quantities are integer minor units (e.g. cents)'];
+      }
+      return [];
     }
     case 'ref': {
       if (!isPlainObject(value) || typeof value.type !== 'string' || typeof value.id !== 'string') {
