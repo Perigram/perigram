@@ -26,10 +26,11 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
   document migrated one-way into a §3 instance
   (`server/scripts/migrate-sheet-designs-to-instances.js`, applied to the
   dev db).
-- [x] SDK seam (2026-10-09): packs consume platform services through the
-  `#services` alias (nuxt + both vitest configs) — package-portable per
-  the arch guard, one retarget point for a future injected SDK, absolute
-  dev-bundle externalization.
+- [x] SDK seam (2026-10-09): the pack consumes platform services through
+  plain relative imports — the arch guard's sanctioned form for packages
+  (`#` aliases cannot cross a package boundary outward: Node subpath
+  imports resolve against the package's own imports field, which may not
+  escape the package).
 - [x] Physical unit (2026-10-09): `server/packs/facade` moved to
   `packages/facade/server` — the facade is one deletable, independently
   versionable directory (`packages/facade`), mounted through
@@ -40,11 +41,13 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
 
 Session `agent/facade-move-20261009`. The move is DONE:
 `server/packs/facade` → `packages/facade/server` (git mv, history
-preserved). Unblocked by the `#services` alias (→ `./server`): every
-framework import in the pack tree converted (`~/server/...` and deep
-relative escapes → `#services/...`, dxf utils → `#utils/...`, own
-declarations → `../src/index.js`), registered in nuxt.config and both
-vitest configs. Consumers updated: the app-registry mount, the four thin
+preserved). Unblocked by converting every framework import in the pack tree to
+plain relative escapes (`~/server/...` and `#services/...` →
+`../../../server/...` per file depth, dxf utils → `#utils/...`, own
+declarations → `../src/index.js`). The first cut used a `#services`
+alias, which vitest/nitro-bundle resolved but raw-Node externals could
+not (subpath imports are package-internal by Node rule) — relative
+imports resolve in every loader; the dead alias is removed. Consumers updated: the app-registry mount, the four thin
 REST routes, check-arch (pack-owned paths repo-root-relative), the
 framework spec's mount read, README links. The arch guard — the same one
 that correctly refused the first attempt — passes with the facade inside

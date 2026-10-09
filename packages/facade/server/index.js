@@ -18,9 +18,9 @@ import {
 import { solveNestingValue } from './value-services/solve-nesting.js';
 import * as cassettesService from './cassettes/service.js';
 import * as sheetDesignsOperations from './sheet-designs/operations.js';
-import { convertArtifact as frameworkConvertArtifact } from '#services/features/artifact-conversions/operations.js';
-import { generateAttachment as frameworkGenerateAttachment } from '#services/features/artifacts/operations.js';
-import { instanceServiceResolver } from '#services/features/instances/service.js';
+import { convertArtifact as frameworkConvertArtifact } from '../../../server/features/artifact-conversions/operations.js';
+import { generateAttachment as frameworkGenerateAttachment } from '../../../server/features/artifacts/operations.js';
+import { instanceServiceResolver } from '../../../server/features/instances/service.js';
 
 // cassette-design constructs through the generic §13 service with three
 // pack-bound construction modes (upload/bake/convertDxf — see

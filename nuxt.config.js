@@ -21,11 +21,7 @@ const perigramAliases = {
 const portableAliases = {
     '#shared': resolveRoot('./shared'),
     '#packages': resolveRoot('./packages'),
-    '#utils': resolveRoot('./utils'),
-    // The pack SDK seam: domain packs consume platform services through
-    // this alias (never `~`), keeping packages/ portable per the arch
-    // guard and the consumption point mechanically enumerable.
-    '#services': resolveRoot('./server')
+    '#utils': resolveRoot('./utils')
 }
 const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')
 const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{${cssDeclarations(darkCssVariableTokens)}}`
