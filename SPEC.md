@@ -219,11 +219,9 @@ capabilities in priority order:
    never a standing query.
 3. Money — minor-unit-integer currency quantities (CTS SPEC §2).
 
-The runtime model is fixed (owner, 2026-10-09): there is one
-organization runtime that uses process definitions as business logic.
-A definition is turned on or off in organization settings — that is the
-whole lifecycle. Execution is not a product concept: no run status, no
-cancellation, no per-run surfaces.
+The organization runtime uses process definitions as business logic; a
+definition is turned on or off in organization settings — that is the
+whole lifecycle.
 
 ## Plugin marketplace
 
