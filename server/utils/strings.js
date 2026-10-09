@@ -54,7 +54,6 @@ export function pluralize(typeId) {
   if (!typeId) return '';
   if (typeId === 'nesting_run') return 'nesting_runs';
   if (typeId === 'cassette_instance') return 'cassette_instances';
-  if (typeId === 'sheet_design') return 'sheet_designs';
   if (typeId === 'cassette_design') return 'cassette_designs';
   if (typeId === 'layer_standard') return 'layer_standards';
   if (typeId === 'pen_template') return 'pen_templates';

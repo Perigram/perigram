@@ -1,76 +1,15 @@
-import crypto from 'node:crypto';
-import * as repository from './repository.js';
-import { createProcessUpdateHandler } from '../../../features/_template/process-update-handler.js';
+// Sheet-design pack operations (SPEC §13): the type rides the generic
+// instance service — this module owns only the domain operations the pack
+// adds: the manual layout update (recomputes geometry, preview, and
+// summary from placed items) and the layered-DXF export. Persistence,
+// access gating, transitions, and revisions go through the generic
+// machinery (instanceServiceResolver('sheet-design')).
 import { createError } from 'h3';
-import {
-  inheritLineage,
-  createData,
-  createAttachment
-} from '../../../core/blocks/index.js';
-import { createTransitionAuth, stateService } from '../../../core/machines/service.js';
-import { mapLineageQuery } from '../../../utils/query.js';
-import { hasLineagePermission, getLineageFilter } from '../../../utils/permissions.js';
-import { ObjectId } from 'mongodb';
-import { toFlexibleId } from '../../../utils/objectid.js';
-import { SheetDesign } from './model.js';
-import { serializeForAccess, serializeManyForAccess } from '../../../utils/entity-redaction.js';
+import crypto from 'node:crypto';
+import { instanceServiceResolver } from '../../../features/instances/service.js';
+import { hasInstanceAccess } from '../../../core/access/service.js';
 import { generateLayeredDxf } from '../../../utils/dxf-writer.js';
 import * as filesService from '../../../features/files/service.js';
-import * as instanceRevisionsService from '../../../features/instance-revisions/service.js';
-
-/**
- * Sheet Designs Service - v24 Standardized
- */
-
-
-function toDTO(design, userPermissions = null) {
-  if (!design) return null;
-  return serializeForAccess('sheetDesign', new SheetDesign(design), userPermissions);
-}
-
-const GEOMETRY_REVISION_SCOPE = 'geometry';
-
-function geometryRevisionContent(design) {
-  return {
-    geometry: design.data?.geometry || null,
-    cassetteDesigns: design.data?.cassetteDesigns || [],
-    solveParams: design.data?.solveParams || {},
-    specs: design.specs || {}
-  };
-}
-
-function geometryRevisionPointer(revision) {
-  return revision ? {
-    currentId: revision._id,
-    number: revision.data?.number || 0,
-    contentHash: revision.data?.contentHash || ''
-  } : null;
-}
-
-async function ensureGeometryRevision(design, userId = 'SYSTEM', reason = 'layout-updated') {
-  const revision = await instanceRevisionsService.ensureForEntitySnapshot({
-    typeId: 'sheet_design',
-    entity: design,
-    scope: GEOMETRY_REVISION_SCOPE,
-    content: geometryRevisionContent(design),
-    snapshot: {
-      identity: design.identity || null,
-      data: geometryRevisionContent(design)
-    },
-    userId,
-    reason
-  });
-  const updated = await repository.updateById(design._id, {
-    data: {
-      ...(design.data || {}),
-      revisions: {
-        ...(design.data?.revisions || {}),
-        [GEOMETRY_REVISION_SCOPE]: geometryRevisionPointer(revision)
-      }
-    }
-  });
-  return { design: updated, revision };
-}
 
 const LAYER_STYLES = {
   'contour.material_sheet': { color: '#64748b', weight: 1, dasharray: '8,5' },
@@ -418,18 +357,24 @@ export function nestingResultToPreview(result = {}, params = {}, options = {}) {
   };
 }
 
-
-
-export async function updateLayout(id, { items = [], placedItems = [] } = {}, userId, userOrg, userRole, userPermissions) {
-  const raw = await repository.findById(id);
-  if (!raw) throw createError({ statusCode: 404, message: 'Sheet design not found' });
-  const design = new SheetDesign(raw);
-  if (!hasLineagePermission(userPermissions || {}, design, 'sheet_designs', 'write')) {
+function requireReadable(design, auth) {
+  if (auth?.memberships &&
+      !hasInstanceAccess({ entity: design, typeId: 'sheet-design', feature: 'files', level: 'read', auth })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+}
+
+// The manual layout update: recomputes the design's geometry record,
+// preview, and summary from the editor's placed items, then writes through
+// the generic instance patch (which owns access gating and revisions).
+export async function updateLayout(id, { items = [], placedItems = [] } = {}, auth = {}) {
   if (!Array.isArray(items) || !Array.isArray(placedItems)) {
     throw createError({ statusCode: 400, message: 'Sheet layout items and placements must be arrays' });
   }
+  const service = instanceServiceResolver('sheet-design');
+  const design = await service.getById(id);
+  if (!design) throw createError({ statusCode: 404, message: 'Sheet design not found' });
+  requireReadable(design, auth);
 
   const existingResult = design.data?.geometry?.data || {};
   const existingSolution = existingResult.solution || {};
@@ -451,42 +396,24 @@ export async function updateLayout(id, { items = [], placedItems = [] } = {}, us
   };
   const cassetteDesigns = cassettesForNestingResult(result);
   const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
-  const data = {
-    ...(design.data || {}),
-    cassetteDesigns,
-    geometry: {
-      ...(design.data?.geometry || {}),
-      data: result,
-      preview: nestingResultToPreview(result, params, { layoutIndex: 0 })
+  return await service.patch(id, {
+    data: {
+      ...(design.data || {}),
+      cassetteDesigns,
+      geometry: {
+        ...(design.data?.geometry || {}),
+        data: result,
+        preview: nestingResultToPreview(result, params, { layoutIndex: 0 })
+      },
+      summary: {
+        ...(design.summary || {}),
+        placedCount: placedItems.length,
+        partsCount: placedItems.length,
+        cassetteDesignCount: cassetteDesigns.length,
+        cassettePlacementCount
+      }
     }
-  };
-  const updated = await repository.updateById(id, {
-    data,
-    summary: {
-      ...(design.summary || {}),
-      placedCount: placedItems.length,
-      partsCount: placedItems.length,
-      cassetteDesignCount: cassetteDesigns.length,
-      cassettePlacementCount
-    }
-  });
-  const revisioned = await ensureGeometryRevision(updated, userId, 'manual-layout-updated');
-  return toDTO(revisioned.design, userPermissions);
-}
-
-export async function getById(id, userId, userOrg, userRole, userPermissions) {
-  const raw = await repository.findById(id);
-  if (!raw) throw createError({ statusCode: 404, message: 'Sheet design not found' });
-  const design = new SheetDesign(raw);
-  if (userPermissions?.memberships && !hasLineagePermission(userPermissions, design, 'sheet_designs', 'read')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  return serializeForAccess('sheetDesign', design, userPermissions);
-}
-
-export async function generateDxf(id, userId, userOrg, userRole, userPermissions) {
-  const design = await getById(id, userId, userOrg, userRole, userPermissions);
-  return generateDxfForDesign(design);
+  }, { auth, organizationId: auth.organizationId || null });
 }
 
 function generateDxfForDesign(design) {
@@ -499,71 +426,28 @@ function generateDxfForDesign(design) {
   return dxf;
 }
 
-export async function generateAndStoreDxf(id, userId, userOrg, userRole, userPermissions) {
-  const design = await getById(id, userId, userOrg, userRole, userPermissions);
-  const dxf = generateDxfForDesign(design);
-  const file = await filesService.uploadFile(
-    Buffer.from(dxf, 'utf8'),
+export async function generateDxf(id, auth = {}) {
+  const service = instanceServiceResolver('sheet-design');
+  const design = await service.getById(id);
+  if (!design) throw createError({ statusCode: 404, message: 'Sheet design not found' });
+  requireReadable(design, auth);
+  return generateDxfForDesign(design);
+}
+
+export async function generateAndStoreDxf(id, auth = {}) {
+  const file = await generateDxf(id, auth);
+  const service = instanceServiceResolver('sheet-design');
+  const design = await service.getById(id);
+  const uploaded = await filesService.uploadFile(
+    Buffer.from(file, 'utf8'),
     `${design.identity?.slug || design._id || id}.dxf`,
     {
-      userId,
-      organizationId: userOrg,
+      userId: auth.userId,
+      organizationId: auth.organizationId,
       sheetDesignId: id,
       type: 'LAYOUT_DXF'
     },
     'nestDxf'
   );
-  return { fileId: file.id, dxf, design };
+  return { fileId: uploaded.id, dxf: file, design };
 }
-
-export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter(userPermissions);
-  const queryFilter = mapLineageQuery(filter);
-  const runIds = normalizeQueryList(queryFilter.runIds || queryFilter.runId);
-  delete queryFilter.runIds;
-  delete queryFilter.runId;
-  if (queryFilter.queueId) {
-    queryFilter['lineage.queueId'] = toFlexibleId(queryFilter.queueId);
-    delete queryFilter.queueId;
-  }
-  if (queryFilter.projectId) {
-    queryFilter['lineage.projectId'] = toFlexibleId(queryFilter.projectId);
-    delete queryFilter.projectId;
-  }
-  if (runIds.length) {
-    queryFilter['lineage.runId'] = { $in: runIds.flatMap(id => [id, toFlexibleId(id)]) };
-  }
-  const finalFilter = { ...queryFilter, ...lineageFilter };
-  const designs = await repository.find(finalFilter);
-  return serializeManyForAccess(
-    'sheetDesign',
-    designs
-      .map(design => new SheetDesign(design))
-      .filter(design => !userPermissions?.memberships || hasLineagePermission(userPermissions, design, 'sheet_designs', 'read')),
-    userPermissions
-  );
-}
-
-function normalizeQueryList(value) {
-  if (Array.isArray(value)) return value.flatMap(normalizeQueryList);
-  if (value === undefined || value === null || value === '') return [];
-  return String(value).split(',').map(item => item.trim()).filter(Boolean);
-}
-
-
-export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
-  const result = await stateService.transitionWithResult({
-    typeId: 'sheet_design',
-    targetId: id,
-    targetState: newState,
-    auth: createTransitionAuth(userId, userRole),
-    context: metadata
-  });
-  return result.status;
-}
-
-export const processUpdate = createProcessUpdateHandler({
-  typeId: 'sheet_design',
-  repository,
-  Model: SheetDesign
-});

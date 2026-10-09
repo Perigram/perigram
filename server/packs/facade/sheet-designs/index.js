@@ -1,1 +1,1 @@
-export * as service from './service.js';
+export * as operations from './operations.js';

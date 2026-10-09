@@ -17,11 +17,6 @@ const INDEXES = {
     { keys: { 'lineage.libraryId': 1 }, options: { name: 'lineage_library_idx' } }
   ],
 
-  // Sheet Designs Collection
-  sheet_designs: [
-    { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } }
-  ],
-
   // Artifacts Collection
   artifacts: [
     { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } },

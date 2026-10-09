@@ -17,7 +17,7 @@ import {
 } from './cassettes/cassette-design-construction.js';
 import { solveNestingValue } from './value-services/solve-nesting.js';
 import * as cassettesService from './cassettes/service.js';
-import * as sheetDesignsService from './sheet-designs/service.js';
+import * as sheetDesignsOperations from './sheet-designs/operations.js';
 import { convertArtifact as frameworkConvertArtifact } from '~/server/features/artifact-conversions/operations.js';
 import { generateAttachment as frameworkGenerateAttachment } from '~/server/features/artifacts/operations.js';
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
@@ -94,13 +94,7 @@ export const facadePack = {
       ))
     }),
     generateAttachment: (args) => frameworkGenerateAttachment(args, {
-      sheetDxfExporter: async (sourceId, auth) => sheetDesignsService.generateAndStoreDxf(
-        sourceId,
-        auth.userId,
-        auth.organizationId,
-        auth.role,
-        auth
-      )
+      sheetDxfExporter: async (sourceId, auth) => sheetDesignsOperations.generateAndStoreDxf(sourceId, auth)
     })
   }
 };

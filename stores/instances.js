@@ -27,8 +27,7 @@ const FRAMEWORK_ROUTES = {
 // Pack feature modules that still own mounted REST routes; every other
 // type (declared or legacy) resolves through `/api/instances/:type`.
 const FEATURE_ROUTES = {
-  artifact_template: '/api/artifact-templates',
-  sheet_design: '/api/sheet-designs'
+  artifact_template: '/api/artifact-templates'
 };
 
 const ROUTE_BY_TYPE = { ...FRAMEWORK_ROUTES, ...FEATURE_ROUTES };
