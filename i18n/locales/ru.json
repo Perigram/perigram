@@ -3418,5 +3418,10 @@
     "apiKey": "API-ключ",
     "apiKeyPlaceholder": "Ключ для executor'а издателя (Bearer)",
     "savedToast": "Подключение сохранено"
+  },
+  "worklist": {
+    "title": "Требует вас",
+    "empty": "Ничего не ждёт",
+    "overdue": "Просрочено"
   }
 }
