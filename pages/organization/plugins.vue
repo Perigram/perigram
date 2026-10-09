@@ -28,37 +28,8 @@
             <Column :header="$t('common.actions.title')" class="text-right">
               <template #body="{ data }">
                 <div class="flex justify-end gap-2">
-                  <Tag
-                    v-if="data.availableVersion"
-                    :value="`${data.version} → ${data.availableVersion}`"
-                    severity="warn"
-                  />
                   <Button
-                    v-if="data.availableVersion"
-                    icon="pi pi-arrow-up"
-                    :aria-label="$t('plugins.upgrade')"
-                    size="small"
-                    @click="openUpgrade(data)"
-                  />
-                  <Button
-                    v-if="data.services.length"
-                    icon="pi pi-key"
-                    :aria-label="$t('plugins.connector')"
-                    severity="secondary"
-                    size="small"
-                    text
-                    @click="openConnector(data)"
-                  />
-                  <Button
-                    v-if="hasEndpointServices(data)"
-                    icon="pi pi-sliders-h"
-                    :aria-label="$t('plugins.settings')"
-                    severity="secondary"
-                    size="small"
-                    text
-                    @click="openSettings(data)"
-                  />
-                  <Button
+                    v-if="data.pack"
                     icon="pi pi-trash"
                     :aria-label="$t('plugins.uninstall')"
                     severity="danger"
@@ -67,6 +38,47 @@
                     :loading="workingPluginId === data.pluginId"
                     @click="uninstall(data)"
                   />
+                  <template v-else>
+                    <Tag
+                      v-if="data.availableVersion"
+                      :value="`${data.version} → ${data.availableVersion}`"
+                      severity="warn"
+                    />
+                    <Button
+                      v-if="data.availableVersion"
+                      icon="pi pi-arrow-up"
+                      :aria-label="$t('plugins.upgrade')"
+                      size="small"
+                      @click="openUpgrade(data)"
+                    />
+                    <Button
+                      v-if="data.services.length"
+                      icon="pi pi-key"
+                      :aria-label="$t('plugins.connector')"
+                      severity="secondary"
+                      size="small"
+                      text
+                      @click="openConnector(data)"
+                    />
+                    <Button
+                      v-if="hasEndpointServices(data)"
+                      icon="pi pi-sliders-h"
+                      :aria-label="$t('plugins.settings')"
+                      severity="secondary"
+                      size="small"
+                      text
+                      @click="openSettings(data)"
+                    />
+                    <Button
+                      icon="pi pi-trash"
+                      :aria-label="$t('plugins.uninstall')"
+                      severity="danger"
+                      size="small"
+                      text
+                      :loading="workingPluginId === data.pluginId"
+                      @click="uninstall(data)"
+                    />
+                  </template>
                 </div>
               </template>
             </Column>
@@ -309,6 +321,7 @@ const authStore = useAuthStore();
 
 const catalog = ref([]);
 const installed = ref([]);
+const disabledPacks = ref([]);
 const loading = ref(true);
 const installDialogVisible = ref(false);
 const pendingInstall = ref(null);
@@ -337,12 +350,19 @@ async function load() {
     return;
   }
   try {
-    const [catalogResponse, installedResponse] = await Promise.all([
+    const [catalogResponse, installedResponse, stateResponse] = await Promise.all([
       $fetch('/api/plugins/catalog'),
-      $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`)
+      $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`),
+      $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/state`)
     ]);
-    catalog.value = catalogResponse || [];
-    installed.value = installedResponse || [];
+    catalog.value = [
+      ...(catalogResponse || []),
+      ...(stateResponse || []).filter(item => item.pack && !item.enabled)
+    ];
+    installed.value = [
+      ...(stateResponse || []).filter(item => item.pack && item.enabled),
+      ...(installedResponse || [])
+    ];
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
   } finally {
@@ -371,10 +391,16 @@ async function confirmInstall() {
   if (!listing) return;
   workingPluginId.value = listing.pluginId;
   try {
-    await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`, {
-      method: 'POST',
-      body: { pluginId: listing.pluginId }
-    });
+    if (listing.pack) {
+      await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/packs/${encodeURIComponent(listing.pluginId)}`, {
+        method: 'POST'
+      });
+    } else {
+      await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`, {
+        method: 'POST',
+        body: { pluginId: listing.pluginId }
+      });
+    }
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('plugins.installedToast'), life: 3000 });
     installDialogVisible.value = false;
     await load();
@@ -433,9 +459,15 @@ async function uninstall(item) {
   if (!window.confirm(t('plugins.uninstallConfirm'))) return;
   workingPluginId.value = item.pluginId;
   try {
-    await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}`, {
-      method: 'DELETE'
-    });
+    if (item.pack) {
+      await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/packs/${encodeURIComponent(item.pluginId)}`, {
+        method: 'DELETE'
+      });
+    } else {
+      await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}`, {
+        method: 'DELETE'
+      });
+    }
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('plugins.uninstalledToast'), life: 3000 });
     await load();
   } catch (error) {

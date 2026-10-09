@@ -1,7 +1,7 @@
 import { requireAuth } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
-import { composePackDomains } from '~/server/packs/declarations.js';
+import { packDomainsForOrganization } from '~/server/features/plugins/service.js';
 import { packServicesForOrganization } from '~/server/features/plugins/service.js';
 import { compileRegistryForOrganization } from '~/server/features/cts-types/service.js';
 import { projectEntityProcessCapabilities } from '~/packages/processes/src/index.js';
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   // tables are not projected.
   const organizationId = resolveOrganizationId(auth);
   const view = await compileRegistryForOrganization(organizationId);
-  const domain = projectDomainFromView(view, organizationId, composePackDomains(), {
+  const domain = projectDomainFromView(view, organizationId, await packDomainsForOrganization(organizationId), {
     packServices: await packServicesForOrganization(organizationId)
   });
 

@@ -20,7 +20,11 @@ import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
-import { composePackServices } from '~/server/packs/declarations.js';
+import { composePackServices, composePackDomains, orderedMountedPacks } from '~/server/packs/declarations.js';
+
+function packById(packId) {
+  return orderedMountedPacks().find(pack => pack.id === String(packId)) || null;
+}
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's
 // claim queue is plugin.<pluginId>@<organizationId>.
@@ -281,9 +285,18 @@ export async function servicesForOrganization(organizationId) {
 }
 
 // The one service list the projected-domain consumers resolve: mounted
-// pack services plus the organization's installed plugin services.
+// pack services plus the organization's installed plugin services —
+// disabled packs contribute nothing.
 export async function packServicesForOrganization(organizationId) {
-  return [...composePackServices(), ...await servicesForOrganization(organizationId)];
+  const disabled = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
+  const packs = orderedMountedPacks().filter(pack => !disabled.has(pack.id));
+  return [...composePackServices(packs), ...await servicesForOrganization(organizationId)];
+}
+
+// The projected-domain pack slices for an organization: enabled packs only.
+export async function packDomainsForOrganization(organizationId) {
+  const disabled = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
+  return composePackDomains(orderedMountedPacks().filter(pack => !disabled.has(pack.id)));
 }
 
 export async function commandDefinitionFor(commandId, auth = {}) {
@@ -401,6 +414,103 @@ export async function connectorInfo({ organizationId, pluginId, auth = {} }) {
       fail: '/api/tasks/{runId}/fail'
     }
   };
+}
+
+// --- Mounted-pack enablement (the facade extraction's management plane):
+// packs compose for an org unless a disablement record exists; enabling
+// cascades over requirements, disabling is drain-gated by instances,
+// process bindings, a trial compose without the pack, and enabled
+// dependents ---
+
+export async function listPackState({ organizationId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'read');
+  const disabled = new Set(await repository.listDisabledPacks(organizationId));
+  const installs = await repository.listInstallsByOrganization(organizationId);
+  return orderedMountedPacks().map(pack => ({
+    pluginId: pack.id,
+    name: pack.label || pack.id,
+    pack: true,
+    enabled: !disabled.has(pack.id),
+    types: (pack.types || []).map(type => ({ id: type.id, name: type.name || null, class: type.class || null })),
+    services: (pack.services || []).map(service =>
+      ({ id: service.id, label: service.render?.label || service.label || service.id }))
+  })).concat(installs.map(install => ({ ...serializeInstall(install), pack: false, enabled: true })));
+}
+
+export async function enablePack({ organizationId, packId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const target = packById(packId);
+  if (!target) throw createError({ statusCode: 404, message: 'Unknown pack' });
+  // Enabling cascades: requirements come back with the pack.
+  const disabled = new Set(await repository.listDisabledPacks(organizationId));
+  const toEnable = [];
+  const collect = pack => {
+    if (!disabled.has(pack.id) || toEnable.includes(pack.id)) return;
+    toEnable.push(pack.id);
+    for (const requirement of pack.requires || []) collect(packById(requirement));
+  };
+  collect(target);
+  for (const id of toEnable) await repository.enablePack(organizationId, id);
+  invalidateInstanceDeclarations(String(organizationId));
+  publishOrgContractChanged(String(organizationId), 'registry', { packId: String(packId), enabled: true });
+  return { packId: String(packId), enabled: true, enabledPacks: toEnable };
+}
+
+export async function disablePack({ organizationId, packId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const target = packById(packId);
+  if (!target) throw createError({ statusCode: 404, message: 'Unknown pack' });
+  const disabled = new Set(await repository.listDisabledPacks(organizationId));
+  if (disabled.has(packId)) {
+    throw createError({ statusCode: 409, message: 'Pack is already disabled' });
+  }
+  // An enabled dependent keeps the requirement alive.
+  for (const pack of orderedMountedPacks()) {
+    if (disabled.has(pack.id)) continue;
+    if ((pack.requires || []).includes(target.id)) {
+      throw createError({
+        statusCode: 409,
+        message: `Pack ${target.id} is required by enabled pack ${pack.id} — disable it first`
+      });
+    }
+  }
+  // Drain: live instances or process bindings on any pack type refuse.
+  const blocked = [];
+  for (const type of target.types || []) {
+    const [instances, boundBy] = await Promise.all([
+      countInstancesOfType(type.id, organizationId),
+      findTypeReferences(organizationId, type.id)
+    ]);
+    if (instances > 0 || boundBy.length) {
+      blocked.push({ typeId: type.id, instances, boundBy: boundBy.map(binding => binding.name || binding.id) });
+    }
+  }
+  if (blocked.length) {
+    throw createError({
+      statusCode: 409,
+      message: 'Pack types still have live data — delete or migrate it first',
+      data: { blocked }
+    });
+  }
+  // Trial compose without the pack: org-authored declarations referencing
+  // pack types would wedge the view — refuse before writing anything.
+  const trial = await compileRegistryForOrganization(organizationId, {
+    disabledPackIds: new Set([...disabled, target.id])
+  });
+  const compiled = trial.compile(organizationId);
+  if (!compiled.ok) {
+    throw createError({
+      statusCode: 409,
+      message: `Disabling pack ${target.id} breaks the organization view: ${compiled.errors.join('; ')}`
+    });
+  }
+  await repository.disablePack(organizationId, target.id, auth.userId);
+  invalidateInstanceDeclarations(String(organizationId));
+  publishOrgContractChanged(String(organizationId), 'registry', { packId: String(packId), enabled: false });
+  return { packId: String(packId), enabled: false };
 }
 
 export async function regenerateConnectorToken({ organizationId, pluginId, auth = {} }) {

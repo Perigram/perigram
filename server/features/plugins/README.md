@@ -61,6 +61,19 @@ executors through the worker protocol.
   holds it; the no-shadowing rule), each type must define cleanly, and
   the compile must introduce no new errors. A refused install writes
   nothing.
+- **Mounted-pack enablement**: the installed list includes the mounted
+  domain packs (the facade and its dependencies) — enabled by default,
+  zero migration. `GET .../plugins/state` serves the combined pack +
+  install state; `POST .../plugins/packs/:packId` re-enables a pack
+  (cascading over its requirements), `DELETE` disables one under the
+  same drain law as a plugin uninstall: live instances or process
+  bindings on any pack type refuse, an enabled dependent pack refuses,
+  and a trial compose of the org view without the pack refuses when
+  org-authored declarations still reference its types. Disablement
+  records live in `pack_disablements`; absence is enabled. This is the
+  management plane the facade extraction lands in — the org-facing
+  contract stays install/remove while the pack's code moves out from
+  underneath.
 - **Upgrades**: pins move only through an explicit diff-plus-migration
   apply (`GET`/`POST /api/organizations/:id/plugins/:pluginId/upgrade`).
   The preview runs the SPEC §11 planner over every changed type
@@ -91,6 +104,9 @@ executors through the worker protocol.
 | `DELETE /api/organizations/:id/plugins/:pluginId` | `organizations:admin` | Uninstall (drain-gated). |
 | `GET /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Upgrade preview: additions, removals, §11 change plans, blockers. |
 | `POST /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Apply the upgrade (gated by the preview's blockers). |
+| `GET /api/organizations/:id/plugins/state` | member (`organizations:read`) | Combined state: mounted packs (enabled/disabled) + marketplace installs. |
+| `POST /api/organizations/:id/plugins/packs/:packId` | `organizations:admin` | Enable a mounted pack (cascades over requirements). |
+| `DELETE /api/organizations/:id/plugins/packs/:packId` | `organizations:admin` | Disable a mounted pack (drain-gated, dependents-gated, trial-compose-gated). |
 | `GET /api/organizations/:id/plugins/:pluginId/connector` | `organizations:admin` | Connector panel data: token, claim queue, worker endpoints. |
 | `POST /api/organizations/:id/plugins/:pluginId/connector/regenerate` | `organizations:admin` | Rotate the connector token. |
 | `GET /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Connection settings: per-service modes and endpoints, API key. |

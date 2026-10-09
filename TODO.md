@@ -18,11 +18,33 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
 - [ ] Move `packages/facade` + `server/packs/facade` into their own
   versioned unit mounted by the platform; editor surfaces ride the surface
   registry.
-- [ ] Per-org enable/install of the facade pack through the Plugins section.
+- [x] Per-org enable/install of the facade pack through the Plugins section
+  (2026-10-09: mounted packs enabled by default, drain-gated disable with
+  dependent/trial-compose gates, cascade enable, combined state endpoint;
+  `pack_disablements` records — absence is enabled).
 - [x] Hosting model + connection settings: services declare
   endpoint/claim mode; plugin settings carry per-service API endpoints and
   the executor API key; agent authoring guide
   ([docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md)).
+
+### Agent Notes (2026-10-09, pack enablement)
+
+Session `agent/pack-enablement-20261009`. The facade and its dependency packs
+are now per-org managed from the Plugins section — installed list includes
+enabled packs (removable), disabled packs appear in Available
+(re-installable, enable cascades over requirements). Disablement records
+(`pack_disablements`, absence = enabled) filter every org-scoped
+composition seam: the registry view (compileRegistryForOrganization's
+`disabledPackIds`), served editors/attachment kinds, the projected-domain
+service list and pack domain slices, and the instance machinery's static
+declaration fallback + lineage keys. Disable is triple-gated: live
+instances/process bindings (drain law), enabled dependent packs, and a
+trial compose without the pack (org-authored declarations referencing pack
+types refuse before anything writes). No-org system contexts (the sync
+system view, check-arch) keep every mounted pack. This is the extraction's
+stable management plane. Pre-existing base failure observed, not from this
+work: `components/generated/WorklistPage.vue` fails the design-system
+guard on the base commit (overnight worklist session's leftover).
 
 ### Agent Notes (2026-10-09, owner-directed removals)
 

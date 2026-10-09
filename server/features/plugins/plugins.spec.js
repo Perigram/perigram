@@ -38,7 +38,10 @@ vi.mock('./repository.js', () => ({
   updateInstallSnapshot: vi.fn(),
   updateSettings: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
-  findDeclarationByTypeId: vi.fn(async () => null)
+  findDeclarationByTypeId: vi.fn(async () => null),
+  listDisabledPacks: vi.fn(async () => []),
+  enablePack: vi.fn(),
+  disablePack: vi.fn()
 }));
 
 import * as repository from './repository.js';
@@ -47,7 +50,7 @@ import {
   install, uninstall, listInstalled, servicesForOrganization,
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade,
-  settingsFor, updateSettings
+  settingsFor, updateSettings, listPackState, enablePack, disablePack
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -456,5 +459,71 @@ describe('endpoint-mode services', () => {
       endpoints: { match: 'https://cloud.example/match' },
       auth: AUTH
     })).rejects.toMatchObject({ statusCode: 400 });
+  });
+});
+
+describe('mounted-pack enablement', () => {
+  beforeEach(() => {
+    repository.listInstallsByOrganization.mockResolvedValue([]);
+  });
+
+  it('lists every mounted pack as enabled by default', async () => {
+    repository.listDisabledPacks.mockResolvedValue([]);
+    const state = await listPackState({ organizationId: ORG, auth: AUTH });
+    const byId = new Map(state.map(item => [item.pluginId, item]));
+    expect(byId.get('facade')).toMatchObject({ pack: true, enabled: true, name: 'Facade fabrication' });
+    expect(byId.get('documents')).toMatchObject({ pack: true, enabled: true });
+    expect(byId.get('tech-drawing')).toMatchObject({ pack: true, enabled: true });
+  });
+
+  it('enabling a pack cascades over its disabled requirements', async () => {
+    repository.listDisabledPacks.mockResolvedValue(['facade', 'documents', 'tech-drawing']);
+    const result = await enablePack({ organizationId: ORG, packId: 'facade', auth: AUTH });
+    expect(result).toMatchObject({ packId: 'facade', enabled: true });
+    const enabledIds = repository.enablePack.mock.calls.map(call => call[1]).sort();
+    expect(enabledIds).toEqual(['documents', 'facade', 'tech-drawing']);
+  });
+
+  it('refuses disabling a pack an enabled pack requires', async () => {
+    repository.listDisabledPacks.mockResolvedValue([]);
+    await expect(disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 409 });
+    expect(repository.disablePack).not.toHaveBeenCalled();
+  });
+
+  it('refuses disabling a pack whose types have live instances', async () => {
+    countInstancesOfType.mockResolvedValue(12);
+    await expect(disablePack({ organizationId: ORG, packId: 'facade', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 409 });
+    expect(repository.disablePack).not.toHaveBeenCalled();
+    countInstancesOfType.mockResolvedValue(0);
+  });
+
+  it('refuses disabling a pack the org view still depends on', async () => {
+    typeStore.listByOrganization.mockResolvedValue([
+      {
+        id: 'facade-job', class: 'group', scope: 'org', organizationId: ORG, version: 1,
+        fields: {},
+        edges: { children: { parts: { types: ['cassette'] } } }
+      }
+    ]);
+    await expect(disablePack({ organizationId: ORG, packId: 'facade', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 409 });
+    expect(repository.disablePack).not.toHaveBeenCalled();
+    typeStore.listByOrganization.mockResolvedValue([]);
+  });
+
+  it('disables a drained pack and invalidates the org view', async () => {
+    const result = await disablePack({ organizationId: ORG, packId: 'facade', auth: AUTH });
+    expect(result).toEqual({ packId: 'facade', enabled: false });
+    expect(repository.disablePack).toHaveBeenCalledWith(ORG, 'facade', 'user-1');
+    expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
+  });
+
+  it('hidden packs leave the composed service list', async () => {
+    repository.listDisabledPacks.mockResolvedValue(['facade']);
+    const services = await packServicesForOrganization(ORG);
+    expect(services.some(service => service.id === 'nesting.solve')).toBe(false);
+    repository.listDisabledPacks.mockResolvedValue([]);
   });
 });
