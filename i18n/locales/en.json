@@ -3417,10 +3417,5 @@
     "apiKey": "API key",
     "apiKeyPlaceholder": "Bearer key for the publisher's executor",
     "savedToast": "Connection saved"
-  },
-  "worklist": {
-    "title": "Needs you",
-    "empty": "Nothing is waiting",
-    "overdue": "Overdue"
   }
 }
