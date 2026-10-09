@@ -79,6 +79,32 @@ contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
 - [ ] 6 — Cancellation + join invalidation semantics
   (`orchestration.js` arrival sets are add-only today).
 
+### Agent Notes (2026-10-09, item 2 — state deadlines)
+
+Session `agent/state-deadlines-20261009`. Item 2 implemented: state
+records carry `deadline: { after, to, guard? }` (ISO-8601 duration,
+same-vocabulary target, guard under the item-1 contract). Compile marks
+the machine state and adds (or annotates) the `from -> to` edge as
+`deadline: true` with system-only access. `assertTransitionAccess` now
+enforces what the access shape always implied: `access.system` with no
+role/permission grants is system-actor-only (deadline edges are not
+user actions — availability hides them, direct transition calls get
+403). The scanner (`deadline-scanner.js` + nitro plugin, interval
+`DEADLINE_SCAN_INTERVAL_MS`, default 60s, 0 disables) reads ACTIVE
+definitions' compiled snapshots and moves overdue instances through the
+normal transition boundary as SYSTEM with `source: { kind: 'deadline',
+state }` — guards/stamps/hooks unchanged; rescans self-stabilize. The
+entered-state clock is the new §3 `stateChangedAt` slot (stamped by
+instance-boundary creation and every flat status write; legacy docs use
+`status.timestamp`); `backfill-state-changed-at.js` migrates existing
+docs from their latest status event. Side quest: the two divergent
+ISO-duration parsers (evaluator/orchestration) collapsed into one
+`durationMs` export in `@perigram/cts` values.js (orchestration's local
+copy was dead code). Also fixed the instances README's stale §3 stored-
+shape description (axes wording predating the flat state cut).
+Validated: cts+processes suites (615), machines spec (18), scanner spec
+(3, incl. guard-refusal), states suite, check-arch, SSR smoke.
+
 ### Agent Notes (2026-10-07, item 1 — transition guards)
 
 Session `agent/process-guards-20261007`. Item 1 implemented end to end:

@@ -127,3 +127,8 @@ preserves it verbatim; the workflow validator does not evaluate it. The
 status runtime adapter owns evaluation: at commit against the loaded
 instance (refusing on false), and on the action-availability listing
 (hiding guard-failing edges).
+
+Transitions may also carry `deadline: true` (with `access.system`) — the
+compiled escalation edge of a declared state deadline (CTS SPEC §7).
+The marker is provenance for tooling; authorization and execution are
+owned by the access layer and the deadline scanner.

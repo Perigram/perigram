@@ -353,6 +353,15 @@ and hides guard-failing edges from action availability (see
 [server/core/machines/README.md](../../server/core/machines/README.md));
 the transition inspector edits it as a flat all-of/any-of condition
 list, a projection of the same AST.
+
+A state record may declare a `deadline` (SPEC §7): `{ after, to,
+guard? }` compiles the deadline onto the machine state and adds (or
+annotates) the `from -> to` escalation edge as `deadline: true` with
+system-only access — availability never offers it, and the deadline
+scanner moves overdue instances through the normal transition boundary
+as SYSTEM. The deadline's `after` is an ISO-8601 duration; the check
+seam refuses unparseable durations, undeclared or self targets, and
+non-boolean guards.
 The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry

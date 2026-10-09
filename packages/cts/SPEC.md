@@ -116,6 +116,8 @@ entity := {
                                    -- causal edges; `effective` records params
                                    -- AND input versions (§8 purity)
   states:         string | none    -- the instance's flat state (§7)
+  stateChangedAt: Instant         -- when the current state was entered;
+                                    -- the deadline clock (§7)
   payload:        Blob | none       -- iff T declares payload
   history:        [revision]        -- iff T declares a revision scope
 }
@@ -337,13 +339,23 @@ StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severi
   declaration-check seam like every other field reference. Guards are
   boolean only — comparisons, boolean algebra, field paths, literals;
   the comprehension forms of §18 are not guard vocabulary.
-- A state may declare a deadline (specified, not built): `deadline:
-  { after: <duration>, to: <state>, guard? }` — the framework compiles
-  declared deadlines into scheduled scan operators that move overdue
-  instances along the declared edge. This stays reaction, not
-  observation (§8): the scan is a trigger, never a standing query.
-  Until built, escalation is authored by hand as a scheduled process.
-  Tracked in the root TODO.
+- A state record may declare a deadline: `deadline: { after, to, guard? }`
+  — `after` is an ISO-8601 duration, `to` a declared state of the same
+  type's vocabulary (never the state itself), `guard` a boolean
+  expression AST over `{ value }` under the guard contract above.
+  Compilation marks the machine state with the deadline and adds (or
+  annotates) the edge `from -> to` as `deadline: true` with system-only
+  execution: deadline edges are not user actions — the availability
+  listing never offers them and the transition boundary refuses
+  non-system callers. The deadline scanner (the status runtime's
+  scheduled sweep) periodically resolves every organization's active
+  machines, finds instances whose current state carries a deadline older
+  than `after` — the entered-state clock is the §3 `stateChangedAt` slot
+  (the legacy block's `status.timestamp`) — and moves each through the
+  normal transition boundary as SYSTEM with `source: { kind:
+  'deadline' }`: stamps, guards, lifecycle validation, and hooks are
+  unchanged. This stays reaction, not observation (§8): the scan is a
+  trigger, never a standing query.
 - An instance persists one flat state string under `state`; the v24
   status block mirrors it. There are no regions and no per-axis active
   paths.

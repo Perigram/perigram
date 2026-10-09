@@ -12,7 +12,9 @@ module layout and how the code maps to the spec's build-order tiers.
 
 - `units.js` — closed unit set, declared conversions, unification (R3).
 - `values.js` — the value universe V: descriptor normalization, instance
-  checking, ref-free detection for services (R5). Owns the authorable
+  checking, ref-free detection for services (R5), and `durationMs`, the
+  one ISO-8601 duration parser (deadline facets, duration arithmetic,
+  scans). Owns the authorable
   field-base list (`FIELD_BASES` — V minus `id`; single home for every
   field editor).
 - `rows.js` — closed field rows; compiles to JSON Schema 2020-12 with
@@ -150,7 +152,10 @@ module layout and how the code maps to the spec's build-order tiers.
   `typeId`, legacy species `type`): process-vocabulary descriptor strings
   and canvas card kinds are never misread as type references. Transition
   guards are checked here (SPEC §7): boolean expression ASTs only, field
-  paths rooted at `value` and row-checked.
+  paths rooted at `value` and row-checked. State deadlines are checked
+  here too: `after` parses as an ISO-8601 duration, `to` names another
+  declared state of the type's vocabulary, and the deadline guard follows
+  the guard contract.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator. See SPEC §15/§19 for what it owns per key.
 - `compat/graph-protocol.js` — the native species graph protocol (SPEC §20):
