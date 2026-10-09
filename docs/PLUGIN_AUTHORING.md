@@ -40,7 +40,7 @@ One JSON file — the whole plugin contract:
       {
         "id": "coating",
         "class": "item",
-        "label": "Coating",
+        "name": "Coating",
         "fields": { "code": { "base": "string" } }
       }
     ],
@@ -64,7 +64,10 @@ Rules the publisher script and the install gate enforce:
 - `pluginId` and every `services[].id` are slugs (`[a-z0-9-]+`).
 - Every type needs `id` and `class` (`file`/`item`/`group`); type ids must
   not collide with system pack types, other plugins, or the org's own
-  declarations — install refuses loudly.
+  declarations — install refuses loudly. `name` is the display name users
+  see (the SPEC §13 display vocabulary); without it the raw id never
+  renders — the UI falls back to a localized type-name table shared with
+  the platform's own types.
 - Type declarations use the CTS grammar (see
   [packages/cts](../packages/cts/README.md)); states, edges, and fields
   follow the same shapes the process designer authors.
