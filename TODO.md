@@ -136,74 +136,40 @@ contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
 
 ### Agent Notes (2026-10-09, item 3 — money)
 
-Session `agent/bp-maturity-20261009`. Items 1–3 landed (items 1–2 in the
-notes below). Two items originally listed here — a per-user worklist page
-and a run-trace/cancellation admin surface — were reverted the same day
-on owner direction: product surface, not type-system work, and built on
-an invented product model. The owner's model, recorded in
-[SPEC.md](./SPEC.md) "Process authoring maturity": the organization
-runtime executes definitions as business logic; a definition is active
-or not in org settings, and execution itself is not a product concept.
-Also fixed while there (kept): `DurableRunRepository.transaction()`
-called `db.startSession()` — nonexistent on a Db handle in driver 6.x;
-sessions now start on the client.
-
-**3 — Money**: minor-unit-integer enforcement landed — the row
-validator refuses fractional currency quantities and expression
-arithmetic refuses results that would lose minor units (fractional
-division) instead of rounding (CTS SPEC §2). No existing pack/org data
-uses currency, so the tightening is free.
+Session `agent/bp-maturity-20261009`. The row validator refuses
+fractional currency quantities and expression arithmetic refuses results
+that would lose minor units (fractional division) instead of rounding
+(CTS SPEC §2); no existing pack/org data uses currency. Same session:
+`DurableRunRepository.transaction()` now starts sessions on the client
+(`db.startSession()` does not exist on a Db handle in driver 6.x).
 
 ### Agent Notes (2026-10-09, item 2 — state deadlines)
 
-Session `agent/state-deadlines-20261009`. Item 2 implemented: state
-records carry `deadline: { after, to, guard? }` (ISO-8601 duration,
-same-vocabulary target, guard under the item-1 contract). Compile marks
-the machine state and adds (or annotates) the `from -> to` edge as
-`deadline: true` with system-only access. `assertTransitionAccess` now
-enforces what the access shape always implied: `access.system` with no
-role/permission grants is system-actor-only (deadline edges are not
-user actions — availability hides them, direct transition calls get
-403). The scanner (`deadline-scanner.js` + nitro plugin, interval
-`DEADLINE_SCAN_INTERVAL_MS`, default 60s, 0 disables) reads ACTIVE
-definitions' compiled snapshots and moves overdue instances through the
-normal transition boundary as SYSTEM with `source: { kind: 'deadline',
-state }` — guards/stamps/hooks unchanged; rescans self-stabilize. The
-entered-state clock is the new §3 `stateChangedAt` slot (stamped by
-instance-boundary creation and every flat status write; legacy docs use
-`status.timestamp`); `backfill-state-changed-at.js` migrates existing
-docs from their latest status event. Side quest: the two divergent
-ISO-duration parsers (evaluator/orchestration) collapsed into one
-`durationMs` export in `@perigram/cts` values.js (orchestration's local
-copy was dead code). Also fixed the instances README's stale §3 stored-
-shape description (axes wording predating the flat state cut).
-Validated: cts+processes suites (615), machines spec (18), scanner spec
-(3, incl. guard-refusal), states suite, check-arch, SSR smoke.
+Session `agent/state-deadlines-20261009`. State records carry
+`deadline: { after, to, guard? }` (CTS SPEC §7): compile marks the
+machine state and adds the `from -> to` edge as `deadline: true` with
+system-only access (`access.system` alone denies non-system callers).
+The scanner (`deadline-scanner.js` + nitro plugin, interval
+`DEADLINE_SCAN_INTERVAL_MS`, default 60s, 0 disables) moves overdue
+instances through the transition boundary as SYSTEM with
+`source: { kind: 'deadline', state }`. The entered-state clock is the
+§3 `stateChangedAt` slot (legacy docs use `status.timestamp`);
+`backfill-state-changed-at.js` migrates existing docs. The two
+ISO-duration parsers collapsed into one `durationMs` export in
+`@perigram/cts`.
 
 ### Agent Notes (2026-10-07, item 1 — transition guards)
 
-Session `agent/process-guards-20261007`. Item 1 implemented end to end:
-`cts.transition` records carry an optional `guard` (boolean expression
-AST over `{ value }`, row-relative paths — SPEC §7). Compile: the guard
-rides the derived action onto the machine edge (`compileWorkflows`,
-first declaration of an edge wins). Checks: the declaration seam
-(`compat/process-checks.js`) restricts guard vocabulary to the boolean
-expression subset and row-checks paths under the `value` root. Runtime:
-the status engine re-evaluates guards atomically at commit (409 on
-refusal) and hides guard-failing edges from `GET /api/state/actions`
-availability (both machine-authority and appended process actions; §3
-flat-row and legacy block docs both scope correctly). Inspector: a flat
-all-of/any-of condition editor on transition nodes — a projection of
-the same AST, no parallel shape. Guard evaluation errors hide the
-action on listing but surface loudly at execution; intent availability
-(`assertIntentAvailable`) deliberately does not guard-filter (named
-callers receive the commit-time refusal). Also corrected a docs
-contradiction found during diagnosis: `packages/cts/README.md`
-described a states.js (guarded transitions, intents, terminal
-reachability) that no longer exists — machines are graph-derived and
-the vocabulary module is thin; the README and SPEC §7 now say so.
-Validated: cts + processes suites (592 tests), machines service spec
-(17, incl. two new guard tests), check-arch, check-docs, SSR smoke.
+Session `agent/process-guards-20261007`. `cts.transition` records carry
+an optional `guard` (boolean expression AST over `{ value }`,
+row-relative paths — SPEC §7). The guard rides the derived action onto
+the machine edge (first declaration of an edge wins); the declaration
+seam (`compat/process-checks.js`) restricts vocabulary to the boolean
+subset and row-checks paths; the status engine re-evaluates at commit
+(409 on refusal) and hides guard-failing edges from action
+availability. The inspector edits guards as a flat all-of/any-of
+condition list. Intent availability does not guard-filter: named
+callers get the commit-time refusal.
 
 ## Plugin marketplace (2026-10-08)
 
