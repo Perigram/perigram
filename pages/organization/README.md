@@ -35,8 +35,10 @@ The route is exposed as a system screen gated by `organizations:read`, while
 every mutation stays gated by `organizations:admin` on the respective side.
 
 `plugins.vue` is the plugin marketplace route (see
-[plugins](../../server/features/plugins/README.md)): the installed list and
-the central catalog. Installing opens
+[plugins](../../server/features/plugins/README.md)): the installed list
+(marketplace installs plus enabled mounted packs — the facade and its
+dependencies, removable) and the central catalog (plus disabled packs,
+re-installable). Installing opens
 the consent dialog naming the plugin's types and services before the admin
 confirms; the catalog rows of installed plugins carry
 the installed tag instead of the install action. An available catalog

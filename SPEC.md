@@ -269,5 +269,7 @@ A third-party plugin is declarations plus connectors — never in-process code:
 - v1 carries no monetization; money is wired when there is something to sell.
 
 The user-facing word is "Plugins". Mounted domain packs (the facade pack and
-its dependencies) are not marketplace plugins — they are built into the
-platform until the extraction moves them out.
+its dependencies) are managed per organization from the Plugins section:
+enabled by default, removable under the same drain law as plugin uninstall,
+re-installable — the management plane the extraction lands in while the pack's
+code moves out from underneath.
