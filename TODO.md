@@ -131,41 +131,33 @@ contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
   the declaration seam. (Part of the cts TODO's remaining L2 slice.)
 - [ ] 2 — State deadlines: declared deadline facet compiled to scheduled
   escalation scans (CTS SPEC §7, specified not built).
-- [ ] 3 — Worklist derivation from status windows + assignments.
-- [ ] 4 — Pin money semantics: minor-unit-integer currency quantities
+- [ ] 3 — Pin money semantics: minor-unit-integer currency quantities
   (CTS SPEC §2, specified not built).
-- [ ] 5 — Run/instance trace surface (persisted run state + status
+- [ ] 4 — Run/instance trace surface (persisted run state + status
   events already exist; the surface is a projection).
-- [ ] 6 — Cancellation + join invalidation semantics
+- [ ] 5 — Cancellation + join invalidation semantics
   (`orchestration.js` arrival sets are add-only today).
 
-### Agent Notes (2026-10-09, items 3–6)
+### Agent Notes (2026-10-09, items 3–5)
 
-Session `agent/bp-maturity-20261009`. First implementations of items
-3–6 landed (items 1–2 in the notes above); claim/release authoring
-under item 3 remains the open next slice.
+Session `agent/bp-maturity-20261009`. Implementations of items 3–5
+landed (items 1–2 in the notes below). The worklist item originally
+listed here (a per-user inbox page) was reverted the same day: it was
+product surface, not type-system work, and never owner-sanctioned.
 
-**3 — Worklist**: `GET /api/state/worklist` (`buildWorklist`,
-`server/core/machines/worklist.js`) — the caller's inbox derived from
-manifest action windows (status-mutating actions with an arrival state)
-across both stored shapes, annotated with deadline urgency from the
-active machines; a projection — per-instance availability stays with
-the instance surface. UI: `WorklistPage.vue` registered as workspace
-page `worklist` (overdue first; rows open the instance).
-
-**4 — Money**: minor-unit-integer enforcement landed — the row
+**3 — Money**: minor-unit-integer enforcement landed — the row
 validator refuses fractional currency quantities and expression
 arithmetic refuses results that would lose minor units (fractional
 division) instead of rounding (CTS SPEC §2). No existing pack/org data
 uses currency, so the tightening is free.
 
-**5 — Run trace**: `GET /api/admin/process-runs` summarizes the
+**4 — Run trace**: `GET /api/admin/process-runs` summarizes the
 organization's durable runs (status, definition, age, error, waiting
 detail: pending step/invocation or join arrival counts);
 `getExecution(runId)` remains the drill-down. Per-instance history was
 already served (`GET /api/state/history`).
 
-**6 — Cancellation**: `cancelRun` on the durable run repository +
+**5 — Cancellation**: `cancelRun` on the durable run repository +
 `POST /api/admin/process-runs/:runId/cancel`. Only parked ('waiting')
 runs cancel; outstanding invocations claim cancellation receipts
 revision-guarded (a racing worker receipt either lands before the

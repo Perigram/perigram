@@ -67,9 +67,7 @@ Routes are grouped into sub-directories corresponding to features:
 - `state/`: Authenticated status action, transition, and history endpoints
   backed by the workflow runtime (`server/core/machines`). Successful
   transitions publish entity invalidation events through the shared entity
-  event bus so other devices can refresh affected surfaces. `GET /state/worklist`
-  returns the caller's inbox — instances in states whose exits the caller
-  controls (manifest action windows), annotated with deadline urgency.
+  event bus so other devices can refresh affected surfaces.
 - `organizations/:id/invitations`: Authenticated team-management invitation
   listing, creation, and revocation. Handlers delegate authorization to the
   invitations feature so all invitation operations use the same process-derived

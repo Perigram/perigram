@@ -144,10 +144,7 @@ Use the registry instead of adding entity checks directly inside
 The current default overloads are:
 
 - `home` screens render `GeneratedHomeWorkspace.vue`, the Discord-style
-  operational shell described below. `WorklistPage.vue` is the caller's
-  inbox (workspace page `worklist` in `workspace-pages.js`): rows from
-  `GET /api/state/worklist`, overdue first, opening the instance surface
-  where transition prompts and evidence collect.
+  operational shell described below.
 - `artifact` detail bodies render `ArtifactDetail.vue` (framework file
   service; static until the artifact type is declared in a pack).
 
