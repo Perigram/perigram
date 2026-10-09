@@ -20,7 +20,7 @@ import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
-import { composePackServices, orderedMountedPacks } from '~/server/packs/declarations.js';
+import { composePackServices } from '~/server/packs/declarations.js';
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's
 // claim queue is plugin.<pluginId>@<organizationId>.
@@ -29,25 +29,6 @@ const PLUGIN_COMMAND_PATTERN = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 export async function listCatalog() {
   const listings = await repository.listCatalog();
   return listings.map(serializeListing);
-}
-
-// Mounted domain packs shown as built-ins in the Plugins section: they
-// ship with the platform (build-time mounts, SPEC §21), so they are
-// read-only context beside the installable catalog. Type summaries carry
-// the authored display name (SPEC §13 display vocabulary: `name`, the
-// field renderPolicyFor reads) — ids never render.
-export function listSystemPacks() {
-  return orderedMountedPacks().map(pack => ({
-    id: pack.id,
-    name: pack.label || pack.id,
-    types: (pack.types || []).map(type => ({
-      id: type.id,
-      name: type.name || null,
-      class: type.class || null
-    })),
-    services: (pack.services || []).map(service =>
-      ({ id: service.id, label: service.render?.label || service.label || service.id }))
-  }));
 }
 
 export async function listInstalled({ organizationId, auth = {} }) {

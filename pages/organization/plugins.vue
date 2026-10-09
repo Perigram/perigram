@@ -75,24 +75,6 @@
       </div>
       <div v-else-if="!loading" class="text-muted text-body">{{ $t('plugins.noneInstalled') }}</div>
 
-      <div v-if="systemPacks.length" class="flex flex-col gap-4">
-        <ActionToolbar :title="$t('plugins.builtIn')" />
-        <TableFrame class="ck-collection-rows">
-          <DataTable :value="systemPacks" :pt="tablePt" :row-class="rowSurfaceClass" data-testid="plugins-system-table">
-            <Column field="name" :header="$t('plugins.title')">
-              <template #body="{ data }">
-                <div class="flex min-w-0 flex-col">
-                  <span class="truncate text-body">{{ data.name }}</span>
-                  <small v-if="data.types.length || data.services.length" class="text-muted">
-                    {{ [...data.types.map(type => typeDisplayName(type)), ...data.services.map(service => service.label)].join(', ') }}
-                  </small>
-                </div>
-              </template>
-            </Column>
-          </DataTable>
-        </TableFrame>
-      </div>
-
       <Panel :header="$t('plugins.available')">
         <div v-if="!catalog.length && !loading" class="text-muted text-body">{{ $t('plugins.noneAvailable') }}</div>
         <TableFrame v-else class="ck-collection-rows">
@@ -327,7 +309,6 @@ const authStore = useAuthStore();
 
 const catalog = ref([]);
 const installed = ref([]);
-const systemPacks = ref([]);
 const loading = ref(true);
 const installDialogVisible = ref(false);
 const pendingInstall = ref(null);
@@ -356,14 +337,12 @@ async function load() {
     return;
   }
   try {
-    const [catalogResponse, installedResponse, packsResponse] = await Promise.all([
+    const [catalogResponse, installedResponse] = await Promise.all([
       $fetch('/api/plugins/catalog'),
-      $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`),
-      $fetch('/api/plugins/packs')
+      $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`)
     ]);
     catalog.value = catalogResponse || [];
     installed.value = installedResponse || [];
-    systemPacks.value = packsResponse || [];
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
   } finally {

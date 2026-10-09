@@ -255,16 +255,6 @@ describe('connector services', () => {
     );
   });
 
-  it('lists mounted packs as read-only built-ins', async () => {
-    const { listSystemPacks } = await import('./service.js');
-    const packs = listSystemPacks();
-    const byId = new Map(packs.map(pack => [pack.id, pack]));
-    expect(byId.get('facade')).toMatchObject({ id: 'facade', name: 'Facade fabrication' });
-    expect(byId.get('facade').types.some(type => type.id === 'cassette')).toBe(true);
-    expect(byId.get('documents')).toMatchObject({ name: 'Documents' });
-    expect(byId.get('tech-drawing')).toMatchObject({ name: 'Technical drawing' });
-  });
-
   it('regenerates the connector token', async () => {
     const result = await regenerateConnectorToken({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(result.token).toMatch(/^[A-Za-z0-9_-]{32}$/);

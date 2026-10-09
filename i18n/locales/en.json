@@ -3385,7 +3385,6 @@
     "hint": "Install and manage organization plugins",
     "available": "Available",
     "installed": "Installed",
-    "builtIn": "Built-in",
     "installedBadge": "Installed",
     "installedOn": "Installed on",
     "noneInstalled": "No plugins installed",
