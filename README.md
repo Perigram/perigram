@@ -184,6 +184,13 @@ added the first server-side xlsx import). A `nitro.alias` rewrite is NOT
 the fix: rollup's alias matches prefixes, so an aliased
 `xlsx → xlsx/xlsx.mjs` re-matches itself and resolves
 `xlsx/xlsx.mjs/xlsx.mjs` (ENOENT).
+- Server-side imports of workspace packages use the `#packages/…` alias,
+  never `~/packages/…`: chunk-relative `~` externals can hoist into the
+  root dev entry with the wrong depth and crash startup
+  (`Cannot find module '/packages/…'`, first hit 2026-10-09 after the
+  plugins routes shifted nitro chunking; `#packages` externalizes
+  absolutely — the pack-declarations fix `1705c1d8` established the
+  pattern).
 
 ## Progressive Web App
 
