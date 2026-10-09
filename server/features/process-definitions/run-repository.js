@@ -112,7 +112,10 @@ export class DurableRunRepository {
   }
 
   async transaction(work) {
-    const session = await this.connection.startSession();
+    // Sessions live on the client in driver 6.x; the connection may be a
+    // Db handle or the client itself.
+    const client = this.connection.client || this.connection;
+    const session = await client.startSession();
     try {
       let value;
       await session.withTransaction(async () => { value = await work(session); });
@@ -421,6 +424,78 @@ export class DurableRunRepository {
       this.collection('receipts').find({ runId: id }).toArray()
     ]);
     return clone({ run, invocations, waits, outputs, steps, receipts });
+  }
+
+  async findRunsForOrganization(organizationId, { limit = 100 } = {}) {
+    await this.initialize();
+    return clone(await this.collection('runs')
+      .find({ 'controlScope.organizationId': String(organizationId) })
+      .sort({ updatedAt: -1 })
+      .limit(Number(limit) || 100)
+      .toArray());
+  }
+
+  // Cancellation (SPEC "Process authoring maturity"): a parked run (status
+  // 'waiting') is cancelled atomically — outstanding invocations claim a
+  // cancellation receipt (a racing worker receipt either landed before the
+  // status guard refused the cancel, or finds the invocation receipted),
+  // waiting steps are skipped, and the run state becomes 'cancelled', the
+  // status the advancement loop never picks up again.
+  async cancelRun(runId, { actor = null, reason = '' } = {}) {
+    const id = String(runId || '');
+    if (!id) throw new Error('Cancellation requires runId');
+    const cancelledAt = now(this.clock);
+    return this.transaction(async session => {
+      const options = { session };
+      const run = await this.collection('runs').findOne({ _id: id }, options);
+      if (!run) throw new Error(`Run ${id} not found`);
+      if (run.state?.status !== 'waiting') {
+        const error = new Error(`Run ${id} is ${run.state?.status || 'unknown'}; only waiting runs can be cancelled`);
+        error.statusCode = 409;
+        throw error;
+      }
+      for (const invocation of await this.collection('invocations')
+        .find({ runId: id, receiptId: null, status: { $in: ['ready', 'dispatched', 'retrying'] } }, options)
+        .toArray()) {
+        const claimed = resultValue(await this.collection('invocations').findOneAndUpdate(
+          { _id: invocation._id, revision: invocation.revision, receiptId: null },
+          {
+            $set: { receiptId: this.id(), status: 'cancelled', completedAt: cancelledAt, updatedAt: cancelledAt },
+            $inc: { revision: 1 }
+          },
+          { ...options, returnDocument: 'after' }
+        ));
+        if (!claimed) continue;
+        await this.collection('steps').updateOne(
+          { _id: `${claimed.runId}:${claimed.stepId}:${claimed.invocationId}` },
+          { $set: { status: 'cancelled', updatedAt: cancelledAt }, $inc: { revision: 1 } },
+          options
+        );
+        await this.collection('waits').updateMany(
+          { invocationId: claimed.invocationId },
+          { $set: { status: 'cancelled', updatedAt: cancelledAt } },
+          options
+        );
+      }
+      const state = clone(run.state);
+      state.status = 'cancelled';
+      state.cancelled = { at: cancelledAt, by: actor?.userId || null, ...(reason ? { reason } : {}) };
+      for (const step of Object.values(state.steps || {})) {
+        if (['waiting', 'pending', 'running'].includes(step.status)) step.status = 'skipped';
+      }
+      delete state.pendingEffect;
+      const updated = resultValue(await this.collection('runs').findOneAndUpdate(
+        { _id: id, revision: run.revision },
+        { $set: { state, updatedAt: cancelledAt }, $inc: { revision: 1 } },
+        { ...options, returnDocument: 'after' }
+      ));
+      if (!updated) {
+        const error = new Error(`Run ${id} revision conflict`);
+        error.statusCode = 409;
+        throw error;
+      }
+      return clone(updated);
+    });
   }
 }
 

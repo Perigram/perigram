@@ -43,7 +43,12 @@ Routes are grouped into sub-directories corresponding to features:
   persistence, scheduling, and effects to the process-definitions feature
   service. `POST /preview` evaluates pure/read nodes from an unsaved
   definition, bounds returned tree samples, and suppresses effects and
-  control flow.
+  control flow. `GET /admin/process-runs` lists the caller organization's
+  durable runs (status, waiting detail — pending step or join arrivals,
+  definition, age), and `POST /admin/process-runs/:runId/cancel` cancels a
+  parked ('waiting') run — outstanding invocations claim cancellation
+  receipts and the run state becomes 'cancelled', which the advancement
+  loop never resumes.
 - `organizations/:id/billing`: Authenticated organization billing account,
   package catalog, Stripe checkout creation, and payment sync routes. Token
   packages come from runtime config, not from user records or database price
@@ -62,7 +67,9 @@ Routes are grouped into sub-directories corresponding to features:
 - `state/`: Authenticated status action, transition, and history endpoints
   backed by the workflow runtime (`server/core/machines`). Successful
   transitions publish entity invalidation events through the shared entity
-  event bus so other devices can refresh affected surfaces.
+  event bus so other devices can refresh affected surfaces. `GET /state/worklist`
+  returns the caller's inbox — instances in states whose exits the caller
+  controls (manifest action windows), annotated with deadline urgency.
 - `organizations/:id/invitations`: Authenticated team-management invitation
   listing, creation, and revocation. Handlers delegate authorization to the
   invitations feature so all invitation operations use the same process-derived

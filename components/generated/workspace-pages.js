@@ -15,6 +15,7 @@ const DirectoryDetailSurface = defineAsyncComponent(() => import('~/components/d
 const OrganizationTeamPage = defineAsyncComponent(() => import('~/pages/organization/users.vue'));
 const OrganizationPartnersPage = defineAsyncComponent(() => import('~/pages/organization/partners.vue'));
 const OrganizationBillingPage = defineAsyncComponent(() => import('~/pages/organization/billing.vue'));
+const WorklistPage = defineAsyncComponent(() => import('~/components/generated/WorklistPage.vue'));
 const OrganizationProcessPage = defineAsyncComponent(() => import('~/pages/organization/process.vue'));
 
 // Entity-bound editor pages (for example the cassette designer) derive
@@ -68,6 +69,12 @@ export const generatedWorkspacePages = [
     icon: 'pi pi-credit-card',
     component: OrganizationBillingPage,
     route: '/organization/billing'
+  },
+  {
+    id: 'worklist',
+    labelKey: 'worklist.title',
+    icon: 'pi pi-check-square',
+    component: WorklistPage
   },
   {
     id: 'organizationProcess',

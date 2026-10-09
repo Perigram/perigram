@@ -2049,6 +2049,55 @@ function findOrganizationMembership(auth = {}, organizationId) {
   return (auth.memberships || []).find(item => item.organizationId?.toString() === target);
 }
 
+// Run trace and cancellation (SPEC "Process authoring maturity" 5–6):
+// the operator answers over the durable execution collections. The list
+// summarizes; cancellation only touches parked ('waiting') runs.
+export async function listProcessRuns(auth = {}, { limit = 100 } = {}) {
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
+  if (!organizationId) return { runs: [] };
+  const runRepository = getRunRepository(await repository.getConnection());
+  const records = await runRepository.findRunsForOrganization(organizationId, { limit });
+  return { runs: records.map(runSummary) };
+}
+
+function runSummary(record = {}) {
+  const state = record.state || {};
+  const waiting = state.status === 'waiting' ? {
+    ...(state.pendingEffect ? { step: state.pendingEffect.stepId, invocationId: state.pendingEffect.invocationId } : {}),
+    joins: Object.entries(state.joins || {}).map(([key, arrivals]) => ({ key, arrivals: Array.isArray(arrivals) ? arrivals.length : 0 }))
+  } : null;
+  return {
+    runId: record.runId,
+    status: state.status,
+    definitionId: record.definition?._id || null,
+    definitionName: record.definition?.identity?.name || null,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    error: state.error?.message || null,
+    cancelled: state.cancelled || null,
+    waiting
+  };
+}
+
+export async function cancelProcessRun(runId, { reason = '' } = {}, auth = {}) {
+  const id = String(runId || '');
+  const runRepository = getRunRepository(await repository.getConnection());
+  const record = await runRepository.collection('runs').findOne({ _id: id });
+  if (!record) throw createError({ statusCode: 404, message: `Run ${id} not found` });
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
+  const runOrganizationId = record.controlScope?.organizationId;
+  if (runOrganizationId && String(runOrganizationId) !== String(organizationId)) {
+    throw createError({ statusCode: 403, message: 'Run belongs to another organization' });
+  }
+  try {
+    const cancelled = await runRepository.cancelRun(id, { actor: { userId: auth.userId }, reason });
+    return { runId: id, status: cancelled.state.status, cancelled: cancelled.state.cancelled };
+  } catch (error) {
+    if (error?.statusCode) throw createError({ statusCode: error.statusCode, message: error.message });
+    throw error;
+  }
+}
+
 function resolveOrganizationId(auth = {}) {
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
   if (!organizationId) throw createError({ statusCode: 403, message: 'Organization membership is required' });

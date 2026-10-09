@@ -51,6 +51,11 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
       if (isQuantity(a) || isQuantity(b)) {
         const unified = unify(a, b);
         const value = arithmetic(unified.a.value, unified.b.value, ast.op);
+        // Minor-unit money (SPEC §2): currency arithmetic that would lose
+        // minor units (fractional results) is refused, not rounded.
+        if (unified.a.unit === 'currency' && !Number.isInteger(value)) {
+          throw new Error('currency arithmetic must stay in integer minor units');
+        }
         return { value, unit: unified.a.unit };
       }
       return arithmetic(a, b, ast.op);

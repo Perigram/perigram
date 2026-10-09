@@ -68,9 +68,10 @@ Rules:
   arithmetic unifies units; mismatch is a static error (R3).
 - `Quantity(Number, currency)` is minor-unit-integer money: handlers
   author amounts as integer minor units (cents) so `add`/`sub` stay
-  exact; displays render decimals. Float-money literals are a defect.
-  (Specified; the row compiler does not yet enforce it — tracked in the
-  root TODO.)
+  exact; displays render decimals. The row validator refuses fractional
+  currency values, and expression arithmetic refuses results that would
+  lose minor units (fractional division) instead of rounding. Float-money
+  literals are a defect.
 - `Json` escape: reachable, and inert. Nothing inside it participates in any
   rule of §12. It exists for true externals (raw imported DXF entropy, foreign
   settings). Parking domain payload there is a review defect, not a style
