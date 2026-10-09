@@ -358,13 +358,13 @@ export default defineNuxtConfig({
             ...perigramAliases,
             ...portableAliases
         },
-        externals: {
+        noExternal: [
             // The facade pack's server side consumes framework services by
             // import (including `~`-aliased modules only the bundler
             // resolves): it must bundle, never externalize — raw Node
             // cannot load the transitive server graph from packages/.
-            inline: [/packages[/\\]facade[/\\]server/]
-        },
+            /packages[/\\]facade[/\\]server/
+        ],
         routeRules: {
             '/icons/**': {
                 headers: {
