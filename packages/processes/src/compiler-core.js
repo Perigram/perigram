@@ -1830,8 +1830,22 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
         ...(record.terminal === true ? { isTerminal: true } : {}),
         ...(record.label ? { label: record.label } : {}),
         ...((record.severity || record.color) ? { severity: record.severity || record.color } : {}),
-        ...(record.icon ? { icon: record.icon } : {})
+        ...(record.icon ? { icon: record.icon } : {}),
+        ...(record.deadline ? { deadline: record.deadline } : {})
       };
+      // A declared deadline compiles its escalation edge (SPEC §7):
+      // system-executed, never a user action — the scanner moves overdue
+      // instances through the normal transition boundary.
+      if (record.deadline?.to && record.deadline.to !== record.value) {
+        addWorkflowState(region, record.deadline.to);
+        upsertWorkflowTransition(region, {
+          from: record.value,
+          to: record.deadline.to,
+          deadline: true,
+          access: { system: true },
+          ...(record.deadline.guard ? { guard: record.deadline.guard } : {})
+        });
+      }
     }
   }
 
@@ -2063,6 +2077,11 @@ function upsertWorkflowTransition(builder, transition) {
       existing.access ||= {};
       existing.access.permissions = mergeTransitionPermissions(existing.access.permissions || [], transition.access.permissions);
     }
+    if (transition.access?.system) {
+      existing.access ||= {};
+      existing.access.system = true;
+    }
+    if (transition.deadline === true) existing.deadline = true;
     // First declaration of an edge owns its guard (SPEC §7).
     if (!existing.guard && transition.guard) existing.guard = transition.guard;
     return;

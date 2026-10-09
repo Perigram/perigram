@@ -60,6 +60,12 @@ export function assertTransitionAccess({ transition, entity, auth }) {
       throw createError({ statusCode: 403, message: `Permission denied for ${requirement.feature}:${requirement.level || 'read'}` });
     }
   }
+
+  // System-only execution (deadline edges, SPEC §7): `system: true` with
+  // no role or permission grants names the system actor alone.
+  if (access.system === true && !(access.permissions || []).length) {
+    throw createError({ statusCode: 403, message: 'Permission denied for system-only transition' });
+  }
   return true;
 }
 

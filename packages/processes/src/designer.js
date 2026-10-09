@@ -413,7 +413,8 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
       terminal: data.terminal === true,
       ...(data.label ? { label: data.label } : {}),
       ...(data.severity ? { severity: data.severity } : {}),
-      ...(data.icon ? { icon: data.icon } : {})
+      ...(data.icon ? { icon: data.icon } : {}),
+      ...(data.deadline ? { deadline: data.deadline } : {})
     };
   }
 

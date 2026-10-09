@@ -772,4 +772,54 @@ describe('status service lifecycle payloads', () => {
     const doc = await db.collection('files').findOne({ _id: 'cassette-g1' });
     expect(doc.status.state).toMatchObject({ primary: 'ARCHIVED' });
   });
+
+  it('stamps the deadline clock and keeps deadline edges system-only', async () => {
+    // SPEC §7: a declared deadline compiles a system-executed edge —
+    // availability never offers it and non-system callers are refused —
+    // and every flat state write stamps the entered-state clock.
+    const id = new ObjectId();
+    await db.collection('items').insertOne({
+      _id: id,
+      type: 'e2e-note',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      name: 'Note',
+      fields: {},
+      state: 'new',
+      lineage: { organizationId: 'org-1' }
+    });
+    const machine = {
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'new',
+          states: {
+            new: { deadline: { after: 'PT1H', to: 'stale' } },
+            stale: {},
+            done: {}
+          },
+          transitions: [
+            { from: 'new', to: 'stale', deadline: true, access: { system: true } },
+            { from: 'new', to: 'done' }
+          ]
+        }
+      }
+    };
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(machine);
+    const userAuth = { userId: 'admin-1', memberships: [{ organizationId: 'org-1', permissions: {} }] };
+
+    const actions = await statusService.getActions('e2e-note', id.toString(), userAuth);
+    expect(actions.actions.map(action => action.to)).toEqual(['done']);
+
+    await expect(statusService.transition('e2e-note', id.toString(), 'stale', 'admin-1', userAuth))
+      .rejects.toThrow(/system-only/);
+
+    await statusService.transition('e2e-note', id.toString(), 'stale', 'SYSTEM', {
+      userId: 'SYSTEM', system: true, memberships: []
+    });
+    const entity = await db.collection('items').findOne({ _id: id });
+    expect(entity.state).toBe('stale');
+    expect(typeof entity.stateChangedAt).toBe('string');
+    expect(new Date(entity.stateChangedAt).toString()).not.toBe('Invalid Date');
+  });
 });

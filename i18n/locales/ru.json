@@ -3245,6 +3245,7 @@
     "guardAny": "любое из",
     "addGuardCondition": "Добавить условие",
     "transitionGuardHint": "Проверяется по экземпляру перед фиксацией перехода; нарушенное условие скрывает действие.",
+    "stateDeadline": "Срок",
     "auto": "Авто",
     "fieldDisplayLabel": "Подпись",
     "fieldDisplayKind": "Отображение",

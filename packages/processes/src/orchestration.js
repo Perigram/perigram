@@ -615,13 +615,6 @@ function recordId(node) {
   return String(node?.data?.refId || node?.id || '');
 }
 
-function durationMs(value) {
-  if (typeof value === 'number') return value;
-  const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(String(value || ''));
-  if (!match) throw new Error(`Invalid ISO-8601 duration ${value}`);
-  return (Number(match[1] || 0) * 3600 + Number(match[2] || 0) * 60 + Number(match[3] || 0)) * 1000;
-}
-
 function instant(now) {
   const value = typeof now === 'function' ? now() : new Date();
   return new Date(value).toISOString();

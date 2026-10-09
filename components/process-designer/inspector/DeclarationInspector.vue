@@ -158,6 +158,38 @@
             @update:model-value="value => { node.data.icon = String(value || '').trim() || null; $emit('sync'); }"
           />
         </div>
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.stateDeadline') }}</label>
+          <div class="flex items-center gap-2">
+            <InputNumber
+              :model-value="deadlineHours"
+              size="small"
+              class="w-24 shrink-0"
+              :min="1"
+              @update:model-value="setDeadlineHours"
+            />
+            <i class="pi pi-arrow-right text-muted shrink-0" />
+            <Select
+              :model-value="node.data.deadline?.to || ''"
+              :options="stateOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+              filter
+              class="min-w-0 flex-1"
+              @update:model-value="setDeadlineTarget"
+            />
+            <Button
+              v-if="node.data.deadline"
+              icon="pi pi-times"
+              :aria-label="$t('common.delete')"
+              size="small"
+              text
+              severity="danger"
+              @click="clearDeadline"
+            />
+          </div>
+        </div>
         <Message severity="info" size="small" :closable="false">{{ $t('processDesigner.stateNodeHint') }}</Message>
       </div>
     </template>
@@ -197,18 +229,24 @@
 // identifier, at most one depiction per type) are the tree's to enforce,
 // not this node's.
 import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import Button from 'primevue/button';
 import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Checkbox from 'primevue/checkbox';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import { DECLARABLE_CLASSES, DISPLAY_KINDS } from '~/packages/cts/src/index.js';
+import { computed } from 'vue';
 
 const props = defineProps({
   node: { type: Object, required: true },
   typeIdValid: { type: Boolean, default: true },
   diagnostics: { type: Array, default: () => [] },
   typeOptions: { type: Array, default: () => [] },
-  typeAnchorOptions: { type: Array, default: () => [] }
+  typeAnchorOptions: { type: Array, default: () => [] },
+  // Declared state values the deadline target may name: same-type records
+  // plus unscoped tokens, the state node itself excluded (SPEC §7).
+  stateOptions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['sync', 'update-name', 'update-display-role']);
@@ -234,6 +272,40 @@ const displayKindOptions = Object.freeze([
   { label: 'auto', value: '' },
   ...DISPLAY_KINDS.map(value => ({ label: value, value }))
 ]);
+
+// Deadline authoring (SPEC §7): the editor authors whole hours, stored as
+// an ISO-8601 duration on the record (`PT48H`); other durations authored
+// elsewhere round-trip untouched but show no hour value here.
+function deadlineHoursOf(after) {
+  const match = /^PT(\d+(?:\.\d+)?)H$/.exec(String(after || ''));
+  return match ? Number(match[1]) : null;
+}
+
+const deadlineHours = computed(() => deadlineHoursOf(props.node.data.deadline?.after));
+
+function writeDeadline(patch) {
+  props.node.data.deadline = { ...(props.node.data.deadline || {}), ...patch };
+  emit('sync');
+}
+
+function setDeadlineHours(hours) {
+  const value = Number(hours);
+  if (!Number.isFinite(value) || value <= 0) return;
+  writeDeadline({ after: `PT${value}H` });
+}
+
+function setDeadlineTarget(to) {
+  if (!to) {
+    clearDeadline();
+    return;
+  }
+  writeDeadline({ to });
+}
+
+function clearDeadline() {
+  delete props.node.data.deadline;
+  emit('sync');
+}
 
 function patchDescriptor(changes) {
   const descriptor = { ...(props.node.data.descriptor || { base: 'string' }), ...changes };
