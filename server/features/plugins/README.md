@@ -86,7 +86,6 @@ executors through the worker protocol.
 | Route | Access | Action |
 |---|---|---|
 | `GET /api/plugins/catalog` | authenticated | List catalog listings. |
-| `GET /api/plugins/packs` | authenticated | List mounted packs (built-ins). |
 | `GET /api/organizations/:id/plugins` | member (`organizations:read`) | List installed plugins. |
 | `POST /api/organizations/:id/plugins` | `organizations:admin` | Install `{ pluginId }` at the catalog's current version. |
 | `DELETE /api/organizations/:id/plugins/:pluginId` | `organizations:admin` | Uninstall (drain-gated). |
@@ -98,10 +97,8 @@ executors through the worker protocol.
 | `POST /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Save connection settings (endpoints for endpoint-mode services, API key). |
 
 The organization UI is the Plugins section in org settings
-([pages/organization](../../../pages/organization/README.md)); mounted
-domain packs show there as read-only built-ins (`listSystemPacks`,
-`GET /api/plugins/packs`) — they ship with the platform, not the
-marketplace.
+([pages/organization](../../../pages/organization/README.md)): installed
+plugins and the central catalog.
 
 ## Not here yet (tracked in TODO)
 

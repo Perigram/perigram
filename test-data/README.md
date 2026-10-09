@@ -10,14 +10,6 @@ repository package imports such as `#shared/...`, `#packages/...`, and
 `#utils/...` for cross-root contracts; Nuxt UI code may import the factories
 themselves through `~/test-data/...` at the call site.
 
-`plugins/` carries the demo marketplace plugin: `coatings.json` is a
-publishable listing (see
-[docs/PLUGIN_AUTHORING.md](../docs/PLUGIN_AUTHORING.md)) and
-`coatings-executor.mjs` is its endpoint-mode executor — run it on the host
-and point the plugin's Connection at
-`http://host.docker.internal:8787/match` from inside the dev compose
-network.
-
 Test data comes from factory functions rather than inline mock objects, so overrides can be spread onto defaults.
 
 `persisted-acceptance.js` is the privacy-safe regression fixture for the current

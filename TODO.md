@@ -24,6 +24,20 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
   the executor API key; agent authoring guide
   ([docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md)).
 
+### Agent Notes (2026-10-09, owner-directed removals)
+
+Session `agent/plugins-deslop-20261009`. Owner: the Built-in section and the
+seeded demo plugin were never asked for — removed both. The Plugins page is
+the marketplace contract only (installed + catalog); `listSystemPacks`, the
+`/api/plugins/packs` route, the page section, i18n, and the SPEC clause are
+gone; the coatings listing left the dev catalog and `test-data/plugins/` is
+deleted. Deslop beside it: `pages/organization/types.vue` did not exist, but
+the org README documented it as a "registry browser" and kept its composable
+(`composables/useTypeCanvas.js`) plus spec (`shared/type-canvas.spec.js`)
+alive with zero consumers — all three deleted; docs match reality. Lesson
+recorded: README claims about surfaces must be verified against files before
+being repeated to the owner.
+
 ### Agent Notes (2026-10-09, hosting model + connection settings)
 
 Session `agent/plugin-endpoints-20261009`. Owner decision recorded in SPEC:

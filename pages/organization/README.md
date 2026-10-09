@@ -36,8 +36,7 @@ every mutation stays gated by `organizations:admin` on the respective side.
 
 `plugins.vue` is the plugin marketplace route (see
 [plugins](../../server/features/plugins/README.md)): the installed list and
-the central catalog, with mounted domain packs (the facade and its
-dependencies) shown between them as read-only built-ins. Installing opens
+the central catalog. Installing opens
 the consent dialog naming the plugin's types and services before the admin
 confirms; the catalog rows of installed plugins carry
 the installed tag instead of the install action. An available catalog
@@ -84,16 +83,6 @@ The route expects `/api/users` to return canonical user DTO blocks with
 `identity.name`, `data.email`, and membership summary fields visible under
 `users:read`; it derives the active organization id from the loaded organization
 store first and falls back to the auth membership list.
-
-`types.vue` is the registry browser: a read-only projection canvas of the
-organization's merged type view (system pack types + org declarations)
-rendered as type/field/state nodes with declares wires, transition wires
-carrying intents, and type-to-type children wires. It compiles nothing —
-declaration authoring lives in the process designer tree
-(`process.vue`). The browser owns registry management only: org-type
-deletion and surfacing registry compile errors. The pure projection
-(`composables/useTypeCanvas.js`, `canvasFromDeclarations`) is proven by
-`shared/type-canvas.spec.js`.
 
 `process.vue` is the visual process-designer surface. It edits organization
 process definitions with Vue Flow, persists drafts through
