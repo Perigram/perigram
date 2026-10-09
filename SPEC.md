@@ -238,6 +238,15 @@ section. Every framework→facade import is a defect against this (SPEC §Server
 already forbids them); executable facade handlers move behind the connector
 protocol; editor surfaces ride the surface registry.
 
+Plugins are hosted two ways, one contract. **Self-written and self-hosted**:
+a coding agent authors the plugin (listing + executor) following the plugin
+authoring guide, and the organization hosts the executor — claim mode or an
+endpoint it configures. **Cloud-hosted**: the publisher runs the executor and
+the organization connects to it. Plugin settings carry the connection: the
+API endpoint per endpoint-mode service and the executor API key. The
+marketplace catalog itself stays platform-side (no separate deployment);
+server-side services are separate processes by design.
+
 A third-party plugin is declarations plus connectors — never in-process code:
 
 - **Declarations** (types now; processes/screens as the exchange grows) install

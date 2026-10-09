@@ -257,5 +257,6 @@ builds only).
 | Deploy tooling (Forgejo autodeploy) | [deploy/README.md](./deploy/README.md) |
 | Facade explainer video | [video/README.md](./video/README.md) |
 | Schema specs | [docs/specs/README.md](./docs/specs/README.md) |
+| Plugin authoring guide | [docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md) |
 | Animated brand mark (Rive) | [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md) |
 | Codex agent assets | [.codex/README.md](./.codex/README.md) |

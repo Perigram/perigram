@@ -13,11 +13,35 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
   `composePackAttachmentKinds`/`composePackDomains`); the app-side remains
   (nuxt alias, editor components, check-arch script).
 - [ ] Connectorize the facade's executable handlers (bake/convertDxf/upload/
-  import-export; nesting already external) behind the connector protocol.
+  import-export; nesting already external) behind the connector protocol —
+  endpoint mode where the nesting shape fits.
 - [ ] Move `packages/facade` + `server/packs/facade` into their own
   versioned unit mounted by the platform; editor surfaces ride the surface
   registry.
 - [ ] Per-org enable/install of the facade pack through the Plugins section.
+- [x] Hosting model + connection settings: services declare
+  endpoint/claim mode; plugin settings carry per-service API endpoints and
+  the executor API key; agent authoring guide
+  ([docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md)).
+
+### Agent Notes (2026-10-09, hosting model + connection settings)
+
+Session `agent/plugin-endpoints-20261009`. Owner decision recorded in SPEC:
+plugins are self-written/self-hosted (agents author them — guide added) or
+cloud-hosted; plugin settings carry API endpoints. Implemented: services
+declare `mode` (`endpoint` — the platform calls the configured URL with the
+service input, expects JSON output, 60 s budget, optional Bearer key; or
+`claim`, the default worker-protocol poll). Connection settings
+(`GET/POST .../plugins/:pluginId/settings`) persist per-service endpoints +
+the executor API key; endpoints are rejected for claim-mode services;
+endpoint execution refuses with a configure-it message when the URL is
+missing and surfaces executor failures as 502. UI: Connection dialog
+(sliders) on installed rows with endpoint-mode services. Guide:
+`docs/PLUGIN_AUTHORING.md` (listing schema, both executor implementations,
+publish/connect/test loop), linked from the root docs map and the plugins
+README. Deployment answer recorded in SPEC: the catalog stays platform-side
+— no separate marketplace deployment needed; server-side services are
+separate processes by design (self- or cloud-hosted).
 
 ### Agent Notes (2026-10-09, cut 1)
 
