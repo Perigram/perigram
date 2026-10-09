@@ -1913,7 +1913,24 @@
     "opLt": "меньше",
     "opLte": "меньше или равно",
     "opAnyOf": "одно из",
-    "opNoneOf": "ни одно из"
+    "opNoneOf": "ни одно из",
+    "types": {
+      "cassette": "Кассета",
+      "cassette-design": "Дизайн кассеты",
+      "color": "Цвет",
+      "csv-table": "CSV-таблица",
+      "docx-document": "Документ DOCX",
+      "dxf-source": "DXF-исходник",
+      "image": "Изображение",
+      "layer-standard": "Стандарт слоёв",
+      "pdf-document": "PDF-документ",
+      "pen-template": "Шаблон пера",
+      "sheet-design": "Дизайн листа",
+      "sketch": "Скетч",
+      "svg-file": "SVG-файл",
+      "text-document": "Текстовый документ",
+      "xlsx-workbook": "Книга XLSX"
+    }
   },
   "uiConstructor": {
     "title": "Демо UI-конструктора",
@@ -3395,6 +3412,7 @@
     "changed": "Изменено",
     "upgradedToast": "Плагин обновлён",
     "settings": "Подключение",
+    "workerHeader": "заголовок: x-worker-token",
     "endpointPlaceholder": "https://example.org/service",
     "apiKey": "API-ключ",
     "apiKeyPlaceholder": "Ключ для executor'а издателя (Bearer)",

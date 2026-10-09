@@ -1913,7 +1913,24 @@
     "opLt": "less than",
     "opLte": "less or equal",
     "opAnyOf": "any of",
-    "opNoneOf": "none of"
+    "opNoneOf": "none of",
+    "types": {
+      "cassette": "Cassette",
+      "cassette-design": "Cassette design",
+      "color": "Color",
+      "csv-table": "CSV table",
+      "docx-document": "DOCX document",
+      "dxf-source": "DXF source",
+      "image": "Image",
+      "layer-standard": "Layer standard",
+      "pdf-document": "PDF document",
+      "pen-template": "Pen template",
+      "sheet-design": "Sheet design",
+      "sketch": "Sketch",
+      "svg-file": "SVG file",
+      "text-document": "Text document",
+      "xlsx-workbook": "XLSX workbook"
+    }
   },
   "uiConstructor": {
     "title": "UI Constructor Demo",
@@ -3395,6 +3412,7 @@
     "changed": "Changed",
     "upgradedToast": "Plugin upgraded",
     "settings": "Connection",
+    "workerHeader": "header: x-worker-token",
     "endpointPlaceholder": "https://example.org/service",
     "apiKey": "API key",
     "apiKeyPlaceholder": "Bearer key for the publisher's executor",

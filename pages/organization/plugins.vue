@@ -10,7 +10,7 @@
                 <div class="flex min-w-0 flex-col">
                   <span class="truncate text-body">{{ data.name }}</span>
                   <small v-if="data.types.length" class="text-muted">
-                    {{ data.types.map(type => type.label || type.id).join(', ') }}
+                    {{ data.types.map(type => typeDisplayName(type)).join(', ') }}
                   </small>
                 </div>
               </template>
@@ -84,7 +84,7 @@
                 <div class="flex min-w-0 flex-col">
                   <span class="truncate text-body">{{ data.name }}</span>
                   <small v-if="data.types.length || data.services.length" class="text-muted">
-                    {{ [...data.types.map(type => type.label || type.id), ...data.services.map(service => service.label)].join(', ') }}
+                    {{ [...data.types.map(type => typeDisplayName(type)), ...data.services.map(service => service.label)].join(', ') }}
                   </small>
                 </div>
               </template>
@@ -141,7 +141,7 @@
         <ul class="m-0 flex list-none flex-col gap-1 pl-0">
           <li v-for="type in pendingInstall.types" :key="type.id" class="text-body">
             <i class="pi pi-check-circle mr-2 text-muted" aria-hidden="true" />
-            {{ type.label || type.id }}
+            {{ typeDisplayName(type) }}
           </li>
         </ul>
         <template v-if="pendingInstall.services.length">
@@ -189,7 +189,7 @@
           <div class="text-muted text-label">{{ $t('plugins.endpoints') }}</div>
           <ul class="m-0 flex list-none flex-col gap-1 pl-0 text-technical">
             <li v-for="(path, name) in connector.endpoints" :key="name">
-              POST {{ path }} <span class="text-muted">· x-worker-token</span>
+              POST {{ path }} <span class="text-muted">{{ $t('plugins.workerHeader') }}</span>
             </li>
           </ul>
         </div>
@@ -218,18 +218,18 @@
         </div>
         <div v-if="upgradePlan.added.length" class="flex flex-col gap-1">
           <div class="text-muted text-label">{{ $t('plugins.added') }}</div>
-          <div class="text-body">{{ upgradePlan.added.map(type => type.label || type.id).join(', ') }}</div>
+          <div class="text-body">{{ upgradePlan.added.map(type => typeDisplayName(type)).join(', ') }}</div>
         </div>
         <div v-if="upgradePlan.removed.length" class="flex flex-col gap-1">
           <div class="text-muted text-label">{{ $t('plugins.removed') }}</div>
-          <div class="text-body">{{ upgradePlan.removed.map(type => type.label || type.id).join(', ') }}</div>
+          <div class="text-body">{{ upgradePlan.removed.map(type => typeDisplayName(type)).join(', ') }}</div>
         </div>
         <div v-if="upgradePlan.changed.length" class="flex flex-col gap-1">
           <div class="text-muted text-label">{{ $t('plugins.changed') }}</div>
           <ul class="m-0 flex list-none flex-col gap-1 pl-0">
             <li v-for="change in upgradePlan.changed" :key="change.typeId" class="text-body">
               <i :class="change.breaking.length ? 'pi pi-exclamation-triangle' : 'pi pi-pencil'" class="mr-2 text-muted" aria-hidden="true" />
-              {{ change.label }}
+              {{ change.name || change.typeId }}
             </li>
           </ul>
         </div>
@@ -305,6 +305,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { useAuthStore } from '~/stores/auth';
 
 definePageMeta({
@@ -320,7 +321,7 @@ const tablePt = {
   headerCell: { class: 'bg-transparent text-muted' }
 };
 
-const { t, locale } = useI18n();
+const { t, te, locale } = useI18n();
 const toast = useToast();
 const authStore = useAuthStore();
 
@@ -373,6 +374,12 @@ async function load() {
 function formatDate(value) {
   if (!value) return '';
   return new Date(value).toLocaleDateString(locale.value);
+}
+
+// The shared type-label law: localized uiMapping key first, the authored
+// display name as fallback — raw ids never render.
+function typeDisplayName(type) {
+  return localizedLabel({ te, t }, typeLabelKey(type.id), type.name || type.id);
 }
 
 function openInstall(listing) {

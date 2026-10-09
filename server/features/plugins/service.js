@@ -33,12 +33,18 @@ export async function listCatalog() {
 
 // Mounted domain packs shown as built-ins in the Plugins section: they
 // ship with the platform (build-time mounts, SPEC §21), so they are
-// read-only context beside the installable catalog.
+// read-only context beside the installable catalog. Type summaries carry
+// the authored display name (SPEC §13 display vocabulary: `name`, the
+// field renderPolicyFor reads) — ids never render.
 export function listSystemPacks() {
   return orderedMountedPacks().map(pack => ({
     id: pack.id,
     name: pack.label || pack.id,
-    types: (pack.types || []).map(typeSummary),
+    types: (pack.types || []).map(type => ({
+      id: type.id,
+      name: type.name || null,
+      class: type.class || null
+    })),
     services: (pack.services || []).map(service =>
       ({ id: service.id, label: service.render?.label || service.label || service.id }))
   }));
@@ -200,7 +206,7 @@ function serializeInstall(install = {}) {
 }
 
 function typeSummary(type = {}) {
-  return { id: type.id, label: type.label || null, class: type.class || null };
+  return { id: type.id, name: type.name || null, class: type.class || null };
 }
 
 function serviceSummary(service = {}) {
@@ -556,7 +562,7 @@ async function buildUpgradePlan(install, listing, organizationId) {
     }
     const plan = planTypeMigration(oldType, newTypes.get(id));
     if (plan.breaking.length && instances === 0) {
-      changed.push({ typeId: id, label: oldType.label || id, instances: 0, changes: plan.diff.changes, breaking: plan.breaking, covered: true, steps: [] });
+      changed.push({ typeId: id, name: oldType.name || null, instances: 0, changes: plan.diff.changes, breaking: plan.breaking, covered: true, steps: [] });
       continue;
     }
     if (plan.breaking.length && !plan.covered) {
@@ -568,7 +574,7 @@ async function buildUpgradePlan(install, listing, organizationId) {
     }
     changed.push({
       typeId: id,
-      label: oldType.label || id,
+      name: (newTypes.get(id).name || oldType.name || null),
       instances,
       changes: plan.diff.changes,
       breaking: plan.breaking,

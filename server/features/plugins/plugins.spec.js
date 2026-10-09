@@ -64,7 +64,7 @@ const coatingListing = {
   version: '2',
   declarations: {
     types: [
-      { id: 'coating', class: 'item', label: 'Coating', fields: { code: { base: 'string' } } }
+      { id: 'coating', class: 'item', name: 'Coating', fields: { code: { base: 'string' } } }
     ],
     services: [
       {
@@ -177,7 +177,7 @@ describe('plugin installs', () => {
     const installed = await listInstalled({ organizationId: ORG, auth: AUTH });
     expect(installed).toHaveLength(1);
     expect(installed[0]).toMatchObject({ pluginId: 'coatings', name: 'Coatings', version: '2' });
-    expect(installed[0].types).toEqual([{ id: 'coating', label: 'Coating', class: 'item' }]);
+    expect(installed[0].types).toEqual([{ id: 'coating', name: 'Coating', class: 'item' }]);
     expect(installed[0].services).toEqual([{ id: 'match', label: 'Coating match', mode: 'claim' }]);
   });
 });
@@ -287,7 +287,7 @@ describe('upgrades', () => {
         {
           id: 'coating',
           class: 'item',
-          label: 'Coating',
+          name: 'Coating',
           fields: {
             code: { base: 'string' },
             gloss: { base: 'string' }
@@ -295,7 +295,7 @@ describe('upgrades', () => {
           migrate: [{ kind: 'add-default-field', field: 'gloss', value: 'matte' }]
         },
         // added
-        { id: 'primer', class: 'item', label: 'Primer', fields: { code: { base: 'string' } } }
+        { id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string' } } }
       ],
       services: coatingListing.declarations.services
     }
