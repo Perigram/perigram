@@ -91,6 +91,15 @@ export async function updateInstallSnapshot(organizationId, pluginId, { version,
   );
 }
 
+// Connection settings: per-service endpoints and the executor API key.
+export async function updateSettings(organizationId, pluginId, { endpoints, authToken }) {
+  const db = await connectDB();
+  await db.collection(INSTALLS_COLLECTION).updateOne(
+    { organizationId: String(organizationId), pluginId: String(pluginId) },
+    { $set: { endpoints, authToken } }
+  );
+}
+
 // The composed plugin layer for the org view (cts-types composition): the
 // installed snapshots' type declarations, install order. Upgrade trials
 // exclude the upgrading plugin's own layer.

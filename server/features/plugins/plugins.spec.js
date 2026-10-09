@@ -36,6 +36,7 @@ vi.mock('./repository.js', () => ({
   deleteInstall: vi.fn(),
   setConnectorToken: vi.fn(),
   updateInstallSnapshot: vi.fn(),
+  updateSettings: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null)
 }));
@@ -45,7 +46,8 @@ import * as typeStore from '../cts-types/repository.js';
 import {
   install, uninstall, listInstalled, servicesForOrganization,
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
-  regenerateConnectorToken, upgradePreview, applyUpgrade
+  regenerateConnectorToken, upgradePreview, applyUpgrade,
+  settingsFor, updateSettings
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -176,7 +178,7 @@ describe('plugin installs', () => {
     expect(installed).toHaveLength(1);
     expect(installed[0]).toMatchObject({ pluginId: 'coatings', name: 'Coatings', version: '2' });
     expect(installed[0].types).toEqual([{ id: 'coating', label: 'Coating', class: 'item' }]);
-    expect(installed[0].services).toEqual([{ id: 'match', label: 'Coating match' }]);
+    expect(installed[0].services).toEqual([{ id: 'match', label: 'Coating match', mode: 'claim' }]);
   });
 });
 
@@ -193,7 +195,7 @@ describe('connector services', () => {
     repository.listInstallsByOrganization.mockResolvedValue([]);
     repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
     const result = await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
-    expect(result.services).toEqual([{ id: 'match', label: 'Coating match' }]);
+    expect(result.services).toEqual([{ id: 'match', label: 'Coating match', mode: 'claim' }]);
     const persisted = repository.createInstall.mock.calls[0][0];
     expect(persisted.services).toEqual(coatingListing.declarations.services);
     expect(persisted.connectorToken).toMatch(/^[A-Za-z0-9_-]{32}$/);
@@ -365,5 +367,104 @@ describe('upgrades', () => {
     repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, version: '2' }));
     await expect(upgradePreview({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 409 });
+  });
+});
+
+describe('endpoint-mode services', () => {
+  const endpointInstall = {
+    organizationId: ORG,
+    pluginId: 'coatings',
+    name: 'Coatings',
+    version: '2',
+    declarations: coatingListing.declarations,
+    services: [
+      { id: 'match', label: 'Coating match', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+    ],
+    endpoints: { match: 'https://executor.example/match' },
+    authToken: 'publisher-key'
+  };
+
+  beforeEach(() => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? endpointInstall : null
+    ));
+  });
+
+  it('calls the configured endpoint with the service input and API key', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ shade: 'matte' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const result = await executeConnectorService(
+        { id: 'plugin.coatings.match', service: 'plugin.coatings' },
+        { parameters: { code: 'C-1' }, auth: AUTH }
+      );
+      expect(result).toEqual({ shade: 'matte' });
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/match', expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ authorization: 'Bearer publisher-key' }),
+        body: JSON.stringify({ code: 'C-1' })
+      }));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('refuses execution when the endpoint is not configured', async () => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings'
+        ? { ...endpointInstall, endpoints: {} }
+        : null
+    ));
+    await expect(executeConnectorService(
+      { id: 'plugin.coatings.match', service: 'plugin.coatings' },
+      { parameters: {}, auth: AUTH }
+    )).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('surfaces executor failures as 502', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })));
+    try {
+      await expect(executeConnectorService(
+        { id: 'plugin.coatings.match', service: 'plugin.coatings' },
+        { parameters: {}, auth: AUTH }
+      )).rejects.toMatchObject({ statusCode: 502 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('saves and serves connection settings, refusing endpoints for claim services', async () => {
+    const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(settings.services).toEqual([
+      { id: 'match', label: 'Coating match', mode: 'endpoint', endpoint: 'https://executor.example/match' }
+    ]);
+    expect(settings.authToken).toBe('publisher-key');
+
+    const saved = await updateSettings({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      endpoints: { match: 'https://cloud.example/match' },
+      authToken: 'new-key',
+      auth: AUTH
+    });
+    expect(repository.updateSettings).toHaveBeenCalledWith(ORG, 'coatings', {
+      endpoints: { match: 'https://cloud.example/match' },
+      authToken: 'new-key'
+    });
+    expect(saved.services[0].endpoint).toBe('https://executor.example/match');
+
+    const claimInstall = {
+      ...endpointInstall,
+      services: [{ id: 'match', label: 'Coating match', signature: { input: { base: 'json' }, output: { base: 'json' } } }]
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? claimInstall : null
+    ));
+    await expect(updateSettings({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      endpoints: { match: 'https://cloud.example/match' },
+      auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 400 });
   });
 });

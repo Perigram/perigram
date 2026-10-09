@@ -50,6 +50,15 @@
                     @click="openConnector(data)"
                   />
                   <Button
+                    v-if="hasEndpointServices(data)"
+                    icon="pi pi-sliders-h"
+                    :aria-label="$t('plugins.settings')"
+                    severity="secondary"
+                    size="small"
+                    text
+                    @click="openSettings(data)"
+                  />
+                  <Button
                     icon="pi pi-trash"
                     :aria-label="$t('plugins.uninstall')"
                     severity="danger"
@@ -241,6 +250,43 @@
         />
       </template>
     </StandardDialog>
+    <StandardDialog
+      v-model:visible="settingsDialogVisible"
+      :header="$t('plugins.settings')"
+      size="md"
+    >
+      <div v-if="settings" class="flex flex-col gap-4">
+        <div v-for="field in settings.fields" :key="field.id" class="flex flex-col gap-2">
+          <div class="text-muted text-label">{{ field.label }}</div>
+          <InputText
+            v-model="settings.endpoints[field.id]"
+            type="text"
+            class="w-full text-technical"
+            :placeholder="$t('plugins.endpointPlaceholder')"
+            :data-testid="`plugin-endpoint-${field.id}`"
+          />
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="text-muted text-label">{{ $t('plugins.apiKey') }}</div>
+          <InputText
+            v-model="settings.authToken"
+            type="text"
+            class="w-full text-technical"
+            :placeholder="$t('plugins.apiKeyPlaceholder')"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <Button :label="$t('common.cancel')" text severity="secondary" @click="settingsDialogVisible = false" />
+        <Button
+          :label="$t('common.save')"
+          icon="pi pi-check"
+          :loading="savingSettings"
+          @click="saveSettings"
+        />
+      </template>
+    </StandardDialog>
   </StandardPage>
 </template>
 
@@ -254,6 +300,7 @@ import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
+import InputText from 'primevue/inputtext';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -290,6 +337,9 @@ const regenerating = ref(false);
 const upgradeDialogVisible = ref(false);
 const upgradePlan = ref(null);
 const upgrading = ref(false);
+const settingsDialogVisible = ref(false);
+const settings = ref(null);
+const savingSettings = ref(false);
 
 const activeOrganizationId = computed(() =>
   authStore.organizationData?._id
@@ -346,6 +396,50 @@ async function confirmInstall() {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
   } finally {
     workingPluginId.value = null;
+  }
+}
+
+function hasEndpointServices(item) {
+  return (item.services || []).some(service => service.mode === 'endpoint');
+}
+
+async function openSettings(item) {
+  settings.value = null;
+  settingsDialogVisible.value = true;
+  try {
+    const response = await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}/settings`);
+    settings.value = {
+      pluginId: response.pluginId,
+      authToken: response.authToken || '',
+      endpoints: Object.fromEntries(
+        (response.services || []).filter(service => service.mode === 'endpoint')
+          .map(service => [service.id, service.endpoint || ''])
+      ),
+      fields: (response.services || []).filter(service => service.mode === 'endpoint')
+    };
+  } catch (error) {
+    settingsDialogVisible.value = false;
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+  }
+}
+
+async function saveSettings() {
+  if (!settings.value) return;
+  savingSettings.value = true;
+  try {
+    await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(settings.value.pluginId)}/settings`, {
+      method: 'POST',
+      body: {
+        endpoints: settings.value.endpoints,
+        authToken: settings.value.authToken || null
+      }
+    });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('plugins.savedToast'), life: 3000 });
+    settingsDialogVisible.value = false;
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+  } finally {
+    savingSettings.value = false;
   }
 }
 

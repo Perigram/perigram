@@ -49,6 +49,9 @@ for (const service of listing.declarations?.services || []) {
   if (!service?.signature?.input || !service?.signature?.output) {
     fail(`service ${service?.id} needs a signature with input and output`);
   }
+  if (service?.mode && !['endpoint', 'claim'].includes(service.mode)) {
+    fail(`service ${service?.id} mode must be 'endpoint' or 'claim'`);
+  }
 }
 
 const db = await connectDB();

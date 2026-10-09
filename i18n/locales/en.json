@@ -3393,6 +3393,11 @@
     "added": "Added",
     "removed": "Removed",
     "changed": "Changed",
-    "upgradedToast": "Plugin upgraded"
+    "upgradedToast": "Plugin upgraded",
+    "settings": "Connection",
+    "endpointPlaceholder": "https://example.org/service",
+    "apiKey": "API key",
+    "apiKeyPlaceholder": "Bearer key for the publisher's executor",
+    "savedToast": "Connection saved"
   }
 }

@@ -3393,6 +3393,11 @@
     "added": "Добавлено",
     "removed": "Удалено",
     "changed": "Изменено",
-    "upgradedToast": "Плагин обновлён"
+    "upgradedToast": "Плагин обновлён",
+    "settings": "Подключение",
+    "endpointPlaceholder": "https://example.org/service",
+    "apiKey": "API-ключ",
+    "apiKeyPlaceholder": "Ключ для executor'а издателя (Bearer)",
+    "savedToast": "Подключение сохранено"
   }
 }

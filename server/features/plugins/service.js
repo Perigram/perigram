@@ -75,6 +75,9 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     if (!PLUGIN_COMMAND_PATTERN.test(`plugin.${listing.pluginId}.${service.id}`)) {
       throw createError({ statusCode: 400, message: `Plugin service id ${service.id} is not a slug` });
     }
+    if (service.mode && !['endpoint', 'claim'].includes(service.mode)) {
+      throw createError({ statusCode: 400, message: `Plugin service ${service.id} declares an unknown mode ${service.mode}` });
+    }
   }
 
   // Trial composition on the live org view: every plugin type must define
@@ -201,7 +204,7 @@ function typeSummary(type = {}) {
 }
 
 function serviceSummary(service = {}) {
-  return { id: service.id, label: service.render?.label || service.label || service.id };
+  return { id: service.id, label: service.render?.label || service.label || service.id, mode: serviceModeOf(service) };
 }
 
 function mintConnectorToken() {
@@ -209,7 +212,64 @@ function mintConnectorToken() {
 }
 
 // --- Connector services (marketplace SPEC: services execute on external
-// executors through the worker claim protocol) ---
+// executors — endpoint mode calls a configured URL (the nesting-worker
+// shape: self-hosted or cloud-hosted), claim mode polls the worker
+// protocol) ---
+
+export function serviceModeOf(service = {}) {
+  return service.mode === 'endpoint' ? 'endpoint' : 'claim';
+}
+
+// The plugin's connection settings: per-service endpoints for
+// endpoint-mode services, and the API key sent to the publisher's
+// executor when calling them.
+export async function settingsFor({ organizationId, pluginId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  const endpoints = install.endpoints || {};
+  return {
+    pluginId: install.pluginId,
+    authToken: install.authToken || null,
+    services: (install.services || []).map(service => ({
+      id: service.id,
+      label: serviceSummary(service).label,
+      mode: serviceModeOf(service),
+      endpoint: endpoints[service.id] || null
+    }))
+  };
+}
+
+export async function updateSettings({ organizationId, pluginId, endpoints = {}, authToken = null, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  const serviceById = new Map((install.services || []).map(service => [service.id, service]));
+  const configured = {};
+  for (const [serviceId, url] of Object.entries(endpoints || {})) {
+    const service = serviceById.get(serviceId);
+    if (!service) {
+      throw createError({ statusCode: 400, message: `Unknown service ${serviceId}` });
+    }
+    if (serviceModeOf(service) !== 'endpoint') {
+      throw createError({ statusCode: 400, message: `Service ${serviceId} executes through the worker claim protocol — no endpoint applies` });
+    }
+    if (url) {
+      const parsed = String(url);
+      if (!/^https?:\/\//.test(parsed)) {
+        throw createError({ statusCode: 400, message: `Endpoint for ${serviceId} must be an http(s) URL` });
+      }
+      configured[serviceId] = parsed;
+    }
+  }
+  await repository.updateSettings(organizationId, pluginId, {
+    endpoints: configured,
+    authToken: authToken ? String(authToken) : null
+  });
+  return settingsFor({ organizationId, pluginId, auth });
+}
 
 // Service-species records for the projected domain: the palette,
 // compiler, and designer treat them exactly like pack services. The
@@ -257,6 +317,44 @@ export async function executeConnectorService(command, { parameters, auth = {} }
   if (!install) {
     throw createError({ statusCode: 404, message: `Command ${command.id} is not installed for this organization` });
   }
+  const serviceId = command.id.match(PLUGIN_COMMAND_PATTERN)[2];
+  const service = (install.services || []).find(item => item.id === serviceId);
+
+  // Endpoint mode: call the configured executor URL directly (the
+  // nesting-worker shape — self-hosted or cloud-hosted); the JSON body is
+  // the service input value and the JSON response is the service output.
+  if (serviceModeOf(service) === 'endpoint') {
+    const endpoint = install.endpoints?.[serviceId];
+    if (!endpoint) {
+      throw createError({
+        statusCode: 400,
+        message: `Service ${serviceId} has no endpoint — configure it in the plugin settings`
+      });
+    }
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(install.authToken ? { authorization: `Bearer ${install.authToken}` } : {})
+        },
+        body: JSON.stringify(parameters ?? null),
+        signal: AbortSignal.timeout(60000)
+      });
+    } catch (error) {
+      if (error?.name === 'TimeoutError') {
+        throw createError({ statusCode: 504, message: `Service ${serviceId} endpoint timed out` });
+      }
+      throw createError({ statusCode: 502, message: `Service ${serviceId} endpoint failed: ${error?.message || error}` });
+    }
+    if (!response.ok) {
+      const body = await response.text();
+      throw createError({ statusCode: 502, message: `Service ${serviceId} endpoint failed: ${body || response.statusText}` });
+    }
+    return await response.json();
+  }
+
   const run = await enqueueTask(command.id, {
     parameters: { value: parameters ?? null }
   }, auth, {
