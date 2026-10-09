@@ -235,8 +235,12 @@ The driving goal of the plugin work: **the facade domain itself is separated
 into a plugin** — its code leaves the platform, the platform mounts it as an
 independently versioned unit, and organizations manage it from the Plugins
 section. Every framework→facade import is a defect against this (SPEC §Server
-already forbids them); executable facade handlers move behind the connector
-protocol; editor surfaces ride the surface registry.
+already forbids them); the remaining path is dependency-ordered — the legacy
+sheet-designs entity service migrates to the generic instance machinery
+(SPEC §21 transitional), the mount's framework imports become an injected SDK
+context, then the pack's server side moves into the package as one deletable
+unit and the geometry handlers externalize behind endpoints like the already
+external nesting worker; editor surfaces ride the surface registry.
 
 Plugins are hosted two ways, one contract. **Self-written and self-hosted**:
 a coding agent authors the plugin (listing + executor) following the plugin

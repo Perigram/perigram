@@ -7,17 +7,10 @@ domain is separated into a plugin — code leaves the platform, the platform
 mounts it as an independently versioned unit, orgs manage it from the
 Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
 
-- [ ] Cut every framework→facade import — the server framework composes
-  mounted packs, never the facade symbol. Started 2026-10-09: the five
+- [x] Cut every server-framework→facade import (2026-10-09): the five
   `facadeAttachmentKinds`/`facadeDomain` imports are gone (composition via
   `composePackAttachmentKinds`/`composePackDomains`); the app-side remains
   (nuxt alias, editor components, check-arch script).
-- [ ] Connectorize the facade's executable handlers (bake/convertDxf/upload/
-  import-export; nesting already external) behind the connector protocol —
-  endpoint mode where the nesting shape fits.
-- [ ] Move `packages/facade` + `server/packs/facade` into their own
-  versioned unit mounted by the platform; editor surfaces ride the surface
-  registry.
 - [x] Per-org enable/install of the facade pack through the Plugins section
   (2026-10-09: mounted packs enabled by default, drain-gated disable with
   dependent/trial-compose gates, cascade enable, combined state endpoint;
@@ -26,6 +19,37 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
   endpoint/claim mode; plugin settings carry per-service API endpoints and
   the executor API key; agent authoring guide
   ([docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md)).
+- [ ] Sheet-designs §13 migration: `server/packs/facade/sheet-designs` is a
+  legacy v24 entity service (BaseEntity model, own repository + connectDB,
+  15+ framework imports — SPEC §21 transitional). It rides the generic
+  instance machinery like cassette did (one-way data migration, legacy
+  service/model/repository deleted); exports/layered-DXF stay as pack-bound
+  operations. Measured 2026-10-09 as the hard blocker for the physical move.
+- [ ] SDK seam: the mount's remaining framework imports
+  (`instanceServiceResolver`, artifact/files operations, dxf utils) become
+  an injected context (mount factory parameters) so pack code holds zero
+  `~/server` imports — the arch guard's package-portability rule enforces
+  this for anything under `packages/`.
+- [ ] Physical unit + executor: after the two above, `server/packs/facade`
+  moves into `packages/facade/server` (one deletable, independently
+  versionable directory), and bake/dxf geometry externalizes behind an
+  endpoint like nesting (already external — the FastAPI worker over HTTP).
+
+### Agent Notes (2026-10-09, relocation attempt — the measured blocker)
+
+Session `agent/facade-sdk-finding-20261009` (after discarding the
+`agent/facade-unit-20261009` move attempt). Attempted the physical move
+(`server/packs/facade` → `packages/facade/server`); the arch guard refused
+it correctly — package modules may not use Nuxt root aliases (portability
+rule). Measuring the real coupling: the mount's framework surface is tiny
+(three imports in `index.js`), but `sheet-designs/` is a complete legacy
+v24 entity service (BaseEntity model, repository with connectDB, 15+
+framework imports — core/blocks, machines, permissions, redaction, files,
+revisions) and `cassettes/` construction paths consume files service +
+instance resolver + dxf utils. So the dependency-ordered path is:
+sheet-designs §13 migration (cassette precedent) → injected SDK context →
+physical move, then geometry externalization. Nesting already runs
+external. The TODO checkboxes above now state that order.
 
 ### Agent Notes (2026-10-09, pack enablement)
 
