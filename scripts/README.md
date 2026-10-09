@@ -27,10 +27,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   registry entries marked `instanceService: true` resolve through the generic
   instance feature (`server/features/instances`) and declare no feature
   directory of their own; the guard skips their feature-directory checks.
-- `check-agent-scope.js`: Diff guard for top-layer composition agents. It
-  compares committed, staged, unstaged, and untracked files against
-  `.agents/app-layer.allowlist` and fails if an agent touched core/runtime/shared
-  paths outside the allowed app-layer surface.
+- `check-agent-scope.js`: Diff guard comparing committed, staged, unstaged,
+  and untracked files against a glob allowlist file. Two allowlists exist:
+  `.agents/app-layer.allowlist` for top-layer composition agents
+  (default-deny — surfaces are added by the repository owner), and
+  `.agents/design-layer.allowlist` for design-scoped contributors
+  (see Guardrail Scope).
 - `check-docs.js`: Documentation integrity guardrail for the README tree. It
   fails on broken internal markdown links (relative targets that do not resolve
   to an existing file) and on duplicated canonical-contract passages — both
@@ -109,6 +111,18 @@ external top-layer agents before they commit or push. It is intentionally
 allowlist-based: new composition surfaces must be added to
 `.agents/app-layer.allowlist` by the repository owner instead of letting the
 agent edit core files ad hoc.
+
+`npm run design:scope-check -- --base origin/local` is the same guard bound
+to `.agents/design-layer.allowlist` — the designer write surface; the
+allowlist file is the canonical list of design-scoped paths.
+`.forgejo/workflows/design-scope.yml` enforces it on pull requests to
+`local`: PRs authored by a login in the workflow's `DESIGNER_LOGINS` env
+are diffed against the allowlist and fail CI on any out-of-scope file,
+while PRs from other authors pass through unchanged, so the job can be a
+required status check. Onboarding a designer: replace the
+`designer-placeholder` login in the workflow, give the account no direct
+push rights to `local`, and mark the `design-scope` job required in branch
+protection.
 
 `npm run docs:validate` is the mandatory documentation guardrail. It resolves
 every internal relative link in the README tree against the repository and
