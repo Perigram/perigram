@@ -524,13 +524,23 @@ const adoptLiveRoom = () => {
     for (const { track, element } of adoptedAudioAttachments) attachedAudio.set(track, element);
     bindRoomEvents(livekitRoom);
     const local = livekitRoom.localParticipant;
-    micEnabled.value = local.isMicrophoneEnabled();
-    cameraEnabled.value = local.isCameraEnabled();
-    sharing.value = local.isScreenShareEnabled();
+    // Track enablement is a getter triple on LocalParticipant (the set*
+    // counterparts are the methods); calling them crashed every adoption.
+    micEnabled.value = local.isMicrophoneEnabled;
+    cameraEnabled.value = local.isCameraEnabled;
+    sharing.value = local.isScreenShareEnabled;
     syncTile(local.identity, local.name, { muted: !micEnabled.value });
+    // The local camera/screen publications will not re-publish on adoption,
+    // so seed them from the current publications or the local tile degrades
+    // to the avatar after a transfer.
+    for (const publication of local.trackPublications.values()) {
+        if (publication.kind !== LiveKit.Track.Kind.Video) continue;
+        const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
+        syncTile(local.identity, local.name, { isScreen, hasVideo: Boolean(publication.track), track: publication.track || null });
+    }
     for (const participant of livekitRoom.remoteParticipants.values()) {
         syncTile(participant.identity, participant.name);
-        for (const publication of participant.trackPublications) {
+        for (const publication of participant.trackPublications.values()) {
             const track = publication.track;
             if (!track || !publication.isSubscribed) continue;
             if (publication.kind === LiveKit.Track.Kind.Video) {
