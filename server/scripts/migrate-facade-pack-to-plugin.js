@@ -22,6 +22,20 @@ const SERVICE_REWRITES = {
   'nesting.solve': 'plugin.facade.nesting-solve'
 };
 
+// The demo deployment's executor connection: endpoint-mode services get
+// the compose-internal executor URL (orgs rewire it from the plugin's
+// Connection settings).
+const executorUrl = process.env.FACADE_EXECUTOR_URL || 'http://facade-executor:8790';
+function endpointsFor(services = []) {
+  const endpoints = {};
+  for (const service of services) {
+    if (service?.mode === 'endpoint' && service.id) {
+      endpoints[service.id] = `${executorUrl.replace(/\/+$/, '')}/${service.id}`;
+    }
+  }
+  return endpoints;
+}
+
 const listingPath = process.argv[2] || 'workers/facade/listing.json';
 const listing = normalizeListing(JSON.parse(readFileSync(listingPath, 'utf8')));
 
@@ -52,6 +66,12 @@ for (const org of orgs) {
   const existing = await db.collection('plugin_installs').findOne({ organizationId, pluginId: listing.pluginId });
   if (existing) {
     alreadyInstalled += 1;
+    if (!existing.endpoints || !Object.keys(existing.endpoints).length) {
+      await db.collection('plugin_installs').updateOne(
+        { _id: existing._id },
+        { $set: { endpoints: endpointsFor(listing.declarations.services) } }
+      );
+    }
   } else {
     await db.collection('plugin_installs').insertOne({
       organizationId,
@@ -61,6 +81,7 @@ for (const org of orgs) {
       declarations: listing.declarations,
       services: listing.declarations.services,
       requires: listing.requires,
+      endpoints: endpointsFor(listing.declarations.services),
       connectorToken: randomBytes(24).toString('base64url'),
       installedAt: new Date()
     });

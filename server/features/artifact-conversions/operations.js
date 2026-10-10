@@ -1,5 +1,3 @@
-import * as conversionService from './service.js';
-
 // The command handler stays domain-free: the organization's installed
 // plugins supply the declared conversion catalog (entity-target
 // conversions dispatch to the plugin's executor — see the feature's

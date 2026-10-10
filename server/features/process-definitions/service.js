@@ -2018,7 +2018,7 @@ function getDomain() {
 // stored type fails loudly here rather than silently compiling without it.
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
-  return projectDomainFromView(registry, organizationId, getDomain(), {
+  return projectDomainFromView(registry, organizationId, await packDomainsForOrganization(organizationId), {
     packServices: await packServicesForOrganization(organizationId)
   });
 }

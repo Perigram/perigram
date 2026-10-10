@@ -2,7 +2,7 @@
 // @perigram/facade now live in the plugin listing
 // (workers/facade/listing.json) — this helper shapes them for the specs
 // and fixtures that seed registries, projections, and demo processes.
-import listing from '../workers/facade/listing.json';
+import listing from '../workers/facade/listing.json' with { type: 'json' };
 
 export const facadeListing = listing;
 

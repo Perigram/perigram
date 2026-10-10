@@ -19,6 +19,7 @@ services:
       - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
       - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - PLATFORM_OPERATOR_TOKEN=${PLATFORM_OPERATOR_TOKEN:-perigram-dev-operator}
+      - FACADE_EXECUTOR_URL=${FACADE_EXECUTOR_URL:-http://facade-executor:8790}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
       - LIVEKIT_PUBLIC_URL=${LIVEKIT_PUBLIC_URL:-ws://localhost:7880}
       - LIVEKIT_INTERNAL_URL=${LIVEKIT_INTERNAL_URL:-ws://livekit:7880}
@@ -103,13 +104,12 @@ services:
 
   # The facade plugin's executor (endpoint mode): the app calls it per
   # configured service endpoint — http://facade-executor:8790/<serviceId>.
-  # Runs from the repo mount with the shared node_modules volume.
+  # Runs from the repo mount with the host node_modules (pure-JS deps).
   facade-executor:
     image: node:24-alpine
     working_dir: /src
     volumes:
       - .:/src
-      - /src/node_modules
     environment:
       - FACADE_EXECUTOR_PORT=8790
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest

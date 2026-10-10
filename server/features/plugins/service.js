@@ -349,6 +349,14 @@ export async function packDomainsForOrganization(organizationId) {
       }
       merged.construction[typeId] = { modes: Object.keys(modes) };
     }
+    // Plugin value services are commands: `plugin.<x>.<y>` executes
+    // through the connector path (the compiler's command table and the
+    // command runtime agree on this shape).
+    for (const service of install.services || []) {
+      if (!service?.id) continue;
+      const commandId = `plugin.${install.pluginId}.${service.id}`;
+      merged.commands[commandId] = { id: commandId, service: `plugin.${install.pluginId}`, action: 'run', plugin: true };
+    }
   }
   return merged;
 }

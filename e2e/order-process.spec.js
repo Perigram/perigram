@@ -92,35 +92,36 @@ test('the order process runs live: table rows become baked designs, materials, a
   const activated = await app.request.post(`/api/process-definitions/${definitionId}/activate`);
   expect(activated.ok(), await activated.text()).toBeTruthy();
 
-  // A real PARAMETRIC template through the save command — the OCCS
-  // document rides the payload.
+  // A real PARAMETRIC template through the generic instance machinery —
+  // the OCCS document rides the payload (the cassette designer's own
+  // persistence path: the compiled create action, then payload PUT).
   const { createDefaultOccsCassetteTemplateDefinition } = await import('../utils/occs/templates.js');
   const templateName = `Tray 600 ${Date.now()}`;
-  const templateRun = await app.request.post('/api/admin/commands/saveCassetteTemplate/run', {
-    data: {
-      entities: {},
-      parameters: {
-        name: templateName,
-        type: 'PARAMETRIC',
-        definition: createDefaultOccsCassetteTemplateDefinition(),
-        parameters: []
+  const species = await app.seedSpeciesProcess({ types: [TABLE_TYPE, 'cassette'], via: { [TABLE_TYPE]: 'upload', cassette: 'editor' } });
+  const cassetteCreate = (await app.activeActions()).find(action => action.actionKind === 'createEntity' && action.typeId === 'cassette');
+  expect(cassetteCreate, 'the species process seeds a cassette create action').toBeTruthy();
+  const createAction = await app.executeAction(cassetteCreate.id, { data: { 'data.name': templateName } });
+  const createdTemplateRecord = createAction?.created ?? createAction?.entity ?? createAction;
+  const templateId = createdTemplateRecord?._id || createdTemplateRecord?.id;
+  expect(templateId, 'the create action produced a cassette template').toBeTruthy();
+  const payloadUpload = await app.request.put(`/api/instances/cassette/${templateId}/payload`, {
+    multipart: {
+      file: {
+        name: `${templateName}.occs`,
+        mimeType: 'application/perigram+occs',
+        buffer: Buffer.from(JSON.stringify(createDefaultOccsCassetteTemplateDefinition()), 'utf8')
       }
     }
   });
-  expect(templateRun.ok(), await templateRun.text()).toBeTruthy();
-  const commandResult = (await templateRun.json())?.result;
-  const templateId = commandResult?.data?.cassetteId
-    ?? (commandResult?.entities || []).find(entity => entity?.type === 'cassette')?.id;
-  expect(templateId, 'the command produced a cassette template').toBeTruthy();
+  expect(payloadUpload.ok(), await payloadUpload.text()).toBeTruthy();
   app.trackCleanup(async () => {
     await app.request.delete(`/api/instances/cassette/${templateId}`, { failOnStatusCode: false });
   });
 
-  // A real xlsx order table uploaded through the workbook create action.
-  // The species process seeds that action (one upload construct for the
-  // workbook type, activated beside the order process — the executable
+  // A real xlsx order table uploaded through the workbook create action
+  // (seeded above beside the cassette editor action — the executable
   // action set is the union of every ACTIVE definition).
-  const species = await app.seedSpeciesProcess({ types: [TABLE_TYPE], via: { [TABLE_TYPE]: 'upload' } });
+
   const { utils, write } = await import('xlsx');
   const sheet = utils.aoa_to_sheet([
     ['name', 'cassette', 'A', 'B'],

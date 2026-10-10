@@ -1,8 +1,3 @@
-import { createError } from 'h3';
-import { createInstanceRef, createProvenance } from '../../core/blocks/index.js';
-import * as artifactsService from '../artifacts/service.js';
-import * as filesService from '../files/service.js';
-
 // The conversion capability is plugin-agnostic machinery: installed
 // plugins supply the declared conversion catalog (id, label, sourceKinds,
 // target) with optional service bindings through their listing snapshots
