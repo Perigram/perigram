@@ -82,10 +82,21 @@ function serviceAuth(context = {}) {
 }
 
 async function buildServiceInput(typeId, mode, draft, context, organizationId) {
-  const { instanceServiceResolver, declarationFor } = await import('./service.js');
-  const declaration = await declarationFor(typeId, organizationId);
+  const { instanceServiceResolver, declarationForType } = await import('./service.js');
+  const declaration = await declarationForType(typeId, organizationId);
   const operator = Object.values(declaration?.operators || {})
     .find(candidate => candidate?.species === 'construct' && candidate.id === mode) || null;
+
+  // Construction inputs may arrive row-relative (top-level `template`,
+  // `parameters`) or data-qualified (`data.template`): the in-process
+  // handlers always accepted both spellings, and the executor contract
+  // reads the data-qualified form — normalize once, here.
+  const draftData = { ...(draft?.data || {}) };
+  for (const field of Object.keys(operator?.input?.fields || {})) {
+    if (draftData[field] === undefined && draft?.[field] !== undefined) {
+      draftData[field] = draft[field];
+    }
+  }
 
   // Ref inputs resolve to values: the referenced instance, its identity,
   // and — when it carries a payload — the payload document as base64.
@@ -93,7 +104,7 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
   const refs = {};
   for (const [field, fieldDef] of Object.entries(operator?.input?.fields || {})) {
     if (fieldDef?.base !== 'ref') continue;
-    const id = String(draft?.data?.[field] ?? '').trim();
+    const id = String(draftData[field] ?? '').trim();
     if (!id) continue;
     const accepted = Array.isArray(fieldDef.accepts) ? fieldDef.accepts : [];
     let instance = null;
@@ -131,7 +142,7 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
     typeId,
     draft: {
       identity: draft?.identity || null,
-      data: draft?.data || {},
+      data: draftData,
       lineage: draft?.lineage || null
     },
     refs,
