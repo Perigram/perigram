@@ -9,6 +9,8 @@ updated: 2026-10-01
 
 This spec is human-write only. 
 
+Perigram is a system to program business processes, compiled into apps.
+
 This project gets migrated from cnc-domain to process programming with "cts" types in Process Designer. Everything that is legacy (hardcoded
 "entities" and "services") should be replaced.
 
