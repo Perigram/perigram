@@ -22,7 +22,6 @@ const CTS_KIND = Object.freeze({
   field: 'cts.field',
   compose: 'cts.compose',
   decompose: 'cts.decompose',
-  join: 'cts.join'
 });
 
 const CTS_SERVICE_KIND = 'cts.service';

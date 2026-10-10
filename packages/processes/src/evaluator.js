@@ -73,19 +73,13 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
       return [facet.path, isMissingField(facetValue) ? missingFieldMarker(facet.path) : structuredClone(facetValue)];
     })));
   }
-  if (kind === 'cts.join') return solveDataTrees([
-    { tree: required(packets, 'primary', record), access: 'list' },
-    { tree: required(packets, 'secondary', record), access: 'list' }
-  ], ([primary, secondary]) => [...primary, ...secondary], { outputAccess: 'list', matching: record.matching });
   if (kind.startsWith('source.')) return executeSource(record, context);
-  if (kind === 'value.cast' || kind === 'value.parse') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
+  if (kind === 'value.cast') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
   if (kind === 'value.recordField') return mapDataPacket(required(packets, 'value', record), value => {
     const fieldValue = readPath(value, String(record.path || ''));
     return isMissingField(fieldValue) ? missingFieldMarker(record.path) : fieldValue;
   });
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
-  if (kind === 'value.toEntityRef') return mapDataPacket(required(packets, 'value', record), value => entityReference(value, record.typeId));
-  if (kind === 'value.toJson') return mapDataPacket(required(packets, 'value', record), value => structuredClone(value));
   if (kind === 'value.required') return mapDataPacket(required(packets, 'value', record), value => {
     if (isMissingField(value)) throw new Error(`${record.id || kind} requires a value that is missing at ${value.path}`);
     if (value == null) throw new Error(`${record.id || kind} received a null required value`);
@@ -95,7 +89,6 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     value == null || isMissingField(value) ? fallback : value
   ));
   if (kind === 'value.validate') return mapDataPacket(required(packets, 'value', record), value => validateValue(value, record));
-  if (kind === 'value.enum') return mapDataPacket(required(packets, 'value', record), value => String(value));
   // Polymorphic operations evaluate through the registry (SPEC §8
   // atomicity law): one home owns sockets and evaluation.
   if (PROCESS_OPERATION_REGISTRY[kind]) return runProcessOperation(record, packets);
@@ -445,11 +438,6 @@ function convertUnit(value, from, to, custom = {}) {
   const factors = { mm: 1, cm: 10, m: 1000, mm2: 1, cm2: 100, m2: 1_000_000, degree: 1, radian: 180 / Math.PI, ...custom };
   if (!factors[from] || !factors[to]) throw new Error(`Unsupported unit conversion ${from} → ${to}`);
   return Number(value) * factors[from] / factors[to];
-}
-
-function entityReference(value, typeId) {
-  if (!value || typeof value !== 'object') throw new Error('Entity reference conversion requires an entity');
-  return { type: typeId || value.type || value.typeId, id: String(value._id || value.id || value.identity?.uid) };
 }
 
 function format(record, value) {

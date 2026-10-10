@@ -54,18 +54,14 @@ const definitions = [
   source('source.secretRef', 'secretReference'),
 
   data('value.cast', 'cast'),
-  data('value.parse', 'parse'),
   data('value.recordField', 'recordField'),
   data('value.convertUnit', 'convertUnit'),
-  data('value.toEntityRef', 'toEntityRef'),
-  data('value.toJson', 'toJson'),
   data('value.required', 'required'),
   data('value.coalesce', 'coalesce'),
   data('value.validate', 'validate'),
   data('value.math', 'math'),
   data('value.string', 'string'),
   data('value.dateTime', 'dateTime'),
-  data('value.enum', 'enum'),
   data('value.compare', 'compare'),
   data('value.logic', 'logic'),
   data('value.format', 'format'),
@@ -122,7 +118,6 @@ const definitions = [
   cts('cts.field', 'field', 'records', 'data'),
   cts('cts.compose', 'compose', 'records', 'data'),
   cts('cts.decompose', 'decompose', 'records', 'data'),
-  cts('cts.join', 'join', 'records', 'data'),
 
   trigger('control.manualTrigger', 'manualTrigger'),
   trigger('control.webhookTrigger', 'webhookTrigger'),
@@ -527,16 +522,6 @@ function cts(kind, label, family, level) {
       if (record.kind === 'cts.compose' || record.kind === 'cts.decompose') {
         return nativeStructurePorts(record, context);
       }
-      if (record.kind === 'cts.join') {
-        const entity = processType('entityRef', { typeId: typeIdOf(record) || undefined });
-        return {
-          inputs: [
-            socket('primary', entity, DATA, true, 'list'),
-            socket('secondary', entity, DATA, true, 'list')
-          ],
-          outputs: [socket('result', entity, DATA, false, 'list')]
-        };
-      }
       return { inputs: [], outputs: [] };
     }
   };
@@ -614,18 +599,12 @@ function catalogPorts(record = {}, context = {}) {
       outputs: [socket('value', processTypeFrom(record.type, processType('json', { nullable: true })), DATA, false, 'list')]
     };
   }
-  if (kind === 'value.cast' || kind === 'value.parse' || kind === 'value.convertUnit'
-    || kind === 'value.toJson' || kind === 'value.required' || kind === 'value.validate'
-    || kind === 'value.enum' || kind === 'value.format') {
+  if (kind === 'value.cast' || kind === 'value.convertUnit'
+    || kind === 'value.required' || kind === 'value.validate'
+    || kind === 'value.format') {
     return unary(
       processTypeFrom(record.sourceType, configured),
       processTypeFrom(record.outputType, configured)
-    );
-  }
-  if (kind === 'value.toEntityRef') {
-    return unary(
-      processTypeFrom(record.sourceType, entity),
-      processTypeFrom(record.outputType, entityRef)
     );
   }
   if (kind === 'value.coalesce') return {

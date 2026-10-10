@@ -72,7 +72,6 @@ export function iconForProcessNode(kind = '') {
   if (kind.startsWith('cts.field')) return 'pi pi-angle-right';
   if (kind.startsWith('cts.compose')) return 'pi pi-box';
   if (kind.startsWith('cts.decompose')) return 'pi pi-objects-column';
-  if (kind.startsWith('cts.join')) return 'pi pi-arrows-merge';
   if (kind.startsWith('source.')) return 'pi pi-circle-fill';
   if (kind.startsWith('value.')) return 'pi pi-sliders-h';
   if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
