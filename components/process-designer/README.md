@@ -143,9 +143,12 @@ catalog contributes one bound construct per constructible type/mode.
 registered service species. **Instances** owns context, all, the declared
 projection, exact declared-edge traversal, the single-field projection,
 and the instance elimination form (`cts.decompose` — every declared facet
-as its own typed output). **Values** and **Collections** own explicit
-value/list/branch semantics, with the numeric reductions in Collections.
-**Flow** owns control.
+as its own typed output). **Values** owns literals, comparison, logic,
+text, dates, math, and the value utilities (cast, parse, unit conversion,
+coalesce, format, required, validate). **List/Tree** owns the exhaustive
+collection and tree algebra (filter, sort, dispatch, group, reduce,
+reverse, shift, partition, flatten, graft, simplify, branch, zip, cross,
+transpose, clean, stats). **Flow** owns control.
 Both the rail palette and the canvas context palette render through one
 component, `OperationPalette.vue`: searchable chip groups — localized
 group labels above wraps of small PrimeVue Buttons (no icons). Each
