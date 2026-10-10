@@ -788,11 +788,17 @@ value of the List input (a service row, a composed parameter record),
 with the authored output type — the same authoring gesture open-block Get
 Field uses, for plain record values. The structure species execute natively
 with the same semantics their catalog ports declare: `cts.compose` composes
-open entries into one block per aligned tuple, `cts.decompose` reads each
-declared facet path off the instance (one facet when a specific output is
-pulled, the facet map otherwise — the same facet list its ports derive
-from the field schemas), and `cts.join`
-concatenates two same-type streams. Every polymorphic operation is
+open entries into one block per aligned tuple, and `cts.decompose` reads
+each declared facet path off the instance (one facet when a specific
+output is pulled, the facet map otherwise — the same facet list its ports
+derive from the field schemas). Duplicate kinds are consolidated rather
+than kept beside their twins: same-type stream concatenation is
+`collection.concat` with an entityRef element type (`cts.join` is
+deleted), `value.cast` owns type conversion (`value.parse` shared its
+evaluator and `value.enum` was cast-to-string), and the wire law's
+implicit entity→entityRef and JSON coercions absorbed `value.toEntityRef`
+and `value.toJson` — persisted drafts reconnect through those nodes via
+the one-shot migration. Every polymorphic operation is
 list-aware through the packet tree, including string `split` (each item's
 segments land as a sub-branch) and `join` (one string per branch) — no
 operation flattens to the first item. Item access maps matched items, List

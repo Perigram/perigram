@@ -61,6 +61,19 @@ slots-era shape to the full SPEC §20 kind table with explicit
 unmigratable reporting (send-to-organization effects, patch algebra,
 producer-path joins).
 
+Deletion/consolidation pass (owner prompt 2026-10-10, "no need to delete
+or replace anything?"): five duplicate/no-op kinds deleted — `value.parse`
+(shared `value.cast`'s evaluator verbatim), `value.enum` (cast-to-string),
+`value.toEntityRef` and `value.toJson` (absorbed by the wire law's implicit
+coercions; stored nodes reconnect straight through), `cts.join` (typed
+twin of `collection.concat`; migration rewrites primary/secondary→left/
+right handles). Identified but deferred: `cts.read select=parent` should
+decompose into `cts.decompose` → `lineage.<key>` ref → a `select=ref`
+resolve read (the atomic composition the decompose law implies — needs a
+SPEC §20 select-list change and graph-surgery migration), and the retired
+`control.manualTrigger`/`webhookTrigger` entry-point machinery needs its
+own retirement look.
+
 Validation: `npx vitest run packages/processes packages/cts` (539),
 `shared/framework-packages.spec.js` + `shared/design-system.spec.js` (40),
 `vitest.ssr.config.js` (3), `node scripts/check-arch.js`,
