@@ -75,11 +75,16 @@ the inspector: `collection.join` keys (`leftKey`/`rightKey`),
 `record.construct` (`fields`).
 
 One home per operation (SPEC §8 palette law): `value.compare` owns value
-comparison, `predicate.field` owns field-path comparison, and `value.logic`
-composes boolean algebra only (the null tests stay on it as unary boolean
-tests). Stored graphs authored before the split carry comparison ops on
-`value.logic`; `normalizeProcessNodesForDomain` migrates them one-way to
-`value.compare` at the load boundary. Current species ports mint
+comparison and `value.logic` composes boolean algebra only (the null tests
+stay on it as unary boolean tests). Stored graphs authored before the split
+carry comparison ops on `value.logic`; `normalizeProcessNodesForDomain`
+migrates them one-way to `value.compare` at the load boundary. The
+polymorphic kinds (math, string, dateTime, compare, logic, list reduction)
+carry their operations in one registry (`operations.js`: sockets and
+evaluation per operation); the catalog's port projection, the evaluator,
+and the authoring defaults derive from it and never restate operation
+lists. Numeric list reductions (`collection.reduce`: sum, average, min,
+max) join the collection family. Current species ports mint
 `entityRef` — the `entity` spelling survives only inside the persisted-v4
 compatibility tier and the wire coercion (`types.js`), and every
 producer-output acceptance rule recognizes both spellings.
@@ -181,8 +186,8 @@ references a declared transition; its process roles are carried as execution
 authorization without forking the type declaration into a producer-owned
 machine.
 Validation also emits non-operational warnings: any process node whose values
-cannot reach a persistence effect (reverse reachability over graph edges with
-`effect.*` nodes as the operational sinks) is reported as inspect-only. An
+cannot reach a persistence effect (reverse reachability over graph edges with the
+effect species as the operational sinks) is reported as inspect-only. An
 intentionally inspectable pure-data subgraph therefore stays valid while being
 surfaced as dead-end diagnostics through the compiled `warnings` channel the
 designer already renders.
@@ -388,10 +393,10 @@ vocabulary. Creation without an authored state default stamps the compiled
 machine's entry; every region remains independent, and recursive state
 trees stay nested inside their region.
 
-`src/templates.js` contains starter process templates for organization
-bootstrap. Each template exposes organization role identities separately from
-its process definition. The definition stores `roleGrants`; runtime behavior is
-driven only by the activated process plus current organization assignment.
+Organization bootstrap starts from an empty authoring set (starter
+templates were removed with the producer panel editors). The definition
+stores `roleGrants`; runtime behavior is driven only by the activated
+process plus current organization assignment.
 
 Role access is compositional. Organization records own immutable role ids and
 editable labels. Process definitions own mappings from those ids to behavior;
@@ -736,8 +741,16 @@ therefore the same contract used by durable execution and generated UI; a new
 canvas effect is not a runtime-only box.
 `dataflowVersion: 4` is the sole current operation protocol. Every executable
 canvas record lives under `processNodes` and has a namespaced kind from the
-catalog: `source.*`, `value.*`, `collection.*`/`tree.*`, `record.*`,
-`predicate.*`, `read.*`, `effect.*`, or `control.*`. Roles, entity profiles,
+catalog: `source.*`, `value.*`, `collection.*`/`tree.*`, `record.construct`,
+or `control.*` beside the CTS species (`cts.*`). The retired v4 executable
+kinds (`effect.*`, the `record.*` block substrate, `predicate.*`,
+`producer.join`) are deleted from the catalog and every execution path: the
+catalog and evaluator throw for them exactly as they do for the retired
+read kinds, the server effect executor is keyed on species records, and
+persisted drafts rewrite through
+[`server/scripts/migrate-v4-drafts-native.js`](../../server/scripts/README.md)
+(the SPEC §20 kind table; unmigratable shapes — send-to-organization
+effects, patch algebra, producer-path joins — are reported, not guessed). Roles, entity profiles,
 screens, assignments, and status definitions are definition-plane records and
 are not executable operations. Status definitions alone may project a typed
 status value socket; orchestration resolves that socket from the referenced
@@ -768,11 +781,14 @@ value of the List input (a service row, a composed parameter record),
 with the authored output type — the same authoring gesture open-block Get
 Field uses, for plain record values. The structure species execute natively
 with the same semantics their catalog ports declare: `cts.compose` composes
-open entries into one block per aligned tuple, `cts.decompose` projects the
-declared blocks (one block when a specific output is pulled, the block map
-otherwise, deriving the same block list its ports derive), and `cts.join`
-concatenates two same-type streams — no execution path rewrites a species
-kind to its legacy twin. Item access maps matched items, List
+open entries into one block per aligned tuple, `cts.decompose` reads each
+declared facet path off the instance (one facet when a specific output is
+pulled, the facet map otherwise — the same facet list its ports derive
+from the field schemas), and `cts.join`
+concatenates two same-type streams. Every polymorphic operation is
+list-aware through the packet tree, including string `split` (each item's
+segments land as a sub-branch) and `join` (one string per branch) — no
+operation flattens to the first item. Item access maps matched items, List
 access runs once per matched branch, and Tree access receives the complete
 structure. The authoring projection filters any typed list
 with the same data algebra: read/deconstruct the compared field over the list,
@@ -787,11 +803,11 @@ string and compares as a scalar, and enum values compare as their scalar string
 form — while typed entity references and other structured values compare by
 stable structural equality (sorted-key serialization): two values with the
 same content match regardless of key insertion order, and Distinct/Group By
-key on the same stable form. The runtime retains lower-level predicate and patch
-operations for execution/migration, but they are not separate authoring
-concepts. Only `effect.*` nodes may persist changes or invoke external work.
+key on the same stable form. Only the effect species may persist changes or
+invoke external work.
 
-Create Entity, Modify Entity, Change Status, Archive Entity, and Delete Entity use the same type-agnostic
+The mapped mutation species (`cts.construct`, `cts.mutate`,
+`cts.transition`, `cts.remove`) use the same type-agnostic
 effect mapper (`executeProcessEffectNode` in `evaluator.js`). It preflights
 every input tree before invoking the runtime adapter: scalar item packets may
 broadcast, list/tree packets must have equal item counts and aligned branch
@@ -921,10 +937,13 @@ needs no separate loop node. The evaluator lowers Lineage entity
 references to the declared stored id key and Get Field restores that id as the
 declared typed reference. Get Field on other open blocks authors the local key
 and output type explicitly rather than selecting invented global fields;
-Deconstruct Entity exposes blocks; Get Field reads one selected field from a
-block. Deconstruct Entity and Get Block select only blocks declared by the
-incoming entity contract (the entity's `blocks` list plus its field-access
-policy block prefixes, including the framework-owned `attachments` open block).
+`cts.decompose` is the instance elimination form (SPEC §20): every facet
+the bound type's projected field schemas declare — identity, row fields,
+`lineage.<key>` per declared edge, `relations.<key>`, the state axis,
+provenance, `_id` — is its own typed output socket, derived from the
+projection with no hardcoded block filtering. A facet the runtime value
+does not carry reads as the missing-field marker. `cts.field` remains the
+single-field projection (the same path vocabulary).
 Compilation rejects any other selected block with the same
 `uses block <block> outside <typeId>` diagnostic used by the legacy block
 kinds, and the evaluator enforces the identical check whenever the domain
@@ -981,8 +1000,9 @@ Current Time remain lazy and are evaluated when the consuming effect runs;
 date/date-time values may flow into string fields as their canonical temporal
 representation.
 
-`effect.changeStatus` consumes an entity reference, a typed status value, and
-an optional patch. The status may be supplied by a literal or configured from a
+`cts.transition` consumes an entity reference and the typed target state
+on its state socket (a `note` rides the optional note socket; an archive
+intent is expressed by `record.archiveIntent`). The status may be supplied by a literal or configured from a
 definition-plane status record. A status definition projects one typed `status`
 output into the authoring graph; the persisted wire stores the stable
 definition reference while execution resolves its current status id. Status
@@ -1236,8 +1256,8 @@ one-time broom is
 [`server/scripts/sweep-redundant-screens.js`](../../server/scripts/README.md)
 (dry-run default, `--apply` deletes and best-effort recompiles).
 
-The wiring graph context treats native species records (`cts.*`) as
-executable graph citizens beside the legacy `effect.*` kinds, and one
+The wiring graph context treats native species records (`cts.*`) as the
+executable graph citizens, and one
 derivation — `declaredTransitionSources`, the arrival states on an action's
 entity wires (with an authored `from` as legacy fallback, never a filter) —
 feeds every consumer: the machine edges (both compiler branches), the

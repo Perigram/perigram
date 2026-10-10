@@ -37,7 +37,7 @@ reads. Tech-drawing catalogue instances migrate into §3 documents through
 | `migrate-process-state-declarations.js` | Adopting state-parent derivation | Derives stable state parent ids and axes from declaration edges in stored process drafts/actives. Dry-run; `--apply` persists. |
 | `migrate-process-definitions-typeid.js` | Adopting the typeId vocabulary | Rewrites legacy `entityType`-family keys and templates into `typeId`-vocabulary equivalents in stored process definitions. `APPLY=1` writes. |
 | `migrate-process-legacy-bridges.js` | One-time legacy bridge cleanup | Removes retired legacy bridge records from stored process definitions. |
-| `migrate-v4-drafts-native.js` | Adopting native v4 species | Rewrites stored drafts into native v4/v5 species records. |
+| `migrate-v4-drafts-native.js` | Retiring the v4 execution tier | Rewrites stored drafts' retired executable kinds to the current species per the SPEC §20 kind table (dry-run default, `--apply` persists); records with no faithful mapping are reported for re-authoring. |
 | `migrate-process-definition-draft-names.js` | Repair | Collapses repeated trailing `draft` suffixes in process names. `APPLY=1` writes. |
 | `migrate-process-role-memberships.js` | Role membership moves | Migrates role membership data to the current contract. |
 | `migrate-process-transition-role-access.js` | Separating process-role transition authority | Removes compiled workflow `access.permissions` from transitions that already carry `processRoleIds`. Dry-run; `--apply` persists. |
