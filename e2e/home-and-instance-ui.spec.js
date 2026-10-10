@@ -62,6 +62,34 @@ test.describe('home and entity UI', () => {
     await app.expectCleanRuntime();
   });
 
+  test('editor-bound cassette detail offers its designer action', async ({ app }) => {
+    test.setTimeout(150_000);
+    // The cassette editor binding arrives with the served organization
+    // type view (the installed facade plugin), not the pack fallback: the
+    // record header must resolve it reactively and render the designer
+    // action — a module-scope binding snapshot froze the pre-auth
+    // fallback and dropped the editor entry after the facade cut.
+    const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'] });
+    const created = await app.createInstance('cassette', { 'data.name': 'Designer Cassette One' });
+    const id = String(created._id || created.id);
+    expect(id, 'Expected the created cassette id').toBeTruthy();
+    const detail = (manifest.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === 'cassette');
+    expect(detail?.route, 'Expected a compiled cassette detail screen').toBeTruthy();
+
+    await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+    await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(id)}`);
+
+    // The header's designer action (file-edit glyph) opens the designer
+    // dialog outside the workspace; the inline edit toggle keeps the
+    // pencil glyph, so the icons disambiguate the two affordances.
+    const designerAction = app.page.locator('.surface-header button .pi-file-edit').first();
+    await expect(designerAction).toBeVisible({ timeout: 20_000 });
+    await designerAction.click();
+    await expect(app.page.locator('.p-dialog').first()).toBeVisible({ timeout: 10_000 });
+    await expect(app.page.locator('.p-dialog').getByText('Cassette Designer').first()).toBeVisible({ timeout: 10_000 });
+    await app.expectCleanRuntime();
+  });
+
   test('instance detail layout follows its pane width', async ({ app }) => {
     test.setTimeout(120_000);
     // Image has no editor binding, so its detail renders the generic
