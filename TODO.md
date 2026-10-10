@@ -1,5 +1,30 @@
 # TODO
 
+## Node atomicity: one operation home, exhaustive basics, exhaustive decompose, v4 tier retired (2026-10-10)
+
+Owner direction (2026-10-10): the node layer operates like a dataflow
+toolkit — atomic operations covering the basics exhaustively, complex
+behavior composed by wiring, no hardcoded operation lists, no nodes doing
+what atoms already cover; `cts.decompose` exposes every facet of an
+instance (fields, lineage edges, state axis, provenance) as output sockets
+instead of bespoke per-fact nodes; the retired v4 execution tier
+(`effect.*`, `record.*` block substrate, `predicate.*`, `producer.join`)
+leaves the catalog, evaluator, orchestrator, and server with the species
+vocabulary as the only executable one (SPEC §20 already retires them —
+the code lagged).
+
+- [ ] A. Operation registry: one home per polymorphic operation
+  (sockets + evaluation); catalog ports, evaluator, and authoring
+  defaults derive from it (SPEC §8 atomicity law).
+- [ ] B. Basics coverage: math `trunc`/`sign`, string
+  `padStart`/`padEnd`/`indexOf`/`repeat`, list reductions
+  `sum`/`average`/`min`/`max`.
+- [ ] C. Exhaustive `cts.decompose`: per-facet typed outputs derived
+  from the projected field schemas; palette item (SPEC §20).
+- [ ] D. v4 execution tier retired: catalog throws for retired kinds,
+  server executor speaks species records, one-shot persisted-draft
+  migration rewritten to the current species shapes.
+
 ## Facade extraction: the domain becomes a separated plugin (2026-10-09)
 
 The owner's standing goal, restated after ten sessions missed it: the facade
