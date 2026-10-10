@@ -20,7 +20,8 @@ import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
-import { composePackServices, composePackDomains, orderedMountedPacks } from '~/server/packs/declarations.js';
+import { composePackServices, composePackDomains, composePackAttachmentKinds, orderedMountedPacks } from '~/server/packs/declarations.js';
+import { parseListing, normalizeListing } from '#packages/plugin-sdk/src/listing.js';
 
 function packById(packId) {
   return orderedMountedPacks().find(pack => pack.id === String(packId)) || null;
@@ -33,6 +34,15 @@ const PLUGIN_COMMAND_PATTERN = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 export async function listCatalog() {
   const listings = await repository.listCatalog();
   return listings.map(serializeListing);
+}
+
+// Platform-side publishing (the publish API's body): one parser with the
+// install gate — @perigram/plugin-sdk's listing contract — and the
+// normalized catalog document the install snapshots.
+export async function publishListing(listing = {}) {
+  const normalized = normalizeListing(listing);
+  await repository.upsertCatalogListing({ ...normalized, publishedAt: new Date() });
+  return serializeListing(normalized);
 }
 
 export async function listInstalled({ organizationId, auth = {} }) {
@@ -59,15 +69,34 @@ export async function install({ organizationId, pluginId, auth = {} }) {
   if (await repository.findInstall(organizationId, pluginId)) {
     throw createError({ statusCode: 409, message: 'Plugin already installed' });
   }
-  const types = listing.declarations?.types || [];
-  if (!types.length) throw createError({ statusCode: 400, message: 'Plugin declares no types' });
-  const services = (listing.declarations?.services || []).filter(service => service?.id && service?.signature);
-  for (const service of services) {
-    if (!PLUGIN_COMMAND_PATTERN.test(`plugin.${listing.pluginId}.${service.id}`)) {
-      throw createError({ statusCode: 400, message: `Plugin service id ${service.id} is not a slug` });
+  const layer = parseListingOr400(listing);
+  const { types, services, editors, attachmentKinds, conversions, requires } = layer;
+  // The plugin's packs must exist and stay enabled under it — a disabled
+  // requirement would strand the plugin's types the same way a disabled
+  // dependent pack would.
+  const disabledPacks = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
+  for (const packId of requires) {
+    if (!packById(packId)) {
+      throw createError({ statusCode: 400, message: `Plugin requires unknown pack ${packId}` });
     }
-    if (service.mode && !['endpoint', 'claim'].includes(service.mode)) {
-      throw createError({ statusCode: 400, message: `Plugin service ${service.id} declares an unknown mode ${service.mode}` });
+    if (disabledPacks.has(packId)) {
+      throw createError({ statusCode: 400, message: `Plugin requires pack ${packId}, which is disabled for this organization — enable it first` });
+    }
+  }
+  // Attachment kinds are global upload vocabulary: a kind id held by an
+  // enabled pack or another installed plugin is not claimable.
+  const heldKinds = composePackAttachmentKinds(orderedMountedPacks().filter(pack => !disabledPacks.has(pack.id)));
+  for (const install of await repository.listInstallsByOrganization(organizationId)) {
+    for (const kind of Object.keys(install.declarations?.attachmentKinds || {})) {
+      if (heldKinds[kind]) {
+        throw createError({ statusCode: 400, message: `Attachment kind ${kind} is already claimed — refusing the install` });
+      }
+      heldKinds[kind] = `plugin ${install.pluginId}`;
+    }
+  }
+  for (const kind of Object.keys(attachmentKinds)) {
+    if (heldKinds[kind]) {
+      throw createError({ statusCode: 400, message: `Attachment kind ${kind} is already declared by ${heldKinds[kind]} — plugin attachment kinds must not collide` });
     }
   }
 
@@ -107,8 +136,9 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types },
+    declarations: { types, editors, attachmentKinds, conversions },
     services,
+    requires,
     connectorToken: mintConnectorToken()
   });
   invalidateInstanceDeclarations(String(organizationId));
@@ -179,8 +209,12 @@ function serializeListing(listing = {}) {
     name: listing.name || listing.pluginId,
     description: listing.description || '',
     version: listing.version || '1',
+    requires: listing.requires || [],
     types: (listing.declarations?.types || []).map(typeSummary),
-    services: (listing.declarations?.services || []).map(serviceSummary)
+    services: (listing.declarations?.services || []).map(serviceSummary),
+    editors: (listing.declarations?.editors || []).map(editor => ({ type: editor.type, surface: editor.surface })),
+    attachmentKinds: Object.keys(listing.declarations?.attachmentKinds || {}),
+    conversions: (listing.declarations?.conversions || []).map(conversion => ({ id: conversion.id, label: conversion.label || conversion.id }))
   };
 }
 
@@ -190,6 +224,7 @@ function serializeInstall(install = {}) {
     name: install.name || install.pluginId,
     version: install.version || '1',
     installedAt: install.installedAt,
+    requires: install.requires || [],
     types: (install.declarations?.types || []).map(typeSummary),
     services: (install.services || []).map(serviceSummary)
   };
@@ -482,6 +517,17 @@ export async function disablePack({ organizationId, packId, auth = {} }) {
       });
     }
   }
+  // An installed plugin requiring the pack keeps it alive too — its types
+  // resolve against the pack's declarations the same way a dependent
+  // pack's do.
+  for (const install of await repository.listInstallsByOrganization(organizationId)) {
+    if ((install.requires || []).includes(target.id)) {
+      throw createError({
+        statusCode: 409,
+        message: `Pack ${target.id} is required by installed plugin ${install.pluginId} — uninstall it first`
+      });
+    }
+  }
   // Drain: live instances or process bindings on any pack type refuse.
   const blocked = [];
   for (const type of target.types || []) {
@@ -547,6 +593,28 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'admin');
   const { install, listing } = await loadUpgradePair(organizationId, pluginId);
+  const layer = parseListingOr400(listing);
+  // The upgraded pin's pack requirements must still hold, and its
+  // attachment kinds must stay claimable — the same laws the install gate
+  // enforces, re-checked against the world as it is now.
+  const disabledPacks = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
+  for (const packId of layer.requires) {
+    if (!packById(packId) || disabledPacks.has(packId)) {
+      throw createError({ statusCode: 409, message: `Upgrade requires pack ${packId}, which is not mounted or is disabled` });
+    }
+  }
+  const heldKinds = composePackAttachmentKinds(orderedMountedPacks().filter(pack => !disabledPacks.has(pack.id)));
+  for (const other of await repository.listInstallsByOrganization(organizationId)) {
+    if (String(other.pluginId) === String(install.pluginId)) continue;
+    for (const kind of Object.keys(other.declarations?.attachmentKinds || {})) {
+      heldKinds[kind] = `plugin ${other.pluginId}`;
+    }
+  }
+  for (const kind of Object.keys(layer.attachmentKinds)) {
+    if (heldKinds[kind]) {
+      throw createError({ statusCode: 409, message: `Upgrade declares attachment kind ${kind} already held by ${heldKinds[kind]}` });
+    }
+  }
   const plan = await buildUpgradePlan(install, listing, organizationId);
   if (plan.blocked.length) {
     throw createError({
@@ -567,7 +635,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
   const baseline = registry.compile(organizationId);
   const baselineErrors = new Set(baseline.ok ? [] : baseline.errors);
   const versionedTypes = [];
-  for (const type of listing.declarations.types) {
+  for (const type of layer.types) {
     if (registry.getType(type.id, organizationId)) {
       throw createError({
         statusCode: 400,
@@ -591,8 +659,14 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
 
   await repository.updateInstallSnapshot(organizationId, pluginId, {
     version: listing.version,
-    declarations: { types: versionedTypes.map(withoutMigrateSteps) },
-    services: (listing.declarations.services || []).filter(service => service?.id && service?.signature)
+    declarations: {
+      types: versionedTypes.map(withoutMigrateSteps),
+      editors: layer.editors,
+      attachmentKinds: layer.attachmentKinds,
+      conversions: layer.conversions
+    },
+    services: layer.services,
+    requires: layer.requires
   });
 
   // Covered breaking changes execute against live instances (SPEC §11
@@ -692,6 +766,14 @@ function withoutMigrateSteps(declaration = {}) {
   const next = { ...declaration };
   delete next.migrate;
   return next;
+}
+
+function parseListingOr400(listing) {
+  try {
+    return parseListing(listing);
+  } catch (error) {
+    throw createError({ statusCode: 400, message: `Invalid plugin listing: ${error.message}` });
+  }
 }
 
 function assertSameOrganization(organizationId, auth = {}) {

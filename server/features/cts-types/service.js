@@ -101,10 +101,60 @@ export async function describeOrganizationTypes(organizationId) {
     : orderedMountedPacks();
   const disabledPackIds = new Set(orderedMountedPacks().filter(pack => !packs.includes(pack)).map(pack => pack.id));
   const registry = await compileRegistryForOrganization(organizationId, { disabledPackIds });
+  const editors = [...composePackEditors(packs)];
+  const attachmentKinds = composePackAttachmentKinds(packs);
+  // Installed plugin declarations compose beside the enabled packs: editor
+  // bindings and attachment kinds are the installed layer of the same
+  // served vocabulary (SPEC §Plugin marketplace), under the same laws —
+  // a binding must target a file type the composed view declares, one
+  // editor per type, and a kind id is claimable once.
+  if (organizationId) {
+    const seenEditors = new Set(editors.map(editor => editor.type));
+    for (const install of await pluginInstalls.listInstallsByOrganization(organizationId)) {
+      for (const editor of install.declarations?.editors || []) {
+        if (!editor?.type || !editor?.surface || !(editor.modes || []).length) {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} carries a malformed editor binding: ${JSON.stringify(editor)}`
+          });
+        }
+        const declaration = registry.getType(editor.type, organizationId);
+        if (!declaration) {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} binds an editor for type ${editor.type}, which the composed view does not declare`
+          });
+        }
+        if (declaration.class !== 'file') {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} binds an editor for type ${editor.type} of class ${declaration.class} — editor bindings require file types`
+          });
+        }
+        if (seenEditors.has(editor.type)) {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} re-binds an editor for type ${editor.type} — exactly one editor per file type`
+          });
+        }
+        seenEditors.add(editor.type);
+        editors.push(Object.freeze({ type: editor.type, surface: editor.surface, modes: Object.freeze([...editor.modes]) }));
+      }
+      for (const [kind, contract] of Object.entries(install.declarations?.attachmentKinds || {})) {
+        if (attachmentKinds[kind]) {
+          throw createError({
+            statusCode: 500,
+            message: `attachment kind ${kind} is declared by both an enabled pack and installed plugin ${install.pluginId}`
+          });
+        }
+        attachmentKinds[kind] = contract;
+      }
+    }
+  }
   return {
     bundle: compileClientBundle(registry, organizationId),
-    attachmentKinds: composePackAttachmentKinds(packs),
-    editors: composePackEditors(packs)
+    attachmentKinds,
+    editors
   };
 }
 

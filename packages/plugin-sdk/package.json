@@ -1,0 +1,18 @@
+{
+  "name": "@perigram/plugin-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Author Perigram plugins: listing contract, executor harnesses, and the perigram-plugin CLI",
+  "exports": {
+    ".": "./src/index.js",
+    "./listing": "./src/listing.js",
+    "./endpoint-executor": "./src/endpoint-executor.js",
+    "./claim-executor": "./src/claim-executor.js",
+    "./api-client": "./src/api-client.js",
+    "./listing.schema.json": "./src/listing.schema.json"
+  },
+  "bin": {
+    "perigram-plugin": "./bin/perigram-plugin.js"
+  }
+}

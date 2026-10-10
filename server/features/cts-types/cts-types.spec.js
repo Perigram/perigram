@@ -13,7 +13,8 @@ vi.mock('../plugins/repository.js', () => ({
   enablePack: vi.fn(),
   disablePack: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
-  findDeclarationByTypeId: vi.fn(async () => null)
+  findDeclarationByTypeId: vi.fn(async () => null),
+  listInstallsByOrganization: vi.fn(async () => [])
 }));
 
 vi.mock('./repository.js', () => ({
@@ -54,12 +55,42 @@ describe('cts type storage', () => {
   });
 
   it('composes installed plugin declarations as a resolution source beside the org overlay', async () => {
-    pluginInstalls.listDeclarationsByOrganization.mockResolvedValue([
-      { id: 'coating', class: 'item', fields: { code: { base: 'string' } } }
-    ]);
+    const installedTypes = [
+      { id: 'coating', class: 'item', fields: { code: { base: 'string' } } },
+      { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
+    ];
+    pluginInstalls.listDeclarationsByOrganization.mockResolvedValue(installedTypes);
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      declarations: {
+        types: installedTypes,
+        editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
+        attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC', mimeType: 'text/plain' } }
+      }
+    }]);
     const bundle = await describeOrganizationTypes(ORG);
     expect(bundle.bundle.ok).toBe(true);
     expect(bundle.bundle.types.filter(type => type.id === 'coating')).toHaveLength(1);
+    // the installed layer of the served vocabulary: editors and attachment
+    // kinds compose beside the packs under the same laws
+    expect(bundle.editors).toContainEqual({ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] });
+    expect(bundle.attachmentKinds.COATING_DOC).toMatchObject({ mimeType: 'text/plain' });
+    expect(bundle.editors.some(editor => editor.type === 'cassette')).toBe(true);
+  });
+
+  it('refuses an installed editor binding the composed view cannot serve', async () => {
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      declarations: {
+        types: [],
+        editors: [{ type: 'ghost', surface: 'text-editor', modes: ['edit'] }]
+      }
+    }]);
+    await expect(describeOrganizationTypes(ORG))
+      .rejects.toMatchObject({ statusCode: 500, message: expect.stringContaining('ghost') });
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
   it('drops disabled packs from the composed org view and its served editors', async () => {

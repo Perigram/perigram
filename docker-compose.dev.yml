@@ -18,6 +18,7 @@ services:
       - NODE_ENV=development
       - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
       - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
+      - PLATFORM_OPERATOR_TOKEN=${PLATFORM_OPERATOR_TOKEN:-perigram-dev-operator}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
       - LIVEKIT_PUBLIC_URL=${LIVEKIT_PUBLIC_URL:-ws://localhost:7880}
       - LIVEKIT_INTERNAL_URL=${LIVEKIT_INTERNAL_URL:-ws://livekit:7880}

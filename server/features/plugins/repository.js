@@ -81,13 +81,13 @@ export async function deleteInstall(organizationId, pluginId) {
   });
 }
 
-// Upgrade apply: replace the pinned snapshot (declarations and services
-// are the pin; the connector token survives).
-export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services }) {
+// Upgrade apply: replace the pinned snapshot (declarations, services, and
+// pack requirements are the pin; the connector token survives).
+export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services, requires = [] }) {
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },
-    { $set: { version, declarations, services: services || [], upgradedAt: new Date() } }
+    { $set: { version, declarations, services: services || [], requires, upgradedAt: new Date() } }
   );
 }
 
@@ -122,7 +122,7 @@ export async function enablePack(organizationId, packId) {
 }
 
 // Connection settings: per-service endpoints and the executor API key.
-export async function updateSettings(organizationId, packId, { endpoints, authToken }) {
+export async function updateSettings(organizationId, pluginId, { endpoints, authToken }) {
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },

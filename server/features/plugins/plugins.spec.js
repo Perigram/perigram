@@ -29,6 +29,7 @@ vi.mock('../../core/tasks/service.js', () => ({
 vi.mock('./repository.js', () => ({
   listCatalog: vi.fn(async () => []),
   findCatalogByPluginId: vi.fn(async () => null),
+  upsertCatalogListing: vi.fn(),
   listInstallsByOrganization: vi.fn(async () => []),
   findInstall: vi.fn(async () => null),
   findInstallByConnectorToken: vi.fn(async () => null),
@@ -49,7 +50,7 @@ import * as typeStore from '../cts-types/repository.js';
 import {
   install, uninstall, listInstalled, servicesForOrganization,
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
-  regenerateConnectorToken, upgradePreview, applyUpgrade,
+  regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   settingsFor, updateSettings, listPackState, enablePack, disablePack
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
@@ -100,6 +101,27 @@ beforeEach(() => {
 });
 
 describe('plugin installs', () => {
+  it('publishes a valid listing normalized through the contract', async () => {
+    const valid = await publishListing(coatingListing);
+    expect(valid).toMatchObject({ pluginId: 'coatings', version: '2', requires: [] });
+    expect(repository.upsertCatalogListing).toHaveBeenCalledWith(expect.objectContaining({
+      pluginId: 'coatings',
+      requires: [],
+      declarations: expect.objectContaining({
+        types: coatingListing.declarations.types,
+        services: coatingListing.declarations.services,
+        editors: [],
+        attachmentKinds: {},
+        conversions: []
+      })
+    }));
+  });
+
+  it('refuses to publish a listing the contract rejects', async () => {
+    await expect(publishListing({ ...coatingListing, pluginId: 'Not A Slug' }))
+      .rejects.toMatchObject({ message: expect.stringContaining('pluginId') });
+    expect(repository.upsertCatalogListing).not.toHaveBeenCalled();
+  });
   it('installs a pinned declaration snapshot', async () => {
     repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
     const result = await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
@@ -108,9 +130,80 @@ describe('plugin installs', () => {
       organizationId: ORG,
       pluginId: 'coatings',
       version: '2',
-      declarations: { types: coatingListing.declarations.types }
+      declarations: expect.objectContaining({ types: coatingListing.declarations.types }),
+      requires: []
     }));
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
+  });
+
+  it('installs the full declaration layer beside the types', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      requires: ['documents'],
+      declarations: {
+        ...coatingListing.declarations,
+        types: [
+          ...coatingListing.declarations.types,
+          { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
+        ],
+        editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
+        attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
+        conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }]
+      }
+    });
+    await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      declarations: expect.objectContaining({
+        editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
+        attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
+        conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }]
+      }),
+      requires: ['documents']
+    }));
+  });
+
+  it('refuses a required pack that is not mounted or is disabled', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['nope'] });
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('unknown pack nope') });
+    repository.listDisabledPacks.mockResolvedValue(['facade']);
+    repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['facade'] });
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('disabled') });
+    expect(repository.createInstall).not.toHaveBeenCalled();
+    repository.listDisabledPacks.mockResolvedValue([]);
+  });
+
+  it('refuses an attachment kind an enabled pack or another install already holds', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: { ...coatingListing.declarations, attachmentKinds: { OCCS_SOURCE: { kind: 'OCCS_SOURCE' } } }
+    });
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('OCCS_SOURCE') });
+
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: { ...coatingListing.declarations, attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } } }
+    });
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'other',
+      declarations: { types: [], attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } } }
+    }]);
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('COATING_DOC') });
+    expect(repository.createInstall).not.toHaveBeenCalled();
+  });
+
+  it('refuses a malformed editor binding at the listing contract', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: { ...coatingListing.declarations, editors: [{ type: 'cassette', surface: 'text-editor', modes: ['edit'] }] }
+    });
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('Invalid plugin listing') });
+    expect(repository.createInstall).not.toHaveBeenCalled();
   });
 
   it('refuses a plugin type shadowing a system type id', async () => {
@@ -274,6 +367,7 @@ describe('upgrades', () => {
   const listingV3 = {
     ...coatingListing,
     version: '3',
+    requires: ['documents'],
     declarations: {
       types: [
         // changed: gains a required field WITH a covering default step
@@ -288,9 +382,14 @@ describe('upgrades', () => {
           migrate: [{ kind: 'add-default-field', field: 'gloss', value: 'matte' }]
         },
         // added
-        { id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string' } } }
+        { id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string' } } },
+        // added file type with an editor binding
+        { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
       ],
-      services: coatingListing.declarations.services
+      services: coatingListing.declarations.services,
+      editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
+      attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
+      conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }]
     }
   };
 
@@ -312,7 +411,7 @@ describe('upgrades', () => {
   it('previews additions, changes, and declared migration steps', async () => {
     const plan = await upgradePreview({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(plan).toMatchObject({ from: '2', to: '3' });
-    expect(plan.added.map(type => type.id)).toEqual(['primer']);
+    expect(plan.added.map(type => type.id)).toEqual(['primer', 'coating-sheet']);
     expect(plan.changed.map(change => change.typeId)).toEqual(['coating']);
     expect(plan.blocked).toEqual([]);
     const coating = plan.changed[0];
@@ -343,7 +442,12 @@ describe('upgrades', () => {
     expect(result).toMatchObject({ pluginId: 'coatings', version: '3' });
     const persisted = repository.updateInstallSnapshot.mock.calls[0][2];
     expect(persisted.version).toBe('3');
-    expect(persisted.declarations.types.map(type => type.id).sort()).toEqual(['coating', 'primer']);
+    expect(persisted.declarations.types.map(type => type.id).sort()).toEqual(['coating', 'coating-sheet', 'primer']);
+    // the extended declaration layer rides the pin beside the types
+    expect(persisted.declarations.editors).toEqual([{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }]);
+    expect(persisted.declarations.attachmentKinds).toEqual({ COATING_DOC: { kind: 'COATING_DOC' } });
+    expect(persisted.declarations.conversions).toHaveLength(1);
+    expect(persisted.requires).toEqual(['documents']);
     // one-time steps never persist (SPEC §11)
     expect(persisted.declarations.types.some(type => type.migrate)).toBe(false);
     expect(applyTypeMigrationSteps).toHaveBeenCalledWith(expect.objectContaining({
@@ -351,6 +455,15 @@ describe('upgrades', () => {
       steps: [{ kind: 'add-default-field', field: 'gloss', value: 'matte' }]
     }));
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
+  });
+
+  it('refuses an upgrade whose pack requirements no longer hold', async () => {
+    repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, requires: ['facade'] }));
+    repository.listDisabledPacks.mockResolvedValue(['facade']);
+    await expect(applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('facade') });
+    expect(repository.updateInstallSnapshot).not.toHaveBeenCalled();
+    repository.listDisabledPacks.mockResolvedValue([]);
   });
 
   it('refuses the upgrade when already at the catalog version', async () => {
@@ -489,6 +602,20 @@ describe('mounted-pack enablement', () => {
     await expect(disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 409 });
     expect(repository.disablePack).not.toHaveBeenCalled();
+  });
+
+  it('refuses disabling a pack an installed plugin requires', async () => {
+    // both dependent packs disabled so the pack-dependent gate stays quiet
+    // and the installed-plugin gate is the one that refuses
+    repository.listDisabledPacks.mockResolvedValue(['facade', 'tech-drawing']);
+    repository.listInstallsByOrganization.mockResolvedValue([
+      { organizationId: ORG, pluginId: 'coatings', requires: ['documents'] }
+    ]);
+    await expect(disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('required by installed plugin coatings') });
+    expect(repository.disablePack).not.toHaveBeenCalled();
+    repository.listDisabledPacks.mockResolvedValue([]);
+    repository.listInstallsByOrganization.mockResolvedValue([]);
   });
 
   it('refuses disabling a pack whose types have live instances', async () => {
