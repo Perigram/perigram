@@ -360,9 +360,18 @@ and resolve on merge.
 
 Validation: full vitest (my-tree failures = base failures + the
 pre-merge-fix inspector file), check-arch green, docs guard green,
-framework:validate green, manifest regenerated. Remaining to run against
-the live stack: the container migration + executor compose service +
-E2E loop.
+framework:validate green, manifest regenerated.
+
+Live stack (dev compose): the platform boots HTTP 200 with zero facade
+code; the migration installed the plugin for all 999 orgs with demo
+endpoints wired; the facade-executor serves live in the compose network;
+new orgs default-install at creation; the order-process E2E walks the
+plugin world end to end (species create action + payload PUT +
+activation with plugin-qualified service commands) and stops at the
+workbook `rows` projection seam — the same e2e family already red on
+the merged base before the cut. Follow-ups in this session's fix commit:
+default plugin installs, plugin services as compiler commands, org-aware
+projected domain, endpoint wiring.
 
 ### Agent Notes (2026-10-10, M1 + SDK)
 
