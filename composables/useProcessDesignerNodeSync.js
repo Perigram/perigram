@@ -181,7 +181,10 @@ export function useProcessDesignerNodeSync({
     const items = designer.paletteGroups.flatMap(group => group.items)
       .filter(candidate => candidate.kind === node.kind)
       .filter(candidate => !candidate.preset?.typeId || candidate.preset.typeId === boundType);
-    const item = items.find(candidate => candidate.preset?.select && candidate.preset.select === node.select)
+    // Service nodes identify by their bound operator — a kind-only match
+    // would collapse every service in a section onto the first item.
+    const item = items.find(candidate => candidate.preset?.operator && candidate.preset.operator === node.operator)
+      || items.find(candidate => candidate.preset?.select && candidate.preset.select === node.select)
       || items[0];
     if (item) return paletteLabel(item);
     const definition = getProcessNodeDefinition(node.kind);
@@ -190,7 +193,8 @@ export function useProcessDesignerNodeSync({
 
   function processNodeDescription(node = {}) {
     const item = designer.paletteGroups.flatMap(group => group.items)
-      .find(candidate => candidate.kind === node.kind);
+      .find(candidate => candidate.kind === node.kind
+        && (!candidate.preset?.operator || !node.operator || candidate.preset.operator === node.operator));
     return item ? paletteDescription(item) : '';
   }
 

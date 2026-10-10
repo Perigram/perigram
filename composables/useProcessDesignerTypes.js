@@ -27,6 +27,7 @@ export function useProcessDesignerTypes({
   const ctsOrgTypes = ref([]);
   const servedEditors = ref([]);
   const servedCommands = ref([]);
+  const servedSystemTypes = ref([]);
   const designer = reactive({});
   let designerCapabilities = null;
   let servedDomain = { commands: {}, events: {}, construction: {}, serviceContracts: {} };
@@ -144,9 +145,22 @@ export function useProcessDesignerTypes({
     const registry = createTypeRegistry({ id: 'designer-cts' });
     // System types: the same composed view the server registry compiles
     // (framework + mounted packs in dependency order) — the designer tree
-    // shows every pack type, not only the editors' trio.
+    // shows every pack type, not only the editors' trio. The installed
+    // plugins' system types arrive with the served type view (they have
+    // no local composition source) and overlay nothing — their ids are
+    // disjoint from the mounted packs'.
+    const composedIds = new Set();
     for (const declaration of [...frameworkTypes, ...composeSystemDeclarations()]) {
+      composedIds.add(declaration.id);
       registry.defineType(declaration);
+    }
+    for (const declaration of servedSystemTypes.value) {
+      if (composedIds.has(declaration.id)) continue;
+      try {
+        registry.defineType(declaration);
+      } catch {
+        // invalid served declaration: the served view's diagnostics own it
+      }
     }
     for (const declaration of ctsOrgTypes.value) {
       registry.defineType(declaration);
@@ -172,6 +186,7 @@ export function useProcessDesignerTypes({
     return $fetch('/api/admin/cts/types')
       .then(response => {
         ctsOrgTypes.value = (response.types || []).filter(type => type.scope === 'org');
+        servedSystemTypes.value = (response.types || []).filter(type => type.scope === 'system');
         servedEditors.value = response.editors || [];
         resetCtsRegistry();
         refreshDesignerFromTypes();
