@@ -347,7 +347,7 @@ const screenItems = computed(() => openedScreenRefs.value.map(reference => {
 }));
 
 // Registered pages without an entity binding are always openable tabs.
-const staticPageItems = computed(() => generatedWorkspacePages
+const staticPageItems = computed(() => generatedWorkspacePages()
   .filter(page => !page.typeId && !page.ephemeral)
   .map(page => ({ key: `page:${page.id}`, kind: 'page', pageId: page.id })));
 const callPageItems = computed(() => callPageRefs.value.map(call => ({
