@@ -93,6 +93,7 @@ describe('port inventory pin (every catalog kind, frozen surface)', () => {
       "collection.groupBy": "data:items(json:list)!|data:keys(json:list)!|data:groups(json:tree)",
       "collection.itemAt": "data:items(json:list)!|data:index(integer)|data:item(json)",
       "collection.join": "data:left(json:list)!|data:right(json:list)!|data:pairs(record:list)",
+      "collection.reduce": "data:items(number:list)!|data:value(number)",
       "collection.makeList": "data:item1(json)|data:item2(json)|data:item3(json)|data:item4(json)|data:value(json:list)",
       "collection.packArray": "data:value(json:list)!|data:value(array)",
       "collection.partition": "data:items(json:list)!|data:size(integer)!|data:items(json:tree)",

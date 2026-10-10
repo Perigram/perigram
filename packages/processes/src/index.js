@@ -101,6 +101,12 @@ export {
   resolveCatalogNodePorts
 } from './node-catalog.js';
 export {
+  PROCESS_OPERATION_REGISTRY,
+  processOperation,
+  processOperationIds,
+  runProcessOperation
+} from './operations.js';
+export {
   applyPatch,
   evaluateEntityPredicate,
   executeProcessDataNode,

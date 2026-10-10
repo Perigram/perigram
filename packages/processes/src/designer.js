@@ -165,7 +165,8 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('sortItems', 'collection.sort'),
       paletteItem('dispatchItems', 'collection.dispatch'),
       paletteItem('removeDuplicates', 'collection.distinct'),
-      paletteItem('groupItems', 'collection.groupBy')
+      paletteItem('groupItems', 'collection.groupBy'),
+      paletteItem('aggregateList', 'collection.reduce', { preset: { type: { base: 'number', nullable: true }, operation: 'sum' } })
     ]
   }
 ].map(group => Object.freeze({

@@ -1,5 +1,6 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
 import { authoredSocketDefault } from './data-tree.js';
+import { PROCESS_OPERATION_REGISTRY, processOperation } from './operations.js';
 import { typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 
 const DATA = 'data';
@@ -71,6 +72,7 @@ const definitions = [
   data('collection.groupBy', 'groupBy'),
   data('collection.filter', 'filterValues'),
   data('collection.join', 'joinByKey'),
+  data('collection.reduce', 'aggregate'),
   data('tree.flatten', 'flatten'),
   data('tree.graft', 'graft'),
   data('tree.simplify', 'simplify'),
@@ -590,7 +592,6 @@ function catalogPorts(record = {}, context = {}) {
     unit: record.unit,
     enumId: record.enumId
   }));
-  const sameShape = base => processType(base);
   const entity = processType('entityRef', { typeId: record.typeId });
   const entityList = processType('entityRef', { typeId: record.typeId });
   const entityRef = processType('entityRef', { typeId: record.typeId });
@@ -636,88 +637,21 @@ function catalogPorts(record = {}, context = {}) {
     inputs: [socket('value', { ...configured, nullable: true }, DATA, true), socket('fallback', configured, DATA, true)],
     outputs: [socket('value', { ...configured, nullable: false })]
   };
-  if (kind === 'value.math') {
-    if (['absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt'].includes(record.operation)) {
-      return unary(sameShape('number'), sameShape('number'));
-    }
-    if (record.operation === 'clamp') return {
-      inputs: [
-        socket('value', sameShape('number'), DATA, true),
-        socket('min', sameShape('number'), DATA, true),
-        socket('max', sameShape('number'), DATA, true)
-      ],
-      outputs: [socket('value', sameShape('number'))]
-    };
-    return binary(sameShape('number'), sameShape('number'));
-  }
-  if (kind === 'value.string') {
-    if (['lower', 'upper', 'trim'].includes(record.operation)) return unary(sameShape('string'), sameShape('string'));
-    if (record.operation === 'substring') return {
-      inputs: [
-        socket('text', sameShape('string'), DATA, true),
-        socket('start', sameShape('integer'), DATA, true),
-        socket('end', sameShape('integer'))
-      ],
-      outputs: [socket('value', sameShape('string'))]
-    };
-    if (record.operation === 'split') return {
-      inputs: [socket('text', sameShape('string'), DATA, true), socket('separator', sameShape('string'), DATA, true)],
-      outputs: [socket('value', processType('string'), DATA, false, 'list')]
-    };
-    if (record.operation === 'join') return {
-      inputs: [socket('items', processType('string'), DATA, true, 'list'), socket('separator', sameShape('string'), DATA, true)],
-      outputs: [socket('value', sameShape('string'))]
-    };
-    if (record.operation === 'length') return {
-      inputs: [socket('value', sameShape('string'), DATA, true)],
-      outputs: [socket('value', sameShape('integer'))]
-    };
-    if (record.operation === 'replace') return {
-      inputs: [
-        socket('text', sameShape('string'), DATA, true),
-        socket('search', sameShape('string'), DATA, true),
-        socket('replacement', sameShape('string'), DATA, true)
-      ],
-      outputs: [socket('value', sameShape('string'))]
-    };
-    return binary(sameShape('string'), sameShape('string'));
-  }
-  if (kind === 'value.dateTime') {
-    if (['startOfDay', 'endOfDay'].includes(record.operation)) {
-      return unary(sameShape('dateTime'), sameShape('dateTime'));
-    }
-    if (['differenceDays', 'differenceHours', 'differenceMinutes'].includes(record.operation)) {
-      return {
-        inputs: [socket('left', sameShape('dateTime'), DATA, true), socket('right', sameShape('dateTime'), DATA, true)],
-        outputs: [socket('value', sameShape('number'))]
-      };
-    }
-    if (['addDuration', 'subtractDuration'].includes(record.operation)) {
-      return {
-        inputs: [socket('date', sameShape('dateTime'), DATA, true), socket('duration', sameShape('duration'), DATA, true)],
-        outputs: [socket('value', sameShape('dateTime'))]
-      };
-    }
+  // Polymorphic kinds derive their ports from the operation registry
+  // (SPEC §8 atomicity law): the table owns each operation's sockets.
+  if (PROCESS_OPERATION_REGISTRY[kind]) {
+    const operation = processOperation(kind, record.operation)
+      || Object.values(PROCESS_OPERATION_REGISTRY[kind])[0];
+    const typeFor = base => (base === 'configured' ? processTypeFrom(record.type, configured) : processType(base));
     return {
-      inputs: [socket('date', sameShape('dateTime'), DATA, true), socket('amount', sameShape('number'), DATA, true)],
-      outputs: [socket('value', sameShape('dateTime'))]
-    };
-  }
-  if (kind === 'value.compare') return {
-    inputs: [socket('left', configured, DATA, true), socket('right', configured, DATA, true)],
-    outputs: [socket('result', sameShape('boolean'))]
-  };
-  if (kind === 'value.logic') {
-    // Boolean algebra only (SPEC §8 palette law): the null tests stay here
-    // as unary boolean tests; value comparison is `value.compare`.
-    const unaryOperation = ['not', 'isNull', 'isNotNull'].includes(record.operation);
-    const inputType = sameShape('boolean');
-    return {
-      inputs: [
-        socket('left', inputType, DATA, true),
-        ...(!unaryOperation ? [socket('right', inputType, DATA, true)] : [])
-      ],
-      outputs: [socket('result', sameShape('boolean'))]
+      inputs: operation.inputs.map(input => socket(
+        input.id,
+        typeFor(input.base),
+        DATA,
+        input.optional !== true,
+        input.access || 'item'
+      )),
+      outputs: [socket(operation.output.id, typeFor(operation.output.base), DATA, false, operation.output.access || 'item')]
     };
   }
   if (kind === 'collection.makeList') return {

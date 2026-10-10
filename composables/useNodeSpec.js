@@ -33,6 +33,7 @@ const SPEC_BY_KIND = {
   'collection.groupBy': 'Groups items by aligned keys into branches.',
   'collection.count': 'Counts list items.',
   'collection.concat': 'Concatenates two lists.',
+  'collection.reduce': 'Reduces a numeric list to one value (sum, average, min, max).',
   'collection.join': 'Joins two value lists by authored key paths (strict: every left key must match one right entry); output pairs carry {left, right}.',
   'tree.flatten': 'Flattens a data tree into a list.',
   'tree.graft': 'Re-branches a data tree.',

@@ -7,6 +7,7 @@
 // without one. A palette item that cannot be dropped, configured, and
 // round-tripped through this seam is a defect (authoring.spec.js pins it).
 import { operationKindOf, typeIdOf, setTypeBinding } from '../../cts/src/index.js';
+import { PROCESS_OPERATION_REGISTRY } from './operations.js';
 import {
   camelCaseId,
   createProcessDesignerContract,
@@ -44,19 +45,13 @@ export function normalizeDesignerAccess(access = {}) {
   };
 }
 
+// One home per polymorphic operation (SPEC §8 atomicity law): the
+// operation registry owns the operation lists; only kinds with a
+// non-registry discriminator (sort's direction) carry fixed entries here.
 const PROCESS_NODE_OPERATIONS = {
-  'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max', 'absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt', 'clamp'],
-  'value.string': ['concat', 'replace', 'substring', 'split', 'join', 'length', 'lower', 'upper', 'trim'],
-  // One home per operation (SPEC §8 palette law): `value.compare` owns
-  // value comparison, predicates own field-path comparison, `value.logic`
-  // composes boolean algebra only.
-  'value.compare': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'],
-  'value.logic': ['and', 'or', 'not', 'xor', 'nand', 'nor', 'xnor', 'isNull', 'isNotNull'],
-  'value.dateTime': ['addDays', 'addHours', 'addMinutes', 'addMonths', 'addDuration', 'subtractDuration', 'differenceDays', 'differenceHours', 'differenceMinutes', 'startOfDay', 'endOfDay'],
-  'predicate.field': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'],
-  'predicate.logic': ['and', 'or', 'not'],
-  'collection.sort': ['asc', 'desc'],
-  'record.fieldChange': ['set', 'unset', 'append', 'remove']
+  ...Object.fromEntries(Object.entries(PROCESS_OPERATION_REGISTRY)
+    .map(([kind, operations]) => [kind, Object.keys(operations)])),
+  'collection.sort': ['asc', 'desc']
 };
 
 export function humanizeNodeLabel(value = '') {

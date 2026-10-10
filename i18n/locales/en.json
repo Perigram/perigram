@@ -2715,7 +2715,9 @@
       "recordField": "Record field",
       "joinByKey": "Join by key",
       "extractProjection": "Extract (declared projection)",
-      "constructRecord": "Compose record"
+      "constructRecord": "Compose record",
+      "aggregateList": "Aggregate list",
+      "decomposeInstance": "Decompose instance"
     },
     "paletteDescriptions": {
       "modifyEntity": "Changes selected fields or status on an existing entity.",
@@ -2808,7 +2810,9 @@
       "joinByKey": "Pairs items of two lists by matching key paths; every left key must match, output pairs carry the left and right items.",
       "extractProjection": "Runs the bound type's declared projection (table rows, baked geometry) — the payload-to-value gate.",
       "constructRecord": "Composes a record from field values; lists align item by item.",
-      "literalList": "An authored list of typed values — one item per element of the composed data."
+      "literalList": "An authored list of typed values — one item per element of the composed data.",
+      "aggregateList": "Reduces a numeric list to one value (sum, average, min, max).",
+      "decomposeInstance": "Exposes every facet of the instance — fields, lineage, state — as outputs."
     },
     "dataTypes": {
       "string": "Text",
@@ -2869,7 +2873,15 @@
       "differenceHours": "Difference in hours",
       "differenceMinutes": "Difference in minutes",
       "startOfDay": "Start of day",
-      "endOfDay": "End of day"
+      "endOfDay": "End of day",
+      "trunc": "Truncate",
+      "sign": "Sign",
+      "padStart": "Pad start",
+      "padEnd": "Pad end",
+      "indexOf": "Find position",
+      "repeat": "Repeat text",
+      "sum": "Sum",
+      "average": "Average"
     },
     "socketLabels": {
       "in": "run after",

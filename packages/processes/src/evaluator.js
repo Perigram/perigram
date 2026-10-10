@@ -17,8 +17,9 @@ import {
   transposeDataPacket,
   treeStats
 } from './data-tree.js';
-import { operationKindOf, durationMs } from '../../cts/src/index.js';
+import { operationKindOf } from '../../cts/src/index.js';
 import { MAKE_LIST_INPUTS, dynamicBlocks, entityBlocks } from './node-catalog.js';
+import { PROCESS_OPERATION_REGISTRY, processOperation, runProcessOperation, stableKey } from './operations.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
@@ -87,12 +88,10 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     value == null || isMissingField(value) ? fallback : value
   ));
   if (kind === 'value.validate') return mapDataPacket(required(packets, 'value', record), value => validateValue(value, record));
-  if (kind === 'value.math') return executeMath(record, packets);
-  if (kind === 'value.string') return executeString(record, packets);
-  if (kind === 'value.dateTime') return executeDateTime(record, packets);
   if (kind === 'value.enum') return mapDataPacket(required(packets, 'value', record), value => String(value));
-  if (kind === 'value.compare') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => compare(record.operation, left, right));
-  if (kind === 'value.logic') return executeLogic(record, packets);
+  // Polymorphic operations evaluate through the registry (SPEC §8
+  // atomicity law): one home owns sockets and evaluation.
+  if (PROCESS_OPERATION_REGISTRY[kind]) return runProcessOperation(record, packets);
   if (kind === 'value.format') return mapDataPacket(required(packets, 'value', record), value => format(record, value));
   if (kind === 'collection.makeList') {
     const connected = MAKE_LIST_INPUTS.filter(id => packets[id]);
@@ -444,7 +443,14 @@ function blockLocalPath(block, path) {
 
 export function evaluateEntityPredicate(predicate, entity) {
   if (!predicate) return true;
-  if (predicate.kind === 'field') return compare(predicate.operation, readPath(entity, predicate.path), predicate.value);
+  if (predicate.kind === 'field') {
+    // Field predicates share the registry's comparison operations —
+    // value.compare owns comparison, value.logic the null tests.
+    const operation = processOperation('value.compare', predicate.operation)
+      || processOperation('value.logic', predicate.operation);
+    if (!operation) throw new Error(`Unsupported entity predicate ${predicate.operation}`);
+    return operation.run(readPath(entity, predicate.path), predicate.value);
+  }
   if (predicate.kind === 'logic') {
     if (predicate.operation === 'not') return !evaluateEntityPredicate(predicate.left, entity);
     const left = evaluateEntityPredicate(predicate.left, entity);
@@ -526,130 +532,17 @@ async function executeRead(record, packets, context) {
   }
 }
 
-function executeString(record, packets) {
-  if (record.operation === 'replace') {
-    return combineDataPackets([
-      required(packets, 'text', record),
-      required(packets, 'search', record),
-      required(packets, 'replacement', record)
-    ], ([text, search, replacement]) => String(text).split(String(search)).join(String(replacement)));
-  }
-  if (record.operation === 'substring') {
-    return combineDataPackets([
-      required(packets, 'text', record),
-      required(packets, 'start', record),
-      ...(packets.end ? [packets.end] : [])
-    ], values => String(values[0]).slice(Number(values[1]), values.length > 2 ? Number(values[2]) : undefined));
-  }
-  if (record.operation === 'split') {
-    return createDataPacket(String(packetValue(required(packets, 'text', record)))
-      .split(String(packetValue(required(packets, 'separator', record)))), 'list');
-  }
-  if (record.operation === 'join') {
-    return createDataPacket(
-      flattenDataPacket(required(packets, 'items', record)).branches[0].items
-        .join(String(packetValue(required(packets, 'separator', record))))
-    );
-  }
-  if (record.operation === 'length') {
-    return mapDataPacket(required(packets, 'value', record), value => String(value).length);
-  }
-  const left = required(packets, ['upper', 'lower', 'trim'].includes(record.operation) ? 'value' : 'left', record);
-  if (['upper', 'lower', 'trim'].includes(record.operation)) {
-    return mapDataPacket(left, value => record.operation === 'upper' ? String(value).toUpperCase()
-      : record.operation === 'lower' ? String(value).toLowerCase() : String(value).trim());
-  }
-  return combineDataPackets([left, required(packets, 'right', record)], ([leftValue, right]) => `${leftValue ?? ''}${right ?? ''}`);
-}
-
-function executeLogic(record, packets) {
-  const left = required(packets, 'left', record);
-  // Boolean algebra only (SPEC §8 palette law): value comparison lives on
-  // `value.compare`, field-path comparison on `predicate.field`.
-  if (record.operation === 'isNull' || record.operation === 'isNotNull') {
-    return mapDataPacket(left, value => compare(record.operation, value, null));
-  }
-  if (record.operation === 'not') return mapDataPacket(left, value => !value);
-  if (!['and', 'or', 'xor', 'nand', 'nor', 'xnor'].includes(record.operation)) {
-    throw new Error(`Unsupported logic operation ${record.operation}`);
-  }
-  return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => {
-    if (record.operation === 'and') return Boolean(a && b);
-    if (record.operation === 'or') return Boolean(a || b);
-    if (record.operation === 'xor') return Boolean(a) !== Boolean(b);
-    if (record.operation === 'nand') return !Boolean(a && b);
-    if (record.operation === 'nor') return !Boolean(a || b);
-    return Boolean(a) === Boolean(b);
-  }, { matching: record.matching });
-}
-
-function executeDateTime(record, packets) {
-  if (['differenceDays', 'differenceHours', 'differenceMinutes'].includes(record.operation)) {
-    return combineDataPackets([
-      required(packets, 'left', record),
-      required(packets, 'right', record)
-    ], ([left, right]) => {
-      const divisor = record.operation === 'differenceDays' ? 86_400_000
-        : record.operation === 'differenceHours' ? 3_600_000 : 60_000;
-      return (dateValue(left).getTime() - dateValue(right).getTime()) / divisor;
-    }, { matching: record.matching });
-  }
-  const sourceId = ['addDuration', 'subtractDuration', 'addDays', 'addHours', 'addMinutes', 'addMonths'].includes(record.operation) ? 'date' : 'value';
-  const source = required(packets, sourceId, record);
-  if (['startOfDay', 'endOfDay'].includes(record.operation)) {
-    return mapDataPacket(source, item => {
-      const date = dateValue(item);
-      if (record.operation === 'startOfDay') date.setUTCHours(0, 0, 0, 0);
-      else date.setUTCHours(23, 59, 59, 999);
-      return date.toISOString();
-    });
-  }
-  const adjustmentId = ['addDuration', 'subtractDuration'].includes(record.operation) ? 'duration' : 'amount';
-  return combineDataPackets([source, required(packets, adjustmentId, record)], ([item, adjustment]) => {
-    const date = dateValue(item);
-    const direction = record.operation.startsWith('subtract') ? -1 : 1;
-    if (record.operation === 'addMonths') {
-      date.setUTCMonth(date.getUTCMonth() + direction * Number(adjustment));
-      return date.toISOString();
-    }
-    const milliseconds = record.operation === 'addDays'
-      ? Number(adjustment) * 86_400_000
-      : record.operation === 'addHours'
-        ? Number(adjustment) * 3_600_000
-        : record.operation === 'addMinutes'
-          ? Number(adjustment) * 60_000
-          : durationMs(adjustment);
-    date.setTime(date.getTime() + direction * milliseconds);
-    return date.toISOString();
-  }, { matching: record.matching });
-}
-
-function executeMath(record, packets) {
-  if (['absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt'].includes(record.operation)) {
-    return mapDataPacket(required(packets, 'value', record), value => math(record.operation, value));
-  }
-  if (record.operation === 'clamp') {
-    return combineDataPackets([
-      required(packets, 'value', record),
-      required(packets, 'min', record),
-      required(packets, 'max', record)
-    ], ([value, min, max]) => Math.min(Number(max), Math.max(Number(min), Number(value))), { matching: record.matching });
-  }
-  return combineDataPackets([
-    required(packets, 'left', record),
-    required(packets, 'right', record)
-  ], ([left, right]) => math(record.operation, left, right), { matching: record.matching });
-}
-
-function dateValue(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) throw new Error(`Invalid date ${value}`);
-  return date;
-}
-
 function required(inputs, id, record) {
   if (!inputs[id]) throw new Error(`Node ${record.id || record.kind} requires input ${id}`);
   return inputs[id];
+}
+
+function validateValue(value, record) {
+  if (record.required && (value == null || isMissingField(value))) throw new Error(record.message || 'Value is required');
+  if (record.pattern && !new RegExp(record.pattern).test(String(value))) throw new Error(record.message || 'Value does not match');
+  if (record.min != null && Number(value) < Number(record.min)) throw new Error(record.message || `Value is below ${record.min}`);
+  if (record.max != null && Number(value) > Number(record.max)) throw new Error(record.message || `Value is above ${record.max}`);
+  return value;
 }
 
 // Runtime mirror of the compile-time entity-contract check: when the domain
@@ -660,82 +553,6 @@ function assertDeclaredBlock(domain, record, block) {
   if (!entityBlocks(domain, record.typeId).includes(block)) {
     throw new Error(`Process node ${record.id || record.kind} uses block ${block} outside ${record.typeId}`);
   }
-}
-
-function cast(value, base = 'json') {
-  if (base === 'string') return String(value);
-  if (base === 'number') {
-    const result = Number(value);
-    if (!Number.isFinite(result)) throw new Error(`Cannot cast ${value} to number`);
-    return result;
-  }
-  if (base === 'integer') {
-    const result = Number(value);
-    if (!Number.isInteger(result)) throw new Error(`Cannot cast ${value} to integer`);
-    return result;
-  }
-  if (base === 'boolean') {
-    if (value === true || value === 'true' || value === 1) return true;
-    if (value === false || value === 'false' || value === 0) return false;
-    throw new Error(`Cannot cast ${value} to boolean`);
-  }
-  if (base === 'date' || base === 'dateTime') {
-    const result = new Date(value);
-    if (Number.isNaN(result.getTime())) throw new Error(`Cannot cast ${value} to ${base}`);
-    return base === 'date' ? result.toISOString().slice(0, 10) : result.toISOString();
-  }
-  return structuredClone(value);
-}
-
-function math(operation, left, right) {
-  const a = Number(left);
-  const b = Number(right);
-  if (operation === 'absolute') return Math.abs(a);
-  if (operation === 'negate') return -a;
-  if (operation === 'round') return Math.round(a);
-  if (operation === 'floor') return Math.floor(a);
-  if (operation === 'ceil') return Math.ceil(a);
-  if (operation === 'sqrt') {
-    if (a < 0) throw new Error('Square root requires a non-negative value');
-    return Math.sqrt(a);
-  }
-  if (operation === 'add') return a + b;
-  if (operation === 'subtract') return a - b;
-  if (operation === 'multiply') return a * b;
-  if (operation === 'divide') {
-    if (b === 0) throw new Error('Division by zero');
-    return a / b;
-  }
-  if (operation === 'modulo') return a % b;
-  if (operation === 'power') return a ** b;
-  if (operation === 'min') return Math.min(a, b);
-  if (operation === 'max') return Math.max(a, b);
-  throw new Error(`Unsupported math operation ${operation}`);
-}
-
-function compare(operation, left, right) {
-  if (operation === 'eq') return same(left, right);
-  if (operation === 'neq') return !same(left, right);
-  if (operation === 'gt') return left > right;
-  if (operation === 'gte') return left >= right;
-  if (operation === 'lt') return left < right;
-  if (operation === 'lte') return left <= right;
-  if (operation === 'contains') return left?.includes?.(right) || false;
-  if (operation === 'startsWith') return String(left).startsWith(String(right));
-  if (operation === 'endsWith') return String(left).endsWith(String(right));
-  // A missing field is neither null nor a present value: isNull is true only
-  // for a present null, isNotNull only for a present non-null value.
-  if (operation === 'isNull') return left === null;
-  if (operation === 'isNotNull') return left !== null && left !== undefined && !isMissingField(left);
-  throw new Error(`Unsupported comparison ${operation}`);
-}
-
-function validateValue(value, record) {
-  if (record.required && (value == null || isMissingField(value))) throw new Error(record.message || 'Value is required');
-  if (record.pattern && !new RegExp(record.pattern).test(String(value))) throw new Error(record.message || 'Value does not match');
-  if (record.min != null && Number(value) < Number(record.min)) throw new Error(record.message || `Value is below ${record.min}`);
-  if (record.max != null && Number(value) > Number(record.max)) throw new Error(record.message || `Value is above ${record.max}`);
-  return value;
 }
 
 function convertUnit(value, from, to, custom = {}) {
@@ -951,18 +768,6 @@ function unsetPath(target, path) {
   const parts = String(path).split('.').filter(Boolean);
   const parent = parts.slice(0, -1).reduce((current, key) => current?.[key], target);
   if (parent) delete parent[parts.at(-1)];
-}
-
-// Structural equality and grouping keys serialize with sorted object keys,
-// so two structurally equal values match regardless of key insertion order
-// (a bare JSON.stringify comparison is key-order-sensitive and would split
-// equal objects across distinct/group buckets).
-function stableKey(value) {
-  if (value === undefined) return 'undefined';
-  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
-  if (Array.isArray(value)) return `[${value.map(stableKey).join(',')}]`;
-  const keys = Object.keys(value).sort();
-  return `{${keys.map(key => `${JSON.stringify(key)}:${stableKey(value[key])}`).join(',')}}`;
 }
 
 function same(left, right) {
