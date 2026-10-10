@@ -315,7 +315,7 @@ function supportsInlineValue(input) {
     && (input.access === 'item'
       // Mapped mutation sockets declare List consumption; an inline scalar
       // fallback is stored as one broadcast item.
-      || (input.access === 'list' && MAPPED_MUTATION_SPECIES_KINDS.includes(opKind.value)));
+      || (input.access === 'list' && MAPPED_MUTATION_SPECIES_KINDS.has(opKind.value)));
 }
 
 function inputDefault(id) {

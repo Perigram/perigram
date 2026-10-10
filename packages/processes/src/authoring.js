@@ -15,7 +15,7 @@ import {
   interpretDeclarationEdges,
   syncProcessNodeProducerOutputs
 } from './designer.js';
-import { constructionInputsForContract, resolveCatalogNodePorts } from './node-catalog.js';
+import { constructionInputsForContract, EFFECT_SPECIES_KINDS, resolveCatalogNodePorts } from './node-catalog.js';
 import { mintProcessSocketHandle, parseProcessSocketHandleId, PROCESS_DATAFLOW_VERSION } from './ports.js';
 import { processSocketsCompatible, processType } from './types.js';
 
@@ -86,17 +86,6 @@ export function defaultProcessNodeOperation(kind = '') {
 
 export const PROCESS_NODE_OPERATIONS_BY_KIND = PROCESS_NODE_OPERATIONS;
 
-// The operational species (effect family): they carry the event contract
-// and access envelopes, never authored value access.
-const EFFECT_SPECIES_KINDS = new Set([
-  'cts.construct',
-  'cts.mutate',
-  'cts.transition',
-  'cts.remove',
-  'cts.command',
-  'cts.service',
-  'cts.conversion'
-]);
 
 // The record factory: seeds only keys every record genuinely carries.
 // Kind-specific envelopes (construction, state) land in their own branches
