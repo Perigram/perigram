@@ -27,24 +27,32 @@ const data = (source, target, targetHandle) => ({
   targetHandle: `data:${targetHandle}`,
   role: 'data'
 });
-const catalogContext = record => ({
-  fieldSchemas: record.block === 'identity'
-    ? [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
-    : []
+const catalogContext = () => ({
+  fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
 });
 
 describe('durable process orchestration', () => {
-  it.each(['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'])(
+  it.each(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove'])(
     'routes %s through the shared mapped mutation boundary',
     async kind => {
-      const inputId = kind === 'effect.createEntity' ? 'identity' : 'entity';
+      const construct = kind === 'cts.construct';
+      const inputId = construct ? 'identity' : 'entity';
+      const mutation = construct
+        ? {
+          id: 'mutation',
+          kind,
+          typeId: 'project',
+          trigger: { mode: 'manual' },
+          construction: { mode: 'genericCreate', inputs: [{ id: 'identity', type: 'json' }] }
+        }
+        : { id: 'mutation', kind, typeId: 'project', trigger: { mode: 'manual' } };
       const definition = process([
-        { id: 'values', kind: 'source.literalList', value: kind === 'effect.createEntity'
+        { id: 'values', kind: 'source.literalList', value: construct
           ? [{ name: 'One' }, { name: 'Two' }]
           : [{ type: 'project', id: 'p1' }, { type: 'project', id: 'p2' }] },
-        { id: 'mutation', kind, typeId: 'project', trigger: { mode: 'manual' }, blocks: kind === 'effect.createEntity' ? ['identity'] : [] }
+        mutation
       ], ['values', 'mutation'], [data('values', 'mutation', inputId)]);
-      const executeEffect = vi.fn(async ({ inputs }) => kind === 'effect.createEntity'
+      const executeEffect = vi.fn(async ({ inputs }) => construct
         ? { type: 'project', id: inputs.identity.name }
         : inputs.entity);
 
@@ -55,7 +63,7 @@ describe('durable process orchestration', () => {
 
       expect(completed.status).toBe('succeeded');
       expect(executeEffect).toHaveBeenCalledTimes(2);
-      expect(completed.steps[0].output).toEqual({ branches: [{ path: [], items: kind === 'effect.createEntity'
+      expect(completed.steps[0].output).toEqual({ branches: [{ path: [], items: construct
         ? [{ type: 'project', id: 'One' }, { type: 'project', id: 'Two' }]
         : [{ type: 'project', id: 'p1' }, { type: 'project', id: 'p2' }] }] });
     }
@@ -63,7 +71,7 @@ describe('durable process orchestration', () => {
 
   it('keeps the bare effect result and idempotency key for a single mapped item', async () => {
     const definition = process([
-      { id: 'modify', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, blocks: [] }
+      { id: 'modify', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' } }
     ], ['modify'], []);
     const updated = { type: 'project', id: 'project-1', identity: { name: 'Renamed' } };
     const executeEffect = vi.fn().mockResolvedValue(updated);
@@ -89,7 +97,7 @@ describe('durable process orchestration', () => {
         { type: 'project', id: 'p2' },
         { type: 'project', id: 'p3' }
       ] },
-      { id: 'mutation', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, blocks: [] },
+      { id: 'mutation', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' } },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['values', 'mutation', 'stop'], [
       data('values', 'mutation', 'entity'),
@@ -110,7 +118,7 @@ describe('durable process orchestration', () => {
     const step = completed.steps.find(item => item.nodeId === 'mutation');
     expect(step.status).toBe('succeeded');
     expect(step.output.failures).toEqual([{
-      operation: 'effect.updateEntity',
+      operation: 'cts.mutate',
       branchPath: [],
       itemIndex: 1,
       entityRef: { type: 'project', id: 'p2' },
@@ -128,11 +136,11 @@ describe('durable process orchestration', () => {
         { type: 'project', id: 'p2' },
         { type: 'project', id: 'p3' }
       ] },
-      { id: 'names', kind: 'source.literalList', value: [{ name: 'One' }, { name: 'Two' }] },
-      { id: 'mutation', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, blocks: ['identity'] }
+      { id: 'names', kind: 'source.literalList', value: ['One', 'Two'] },
+      { id: 'mutation', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' } }
     ], ['entities', 'names', 'mutation'], [
       data('entities', 'mutation', 'entity'),
-      data('names', 'mutation', 'identity')
+      data('names', 'mutation', 'identity.name')
     ]);
     const executeEffect = vi.fn();
 
@@ -149,17 +157,16 @@ describe('durable process orchestration', () => {
   it('resolves a connected status definition at execution time', async () => {
     const definition = process([{
       id: 'update',
-      kind: 'effect.updateEntity',
+      kind: 'cts.transition',
       typeId: 'project',
       trigger: { mode: 'manual' },
-      fields: [],
       stateRef: 'ready'
     }], ['update'], [{
       id: 'ready-update',
       source: 'ready',
       sourceHandle: 'data:status',
       target: 'update',
-      targetHandle: 'data:states.main',
+      targetHandle: 'data:state',
       role: 'data'
     }]);
     definition.stateDefinitions = {
@@ -184,41 +191,40 @@ describe('durable process orchestration', () => {
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
       inputs: {
         entity: { type: 'project', id: 'project-1' },
-        'states.main': 'READY'
+        state: 'READY'
       }
     }));
   });
 
-  it('starts a manual effect and feeds a deconstructed block into an automatic effect', async () => {
+  it('starts a manual effect and feeds a decomposed facet into an automatic effect', async () => {
     const definition = process([
       {
         id: 'identity',
-        kind: 'record.composeBlock',
-        block: 'identity',
-        fields: ['identity.name'],
-        inputDefaults: { 'identity.name': 'Original' }
+        kind: 'cts.compose',
+        block: 'data',
+        compositionMode: 'entries',
+        entries: [{ id: 'name', key: 'name' }],
+        inputDefaults: { 'entry:name': 'Original' }
       },
       {
         id: 'create',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'project',
         trigger: { mode: 'manual' },
-        blocks: ['identity']
+        construction: { mode: 'genericCreate', inputs: [{ id: 'identity', type: 'json' }] }
       },
       {
-        id: 'deconstruct',
-        kind: 'record.deconstruct',
-        typeId: 'project',
-        blocks: ['identity']
+        id: 'decompose',
+        kind: 'cts.decompose',
+        typeId: 'project'
       },
       {
         id: 'update',
-        kind: 'effect.updateEntity',
+        kind: 'cts.mutate',
         typeId: 'project',
-        trigger: { mode: 'event' },
-        blocks: ['identity']
+        trigger: { mode: 'event' }
       }
-    ], ['identity', 'create', 'deconstruct', 'update'], [
+    ], ['identity', 'create', 'decompose', 'update'], [
       {
         id: 'identity-create',
         source: 'identity',
@@ -228,10 +234,10 @@ describe('durable process orchestration', () => {
         role: 'data'
       },
       {
-        id: 'created-deconstruct',
+        id: 'created-decompose',
         source: 'create',
         sourceHandle: 'data:result',
-        target: 'deconstruct',
+        target: 'decompose',
         targetHandle: 'data:entity',
         role: 'data'
       },
@@ -244,11 +250,11 @@ describe('durable process orchestration', () => {
         role: 'data'
       },
       {
-        id: 'identity-update',
-        source: 'deconstruct',
-        sourceHandle: 'data:identity',
+        id: 'name-update',
+        source: 'decompose',
+        sourceHandle: 'data:identity.name',
         target: 'update',
-        targetHandle: 'data:identity',
+        targetHandle: 'data:identity.name',
         role: 'data'
       },
       control('create', 'completed', 'update')
@@ -267,17 +273,17 @@ describe('durable process orchestration', () => {
     expect(executeEffect).toHaveBeenNthCalledWith(2, expect.objectContaining({
       inputs: {
         entity: { type: 'project', id: 'project-1', identity: { name: 'Original' } },
-        identity: { name: 'Original' }
+        'identity.name': 'Original'
       }
     }));
   });
 
   it('branches, executes an effect once with an idempotency key, and stops', async () => {
     const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'condition', kind: 'source.literalItem', value: true, type: { base: 'boolean', shape: 'item' } },
       { id: 'branch', kind: 'control.if' },
-      { id: 'effect', kind: 'effect.runCommand', commandId: 'test' },
+      { id: 'effect', kind: 'cts.command', commandId: 'test' },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'condition', 'branch', 'effect', 'stop'], [
       control('start', 'completed', 'branch'),
@@ -296,7 +302,7 @@ describe('durable process orchestration', () => {
     const definition = process([
       {
         id: 'start',
-        kind: 'effect.runCommand',
+        kind: 'cts.command',
         commandId: 'start',
         trigger: { mode: 'manual' }
       },
@@ -320,7 +326,7 @@ describe('durable process orchestration', () => {
 
   it('keeps an externally dispatched effect waiting without emitting completion', async () => {
     const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'stop'], [control('start', 'completed', 'stop')]);
 
@@ -344,7 +350,7 @@ describe('durable process orchestration', () => {
 
   it('resumes a waiting effect with its completion output and continues the run', async () => {
     const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'stop'], [control('start', 'completed', 'stop')]);
 
@@ -379,7 +385,7 @@ describe('durable process orchestration', () => {
 
   it('leaves the waiting run unchanged for a different invocation completion', async () => {
     const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } }
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } }
     ], ['start'], []);
 
     const waiting = await advanceProcessRun(createProcessRun(definition, {}), definition, {
@@ -395,10 +401,10 @@ describe('durable process orchestration', () => {
 
   it('waits for every fork branch at join-all', async () => {
     const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'fork', kind: 'control.fork', branches: 2 },
-      { id: 'left', kind: 'effect.runCommand', commandId: 'left' },
-      { id: 'right', kind: 'effect.runCommand', commandId: 'right' },
+      { id: 'left', kind: 'cts.command', commandId: 'left' },
+      { id: 'right', kind: 'cts.command', commandId: 'right' },
       { id: 'join', kind: 'control.joinAll' },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'fork', 'left', 'right', 'join', 'stop'], [
@@ -418,10 +424,10 @@ describe('durable process orchestration', () => {
 
   it('executes a structured foreach body with an item scoped to each token', async () => {
     const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'items', kind: 'source.literalList', value: [{ n: 1 }, { n: 2 }], type: { base: 'json', shape: 'list' } },
       { id: 'loop', kind: 'control.forEach', type: { base: 'json', shape: 'item' } },
-      { id: 'effect', kind: 'effect.runCommand', commandId: 'each' },
+      { id: 'effect', kind: 'cts.command', commandId: 'each' },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'items', 'loop', 'effect', 'stop'], [
       control('start', 'completed', 'loop'),
@@ -450,9 +456,9 @@ describe('durable process orchestration', () => {
 
   it('hydrates declared command entity outputs before downstream entity operations', async () => {
     const definition = process([
-      { id: 'service', kind: 'effect.runCommand', commandId: 'createProject', trigger: { mode: 'manual' } },
+      { id: 'service', kind: 'cts.command', commandId: 'createProject', trigger: { mode: 'manual' } },
       { id: 'loop', kind: 'control.forEach', type: { base: 'entity', typeId: 'project', shape: 'item' } },
-      { id: 'modify', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'event' }, blocks: [] },
+      { id: 'modify', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'event' } },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['service', 'loop', 'modify', 'stop'], [
       control('service', 'completed', 'loop'),
@@ -495,26 +501,42 @@ describe('durable process orchestration', () => {
     const definition = process([
       {
         id: 'identity',
-        kind: 'record.composeBlock',
-        block: 'identity',
-        fields: ['identity.name'],
-        inputDefaults: { 'identity.name': 'Renamed' }
+        kind: 'cts.compose',
+        block: 'data',
+        compositionMode: 'entries',
+        entries: [{ id: 'name', key: 'name' }],
+        inputDefaults: { 'entry:name': 'Renamed' }
+      },
+      {
+        id: 'name',
+        kind: 'value.recordField',
+        path: 'name',
+        type: { base: 'string', nullable: false }
       },
       {
         id: 'modify',
-        kind: 'effect.updateEntity',
+        kind: 'cts.mutate',
         typeId: 'project',
-        trigger: { mode: 'manual' },
-        blocks: ['identity']
+        trigger: { mode: 'manual' }
       }
-    ], ['identity', 'modify'], [{
-      id: 'identity-modify',
-      source: 'identity',
-      sourceHandle: 'data:block',
-      target: 'modify',
-      targetHandle: 'data:identity',
-      role: 'data'
-    }]);
+    ], ['identity', 'name', 'modify'], [
+      {
+        id: 'identity-name',
+        source: 'identity',
+        sourceHandle: 'data:block',
+        target: 'name',
+        targetHandle: 'data:value',
+        role: 'data'
+      },
+      {
+        id: 'name-modify',
+        source: 'name',
+        sourceHandle: 'data:value',
+        target: 'modify',
+        targetHandle: 'data:identity.name',
+        role: 'data'
+      }
+    ]);
     const entity = { _id: 'project-1', identity: { name: 'Original' } };
     const executeEffect = vi.fn().mockResolvedValue({ ...entity, identity: { name: 'Renamed' } });
     const completed = await runProcessUntilSettled(
@@ -529,7 +551,7 @@ describe('durable process orchestration', () => {
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
       inputs: {
         entity,
-        identity: { name: 'Renamed' }
+        'identity.name': 'Renamed'
       }
     }));
   });
@@ -538,23 +560,18 @@ describe('durable process orchestration', () => {
     const definition = process([
       { id: 'trigger', kind: 'control.manualTrigger', typeId: 'project' },
       {
-        id: 'lineage',
-        kind: 'record.composeBlock',
-        block: 'lineage',
-        compositionMode: 'ancestors',
-        entries: [{ id: 'project', key: 'projectId', typeId: 'project' }]
-      },
-      {
         id: 'create',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'queue',
         trigger: { mode: 'event' },
-        blocks: ['lineage']
+        construction: {
+          mode: 'genericCreate',
+          inputs: [{ id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project' }]
+        }
       }
-    ], ['trigger', 'lineage', 'create'], [
-      { source: 'trigger', sourceHandle: 'data:entity', target: 'lineage', targetHandle: 'data:entry:project', role: 'data' },
-      { source: 'trigger', sourceHandle: 'control:start', target: 'create', targetHandle: 'control:in', role: 'control' },
-      { source: 'lineage', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:lineage', role: 'data' }
+    ], ['trigger', 'create'], [
+      { source: 'trigger', sourceHandle: 'data:payload', target: 'create', targetHandle: 'data:lineage.projectId', role: 'data' },
+      { source: 'trigger', sourceHandle: 'control:start', target: 'create', targetHandle: 'control:in', role: 'control' }
     ]);
     const project = { _id: 'project-1', identity: { name: 'Project' } };
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
@@ -567,7 +584,7 @@ describe('durable process orchestration', () => {
 
     expect(completed.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
-      inputs: { lineage: { projectId: 'project-1' } }
+      inputs: { 'lineage.projectId': project }
     }));
   });
 
@@ -575,28 +592,23 @@ describe('durable process orchestration', () => {
     const definition = process([
       {
         id: 'create-project',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'project',
         trigger: { mode: 'manual' },
-        blocks: ['identity']
-      },
-      {
-        id: 'lineage',
-        kind: 'record.composeBlock',
-        block: 'lineage',
-        compositionMode: 'ancestors',
-        entries: [{ id: 'project', key: 'projectId', typeId: 'project' }]
+        construction: { mode: 'genericCreate', inputs: [] }
       },
       {
         id: 'create-queue',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'queue',
         trigger: { mode: 'manual' },
-        blocks: ['lineage']
+        construction: {
+          mode: 'genericCreate',
+          inputs: [{ id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project' }]
+        }
       }
-    ], ['create-project', 'lineage', 'create-queue'], [
-      { source: 'create-project', sourceHandle: 'data:result', target: 'lineage', targetHandle: 'data:entry:project', role: 'data' },
-      { source: 'lineage', sourceHandle: 'data:block', target: 'create-queue', targetHandle: 'data:lineage', role: 'data' }
+    ], ['create-project', 'create-queue'], [
+      { source: 'create-project', sourceHandle: 'data:result', target: 'create-queue', targetHandle: 'data:lineage.projectId', role: 'data' }
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
 
@@ -615,9 +627,9 @@ describe('durable process orchestration', () => {
     expect(completed.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenCalledTimes(1);
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       record: expect.objectContaining({ id: 'create-queue' }),
-      inputs: { lineage: { projectId: 'project-1' } }
+      inputs: { 'lineage.projectId': { type: 'project', id: 'project-1' } }
     }));
   });
 
@@ -625,27 +637,23 @@ describe('durable process orchestration', () => {
     const definition = process([
       {
         id: 'create-library',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'library',
-        trigger: { mode: 'manual' }
-      },
-      {
-        id: 'relations',
-        kind: 'record.composeBlock',
-        block: 'relations',
-        compositionMode: 'relations',
-        entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one' }]
+        trigger: { mode: 'manual' },
+        construction: { mode: 'genericCreate', inputs: [] }
       },
       {
         id: 'create-project',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'project',
         trigger: { mode: 'manual' },
-        blocks: ['relations']
+        construction: {
+          mode: 'genericCreate',
+          inputs: [{ id: 'relations.library', path: 'relations.library', type: 'entity', typeId: 'library', required: false }]
+        }
       }
-    ], ['create-library', 'relations', 'create-project'], [
-      { source: 'create-library', sourceHandle: 'data:result', target: 'relations', targetHandle: 'data:entry:library', role: 'data' },
-      { source: 'relations', sourceHandle: 'data:block', target: 'create-project', targetHandle: 'data:relations', role: 'data' }
+    ], ['create-library', 'create-project'], [
+      { source: 'create-library', sourceHandle: 'data:result', target: 'create-project', targetHandle: 'data:relations.library', role: 'data' }
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
 
@@ -667,31 +675,33 @@ describe('durable process orchestration', () => {
     const definition = process([
       {
         id: 'identity',
-        kind: 'record.composeBlock',
-        block: 'identity',
+        kind: 'cts.compose',
+        block: 'data',
         compositionMode: 'entries',
-        compositionValueBase: 'json',
         entries: [{ id: 'name', key: 'name', type: { base: 'string', shape: 'item' } }]
       },
       {
         id: 'create',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'project',
         trigger: { mode: 'manual' },
-        blocks: ['identity']
+        construction: {
+          mode: 'genericCreate',
+          inputs: [{ id: 'name', path: 'name', type: 'string', required: true }]
+        }
       }
     ], ['identity', 'create'], [{
       id: 'identity-create',
       source: 'identity',
       sourceHandle: 'data:block',
       target: 'create',
-      targetHandle: 'data:identity',
+      targetHandle: 'data:name',
       role: 'data'
     }]);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
     const completed = await runProcessUntilSettled(
       createProcessRun(definition, { nodeId: 'create' }, {
-        context: { inputs: { data: { identity: { name: 'Manual project' } } } }
+        context: { inputs: { data: { name: 'Manual project' } } }
       }),
       definition,
       { executeEffect, catalogContext }
@@ -699,22 +709,25 @@ describe('durable process orchestration', () => {
 
     expect(completed.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
-      inputs: { identity: { name: 'Manual project' } }
+      inputs: { name: 'Manual project' }
     }));
   });
 
-  it('supplies a manual identity block without requiring a composer node', async () => {
+  it('supplies a manual identity row without requiring a composer node', async () => {
     const definition = process([{
       id: 'create',
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'project',
       trigger: { mode: 'manual' },
-      blocks: ['identity']
+      construction: {
+        mode: 'genericCreate',
+        inputs: [{ id: 'name', path: 'name', type: 'string', required: true }]
+      }
     }], ['create'], []);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
     const completed = await runProcessUntilSettled(
       createProcessRun(definition, { nodeId: 'create' }, {
-        context: { inputs: { data: { identity: { name: 'Manual project' } } } }
+        context: { inputs: { data: { name: 'Manual project' } } }
       }),
       definition,
       { executeEffect, catalogContext }
@@ -722,7 +735,7 @@ describe('durable process orchestration', () => {
 
     expect(completed.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
-      inputs: { identity: { name: 'Manual project' } }
+      inputs: { name: 'Manual project' }
     }));
   });
 
@@ -730,13 +743,14 @@ describe('durable process orchestration', () => {
     const definition = process([
       {
         id: 'create-template',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'cassette',
-        trigger: { mode: 'manual' }
+        trigger: { mode: 'manual' },
+        construction: { mode: 'genericCreate', inputs: [] }
       },
       {
         id: 'create-design',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'cassette_design',
         trigger: { mode: 'manual' },
         construction: {
@@ -774,7 +788,7 @@ describe('durable process orchestration', () => {
     const definition = process([
       { id: 'entities', kind: 'cts.read', select: 'all', typeId: 'queue' },
       { id: 'count', kind: 'collection.count', type: { base: 'entity' } },
-      { id: 'effect', kind: 'effect.updateEntity', typeId: 'queue', trigger: { mode: 'event' } }
+      { id: 'effect', kind: 'cts.mutate', typeId: 'queue', trigger: { mode: 'event' } }
     ], ['entities', 'count', 'effect'], [{
       id: 'entities-count', source: 'entities', sourceHandle: 'data:result', target: 'count', targetHandle: 'data:value', role: 'data'
     }]);
@@ -821,12 +835,12 @@ describe('durable process orchestration', () => {
 
   it('keeps missing fields distinct from present nulls in preview', async () => {
     const definition = process([
-      { id: 'block', kind: 'source.literalItem', value: { name: null } },
-      { id: 'name', kind: 'record.getField', block: 'identity', path: 'identity.name' },
-      { id: 'reference', kind: 'record.getField', block: 'identity', path: 'identity.reference' }
-    ], ['block', 'name', 'reference'], [
-      data('block', 'name', 'block'),
-      data('block', 'reference', 'block')
+      { id: 'entity', kind: 'source.literalItem', value: { name: null } },
+      { id: 'name', kind: 'cts.field', inputDefaults: { field: 'name' } },
+      { id: 'reference', kind: 'cts.field', inputDefaults: { field: 'reference' } }
+    ], ['entity', 'name', 'reference'], [
+      data('entity', 'name', 'entity'),
+      data('entity', 'reference', 'entity')
     ]);
     const result = await previewProcessDataflow(definition, {}, { catalogContext });
     const [presentNull] = result.nodes.name.outputs.value.branches[0].items;

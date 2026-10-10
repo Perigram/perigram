@@ -49,7 +49,7 @@ function lineageFixture() {
     processNodes: {
       project_source: {
         id: 'project_source',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'project',
         producerOutputId: 'project_source:entity',
         label: 'Create project',
@@ -59,14 +59,14 @@ function lineageFixture() {
       },
       queue_lineage: {
         id: 'queue_lineage',
-        kind: 'record.composeBlock',
+        kind: 'cts.compose',
         block: 'lineage',
         compositionMode: 'ancestors',
         entries: [{ id: 'project' }]
       },
       create_queue: {
         id: 'create_queue',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'queue',
         producerOutputId: 'create_queue:entity',
         label: 'Create queue',
@@ -207,17 +207,6 @@ describe('producer-scoped binding diagnostics', () => {
     expect(errors[0]).toContain('Edge project-to-lineage lineage entry project on queue_lineage cannot use organization as an ancestor');
   });
 
-  it('reports an entity-emitting lineage source socket without a producer output record', () => {
-    const definition = lineageFixture();
-    delete definition.producerOutputs['project_source:entity'];
-    definition.producerOutputs = producerOutputRecords([['create_queue', 'queue']]);
-
-    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain('Edge project-to-lineage lineage source socket project_source:result');
-    expect(errors[0]).toContain('emits entity type project but has no resolvable producer output record');
-  });
-
   it('reports ambiguity when two same-type producer outputs could source one lineage edge', () => {
     const definition = lineageFixture();
     definition.producerOutputs['project_source_b:entity'] = {
@@ -348,7 +337,19 @@ describe('producer-scoped binding diagnostics', () => {
     definition.graph.nodes = definition.graph.nodes.filter(node => node.id !== 'queue_lineage');
     definition.graph.edges = [];
 
-    const diagnostics = validateRequiredInputAvailability(definition, domain);
+    const diagnostics = validateRequiredInputAvailability(definition, {
+      ...domain,
+      construction: {
+        ...domain.construction,
+        queue: {
+          modes: ['typedQueue'],
+          defaultMode: 'typedQueue',
+          inputs: [
+            { id: 'sourceRef', path: 'sourceRef', type: 'entity', typeId: 'project', required: true, prompt: true }
+          ]
+        }
+      }
+    });
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].message).toContain('of producer output create_queue:entity');
     expect(diagnostics[0].message).toContain('Required input sourceRef');

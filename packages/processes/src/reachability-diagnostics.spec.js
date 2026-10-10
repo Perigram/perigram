@@ -8,24 +8,25 @@ const domain = {
   fieldAccess: {
     project: { feature: 'projects', read: ['identity.*'], write: ['identity.name'], admin: [] }
   },
+  fieldSchemas: {
+    project: [
+      { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, readable: true, writable: true }
+    ]
+  },
   construction: { project: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] } }
 };
-
-function node(id, record) {
-  return { id, type: 'processNode', data: { refId: id }, record };
-}
 
 function definition(processNodes, edges) {
   return {
     dataflowVersion: 4,
     roles: { operator: { id: 'operator' } },
     producerOutputs: Object.fromEntries(Object.entries(processNodes)
-      .filter(([, record]) => record.kind === 'effect.updateEntity')
-      .map(([id, record]) => [`${id}:entity`, {
-        id: `${id}:entity`,
-        producerOutputId: `${id}:entity`,
+      .filter(([, record]) => record.kind === 'cts.mutate')
+      .map(([id, record]) => [`${id}:result`, {
+        id: `${id}:result`,
+        producerOutputId: `${id}:result`,
         nodeId: id,
-        outputSocketId: 'entity',
+        outputSocketId: 'result',
         typeId: record.typeId,
         lifecycle: { mode: 'defaultCreated' },
         fields: { read: [], write: ['identity.name'], private: [] }
@@ -68,12 +69,11 @@ describe('unreachable node diagnostics', () => {
       literal: { id: 'literal', kind: 'source.literalItem', type: { base: 'string' }, value: 'Name' },
       update: {
         id: 'update',
-        kind: 'effect.updateEntity',
+        kind: 'cts.mutate',
         typeId: 'project',
-        producerOutputId: 'update:entity',
+        blocks: ['identity'],
         trigger: { mode: 'manual' },
-        access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-        fields: ['identity.name']
+        access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] }
       }
     }, [data('literal', 'update', 'identity.name')]), domain);
 
@@ -83,18 +83,17 @@ describe('unreachable node diagnostics', () => {
   it('reports a branch that dead-ends while its sibling reaches the effect', () => {
     const result = validateProcessDefinition(definition({
       literal: { id: 'literal', kind: 'source.literalItem', type: { base: 'string' }, value: 'Name' },
-      orphan: { id: 'orphan', kind: 'record.getField', path: 'identity.name', type: { base: 'string' } },
+      orphan: { id: 'orphan', kind: 'cts.field', typeId: 'project', inputDefaults: { field: 'identity.name' } },
       update: {
         id: 'update',
-        kind: 'effect.updateEntity',
+        kind: 'cts.mutate',
         typeId: 'project',
-        producerOutputId: 'update:entity',
+        blocks: ['identity'],
         trigger: { mode: 'manual' },
-        access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-        fields: ['identity.name']
+        access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] }
       }
     }, [
-      data('literal', 'orphan', 'value'),
+      data('literal', 'orphan', 'entity'),
       data('literal', 'update', 'identity.name')
     ]), domain);
 
@@ -106,12 +105,11 @@ describe('unreachable node diagnostics', () => {
     const result = validateProcessDefinition(definition({
       update: {
         id: 'update',
-        kind: 'effect.updateEntity',
+        kind: 'cts.mutate',
         typeId: 'project',
-        producerOutputId: 'update:entity',
+        blocks: ['identity'],
         trigger: { mode: 'manual' },
-        access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-        fields: []
+        access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] }
       }
     }, []), domain);
 

@@ -89,11 +89,13 @@ export {
 export { migrateProcessDefinitionV4 } from './migration-v4.js';
 export { migrateProducerOutputIdentities } from './migration-producer-identities.js';
 export {
-  CONSUMER_EFFECT_KINDS,
+  CONSUMER_SPECIES_KINDS,
+  EFFECT_SPECIES_KINDS,
+  MAPPED_MUTATION_SPECIES_KINDS,
   MAKE_LIST_INPUTS,
   PROCESS_NODE_CATALOG,
   PROCESS_NODE_FAMILIES,
-  PRODUCER_ORIGIN_EFFECT_KINDS,
+  PRODUCER_ORIGIN_SPECIES_KINDS,
   constructionInputsForContract,
   getProcessNodeDefinition,
   processNodeDefinitionsForFamily,
@@ -101,8 +103,12 @@ export {
   resolveCatalogNodePorts
 } from './node-catalog.js';
 export {
-  applyPatch,
-  evaluateEntityPredicate,
+  PROCESS_OPERATION_REGISTRY,
+  processOperation,
+  processOperationIds,
+  runProcessOperation
+} from './operations.js';
+export {
   executeProcessDataNode,
   executeProcessEffectNode
 } from './evaluator.js';

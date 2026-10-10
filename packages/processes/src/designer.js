@@ -1,5 +1,5 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { PRODUCER_ORIGIN_EFFECT_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
+import { PRODUCER_ORIGIN_SPECIES_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
 import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, slotFor } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
@@ -77,15 +77,16 @@ const definitionPaletteItem = (id, type, options = {}) => Object.freeze({
 //
 // Group structure: `types` (declaration authoring + the registry catalog),
 // `operations` (the effect species over declarations), `instances` (entity
-// sources and the field projection), `values`, `listTree`. Services come
+// sources, the field projection, and the instance elimination form),
+// `values`, `listTree`. Services come
 // from the projected domain's `serviceContracts` — the registered operator
 // surface — never from a legacy command table: running a service means
 // dropping its registered item, so there is no separate "run service"
-// operation against the legacy command registry. The block-composition
-// nodes (cts.compose, cts.decompose) stay catalog-only: fresh constructs
-// take fields directly, fresh mutates patch leaves, and the field
-// projection reads entities — no palette item consumes blocks anymore, so
-// block composition is reachable only by migrated legacy graphs.
+// operation against the legacy command registry. `cts.decompose` is the
+// per-facet elimination form (SPEC §20) and lives in the palette;
+// `cts.compose` stays catalog-only — fresh constructs take fields directly
+// and fresh mutates patch leaves, so block composition is reachable only
+// by migrated legacy graphs.
 export const TYPE_AUTHORING_PALETTE_ITEMS = Object.freeze([
   definitionPaletteItem('class', 'ctsClass'),
   definitionPaletteItem('field', 'ctsField'),
@@ -130,7 +131,9 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('childEntities', 'cts.read', { preset: { select: 'children' } }),
       paletteItem('relatedEntities', 'cts.read', { preset: { select: 'related' } }),
       // the field projection: entity in, one field's value out
-      paletteItem('getField', 'cts.field')
+      paletteItem('getField', 'cts.field'),
+      // the instance elimination form: every declared facet as an output
+      paletteItem('decomposeInstance', 'cts.decompose')
     ]
   },
   {
@@ -165,7 +168,8 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('sortItems', 'collection.sort'),
       paletteItem('dispatchItems', 'collection.dispatch'),
       paletteItem('removeDuplicates', 'collection.distinct'),
-      paletteItem('groupItems', 'collection.groupBy')
+      paletteItem('groupItems', 'collection.groupBy'),
+      paletteItem('aggregateList', 'collection.reduce', { preset: { type: { base: 'number', nullable: true }, operation: 'sum' } })
     ]
   }
 ].map(group => Object.freeze({
@@ -739,14 +743,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   return { mutations, bindings };
 }
 
-const ENTITY_ORIGIN_OPERATION_KINDS = new Set([
-  ...PRODUCER_ORIGIN_EFFECT_KINDS,
-  'effect.createEntity',
-  'effect.runProducer',
-  'effect.runCommand',
-  'effect.sendEntity',
-  'effect.generateAttachment'
-]);
+const ENTITY_ORIGIN_OPERATION_KINDS = new Set(PRODUCER_ORIGIN_SPECIES_KINDS);
 
 // A producer output is provenance for an actual entity origin. Reads,
 // projections, joins, and consumer effects may carry entity-shaped values,

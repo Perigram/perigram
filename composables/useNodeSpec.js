@@ -17,7 +17,6 @@ const SPEC_BY_KIND = {
   'cts.compose': 'Composes a fields/edges patch from values — feed it into construct/mutate sockets.',
   'cts.decompose': 'Splits an instance into its blocks (identity, data, specs, …) for per-block reads and writes.',
   'cts.join': 'Merges two instance streams of one type into a single producer path (the only legal same-type convergence).',
-  'effect.runCommand': 'Runs a registered command: policy check, recording, typed inputs/outputs from the command contract.',
   'source.literalItem': 'A constant value (pick its type in one node).',
   'source.literalList': 'A constant list value.',
   'source.literalTree': 'A constant branched tree value.',
@@ -33,41 +32,18 @@ const SPEC_BY_KIND = {
   'collection.groupBy': 'Groups items by aligned keys into branches.',
   'collection.count': 'Counts list items.',
   'collection.concat': 'Concatenates two lists.',
+  'collection.reduce': 'Reduces a numeric list to one value (sum, average, min, max).',
   'collection.join': 'Joins two value lists by authored key paths (strict: every left key must match one right entry); output pairs carry {left, right}.',
   'tree.flatten': 'Flattens a data tree into a list.',
   'tree.graft': 'Re-branches a data tree.',
   'control.forEach': 'Runs the subgraph per tree branch/item: emits `each` (control), the item, its path and index; `done` when finished.',
   'control.if': 'Branches control flow on a boolean.',
-  'producer.join': 'Merges two producer paths of one type (see cts.join).'
-};
-
-// v4 operation kinds (stored graphs, resolved twins) share the species
-// descriptions — one vocabulary. Reads are absent: every load migrates them
-// to `cts.read` + select, so no v4 read spelling survives to render.
-const V4_ALIAS = {
-  'effect.createEntity': 'cts.construct',
-  'effect.runProducer': 'cts.construct',
-  'effect.updateEntity': 'cts.mutate',
-  'effect.changeStatus': 'cts.transition',
-  'effect.archiveEntity': 'cts.transition',
-  'effect.deleteEntity': 'cts.remove',
-  'effect.runCommand': 'cts.command',
-  'effect.sendEntity': 'cts.command',
-  'effect.generateAttachment': 'cts.conversion',
-  'record.getField': 'cts.field',
-  'record.composeBlock': 'cts.compose',
-  'record.modifyBlock': 'cts.compose',
-  'record.construct': 'cts.compose',
-  'record.entityDraft': 'cts.compose',
-  'record.deconstruct': 'cts.decompose',
-  'record.getBlock': 'cts.decompose'
+  'record.construct': 'Composes a plain record value from authored field paths.'
 };
 
 export function nodeSpecSummary(record = {}, formatType = () => 'value') {
   const kind = operationKindOf(record);
   const spec = SPEC_BY_KIND[record.kind]
-    || SPEC_BY_KIND[V4_ALIAS[kind]]
-    || SPEC_BY_KIND[kind]
     || (kind.startsWith('collection.') || kind.startsWith('tree.') ? 'List/tree algebra over values: selects, orders, reshapes.' : '');
   const parts = [];
   if (spec) parts.push(spec);

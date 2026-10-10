@@ -1,5 +1,6 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
 import { authoredSocketDefault } from './data-tree.js';
+import { PROCESS_OPERATION_REGISTRY, processOperation } from './operations.js';
 import { typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 
 const DATA = 'data';
@@ -10,23 +11,35 @@ const CONTROL = 'control';
 // connection validation rejects a second wire like any single-value socket).
 export const MAKE_LIST_INPUTS = Object.freeze(['item1', 'item2', 'item3', 'item4']);
 
-// Origin effects mint new entity paths and own producer outputs. Consumer
-// effects transform entities that arrived over an input wire: they own no
+// Origin species mint new entity paths and own producer outputs. Consumer
+// species transform entities that arrived over an input wire: they own no
 // producer output and bind to the upstream producer of that wire, so the
 // workflow/machine stays anchored where the entity path begins.
-export const PRODUCER_ORIGIN_EFFECT_KINDS = Object.freeze([
-  'effect.createEntity',
-  'effect.runProducer',
-  'effect.runCommand'
+export const PRODUCER_ORIGIN_SPECIES_KINDS = Object.freeze([
+  'cts.construct',
+  'cts.command',
+  'cts.service',
+  'cts.conversion'
 ]);
 
-export const CONSUMER_EFFECT_KINDS = Object.freeze([
-  'effect.updateEntity',
-  'effect.changeStatus',
-  'effect.archiveEntity',
-  'effect.deleteEntity',
-  'effect.sendEntity',
-  'effect.generateAttachment'
+export const CONSUMER_SPECIES_KINDS = Object.freeze([
+  'cts.mutate',
+  'cts.transition',
+  'cts.remove'
+]);
+
+// The operational species union: origin + consumer species.
+export const EFFECT_SPECIES_KINDS = Object.freeze([
+  ...PRODUCER_ORIGIN_SPECIES_KINDS,
+  ...CONSUMER_SPECIES_KINDS
+]);
+
+// The species the shared effect mapper aligns per item (mapped mutations).
+export const MAPPED_MUTATION_SPECIES_KINDS = Object.freeze([
+  'cts.construct',
+  'cts.mutate',
+  'cts.transition',
+  'cts.remove'
 ]);
 
 const definitions = [
@@ -71,6 +84,7 @@ const definitions = [
   data('collection.groupBy', 'groupBy'),
   data('collection.filter', 'filterValues'),
   data('collection.join', 'joinByKey'),
+  data('collection.reduce', 'aggregate'),
   data('tree.flatten', 'flatten'),
   data('tree.graft', 'graft'),
   data('tree.simplify', 'simplify'),
@@ -82,33 +96,15 @@ const definitions = [
   data('tree.clean', 'cleanTree'),
   data('tree.stats', 'treeStatistics'),
 
-  data('record.getField', 'getField'),
-  data('record.fieldChange', 'fieldChange'),
-  data('record.mergeChanges', 'mergeChanges'),
-  data('record.applyChanges', 'applyChanges'),
-  data('record.composeBlock', 'composeBlock'),
-  data('record.modifyBlock', 'modifyBlock'),
   data('record.construct', 'constructRecord'),
-  data('record.deconstruct', 'deconstructRecord'),
-  data('record.getBlock', 'getBlock'),
-  data('record.entityDraft', 'constructEntityDraft'),
-  data('producer.join', 'joinProducers'),
-  data('predicate.field', 'fieldPredicate'),
-  data('predicate.logic', 'predicateLogic'),
 
   // Reads are native-species only (SPEC §20): persisted `read.*` kinds
   // migrate one-way to `cts.read` + select at the load boundary, so the
   // catalog carries no v4 read twins to fall back into.
 
-  effect('effect.createEntity', 'createEntity'),
-  effect('effect.runProducer', 'runProducer'),
-  effect('effect.updateEntity', 'updateEntity'),
-  effect('effect.changeStatus', 'changeStatus'),
-  effect('effect.archiveEntity', 'archiveEntity'),
-  effect('effect.deleteEntity', 'deleteEntity'),
-  effect('effect.runCommand', 'runCommand'),
-  effect('effect.sendEntity', 'sendEntity'),
-  effect('effect.generateAttachment', 'generateAttachment'),
+  // Retired v4 executable kinds (SPEC §20) carry no definitions: the
+  // catalog throws for them exactly as it does for the retired read kinds.
+  // Persisted drafts rewrite through the one-shot native migration script.
 
   // Graph protocol v5 (SPEC §20): species kinds. Ports resolve through the
   // record's operation-kind twin — callers either pre-resolve records or
@@ -190,10 +186,6 @@ function data(kind, label) {
       : kind.startsWith('predicate.') ? 'predicates'
         : kind.startsWith('read.') ? 'reads' : 'values';
   return definition(kind, label, family, kind.startsWith('read.') ? 'read' : 'data', true, catalogPorts);
-}
-
-function effect(kind, label) {
-  return definition(kind, label, 'effects', 'effect', false, catalogPorts);
 }
 
 function trigger(kind, label) {
@@ -476,10 +468,16 @@ function nativeCommandPorts(record = {}, context = {}) {
 
 function nativeStructurePorts(record = {}, context = {}) {
   if (record.kind === 'cts.decompose') {
-    const blocks = dynamicBlocks(record, context);
+    // The instance elimination form (SPEC §20): every facet the bound
+    // type's projected field schemas declare — identity, row fields,
+    // lineage edges, relations, the state axis, provenance — is its own
+    // typed output socket. The projection owns the list; no hardcoded
+    // block vocabulary filters it.
     return {
       inputs: [socket('entity', processType('entityRef', { typeId: typeIdOf(record) }), DATA, true)],
-      outputs: blocks.map(block => socket(block, processType('block', { block })))
+      outputs: (context.fieldSchemas || [])
+        .filter(field => field?.path)
+        .map(field => socket(field.path, field.type || processType('json', { nullable: true })))
     };
   }
   // cts.compose: the block substrate, composed of its open entries.
@@ -590,7 +588,6 @@ function catalogPorts(record = {}, context = {}) {
     unit: record.unit,
     enumId: record.enumId
   }));
-  const sameShape = base => processType(base);
   const entity = processType('entityRef', { typeId: record.typeId });
   const entityList = processType('entityRef', { typeId: record.typeId });
   const entityRef = processType('entityRef', { typeId: record.typeId });
@@ -636,88 +633,21 @@ function catalogPorts(record = {}, context = {}) {
     inputs: [socket('value', { ...configured, nullable: true }, DATA, true), socket('fallback', configured, DATA, true)],
     outputs: [socket('value', { ...configured, nullable: false })]
   };
-  if (kind === 'value.math') {
-    if (['absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt'].includes(record.operation)) {
-      return unary(sameShape('number'), sameShape('number'));
-    }
-    if (record.operation === 'clamp') return {
-      inputs: [
-        socket('value', sameShape('number'), DATA, true),
-        socket('min', sameShape('number'), DATA, true),
-        socket('max', sameShape('number'), DATA, true)
-      ],
-      outputs: [socket('value', sameShape('number'))]
-    };
-    return binary(sameShape('number'), sameShape('number'));
-  }
-  if (kind === 'value.string') {
-    if (['lower', 'upper', 'trim'].includes(record.operation)) return unary(sameShape('string'), sameShape('string'));
-    if (record.operation === 'substring') return {
-      inputs: [
-        socket('text', sameShape('string'), DATA, true),
-        socket('start', sameShape('integer'), DATA, true),
-        socket('end', sameShape('integer'))
-      ],
-      outputs: [socket('value', sameShape('string'))]
-    };
-    if (record.operation === 'split') return {
-      inputs: [socket('text', sameShape('string'), DATA, true), socket('separator', sameShape('string'), DATA, true)],
-      outputs: [socket('value', processType('string'), DATA, false, 'list')]
-    };
-    if (record.operation === 'join') return {
-      inputs: [socket('items', processType('string'), DATA, true, 'list'), socket('separator', sameShape('string'), DATA, true)],
-      outputs: [socket('value', sameShape('string'))]
-    };
-    if (record.operation === 'length') return {
-      inputs: [socket('value', sameShape('string'), DATA, true)],
-      outputs: [socket('value', sameShape('integer'))]
-    };
-    if (record.operation === 'replace') return {
-      inputs: [
-        socket('text', sameShape('string'), DATA, true),
-        socket('search', sameShape('string'), DATA, true),
-        socket('replacement', sameShape('string'), DATA, true)
-      ],
-      outputs: [socket('value', sameShape('string'))]
-    };
-    return binary(sameShape('string'), sameShape('string'));
-  }
-  if (kind === 'value.dateTime') {
-    if (['startOfDay', 'endOfDay'].includes(record.operation)) {
-      return unary(sameShape('dateTime'), sameShape('dateTime'));
-    }
-    if (['differenceDays', 'differenceHours', 'differenceMinutes'].includes(record.operation)) {
-      return {
-        inputs: [socket('left', sameShape('dateTime'), DATA, true), socket('right', sameShape('dateTime'), DATA, true)],
-        outputs: [socket('value', sameShape('number'))]
-      };
-    }
-    if (['addDuration', 'subtractDuration'].includes(record.operation)) {
-      return {
-        inputs: [socket('date', sameShape('dateTime'), DATA, true), socket('duration', sameShape('duration'), DATA, true)],
-        outputs: [socket('value', sameShape('dateTime'))]
-      };
-    }
+  // Polymorphic kinds derive their ports from the operation registry
+  // (SPEC §8 atomicity law): the table owns each operation's sockets.
+  if (PROCESS_OPERATION_REGISTRY[kind]) {
+    const operation = processOperation(kind, record.operation)
+      || Object.values(PROCESS_OPERATION_REGISTRY[kind])[0];
+    const typeFor = base => (base === 'configured' ? processTypeFrom(record.type, configured) : processType(base));
     return {
-      inputs: [socket('date', sameShape('dateTime'), DATA, true), socket('amount', sameShape('number'), DATA, true)],
-      outputs: [socket('value', sameShape('dateTime'))]
-    };
-  }
-  if (kind === 'value.compare') return {
-    inputs: [socket('left', configured, DATA, true), socket('right', configured, DATA, true)],
-    outputs: [socket('result', sameShape('boolean'))]
-  };
-  if (kind === 'value.logic') {
-    // Boolean algebra only (SPEC §8 palette law): the null tests stay here
-    // as unary boolean tests; value comparison is `value.compare`.
-    const unaryOperation = ['not', 'isNull', 'isNotNull'].includes(record.operation);
-    const inputType = sameShape('boolean');
-    return {
-      inputs: [
-        socket('left', inputType, DATA, true),
-        ...(!unaryOperation ? [socket('right', inputType, DATA, true)] : [])
-      ],
-      outputs: [socket('result', sameShape('boolean'))]
+      inputs: operation.inputs.map(input => socket(
+        input.id,
+        typeFor(input.base),
+        DATA,
+        input.optional !== true,
+        input.access || 'item'
+      )),
+      outputs: [socket(operation.output.id, typeFor(operation.output.base), DATA, false, operation.output.access || 'item')]
     };
   }
   if (kind === 'collection.makeList') return {
@@ -735,17 +665,6 @@ function catalogPorts(record = {}, context = {}) {
     return { inputs: [socket('value', configured.base === 'array' ? configured : processType('array', { itemType }), DATA, true)], outputs: [socket('value', itemType, DATA, false, 'list')] };
   }
   if (kind === 'collection.concat') return { inputs: [socket('left', configured, DATA, true, 'list'), socket('right', configured, DATA, true, 'list')], outputs: [socket('value', configured, DATA, false, 'list')] };
-  // The explicit producer-path Join. Both inputs are entity streams of the
-  // same declared type; the output routes under the producer output selected
-  // by `selectedProducerOutputId`, so the join creates no producer output of
-  // its own and never silently merges workflow identity.
-  if (kind === 'producer.join') return {
-    inputs: [
-      socket('primary', entity, DATA, true, 'list'),
-      socket('secondary', entity, DATA, true, 'list')
-    ],
-    outputs: [socket('result', entity, DATA, false, 'list')]
-  };
   if (kind === 'collection.itemAt') return {
     inputs: [socket('items', configured, DATA, true, 'list'), socket('index', processType('integer'), DATA, false)],
     outputs: [socket('item', { ...configured, nullable: true })]
@@ -803,18 +722,6 @@ function catalogPorts(record = {}, context = {}) {
   };
   if (['tree.zip', 'tree.cross'].includes(kind)) return binary(configured, configured, configured);
   if (kind === 'tree.unzip') return unary(configured, processType('json'));
-  if (kind === 'record.getField') {
-    const field = context.fieldSchema || record.fieldSchema;
-    const composition = blockComposition(record, context);
-    return {
-      inputs: [socket('block', processType('block', {
-        block: record.block
-      }), DATA, true)],
-      outputs: [socket('value', {
-        ...processTypeFrom(composition ? record.type : field?.type, configured)
-      })]
-    };
-  }
   if (kind === 'record.fieldChange') return {
     inputs: [socket('value', processTypeFrom(context.fieldSchema?.type || record.fieldSchema?.type, configured), DATA, true)],
     outputs: [socket('change', patch)]
@@ -824,88 +731,11 @@ function catalogPorts(record = {}, context = {}) {
     inputs: [socket('record', entity, DATA, true), socket('changes', patch, DATA, true)],
     outputs: [socket('record', entity)]
   };
-  if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
-    const composition = blockComposition(record, context);
-    const entries = openBlockEntries(record, composition);
-    if (composition) {
-      const block = processType('block', { block: record.block });
-      return {
-        inputs: [
-          ...(kind === 'record.modifyBlock' ? [socket('block', block, DATA, true)] : []),
-          ...entries.map(entry => ({
-            ...socket(`entry:${entry.id}`, openBlockEntryType(entry, composition), DATA, true),
-            label: entryLabel(entry, composition)
-          }))
-        ],
-        outputs: [socket('block', block)]
-      };
-    }
-    const fields = dynamicFields(record, context)
-      .filter(field => field.block === record.block || field.path?.startsWith(`${record.block}.`));
-    const block = processType('block', {
-      block: record.block
-    });
-    return {
-      inputs: [
-        ...(kind === 'record.modifyBlock' ? [socket('block', block, DATA, true)] : []),
-        ...fields.map(field => socket(field.path, field.type, DATA, Boolean(field.required)))
-      ],
-      outputs: [socket('block', block)]
-    };
-  }
-  if (kind === 'record.construct' || kind === 'record.entityDraft') {
+  if (kind === 'record.construct') {
     const fields = dynamicFields(record, context);
     return {
       inputs: fields.map(field => socket(field.path, field.type, DATA, Boolean(field.required))),
-      outputs: [socket('record', kind === 'record.entityDraft' ? entity : processType('record', { schema: record.schema }))]
-    };
-  }
-  if (kind === 'record.deconstruct') {
-    const blocks = dynamicBlocks(record, context);
-    return {
-      inputs: [socket('entity', entity, DATA, true)],
-      outputs: blocks.map(block => socket(block, processType('block', {
-        block
-      })))
-    };
-  }
-  if (kind === 'record.getBlock') return {
-    inputs: [socket('entity', entity, DATA, true)],
-    outputs: [socket('block', processType('block', {
-      block: record.block
-    }))]
-  };
-  if (kind === 'predicate.field') return {
-    inputs: [socket('value', processTypeFrom(context.fieldSchema?.type || record.fieldSchema?.type, configured), DATA, true)],
-    outputs: [socket('predicate', predicate)]
-  };
-  if (kind === 'predicate.logic') return {
-    inputs: [socket('left', predicate, DATA, true), socket('right', predicate)],
-    outputs: [socket('predicate', predicate)]
-  };
-  if (kind === 'read.currentEntity' || kind === 'read.resolveEntityRef' || ['read.parent', 'read.children', 'read.related'].includes(kind) || kind === 'read.allEntities') {
-    throw new Error(`Read kind ${kind} is retired; loads migrate it to cts.read`);
-  }
-  if (kind.startsWith('effect.')) {
-    if (kind === 'effect.runCommand') {
-      const command = context.command || {};
-      return {
-        inputs: [...controlInput, ...commandInputSockets(command)],
-        outputs: [completed, ...commandOutputSockets(command)]
-      };
-    }
-    const specific = effectInputs(kind, {
-      entity,
-      entityRef,
-      patch,
-      configured,
-      blocks: dynamicBlocks(record, context),
-      constructionInputs: constructionInputs(record),
-      constructionMode: record.construction?.mode || ''
-    });
-    return {
-      inputs: [...controlInput, ...specific],
-      outputs: [completed, socket('result', effectResultType(kind, record))]
+      outputs: [socket('record', processType('record', { schema: record.schema }))]
     };
   }
   if (kind.endsWith('Trigger')) {
@@ -1035,83 +865,6 @@ export function entityBlocks(domain = {}, typeId = '') {
   return [...new Set([...(entity?.blocks || []), ...policyBlocks])];
 }
 
-export function dynamicBlocks(record, context) {
-  const selected = Array.isArray(record.blocks) ? record.blocks : [];
-  if (selected.length) return selected;
-  return [...new Set([
-    ...(Array.isArray(record.fieldSchemas) ? record.fieldSchemas : []),
-    ...(Array.isArray(context.fieldSchemas) ? context.fieldSchemas : [])
-  ]
-    .filter(field => record.kind === 'effect.createEntity'
-      ? field.constructible !== false
-      : field.writable !== false)
-    .map(field => field.block || String(field.path || '').split('.')[0])
-    .filter(block => block && !['origin', 'status', 'provenance', 'summary'].includes(block)))];
-}
-
-// The construction row that composes identity on a composer-less construct.
-function hasNameRow(constructionInputs = []) {
-  return constructionInputs.some(input => (input.id || input.path) === 'name');
-}
-
-function effectInputs(kind, types) {
-  if (kind === 'effect.runProducer') return types.constructionInputs.map(input => ({
-    ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
-    label: input.label || input.id
-  }));
-  // Mapped mutation sockets declare List consumption:
-  // the shared effect mapper aligns item, list, and tree sources per item, and
-  // a single item source remains valid as one broadcast item.
-  if (kind === 'effect.createEntity' && types.constructionMode !== 'genericCreate') {
-    return [
-      ...types.constructionInputs.map(input => ({
-        ...socket(input.id, input.type, DATA, input.required && input.default === undefined, 'list'),
-        label: input.label || input.id
-      })),
-      ...types.blocks.map(block => socket(block, processType('block', { block }), DATA, false, 'list')),
-      socket('states.main', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
-    ];
-  }
-  if (kind === 'effect.createEntity') return [
-    // The composer-less construct (SPEC §20): declared row fields surface
-    // as typed construction sockets — every construct input is wireable or
-    // promptable directly, and a compose node is optional.
-    ...types.constructionInputs.map(input => ({
-      ...socket(input.id, input.type, DATA, input.required && input.default === undefined, 'list'),
-      label: input.label || input.id
-    })),
-    // The identity block socket is the legacy v4 composition path; the
-    // composer-less construct authors identity through the Name row socket,
-    // so the block stays required only when the construction contract
-    // declares no name row to compose it.
-    ...types.blocks.map(block => socket(block, processType('block', {
-      block
-    }), DATA, block === 'identity' && !hasNameRow(types.constructionInputs), 'list')),
-    socket('states.main', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
-  ];
-  if (kind === 'effect.updateEntity') return [
-    socket('entity', types.entityRef, DATA, true, 'list'),
-    ...types.blocks.map(block => socket(block, processType('block', {
-      block
-    }), DATA, false, 'list')),
-    socket('states.main', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
-  ];
-  if (kind === 'effect.changeStatus') return [
-    socket('entity', types.entityRef, DATA, true, 'list'),
-    socket('status', processType('status', { typeId: types.entity.typeId }), DATA, true, 'list'),
-    socket('changes', types.patch, DATA, false, 'list'),
-    socket('note', processType('string'), DATA, false, 'list')
-  ];
-  if (kind === 'effect.archiveEntity') return [
-    socket('entity', types.entityRef, DATA, true, 'list'),
-    socket('note', processType('string'), DATA, false, 'list')
-  ];
-  if (kind === 'effect.deleteEntity') return [socket('entity', types.entityRef, DATA, true, 'list')];
-  if (kind === 'effect.sendEntity') return [socket('entity', types.entityRef, DATA, true)];
-  if (kind === 'effect.generateAttachment') return [socket('entity', types.entityRef, DATA, true), socket('parameters', processType('record'))];
-  return [];
-}
-
 function commandInputSockets(command = {}) {
   const abstractInputs = command.input?.abstractEntities || [];
   const acceptedTypes = new Set(abstractInputs.flatMap(input => input.accepts || []));
@@ -1207,12 +960,3 @@ function constructionInputs(record = {}) {
   }).filter(input => input.id);
 }
 
-function effectResultType(kind, record) {
-  if (['effect.createEntity', 'effect.runProducer', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity'].includes(kind)) {
-    return processType('entityRef', { typeId: record.typeId, nullable: false });
-  }
-  if (kind === 'effect.generateAttachment') {
-    return processType('attachmentRef', { attachmentKind: record.attachmentKind });
-  }
-  return processType('json', { nullable: true });
-}

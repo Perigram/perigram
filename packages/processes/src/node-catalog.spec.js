@@ -15,11 +15,10 @@ describe('process v4 node catalog', () => {
     expect(PROCESS_NODE_CATALOG.every(node => /^[a-z]+\.[A-Za-z]+$/.test(node.kind))).toBe(true);
   });
 
-  it('separates value logic, predicates, reads, effects, and control', () => {
+  it('separates value logic, reads, effects, and control', () => {
     expect(getProcessNodeDefinition('value.logic')).toMatchObject({ family: 'values', level: 'data', pure: true });
-    expect(getProcessNodeDefinition('predicate.logic')).toMatchObject({ family: 'predicates', level: 'data', pure: true });
     expect(getProcessNodeDefinition('cts.read')).toMatchObject({ family: 'reads', level: 'read', pure: false });
-    expect(getProcessNodeDefinition('effect.updateEntity')).toMatchObject({ family: 'effects', level: 'effect', pure: false });
+    expect(getProcessNodeDefinition('cts.mutate')).toMatchObject({ family: 'effects', level: 'effect', pure: false });
     expect(getProcessNodeDefinition('control.if')).toMatchObject({ family: 'control', level: 'control', pure: false });
   });
 
@@ -37,10 +36,9 @@ describe('process v4 node catalog', () => {
     for (const kind of [
       'source.literalTree',
       'tree.cross',
-      'record.fieldChange',
-      'predicate.field',
+      'record.construct',
       'cts.read',
-      'effect.changeStatus',
+      'cts.transition',
       'control.forEach',
       'control.stopSuccess'
     ]) {
@@ -85,7 +83,7 @@ describe('process v4 node catalog', () => {
     });
   });
 
-  it('derives entity create/modify sockets from writable canonical blocks', () => {
+  it('derives construct sockets from the construction envelope and mutate leaves from writable rows', () => {
     const context = {
       fieldSchemas: [
         { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } },
@@ -94,24 +92,22 @@ describe('process v4 node catalog', () => {
       ]
     };
     const create = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'project',
-      blocks: ['identity', 'data']
+      construction: { mode: 'genericCreate', inputs: [] }
     }, context);
     const modify = resolveCatalogNodePorts({
-      kind: 'effect.updateEntity',
-      typeId: 'project',
-      blocks: ['identity', 'data']
+      kind: 'cts.mutate',
+      typeId: 'project'
     }, context);
 
-    expect(create.inputs.map(input => input.id)).toEqual(['in', 'identity', 'data', 'states.main']);
-    expect(create.inputs.find(input => input.id === 'identity')?.required).toBe(false);
-    expect(modify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'data', 'states.main']);
+    expect(create.inputs.map(input => input.id)).toEqual(['in', 'type', 'state']);
     expect(create.outputs.map(output => output.id)).toEqual(['completed', 'result']);
+    expect(modify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity.name', 'data.note']);
+    expect(modify.inputs.find(input => input.id === 'entity')?.required).toBe(true);
     const typedCreate = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'cassette_design',
-      blocks: ['identity', 'relations'],
       construction: {
         mode: 'bakeCassetteDesignFromTemplate',
         inputs: [{ id: 'templateId', label: 'Cassette template', type: 'entity', typeId: 'cassette', required: true }]
@@ -119,44 +115,17 @@ describe('process v4 node catalog', () => {
     }, context);
     expect(typedCreate.inputs.map(input => input.id)).toEqual([
       'in',
+      'type',
       'templateId',
-      'identity',
-      'relations',
-      'states.main'
+      'state'
     ]);
-    const automaticModify = resolveCatalogNodePorts({
-      kind: 'effect.updateEntity',
-      typeId: 'project',
-      trigger: { mode: 'event' },
-      blocks: ['identity']
-    }, context);
-    expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'states.main']);
-  });
-
-  it('keeps the identity block optional when the name row authors identity (composer-less construct)', () => {
-    const context = { domain: {} };
-    const withNameRow = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
-      typeId: 'widget',
-      blocks: ['identity'],
-      construction: { mode: 'genericCreate', inputs: [{ id: 'name', type: 'string', required: true }] }
-    }, context);
-    expect(withNameRow.inputs.find(input => input.id === 'identity')?.required).toBe(false);
-    const withoutNameRow = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
-      typeId: 'widget',
-      blocks: ['identity'],
-      construction: { mode: 'genericCreate', inputs: [] }
-    }, context);
-    expect(withoutNameRow.inputs.find(input => input.id === 'identity')?.required).toBe(true);
   });
 
   it('exposes declared row fields as construction sockets on the composer-less construct', () => {
     const context = { domain: {} };
     const rowCreate = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'widget',
-      blocks: ['identity', 'data', 'specs'],
       construction: {
         mode: 'genericCreate',
         inputs: [
@@ -168,13 +137,11 @@ describe('process v4 node catalog', () => {
     }, context);
     expect(rowCreate.inputs.map(input => input.id)).toEqual([
       'in',
+      'type',
       'name',
       'specs.width',
       'data.owner',
-      'identity',
-      'data',
-      'specs',
-      'states.main'
+      'state'
     ]);
     const owner = rowCreate.inputs.find(input => input.id === 'data.owner');
     expect(owner.type).toMatchObject({ base: 'entityRef', typeId: 'project' });
@@ -182,10 +149,9 @@ describe('process v4 node catalog', () => {
     const width = rowCreate.inputs.find(input => input.id === 'specs.width');
     expect(width.type).toMatchObject({ base: 'number' });
     expect(width.required).toBe(false);
-    // v4 twin keeps the block substrate; the cts species record speaks
-    // the declaration only — the persistent Type pin, row fields, and
-    // status, no block sockets (the composer-less construct is the
-    // construction path, SPEC §20).
+    // the species record speaks the declaration only — the persistent Type
+    // pin, row fields, and status, no block sockets (the composer-less
+    // construct is the construction path, SPEC §20).
     const speciesCreate = resolveCatalogNodePorts({
       kind: 'cts.construct',
       typeId: 'widget',
@@ -297,82 +263,54 @@ describe('process v4 node catalog', () => {
     expect(ports.outputs.every(output => output.type?.base === 'entityRef')).toBe(true);
   });
 
-  it('declares List consumption on every mapped mutation effect input socket', () => {
+  it('declares List consumption on every mapped mutation data socket', () => {
     const context = {
       fieldSchemas: [
         { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }
       ]
     };
+    const dataSockets = ports => ports.inputs.filter(input => input.role === 'data' && input.plane !== 'declaration');
     for (const [kind, record] of [
-      ['effect.createEntity', { kind: 'effect.createEntity', typeId: 'project', blocks: ['identity'] }],
-      ['effect.updateEntity', { kind: 'effect.updateEntity', typeId: 'project', blocks: ['identity'] }],
-      ['effect.changeStatus', { kind: 'effect.changeStatus', typeId: 'project' }],
-      ['effect.archiveEntity', { kind: 'effect.archiveEntity', typeId: 'project' }],
-      ['effect.deleteEntity', { kind: 'effect.deleteEntity', typeId: 'project' }]
+      ['cts.construct', { kind: 'cts.construct', typeId: 'project', construction: { mode: 'genericCreate', inputs: [{ id: 'name', type: 'string', required: true }] } }],
+      ['cts.mutate', { kind: 'cts.mutate', typeId: 'project' }],
+      ['cts.transition', { kind: 'cts.transition', typeId: 'project' }],
+      ['cts.remove', { kind: 'cts.remove', typeId: 'project' }]
     ]) {
       const ports = resolveCatalogNodePorts(record, context);
-      expect(ports.inputs.length, kind).toBeGreaterThan(0);
-      expect(ports.inputs.filter(input => input.role === 'data').every(input => input.access === 'list'), kind).toBe(true);
+      expect(dataSockets(ports).length, kind).toBeGreaterThan(0);
+      expect(dataSockets(ports).every(input => input.access === 'list'), kind).toBe(true);
     }
     const typedCreate = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'cassette_design',
       construction: {
         mode: 'bakeCassetteDesignFromTemplate',
         inputs: [{ id: 'templateId', type: 'entity', typeId: 'cassette', required: true }]
       }
     }, context);
-    expect(typedCreate.inputs.filter(input => input.role === 'data').every(input => input.access === 'list')).toBe(true);
+    expect(dataSockets(typedCreate).every(input => input.access === 'list')).toBe(true);
   });
 
   it('accepts item, list, and tree sources on mapped mutation sockets', () => {
     const modify = resolveCatalogNodePorts({
-      kind: 'effect.updateEntity',
-      typeId: 'project',
-      blocks: ['identity']
+      kind: 'cts.mutate',
+      typeId: 'project'
     }, {
       fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
     });
     const entitySocket = modify.inputs.find(input => input.id === 'entity');
-    const blockSocket = modify.inputs.find(input => input.id === 'identity');
+    const leafSocket = modify.inputs.find(input => input.id === 'identity.name');
     for (const access of ['item', 'list', 'tree']) {
       const entitySource = { id: 'entities', label: 'entities', role: 'data', access, type: { base: 'entity', typeId: 'project' } };
       expect(processSocketsCompatible(entitySource, entitySocket).ok, `entity ${access}`).toBe(true);
-      const blockSource = { id: 'block', label: 'block', role: 'data', access, type: { base: 'block', block: 'identity' } };
-      expect(processSocketsCompatible(blockSource, blockSocket).ok, `block ${access}`).toBe(true);
+      const leafSource = { id: 'leaf', label: 'leaf', role: 'data', access, type: { base: 'string' } };
+      expect(processSocketsCompatible(leafSource, leafSocket).ok, `leaf ${access}`).toBe(true);
     }
   });
 
-  it('composes and modifies one selected block from its own fields', () => {
-    const context = {
-      fieldSchemas: [
-        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } },
-        { path: 'data.note', block: 'data', type: { base: 'string', shape: 'item' } }
-      ]
-    };
+  it('uses authored stable sockets for open compose entries', () => {
     const compose = resolveCatalogNodePorts({
-      kind: 'record.composeBlock',
-      typeId: 'project',
-      block: 'identity',
-      fields: ['identity.name']
-    }, context);
-    const modify = resolveCatalogNodePorts({
-      kind: 'record.modifyBlock',
-      typeId: 'project',
-      block: 'identity',
-      fields: ['identity.name']
-    }, context);
-
-    expect(compose.inputs.map(input => input.id)).toEqual(['identity.name']);
-    expect(compose.outputs[0]).toMatchObject({ id: 'block', type: { base: 'block', block: 'identity' } });
-    expect(compose.outputs[0].type).not.toHaveProperty('typeId');
-    expect(modify.inputs.map(input => input.id)).toEqual(['block', 'identity.name']);
-    expect(modify.inputs[0].type).not.toHaveProperty('typeId');
-  });
-
-  it('uses authored stable sockets for open block entries', () => {
-    const compose = resolveCatalogNodePorts({
-      kind: 'record.composeBlock',
+      kind: 'cts.compose',
       block: 'lineage',
       compositionMode: 'ancestors',
       entries: [
@@ -390,7 +328,7 @@ describe('process v4 node catalog', () => {
 
   it('uses an explicit intrinsic array type for a relation collection', () => {
     const compose = resolveCatalogNodePorts({
-      kind: 'record.composeBlock',
+      kind: 'cts.compose',
       block: 'relations',
       compositionMode: 'relations',
       entries: [{ id: 'libraries', key: 'library', type: { base: 'array', itemType: { base: 'entityRef', typeId: 'library' } } }]
@@ -401,10 +339,9 @@ describe('process v4 node catalog', () => {
     });
   });
 
-  it('keeps domain producer inputs on a fixed service effect', () => {
+  it('keeps declared producer inputs on a typed construct', () => {
     const producer = resolveCatalogNodePorts({
-      kind: 'effect.runProducer',
-      producerId: 'bakeCassetteDesignFromTemplate',
+      kind: 'cts.construct',
       typeId: 'cassette_design',
       construction: {
         mode: 'bakeCassetteDesignFromTemplate',
@@ -415,14 +352,14 @@ describe('process v4 node catalog', () => {
       }
     });
 
-    expect(producer.inputs.map(input => input.id)).toEqual(['in', 'name', 'templateId']);
+    expect(producer.inputs.map(input => input.id)).toEqual(['in', 'type', 'name', 'templateId', 'state']);
     expect(producer.inputs.find(input => input.id === 'templateId').type).toMatchObject({ base: 'entityRef', typeId: 'cassette' });
     expect(producer.outputs.map(output => output.id)).toEqual(['completed', 'result']);
   });
 
-  it('uses declared construction inputs inside Create Entity for typed creation modes', () => {
+  it('uses declared construction inputs inside the construct for typed creation modes', () => {
     const create = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'cassette_design',
       construction: {
         mode: 'bakeCassetteDesignFromTemplate',
@@ -433,13 +370,13 @@ describe('process v4 node catalog', () => {
       }
     });
 
-    expect(create.inputs.map(input => input.id)).toEqual(['in', 'name', 'templateId', 'states.main']);
+    expect(create.inputs.map(input => input.id)).toEqual(['in', 'type', 'name', 'templateId', 'state']);
     expect(create.inputs.find(input => input.id === 'templateId').type).toMatchObject({ base: 'entityRef', typeId: 'cassette' });
   });
 
   it('does not require a wire when a construction input declares its own default', () => {
     const create = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'result',
       construction: {
         mode: 'buildResult',
@@ -447,11 +384,11 @@ describe('process v4 node catalog', () => {
       }
     });
 
-    expect(create.inputs.find(input => input.id === 'quality')).toMatchObject({ id: 'quality', required: false });
+    expect(create.inputs.find(input => input.id === 'data.quality')).toMatchObject({ id: 'data.quality', required: false });
   });
 
-  it('projects Run Service sockets from the selected command contract', () => {
-    const ports = resolveCatalogNodePorts({ kind: 'effect.runCommand', commandId: 'solve' }, {
+  it('projects command sockets from the selected command contract', () => {
+    const ports = resolveCatalogNodePorts({ kind: 'cts.command', commandId: 'solve' }, {
       command: {
         input: {
           entities: [{ name: 'queue', type: 'queue', required: true }],
@@ -510,24 +447,25 @@ describe('process v4 node catalog', () => {
     expect(unpacked.outputs[0]).toMatchObject({ access: 'list', type: { base: 'entityRef', typeId: 'queue' } });
   });
 
-  it('keeps field reads item-wise so tree topology flows at runtime', () => {
+  it('keeps field and facet reads item-wise so tree topology flows at runtime', () => {
     const context = {
-      fieldSchema: { path: 'identity.name', type: { base: 'string', shape: 'item' } },
-      fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
+      fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
     };
     expect(resolveCatalogNodePorts({
-      kind: 'record.getField',
-      block: 'identity',
-      path: 'identity.name'
+      kind: 'cts.field',
+      typeId: 'project',
+      inputDefaults: { field: 'identity.name' }
     }, context)).toMatchObject({
-      inputs: [{ id: 'block', access: 'item', type: { base: 'block', block: 'identity' } }],
+      inputs: [
+        { id: 'entity', access: 'item', type: { base: 'entityRef', typeId: 'project' } },
+        { id: 'field', access: 'item', type: { base: 'string' } }
+      ],
       outputs: [{ id: 'value', access: 'item', type: { base: 'string' } }]
     });
     expect(resolveCatalogNodePorts({
-      kind: 'record.deconstruct',
-      typeId: 'project',
-      blocks: ['identity']
-    }, context).outputs[0]).toMatchObject({ access: 'item', type: { base: 'block', block: 'identity' } });
+      kind: 'cts.decompose',
+      typeId: 'project'
+    }, context).outputs[0]).toMatchObject({ id: 'identity.name', access: 'item', type: { base: 'string' } });
   });
 
   it('exposes items plus aligned keys for Sort, Distinct, and Group By', () => {

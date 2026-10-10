@@ -7,6 +7,7 @@
 // without one. A palette item that cannot be dropped, configured, and
 // round-tripped through this seam is a defect (authoring.spec.js pins it).
 import { operationKindOf, typeIdOf, setTypeBinding } from '../../cts/src/index.js';
+import { PROCESS_OPERATION_REGISTRY } from './operations.js';
 import {
   camelCaseId,
   createProcessDesignerContract,
@@ -44,19 +45,13 @@ export function normalizeDesignerAccess(access = {}) {
   };
 }
 
+// One home per polymorphic operation (SPEC §8 atomicity law): the
+// operation registry owns the operation lists; only kinds with a
+// non-registry discriminator (sort's direction) carry fixed entries here.
 const PROCESS_NODE_OPERATIONS = {
-  'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max', 'absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt', 'clamp'],
-  'value.string': ['concat', 'replace', 'substring', 'split', 'join', 'length', 'lower', 'upper', 'trim'],
-  // One home per operation (SPEC §8 palette law): `value.compare` owns
-  // value comparison, predicates own field-path comparison, `value.logic`
-  // composes boolean algebra only.
-  'value.compare': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'],
-  'value.logic': ['and', 'or', 'not', 'xor', 'nand', 'nor', 'xnor', 'isNull', 'isNotNull'],
-  'value.dateTime': ['addDays', 'addHours', 'addMinutes', 'addMonths', 'addDuration', 'subtractDuration', 'differenceDays', 'differenceHours', 'differenceMinutes', 'startOfDay', 'endOfDay'],
-  'predicate.field': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'],
-  'predicate.logic': ['and', 'or', 'not'],
-  'collection.sort': ['asc', 'desc'],
-  'record.fieldChange': ['set', 'unset', 'append', 'remove']
+  ...Object.fromEntries(Object.entries(PROCESS_OPERATION_REGISTRY)
+    .map(([kind, operations]) => [kind, Object.keys(operations)])),
+  'collection.sort': ['asc', 'desc']
 };
 
 export function humanizeNodeLabel(value = '') {
@@ -82,9 +77,6 @@ export function iconForProcessNode(kind = '') {
   if (kind.startsWith('value.')) return 'pi pi-sliders-h';
   if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
   if (kind.startsWith('record.')) return 'pi pi-box';
-  if (kind.startsWith('predicate.')) return 'pi pi-filter';
-  if (kind.startsWith('read.')) return 'pi pi-database';
-  if (kind.startsWith('effect.')) return 'pi pi-bolt';
   return 'pi pi-directions';
 }
 
@@ -94,7 +86,17 @@ export function defaultProcessNodeOperation(kind = '') {
 
 export const PROCESS_NODE_OPERATIONS_BY_KIND = PROCESS_NODE_OPERATIONS;
 
-const MANAGED_PROCESS_BLOCKS = new Set(['origin', 'status', 'provenance', 'summary']);
+// The operational species (effect family): they carry the event contract
+// and access envelopes, never authored value access.
+const EFFECT_SPECIES_KINDS = new Set([
+  'cts.construct',
+  'cts.mutate',
+  'cts.transition',
+  'cts.remove',
+  'cts.command',
+  'cts.service',
+  'cts.conversion'
+]);
 
 // The record factory: seeds only keys every record genuinely carries.
 // Kind-specific envelopes (construction, state) land in their own branches
@@ -103,7 +105,6 @@ const MANAGED_PROCESS_BLOCKS = new Set(['origin', 'status', 'provenance', 'summa
 export function createProcessNodeRecord(id, kind = 'source.literalItem', { defaultEntityTypeId = '' } = {}) {
   const op = operationKindOf({ kind });
   const nativeSpecies = String(kind || '').startsWith('cts.');
-  const createLike = ['effect.createEntity', 'effect.runProducer'].includes(op);
   const node = {
     id,
     kind,
@@ -117,7 +118,7 @@ export function createProcessNodeRecord(id, kind = 'source.literalItem', { defau
     node.value = op === 'source.literalList' ? [] : op === 'source.literalTree' ? { branches: [] } : null;
     node.fields = [];
   }
-  if (createLike) node.construction = { mode: 'genericCreate', inputs: [] };
+  if (kind === 'cts.construct') node.construction = { mode: 'genericCreate', inputs: [] };
   return node;
 }
 
@@ -151,17 +152,6 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
     return ports.map(port => ({ ...port, label: portLabel(node, port) }));
   }
 
-  function constructibleEntityBlocks(typeId = '') {
-    const fieldBlocks = contract.fieldsForEntity(typeId)
-      .filter(field => field.constructible !== false)
-      .map(field => field.block)
-      .filter(block => block && !MANAGED_PROCESS_BLOCKS.has(block));
-    const openBlocks = contract.blocksForEntity(typeId)
-      .map(block => block.id)
-      .filter(block => contract.blockComposition(block) && !MANAGED_PROCESS_BLOCKS.has(block));
-    return [...new Set([...fieldBlocks, ...openBlocks])];
-  }
-
   function normalizeProcessNodeDefaults(node = {}) {
     node.kind ||= 'source.literalItem';
     const op = operationKindOf(node);
@@ -183,7 +173,7 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
     if (!nativeSpecies) {
       node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
     }
-    if (!op.startsWith('effect.')) {
+    if (!EFFECT_SPECIES_KINDS.has(node.kind)) {
       node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
     }
     node.icon = iconForProcessNode(node.kind);
@@ -200,7 +190,7 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
   }
 
   function normalizeEffectEnvelope(node = {}) {
-    if (!operationKindOf(node).startsWith('effect.')) return;
+    if (!EFFECT_SPECIES_KINDS.has(node.kind)) return;
     node.access = normalizeDesignerAccess(node.access);
     node.entryTriggerId = node.id;
   }
@@ -223,15 +213,9 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
   }
 
   function normalizeCreateEnvelope(node = {}) {
-    const op = operationKindOf(node);
-    const nativeSpecies = String(node.kind || '').startsWith('cts.');
-    if (['effect.createEntity', 'effect.runProducer'].includes(op)) {
+    if (node.kind === 'cts.construct') {
       syncProcessNodeConstruction(node);
-      if (nativeSpecies) delete node.state;
-    }
-    if (op === 'effect.createEntity' && !nativeSpecies) {
-      node.blocks = constructibleEntityBlocks(typeIdOf(node));
-      node.fields = [];
+      delete node.state;
     }
   }
 
@@ -312,7 +296,6 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
     catalogContext,
     catalogPorts,
     relationKeysForEntity,
-    constructibleEntityBlocks,
     syncProcessNode
   };
 }

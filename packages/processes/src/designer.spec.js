@@ -50,7 +50,7 @@ describe('process designer domain contract', () => {
     const data = { producerOutputs: {} };
     const node = {
       id: 'processNode_1785860422855',
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       outputs: [{
         id: 'result',
         type: { base: 'entity', typeId: 'work_item', nullable: false }
@@ -283,13 +283,14 @@ describe('process designer domain contract', () => {
     // declared-edge traversal remains separate from unfiltered collection
     // reads.
     expect(groups.instances.map(item => item.preset.select)).toEqual([
-      'current', 'all', 'extract', 'parent', 'children', 'related', undefined
+      'current', 'all', 'extract', 'parent', 'children', 'related', undefined, undefined
     ]);
-    // The field projection lives with the entity sources; block composition
-    // (cts.compose/cts.decompose) is catalog-only for migrated graphs.
-    expect(groups.instances.at(-1).kind).toBe('cts.field');
+    // The field projection and the per-facet instance elimination live with
+    // the entity sources; block composition (cts.compose) stays catalog-only
+    // for migrated graphs.
+    expect(groups.instances.at(-2).kind).toBe('cts.field');
+    expect(groups.instances.at(-1).kind).toBe('cts.decompose');
     expect(items.map(item => item.kind)).not.toContain('cts.compose');
-    expect(items.map(item => item.kind)).not.toContain('cts.decompose');
     expect(items.map(item => item.kind)).not.toContain('cts.join');
     expect(items.map(item => item.preset?.select)).not.toContain('byId');
     expect(items.map(item => item.preset?.select)).not.toContain('query');

@@ -1,5 +1,73 @@
 # TODO
 
+## Node atomicity: one operation home, exhaustive basics, exhaustive decompose, v4 tier retired (2026-10-10)
+
+Owner direction (2026-10-10): the node layer operates like a dataflow
+toolkit — atomic operations covering the basics exhaustively, complex
+behavior composed by wiring, no hardcoded operation lists, no nodes doing
+what atoms already cover; `cts.decompose` exposes every facet of an
+instance (fields, lineage edges, state axis, provenance) as output sockets
+instead of bespoke per-fact nodes; the retired v4 execution tier
+(`effect.*`, `record.*` block substrate, `predicate.*`, `producer.join`)
+leaves the catalog, evaluator, orchestrator, and server with the species
+vocabulary as the only executable one (SPEC §20 already retires them —
+the code lagged).
+
+- [x] A. Operation registry: one home per polymorphic operation
+  (sockets + evaluation); catalog ports, evaluator, and authoring
+  defaults derive from it (SPEC §8 atomicity law).
+- [x] B. Basics coverage: math `trunc`/`sign`, string
+  `padStart`/`padEnd`/`indexOf`/`repeat`, list reductions
+  `sum`/`average`/`min`/`max`.
+- [x] C. Exhaustive `cts.decompose`: per-facet typed outputs derived
+  from the projected field schemas; palette item (SPEC §20).
+- [x] D. v4 execution tier retired: catalog throws for retired kinds,
+  server executor speaks species records, one-shot persisted-draft
+  migration rewritten to the current species shapes.
+
+### Agent Notes (2026-10-10, node atomicity)
+
+Audit findings before the work: every polymorphic operation was restated
+in four homes (authoring op lists, catalog port if-chains, evaluator
+execute branches, i18n labels); no numeric list reductions existed;
+`cts.decompose` exposed only writable data blocks through a managed-block
+list hardcoded in two places (catalog `dynamicBlocks`, authoring
+`MANAGED_PROCESS_BLOCKS`) and was not even a palette item; the retired v4
+kinds (9 `effect.*`, the `record.*` block substrate minus
+`record.construct`, `predicate.*`, `producer.join`) still had full catalog
+ports, evaluator branches, orchestration paths, and a server executor
+keyed on their vocabulary. `operationKindOf` translated species records
+to v4 twins, contradicting SPEC §20's "classification never changes a
+record kind".
+
+Landed: `packages/processes/src/operations.js` is the operation registry
+(sockets + evaluation per operation; catalog/evaluator/authoring derive).
+Basics added: math trunc/sign, string padStart/padEnd/indexOf/repeat,
+`collection.reduce` (sum/average/min/max). `cts.decompose` now derives one
+typed output socket per projected field-schema path (identity, row fields,
+lineage edges, relations, state, provenance) with missing-facet markers;
+it joined the palette as `decomposeInstance`; the managed-block hardcodes
+are gone. The v4 tier is deleted everywhere — catalog and evaluator throw,
+orchestration and the server effect executor speak species records,
+`operationKindOf` answers the record's own kind, and the predicate/patch
+algebra (`predicate.*`, `record.fieldChange/mergeChanges/applyChanges`,
+`evaluateEntityPredicate`, `applyPatch`) is removed with its kinds.
+`record.construct` stays (blessed by the SPEC §8 palette law as the record
+constructor for `collection.join` pairing). String split/join became
+list-aware through the packet tree per the palette law (split's segments
+land as per-item sub-branches; join yields one string per branch).
+`server/scripts/migrate-v4-drafts-native.js` was rewritten from its stale
+slots-era shape to the full SPEC §20 kind table with explicit
+unmigratable reporting (send-to-organization effects, patch algebra,
+producer-path joins).
+
+Validation: `npx vitest run packages/processes packages/cts` (539),
+`shared/framework-packages.spec.js` + `shared/design-system.spec.js` (40),
+`vitest.ssr.config.js` (3), `node scripts/check-arch.js`,
+`node scripts/check-docs.js` — all green. The spec sweep deleted ~45
+retired-subject tests, rewrote ~60 to species fixtures, and pinned the
+decompose facet contract and the reduce kind.
+
 ## Facade extraction: the domain becomes a separated plugin (2026-10-09)
 
 The owner's standing goal, restated after ten sessions missed it: the facade

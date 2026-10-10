@@ -1,6 +1,7 @@
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf, setTypeBinding } from '~/packages/cts/src/index.js';
 import {
+  EFFECT_SPECIES_KINDS,
   constructionInputsForContract,
   createProcessRecordSync,
   formatProcessType,
@@ -150,11 +151,10 @@ export function useProcessDesignerNodeSync({
 
   function processTypeIdOptions(node = {}) {
     const kind = opKind(node);
-    if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return designer.createEntityOptions;
-    if (kind === 'effect.updateEntity') return designer.updateEntityOptions;
-    if (kind === 'effect.changeStatus') return designer.changeStatusOptions;
-    if (kind === 'effect.archiveEntity') return designer.archivableEntityOptions;
-    if (kind === 'effect.deleteEntity') return designer.deleteEntityOptions;
+    if (kind === 'cts.construct') return designer.createEntityOptions;
+    if (kind === 'cts.mutate') return designer.updateEntityOptions;
+    if (kind === 'cts.transition') return node.archiveIntent ? designer.archivableEntityOptions : designer.changeStatusOptions;
+    if (kind === 'cts.remove') return designer.deleteEntityOptions;
     if (node.kind === 'cts.field') return designer.readableEntityOptions;
     if (node.kind === 'cts.read' && ['all', 'children', 'extract'].includes(node.select)) return designer.listableEntityOptions;
     return designer.entityOptions;
@@ -244,7 +244,7 @@ export function useProcessDesignerNodeSync({
   // is wired. The compiled `trigger.mode` spelling is written here from
   // the graph, so persisted authored modes heal into derived ones.
   function syncEffectTriggerMode(graphNode = {}, record = {}) {
-    if (!opKind(record).startsWith('effect.')) return;
+    if (!EFFECT_SPECIES_KINDS.has(opKind(record))) return;
     const connected = connectedProcessInputIds(graphNode, record);
     record.trigger = { mode: connected.includes('in') ? 'event' : 'manual' };
   }

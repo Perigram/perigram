@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createDataPacket } from './data-tree.js';
-import { applyPatch, evaluateEntityPredicate, executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
+import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 
 describe('process v4 data execution', () => {
-  it.each(['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'])(
+  it.each(['cts.mutate', 'cts.transition', 'cts.remove'])(
     'maps %s over item, list, and branched-tree inputs', async kind => {
     const record = { kind, typeId: 'project' };
     const invoke = vi.fn(async inputs => ({ ...inputs.entity, identity: inputs.identity }));
@@ -51,12 +51,12 @@ describe('process v4 data execution', () => {
     const identity = createDataPacket([{ name: 'One' }, { name: 'Two' }], 'list');
 
     await expect(executeProcessEffectNode(
-      { kind: 'effect.updateEntity', typeId: 'project' },
+      { kind: 'cts.mutate', typeId: 'project' },
       { entity, identity },
       invoke
     )).rejects.toThrow('items must be scalar or aligned');
     await expect(executeProcessEffectNode(
-      { kind: 'effect.updateEntity', typeId: 'project', matching: 'cross' },
+      { kind: 'cts.mutate', typeId: 'project', matching: 'cross' },
       { entity, identity },
       invoke
     )).rejects.toThrow('cannot use Cross matching');
@@ -69,7 +69,7 @@ describe('process v4 data execution', () => {
       return { ...inputs.entity, identity: inputs.identity };
     });
     const result = await executeProcessEffectNode(
-      { kind: 'effect.changeStatus', typeId: 'project' },
+      { kind: 'cts.transition', typeId: 'project' },
       {
         entity: createDataPacket([
           { type: 'project', id: 'p1' },
@@ -82,7 +82,7 @@ describe('process v4 data execution', () => {
     );
 
     const expectedFailure = {
-      operation: 'effect.changeStatus',
+      operation: 'cts.transition',
       branchPath: [],
       itemIndex: 1,
       entityRef: { type: 'project', id: 'p2' },
@@ -95,8 +95,8 @@ describe('process v4 data execution', () => {
       { type: 'project', id: 'p3', identity: { name: 'Three' } }
     ]);
     expect(result.completedMutations).toEqual([
-      { operation: 'effect.changeStatus', branchPath: [], itemIndex: 0, entityRef: { type: 'project', id: 'p1' } },
-      { operation: 'effect.changeStatus', branchPath: [], itemIndex: 2, entityRef: { type: 'project', id: 'p3' } }
+      { operation: 'cts.transition', branchPath: [], itemIndex: 0, entityRef: { type: 'project', id: 'p1' } },
+      { operation: 'cts.transition', branchPath: [], itemIndex: 2, entityRef: { type: 'project', id: 'p3' } }
     ]);
   });
 
@@ -105,14 +105,14 @@ describe('process v4 data execution', () => {
       throw new Error('write denied');
     });
     const result = await executeProcessEffectNode(
-      { kind: 'effect.updateEntity', typeId: 'project' },
+      { kind: 'cts.mutate', typeId: 'project' },
       { entity: createDataPacket({ type: 'project', id: 'p1' }) },
       invoke
     );
 
     expect(result.completedMutations).toEqual([]);
     expect(result.failures).toEqual([{
-      operation: 'effect.updateEntity',
+      operation: 'cts.mutate',
       branchPath: [],
       itemIndex: 0,
       entityRef: { type: 'project', id: 'p1' },
@@ -137,9 +137,7 @@ describe('process v4 data execution', () => {
     expect(result.branches[0].items).toEqual([20, 30]);
   });
 
-  it('keeps entity predicates declarative and loads All unfiltered', async () => {
-    const predicate = { kind: 'field', typeId: 'sheet', path: 'specs.width', operation: 'gte', value: 100 };
-    expect(evaluateEntityPredicate(predicate, { specs: { width: 120 } })).toBe(true);
+  it('loads All unfiltered', async () => {
     const queryEntities = vi.fn().mockResolvedValue([{ id: 'wide' }, { id: 'narrow' }]);
     const result = await executeProcessDataNode(
       { kind: 'cts.read', select: 'all', typeId: 'sheet' },
@@ -148,17 +146,6 @@ describe('process v4 data execution', () => {
     );
     expect(queryEntities).toHaveBeenCalledWith('sheet');
     expect(result.branches[0].items).toEqual([{ id: 'wide' }, { id: 'narrow' }]);
-  });
-
-  it('builds composable field patches without mutating the source record', async () => {
-    const patch = await executeProcessDataNode(
-      { kind: 'record.fieldChange', typeId: 'project', path: 'identity.name' },
-      { value: createDataPacket('Cutting room') }
-    );
-    const source = { identity: { name: 'Old' } };
-    const result = applyPatch(source, patch.branches[0].items[0]);
-    expect(result.identity.name).toBe('Cutting room');
-    expect(source.identity.name).toBe('Old');
   });
 
   it('uses typed in-node defaults when a value socket is not connected', async () => {
@@ -217,91 +204,6 @@ describe('process v4 data execution', () => {
     expect(nand.branches[0].items).toEqual([false]);
     expect(trim.branches[0].items).toEqual(['Perigram']);
     expect(substring.branches[0].items).toEqual(['roc']);
-  });
-
-  it('returns the requested typed block from entity deconstruction', async () => {
-    const result = await executeProcessDataNode(
-      {
-        id: 'deconstruct',
-        kind: 'record.deconstruct',
-        blocks: ['identity', 'states']
-      },
-      { entity: createDataPacket({ identity: { name: 'Queue' }, states: { main: null, timestamp: '2026-01-01T00:00:00.000Z' } }) },
-      { outputId: 'states' }
-    );
-
-    expect(result.branches[0].items).toEqual([{ main: null, timestamp: '2026-01-01T00:00:00.000Z' }]);
-  });
-
-  it('composes and modifies typed blocks without entity field paths leaking into their values', async () => {
-    const composed = await executeProcessDataNode(
-      { kind: 'record.composeBlock', block: 'identity', fields: ['identity.name', 'identity.slug'] },
-      {
-        'identity.name': createDataPacket('Queue'),
-        'identity.slug': createDataPacket('queue')
-      }
-    );
-    const modified = await executeProcessDataNode(
-      { kind: 'record.modifyBlock', block: 'identity', fields: ['identity.name'] },
-      {
-        block: composed,
-        'identity.name': createDataPacket('Cut queue')
-      }
-    );
-
-    expect(composed.branches[0].items).toEqual([{ name: 'Queue', slug: 'queue' }]);
-    expect(modified.branches[0].items).toEqual([{ name: 'Cut queue', slug: 'queue' }]);
-  });
-
-  it('emits one composed block per aligned tuple from list-shaped inputs', async () => {
-    const composed = await executeProcessDataNode(
-      { kind: 'record.composeBlock', block: 'identity', fields: ['identity.name', 'identity.slug'] },
-      {
-        'identity.name': createDataPacket(['Queue', 'Archive'], 'list'),
-        'identity.slug': createDataPacket(['queue', 'archive'], 'list')
-      }
-    );
-
-    expect(composed.branches).toEqual([{ path: [], items: [
-      { name: 'Queue', slug: 'queue' },
-      { name: 'Archive', slug: 'archive' }
-    ] }]);
-  });
-
-  it('emits one composed open-entry block per aligned tuple from list-shaped inputs', async () => {
-    const composed = await executeProcessDataNode(
-      {
-        kind: 'record.composeBlock',
-        block: 'relations',
-        compositionMode: 'relations',
-        entries: [{ id: 'library', key: 'library', typeId: 'library' }]
-      },
-      { 'entry:library': createDataPacket([{ type: 'library', id: 'a' }, { type: 'library', id: 'b' }], 'list') }
-    );
-
-    expect(composed.branches).toEqual([{ path: [], items: [
-      { library: { type: 'library', id: 'a' } },
-      { library: { type: 'library', id: 'b' } }
-    ] }]);
-  });
-
-  it('writes explicit scalar or collected array values without relation cardinality metadata', async () => {
-    const replace = await executeProcessDataNode({
-      kind: 'record.modifyBlock',
-      block: 'relations',
-      compositionMode: 'relations',
-      entries: [{ id: 'library', key: 'library', typeId: 'library' }]
-    }, {
-      block: createDataPacket({ library: { type: 'library', id: 'a' } }),
-      'entry:library': createDataPacket({ type: 'library', id: 'b' })
-    });
-    expect(replace.branches[0].items).toEqual([{ library: { type: 'library', id: 'b' } }]);
-
-    const collected = [{ type: 'library', id: 'a' }, { type: 'library', id: 'b' }];
-    const many = await executeProcessDataNode({
-      kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations', entries: [{ id: 'libraries', key: 'libraries' }]
-    }, { 'entry:libraries': createDataPacket(collected) });
-    expect(many.branches[0].items).toEqual([{ libraries: collected }]);
   });
 
   it('packs packet lists into one array-valued block field and unpacks them explicitly', async () => {
@@ -400,54 +302,6 @@ describe('process v4 data execution', () => {
     expect(result.branches).toEqual([{ path: [], items: [] }]);
   });
 
-  it('constructs a relation array from independent typed references', async () => {
-    const listed = await executeProcessDataNode(
-      { kind: 'collection.makeList' },
-      {
-        item1: createDataPacket({ type: 'library', id: 'lib-1' }),
-        item2: createDataPacket({ type: 'library', id: 'lib-2' })
-      }
-    );
-    const packed = await executeProcessDataNode(
-      { kind: 'collection.packArray' },
-      { value: listed }
-    );
-    const composed = await executeProcessDataNode({
-      kind: 'record.composeBlock',
-      block: 'relations',
-      compositionMode: 'relations',
-      entries: [{ id: 'libraries', key: 'libraries' }]
-    }, { 'entry:libraries': packed });
-
-    const refs = [{ type: 'library', id: 'lib-1' }, { type: 'library', id: 'lib-2' }];
-    expect(packed.branches[0].items).toEqual([refs]);
-    expect(composed.branches[0].items).toEqual([{ libraries: refs }]);
-  });
-
-  it('constructs an attachment array from independent typed attachment references', async () => {
-    const listed = await executeProcessDataNode(
-      { kind: 'collection.makeList' },
-      {
-        item1: createDataPacket({ kind: 'drawing', id: 'att-1' }),
-        item2: createDataPacket({ kind: 'drawing', id: 'att-2' })
-      }
-    );
-    const packed = await executeProcessDataNode(
-      { kind: 'collection.packArray' },
-      { value: listed }
-    );
-    const composed = await executeProcessDataNode({
-      kind: 'record.composeBlock',
-      block: 'attachments',
-      compositionMode: 'attachments',
-      entries: [{ id: 'drawings', key: 'drawings', attachmentKind: 'drawing' }]
-    }, { 'entry:drawings': packed });
-
-    const attachments = [{ kind: 'drawing', id: 'att-1' }, { kind: 'drawing', id: 'att-2' }];
-    expect(packed.branches[0].items).toEqual([attachments]);
-    expect(composed.branches[0].items).toEqual([{ drawings: attachments }]);
-  });
-
   it('constructs a command entity-list input array from independent entity references', async () => {
     const listed = await executeProcessDataNode(
       { kind: 'collection.makeList' },
@@ -467,261 +321,6 @@ describe('process v4 data execution', () => {
     ]);
   });
 
-  it('composes lineage keys from typed ancestor references', async () => {
-    const composed = await executeProcessDataNode(
-      {
-        kind: 'record.composeBlock',
-        block: 'lineage',
-        compositionMode: 'ancestors',
-        entries: [
-          { id: 'organization', key: 'organizationId', typeId: 'organization' },
-          { id: 'nesting-run', key: 'runId', typeId: 'nesting_run' }
-        ]
-      },
-      {
-        'entry:organization': createDataPacket({ type: 'organization', id: 'org-1' }),
-        'entry:nesting-run': createDataPacket({ type: 'nesting_run', id: 'run-1' })
-      }
-    );
-    expect(composed.branches[0].items).toEqual([{
-      organizationId: 'org-1',
-      runId: 'run-1'
-    }]);
-  });
-
-  it('composes a socket-derived entity relation', async () => {
-    const composed = await executeProcessDataNode({
-      kind: 'record.composeBlock',
-      block: 'relations',
-      compositionMode: 'relations',
-      entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one' }]
-    }, {
-      'entry:library': createDataPacket({ type: 'library', id: 'library-1' })
-    });
-    expect(composed.branches[0].items).toEqual([{
-      library: { type: 'library', id: 'library-1' }
-    }]);
-  });
-
-  it('reads a lineage id back as the declared typed entity reference', async () => {
-    const result = await executeProcessDataNode(
-      {
-        kind: 'record.getField',
-        block: 'lineage',
-        path: 'lineage.queueId',
-        compositionMode: 'ancestors',
-        type: { base: 'entityRef', shape: 'item', typeId: 'queue' }
-      },
-      { block: createDataPacket({ queueId: 'queue-1' }) }
-    );
-    expect(result.branches[0].items).toEqual([{ type: 'queue', id: 'queue-1' }]);
-  });
-
-  it('rejects Get Block and Deconstruct blocks outside the entity contract at runtime', async () => {
-    const domain = { entities: [{ type: 'project', blocks: ['identity', 'states', 'attachments', 'data'] }] };
-    const entity = createDataPacket({ identity: { name: 'One' } });
-
-    await expect(executeProcessDataNode(
-      { kind: 'record.getBlock', typeId: 'project', block: 'summary' },
-      { entity },
-      { domain }
-    )).rejects.toThrow('uses block summary outside project');
-    await expect(executeProcessDataNode(
-      { kind: 'record.deconstruct', typeId: 'project', blocks: ['identity', 'relations'] },
-      { entity },
-      { domain }
-    )).rejects.toThrow('uses block relations outside project');
-  });
-
-  it('reads the framework-owned attachments block through Get Block and Deconstruct', async () => {
-    const domain = { entities: [{ type: 'project', blocks: ['identity', 'attachments', 'data'] }] };
-    const attachments = [{ kind: 'drawing', id: 'att-1' }, { kind: 'drawing', id: 'att-2' }];
-    const entity = createDataPacket({ identity: { name: 'One' }, attachments });
-
-    const block = await executeProcessDataNode(
-      { kind: 'record.getBlock', typeId: 'project', block: 'attachments' },
-      { entity },
-      { domain }
-    );
-    expect(block.branches[0].items).toEqual([attachments]);
-
-    const deconstructed = await executeProcessDataNode(
-      { kind: 'record.deconstruct', typeId: 'project', blocks: ['identity', 'attachments'] },
-      { entity },
-      { domain }
-    );
-    expect(deconstructed.branches[0].items).toEqual([{ identity: { name: 'One' }, attachments }]);
-  });
-
-  // Union of the CNC block family (identity, lineage, origin, status,
-  // attachments, data, specs, summary plus auto-appended relations and
-  // provenance) as declared by the facade type declarations.
-  const fullFamilyDomain = {
-    entities: [{
-      type: 'sheet',
-      blocks: ['identity', 'lineage', 'origin', 'states', 'attachments', 'data', 'specs', 'summary', 'relations', 'provenance']
-    }]
-  };
-  const fullFamilyEntity = (name, primary) => ({
-    identity: { name },
-    lineage: { projectId: 'project-1' },
-    origin: { source: 'import' },
-    states: { main: primary },
-    attachments: { drawings: [{ kind: 'drawing', id: `att-${name}` }] },
-    data: { note: `note-${name}` },
-    specs: { thickness: 18 },
-    summary: { queueCount: 2 },
-    relations: { library: { type: 'library', id: 'lib-1' } },
-    provenance: { producedBy: { type: 'nesting_run', id: 'run-1' } }
-  });
-  const fullFamilyBlocks = fullFamilyDomain.entities[0].blocks;
-
-  it('preserves item, list, and tree topology reading the full CNC block family', async () => {
-    const first = fullFamilyEntity('One', 'NEW');
-    const second = fullFamilyEntity('Two', 'DONE');
-    const third = fullFamilyEntity('Three', 'NEW');
-    const deconstruct = { kind: 'record.deconstruct', typeId: 'sheet', blocks: fullFamilyBlocks };
-
-    const item = await executeProcessDataNode(
-      deconstruct,
-      { entity: createDataPacket(first) },
-      { domain: fullFamilyDomain }
-    );
-    expect(item.branches[0].items).toEqual([first]);
-
-    const list = await executeProcessDataNode(
-      deconstruct,
-      { entity: createDataPacket([first, second], 'list') },
-      { domain: fullFamilyDomain }
-    );
-    expect(list.branches).toEqual([{ path: [], items: [first, second] }]);
-
-    const treeInput = createDataPacket({ branches: [
-      { path: [2], items: [first, second] },
-      { path: [7], items: [third] }
-    ] }, 'tree');
-    const tree = await executeProcessDataNode(
-      deconstruct,
-      { entity: treeInput },
-      { domain: fullFamilyDomain }
-    );
-    expect(tree.branches).toEqual([
-      { path: [2], items: [first, second] },
-      { path: [7], items: [third] }
-    ]);
-
-    // Every declared family block — including the managed read-only
-    // origin/status/provenance/summary blocks — is readable through Get Block
-    // with the same topology.
-    for (const block of fullFamilyBlocks) {
-      const read = await executeProcessDataNode(
-        { kind: 'record.getBlock', typeId: 'sheet', block },
-        { entity: treeInput },
-        { domain: fullFamilyDomain }
-      );
-      expect(read.branches).toEqual([
-        { path: [2], items: [first[block], second[block]] },
-        { path: [7], items: [third[block]] }
-      ]);
-    }
-
-    // Get Field keeps the same topology over fixed and open blocks.
-    const names = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
-      { block: await executeProcessDataNode(
-        { kind: 'record.getBlock', typeId: 'sheet', block: 'identity' },
-        { entity: treeInput },
-        { domain: fullFamilyDomain }
-      ) }
-    );
-    expect(names.branches).toEqual([
-      { path: [2], items: ['One', 'Two'] },
-      { path: [7], items: ['Three'] }
-    ]);
-
-    // Deconstruct's per-block output feeds Get Field on managed blocks.
-    const statusBlocks = await executeProcessDataNode(
-      { id: 'deconstruct', ...deconstruct },
-      { entity: treeInput },
-      { domain: fullFamilyDomain, outputId: 'states' }
-    );
-    const statuses = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'states', path: 'states.main' },
-      { block: statusBlocks }
-    );
-    expect(statuses.branches).toEqual([
-      { path: [2], items: ['NEW', 'DONE'] },
-      { path: [7], items: ['NEW'] }
-    ]);
-  });
-
-  it('round-trips typed attachments through Compose, Deconstruct, Get Block, and Get Field', async () => {
-    const listed = await executeProcessDataNode(
-      { kind: 'collection.makeList' },
-      {
-        item1: createDataPacket({ kind: 'drawing', id: 'att-1' }),
-        item2: createDataPacket({ kind: 'drawing', id: 'att-2' })
-      }
-    );
-    const packed = await executeProcessDataNode(
-      { kind: 'collection.packArray' },
-      { value: listed }
-    );
-    const composed = await executeProcessDataNode({
-      kind: 'record.composeBlock',
-      block: 'attachments',
-      compositionMode: 'attachments',
-      entries: [{ id: 'drawings', key: 'drawings', attachmentKind: 'drawing' }]
-    }, { 'entry:drawings': packed });
-
-    const entityValue = {
-      identity: { name: 'One' },
-      attachments: composed.branches[0].items[0]
-    };
-    const entity = createDataPacket(entityValue);
-
-    const deconstructed = await executeProcessDataNode(
-      { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'sheet', blocks: ['identity', 'attachments'] },
-      { entity },
-      { domain: fullFamilyDomain, outputId: 'attachments' }
-    );
-    const entryList = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'attachments', path: 'attachments.drawings' },
-      { block: deconstructed }
-    );
-    expect(entryList.branches[0].items).toEqual([[{ kind: 'drawing', id: 'att-1' }, { kind: 'drawing', id: 'att-2' }]]);
-
-    const block = await executeProcessDataNode(
-      { kind: 'record.getBlock', typeId: 'sheet', block: 'attachments' },
-      { entity },
-      { domain: fullFamilyDomain }
-    );
-    const entry = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'attachments', path: 'attachments.drawings.1' },
-      { block }
-    );
-    expect(entry.branches[0].items).toEqual([{ kind: 'drawing', id: 'att-2' }]);
-  });
-
-  it('composes typed named entries for open data blocks', async () => {
-    const composed = await executeProcessDataNode(
-      {
-        kind: 'record.composeBlock',
-        block: 'data',
-        compositionMode: 'entries',
-        entries: [
-          { id: 'note', key: 'note', type: { base: 'string', shape: 'item' } },
-          { id: 'quantity', key: 'metrics.quantity', type: { base: 'number', shape: 'item' } }
-        ]
-      },
-      {
-        'entry:note': createDataPacket('Ready'),
-        'entry:quantity': createDataPacket(12)
-      }
-    );
-    expect(composed.branches[0].items).toEqual([{ note: 'Ready', metrics: { quantity: 12 } }]);
-  });
-
   it('finds entities by field through the full mask path', async () => {
     const entities = [
       { identity: { name: 'Alpha' } },
@@ -733,13 +332,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'identity' },
-      { entity: selected }
-    );
     const names = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'identity.name' } },
+      { entity: selected }
     );
     const mask = await executeProcessDataNode(
       { kind: 'value.compare', operation: 'eq' },
@@ -763,13 +358,12 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const fieldMask = async (block, path, operation, target) => {
-      const blocks = await executeProcessDataNode({ kind: 'record.getBlock', block }, { entity: selected });
-      const values = await executeProcessDataNode({ kind: 'record.getField', block, path }, { block: blocks });
-      return executeProcessDataNode({ kind: 'value.compare', operation }, { left: values, right: createDataPacket(target) });
-    };
-    const nameMask = await fieldMask('identity', 'identity.name', 'eq', 'Alpha');
-    const statusMask = await fieldMask('states', 'states.main', 'eq', 'NEW');
+    const fieldMask = async (path, operation, target) => executeProcessDataNode(
+      { kind: 'cts.field', inputDefaults: { field: path } },
+      { entity: selected }
+    ).then(values => executeProcessDataNode({ kind: 'value.compare', operation }, { left: values, right: createDataPacket(target) }));
+    const nameMask = await fieldMask('identity.name', 'eq', 'Alpha');
+    const statusMask = await fieldMask('states.main', 'eq', 'NEW');
     const combined = await executeProcessDataNode(
       { kind: 'value.logic', operation: 'and' },
       { left: nameMask, right: statusMask }
@@ -792,14 +386,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.deconstruct', blocks: ['states'] },
-      { entity: selected },
-      { outputId: 'states' }
-    );
     const statuses = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'states', path: 'states.main' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'states.main' } },
+      { entity: selected }
     );
     const mask = await executeProcessDataNode(
       { kind: 'value.compare', operation: 'eq' },
@@ -822,13 +411,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'relations' },
-      { entity: selected }
-    );
     const refs = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'relations', path: 'relations.library' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'relations.library' } },
+      { entity: selected }
     );
     const mask = await executeProcessDataNode(
       { kind: 'value.compare', operation: 'eq' },
@@ -848,13 +433,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'identity' },
-      { entity: selected }
-    );
     const names = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'identity.name' } },
+      { entity: selected }
     );
     const mask = await executeProcessDataNode(
       { kind: 'value.compare', operation: 'eq' },
@@ -879,13 +460,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => authorized }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'identity' },
-      { entity: selected }
-    );
     const names = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'identity.name' } },
+      { entity: selected }
     );
     const mask = await executeProcessDataNode(
       { kind: 'value.compare', operation: 'contains' },
@@ -989,13 +566,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'data' },
-      { entity: selected }
-    );
     const dates = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'data', path: 'data.updatedAt' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'data.updatedAt' } },
+      { entity: selected }
     );
     const sorted = await executeProcessDataNode(
       { kind: 'collection.sort', direction: 'desc' },
@@ -1023,13 +596,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'relations' },
-      { entity: selected }
-    );
     const refs = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'relations', path: 'relations.library' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'relations.library' } },
+      { entity: selected }
     );
     const unique = await executeProcessDataNode(
       { kind: 'collection.distinct' },
@@ -1060,13 +629,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'states' },
-      { entity: selected }
-    );
     const statuses = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'states', path: 'states.main' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'states.main' } },
+      { entity: selected }
     );
     const grouped = await executeProcessDataNode(
       { kind: 'collection.groupBy' },
@@ -1143,13 +708,9 @@ describe('process v4 data execution', () => {
       {},
       { queryEntities: async () => entities }
     );
-    const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'states' },
-      { entity: selected }
-    );
     const statuses = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'states', path: 'states.main' },
-      { block: blocks }
+      { kind: 'cts.field', inputDefaults: { field: 'states.main' } },
+      { entity: selected }
     );
     const mask = await executeProcessDataNode(
       { kind: 'value.compare', operation: 'eq' },
@@ -1196,34 +757,74 @@ describe('native structure species execution', () => {
     expect(composed).toEqual({ branches: [{ path: [], items: [{}] }] });
   });
 
-  it('projects declared blocks from the entity through cts.decompose', async () => {
+  it('emits one composed block per aligned tuple from list-shaped cts.compose inputs', async () => {
+    const composed = await executeProcessDataNode(
+      {
+        id: 'compose',
+        kind: 'cts.compose',
+        block: 'data',
+        compositionMode: 'entries',
+        entries: [{ id: 'name', key: 'name' }, { id: 'slug', key: 'slug' }]
+      },
+      {
+        'entry:name': createDataPacket(['Queue', 'Archive'], 'list'),
+        'entry:slug': createDataPacket(['queue', 'archive'], 'list')
+      }
+    );
+
+    expect(composed.branches).toEqual([{ path: [], items: [
+      { name: 'Queue', slug: 'queue' },
+      { name: 'Archive', slug: 'archive' }
+    ] }]);
+  });
+
+  it('projects every declared facet from the instance through cts.decompose', async () => {
     const entity = createDataPacket({ identity: { name: 'One' }, data: { note: 'x' } });
-    const blocks = await executeProcessDataNode(
-      { id: 'decompose', kind: 'cts.decompose', typeId: 'project', blocks: ['identity', 'data'] },
-      { entity }
+    const facets = await executeProcessDataNode(
+      { id: 'decompose', kind: 'cts.decompose', typeId: 'project' },
+      { entity },
+      {
+        fieldSchemas: [
+          { path: 'identity.name', block: 'identity', type: { base: 'string' } },
+          { path: 'data.note', block: 'data', type: { base: 'string' } }
+        ]
+      }
     );
 
-    expect(blocks).toEqual({ branches: [{ path: [], items: [{ identity: { name: 'One' }, data: { note: 'x' } }] }] });
+    expect(facets).toEqual({ branches: [{ path: [], items: [{
+      'identity.name': 'One',
+      'data.note': 'x'
+    }] }] });
   });
 
-  it('returns the selected block when cts.decompose is pulled from one output', async () => {
+  it('returns the selected facet when cts.decompose is pulled from one output', async () => {
     const one = await executeProcessDataNode(
-      { id: 'decompose', kind: 'cts.decompose', typeId: 'project', blocks: ['identity', 'data'] },
+      { id: 'decompose', kind: 'cts.decompose', typeId: 'project' },
       { entity: createDataPacket({ identity: { name: 'One' }, data: { note: 'x' } }) },
-      { outputId: 'data' }
+      {
+        outputId: 'data.note',
+        fieldSchemas: [
+          { path: 'identity.name', block: 'identity', type: { base: 'string' } },
+          { path: 'data.note', block: 'data', type: { base: 'string' } }
+        ]
+      }
     );
 
-    expect(one).toEqual({ branches: [{ path: [], items: [{ note: 'x' }] }] });
+    expect(one).toEqual({ branches: [{ path: [], items: ['x'] }] });
   });
 
-  it('derives cts.decompose blocks from the field schemas like its ports do', async () => {
+  it('reads a missing facet as the missing-field marker through cts.decompose', async () => {
     const one = await executeProcessDataNode(
       { id: 'decompose', kind: 'cts.decompose', typeId: 'project' },
       { entity: createDataPacket({ data: { note: 'x' } }) },
-      { outputId: 'data', fieldSchemas: [{ path: 'data.note', block: 'data', type: { base: 'string' }, writable: true }] }
+      {
+        outputId: 'lineage.projectId',
+        fieldSchemas: [{ path: 'lineage.projectId', block: 'lineage', type: { base: 'string' } }]
+      }
     );
 
-    expect(one).toEqual({ branches: [{ path: [], items: [{ note: 'x' }] }] });
+    expect(one.branches[0].items).toHaveLength(1);
+    expect(one.branches[0].items[0]).toMatchObject({ $missingField: true, path: 'lineage.projectId' });
   });
 });
 

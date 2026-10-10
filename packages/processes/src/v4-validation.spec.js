@@ -42,383 +42,23 @@ describe('process v4 validation', () => {
 
   it('rejects field paths that are not in the domain schema', () => {
     const result = validateProcessDefinition(definition({
-      kind: 'record.getField',
-      path: 'data.guessed',
-      type: { base: 'json', shape: 'item' }
+      kind: 'cts.field',
+      typeId: 'project',
+      inputDefaults: { field: 'data.guessed' }
     }), domain);
     expect(result.errors).toContain('Process node node uses undeclared field data.guessed');
   });
 
   it('accepts a status-only entity update through its dedicated lifecycle input', () => {
     const result = validateProcessDefinition(definition({
-      kind: 'effect.updateEntity',
+      kind: 'cts.mutate',
       typeId: 'project',
-      fields: [],
       trigger: { mode: 'manual' },
       stateRef: 'ready',
-      inputDefaults: { 'states.main': 'READY' }
+      inputDefaults: { state: 'READY' }
     }), domain);
 
-    expect(result.errors).not.toContain('Process node node must select at least one writable field or status');
-  });
-
-  it('enforces entity policy where a structural block enters an effect', () => {
-    const result = validateProcessDefinition({
-      dataflowVersion: 4,
-      processNodes: {
-        compose: {
-          id: 'compose',
-          kind: 'record.composeBlock',
-          block: 'data',
-          fields: ['data.note']
-        },
-        create: {
-          id: 'create',
-          kind: 'effect.createEntity',
-          typeId: 'project',
-          blocks: ['data'],
-          trigger: { mode: 'manual' }
-        }
-      },
-      graph: {
-        nodes: ['compose', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
-        edges: [{
-          id: 'compose-create',
-          source: 'compose',
-          sourceHandle: 'data:block',
-          target: 'create',
-          targetHandle: 'data:data',
-          role: 'data'
-        }]
-      }
-    }, {
-      ...domain,
-      blockSchemas: {
-        ...domain.blockSchemas,
-        data: [{ path: 'data.note', block: 'data', type: { base: 'string', shape: 'item' } }]
-      }
-    });
-
-    expect(result.errors).toContain('Edge compose-create cannot send data.note to project: field is not constructible');
-  });
-
-  it('keeps open-block lineage entries generic and requires an authored key', () => {
-    const lineageDomain = {
-      ...domain,
-      entities: [...domain.entities, { type: 'organization', blocks: ['identity'] }],
-      containment: [{ parentType: 'organization', childType: 'project', lineageKey: 'organizationId' }],
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
-      }
-    };
-    const valid = validateProcessDefinition(definition({
-      kind: 'record.composeBlock',
-      block: 'lineage',
-      compositionMode: 'ancestors',
-      entries: [{ id: 'organization', key: 'organizationId', typeId: 'organization' }],
-      inputDefaults: { 'entry:organization': { type: 'organization', id: 'org-1' } }
-    }), lineageDomain);
-    const generic = validateProcessDefinition(definition({
-      kind: 'record.composeBlock',
-      block: 'lineage',
-      compositionMode: 'ancestors',
-      entries: [{ id: 'invented', key: 'madeUpId', typeId: 'project' }],
-      inputDefaults: { 'entry:invented': { type: 'project', id: 'project-1' } }
-    }), lineageDomain);
-    const invalid = validateProcessDefinition(definition({
-      kind: 'record.composeBlock',
-      block: 'lineage',
-      compositionMode: 'ancestors',
-      entries: [{ id: 'missing', key: '', typeId: 'project' }],
-      inputDefaults: { 'entry:missing': { type: 'project', id: 'project-1' } }
-    }), lineageDomain);
-
-    expect(valid.errors).toEqual([]);
-    expect(generic.errors).toEqual([]);
-    expect(invalid.errors).toContain('Process node node has a missing or duplicate entry key');
-  });
-
-  it('checks authored open-block keys against the consuming entity policy', () => {
-    const result = validateProcessDefinition({
-      dataflowVersion: 4,
-      processNodes: {
-        compose: {
-          id: 'compose',
-          kind: 'record.composeBlock',
-          block: 'data',
-          compositionMode: 'entries',
-          entries: [{ id: 'secret', key: 'secret', type: { base: 'string', shape: 'item' } }],
-          inputDefaults: { 'entry:secret': 'hidden' }
-        },
-        create: {
-          id: 'create',
-          kind: 'effect.createEntity',
-          typeId: 'project',
-          blocks: ['data'],
-          trigger: { mode: 'manual' }
-        }
-      },
-      graph: {
-        nodes: ['compose', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
-        edges: [{
-          id: 'compose-create',
-          source: 'compose',
-          sourceHandle: 'data:block',
-          target: 'create',
-          targetHandle: 'data:data',
-          role: 'data'
-        }]
-      }
-    }, {
-      ...domain,
-      blockComposition: { data: { mode: 'entries', valueBase: 'json' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        data: [{ path: 'data', block: 'data', type: { base: 'json', shape: 'item' } }]
-      }
-    });
-
-    expect(result.errors).toContain('Edge compose-create cannot send data.secret to project: field is not constructible');
-  });
-
-  it('rejects a lineage entry whose reference type disagrees with the consuming entity field', () => {
-    const queueDomain = {
-      ...domain,
-      entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }, { type: 'warehouse', blocks: ['identity'] }],
-      fieldSchemas: {
-        ...domain.fieldSchemas,
-        queue: [{
-          path: 'lineage.projectId',
-          block: 'lineage',
-          type: { base: 'entityRef', shape: 'item', nullable: false, typeId: 'project' },
-          constructible: true,
-          writable: true
-        }]
-      },
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
-      }
-    };
-    const process = entityBlockProcess('warehouse');
-    const rejected = validateProcessDefinition(process, queueDomain);
-    const accepted = validateProcessDefinition(entityBlockProcess('project'), queueDomain);
-
-    expect(rejected.errors).toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
-    expect(accepted.errors).not.toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
-  });
-
-  it('requires an explicit lineage key and entity type', () => {
-    const queueDomain = {
-      ...domain,
-      entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }],
-      fieldSchemas: {
-        ...domain.fieldSchemas,
-        queue: [{
-          path: 'lineage.projectId',
-          block: 'lineage',
-          type: { base: 'entityRef', shape: 'item', nullable: false, typeId: 'project' },
-          constructible: true,
-          writable: true
-        }]
-      },
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
-      }
-    };
-    const process = entityBlockProcess('project');
-    process.processNodes.compose.entries[0].key = 'projectId';
-    process.processNodes.compose.entries[0].typeId = 'project';
-
-    const normalized = normalizeProcessDefinition(process, queueDomain);
-    const result = validateProcessDefinition(process, queueDomain);
-
-    expect(normalized.processNodes.compose.entries[0]).toMatchObject({
-      key: 'projectId',
-      typeId: 'project'
-    });
-    expect(result.errors).not.toContain('Process node compose has a missing or duplicate entry key');
-    expect(result.errors).not.toContain('Edge compose-create cannot send lineage. to queue: field is not constructible');
-  });
-
-  it('accepts an authored open Lineage block when the target entity declares the block', () => {
-    const artifactDomain = {
-      ...domain,
-      entities: [...domain.entities, { type: 'artifact', blocks: ['lineage'] }, { type: 'nesting_run', blocks: ['identity'] }],
-      fieldSchemas: {
-        ...domain.fieldSchemas,
-        artifact: [{
-          path: 'lineage.organizationId',
-          block: 'lineage',
-          type: { base: 'entityRef', nullable: false, typeId: 'organization' },
-          constructible: false,
-          writable: false
-        }]
-      },
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', nullable: false } }]
-      }
-    };
-    const process = entityBlockProcess('nesting_run');
-    process.processNodes.compose.entries[0].key = 'nestingRunId';
-    process.processNodes.create.typeId = 'artifact';
-
-    const normalized = normalizeProcessDefinition(process, artifactDomain);
-    const result = validateProcessDefinition(process, artifactDomain);
-
-    expect(normalized.processNodes.create.blocks).toContain('lineage');
-    expect(result.errors).not.toContain(
-      'Edge compose-create cannot send lineage.nestingRunId to artifact: field is not constructible'
-    );
-    expect(result.errors).not.toContain('Process node create cannot persist block lineage');
-  });
-
-  it('infers a Lineage ancestor entry from its connected entity output', () => {
-    const process = entityBlockProcess('');
-    process.processNodes.compose.entries[0] = {
-      id: 'entry_parent',
-      key: '',
-      typeId: ''
-    };
-    process.processNodes.parent = {
-      id: 'parent',
-      kind: 'effect.createEntity',
-      typeId: 'project',
-      construction: { mode: 'genericCreate', inputs: [] },
-      blocks: ['identity'],
-      trigger: { mode: 'manual' }
-    };
-    process.graph.nodes.push({ id: 'parent', type: 'processNode', data: { refId: 'parent' } });
-    process.graph.edges.push({
-      id: 'parent-compose',
-      source: 'parent',
-      target: 'compose',
-      sourceHandle: 'data:result',
-      targetHandle: 'data:entry:entry_parent'
-    });
-
-    const normalized = normalizeProcessDefinition(process, domain);
-
-    expect(normalized.processNodes.compose.entries).toEqual([{
-      id: 'entry_parent',
-      key: 'projectId',
-      typeId: 'project'
-    }]);
-  });
-
-  it('keeps an explicitly authored lineage type when normalizing the saved graph', () => {
-    const queueDomain = {
-      ...domain,
-      entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }],
-      fieldSchemas: {
-        ...domain.fieldSchemas,
-        queue: [{
-          path: 'lineage.projectId',
-          block: 'lineage',
-          type: { base: 'entityRef', shape: 'item', nullable: false, typeId: 'project' },
-          constructible: true,
-          writable: true
-        }]
-      },
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
-      }
-    };
-    const process = entityBlockProcess('project');
-    process.processNodes.compose.entries[0].key = 'projectId';
-    delete process.processNodes.compose.inputDefaults;
-
-    const normalized = normalizeProcessDefinition(process, queueDomain);
-
-    expect(normalized.processNodes.compose.entries[0]).toMatchObject({
-      key: 'projectId',
-      typeId: 'project'
-    });
-  });
-
-  it('accepts explicitly authored open relation entries without cardinality metadata', () => {
-    const relationDomain = {
-      ...domain,
-      entities: [...domain.entities, { type: 'library', blocks: ['identity', 'relations'] }],
-      fieldSchemas: {
-        ...domain.fieldSchemas,
-        project: [
-          ...domain.fieldSchemas.project,
-          {
-            path: 'relations.value',
-            block: 'relations',
-            type: { base: 'json', shape: 'item' },
-            constructible: true,
-            writable: false
-          }
-        ]
-      },
-      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
-      }
-    };
-    const process = {
-      dataflowVersion: 4,
-      processNodes: {
-        library: {
-          id: 'library',
-          kind: 'effect.createEntity',
-          typeId: 'library',
-          blocks: ['identity'],
-          construction: { mode: 'genericCreate' },
-          state: { to: 'NEW' },
-          trigger: { mode: 'manual' }
-        },
-        compose: {
-          id: 'compose',
-          kind: 'record.composeBlock',
-          block: 'relations',
-          compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', typeId: 'library' }]
-        },
-        create: {
-          id: 'create',
-          kind: 'effect.createEntity',
-          typeId: 'project',
-          blocks: ['relations'],
-          construction: { mode: 'genericCreate' },
-          state: { to: 'NEW' },
-          trigger: { mode: 'manual' }
-        }
-      },
-      graph: {
-        nodes: ['library', 'compose', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
-        edges: [
-          { id: 'library-compose', source: 'library', sourceHandle: 'data:result', target: 'compose', targetHandle: 'data:entry:library', role: 'data' },
-          { id: 'compose-create', source: 'compose', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
-        ]
-      }
-    };
-
-    const result = validateProcessDefinition(process, relationDomain);
-
-    expect(result.definition.processNodes.compose.entries[0]).toMatchObject({
-      key: 'library',
-      typeId: 'library',
-      typeId: 'library'
-    });
-    expect(result.errors).not.toContain(
-      'Edge compose-create cannot send relations.library to project: composed entry type does not match the entity field'
-    );
-    expect(result.errors).not.toContain(
-      'Edge compose-create cannot send relations.library to project: field is not constructible'
-    );
+    expect(result.errors).not.toContain('Process node node must accept at least one writable block or status');
   });
 
   it('removes obsolete relation cardinality and mutation metadata', () => {
@@ -436,7 +76,7 @@ describe('process v4 validation', () => {
       processNodes: {
         modify: {
           id: 'modify',
-          kind: 'record.modifyBlock',
+          kind: 'cts.compose',
           block: 'relations',
           compositionMode: 'relations',
           entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one', operation: 'mergeMaybe' }]
@@ -454,110 +94,9 @@ describe('process v4 validation', () => {
     expect(result.errors.some(error => error.includes('relation mutation'))).toBe(false);
   });
 
-  it('resolves a connected entity output through the graph port contract', () => {
-    const queueDomain = {
-      ...domain,
-      entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }],
-      fieldSchemas: {
-        ...domain.fieldSchemas,
-        queue: [{
-          path: 'lineage.projectId',
-          block: 'lineage',
-          type: { base: 'entityRef', shape: 'item', typeId: 'project' },
-          constructible: true
-        }]
-      },
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: { ...domain.blockSchemas, lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }] }
-    };
-    const process = entityBlockProcess('project');
-    process.processNodes.source = {
-      id: 'source',
-      kind: 'source.literalItem',
-      type: { base: 'entityRef', shape: 'item', typeId: 'project' },
-      value: { type: 'project', id: 'project-1' }
-    };
-    process.graph.nodes.push({ id: 'source', type: 'processNode', data: { refId: 'source' } });
-    process.graph.edges.push({
-      id: 'source-compose',
-      source: 'source',
-      sourceHandle: 'data:value',
-      target: 'compose',
-      targetHandle: 'data:entry:project',
-      role: 'data'
-    });
-    process.processNodes.compose.entries[0] = { id: 'project', key: 'projectId', typeId: 'project' };
-    delete process.processNodes.compose.inputDefaults;
-
-    expect(() => normalizeProcessDefinition(process, queueDomain)).not.toThrow();
-    expect(normalizeProcessDefinition(process, queueDomain).processNodes.compose.entries[0])
-      .toMatchObject({ key: 'projectId', typeId: 'project' });
-  });
-
-  it('rejects service-owned identity uid in block authoring', () => {
+  it('rejects constructs when the construction mode has no registered handler', () => {
     const result = validateProcessDefinition(definition({
-      kind: 'record.composeBlock',
-      block: 'identity',
-      fields: ['identity.uid'],
-      inputDefaults: { 'identity.uid': 'user-supplied-id' }
-    }), {
-      ...domain,
-      blockSchemas: {
-        identity: [{
-          path: 'identity.uid',
-          block: 'identity',
-          type: { base: 'string', shape: 'item', nullable: true },
-          readable: true,
-          writable: false,
-          constructible: false
-        }]
-      }
-    });
-
-    expect(result.errors).toContain('Process node node cannot compose managed field identity.uid');
-  });
-
-  it('removes stale create blocks that the current entity contract no longer constructs', () => {
-    const cassetteDomain = {
-      ...domain,
-      entities: [{ type: 'cassette_design', blocks: ['identity', 'data'] }],
-      construction: {
-        cassette_design: {
-          modes: ['bakeCassetteDesignFromTemplate'],
-          defaultMode: 'bakeCassetteDesignFromTemplate',
-          derived: true,
-          inputs: []
-        }
-      },
-      fieldSchemas: {
-        cassette_design: [
-          { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, constructible: false },
-          { path: 'data.value', block: 'data', type: { base: 'json', shape: 'item' }, constructible: true }
-        ]
-      }
-    };
-    const process = definition({
-      kind: 'effect.createEntity',
-      typeId: 'cassette_design',
-      blocks: ['identity', 'data'],
-      construction: { mode: 'bakeCassetteDesignFromTemplate' },
-      inputDefaults: { 'identity.name': 'Old design name', 'data.value': { A: 10 } },
-      trigger: { mode: 'manual' }
-    });
-
-    const normalized = normalizeProcessDefinition(process, cassetteDomain);
-
-    expect(normalized.processNodes.node.blocks).toEqual(['data']);
-    expect(normalized.processNodes.node.inputDefaults).toEqual({
-      'data.value': { branches: [{ path: [], items: [{ A: 10 }] }] }
-    });
-    expect(validateProcessDefinition(process, cassetteDomain).errors)
-      .not.toContain('Process node node cannot persist block identity');
-  });
-
-  it('rejects create effects when the construction mode has no registered handler', () => {
-    const result = validateProcessDefinition(definition({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'project',
       construction: { mode: 'genericCreate' },
       trigger: { mode: 'manual' }
@@ -566,46 +105,57 @@ describe('process v4 validation', () => {
     expect(result.errors).toContain('Process node node cannot create project with construction mode genericCreate: no registered runtime handler');
   });
 
-  it('rejects update effects when the entity service lacks processUpdate support', () => {
+  it('rejects mutates when the entity service lacks processUpdate support', () => {
     const result = validateProcessDefinition(definition({
-      kind: 'effect.updateEntity',
+      kind: 'cts.mutate',
       typeId: 'project',
       trigger: { mode: 'manual' },
       stateRef: 'ready',
-      inputDefaults: { 'states.main': 'READY' }
+      inputDefaults: { state: 'READY' }
     }), domain, { capabilities: { project: { create: true, processUpdate: false, delete: true, archive: false } } });
 
     expect(result.errors).toContain('Process node node cannot update project: entity service lacks processUpdate support');
   });
 
-  it('rejects change status effects when the entity has no status workflow', () => {
+  it('rejects transitions when the entity has no status workflow', () => {
     const result = validateProcessDefinition(definition({
-      kind: 'effect.changeStatus',
+      kind: 'cts.transition',
       typeId: 'project',
       trigger: { mode: 'manual' },
-      inputDefaults: { 'states.main': 'READY' }
+      inputDefaults: { state: 'READY' }
     }), domain, { capabilities: { project: { create: true, processUpdate: true, delete: true, archive: false } } });
 
     expect(result.errors).toContain('Process node node cannot change project: entity has no status workflow');
   });
 
   it.each([
-    ['effect.archiveEntity', 'archive'],
-    ['effect.deleteEntity', 'delete']
-  ])('rejects %s when the canonical runtime capability is denied', (kind, verb) => {
-    const result = validateProcessDefinition(definition({
-      kind,
-      typeId: 'project',
-      trigger: { mode: 'manual' },
-      access: { level: kind === 'effect.deleteEntity' ? 'admin' : 'write', grants: [] }
-    }), domain, { capabilities: { project: { [verb]: false } } });
+    ['archive', 'archive'],
+    ['delete', 'delete']
+  ])('rejects species %s when the canonical runtime capability is denied', (verb, expectedVerb) => {
+    const record = verb === 'archive'
+      ? {
+        kind: 'cts.transition',
+        typeId: 'project',
+        archiveIntent: 'archiveProject',
+        trigger: { mode: 'manual' },
+        access: { level: 'write', grants: [] }
+      }
+      : {
+        kind: 'cts.remove',
+        typeId: 'project',
+        trigger: { mode: 'manual' },
+        access: { level: 'admin', grants: [] }
+      };
+    const result = validateProcessDefinition(definition(record), domain, {
+      capabilities: { project: { [expectedVerb]: false } }
+    });
 
-    expect(result.errors).toContain(`Process node node cannot ${verb} project: entity service lacks ${verb} support`);
+    expect(result.errors).toContain(`Process node node cannot ${expectedVerb} project: entity service lacks ${expectedVerb} support`);
   });
 
   it('derives hard deletion as an admin-only manual compiled action', () => {
     const deleteDefinition = definition({
-      kind: 'effect.deleteEntity',
+      kind: 'cts.remove',
       typeId: 'project',
       trigger: { mode: 'manual' },
       access: { level: 'admin', grants: [] }
@@ -622,7 +172,7 @@ describe('process v4 validation', () => {
       access: { level: 'admin' }
     });
     const denied = validateProcessDefinition(definition({
-      kind: 'effect.deleteEntity',
+      kind: 'cts.remove',
       typeId: 'project',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
@@ -630,7 +180,7 @@ describe('process v4 validation', () => {
     expect(denied.errors).toContain('Action node must use admin access for hard deletion');
 
     const automatic = validateProcessDefinition(definition({
-      kind: 'effect.deleteEntity',
+      kind: 'cts.remove',
       typeId: 'project',
       trigger: { mode: 'automatic' },
       access: { level: 'admin', grants: [] }
@@ -638,9 +188,9 @@ describe('process v4 validation', () => {
     expect(automatic.errors).toContain('Action node hard deletion must be manual');
   });
 
-  it('compiles status scope and the domain archive intent into mutation records', () => {
+  it('keeps status scope and the authored archive intent on the transition record', () => {
     const scopedStatus = normalizeProcessDefinition(definition({
-      kind: 'effect.changeStatus',
+      kind: 'cts.transition',
       typeId: 'project',
       region: 'quality',
       path: ['review', 'approved'],
@@ -650,41 +200,31 @@ describe('process v4 validation', () => {
     expect(scopedStatus.processNodes.node).toMatchObject({ region: 'quality', path: ['review', 'approved'] });
 
     const archived = normalizeProcessDefinition(definition({
-      kind: 'effect.archiveEntity',
+      kind: 'cts.transition',
       typeId: 'project',
+      archiveIntent: 'archiveProject',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
-    }), {
-      ...domain,
-      workflows: {
-        project: {
-          regions: {
-            main: {
-              states: { DRAFT: {}, ARCHIVED: {} },
-              transitions: [{ from: 'DRAFT', to: 'ARCHIVED', intent: 'archiveProject' }]
-            }
-          }
-        }
-      }
-    });
+    }), domain);
     expect(archived.processNodes.node.archiveIntent).toBe('archiveProject');
+    expect(archived.actions.node.actionKind).toBe('archiveEntity');
   });
 
   it('does not enforce capabilities when none are supplied', () => {
     const result = validateProcessDefinition(definition({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'project',
-      producerOutputId: 'node:entity',
+      producerOutputId: 'node:result',
       construction: { mode: 'genericCreate' },
       state: { to: 'NEW' },
       trigger: { mode: 'manual' }
     }, {
       producerOutputs: {
-        'node:entity': {
-          id: 'node:entity',
-          producerOutputId: 'node:entity',
+        'node:result': {
+          id: 'node:result',
+          producerOutputId: 'node:result',
           nodeId: 'node',
-          outputSocketId: 'entity',
+          outputSocketId: 'result',
           typeId: 'project',
           lifecycle: { mode: 'defaultCreated' },
           fields: { read: [], write: [], private: [] }
@@ -753,37 +293,3 @@ describe('process v4 validation', () => {
     expect(result.errors.some(error => error.startsWith('Edge e1 is incompatible:'))).toBe(true);
   });
 });
-
-function entityBlockProcess(typeId) {
-  return {
-    dataflowVersion: 4,
-    processNodes: {
-      compose: {
-        id: 'compose',
-        kind: 'record.composeBlock',
-        block: 'lineage',
-        compositionMode: 'ancestors',
-        entries: [{ id: 'project', key: 'projectId', typeId }],
-        inputDefaults: { 'entry:project': { type: typeId, id: 'parent-1' } }
-      },
-      create: {
-        id: 'create',
-        kind: 'effect.createEntity',
-        typeId: 'queue',
-        blocks: ['lineage'],
-        trigger: { mode: 'manual' }
-      }
-    },
-    graph: {
-      nodes: ['compose', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
-      edges: [{
-        id: 'compose-create',
-        source: 'compose',
-        sourceHandle: 'data:block',
-        target: 'create',
-        targetHandle: 'data:lineage',
-        role: 'data'
-      }]
-    }
-  };
-}

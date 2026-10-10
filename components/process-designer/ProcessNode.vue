@@ -159,7 +159,9 @@ import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
-import { formatProcessType } from '~/packages/processes/src/index.js';
+import {
+  EFFECT_SPECIES_KINDS,
+  MAPPED_MUTATION_SPECIES_KINDS, formatProcessType } from '~/packages/processes/src/index.js';
 import { nodeSpecSummary, socketSpecLine } from '~/composables/useNodeSpec.js';
 import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
 import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
@@ -178,7 +180,7 @@ const opKind = computed(() => operationKindOf(record.value || {}));
 // operation, which is presentation-secondary (the one predicate in
 // utils/processDesignerPopulation.js).
 // species is secondary surface.
-const isOperation = computed(() => String(opKind.value || '').startsWith('effect.')
+const isOperation = computed(() => EFFECT_SPECIES_KINDS.has(opKind.value)
   && !isSecondaryPopulationKind(opKind.value));
 const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || []));
 const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || []));
@@ -313,7 +315,7 @@ function supportsInlineValue(input) {
     && (input.access === 'item'
       // Mapped mutation sockets declare List consumption; an inline scalar
       // fallback is stored as one broadcast item.
-      || (input.access === 'list' && ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'].includes(opKind.value)));
+      || (input.access === 'list' && MAPPED_MUTATION_SPECIES_KINDS.includes(opKind.value)));
 }
 
 function inputDefault(id) {

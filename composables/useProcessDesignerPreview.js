@@ -1,3 +1,4 @@
+import { EFFECT_SPECIES_KINDS } from '~/packages/processes/src/index.js';
 import { operationKindOf } from '~/packages/cts/src/index.js';
 import { computed, ref } from 'vue';
 import { formatProcessType } from '~/packages/processes/src/index.js';
@@ -64,7 +65,7 @@ export function useProcessDesignerPreview({
   const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
   const selectedNodeSupportsPreview = computed(() => {
     const kind = operationKindOf(selectedProcessNode.value || {});
-    return Boolean(kind && !kind.startsWith('effect.') && !kind.startsWith('control.'));
+    return Boolean(kind && !EFFECT_SPECIES_KINDS.has(kind) && !kind.startsWith('control.'));
   });
   const selectedNodePreviewOutputs = computed(() => {
     const outputs = selectedNodePreview.value?.outputs || {};

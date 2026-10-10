@@ -165,8 +165,9 @@ module layout and how the code maps to the spec's build-order tiers.
   operator, and edge bindings; an executable `cts.transition` must carry an
   authored target (inspector state reference, authored default, or a wire
   into its status socket) — a target-less transition is refused at draft
-  acceptance and activation instead of failing at run time. `operationKindOf` is a classification
-  helper only and never changes executable ports.
+  acceptance and activation instead of failing at run time. `operationKindOf`
+  answers the record's own kind — classification never translates between
+  vocabularies (the v4 twin table is gone with the retired kinds).
   `declarationsFromCtsRecords` receives the declaration graph as well as
   records, so nested state and edge acceptance matches what APPLY posts.
   Authored definitions speak the current species vocabulary only: there is

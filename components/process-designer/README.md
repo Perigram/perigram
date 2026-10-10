@@ -140,9 +140,12 @@ The palette is grouped by authoring concern. **Declarations** owns class,
 field, state, transition, operator, and type-reference nodes. The registry
 catalog contributes one bound construct per constructible type/mode.
 **Operations** owns construct, mutate, transition, remove, command, and
-registered service species. **Instances** owns context, all, typed-reference
-resolution, exact declared-edge traversal, and field projection. **Values**,
-**Collections**, and **Flow** own explicit value/list/branch semantics.
+registered service species. **Instances** owns context, all, the declared
+projection, exact declared-edge traversal, the single-field projection,
+and the instance elimination form (`cts.decompose` — every declared facet
+as its own typed output). **Values** and **Collections** own explicit
+value/list/branch semantics, with the numeric reductions in Collections.
+**Flow** owns control.
 Both the rail palette and the canvas context palette render through one
 component, `OperationPalette.vue`: searchable chip groups — localized
 group labels above wraps of small PrimeVue Buttons (no icons). Each

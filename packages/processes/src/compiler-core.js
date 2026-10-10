@@ -14,7 +14,7 @@ import {
   resolveProcessNodePorts,
   validateProcessEdges
 } from './ports.js';
-import { CONSUMER_EFFECT_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { CONSUMER_SPECIES_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree, authoredSocketDefault } from './data-tree.js';
@@ -23,11 +23,6 @@ import { normalizeHandle, lineageKeyForTypeId, lineageRelationsForParent, merged
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
 const MAPPED_MUTATION_KINDS = new Set([
-  'effect.createEntity',
-  'effect.updateEntity',
-  'effect.changeStatus',
-  'effect.archiveEntity',
-  'effect.deleteEntity',
   'cts.construct',
   'cts.mutate',
   'cts.transition',
@@ -52,8 +47,7 @@ function isMappedMutation(record = {}) {
 }
 
 function isEffectRecord(record = {}) {
-  const kind = effectKindOf(record);
-  return NATIVE_EFFECT_KINDS.has(String(record.kind || '')) || kind.startsWith('effect.');
+  return NATIVE_EFFECT_KINDS.has(String(record.kind || ''));
 }
 
 export {
@@ -107,8 +101,6 @@ export {
   resolveCatalogNodePorts
 } from './node-catalog.js';
 export {
-  applyPatch,
-  evaluateEntityPredicate,
   executeProcessDataNode
 } from './evaluator.js';
 export {
@@ -130,7 +122,7 @@ function withoutRemovedStatusEffectEdges(graph, processNodes) {
   graph.edges = (graph.edges || []).filter(edge => {
     const record = recordByGraphId.get(String(edge.target));
     const kind = effectKindOf(record || {});
-    if (!record || !['effect.changeStatus', 'effect.archiveEntity', 'cts.transition'].includes(kind)) return true;
+    if (!record || kind !== 'cts.transition') return true;
     const handle = String(edge.targetHandle || '').replace(/^(input|data):/, '');
     return !REMOVED_STATUS_EFFECT_INPUTS.has(handle);
   });
@@ -138,9 +130,6 @@ function withoutRemovedStatusEffectEdges(graph, processNodes) {
 }
 
 const PRODUCER_ORIGIN_KINDS = new Set([
-  'effect.createEntity',
-  'effect.runProducer',
-  'effect.runCommand',
   'cts.construct',
   'cts.command',
   'cts.service',
@@ -148,7 +137,7 @@ const PRODUCER_ORIGIN_KINDS = new Set([
 ]);
 
 function ownsProducerOutput(record = {}) {
-  return PRODUCER_ORIGIN_KINDS.has(String(record.kind || '')) || PRODUCER_ORIGIN_KINDS.has(effectKindOf(record));
+  return PRODUCER_ORIGIN_KINDS.has(String(record.kind || ''));
 }
 
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
@@ -279,37 +268,35 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
     if (node?.kind === 'value.logic' && ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'].includes(node.operation)) {
       return [id, { ...node, kind: 'value.compare' }];
     }
-    if (node?.kind === 'effect.archiveEntity' && node.typeId) {
-      const workflow = domain.workflows?.[node.typeId];
-      const archiveTransition = Object.values(workflow?.regions || {})
-        .flatMap(region => region.transitions || [])
-        .find(transition => transition.to === 'ARCHIVED' && transition.intent);
-      return [id, { ...node, archiveIntent: archiveTransition?.intent || '' }];
-    }
-    if (node?.kind !== 'effect.createEntity' || !node.typeId) return [id, node];
-    const schemas = entityFieldSchemas(domain, node.typeId);
-    const declaredBlocks = new Set(entityBlocks(domain, node.typeId));
-    const knownBlocks = new Set([...schemas.map(field => field.block), ...declaredBlocks]);
-    const allowedBlocks = new Set(schemas
-      .filter(field => field.constructible !== false)
-      .map(field => field.block));
-    for (const block of declaredBlocks) {
-      if (domain.blockComposition?.[block] && !['origin', 'status', 'provenance', 'summary'].includes(block)) {
-        allowedBlocks.add(block);
+    // Stale-block pruning on persisted constructs: when the entity's
+    // current field schema marks every field of a previously persisted
+    // canonical block non-constructible, the block and its inline
+    // defaults are removed before action derivation and validation;
+    // unknown blocks stay validation errors.
+    if (node?.kind === 'cts.construct' && node.typeId) {
+      const schemas = entityFieldSchemas(domain, node.typeId);
+      const declaredBlocks = new Set(entityBlocks(domain, node.typeId));
+      const knownBlocks = new Set([...schemas.map(field => field.block), ...declaredBlocks]);
+      const allowedBlocks = new Set(schemas
+        .filter(field => field.constructible !== false)
+        .map(field => field.block));
+      for (const block of declaredBlocks) {
+        if (domain.blockComposition?.[block] && !['origin', 'status', 'provenance', 'summary'].includes(block)) {
+          allowedBlocks.add(block);
+        }
       }
+      const persistedBlocks = Array.isArray(node.blocks) ? node.blocks : [];
+      const blocks = persistedBlocks.filter(block => !knownBlocks.has(block) || allowedBlocks.has(block));
+      const removedBlocks = new Set(persistedBlocks.filter(block => knownBlocks.has(block) && !allowedBlocks.has(block)));
+      const inputDefaults = Object.fromEntries(Object.entries(node.inputDefaults || {})
+        .filter(([path]) => !removedBlocks.has(String(path).split('.')[0])));
+      return [id, {
+        ...node,
+        blocks,
+        ...(node.inputDefaults ? { inputDefaults } : {})
+      }];
     }
-    const persistedBlocks = Array.isArray(node.blocks) ? node.blocks : [];
-    const blocks = persistedBlocks.filter(block => !knownBlocks.has(block) || allowedBlocks.has(block));
-    const removedBlocks = new Set(persistedBlocks.filter(block => knownBlocks.has(block) && !allowedBlocks.has(block)));
-    const inputDefaults = Object.fromEntries(Object.entries(node.inputDefaults || {})
-      .filter(([path]) => !removedBlocks.has(String(path).split('.')[0])));
-    const construction = normalizeConstruction(node.construction, node.typeId, domain);
-    return [id, {
-      ...node,
-      blocks,
-      construction,
-      ...(node.inputDefaults ? { inputDefaults } : {})
-    }];
+    return [id, node];
   }));
 }
 
@@ -320,15 +307,13 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
     const classification = effectKindOf(node);
     const actionId = String(node.entryTriggerId || node.id || nodeId);
     const actionKind = ({
-      'effect.createEntity': 'createEntity',
-      'effect.runProducer': 'createEntity',
-      'effect.updateEntity': 'updateEntity',
-      'effect.changeStatus': 'updateEntity',
-      'effect.archiveEntity': 'archiveEntity',
-      'effect.deleteEntity': 'deleteEntity',
-      'effect.runCommand': 'runCommand',
-      'effect.sendEntity': 'sendToOrganization',
-      'effect.generateAttachment': 'runCommand'
+      'cts.construct': 'createEntity',
+      'cts.mutate': 'updateEntity',
+      'cts.transition': node.archiveIntent ? 'archiveEntity' : 'updateEntity',
+      'cts.remove': 'deleteEntity',
+      'cts.command': 'runCommand',
+      'cts.service': 'runCommand',
+      'cts.conversion': 'runCommand'
     })[classification];
     if (!actionKind) continue;
 
@@ -338,16 +323,16 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       ...Object.keys(promptContract.defaults),
       ...promptContract.wiredFields
     ]);
-    const stateTo = ['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity'].includes(classification)
+    const stateTo = ['cts.mutate', 'cts.transition'].includes(classification)
       ? (processDefaultValue(node.inputDefaults?.state)
         || processDefaultValue(node.inputDefaults?.status)
         || processDefaultValue(node.inputDefaults?.['states.main'])
         || node.state?.to
         || '')
-      : (classification === 'effect.createEntity'
+      : (classification === 'cts.construct'
         ? (processDefaultValue(node.inputDefaults?.state) || '')
         : '');
-    const consumer = ['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'].includes(classification);
+    const consumer = ['cts.mutate', 'cts.transition', 'cts.remove'].includes(classification);
     const producerOutputId = consumer
       ? node.producerOutputId || ''
       : node.producerOutputId || derived[actionId]?.producerOutputId || '';
@@ -361,7 +346,7 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       typeId: node.typeId || derived[actionId]?.typeId || '',
       commandId: node.commandId || derived[actionId]?.commandId || '',
       parentTypeId: promptContract.parentTypeId || derived[actionId]?.parentTypeId || '',
-      construction: classification === 'effect.createEntity'
+      construction: classification === 'cts.construct'
         ? node.construction?.mode === 'genericCreate' && isBlockComposedCreate(nodeId, node, graph)
           ? { mode: 'genericCreate', inputs: [], blockComposed: true }
           : {
@@ -634,7 +619,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     ...(record.fields || []),
     ...(record.entries || []).map(entry => `${record.block}.${entry.key}`).filter(path => !path.endsWith('.'))
   ]))];
-  const defaultIdentityFields = effectKindOf(node) === 'effect.createEntity'
+  const defaultIdentityFields = node.kind === 'cts.construct'
     && node.construction?.mode === 'genericCreate'
     && !composers.some(record => record.block === 'identity')
     ? ['identity.name']
@@ -665,7 +650,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
           );
         } catch {}
       }
-      const processCreator = sourceRecord?.kind === 'effect.createEntity'
+      const processCreator = sourceRecord?.kind === 'cts.construct'
         && sourceRecord.typeId === (declared?.targetType || entry.typeId)
         ? { actionId: String(sourceRecord.id) }
         : null;
@@ -756,12 +741,11 @@ function declaredRelationContracts(domain = {}, ownerType = '', targetType = '',
     .map(relation => ({ ownerType, key: relation.key, targetType: relation.targetType, cardinality: relation.cardinality || 'one' }));
 }
 
-export function requiredEffectCapability(kind = '') {
-  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return 'create';
-  if (kind === 'effect.updateEntity') return 'processUpdate';
-  if (kind === 'effect.changeStatus') return 'statusMutation';
-  if (kind === 'effect.archiveEntity') return 'archive';
-  if (kind === 'effect.deleteEntity') return 'delete';
+export function requiredEffectCapability(kind = '', record = {}) {
+  if (kind === 'cts.construct') return 'create';
+  if (kind === 'cts.mutate') return 'processUpdate';
+  if (kind === 'cts.transition') return record.archiveIntent ? 'archive' : 'statusMutation';
+  if (kind === 'cts.remove') return 'delete';
   return null;
 }
 
@@ -1082,20 +1066,20 @@ function promptableInputIds(record = {}, domain = {}) {
   const modeInputs = contract.modeInputs?.[construction.mode] || [];
   const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
   const contractInputs = Array.isArray(contract.inputs) ? contract.inputs : [];
-  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
-    if (kind === 'effect.createEntity' && construction.mode === 'genericCreate') {
+  if (kind === 'cts.construct') {
+    if (construction.mode === 'genericCreate') {
       ids.add('identity');
     }
     // The identity name prompt (SPEC §3 construction boundary) is
     // available to every create mode, not just generic construction.
-    if (kind === 'effect.createEntity') ids.add('name');
+    ids.add('name');
     for (const input of [...modeInputs, ...declaredInputs, ...contractInputs]) {
       if (!input) continue;
       if (input.prompt !== false && input.id) ids.add(input.id);
       if (input.path && input.path !== 'name') ids.add(input.path);
     }
   }
-  if (kind === 'effect.runCommand') {
+  if (kind === 'cts.command' || kind === 'cts.service') {
     const command = domain.commands?.[record.commandId] || {};
     for (const input of command.input?.abstractEntities || []) {
       if (input.prompt !== false && (input.name || input.type || input.capability)) {
@@ -1146,7 +1130,7 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
     // Species records classify through the operation-kind seam (SPEC §20):
     // `cts.construct`/`cts.service` carry the same required-input contract
     // their legacy effect twins do.
-    if (!operationKindOf(record || {}).startsWith('effect.')) continue;
+    if (!isEffectRecord(record)) continue;
     const manual = (record.trigger?.mode || 'manual') === 'manual';
     const graphNode = nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
     let ports = [];
@@ -1212,7 +1196,7 @@ function upstreamProducerOutputId(process, node, visited = new Set()) {
     if (source.producerOutputId && process.producerOutputs?.[source.producerOutputId]) {
       return source.producerOutputId;
     }
-    if (CONSUMER_EFFECT_KINDS.includes(source.kind)) {
+    if (CONSUMER_SPECIES_KINDS.includes(source.kind)) {
       const upstream = upstreamProducerOutputId(process, source, visited);
       if (upstream) return upstream;
     }
@@ -1230,15 +1214,7 @@ function upstreamProducerOutputId(process, node, visited = new Set()) {
 
 function resolveSourceProducerOutputId(process, source, sourcePort) {
   if (!source?.id) return null;
-  // An explicit producer-path Join routes its output under the producer
-  // output its configuration selects, so downstream identity resolution sees
-  // exactly one producer.
-  if (source.kind === 'producer.join' && source.selectedProducerOutputId) {
-    return process.producerOutputs?.[source.selectedProducerOutputId]
-      ? source.selectedProducerOutputId
-      : null;
-  }
-  if (CONSUMER_EFFECT_KINDS.includes(source.kind)) {
+  if (CONSUMER_SPECIES_KINDS.includes(source.kind)) {
     return upstreamProducerOutputId(process, source);
   }
   const candidates = Object.values(process.producerOutputs || {})
@@ -1334,7 +1310,7 @@ export function validateLineageBindingResolution(process = {}, domain = {}) {
     const handle = normalizeHandle(edge.targetHandle);
     if (!handle.startsWith('lineage.') || handle === 'lineage.') continue;
     const target = recordsByGraphId.get(String(edge.target));
-    if (!target || !['effect.createEntity', 'effect.runProducer'].includes(effectKindOf(target))) continue;
+    if (!target || effectKindOf(target) !== 'cts.construct') continue;
     const anchors = { edgeId: edge.id, nodeId: String(edge.target), socketId: handle };
     const declared = declaredLineageInput(target, handle);
     if (!declared) {
@@ -1464,7 +1440,7 @@ export function compileLineageBindings(process = {}, domain = {}) {
       .map(candidate => ({ node: recordsByGraphId.get(String(candidate.target)), edge: candidate }))
       .filter(({ node }) => node);
     const producerConsumers = consumers.filter(({ node }) => (
-      ['effect.createEntity', 'effect.runProducer'].includes(node.kind)
+      node.kind === 'cts.construct'
     ));
     if (!lineageKey || ancestorType === 'organization') continue;
     if (producerConsumers.length) {
@@ -1514,7 +1490,7 @@ export function compileLineageBindings(process = {}, domain = {}) {
     const handle = normalizeHandle(edge.targetHandle);
     if (!handle.startsWith('lineage.') || handle === 'lineage.') continue;
     const target = recordsByGraphId.get(String(edge.target));
-    if (!target || !['effect.createEntity', 'effect.runProducer'].includes(effectKindOf(target))) continue;
+    if (!target || effectKindOf(target) !== 'cts.construct') continue;
     const declared = declaredLineageInput(target, handle);
     if (!declared) continue;
     const childTypeId = target.typeId || target.targetTypeId || '';
@@ -2549,10 +2525,10 @@ function buildActionGraphContext(process = {}) {
   for (const node of process.graph?.nodes || []) {
     const refId = String(node.data?.refId || node.id || '');
     const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
-    // Native species records (cts.*) are executable graph citizens beside
-    // the legacy effect.* kinds — the wiring context must see them or no
-    // v5 graph derives arrival states, machine edges, or action windows.
-    if (node.type !== 'action' && !String(processNode?.kind || '').match(/^(effect|cts)\./)) continue;
+    // Species records are the executable graph citizens — the wiring
+    // context must see them or no v5 graph derives arrival states,
+    // machine edges, or action windows.
+    if (node.type !== 'action' && !String(processNode?.kind || '').startsWith('cts.')) continue;
     const actionId = String(processNode?.entryTriggerId || processNode?.id || refId);
     if (!actionId) continue;
     actionNodeById.set(actionId, node);
@@ -4253,7 +4229,7 @@ function inferConnectedActionTypeId(actionId, process = {}) {
       const refId = String(node.data?.refId || node.id);
       const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
       return (node.type === 'action' && refId === String(actionId))
-        || (processNode?.kind?.startsWith('effect.') && String(processNode.entryTriggerId || processNode.id || refId) === String(actionId));
+        || (NATIVE_EFFECT_KINDS.has(String(processNode?.kind || '')) && String(processNode.entryTriggerId || processNode.id || refId) === String(actionId));
     })
     .map(node => String(node.id)));
   for (const edge of process.graph?.edges || []) {
@@ -4263,7 +4239,7 @@ function inferConnectedActionTypeId(actionId, process = {}) {
     const sourceRecord = sourceNode?.type === 'processNode' ? process.processNodes?.[sourceRefId] : null;
     const sourceActionId = sourceNode?.type === 'action'
       ? sourceRefId
-      : sourceRecord?.kind?.startsWith('effect.') ? String(sourceRecord.id || sourceRefId) : '';
+      : NATIVE_EFFECT_KINDS.has(String(sourceRecord?.kind || '')) ? String(sourceRecord.id || sourceRefId) : '';
     const sourceAction = process.actions?.[sourceActionId];
     const sourceType = sourceAction && actionTypeId(sourceAction);
     if (sourceType) return sourceType;
@@ -4274,7 +4250,7 @@ function inferConnectedActionTypeId(actionId, process = {}) {
 function validateEffectCapabilities(process = {}, domain = {}, capabilities = {}, errors = []) {
   for (const [nodeId, node] of Object.entries(process.processNodes || {})) {
     if (!node.typeId) continue;
-    const capability = requiredEffectCapability(node.kind);
+    const capability = requiredEffectCapability(node.kind, node);
     if (!capability) continue;
     if (capability === 'statusMutation') {
       if (!domain.workflows?.[node.typeId]) {
@@ -4472,14 +4448,11 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       }
     }
   }
-  if (['effect.createEntity', 'effect.updateEntity'].includes(classification)) {
-    const stateTarget = processDefaultValue(node.inputDefaults?.state)
-      || processDefaultValue(node.inputDefaults?.['states.main'])
-      || node.state?.to || node.stateRef;
-    if (classification === 'effect.updateEntity' && node.kind !== 'cts.mutate' && !node.blocks?.length && !stateTarget) {
-      errors.push(`Process node ${nodeId} must accept at least one writable block or status`);
-    }
-    if (classification === 'effect.createEntity') {
+  if (['cts.construct', 'cts.mutate'].includes(classification)) {
+    // A species mutate carries no blocks envelope: its leaves are wired or
+    // defaulted field sockets, and required-input availability owns the
+    // "at least one input" rule at activation.
+    if (classification === 'cts.construct') {
       const construction = normalizeConstruction(node.construction, node.typeId, domain);
       const contract = constructionContract(domain, node.typeId);
       if (!contract || !construction) {
@@ -4494,11 +4467,11 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       }
     }
     const allowedBlocks = new Set(entityFieldSchemas(domain, node.typeId)
-      .filter(field => classification === 'effect.createEntity'
+      .filter(field => classification === 'cts.construct'
         ? field.constructible !== false
         : field.writable !== false)
       .map(field => field.block));
-    if (classification === 'effect.createEntity') {
+    if (classification === 'cts.construct') {
       for (const block of entityBlocks(domain, node.typeId)) {
         if (domain.blockComposition?.[block] && !['origin', 'status', 'provenance', 'summary'].includes(block)) {
           allowedBlocks.add(block);
@@ -4509,16 +4482,6 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       if (!allowedBlocks.has(block) || ['origin', 'status', 'provenance', 'summary'].includes(block)) {
         errors.push(`Process node ${nodeId} cannot persist block ${block}`);
       }
-    }
-  }
-  if (classification === 'effect.runProducer') {
-    const construction = normalizeConstruction(node.construction, node.typeId, domain);
-    const contract = constructionContract(domain, node.typeId);
-    if (!(domain.producers || []).some(producer => producer.id === node.producerId)) {
-      errors.push(`Process node ${nodeId} must select a registered producer`);
-    }
-    if (!contract || !construction || !contract.modes.includes(construction.mode) || construction.mode === 'genericCreate') {
-      errors.push(`Process node ${nodeId} must use a declared service construction mode for ${node.typeId}`);
     }
   }
   if (isEffectRecord(node) && !['manual', 'event'].includes(node.trigger?.mode || 'manual')) {
@@ -4535,17 +4498,13 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     const relation = (domain.relations || []).find(item => item.ownerType === node.typeId && item.key === (node.relationKey || node.relation));
     if (!relation) errors.push(`Process node ${nodeId} must select a declared relation for ${node.typeId}`);
   }
-  if (classification === 'effect.runCommand' && (!node.commandId || !domain.commands?.[node.commandId])) {
+  if (classification === 'cts.command' && (!node.commandId || !domain.commands?.[node.commandId])) {
     errors.push(`Process node ${nodeId} must select a registered command`);
   }
   try {
     resolveCatalogNodePorts(node, {
-      fieldSchema: processNodeUsesStructuralFields(node.kind)
-        ? structuralFieldSchema(domain, node.path)
-        : entityFieldSchema(domain, node.typeId, node.path),
-      fieldSchemas: processNodeUsesStructuralFields(node.kind)
-        ? blockFieldSchemas(domain, node.block)
-        : entityFieldSchemas(domain, node.typeId),
+      fieldSchema: entityFieldSchema(domain, node.typeId, node.path),
+      fieldSchemas: entityFieldSchemas(domain, node.typeId),
       blockComposition: domain.blockComposition?.[node.block] || null,
       command: domain.commands?.[node.commandId] || null
     });
@@ -4651,8 +4610,8 @@ function validateDataflowEdges(process, domain) {
     }
     if (compatibility.ok
       && ['record.composeBlock', 'record.modifyBlock'].includes(sourceRecord.kind)
-      && ['effect.createEntity', 'effect.updateEntity'].includes(targetRecord.kind)) {
-      const requiredAccess = targetRecord.kind === 'effect.createEntity' ? 'constructible' : 'writable';
+      && ['cts.construct', 'cts.mutate'].includes(targetRecord.kind)) {
+      const requiredAccess = targetRecord.kind === 'cts.construct' ? 'constructible' : 'writable';
       const targetBlocks = new Set(entityBlocks(domain, targetRecord.typeId));
       const sourcePaths = sourceRecord.compositionMode
         ? (sourceRecord.entries || []).map(entry => `${sourceRecord.block}.${entry.key}`).filter(path => !path.endsWith('.undefined'))
@@ -4661,7 +4620,7 @@ function validateDataflowEdges(process, domain) {
         const targetSchemas = entityFieldSchemas(domain, targetRecord.typeId)
           .filter(field => field.block === sourceRecord.block);
         const targetSchema = entityFieldSchema(domain, targetRecord.typeId, path);
-        const openBlockAccepted = targetRecord.kind === 'effect.createEntity'
+        const openBlockAccepted = targetRecord.kind === 'cts.construct'
           && Boolean(sourceRecord.compositionMode)
           && targetBlocks.has(sourceRecord.block)
           && !['origin', 'status', 'provenance', 'summary'].includes(sourceRecord.block);
@@ -4706,17 +4665,14 @@ function validateDataflowEdges(process, domain) {
   }
   const triggers = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
-    // Species records classify through the operation-kind seam: a manual
-    // `cts.service`/`cts.construct` is an entry trigger exactly like its
-    // legacy effect twin.
-    const operation = operationKindOf(record || {});
+    // A manual species effect is an entry trigger.
     return record?.kind?.endsWith('Trigger')
-      || (operation.startsWith('effect.') && record.trigger?.mode === 'manual');
+      || (isEffectRecord(record || {}) && record.trigger?.mode === 'manual');
   });
   const reachable = reachableControlNodes(process, triggers.map(node => String(node.id)));
   for (const node of process.graph?.nodes || []) {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
-    if ((record?.kind?.startsWith('effect.') || record?.kind?.startsWith('control.'))
+    if ((isEffectRecord(record || {}) || record?.kind?.startsWith('control.'))
       && !record.kind.endsWith('Trigger') && !reachable.has(String(node.id))) {
       push(`Operational node ${record.id || node.id} is not reachable from a trigger`, { nodeId: String(node.id) });
     }
@@ -4796,12 +4752,8 @@ function catalogContext(domain, record) {
     // it (`cts.service` has no persisted fallback), exactly as the runtime
     // catalog contexts do.
     domain,
-    fieldSchema: processNodeUsesStructuralFields(record.kind)
-      ? structuralFieldSchema(domain, fieldPath)
-      : entityFieldSchema(domain, record.typeId, fieldPath),
-    fieldSchemas: processNodeUsesStructuralFields(record.kind)
-      ? blockFieldSchemas(domain, record.block)
-      : entityFieldSchemas(domain, record.typeId),
+    fieldSchema: entityFieldSchema(domain, record.typeId, fieldPath),
+    fieldSchemas: entityFieldSchemas(domain, record.typeId),
     blockComposition: domain.blockComposition?.[record.block] || null,
     command: domain.commands?.[record.commandId] || null
   };
@@ -4931,13 +4883,9 @@ function structuralFieldSchema(domain, path) {
     || blockFieldSchema(domain, String(path || '').split('.')[0]);
 }
 
-function processNodeUsesStructuralFields(kind = '') {
-  return ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind);
-}
-
 function processNodeRequiresTypeId(kind = '') {
-  if (['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand'].includes(kind)) return false;
-  return ['record.', 'predicate.', 'read.', 'effect.'].some(prefix => kind.startsWith(prefix));
+  if (kind === 'record.construct') return false;
+  return ['cts.construct', 'cts.read'].includes(kind);
 }
 
 function validateConstruction(actionId, action = {}, domain = {}, errors = []) {

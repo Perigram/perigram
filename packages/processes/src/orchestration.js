@@ -1,4 +1,3 @@
-import { operationKindOf } from '../../cts/src/index.js';
 import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 import { resolveCatalogNodePorts } from './node-catalog.js';
@@ -14,7 +13,7 @@ function isNativeEffect(record = {}) {
 }
 
 function isEffectRecord(record = {}) {
-  return isNativeEffect(record) || operationKindOf(record).startsWith('effect.');
+  return isNativeEffect(record);
 }
 
 export async function previewProcessDataflow(definition, sample = {}, environment = {}) {
@@ -29,7 +28,7 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
     if (node.type !== 'processNode') continue;
     if (environment.targetNodeId && String(node.id) !== String(environment.targetNodeId)) continue;
     const record = process.processNodes?.[recordId(node)];
-    if (!record || isEffectRecord(record) || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) continue;
+    if (!record || isEffectRecord(record) || record.kind.startsWith('control.')) continue;
     const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
     const outputs = {};
     let error = null;
@@ -198,8 +197,7 @@ async function executeOperationalNode({ run, process, node, record, current, ste
   }
   if (isEffectRecord(record)) {
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
-    const mappedMutation = NATIVE_MUTATION_KINDS.has(String(record.kind))
-      || ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'].includes(record.kind);
+    const mappedMutation = NATIVE_MUTATION_KINDS.has(String(record.kind));
     const result = mappedMutation
       ? await executeProcessEffectNode(record, inputs, (mutationInputs, location) => environment.executeEffect({
           kind: record.kind,
@@ -332,7 +330,7 @@ async function effectOutputValues(nodeId, record, result, environment) {
   const values = {};
   for (const port of ports.outputs.filter(item => item.role === 'data')) {
     let value = result;
-    if ((record.kind === 'effect.runCommand' || record.kind === 'cts.service' || record.kind === 'cts.command') && port.id !== 'result') {
+    if ((record.kind === 'cts.service' || record.kind === 'cts.command') && port.id !== 'result') {
       if (port.id.startsWith('attachment:')) {
         value = (result?.attachments || []).filter(item => item.kind === port.id.slice('attachment:'.length));
       } else {
@@ -446,7 +444,7 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     environment
   );
   if (contextualOutput) return contextualOutput;
-  if (record.kind.endsWith('Trigger') || isEffectRecord(record) || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) {
+  if (record.kind.endsWith('Trigger') || isEffectRecord(record) || record.kind.startsWith('control.')) {
     const error = new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
     error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
     throw error;

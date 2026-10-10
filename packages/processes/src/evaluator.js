@@ -17,8 +17,9 @@ import {
   transposeDataPacket,
   treeStats
 } from './data-tree.js';
-import { operationKindOf, durationMs } from '../../cts/src/index.js';
-import { MAKE_LIST_INPUTS, dynamicBlocks, entityBlocks } from './node-catalog.js';
+import { operationKindOf } from '../../cts/src/index.js';
+import { MAKE_LIST_INPUTS } from './node-catalog.js';
+import { PROCESS_OPERATION_REGISTRY, processOperation, runProcessOperation, stableKey } from './operations.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
@@ -53,17 +54,24 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   // catalog ports declare — identical to the legacy v4 twins below.
   if (kind === 'cts.compose') return executeCompose(record, packets);
   if (kind === 'cts.decompose') {
-    const blocks = dynamicBlocks(record, context);
-    for (const block of blocks) assertDeclaredBlock(context.domain, record, block);
+    // Per-facet elimination (SPEC §20): each output is one declared facet
+    // read off the instance DTO; a facet the value does not carry reads as
+    // the missing-field marker, never as an error.
+    const facets = (context.fieldSchemas || []).filter(field => field?.path);
     if (context.outputId) {
-      if (!blocks.includes(context.outputId)) {
-        throw new Error(`Node ${record.id || kind} does not expose block ${context.outputId}`);
+      const facet = facets.find(field => field.path === context.outputId);
+      if (!facet) {
+        throw new Error(`Node ${record.id || kind} does not expose facet ${context.outputId}`);
       }
-      return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[context.outputId]));
+      return mapDataPacket(required(packets, 'entity', record), value => {
+        const facetValue = readPath(value, facet.path);
+        return isMissingField(facetValue) ? missingFieldMarker(facet.path) : structuredClone(facetValue);
+      });
     }
-    return mapDataPacket(required(packets, 'entity', record), value => (
-      Object.fromEntries(blocks.map(block => [block, structuredClone(value?.[block])]))
-    ));
+    return mapDataPacket(required(packets, 'entity', record), value => Object.fromEntries(facets.map(facet => {
+      const facetValue = readPath(value, facet.path);
+      return [facet.path, isMissingField(facetValue) ? missingFieldMarker(facet.path) : structuredClone(facetValue)];
+    })));
   }
   if (kind === 'cts.join') return solveDataTrees([
     { tree: required(packets, 'primary', record), access: 'list' },
@@ -87,12 +95,10 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     value == null || isMissingField(value) ? fallback : value
   ));
   if (kind === 'value.validate') return mapDataPacket(required(packets, 'value', record), value => validateValue(value, record));
-  if (kind === 'value.math') return executeMath(record, packets);
-  if (kind === 'value.string') return executeString(record, packets);
-  if (kind === 'value.dateTime') return executeDateTime(record, packets);
   if (kind === 'value.enum') return mapDataPacket(required(packets, 'value', record), value => String(value));
-  if (kind === 'value.compare') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => compare(record.operation, left, right));
-  if (kind === 'value.logic') return executeLogic(record, packets);
+  // Polymorphic operations evaluate through the registry (SPEC §8
+  // atomicity law): one home owns sockets and evaluation.
+  if (PROCESS_OPERATION_REGISTRY[kind]) return runProcessOperation(record, packets);
   if (kind === 'value.format') return mapDataPacket(required(packets, 'value', record), value => format(record, value));
   if (kind === 'collection.makeList') {
     const connected = MAKE_LIST_INPUTS.filter(id => packets[id]);
@@ -116,14 +122,6 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     { tree: required(packets, 'left', record), access: 'list' },
     { tree: required(packets, 'right', record), access: 'list' }
   ], ([left, right]) => [...left, ...right], { outputAccess: 'list', matching: record.matching });
-  // producer.join is the one legal same-type convergence point: the data
-  // semantics concatenate both streams; the surviving workflow identity is
-  // the join's selected producer output, resolved by the compiler rather
-  // than the evaluator.
-  if (kind === 'producer.join') return solveDataTrees([
-    { tree: required(packets, 'primary', record), access: 'list' },
-    { tree: required(packets, 'secondary', record), access: 'list' }
-  ], ([primary, secondary]) => [...primary, ...secondary], { outputAccess: 'list', matching: record.matching });
   if (kind === 'collection.itemAt') {
     const inputs = [{ tree: required(packets, 'items', record), access: 'list' }];
     if (packets.index) inputs.push({ tree: packets.index, access: 'item' });
@@ -198,101 +196,19 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'tree.transpose') return transposeDataPacket(required(packets, 'value', record));
   if (kind === 'tree.clean') return cleanDataTree(required(packets, 'value', record));
   if (kind === 'tree.stats') return createDataPacket(treeStats(required(packets, 'value', record)));
-  if (kind === 'record.getField') {
-    // The projection path (SPEC §8 p): a cts.field record feeds the whole
-    // entity and reads the slot-qualified path off it; a legacy v4 record
-    // feeds one block and the path is block-relative. The entity DTO is
-    // itself the block container, so both read identically.
-    const fromEntity = !packets.block && packets.entity;
-    const source = required(packets, fromEntity ? 'entity' : 'block', record);
-    return mapDataPacket(source, value => {
-      const fieldValue = readPath(value, fromEntity
-        ? String(record.path || '')
-        : blockLocalPath(record.block, record.path));
-      if (isMissingField(fieldValue)) return missingFieldMarker(record.path);
-      if (record.compositionMode === 'ancestors' && fieldValue != null) {
-        return { type: record.type?.typeId, id: fieldValue };
-      }
-      return fieldValue;
-    });
-  }
-  if (kind === 'record.fieldChange') return mapDataPacket(required(packets, 'value', record), value => ({ typeId: record.typeId, changes: [{ path: record.path, operation: record.operation || 'set', value }] }));
-  if (kind === 'record.mergeChanges') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => mergePatches(left, right));
-  if (kind === 'record.applyChanges') return combineDataPackets([required(packets, 'record', record), required(packets, 'changes', record)], ([value, patch]) => applyPatch(value, patch));
-  if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
-    if (record.compositionMode && Array.isArray(record.entries)) {
-      if (kind === 'record.composeBlock') return executeCompose(record, packets);
-      const entries = record.entries.filter(entry => packets[`entry:${entry.id}`]);
-      const inputIds = [
-        'block',
-        ...entries.map(entry => `entry:${entry.id}`)
-      ];
-      return combineDataPackets(inputIds.map(id => required(packets, id, record)), values => {
-        const initial = structuredClone(values[0] || {});
-        entries.forEach((entry, index) => {
-          writeOpenBlockEntry(initial, record.compositionMode, entry, values[index + 1]);
-        });
-        return initial;
-      });
-    }
-    const inputIds = [
-      ...(kind === 'record.modifyBlock' ? ['block'] : []),
-      ...(record.fields || []).filter(path => packets[path])
-    ];
-    return combineDataPackets(inputIds.map(id => required(packets, id, record)), values => {
-      const initial = kind === 'record.modifyBlock' ? structuredClone(values[0] || {}) : {};
-      const offset = kind === 'record.modifyBlock' ? 1 : 0;
-      inputIds.slice(offset).forEach((path, index) => {
-        const value = structuredClone(values[index + offset]);
-        // A missing field composes as absent content: the path is not written.
-        if (isMissingField(value)) return;
-        if (path === record.block) {
-          for (const key of Object.keys(initial)) delete initial[key];
-          if (value && typeof value === 'object' && !Array.isArray(value)) Object.assign(initial, value);
-          return;
-        }
-        writePath(initial, blockLocalPath(record.block, path), value);
-      });
-      return initial;
-    });
-  }
-  if (kind === 'record.construct' || kind === 'record.entityDraft') {
+  if (kind === 'record.construct') {
     // Compose per aligned tuple (SPEC §18): connected field sources
     // align item-wise — a literal beside a list pairs with every item,
     // lists align index-wise — one record per alignment, list output.
     // Single-item sources compose the single record as before.
     const paths = (record.fields || []).filter(path => packets[path]);
-    if (!paths.length) return createDataPacket(kind === 'record.entityDraft' ? {} : {});
+    if (!paths.length) return createDataPacket({});
     return solveDataTrees(paths.map(path => ({ tree: packets[path], access: 'item' })), values => {
       const composed = {};
       for (let index = 0; index < paths.length; index += 1) writePath(composed, paths[index], values[index]);
       return composed;
     }, { matching: record.matching });
   }
-  if (kind === 'record.deconstruct') {
-    for (const block of record.blocks || []) assertDeclaredBlock(context.domain, record, block);
-    if (context.outputId) {
-      if (!(record.blocks || []).includes(context.outputId)) {
-        throw new Error(`Node ${record.id || kind} does not expose block ${context.outputId}`);
-      }
-      return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[context.outputId]));
-    }
-    return mapDataPacket(required(packets, 'entity', record), value => (
-      Object.fromEntries((record.blocks || []).map(block => [block, structuredClone(value?.[block])]))
-    ));
-  }
-  if (kind === 'record.getBlock') {
-    assertDeclaredBlock(context.domain, record, record.block);
-    return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[record.block]));
-  }
-  if (kind === 'predicate.field') return createDataPacket({ kind: 'field', typeId: record.typeId, path: record.path, operation: record.operation, value: packetValue(required(packets, 'value', record)) });
-  if (kind === 'predicate.logic') return createDataPacket({
-    kind: 'logic',
-    typeId: record.typeId,
-    operation: record.operation,
-    left: packetValue(required(packets, 'left', record)),
-    ...(packets.right ? { right: packetValue(packets.right) } : {})
-  });
   if (kind.startsWith('read.')) {
     throw new Error(`Read node ${record.id || kind} uses retired kind ${kind}; loads migrate it to cts.read before execution`);
   }
@@ -442,29 +358,7 @@ function blockLocalPath(block, path) {
   return String(path || '').startsWith(prefix) ? String(path).slice(prefix.length) : String(path || '');
 }
 
-export function evaluateEntityPredicate(predicate, entity) {
-  if (!predicate) return true;
-  if (predicate.kind === 'field') return compare(predicate.operation, readPath(entity, predicate.path), predicate.value);
-  if (predicate.kind === 'logic') {
-    if (predicate.operation === 'not') return !evaluateEntityPredicate(predicate.left, entity);
-    const left = evaluateEntityPredicate(predicate.left, entity);
-    const right = evaluateEntityPredicate(predicate.right, entity);
-    if (predicate.operation === 'and') return left && right;
-    if (predicate.operation === 'or') return left || right;
-  }
-  throw new Error(`Unsupported entity predicate ${predicate.kind}:${predicate.operation}`);
-}
 
-export function applyPatch(record, patch) {
-  const result = structuredClone(record);
-  for (const change of patch?.changes || []) {
-    if (change.operation === 'unset') unsetPath(result, change.path);
-    else if (change.operation === 'append') writePath(result, change.path, [...(patchPathValue(result, change.path) || []), structuredClone(change.value)]);
-    else if (change.operation === 'remove') writePath(result, change.path, (patchPathValue(result, change.path) || []).filter(value => !same(value, change.value)));
-    else writePath(result, change.path, structuredClone(change.value));
-  }
-  return result;
-}
 
 async function executeSource(record, context) {
   if (record.kind === 'source.currentTime') return createDataPacket((context.now || (() => new Date()))().toISOString());
@@ -526,208 +420,9 @@ async function executeRead(record, packets, context) {
   }
 }
 
-function executeString(record, packets) {
-  if (record.operation === 'replace') {
-    return combineDataPackets([
-      required(packets, 'text', record),
-      required(packets, 'search', record),
-      required(packets, 'replacement', record)
-    ], ([text, search, replacement]) => String(text).split(String(search)).join(String(replacement)));
-  }
-  if (record.operation === 'substring') {
-    return combineDataPackets([
-      required(packets, 'text', record),
-      required(packets, 'start', record),
-      ...(packets.end ? [packets.end] : [])
-    ], values => String(values[0]).slice(Number(values[1]), values.length > 2 ? Number(values[2]) : undefined));
-  }
-  if (record.operation === 'split') {
-    return createDataPacket(String(packetValue(required(packets, 'text', record)))
-      .split(String(packetValue(required(packets, 'separator', record)))), 'list');
-  }
-  if (record.operation === 'join') {
-    return createDataPacket(
-      flattenDataPacket(required(packets, 'items', record)).branches[0].items
-        .join(String(packetValue(required(packets, 'separator', record))))
-    );
-  }
-  if (record.operation === 'length') {
-    return mapDataPacket(required(packets, 'value', record), value => String(value).length);
-  }
-  const left = required(packets, ['upper', 'lower', 'trim'].includes(record.operation) ? 'value' : 'left', record);
-  if (['upper', 'lower', 'trim'].includes(record.operation)) {
-    return mapDataPacket(left, value => record.operation === 'upper' ? String(value).toUpperCase()
-      : record.operation === 'lower' ? String(value).toLowerCase() : String(value).trim());
-  }
-  return combineDataPackets([left, required(packets, 'right', record)], ([leftValue, right]) => `${leftValue ?? ''}${right ?? ''}`);
-}
-
-function executeLogic(record, packets) {
-  const left = required(packets, 'left', record);
-  // Boolean algebra only (SPEC §8 palette law): value comparison lives on
-  // `value.compare`, field-path comparison on `predicate.field`.
-  if (record.operation === 'isNull' || record.operation === 'isNotNull') {
-    return mapDataPacket(left, value => compare(record.operation, value, null));
-  }
-  if (record.operation === 'not') return mapDataPacket(left, value => !value);
-  if (!['and', 'or', 'xor', 'nand', 'nor', 'xnor'].includes(record.operation)) {
-    throw new Error(`Unsupported logic operation ${record.operation}`);
-  }
-  return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => {
-    if (record.operation === 'and') return Boolean(a && b);
-    if (record.operation === 'or') return Boolean(a || b);
-    if (record.operation === 'xor') return Boolean(a) !== Boolean(b);
-    if (record.operation === 'nand') return !Boolean(a && b);
-    if (record.operation === 'nor') return !Boolean(a || b);
-    return Boolean(a) === Boolean(b);
-  }, { matching: record.matching });
-}
-
-function executeDateTime(record, packets) {
-  if (['differenceDays', 'differenceHours', 'differenceMinutes'].includes(record.operation)) {
-    return combineDataPackets([
-      required(packets, 'left', record),
-      required(packets, 'right', record)
-    ], ([left, right]) => {
-      const divisor = record.operation === 'differenceDays' ? 86_400_000
-        : record.operation === 'differenceHours' ? 3_600_000 : 60_000;
-      return (dateValue(left).getTime() - dateValue(right).getTime()) / divisor;
-    }, { matching: record.matching });
-  }
-  const sourceId = ['addDuration', 'subtractDuration', 'addDays', 'addHours', 'addMinutes', 'addMonths'].includes(record.operation) ? 'date' : 'value';
-  const source = required(packets, sourceId, record);
-  if (['startOfDay', 'endOfDay'].includes(record.operation)) {
-    return mapDataPacket(source, item => {
-      const date = dateValue(item);
-      if (record.operation === 'startOfDay') date.setUTCHours(0, 0, 0, 0);
-      else date.setUTCHours(23, 59, 59, 999);
-      return date.toISOString();
-    });
-  }
-  const adjustmentId = ['addDuration', 'subtractDuration'].includes(record.operation) ? 'duration' : 'amount';
-  return combineDataPackets([source, required(packets, adjustmentId, record)], ([item, adjustment]) => {
-    const date = dateValue(item);
-    const direction = record.operation.startsWith('subtract') ? -1 : 1;
-    if (record.operation === 'addMonths') {
-      date.setUTCMonth(date.getUTCMonth() + direction * Number(adjustment));
-      return date.toISOString();
-    }
-    const milliseconds = record.operation === 'addDays'
-      ? Number(adjustment) * 86_400_000
-      : record.operation === 'addHours'
-        ? Number(adjustment) * 3_600_000
-        : record.operation === 'addMinutes'
-          ? Number(adjustment) * 60_000
-          : durationMs(adjustment);
-    date.setTime(date.getTime() + direction * milliseconds);
-    return date.toISOString();
-  }, { matching: record.matching });
-}
-
-function executeMath(record, packets) {
-  if (['absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt'].includes(record.operation)) {
-    return mapDataPacket(required(packets, 'value', record), value => math(record.operation, value));
-  }
-  if (record.operation === 'clamp') {
-    return combineDataPackets([
-      required(packets, 'value', record),
-      required(packets, 'min', record),
-      required(packets, 'max', record)
-    ], ([value, min, max]) => Math.min(Number(max), Math.max(Number(min), Number(value))), { matching: record.matching });
-  }
-  return combineDataPackets([
-    required(packets, 'left', record),
-    required(packets, 'right', record)
-  ], ([left, right]) => math(record.operation, left, right), { matching: record.matching });
-}
-
-function dateValue(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) throw new Error(`Invalid date ${value}`);
-  return date;
-}
-
 function required(inputs, id, record) {
   if (!inputs[id]) throw new Error(`Node ${record.id || record.kind} requires input ${id}`);
   return inputs[id];
-}
-
-// Runtime mirror of the compile-time entity-contract check: when the domain
-// contract is supplied, block reads reject blocks the entity does not declare
-// with the same diagnostic instead of silently yielding undefined.
-function assertDeclaredBlock(domain, record, block) {
-  if (!domain || !record.typeId || !block) return;
-  if (!entityBlocks(domain, record.typeId).includes(block)) {
-    throw new Error(`Process node ${record.id || record.kind} uses block ${block} outside ${record.typeId}`);
-  }
-}
-
-function cast(value, base = 'json') {
-  if (base === 'string') return String(value);
-  if (base === 'number') {
-    const result = Number(value);
-    if (!Number.isFinite(result)) throw new Error(`Cannot cast ${value} to number`);
-    return result;
-  }
-  if (base === 'integer') {
-    const result = Number(value);
-    if (!Number.isInteger(result)) throw new Error(`Cannot cast ${value} to integer`);
-    return result;
-  }
-  if (base === 'boolean') {
-    if (value === true || value === 'true' || value === 1) return true;
-    if (value === false || value === 'false' || value === 0) return false;
-    throw new Error(`Cannot cast ${value} to boolean`);
-  }
-  if (base === 'date' || base === 'dateTime') {
-    const result = new Date(value);
-    if (Number.isNaN(result.getTime())) throw new Error(`Cannot cast ${value} to ${base}`);
-    return base === 'date' ? result.toISOString().slice(0, 10) : result.toISOString();
-  }
-  return structuredClone(value);
-}
-
-function math(operation, left, right) {
-  const a = Number(left);
-  const b = Number(right);
-  if (operation === 'absolute') return Math.abs(a);
-  if (operation === 'negate') return -a;
-  if (operation === 'round') return Math.round(a);
-  if (operation === 'floor') return Math.floor(a);
-  if (operation === 'ceil') return Math.ceil(a);
-  if (operation === 'sqrt') {
-    if (a < 0) throw new Error('Square root requires a non-negative value');
-    return Math.sqrt(a);
-  }
-  if (operation === 'add') return a + b;
-  if (operation === 'subtract') return a - b;
-  if (operation === 'multiply') return a * b;
-  if (operation === 'divide') {
-    if (b === 0) throw new Error('Division by zero');
-    return a / b;
-  }
-  if (operation === 'modulo') return a % b;
-  if (operation === 'power') return a ** b;
-  if (operation === 'min') return Math.min(a, b);
-  if (operation === 'max') return Math.max(a, b);
-  throw new Error(`Unsupported math operation ${operation}`);
-}
-
-function compare(operation, left, right) {
-  if (operation === 'eq') return same(left, right);
-  if (operation === 'neq') return !same(left, right);
-  if (operation === 'gt') return left > right;
-  if (operation === 'gte') return left >= right;
-  if (operation === 'lt') return left < right;
-  if (operation === 'lte') return left <= right;
-  if (operation === 'contains') return left?.includes?.(right) || false;
-  if (operation === 'startsWith') return String(left).startsWith(String(right));
-  if (operation === 'endsWith') return String(left).endsWith(String(right));
-  // A missing field is neither null nor a present value: isNull is true only
-  // for a present null, isNotNull only for a present non-null value.
-  if (operation === 'isNull') return left === null;
-  if (operation === 'isNotNull') return left !== null && left !== undefined && !isMissingField(left);
-  throw new Error(`Unsupported comparison ${operation}`);
 }
 
 function validateValue(value, record) {
@@ -736,6 +431,13 @@ function validateValue(value, record) {
   if (record.min != null && Number(value) < Number(record.min)) throw new Error(record.message || `Value is below ${record.min}`);
   if (record.max != null && Number(value) > Number(record.max)) throw new Error(record.message || `Value is above ${record.max}`);
   return value;
+}
+
+function assertDeclaredBlock(domain, record, block) {
+  if (!domain || !record.typeId || !block) return;
+  if (!entityBlocks(domain, record.typeId).includes(block)) {
+    throw new Error(`Process node ${record.id || record.kind} uses block ${block} outside ${record.typeId}`);
+  }
 }
 
 function convertUnit(value, from, to, custom = {}) {
@@ -910,12 +612,6 @@ function unzipPacket(packet) {
   };
 }
 
-function mergePatches(left, right) {
-  if (left?.typeId && right?.typeId && left.typeId !== right.typeId) {
-    throw new Error(`Cannot merge ${left.typeId} and ${right.typeId} patches`);
-  }
-  return { typeId: left?.typeId || right?.typeId || '', changes: [...(left?.changes || []), ...(right?.changes || [])] };
-}
 
 function readPath(value, path = '') {
   const parts = String(path).split('.').filter(Boolean);
@@ -932,10 +628,6 @@ function readPath(value, path = '') {
 // Patch application treats a missing path as absent content, not as a
 // marker value: append/remove start from an empty list, exactly as they did
 // when absent paths collapsed to undefined.
-function patchPathValue(record, path) {
-  const value = readPath(record, path);
-  return isMissingField(value) ? undefined : value;
-}
 
 function writePath(target, path, value) {
   const parts = String(path).split('.').filter(Boolean);
@@ -947,24 +639,4 @@ function writePath(target, path, value) {
   if (parts.length) current[parts.at(-1)] = value;
 }
 
-function unsetPath(target, path) {
-  const parts = String(path).split('.').filter(Boolean);
-  const parent = parts.slice(0, -1).reduce((current, key) => current?.[key], target);
-  if (parent) delete parent[parts.at(-1)];
-}
 
-// Structural equality and grouping keys serialize with sorted object keys,
-// so two structurally equal values match regardless of key insertion order
-// (a bare JSON.stringify comparison is key-order-sensitive and would split
-// equal objects across distinct/group buckets).
-function stableKey(value) {
-  if (value === undefined) return 'undefined';
-  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
-  if (Array.isArray(value)) return `[${value.map(stableKey).join(',')}]`;
-  const keys = Object.keys(value).sort();
-  return `{${keys.map(key => `${JSON.stringify(key)}:${stableKey(value[key])}`).join(',')}}`;
-}
-
-function same(left, right) {
-  return stableKey(left) === stableKey(right);
-}

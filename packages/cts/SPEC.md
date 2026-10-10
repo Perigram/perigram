@@ -442,6 +442,15 @@ to the services tab. Entity sources are the generic read presets, bound
 at configure time — the palette never enumerates per-type copies of a
 generic gesture.
 
+Operation atomicity (owner's words, 2026-10-10): the palette operates like
+a dataflow toolkit — atomic operations that cover the basics exhaustively,
+composed into complex behavior by wiring. No node does what a composition
+of atomic nodes already covers. Kinds whose operation is an authored
+discriminator (math, string, dateTime, compare, logic, list reduction)
+have exactly one registry home: the operation table owns each operation's
+socket contract and evaluation; the port catalog, the evaluator, and the
+authoring surfaces derive from it and never restate operation lists.
+
 An editor is `p(T) -> ui` plus `construct(T)` or `mutate(Ref(T))`, bound to a
 surface. "An editor that produces other files" is a `k` from the editor's
 save — no new species.
@@ -786,6 +795,15 @@ applies the state supplied on its state socket and cannot smuggle an
 arbitrary field patch. `cts.construct` receives its initial state through
 the state socket (§7). Type-changing reads select a declared edge and expose its
 exact target type.
+
+`cts.decompose` is the instance elimination form (owner's words,
+2026-10-10): one instance in, every facet of that instance out as its own
+typed socket — identity, every declared row field, every declared lineage
+edge (the typed parent reference), every declared relation, the state axis,
+provenance. The socket list derives entirely from the bound type's
+projected field schemas; no hardcoded block list filters it. A facet the
+runtime value does not carry reads as the missing-field marker, never as an
+error. It is a palette item.
 
 ### References
 
