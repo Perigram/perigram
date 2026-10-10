@@ -79,14 +79,16 @@ test.describe('home and entity UI', () => {
     await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
     await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(id)}`);
 
-    // The header's designer action (file-edit glyph) opens the designer
-    // dialog outside the workspace; the inline edit toggle keeps the
-    // pencil glyph, so the icons disambiguate the two affordances.
+    // The header's designer action (file-edit glyph) opens the designer:
+    // from a routed surface the workspace-page seam navigates home and
+    // opens the editor as a pane tab bound to the record; the inline edit
+    // toggle keeps the pencil glyph, so the icons disambiguate the two
+    // affordances.
     const designerAction = app.page.locator('.surface-header button .pi-file-edit').first();
     await expect(designerAction).toBeVisible({ timeout: 20_000 });
     await designerAction.click();
-    await expect(app.page.locator('.p-dialog').first()).toBeVisible({ timeout: 10_000 });
-    await expect(app.page.locator('.p-dialog').getByText('Cassette Designer').first()).toBeVisible({ timeout: 10_000 });
+    const tab = app.page.locator('[role="tab"]', { hasText: 'Designer Cassette One' }).first();
+    await expect(tab).toBeVisible({ timeout: 15_000 });
     await app.expectCleanRuntime();
   });
 

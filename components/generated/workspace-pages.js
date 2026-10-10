@@ -18,7 +18,8 @@ const OrganizationBillingPage = defineAsyncComponent(() => import('~/pages/organ
 const OrganizationProcessPage = defineAsyncComponent(() => import('~/pages/organization/process.vue'));
 
 // Entity-bound editor pages (for example the cassette designer) derive
-// from the pack editor bindings through the file-surface registry; their
+// from the editor bindings through the file-surface registry (see
+// `generatedWorkspacePages` below for the per-call rule); their
 // page ids are the surface ids, so persisted pane state stays stable.
 // Entity-less pages are always openable tabs. `ephemeral: true` marks
 // runtime-parameterized pages that only open programmatically with per-call
@@ -27,8 +28,7 @@ const OrganizationProcessPage = defineAsyncComponent(() => import('~/pages/organ
 // register with their `route` so chrome (the generated overview's
 // system-screen buttons) can open them as pane tabs through the workspace
 // page-open seam instead of routing away from home.
-export const generatedWorkspacePages = [
-  ...fileWorkspacePages(),
+export const fixedWorkspacePages = [
   // Directory pages are the workspace home of user/organization detail:
   // types with no compiled detail screen and no editor still open as pane
   // tabs, never as standalone routes.
@@ -103,14 +103,25 @@ export const generatedWorkspacePages = [
   }
 ];
 
+// The full page list, derived per call: the file-type half reads the
+// editor bindings through `activeEditorBindings()` (served plugin
+// bindings once the organization type view loads, pack fallback before),
+// so consumer computeds that call this track the view and event-handler
+// calls resolve whatever is served at that moment — a module-scope
+// array would freeze the pre-auth fallback and drop plugin editor pages
+// (the cassette designer) exactly like the editor-action snapshot did.
+export function generatedWorkspacePages() {
+  return [...fileWorkspacePages(), ...fixedWorkspacePages];
+}
+
 export function resolveGeneratedWorkspacePage(pageId = '') {
-  return generatedWorkspacePages.find(page => page.id === pageId) || null;
+  return generatedWorkspacePages().find(page => page.id === pageId) || null;
 }
 
 // The workspace page registered for a system route, if any: chrome
 // opening that route as a pane resolves through this map.
 export function workspacePageIdForRoute(route = '') {
-  return generatedWorkspacePages.find(page => page.route === route)?.id || null;
+  return generatedWorkspacePages().find(page => page.route === route)?.id || null;
 }
 
 // The entity-bound fallback for types with no compiled detail screen: the
@@ -118,5 +129,5 @@ export function workspacePageIdForRoute(route = '') {
 // file-surface registry, directory pages for user/organization). Panes,
 // never standalone routes.
 export function entityWorkspacePageIdFor(typeId = '') {
-  return generatedWorkspacePages.find(page => page.typeId === typeId && !page.ephemeral)?.id || null;
+  return generatedWorkspacePages().find(page => page.typeId === typeId && !page.ephemeral)?.id || null;
 }
