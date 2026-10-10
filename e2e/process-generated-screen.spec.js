@@ -115,6 +115,31 @@ test.describe('process generated screens', () => {
     await app.expectCleanRuntime();
   });
 
+  test('detail screen with an unresolvable scope renders the missing state', async ({ app }) => {
+    test.setTimeout(120_000);
+    await seedMatrixTypes(app);
+    const { manifest } = await app.seedSpeciesProcess({
+      types: [PARENT_TYPE, CHILD_TYPE],
+      via: { [PARENT_TYPE]: 'genericCreate', [CHILD_TYPE]: 'genericCreate' }
+    });
+    const detail = (manifest.screens || []).find(screen => screen.screenKey === `auto_${PARENT_TYPE}_detail`);
+    expect(detail, 'Expected a compiled parent detail screen').toBeTruthy();
+
+    // The list source resolves the type, but the scoped instance is not
+    // among the served rows (a deleted record, a stale link): the source
+    // is not ready, and the surface reports the missing record instead of
+    // mounting the header without an instance.
+    const otherFolder = instanceDto('folder-elsewhere', PARENT_TYPE, 'Matrix Folder Elsewhere');
+    await app.page.route(`**/api/instances/${PARENT_TYPE}`, route => route.fulfill({ json: [otherFolder] }));
+    await app.page.route(`**/api/instances/${PARENT_TYPE}?**`, route => route.fulfill({ json: [otherFolder] }));
+    await mockStatusActions(app.page);
+
+    await app.page.goto(`/screens/auto_${PARENT_TYPE}_detail?instanceId=folder-deleted`);
+    await expect(app.page.getByText('No record opened').first()).toBeVisible({ timeout: 20_000 });
+    await expect(app.page.getByText('Matrix Folder Elsewhere')).toHaveCount(0);
+    await app.expectCleanRuntime();
+  });
+
   test('detail inline edit patches the opened instance in place', async ({ app }) => {
     test.setTimeout(150_000);
     await seedMatrixTypes(app);

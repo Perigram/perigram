@@ -8,10 +8,13 @@ import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-f
 // ('loading' | 'ready' | 'empty' | 'denied' | 'error'); otherwise the
 // state derives purely from the pool — an empty list source is 'empty', a
 // single source without a resolved instance is 'missing', anything else
-// with instances is 'ready'.
+// with instances is 'ready'. A reported 'ready' never wins over the
+// pool-derived state: readiness is resolved instances, so a data layer
+// counting a non-empty type bucket cannot upgrade a single source whose
+// scoped instance is absent past 'missing'.
 function dataStateFor(source, surfaceKind, instances, providedStates) {
   const provided = providedStates?.[source.id];
-  if (provided) return provided;
+  if (provided && provided !== 'ready') return provided;
   if (instances.length) return 'ready';
   return surfaceKind === 'detail' ? 'missing' : 'empty';
 }
