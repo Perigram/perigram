@@ -306,6 +306,16 @@ describe('screen composition', () => {
     const loading = composeScreen(screen, contract, bundle, {}, { sourceStates: { widget: 'loading', detail: 'denied' } });
     expect(loading.regions[0].dataState).toBe('loading');
     expect(loading.regions[1].dataState).toBe('denied');
+
+    // A reported 'ready' never upgrades an unresolved single source: the
+    // data layer counts the type bucket, but a detail surface is ready
+    // only when its scoped instance resolved (a host listing the type
+    // while the opened record is gone/deleted must compose 'missing').
+    const staleScope = composeScreen({ ...screen, typeId: 'widget', scope: { instanceId: 'gone' } }, contract, bundle, pool, {
+      sourceStates: { detail: 'ready' }
+    });
+    expect(staleScope.regions[1].dataState).toBe('missing');
+    expect(staleScope.regions[1].instances).toEqual([]);
   });
 
   it('attaches the list-controls contract to list regions only', () => {
