@@ -187,9 +187,12 @@ documented in the
 
 `instance-editor-action.js` and `workspace-pages.js` derive
 their file-type rows (cassette, sheet-design, sketch, text-document,
-csv-table, xlsx-workbook) from the pack editor
+csv-table, xlsx-workbook) from the editor
 bindings through this registry instead of hand-maintained entity-keyed
-maps. Rows key by the CTS type id — the projected entity key — so legacy
+maps — `instance-editor-action.js` resolves per call so its consumers'
+computeds track the served editor list (a module-scope snapshot would
+freeze the pre-auth fallback and never see the plugin's bindings). Rows
+key by the CTS type id — the projected entity key — so legacy
 pre-projection keys (`sheet_design`, `facade`, `facade_pattern`) no
 longer resolve an editor surface (abandoned data, SPEC §19). The
 sheet-design editor resolves its own write grant internally and degrades
