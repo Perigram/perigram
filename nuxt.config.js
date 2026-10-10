@@ -15,16 +15,12 @@ const perigramAliases = {
     '@perigram/vue': resolveRoot('./packages/vue/src/index.js'),
     '@perigram/devtools': resolveRoot('./packages/devtools/src/index.js'),
     '@perigram/mcp': resolveRoot('./packages/mcp/src/index.js'),
-    '@perigram/processes': resolveRoot('./packages/processes/src/index.js'),
-    '@perigram/facade': resolveRoot('./packages/facade/src/index.js')
+    '@perigram/processes': resolveRoot('./packages/processes/src/index.js')
 }
 const portableAliases = {
     '#shared': resolveRoot('./shared'),
     '#packages': resolveRoot('./packages'),
     '#utils': resolveRoot('./utils'),
-    // Platform services for bundled pack code (nitro noExternal/inline
-    // bundles packages/facade/server — aliases resolve at bundle time
-    // and keep dev externals absolute).
     '#services': resolveRoot('./server')
 }
 const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')
@@ -159,13 +155,7 @@ export default defineNuxtConfig({
                 ...portableAliases
             }
         },
-        ssr: {
-            // Dev-only bundling of the facade pack's server side: the dev
-            // SSR pipeline externalizes packages/ by default, but the pack
-            // consumes framework services through `~`-aliased modules only
-            // the bundler resolves (nitro.noExternal covers production).
-            noExternal: [/packages[/\\]facade[/\\]server/]
-        },
+        ssr: {},
         server: {
             watch: {
                 ignored: [WORKTREE_WATCH_IGNORE]
@@ -177,12 +167,7 @@ export default defineNuxtConfig({
             environments: {
                 client: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } },
                 ssr: {
-                    dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } },
-                    // Dev-only bundling of the facade pack's server side:
-                    // the SSR environment externalizes packages/ by
-                    // default; the pack consumes `~`-aliased framework
-                    // modules only the bundler resolves.
-                    resolve: { noExternal: [/packages[/\\]facade[/\\]server/] }
+                    dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } }
                 }
             }
         } : {}),
@@ -375,18 +360,6 @@ export default defineNuxtConfig({
         alias: {
             ...perigramAliases,
             ...portableAliases
-        },
-        noExternal: [
-            // The facade pack's server side consumes framework services by
-            // import (including `~`-aliased modules only the bundler
-            // resolves): it must bundle, never externalize — raw Node
-            // cannot load the transitive server graph from packages/.
-            /packages[/\\]facade[/\\]server/,
-            'packages/facade/server',
-            '#packages/facade/server'
-        ],
-        externals: {
-            inline: [/packages[/\\]facade[/\\]server/, 'packages/facade/server', '#packages/facade/server']
         },
         routeRules: {
             '/icons/**': {

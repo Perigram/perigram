@@ -10,7 +10,6 @@ const perigramAliases = {
   '@perigram/vue': path.resolve(__dirname, './packages/vue/src/index.js'),
   '@perigram/devtools': path.resolve(__dirname, './packages/devtools/src/index.js'),
   '@perigram/mcp': path.resolve(__dirname, './packages/mcp/src/index.js'),
-  '@perigram/facade': path.resolve(__dirname, './packages/facade/src/index.js')
 };
 const portableAliases = {
   '#shared': path.resolve(__dirname, './shared'),

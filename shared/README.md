@@ -18,7 +18,7 @@ imported through server modules that Nitro externalizes.
   permission grants when a preset is assigned. Runtime checks consume the
   decomposed grants and do not branch on verbal preset labels.
 - `instance-field-access.js`: Field-level display/redaction helpers shared by
-  Nuxt cards and server API serialization. It consumes `@perigram/facade`
+  Nuxt cards and server API serialization. It consumes the facade plugin's listing declarations
   field policies plus the same grant evaluator used by UI actions and backend
   access checks.
 - `ui-permissions.js`: Compatibility UI resolver backed by the same grant

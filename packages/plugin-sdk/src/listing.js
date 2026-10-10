@@ -11,7 +11,13 @@
 // - `attachmentKinds` — payload upload contracts (pack vocabulary);
 // - `conversions` — artifact conversion entries (data only; a `service`
 //   binding names the plugin service that executes the conversion);
+// - `constructions` — construction modes of the plugin's own types bound to
+//   plugin services: `{ '<typeId>': { '<mode>': '<service ref>' } }`;
+// - `exports` — attachment exports bound to plugin services:
+//   `[{ typeId, kind, service, extension?, mime? }]`;
 // - `requires` — mounted pack ids the plugin's types resolve against.
+
+const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 
 export function parseListing(listing = {}) {
   const declarations = listing.declarations || {};
@@ -20,6 +26,8 @@ export function parseListing(listing = {}) {
   const editors = declarations.editors || [];
   const attachmentKinds = declarations.attachmentKinds || {};
   const conversions = declarations.conversions || [];
+  const constructions = declarations.constructions || {};
+  const exportsList = declarations.exports || [];
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');
 
@@ -46,8 +54,28 @@ export function parseListing(listing = {}) {
       throw listingError(`service ${service.id} mode must be 'endpoint' or 'claim'`);
     }
   }
+  const serviceIds = new Set(services.map(service => service.id));
+  const serviceRefOf = (ref, what) => {
+    const match = String(ref || '').match(SERVICE_REF);
+    if (!match) {
+      throw listingError(`${what} must be a plugin-qualified service ref plugin.<pluginId>.<serviceId> (got ${JSON.stringify(ref)})`);
+    }
+    if (match[1] !== pluginId) {
+      throw listingError(`${what} names plugin ${match[1]}, but this listing is ${pluginId}`);
+    }
+    if (!serviceIds.has(match[2])) {
+      throw listingError(`${what} references service ${match[2]}, which the plugin does not declare`);
+    }
+    return String(ref);
+  };
 
   const typeById = new Map(types.map(type => [type.id, type]));
+  const constructModesOf = type => new Set([
+    ...Object.values(type?.operators || {})
+      .filter(operator => operator?.species === 'construct')
+      .map(operator => operator.id),
+    ...(type?.payload?.creation || ['upload']).map(String)
+  ]);
   const seenEditorTypes = new Set();
   for (const editor of editors) {
     if (!editor?.type || !editor?.surface || !(editor.modes || []).length) {
@@ -72,7 +100,6 @@ export function parseListing(listing = {}) {
     }
   }
 
-  const serviceIds = new Set(services.map(service => service.id));
   const seenConversionIds = new Set();
   for (const conversion of conversions) {
     if (!conversion?.id || typeof conversion.id !== 'string') {
@@ -89,7 +116,7 @@ export function parseListing(listing = {}) {
       throw listingError(`conversion ${conversion.id} needs a target`);
     }
     if (conversion.service !== undefined) {
-      if (!/^[a-z0-9-]+(\.[a-z0-9-]+)?$/.test(String(conversion.service))) {
+      if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(String(conversion.service))) {
         throw listingError(`conversion ${conversion.id} service must be a plugin service reference (got ${JSON.stringify(conversion.service)})`);
       }
       const bare = String(conversion.service).split('.').length === 1;
@@ -99,13 +126,40 @@ export function parseListing(listing = {}) {
     }
   }
 
+  for (const [typeId, modes] of Object.entries(constructions)) {
+    const declaration = typeById.get(typeId);
+    if (!declaration) {
+      throw listingError(`construction binding for type ${typeId} must reference a type this plugin declares`);
+    }
+    if (!modes || typeof modes !== 'object' || Array.isArray(modes) || !Object.keys(modes).length) {
+      throw listingError(`construction binding for type ${typeId} must map modes to service refs`);
+    }
+    const available = constructModesOf(declaration);
+    for (const [mode, ref] of Object.entries(modes)) {
+      if (!available.has(mode)) {
+        throw listingError(`construction binding for ${typeId}.${mode} names a mode the type does not declare`);
+      }
+      serviceRefOf(ref, `construction ${typeId}.${mode}`);
+    }
+  }
+
+  for (const exporter of exportsList) {
+    if (!exporter?.typeId || !exporter?.kind) {
+      throw listingError(`every export needs typeId and kind (got ${JSON.stringify(exporter?.typeId)})`);
+    }
+    if (!typeById.has(exporter.typeId)) {
+      throw listingError(`export for type ${exporter.typeId} must reference a type this plugin declares`);
+    }
+    serviceRefOf(exporter.service, `export ${exporter.typeId}/${exporter.kind}`);
+  }
+
   for (const packId of requires) {
     if (!/^[a-z0-9-]+$/.test(packId)) {
       throw listingError(`requires entries must be pack slugs (got ${JSON.stringify(packId)})`);
     }
   }
 
-  return { pluginId, types, services, editors, attachmentKinds, conversions, requires };
+  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, exports: exportsList, requires };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -123,7 +177,9 @@ export function normalizeListing(listing = {}) {
       services: layer.services,
       editors: layer.editors,
       attachmentKinds: layer.attachmentKinds,
-      conversions: layer.conversions
+      conversions: layer.conversions,
+      constructions: layer.constructions,
+      exports: layer.exports
     }
   };
 }

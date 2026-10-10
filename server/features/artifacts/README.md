@@ -102,6 +102,6 @@ service. The conversion layer does not infer arbitrary byte conversions.
 
 ## Related
 
-- [framework attachment kinds](../../../packages/facade/README.md)
+- [attachment kinds](../../../shared/attachment-kinds.js) (framework) and the installed plugins' listing declarations
 - [commands](../../core/commands/README.md)
 - [artifact templates](../artifact-templates/README.md)

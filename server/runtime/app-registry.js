@@ -1,7 +1,8 @@
 // The framework runtime registry: party/file/process-definition services,
-// framework commands, and pack mounting. This module imports nothing
-// facade-shaped — the facade plug-in (packages/facade/server) is mounted like
-// any pack, and removing it removes the pack.
+// framework commands, and pack mounting. Domain packs that need in-process
+// code mount here; the facade domain is NOT a pack — it installs per
+// organization as the facade plugin (SPEC §Plugin marketplace) and its
+// compute runs in the external facade executor.
 import { createRegistry } from '~/server/core/blocks/index.js';
 
 import * as artifactsService from '~/server/features/artifacts/service.js';
@@ -11,9 +12,9 @@ import * as processDefinitionsService from '~/server/features/process-definition
 import * as usersService from '~/server/features/users/service.js';
 
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
+import { convertArtifact } from '~/server/features/artifact-conversions/operations.js';
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
 
-import { facadePack } from '#packages/facade/server/index.js';
 import { documentsPack } from '~/server/packs/documents/index.js';
 import { frameworkCommandDefinitions } from '~/server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '~/server/core/tasks/definitions.js';
@@ -24,7 +25,7 @@ let appRegistry = null;
 // and the packs to mount. A pack provides: domain content, entity services
 // with process bindings, construction handlers, delete adapters, commands,
 // and task executors.
-const FRAMEWORK_PACKS = [documentsPack, facadePack];
+const FRAMEWORK_PACKS = [documentsPack];
 
 export function getAppRegistry() {
   if (appRegistry) {
@@ -81,7 +82,8 @@ const frameworkDeleteAdapters = {
 };
 
 const frameworkCommandHandlers = {
-  generateAttachment
+  generateAttachment,
+  convertArtifact
 };
 
 function registerAppBindings(registry) {

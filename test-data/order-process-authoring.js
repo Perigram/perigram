@@ -101,7 +101,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('matHeight', { typeId: 'sheet-material' });
   authoring.setInputDefault('matHeight', 'field', 'data.height');
 
-  authoring.drop('service:nesting.solve', { id: 'solve' });
+  authoring.drop('service:plugin.facade.nesting-solve', { id: 'solve' });
 
   authoring.drop('construct', { id: 'attempt' });
   authoring.wireDeclaration('attemptClass', 'attempt', 'binds');

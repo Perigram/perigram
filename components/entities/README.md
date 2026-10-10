@@ -6,7 +6,7 @@ Manifest-backed Vue cards and detail surfaces for Perigram domain entities.
 
 Each subdirectory owns one entity surface or a closely related display surface.
 Most cards are registered through the design-system manifest in
-`packages/facade/src/ui.js` and bound to Vue components in
+the type declarations' render groups and bound to Vue components in
 `utils/design-system.js`.
 `EntityRevision` is a read-only system entity surface used by provenance rows
 such as cassette template geometry versions.
@@ -18,7 +18,7 @@ such as cassette template geometry versions.
   See [components/shared/README.md](../shared/README.md) for the default-slot
   body contract.
 - Standard facts must resolve from the domain display constructor in
-  `@perigram/facade` field groups. Do not add new local `DataBlock` path arrays
+  the declared types' render groups. Do not add new local `DataBlock` path arrays
   to entity cards; add or extend a field group and make sure the path is covered
   by field access policy.
 - The default slot is the canonical operational body and is reused by card
@@ -33,7 +33,7 @@ such as cassette template geometry versions.
   render raw nested objects or rebuild identity/status rows locally.
 - Entity facts are access-aware. `DataBlock` requires an
   `type-id` prop and filter paths through `shared/instance-field-access.js`
-  using the field policies exported by `@perigram/facade`. If a field is not
+  using the field policies of the declared types. If a field is not
   declared in the policy, cards must not display it.
 - Relation refs should pass design-system UI keys (`cassette`, `sheetDesign`,
   `entityRevision`) instead of backend snake-case names. The shared domain UI
@@ -65,4 +65,4 @@ explicitly asks.
 - [Shared UI components](../shared/README.md)
 - [Design system](../../docs/DESIGN_SYSTEM.md)
 - [DTO factories](../../test-data/README.md)
-- [Domain UI contract](../../packages/facade/README.md)
+- [Facade plugin](../../workers/facade/README.md)

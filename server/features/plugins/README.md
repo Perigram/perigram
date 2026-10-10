@@ -12,7 +12,7 @@ executors through the worker protocol.
 
 - **Catalog** (`plugin_catalog`): one listing per `pluginId` —
   `{ pluginId, name, description, version, requires?, declarations: { types,
-  services, editors, attachmentKinds, conversions } }`.
+  services, editors, attachmentKinds, conversions, constructions, exports } }`.
   Platform-published only; organizations never write it. Publishing rides
   `POST /api/plugins/catalog` (operator token) — the
   [@perigram/plugin-sdk](../../../packages/plugin-sdk/README.md) CLI wraps
@@ -33,6 +33,13 @@ executors through the worker protocol.
   resolves them per call (`declarationFor` in
   [instances](../instances/README.md)) with the same cache and
   invalidation. Plugin types never copy into the org-authored store —
+  `constructions` binds the plugin's own types' construction modes to
+  plugin services (the instance machinery dispatches them, see
+  [instances](../instances/README.md)); `exports` binds attachment
+  exports (`generateAttachment` resolves the sheet-design LAYOUT_DXF
+  executor through it). Installed construction contracts merge into the
+  projected domain's construction table beside the packs
+  (`packDomainsForOrganization`).
   ownership stays with the plugin for clean upgrades.
 - **Connector services**: a listing may declare `services` —
   `{ id (slug), label, signature: { input, output }, render, mode }` records

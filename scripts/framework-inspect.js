@@ -2,7 +2,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
-import { facadeCommands, facadeFileTypes } from '../packages/facade/src/index.js';
 import { frameworkCommandDefinitions } from '../server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
 import { frameworkAttachmentKinds } from '../shared/attachment-kinds.js';
@@ -26,7 +25,7 @@ const projected = projectDomainFromView(viewRegistry, null);
 const cncEntities = projected.entities.map(entity => ({ ...entity, surfaceKey: entity.type }));
 const cncWorkflows = projected.workflows || {};
 const cncDomain = { ui: { endpoints: cncEntities.map(entity => ({ type: entity.type, path: `/api/instances/${entity.collection}` })) } };
-const cncCommands = { ...facadeCommands, ...frameworkCommandDefinitions };
+const cncCommands = { ...frameworkCommandDefinitions };
 const cncTasks = frameworkTaskDefinitions;
 const cncSummaries = [];
 import {

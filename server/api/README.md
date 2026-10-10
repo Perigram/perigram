@@ -6,13 +6,12 @@ Routes are grouped into sub-directories corresponding to features:
 - `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
   replacement, authorized source streaming, and deletion. Template-generated
   artifacts expose `PUT /api/artifacts/:id/layout` for revision-backed edits.
-- `cassettes/`: The pack's two domain routes — artifact-based import
-  (`POST /api/cassettes/import`, a `DXF_SOURCE` artifact becomes a
-  STANDARD template) and template DXF export
-  (`GET /api/cassettes/:id/export`). Cassette CRUD rides the generic
-  instance transport (`/api/instances/cassette`, SPEC §13).
+- `artifact-conversions`: `POST /api/artifact-conversions` — the
+  client-reachable conversion surface over the organization's installed
+  plugins' catalogs (the editor dialogs' non-process path; the
+  `convertArtifact` command serves process flows).
 - `commands/`: Authenticated execution route for declared domain commands such
-  as `saveCassetteTemplate` and `generateAttachment`.
+  as `generateAttachment`.
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
   and `/api/instances/:type/:id`) serving every pack and org-authored type
   through the CTS instance machinery, including typed payload upload/download.
@@ -82,9 +81,10 @@ Routes are grouped into sub-directories corresponding to features:
   relations: active-organization listing, request, accept, decline, and
   cancel/terminate, all gated by `organizations:admin` on the respective
   side (see the [partnerships feature](../features/partnerships/README.md)).
-- `sheet-designs/`: Lineage-scoped sheet design list/detail, direct DXF export,
-  and `PUT /api/sheet-designs/:id` for write-authorized, revision-backed manual
-  placement updates.
+- sheet designs ride the generic instance transport
+  (`/api/instances/sheet-design`, SPEC §13): the editor recomputes the
+  layout client-side and patches generically; DXF export rides
+  `generateAttachment` with the installed plugin's export binding.
 - `connections/`: Authenticated realtime layer. `GET /connections/events`
   is the single Server-Sent Events stream per browser tab; the server
   registers the connection with `user:`/`org:` topics and reports its

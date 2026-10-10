@@ -70,7 +70,7 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     throw createError({ statusCode: 409, message: 'Plugin already installed' });
   }
   const layer = parseListingOr400(listing);
-  const { types, services, editors, attachmentKinds, conversions, requires } = layer;
+  const { types, services, editors, attachmentKinds, conversions, constructions, exports: exportBindings, requires } = layer;
   // The plugin's packs must exist and stay enabled under it — a disabled
   // requirement would strand the plugin's types the same way a disabled
   // dependent pack would.
@@ -136,7 +136,7 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types, editors, attachmentKinds, conversions },
+    declarations: { types, editors, attachmentKinds, conversions, constructions, exports: exportBindings },
     services,
     requires,
     connectorToken: mintConnectorToken()
@@ -333,10 +333,79 @@ export async function packServicesForOrganization(organizationId) {
   return [...composePackServices(packs), ...await servicesForOrganization(organizationId)];
 }
 
-// The projected-domain pack slices for an organization: enabled packs only.
+// The projected-domain pack slices for an organization: enabled packs,
+// with installed plugins' construction contracts merged beside them (the
+// listing's service-backed constructions are the plugin layer of the same
+// domain vocabulary).
 export async function packDomainsForOrganization(organizationId) {
   const disabled = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
-  return composePackDomains(orderedMountedPacks().filter(pack => !disabled.has(pack.id)));
+  const merged = composePackDomains(orderedMountedPacks().filter(pack => !disabled.has(pack.id)));
+  const installs = organizationId ? await repository.listInstallsByOrganization(organizationId) : [];
+  for (const install of installs) {
+    for (const [typeId, modes] of Object.entries(install.declarations?.constructions || {})) {
+      if (!modes || typeof modes !== 'object') continue;
+      if (merged.construction[typeId]) {
+        throw createError({ statusCode: 500, message: `construction contracts for type ${typeId} declared by both a pack and installed plugin ${install.pluginId}` });
+      }
+      merged.construction[typeId] = { modes: Object.keys(modes) };
+    }
+  }
+  return merged;
+}
+
+// Service-backed construction bindings (installed plugins): typeId ->
+// mode -> plugin-qualified service ref. The instance machinery dispatches
+// constructions with no registered handler through these.
+export async function constructionsForOrganization(organizationId) {
+  const installs = organizationId ? await repository.listInstallsByOrganization(organizationId) : [];
+  const constructions = {};
+  for (const install of installs) {
+    for (const [typeId, modes] of Object.entries(install.declarations?.constructions || {})) {
+      if (!modes || typeof modes !== 'object') continue;
+      if (constructions[typeId]) {
+        throw createError({ statusCode: 500, message: `construction bindings for type ${typeId} declared by two installed plugins` });
+      }
+      constructions[typeId] = { ...modes };
+    }
+  }
+  return constructions;
+}
+
+// Attachment export bindings (installed plugins): the plugin services that
+// generate exportable artifacts for the plugin's own types.
+export async function exportersForOrganization(organizationId) {
+  const installs = organizationId ? await repository.listInstallsByOrganization(organizationId) : [];
+  const exporters = [];
+  for (const install of installs) {
+    for (const exporter of install.declarations?.exports || []) {
+      if (exporter?.typeId && exporter?.kind && exporter?.service) exporters.push({ ...exporter });
+    }
+  }
+  return exporters;
+}
+
+// The org's artifact conversion catalog (installed plugins): the listing
+// entries, plugin-owned. The convertArtifact command resolves its catalog
+// through this — no pack code supplies conversions. Bare service refs are
+// qualified to the owning install's command id.
+export async function conversionsForOrganization(organizationId) {
+  const installs = organizationId ? await repository.listInstallsByOrganization(organizationId) : [];
+  const conversions = [];
+  for (const install of installs) {
+    for (const conversion of install.declarations?.conversions || []) {
+      if (conversion?.id && Array.isArray(conversion.sourceKinds) && conversion.target) {
+        conversions.push({
+          ...conversion,
+          ...(conversion.service
+            ? { service: String(conversion.service).includes('.')
+              ? conversion.service
+              : `plugin.${install.pluginId}.${conversion.service}` }
+            : {})
+        });
+      }
+    }
+  }
+  return conversions;
 }
 
 export async function commandDefinitionFor(commandId, auth = {}) {
@@ -663,7 +732,9 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       types: versionedTypes.map(withoutMigrateSteps),
       editors: layer.editors,
       attachmentKinds: layer.attachmentKinds,
-      conversions: layer.conversions
+      conversions: layer.conversions,
+      constructions: layer.constructions,
+      exports: layer.exports
     },
     services: layer.services,
     requires: layer.requires

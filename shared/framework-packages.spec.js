@@ -174,8 +174,8 @@ describe('Framework package contracts', () => {
     expect(validateTransition({ workflow, currentState: 'ACTIVE', targetState: 'CLOSED', role: 'VIEWER' }).ok).toBe(true);
   });
 
-  it('exposes facade domain definitions and read-only MCP handlers', async () => {
-    const { facadeCommands, facadeFileTypes } = await import('@perigram/facade');
+  it('exposes the facade plugin listing and read-only MCP handlers', async () => {
+    const { facadeFileTypes, facadeServices } = await import('../test-tools/facade-plugin.js');
     const { frameworkAttachmentKinds } = await import('../shared/attachment-kinds.js');
     const { DESIGN_SYSTEM_CONTRACT } = await import('../utils/design-system-contract.js');
     const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('../packages/cts/src/index.js');
@@ -198,7 +198,7 @@ describe('Framework package contracts', () => {
       entities,
       frontendEntities: endpoints,
       workflows,
-      commands: Object.values(facadeCommands),
+      commands: facadeServices,
       tasks: [],
       attachmentKinds: frameworkAttachmentKinds,
       summaries: [],
@@ -231,7 +231,11 @@ describe('Framework package contracts', () => {
 
     expect(typeof handlers.list_entities).toBe('function');
     expect(entities.length).toBeGreaterThan(5);
-    expect(Object.keys(facadeCommands)).toEqual(expect.arrayContaining(['saveCassetteTemplate', 'solveNestingValue', 'convertArtifact']));
+    expect(facadeServices.map(service => service.id)).toEqual(expect.arrayContaining([
+      'plugin.facade.nesting-solve',
+      'plugin.facade.bake',
+      'plugin.facade.import-cassette'
+    ]));
     expect(typeof handlers.get_entity_schema).toBe('function');
   });
 
@@ -240,15 +244,14 @@ describe('Framework package contracts', () => {
     const source = readFileSync('server/core/commands/service.js', 'utf8');
     expect(source).not.toContain('@perigram/domain-cnc');
     expect(source).not.toMatch(/features\/.*\/operations/);
-    // The runtime registry imports no domain directly; every domain mounts
-    // as a pack (SPEC §21) and the pack owns its domain content and handlers.
+    // The facade domain is no pack import: its declarations live in the
+    // plugin listing and its compute in the external executor — the
+    // registry mounts only the documents pack beside framework services.
     const composition = readFileSync('server/runtime/app-registry.js', 'utf8');
     expect(composition).not.toContain('cncDomain');
-    expect(composition).toContain('facadePack');
+    expect(composition).not.toContain('facadePack');
     expect(composition).toContain('generateAttachment');
-    const facadePackMount = readFileSync('packages/facade/server/index.js', 'utf8');
-    expect(facadePackMount).toContain('facadeDomain');
-    expect(facadePackMount).toContain('saveCassetteTemplate');
+    expect(composition).toContain('convertArtifact');
   });
 
   it('keeps the committed framework manifest synchronized with source metadata', () => {

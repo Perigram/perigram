@@ -19,7 +19,7 @@ import {
   primeSemanticTokens,
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
-import { facadeFileTypes } from '@perigram/facade';
+import { facadeFileTypes } from '../test-tools/facade-plugin.js';
 // Declaration-owned lifecycles replace the deleted legacy workflow table:
 // one registry view projection derives entities and workflows.
 import { createTypeRegistry, frameworkTypes as ctsFrameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';

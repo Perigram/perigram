@@ -147,77 +147,6 @@
   ],
   "commands": [
     {
-      "action": "saveTemplate",
-      "attachments": [],
-      "events": [
-        "cassette.templateSaved"
-      ],
-      "id": "saveCassetteTemplate",
-      "inputs": [
-        "cassette"
-      ],
-      "label": "Save cassette template",
-      "outputs": [
-        "cassette"
-      ],
-      "permissions": [
-        {
-          "feature": "files",
-          "level": "write"
-        }
-      ],
-      "service": "cassettes",
-      "tasks": [],
-      "triggers": [
-        {
-          "event": "cassette.templateSaved"
-        }
-      ]
-    },
-    {
-      "action": "convert",
-      "attachments": [],
-      "events": [
-        "artifact.converted"
-      ],
-      "id": "convertArtifact",
-      "inputs": [
-        "artifact"
-      ],
-      "label": "Convert artifact",
-      "outputs": [
-        "artifact",
-        "cassette"
-      ],
-      "permissions": [
-        {
-          "feature": "artifacts",
-          "level": "write"
-        }
-      ],
-      "service": "artifacts",
-      "tasks": [],
-      "triggers": []
-    },
-    {
-      "action": "solveValue",
-      "attachments": [],
-      "events": [],
-      "id": "solveNestingValue",
-      "inputs": [],
-      "label": "Solve nesting",
-      "outputs": [],
-      "permissions": [
-        {
-          "feature": "sheet_designs",
-          "level": "write"
-        }
-      ],
-      "service": "nesting",
-      "tasks": [],
-      "triggers": []
-    },
-    {
       "action": "generate",
       "attachments": [
         "LAYOUT_DXF",
@@ -1087,51 +1016,6 @@
       "collection": "files",
       "lineage": {},
       "type": "sketch"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "cassette"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "cassette-design"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "sheet-design"
     }
   ],
   "name": "perigram-framework",
@@ -1253,21 +1137,6 @@
       "list": null,
       "single": null,
       "type": "sketch"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "cassette"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "cassette-design"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "sheet-design"
     }
   ],
   "schemaVersion": 1,

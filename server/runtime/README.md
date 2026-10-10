@@ -2,10 +2,12 @@
 
 Builds the explicit application registry used by backend runtimes.
 
-`app-registry.js` creates one `createRegistry()` instance, defines
-`@perigram/facade`, registers entity services, command handlers, and workflow
-hook handlers. Backend runtimes consume this registry instead of importing
-domain packages or feature modules directly.
+`app-registry.js` creates one `createRegistry()` instance, registers the
+framework entity services, command handlers, and workflow hook handlers.
+Backend runtimes consume this registry instead of importing domain
+packages or feature modules directly. The facade domain is not a pack
+here: it installs per organization as the facade plugin and its compute
+runs in the external executor.
 
 `entities.js` resolves entity type aliases and collection names from the active
 registry/domain metadata. Runtime code such as status transitions, hooks, and
@@ -33,9 +35,9 @@ should call `getAppRegistry()`.
   documents are stored in the CTS §3 shape (flat `fields`, `states.main`,
   `name`); the service boundary owns the §3 ⇄ wire-DTO (block vocabulary)
   mapping for screens and compiled contracts.
-- Command handlers from the mounted packs (the facade pack registers
-  `saveCassetteTemplate`, `solveNestingValue`, `convertArtifact`) plus the
-  framework's `generateAttachment`.
+- Framework command handlers (`generateAttachment`, `convertArtifact`);
+  plugin value services execute as `plugin.<pluginId>.<serviceId>` commands
+  through the connector path.
 - Workflow transition hook handlers: the framework core handlers plus any
   `hookHandlers` a pack mounts.
 - Polling workers claim task definitions such
@@ -45,9 +47,8 @@ should call `getAppRegistry()`.
 - Workflow hook handlers from `server/core/machines/hooks.js` and explicitly
   registered feature hook handlers.
 - Domain definitions (commands, tasks, hooks, the canonical block
-  vocabulary, UI metadata) are mounted from the packs; the legacy entity/
-  workflow/construction tables in `@perigram/facade` are pack-internal
-  content for non-process surfaces and are not registry services.
+  vocabulary, UI metadata) are mounted from the packs and the installed
+  plugins' declaration layers (construction contracts, services).
 - Process definition services are registered as persisted entities. Active
   process compiled workflows are resolved by the workflow runtime before
   organization workflow overrides and domain defaults.

@@ -22,7 +22,12 @@ non-empty), `services` (SPEC §8 signatures, `mode` endpoint/claim),
 the same plugin with class `file`, one binding per type),
 `attachmentKinds` (payload upload contracts keyed by kind id), and
 `conversions` (artifact conversion entries; an optional `service` names a
-declared plugin service as the executor, bare or plugin-qualified).
+declared plugin service as the executor, bare or plugin-qualified),
+`constructions` (the plugin's types' construction modes bound to plugin
+services — the platform resolves ref inputs and payloads as base64
+values and merges the returned fields before creating the record
+generically), and `exports` (attachment exports bound to plugin
+services).
 `requires` lists mounted pack ids the plugin's types resolve against — the
 install and pack-disable gates enforce it platform-side. `parseListing`
 throws on every violation; `normalizeListing` returns the catalog document

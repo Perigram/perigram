@@ -1,0 +1,594 @@
+{
+  "pluginId": "facade",
+  "name": "Facade fabrication",
+  "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
+  "version": "1",
+  "requires": [
+    "tech-drawing",
+    "documents"
+  ],
+  "declarations": {
+    "types": [
+      {
+        "id": "cassette",
+        "class": "file",
+        "scope": "system",
+        "version": 2,
+        "payload": {
+          "mime": "application/perigram+occs",
+          "accept": [
+            ".occs"
+          ],
+          "maxSize": 10485760,
+          "preview": "occs",
+          "creation": [
+            "editor"
+          ]
+        },
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          },
+          "templateType": {
+            "base": "enum",
+            "values": [
+              "PARAMETRIC",
+              "STANDARD"
+            ]
+          },
+          "parameters": {
+            "base": "list",
+            "itemType": {
+              "base": "string"
+            },
+            "nullable": true
+          },
+          "mapping": {
+            "base": "json",
+            "constructible": false
+          },
+          "polygonParts": {
+            "base": "json",
+            "constructible": false
+          },
+          "layerData": {
+            "base": "json",
+            "constructible": false
+          }
+        },
+        "states": {
+          "main": {
+            "initial": "ACTIVE",
+            "states": {
+              "ACTIVE": {},
+              "ARCHIVED": {
+                "terminal": true
+              }
+            }
+          }
+        },
+        "transitions": [
+          {
+            "axis": "main",
+            "from": "ACTIVE",
+            "to": "ARCHIVED",
+            "intent": "archiveCassette"
+          }
+        ],
+        "revisions": "geometry",
+        "render": {
+          "label": "Cassette",
+          "icon": "pi pi-box",
+          "groups": [
+            {
+              "id": "geometry",
+              "fields": [
+                {
+                  "path": "data.polygonParts",
+                  "fallbackPaths": [
+                    "data.layerData"
+                  ],
+                  "label": "common.details",
+                  "role": "previewSource",
+                  "display": "geometry",
+                  "priority": 20
+                }
+              ]
+            }
+          ]
+        },
+        "snapshot": [
+          "data.templateType",
+          "data.parameters",
+          "data.mapping",
+          "data.polygonParts",
+          "data.layerData"
+        ],
+        "operators": {
+          "edit": {
+            "id": "edit",
+            "species": "mutate",
+            "input": {
+              "base": "ref",
+              "accepts": [
+                "cassette"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "cassette-design",
+        "class": "file",
+        "scope": "system",
+        "version": 1,
+        "payload": {
+          "mime": [
+            "application/dxf"
+          ],
+          "accept": [
+            ".dxf",
+            "application/dxf"
+          ],
+          "maxSize": 26214400,
+          "preview": "dxf",
+          "creation": [
+            "upload"
+          ]
+        },
+        "revisions": "geometry",
+        "fields": {
+          "name": {
+            "base": "string"
+          },
+          "template": {
+            "base": "ref",
+            "accepts": [
+              "cassette"
+            ],
+            "slot": "data"
+          },
+          "source": {
+            "base": "ref",
+            "accepts": [
+              "dxf-source"
+            ],
+            "slot": "data"
+          },
+          "parameters": {
+            "base": "json"
+          },
+          "geometry": {
+            "base": "json",
+            "constructible": false
+          }
+        },
+        "states": {
+          "main": {
+            "initial": "ACTIVE",
+            "states": {
+              "ACTIVE": {},
+              "ARCHIVED": {
+                "terminal": true
+              }
+            }
+          }
+        },
+        "transitions": [
+          {
+            "axis": "main",
+            "from": "ACTIVE",
+            "to": "ARCHIVED",
+            "intent": "archiveCassetteDesign"
+          }
+        ],
+        "name": "Cassette design",
+        "glyph": "pi pi-clone",
+        "snapshot": [
+          "data.template",
+          "data.parameters"
+        ],
+        "operators": {
+          "bake": {
+            "id": "bake",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "template": {
+                  "base": "ref",
+                  "accepts": [
+                    "cassette"
+                  ]
+                },
+                "parameters": {
+                  "base": "json",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "convertDxf": {
+            "id": "convertDxf",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "source": {
+                  "base": "ref",
+                  "accepts": [
+                    "dxf-source"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "projections": [
+          {
+            "id": "nesting-polygons",
+            "label": "Nesting polygons",
+            "group": "facade",
+            "output": {
+              "base": "list",
+              "itemType": {
+                "base": "record",
+                "fields": {
+                  "coordinates": {
+                    "base": "list",
+                    "itemType": {
+                      "base": "record",
+                      "fields": {
+                        "x": {
+                          "base": "quantity",
+                          "unit": "mm"
+                        },
+                        "y": {
+                          "base": "quantity",
+                          "unit": "mm"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "resolve": {
+              "field": "data.geometry.nestingPolygons"
+            }
+          }
+        ]
+      },
+      {
+        "id": "sheet-design",
+        "class": "file",
+        "scope": "system",
+        "version": 1,
+        "derived": true,
+        "fields": {
+          "title": {
+            "base": "string",
+            "identifier": true,
+            "nullable": true,
+            "label": "Title"
+          },
+          "geometry": {
+            "base": "json"
+          },
+          "parts": {
+            "base": "list",
+            "itemType": {
+              "base": "ref",
+              "accepts": [
+                "cassette"
+              ]
+            },
+            "nullable": true
+          }
+        },
+        "revisions": "geometry",
+        "render": {
+          "label": "Sheet design",
+          "icon": "pi pi-th-large",
+          "groups": [
+            {
+              "id": "specs",
+              "fields": [
+                {
+                  "path": "specs",
+                  "label": "catalog.dimensions",
+                  "display": "dimensions",
+                  "unit": "mm",
+                  "priority": 5
+                },
+                {
+                  "path": "specs.area",
+                  "label": "common.area",
+                  "display": "area",
+                  "unit": "m2",
+                  "priority": 8
+                },
+                {
+                  "path": "specs.sheetThickness",
+                  "label": "catalog.sheetThickness",
+                  "display": "dimension",
+                  "unit": "mm",
+                  "priority": 9
+                },
+                {
+                  "path": "specs.foilThickness",
+                  "label": "catalog.foilThickness",
+                  "display": "dimension",
+                  "unit": "mm",
+                  "priority": 9
+                },
+                {
+                  "path": "summary.efficiency",
+                  "label": "sheetDesign.utilization",
+                  "display": "percent",
+                  "unit": "percent",
+                  "priority": 10
+                },
+                {
+                  "path": "summary.placedCount",
+                  "label": "sheetDesign.parts",
+                  "display": "count",
+                  "priority": 20
+                },
+                {
+                  "path": "specs.cuttingLength",
+                  "label": "sheetDesign.cuttingLength",
+                  "display": "dimension",
+                  "unit": "m",
+                  "priority": 30
+                },
+                {
+                  "path": "specs.estimatedTime",
+                  "label": "sheetDesign.estimatedTime",
+                  "display": "duration",
+                  "unit": "min",
+                  "priority": 40
+                }
+              ]
+            },
+            {
+              "id": "geometry",
+              "fields": [
+                {
+                  "path": "data.geometry.preview",
+                  "label": "common.details",
+                  "role": "previewSource",
+                  "display": "geometry",
+                  "priority": 10
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "services": [
+      {
+        "id": "nesting-solve",
+        "label": "Nesting solver",
+        "mode": "endpoint",
+        "group": "facade",
+        "render": {
+          "label": "Nesting solver",
+          "icon": "pi pi-compass"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "items": {
+                "base": "list",
+                "itemType": {
+                  "base": "record",
+                  "fields": {
+                    "cassetteId": {
+                      "base": "id",
+                      "nullable": true
+                    },
+                    "polygonParts": {
+                      "base": "list",
+                      "itemType": {
+                        "base": "record",
+                        "fields": {
+                          "coordinates": {
+                            "base": "list",
+                            "itemType": {
+                              "base": "record",
+                              "fields": {
+                                "x": {
+                                  "base": "quantity",
+                                  "unit": "mm"
+                                },
+                                "y": {
+                                  "base": "quantity",
+                                  "unit": "mm"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "base": "quantity",
+                      "unit": "count"
+                    }
+                  }
+                }
+              },
+              "sheetWidth": {
+                "base": "quantity",
+                "unit": "mm"
+              },
+              "sheetHeight": {
+                "base": "quantity",
+                "unit": "mm"
+              },
+              "space": {
+                "base": "quantity",
+                "unit": "mm",
+                "nullable": true
+              },
+              "sheetCount": {
+                "base": "quantity",
+                "unit": "count",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "extract-geometry",
+        "label": "Extract cassette-design geometry",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "bake",
+        "label": "Bake cassette design",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "import-cassette",
+        "label": "Import cassette from DXF",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "generate-sheet-dxf",
+        "label": "Generate sheet-design DXF",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      }
+    ],
+    "editors": [
+      {
+        "type": "cassette",
+        "surface": "cassette-designer",
+        "modes": [
+          "create",
+          "edit"
+        ]
+      },
+      {
+        "type": "sheet-design",
+        "surface": "sheet-design-editor",
+        "modes": [
+          "edit"
+        ]
+      }
+    ],
+    "attachmentKinds": {
+      "OCCS_SOURCE": {
+        "kind": "OCCS_SOURCE",
+        "bucket": "cassettes",
+        "mimeType": "application/perigram+occs",
+        "preview": {
+          "mode": "download"
+        },
+        "creation": {
+          "mode": "upload",
+          "accept": ".occs,application/perigram+occs"
+        },
+        "editor": {
+          "mode": "cassette-designer"
+        },
+        "file": {
+          "extensions": [
+            ".occs"
+          ],
+          "mimeTypes": [
+            "application/perigram+occs"
+          ],
+          "maxBytes": 10485760
+        }
+      }
+    },
+    "conversions": [
+      {
+        "id": "layoutDxfToDxfSource",
+        "label": "Create DXF source",
+        "sourceKinds": [
+          "LAYOUT_DXF"
+        ],
+        "target": {
+          "kind": "artifact",
+          "artifactKind": "DXF_SOURCE"
+        }
+      },
+      {
+        "id": "dxfSourceToCassette",
+        "label": "Import cassette",
+        "sourceKinds": [
+          "DXF_SOURCE"
+        ],
+        "target": {
+          "kind": "entity",
+          "typeId": "cassette"
+        },
+        "service": "plugin.facade.import-cassette"
+      }
+    ],
+    "constructions": {
+      "cassette-design": {
+        "upload": "plugin.facade.extract-geometry",
+        "bake": "plugin.facade.bake",
+        "convertDxf": "plugin.facade.extract-geometry"
+      }
+    },
+    "exports": [
+      {
+        "typeId": "sheet-design",
+        "kind": "LAYOUT_DXF",
+        "service": "plugin.facade.generate-sheet-dxf"
+      }
+    ]
+  }
+}

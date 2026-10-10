@@ -5,26 +5,29 @@ import { techDrawingPack } from '~/packages/tech-drawing/src/index.js';
 // Pack composition (SPEC §21 requirements): dependency order, uniqueness,
 // loud failures.
 describe('pack composition', () => {
-  it('composes every mounted pack after its requirements', () => {
+  it('composes the mounted packs in mount order', () => {
     const declarations = composeSystemDeclarations();
     const ids = declarations.map(type => type.id);
     expect(ids).toContain('pen-template');
     expect(ids).toContain('layer-standard');
-    expect(ids).toContain('cassette');
-    // tech-drawing declarations precede the requiring cnc pack's
-    expect(ids.indexOf('pen-template')).toBeLessThan(ids.indexOf('cassette'));
+    expect(ids).toContain('dxf-source');
   });
 
   it('fails loudly on a missing requirement', () => {
-    // Remove the tech-drawing pack itself (by id, not position — the
-    // mounted order changes as packs are added): the requiring cnc pack
-    // is now unsatisfied.
+    // No mounted pack currently declares requirements (the facade, the
+    // only one, became a plugin) — synthesize the graph to hold the law.
+    mountedPackDeclarations.push({
+      id: 'requiring',
+      requires: ['tech-drawing'],
+      types: [{ id: 'requiring-type', class: 'item', fields: {} }]
+    });
     const index = mountedPackDeclarations.findIndex(pack => pack.id === 'tech-drawing');
     const removed = mountedPackDeclarations.splice(index, 1);
     try {
       expect(() => composeSystemDeclarations()).toThrow(/requires unmounted pack tech-drawing/);
     } finally {
       mountedPackDeclarations.splice(index, 0, ...removed);
+      mountedPackDeclarations.pop();
     }
   });
 

@@ -1,6 +1,7 @@
 # CONTAINER: Workers
 
-The worker tier is the nesting solver only. The polling task workers
+The worker tier is the nesting solver and the facade plugin's executor.
+The polling task workers
 (file-processing, cassette-processing, geometry-capture) were deleted with
 the queue-era task chains: no code path enqueued their tasks
 (`dxf.parseUpload`, `cassette.bakeTemplate`, `vision.extractGeometry`), so
@@ -12,11 +13,11 @@ registered beside a live enqueue site.
 
 | Worker | Protocol | Entry point | Responsibility |
 |---|---|---|---|
-| nesting | HTTP solver | `workers/nesting/worker_service.py` | Pure FastAPI 2D nesting solver called synchronously by the `solveNestingValue` command through `NESTING_WORKER_URL`. |
+| nesting | HTTP solver | `workers/nesting/worker_service.py` | Pure FastAPI 2D nesting solver called by the facade executor through `NESTING_WORKER_URL`. |
+| facade | Endpoint-mode plugin executor | `workers/facade/index.js` | The facade plugin's compute (DXF extraction, OCCS bake, nesting solve mapping, cassette import, sheet DXF) — see [workers/facade](./facade/README.md). |
 
-The nesting service is not a task executor: the app-side
-`nesting.solve` V→V command (`server/packs/facade/nesting/solve-value.js`,
-mounted by the facade pack) validates inputs, calls the solver over HTTP,
+The nesting service is not a task executor: the facade executor's
+`nesting-solve` service validates inputs, calls the solver over HTTP,
 and maps results — there is no `task_runs` round trip.
 
 ## Docker

@@ -170,6 +170,7 @@ import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { recomputeSheetLayout } from '~/utils/sheetLayout.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { useSnapshotHistory } from '~/composables/useSnapshotHistory.js';
 import CassetteEditorDialog from '~/components/CassetteEditorDialog.vue';
@@ -661,9 +662,15 @@ function addUploadedCassette(payload = {}) {
 async function save() {
   saving.value = true;
   try {
-    const saved = await $fetch(`/api/sheet-designs/${encodeURIComponent(props.design._id)}`, {
-      method: 'PUT',
-      body: { items: items.value, placedItems: placedItems.value }
+    const instances = useInstancesStore();
+    const { data, summary } = recomputeSheetLayout(props.design, {
+      items: items.value,
+      placedItems: placedItems.value
+    });
+    const saved = await instances.mutateDirect(instances.canonicalTypeKey('sheet-design'), 'PATCH', {
+      id: String(props.design._id),
+      body: { data, summary },
+      meta: { change: 'updated', reason: 'layout-update' }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('sheetDesign.layoutSaved'), life: 2500 });
     emit('saved', saved);

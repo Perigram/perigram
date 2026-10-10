@@ -632,7 +632,7 @@ identity or action cluster; reserve `StandardDialog` for creation flows,
 destructive confirmation, or forms with multiple fields.
 ## Design System Manifest
 
-`@perigram/facade` defines the CNC design-system contract for entity demos:
+The facade plugin's listing (workers/facade/listing.json) carries the CNC design-system contract for entity demos:
 entity key, component prop name, variants, status policy, trace policy, factory
 name, field groups, surface contracts, and docs links.
 `utils/design-system-contract.js` is a compatibility export with validation, and
@@ -1211,7 +1211,7 @@ detail rail rides `GeneratedInstanceDetail` — the canonical detail chrome —
 in its abstract branch, through `InstancePage`'s sidebar slot; the bounded
 branch mounts no rail and its host (`GeneratedInstanceFile`) supplies the popup
 entry from the pane action strip.
-- For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock type-id="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `type-id` must match an entry in `@perigram/facade` field access policy; otherwise the row is hidden.
+- For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock type-id="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `type-id` must match a declared type in the registry view; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data
   is a canonical DTO. Do not pass raw entities that only expose

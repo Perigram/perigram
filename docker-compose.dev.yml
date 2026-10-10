@@ -101,6 +101,25 @@ services:
       - perigram-network
     restart: unless-stopped
 
+  # The facade plugin's executor (endpoint mode): the app calls it per
+  # configured service endpoint — http://facade-executor:8790/<serviceId>.
+  # Runs from the repo mount with the shared node_modules volume.
+  facade-executor:
+    image: node:24-alpine
+    working_dir: /src
+    volumes:
+      - .:/src
+      - /src/node_modules
+    environment:
+      - FACADE_EXECUTOR_PORT=8790
+      - NESTING_WORKER_URL=http://nesting-worker:8000/nest
+    depends_on:
+      - nesting-worker
+    networks:
+      - perigram-network
+    command: node workers/facade/index.js
+    restart: unless-stopped
+
 networks:
   perigram-network:
     external: true

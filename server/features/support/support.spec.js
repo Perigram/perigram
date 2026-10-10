@@ -81,6 +81,7 @@ vi.mock('h3', () => ({
 }));
 
 import * as supportService from './service.js';
+import { facadePackContent } from '../../../test-tools/facade-plugin.js';
 
 const auth = {
   userId: 'user-a',
@@ -94,8 +95,11 @@ describe('support communication service', () => {
     mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => input);
     mocks.appRegistry.getInstanceService.mockImplementation(() => ({ processGetById: vi.fn(async () => null) }));
     // Real declaration resolution by default (pack snapshot facets and
-    // trait shapes); materialization tests override per type.
+    // trait shapes); materialization tests override per type. Facade
+    // plugin types resolve from the listing — the installed layer.
     mocks.instancesService.declarationForType.mockImplementation(async (typeId, organizationId) => {
+      const facadeType = facadePackContent.types.find(type => type.id === typeId);
+      if (facadeType) return facadeType;
       const actual = await vi.importActual('~/server/features/instances/service.js');
       return actual.declarationForType(typeId, organizationId);
     });

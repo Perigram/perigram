@@ -1,7 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import { E2E_PREFIX } from './config.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts/src/index.js';
-import { facadeDomain, facadePackContent } from '#packages/facade/src/index.js';
+import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 import { documentsPack } from '#packages/documents/src/index.js';
 import { techDrawingPack } from '#packages/tech-drawing/src/index.js';
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';

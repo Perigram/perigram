@@ -84,14 +84,48 @@ describe('parseListing', () => {
       requires: ['documents']
     });
     expect(Object.keys(normalized.declarations)).toEqual([
-      'types', 'services', 'editors', 'attachmentKinds', 'conversions'
+      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'exports'
     ]);
   });
 
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
-    expect(Object.keys(declarations)).toEqual(['types', 'services', 'editors', 'attachmentKinds', 'conversions']);
+    expect(Object.keys(declarations)).toEqual([
+      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'exports'
+    ]);
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
+  });
+
+  it('validates construction and export service bindings', () => {
+    const withBindings = listing => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        ...listing
+      }
+    });
+    expect(() => withBindings({ constructions: { 'coating-sheet': { edit: 'plugin.coatings.match' } } }))
+      .toThrow(/does not declare/);
+    expect(() => withBindings({ constructions: { 'coating-sheet': { upload: 'plugin.other.match' } } }))
+      .toThrow(/names plugin other/);
+    expect(() => withBindings({ constructions: { ghost: { upload: 'plugin.coatings.match' } } }))
+      .toThrow(/must reference a type this plugin declares/);
+    expect(() => withBindings({ exports: [{ typeId: 'coating-sheet', kind: 'PDF_PASSPORT', service: 'plugin.coatings.nope' }] }))
+      .toThrow(/does not declare/);
+    expect(() => withBindings({ exports: [{ typeId: 'ghost', kind: 'PDF_PASSPORT', service: 'plugin.coatings.match' }] }))
+      .toThrow(/must reference a type this plugin declares/);
+    const bound = parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        constructions: { 'coating-sheet': { upload: 'plugin.coatings.match' } },
+        exports: [{ typeId: 'coating-sheet', kind: 'COATING_DOC', service: 'plugin.coatings.match' }]
+      }
+    });
+    expect(bound).toMatchObject({
+      constructions: { 'coating-sheet': { upload: 'plugin.coatings.match' } },
+      exports: [{ typeId: 'coating-sheet', kind: 'COATING_DOC', service: 'plugin.coatings.match' }]
+    });
   });
 });
 

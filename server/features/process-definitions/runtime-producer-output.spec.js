@@ -1,14 +1,28 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../plugins/repository.js', () => ({
-  listDisabledPacks: vi.fn(async () => []),
-  enablePack: vi.fn(),
-  disablePack: vi.fn(),
-  listInstallsByOrganization: vi.fn(async () => []),
-  listDeclarationsByOrganization: vi.fn(async () => []),
-  findDeclarationByTypeId: vi.fn(async () => null),
-  findInstallByConnectorToken: vi.fn(async () => null)
-}));
+vi.mock('../plugins/repository.js', async () => {
+  const { facadePackContent } = await import('../../../test-tools/facade-plugin.js');
+  return {
+    listDisabledPacks: vi.fn(async () => []),
+    enablePack: vi.fn(),
+    disablePack: vi.fn(),
+    listInstallsByOrganization: vi.fn(async () => []),
+    listDeclarationsByOrganization: vi.fn(async () => facadePackContent.types),
+    findDeclarationByTypeId: vi.fn(async (organizationId, typeId) => (
+      facadePackContent.types.find(type => type.id === String(typeId)) || null
+    )),
+    findInstallByConnectorToken: vi.fn(async () => null)
+  };
+});
+vi.mock('../cts-types/service.js', async () => {
+  const cts = await import('~/packages/cts/src/index.js');
+  const { facadePackContent } = await import('../../../test-tools/facade-plugin.js');
+  const registry = cts.createTypeRegistry({ id: 'spec-cts' });
+  for (const declaration of [...cts.frameworkTypes, ...facadePackContent.types]) {
+    registry.defineType(declaration);
+  }
+  return { compileRegistryForOrganization: async () => registry };
+});
 import { compileActiveProcessRuntime, resolveCompiledProducerOutputWorkflow } from './runtime.js';
 
 const compiled = {
@@ -34,7 +48,7 @@ describe('process workflow resolution', () => {
         }
       },
       graph: { nodes: [{ id, type: 'processNode', data: { refId: id } }], edges: [] }
-    });
+    }, {}, 'org-1');
 
     expect(result.actions[id].producerOutputId).toBe(`${id}:result`);
     expect(result.producerOutputs[`${id}:result`]).toMatchObject({

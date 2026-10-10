@@ -5,7 +5,7 @@ map). The declaration layer is the live source of the process designer and
 the process compiler's domain input; the runtime instance services
 (§13 per-class collections) remain the open strangler frontier. This spec is
 the collapse point of the constructs spread across `packages/core`
-(canonical blocks), `packages/facade` (entities, workflows, kinds, field
+(canonical blocks), the facade plugin listing (entities, workflows, kinds, field
 schemas), and `packages/processes` (compiler checks): same semantics, one
 declaration language, every hand-mirrored list derived.
 
@@ -524,7 +524,7 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 | expressions (guards, predicates, transforms) | — | CEL semantics; a standard CEL engine if it holds up in browser and server, else a small evaluator with exactly §18's rules |
 | compiler (R1-R7, diff, migrations) | — | `packages/processes` |
 | operator runtime | — | today's command/task machinery, signatures added |
-| CNC vocabulary | seeded type pack + projections/services | `packages/facade` reduced to content |
+| CNC vocabulary | seeded type pack + projections/services | the facade plugin's listing is the content |
 
 Collections are per class with `type` discriminator (+ `typeVersion`); typed
 fields with query hints project to compound indexes on `(type, field)`.

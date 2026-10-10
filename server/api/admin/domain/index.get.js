@@ -59,6 +59,11 @@ export default defineEventHandler(async (event) => {
     workflows: domain?.workflows || {},
     hooks: Object.fromEntries(registry.listHookDefinitions().map(hook => [hook.id, hook])),
     attachmentKinds: domain?.attachmentKinds || {},
-    processCapabilities: projectEntityProcessCapabilities(domain, bindings)
+    processCapabilities: projectEntityProcessCapabilities(domain, bindings),
+    // The one service list (mounted packs + installed plugins) and the
+    // command definitions — the designer consumes these instead of
+    // importing pack modules.
+    services: await packServicesForOrganization(organizationId),
+    commands: registry.listCommandDefinitions()
   };
 });

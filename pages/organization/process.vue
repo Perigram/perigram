@@ -687,8 +687,6 @@ import {
   PROCESS_DATAFLOW_VERSION
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
-import { facadeDomain, facadePackContent } from '@perigram/facade';
-import { composePackServices } from '~/server/packs/declarations.js';
 import { checkDeclarationsAgainstCts, classMayDeclareChildren, compileClientBundle, operationKindOf, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
@@ -790,15 +788,14 @@ const {
   refreshTreeOverlay,
   loadOrgTypes,
   loadProcessCapabilities,
-  persistTreeDeclarations
+  persistTreeDeclarations,
+  servedCommands
 } = useProcessDesignerTypes({
   nodes,
   edges,
   t,
   toast,
   activeOrganizationId,
-  baseDomain: facadeDomain,
-  packContent: facadePackContent,
   records: () => draft.value?.data?.processNodes || {},
   syncNow: () => syncNodeData()
 });
@@ -1615,7 +1612,7 @@ const declarationStateOptions = computed(() => {
     .map(record => ({ label: record.label || record.value, value: record.value }));
 });
 function commandForId(commandId) {
-  return facadeDomain.commands?.[commandId] || null;
+  return servedCommands.value.find(command => command?.id === commandId) || null;
 }
 
 const selectedCommandService = computed(() => {
@@ -2420,9 +2417,7 @@ function recomputeProcessPreview(shouldApply = () => true) {
     // compile silently ignores cts.* species records, so the preview would
     // show an empty contract (no actions, no grants, no inferred screens)
     // for graphs the server compiles fine.
-    const projectedDomain = projectDomainFromView(ctsRegistry(), activeOrganizationId(), facadeDomain, {
-      packServices: composePackServices()
-    });
+    const projectedDomain = ctsProjectedDomain();
     const { definition: lowered, errors: acceptErrors } = prepareAuthoredDefinition(processDefinitionSnapshot(), projectedDomain);
     if (acceptErrors.length) {
       compiledPreview.value = null;

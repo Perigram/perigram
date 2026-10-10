@@ -11,7 +11,7 @@ import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.j
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
-import { facadeDomain, facadePackContent } from '@perigram/facade';
+import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 
 const registry = createTypeRegistry({ id: 'node-sync-spec' });
 for (const declaration of [...frameworkTypes, ...cncTypePack]) registry.defineType(declaration);

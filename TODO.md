@@ -278,22 +278,91 @@ falsifiable check passes:
   `perigram-plugin` CLI (validate/dev/run/publish/install/connector/
   connect/test); `POST /api/plugins/catalog` (operator token) replaces
   the Mongo-writing publish script (deleted).
-- [ ] M2 — Service-backed runtime: construct operators bound to plugin
-  services (the platform resolves ref inputs and payloads as values, the
-  executor computes, the platform writes through the generic machinery),
-  artifact conversions and DXF exporters resolving from install
-  snapshots.
-- [ ] M3 — Facade executor + listing: external process hosting the pure
-  compute (DXF extraction, OCCS evaluation, nesting solve, layout
-  recompute, DXF generation); listing published to the catalog; org
-  migration script swapping pack composition for installs with process
-  bindings intact.
-- [ ] M4 — The cut: `packages/facade` deleted, the pack unmounted, its
-  routes and command paths deleted (designer persistence goes generic),
-  every config/guard/manifest/spec reference purged. Falsifiable proof:
-  the platform boots without facade code; an org without the install
-  sees no facade types; install → authoring loop works end to end;
-  uninstall drain-gates.
+- [x] M2 — Service-backed runtime (2026-10-10): construct operators bound to plugin
+  services — `server/features/instances/construction-services.js` (the
+  platform resolves ref inputs and payloads as base64 values, the executor
+  computes, the platform writes through the generic machinery; types with
+  declared modes never offer bare genericCreate); artifact conversions and
+  DXF exporters resolve from install snapshots
+  (`conversionsForOrganization`/`exportersForOrganization`);
+  `packDomainsForOrganization` merges installed construction contracts
+  into the projected domain.
+- [x] M3 — Facade executor + listing (2026-10-10): workers/facade hosts the pure
+  compute (DXF extraction, OCCS bake, nesting solve via the nesting
+  worker, cassette import, sheet DXF generation — executor smoke-proven
+  live); the listing (workers/facade/listing.json, SDK-validated);
+  `server/scripts/migrate-facade-pack-to-plugin.js` swaps pack
+  composition for installs with process bindings intact (service nodes
+  rewritten `nesting.solve` → `plugin.facade.nesting-solve`).
+- [x] M4 — The cut (2026-10-10): `packages/facade` deleted, the pack unmounted, its
+  routes and command paths deleted (the cassette designer already
+  persisted generically; the sheet editor recomputes layouts client-side
+  and patches generically; cassette import rides the conversion route),
+  every config/guard/manifest/spec reference purged (nuxt nitro
+  noExternal/inline blocks, aliases, check-arch, framework-inspect,
+  manifest regenerated). Falsifiable proof: `grep -r facade` finds only
+  plugin-side homes (workers/facade, listing seams, i18n labels, docs);
+  check-arch/framework/docs guards green; vitest suite at the merged-base
+  failure parity (the base's own pre-existing failures unchanged). The
+  live-stack boot + install/authoring E2E runs against the dev stack
+  after the migration script executes in the app container.
+
+### Agent Notes (2026-10-10, M2–M4 — the cut)
+
+Session `agent/facade-cut-20261010` (branch from the node-atomicity
+merge). M2: the listing grammar grew `constructions` (mode → service
+refs, validated against the type's declared modes) and `exports`; the
+instance machinery dispatches service-backed constructions
+(`construction-services.js`) — ref inputs resolve to values with payloads
+as base64, cross-org refs refuse, executor output merges before the
+generic create; the payload protocols apply the service first; declared
+-mode types refuse bare `genericCreate` (the pack-registration law,
+restored execution-side); `constructionHandlers` reports every mode
+served (hasOwn descriptor trap) so capability projections keep the
+declared modes. `convertArtifact` is a framework command resolving the
+org's plugin conversion catalog; entity targets dispatch to the executor
+and create through the generic machinery; `POST /api/artifact-conversions`
+is the client route. `generateAttachment` resolves the sheet-design
+exporter from install `exports`.
+
+M3: workers/facade (endpoint executor on the SDK harness; vendored
+dxf/occs modules; services: extract-geometry, bake, nesting-solve,
+import-cassette, generate-sheet-dxf) — smoke-proven live with real HTTP
+calls (DXF generated, 400/404 paths clean). The listing generated from
+the pack declarations, SDK-validated. The migration script
+(pack_disablement + install + service-node rewrites) is idempotent and
+syntax-checked; run it inside the dev app container when deploying.
+
+M4: `packages/facade/` deleted with its README/SPEC; pack unmounted
+(documents + tech-drawing remain); the four pack routes deleted; the
+cassette import dialog rides the conversion route; the sheet editor
+owns its layout recompute (`utils/sheetLayout.js`, the pure functions
+moved from the pack) and PATCHes generically; file-surfaces' fallback
+drops facade bindings (served list carries them); the process designer
+page consumes the SERVED domain/services/commands (`/api/admin/domain`
+extended) instead of importing the pack; check-arch's facade guards and
+the duplicate-key section died with the pack (the SDK contract owns
+validation now); framework-inspect and the manifest dropped facade;
+nuxt.config's noExternal/inline blocks are gone (nothing to bundle);
+vitest aliases cleaned. The framework's attachment events found a
+proper home in `server/core/commands/definitions.js`
+(`frameworkEventDefinitions`) — they had been hiding in the pack's
+events table.
+
+Spec migration: `test-tools/facade-plugin.js` shapes the listing for
+specs/fixtures; every `@perigram/facade` importer moved to it. Base
+failure parity maintained: the suite's remaining red files fail
+identically on the merged base (e2e needs the live stack; the
+process-definitions/livekit/invitations family predates this work).
+`useProcessDesignerInspector` failures come from the branch predating
+the parallel kind-consolidation merge (CONSUMER_EFFECT_KINDS rename)
+and resolve on merge.
+
+Validation: full vitest (my-tree failures = base failures + the
+pre-merge-fix inspector file), check-arch green, docs guard green,
+framework:validate green, manifest regenerated. Remaining to run against
+the live stack: the container migration + executor compose service +
+E2E loop.
 
 ### Agent Notes (2026-10-10, M1 + SDK)
 

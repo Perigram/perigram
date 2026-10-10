@@ -4,7 +4,7 @@ Shared frontend utility modules used by Vue pages/components.
 
 ## Design System Contract
 
-- `design-system-contract.js`: Compatibility exports and validation for the CNC design-system contract now owned by `@perigram/facade`. It does not import Vue components.
+- `design-system-contract.js`: Validation for the CNC design-system contract declared by the facade types. It does not import Vue components.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
 - `processDesignerSocketTone.js`: Pure process-port resolver used by every
   designer node form and source edge. It maps structured port type/role data to a

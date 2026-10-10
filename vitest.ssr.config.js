@@ -18,7 +18,6 @@ const perigramAliases = {
   '@perigram/vue': repo('./packages/vue/src/index.js'),
   '@perigram/devtools': repo('./packages/devtools/src/index.js'),
   '@perigram/mcp': repo('./packages/mcp/src/index.js'),
-  '@perigram/facade': repo('./packages/facade/src/index.js'),
   '#shared': repo('./shared'),
   '#packages': repo('./packages'),
   '#utils': repo('./utils'),
