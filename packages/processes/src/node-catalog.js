@@ -181,10 +181,7 @@ function source(kind, label) {
 function data(kind, label) {
   const family = kind.startsWith('collection.') || kind.startsWith('tree.')
     ? 'collections'
-    : kind.startsWith('record.') || kind.startsWith('producer.')
-      ? 'records'
-      : kind.startsWith('predicate.') ? 'predicates'
-        : kind.startsWith('read.') ? 'reads' : 'values';
+    : kind.startsWith('record.') ? 'records' : 'values';
   return definition(kind, label, family, kind.startsWith('read.') ? 'read' : 'data', true, catalogPorts);
 }
 
@@ -481,7 +478,7 @@ function nativeStructurePorts(record = {}, context = {}) {
     };
   }
   // cts.compose: the block substrate, composed of its open entries.
-  const composition = blockComposition({ ...record, kind: 'record.composeBlock' }, context);
+  const composition = blockComposition(record, context);
   const entries = openBlockEntries(record, composition);
   if (composition) {
     const block = processType('block', { block: record.block || record.slot });
@@ -722,15 +719,6 @@ function catalogPorts(record = {}, context = {}) {
   };
   if (['tree.zip', 'tree.cross'].includes(kind)) return binary(configured, configured, configured);
   if (kind === 'tree.unzip') return unary(configured, processType('json'));
-  if (kind === 'record.fieldChange') return {
-    inputs: [socket('value', processTypeFrom(context.fieldSchema?.type || record.fieldSchema?.type, configured), DATA, true)],
-    outputs: [socket('change', patch)]
-  };
-  if (kind === 'record.mergeChanges') return binary(patch, patch);
-  if (kind === 'record.applyChanges') return {
-    inputs: [socket('record', entity, DATA, true), socket('changes', patch, DATA, true)],
-    outputs: [socket('record', entity)]
-  };
   if (kind === 'record.construct') {
     const fields = dynamicFields(record, context);
     return {

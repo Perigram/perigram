@@ -670,6 +670,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
 import { projectUiAction } from '~/packages/processes/src/ui-contract-projection.js';
 import {
+  EFFECT_SPECIES_KINDS,
   applyFieldDisplayRole,
   canvasToDefinition,
   compileProcessDefinition,
@@ -1141,7 +1142,7 @@ const arrangedBands = ref(null);
 
 function isEffectNode(node) {
   const record = draft.value?.data?.processNodes?.[node.data?.refId];
-  return Boolean(record) && String(operationKindOf(record) || '').startsWith('effect.');
+  return Boolean(record) && EFFECT_SPECIES_KINDS.has(String(operationKindOf(record) || ''));
 }
 
 function nodeOperationKind(node) {
@@ -1619,12 +1620,12 @@ function commandForId(commandId) {
 
 const selectedCommandService = computed(() => {
   const node = selectedProcessNode.value;
-  if (!isOpKind(node, 'effect.runCommand') || !node.commandId) return null;
+  if (!isOpKind(node, 'cts.command') || !node.commandId) return null;
   return serviceList.value.find(service => service.commandId === node.commandId) || null;
 });
 function createCommandServiceForSelectedNode() {
   const node = selectedProcessNode.value;
-  if (!isOpKind(node, 'effect.runCommand') || !node.commandId) return;
+  if (!isOpKind(node, 'cts.command') || !node.commandId) return;
   const id = mintId('service');
   const record = createService(id);
   record.commandId = node.commandId;
@@ -1659,7 +1660,7 @@ const ACCESS_LEVEL_ORDER = { read: 0, write: 1, admin: 2 };
 // live-graph binding resolves through.
 const selectedProcessNodeAccessDetail = computed(() => {
   const node = selectedProcessNode.value;
-  if (!node?.kind || !['effect.changeStatus', 'effect.archiveEntity', 'effect.updateEntity'].includes(opKind(node))) return '';
+  if (!node?.kind || !['cts.transition', 'cts.mutate'].includes(opKind(node))) return '';
   const incoming = node.id ? incomingEntityContract(node.id) : {};
   const from = incoming.status || '';
   const to = node.state?.to || '';
@@ -1673,7 +1674,7 @@ const selectedProcessNodeAccessDetail = computed(() => {
 const selectedProcessNodeEffectiveAccess = computed(() => {
   const node = selectedProcessNode.value;
   const typeId = nodeTypeId(node) || node?.targetTypeId || '';
-  if (!isOpKind(node, 'effect.') || !typeId) return [];
+  if (!EFFECT_SPECIES_KINDS.has(opKind(node)) || !typeId) return [];
   const byRole = new Map();
   const record = (roleId, level, inherited) => {
     const current = byRole.get(roleId);

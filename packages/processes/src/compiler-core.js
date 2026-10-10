@@ -598,7 +598,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   const composers = (graph.edges || [])
     .filter(edge => String(edge.target) === String(graphNode.id))
     .map(edge => recordByGraphNode.get(String(edge.source)))
-    .filter(record => ['record.composeBlock', 'record.modifyBlock'].includes(record?.kind));
+    .filter(record => record?.kind === 'cts.compose');
   const schemas = composers
     .flatMap(record => (record.fields || []).map(consumerFieldSchema))
     .filter(Boolean);
@@ -1188,11 +1188,6 @@ function upstreamProducerOutputId(process, node, visited = new Set()) {
     if (String(edge.target) !== String(node.id)) continue;
     const source = recordsByGraphId.get(String(edge.source));
     if (!source) continue;
-    if (source.kind === 'producer.join' && source.selectedProducerOutputId) {
-      const selected = process.producerOutputs?.[source.selectedProducerOutputId];
-      if (selected) return source.selectedProducerOutputId;
-      continue;
-    }
     if (source.producerOutputId && process.producerOutputs?.[source.producerOutputId]) {
       return source.producerOutputId;
     }
@@ -4085,15 +4080,12 @@ function isGenericActionLabel(label, actionKind = '') {
   const normalized = label.trim().toLowerCase();
   // Raw node-kind strings the designer saves as default labels are
   // machinery vocabulary, not captions — every species spelling (v5
-  // cts.* and the retired v4 effect.*) included: a caption that is just
-  // the record's kind derives from the action kind below.
+  // included: a caption that is just the record's kind derives from the
+  // action kind below.
   const generic = new Set([
     'create', 'status', 'service', 'update', 'send', 'action',
     'cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove',
     'cts.read', 'cts.field', 'cts.command', 'cts.service', 'cts.conversion',
-    'effect.createentity', 'effect.runproducer', 'effect.updateentity',
-    'effect.changestatus', 'effect.archiveentity', 'effect.deleteentity',
-    'effect.runcommand', 'effect.sendentity',
     actionKind?.toLowerCase?.()
   ].filter(Boolean));
   return generic.has(normalized);
@@ -4381,73 +4373,6 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
       errors.push(`Process node ${nodeId} uses undeclared field ${fieldPath}`);
     }
   }
-  if (['record.getField', 'record.fieldChange', 'predicate.field'].includes(node.kind)) {
-    if (!node.path) errors.push(`Process node ${nodeId} must select a field`);
-    const openBlock = node.kind === 'record.getField' ? domain.blockComposition?.[node.block] : null;
-    const schema = node.kind === 'record.getField'
-      ? structuralFieldSchema(domain, node.path)
-      : entityFieldSchema(domain, node.typeId, node.path);
-    if (node.path && !schema && !openBlock) errors.push(`Process node ${nodeId} uses undeclared field ${node.path}`);
-    if (openBlock && node.path && !String(node.path).startsWith(`${node.block}.`)) {
-      errors.push(`Process node ${nodeId} field ${node.path} does not belong to block ${node.block}`);
-    }
-    if (openBlock?.mode === 'ancestors') {
-      if (node.type?.base !== 'entityRef' || !entities.has(node.type.typeId)) {
-        errors.push(`Process node ${nodeId} must select a lineage entity type`);
-      }
-    }
-    if (openBlock?.mode === 'relations') {
-      const typeId = node.type?.base === 'array' ? node.type.itemType?.typeId : node.type?.typeId;
-      const validType = node.type?.base === 'entityRef'
-        || (node.type?.base === 'array' && node.type.itemType?.base === 'entityRef');
-      if (!validType || !entities.has(typeId)) errors.push(`Process node ${nodeId} must select a relation entity type`);
-    }
-    if (schema && node.kind === 'record.fieldChange' && schema.writable === false) {
-      errors.push(`Process node ${nodeId} cannot modify read-only field ${node.typeId}.${node.path}`);
-    }
-  }
-  if (['record.composeBlock', 'record.modifyBlock'].includes(node.kind)) {
-    if (!node.block) errors.push(`Process node ${nodeId} must select a block`);
-    if (['origin', 'status', 'provenance', 'summary'].includes(node.block)) {
-      errors.push(`Process node ${nodeId} cannot author managed block ${node.block}`);
-    }
-    const composition = domain.blockComposition?.[node.block];
-    if (composition && node.compositionMode !== composition.mode) {
-      errors.push(`Process node ${nodeId} has the wrong composition mode for ${node.block}`);
-    }
-    if (composition) validateOpenBlockEntries(nodeId, node, composition, entities, domain, errors);
-    else if (!node.fields?.length) errors.push(`Process node ${nodeId} must select at least one block field`);
-    for (const path of composition ? [] : (node.fields || [])) {
-      const schema = structuralFieldSchema(domain, path);
-      if (!schema) errors.push(`Process node ${nodeId} uses undeclared block field ${path}`);
-      if (schema && schema.block !== node.block) {
-        errors.push(`Process node ${nodeId} field ${path} does not belong to block ${node.block}`);
-      }
-      const requiredAccess = node.kind === 'record.composeBlock' ? 'constructible' : 'writable';
-      if (schema && schema[requiredAccess] === false) {
-        errors.push(`Process node ${nodeId} cannot ${node.kind === 'record.composeBlock' ? 'compose' : 'modify'} managed field ${path}`);
-      }
-    }
-  }
-  if (node.kind === 'record.getField') {
-    const schema = structuralFieldSchema(domain, node.path);
-    if (schema && schema.block !== node.block) {
-      errors.push(`Process node ${nodeId} field ${node.path} does not belong to block ${node.block}`);
-    }
-  }
-  if (node.kind === 'record.deconstruct' && !node.blocks?.length) {
-    errors.push(`Process node ${nodeId} must expose at least one declared block`);
-  }
-  if (['record.getBlock', 'record.deconstruct'].includes(node.kind)
-    && node.typeId && entities.has(node.typeId)) {
-    const declaredBlocks = entityBlocks(domain, node.typeId);
-    const selectedBlocks = node.kind === 'record.getBlock' ? [node.block].filter(Boolean) : (node.blocks || []);
-    for (const block of selectedBlocks) {
-      if (!declaredBlocks.includes(block)) {
-        errors.push(`Process node ${nodeId} uses block ${block} outside ${node.typeId}`);
-      }
-    }
-  }
   if (['cts.construct', 'cts.mutate'].includes(classification)) {
     // A species mutate carries no blocks envelope: its leaves are wired or
     // defaulted field sockets, and required-input availability owns the
@@ -4609,7 +4534,7 @@ function validateDataflowEdges(process, domain) {
       });
     }
     if (compatibility.ok
-      && ['record.composeBlock', 'record.modifyBlock'].includes(sourceRecord.kind)
+      && sourceRecord.kind === 'cts.compose'
       && ['cts.construct', 'cts.mutate'].includes(targetRecord.kind)) {
       const requiredAccess = targetRecord.kind === 'cts.construct' ? 'constructible' : 'writable';
       const targetBlocks = new Set(entityBlocks(domain, targetRecord.typeId));
@@ -4698,27 +4623,7 @@ function validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget
     const record = recordsById.get(targetId);
     if (!record) continue;
     const nodeId = graphIdFor.get(targetId) || targetId;
-    if (record.kind === 'producer.join') {
-      const sockets = new Map(entries.map(entry => [entry.socketId, entry]));
-      for (const input of ['primary', 'secondary']) {
-        if (!sockets.has(input)) {
-          push(`Join ${record.id || targetId} requires a connected ${input} entity stream`, { nodeId, socketId: input });
-        }
-      }
-      const candidateIds = [...new Set(entries.map(entry => entry.producerOutputId))];
-      if (!record.selectedProducerOutputId) {
-        if (candidateIds.length) {
-          push(`Join ${record.id || targetId} must select the resulting producer output from ${candidateIds.join(', ')}`, { nodeId });
-        }
-      } else if (!candidateIds.includes(record.selectedProducerOutputId)) {
-        push(
-          `Join ${record.id || targetId} selects producer output ${record.selectedProducerOutputId}, `
-          + `which is not among its connected sources ${candidateIds.join(', ')}`,
-          { nodeId, producerOutputId: record.selectedProducerOutputId }
-        );
-      }
-      continue;
-    }
+
     const byType = new Map();
     for (const entry of entries) {
       let producers = byType.get(entry.typeId);

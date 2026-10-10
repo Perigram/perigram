@@ -142,11 +142,11 @@
         </section>
       </div>
     </div>
-    <div v-if="record.kind === 'cts.command' || op === 'effect.runCommand'" class="flex flex-col gap-1">
+    <div v-if="record.kind === 'cts.command' || record.kind === 'cts.service'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.service') }}</label>
       <Select v-model="record.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
-    <Panel v-if="(record.kind === 'cts.command' || op === 'effect.runCommand') && record.commandId" :header="$t('processDesigner.commandService')" toggleable collapsed>
+    <Panel v-if="(record.kind === 'cts.command' || record.kind === 'cts.service') && record.commandId" :header="$t('processDesigner.commandService')" toggleable collapsed>
       <div class="flex flex-col gap-3">
         <Message v-if="!commandService" severity="secondary">{{ $t('processDesigner.commandServiceNone') }}</Message>
         <div v-if="commandService" class="flex flex-col gap-3">
@@ -193,7 +193,7 @@
         />
       </div>
     </Panel>
-    <div v-if="op === 'effect.createEntity' && typeId && constructionModes.length" class="flex flex-col gap-1">
+    <div v-if="record.kind === 'cts.construct' && typeId && constructionModes.length" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.constructionMode') }}</label>
       <Select
         :model-value="record.construction?.mode ?? ''"
@@ -203,7 +203,7 @@
         @update:model-value="mode => $emit('update-construction-mode', mode)"
       />
     </div>
-    <div v-if="op === 'effect.createEntity' && typeId === 'artifact'" class="flex flex-col gap-1">
+    <div v-if="record.kind === 'cts.construct' && typeId === 'artifact'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.allowedArtifactCreation') }}</label>
       <MultiSelect
         :model-value="artifactKinds"
@@ -220,7 +220,7 @@
       <label>{{ $t('processDesigner.event') }}</label>
       <Select v-model="record.eventId" :options="designer.eventOptions" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
-    <div v-if="op === 'effect.generateAttachment'" class="flex flex-col gap-1">
+    <div v-if="record.kind === 'cts.conversion'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.attachmentKind') }}</label>
       <Select v-model="record.attachmentKind" :options="designer.attachmentKindOptions" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
@@ -274,6 +274,7 @@
 // mutation is an event back to the page's single update/sync entry point.
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
+import { EFFECT_SPECIES_KINDS } from '~/packages/processes/src/index.js';
 import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
@@ -329,7 +330,7 @@ const emit = defineEmits([
 
 const { t } = useI18n();
 const op = computed(() => operationKindOf(props.record || {}));
-const isEffect = computed(() => op.value.startsWith('effect.'));
+const isEffect = computed(() => EFFECT_SPECIES_KINDS.has(op.value));
 const typeId = computed(() => typeIdOf(props.record || {}));
 
 // Record-value authoring surfaces: the record elimination form's key and

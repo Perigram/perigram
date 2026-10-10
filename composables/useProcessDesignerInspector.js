@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import { operationKindOf } from '~/packages/cts/src/index.js';
-import { CONSUMER_EFFECT_KINDS } from '~/packages/processes/src/node-catalog.js';
+import { CONSUMER_SPECIES_KINDS } from '~/packages/processes/src/node-catalog.js';
 
 const RECORD_KEYS = Object.freeze({
   processNode: 'processNodes',
@@ -40,7 +40,7 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
     const record = ensureRecord(recordKeyForType('processNode'), node, factoryForType('processNode'));
     // Consumer effects never anchor the created-entity panel — a stale
     // producerOutputId on a loaded pre-protocol draft must not resurrect it.
-    if (CONSUMER_EFFECT_KINDS.includes(operationKindOf(record || {}))
+    if (CONSUMER_SPECIES_KINDS.includes(operationKindOf(record || {}))
       || ['cts.read', 'cts.field', 'cts.compose', 'cts.decompose', 'cts.join'].includes(record?.kind)) return {};
     const producerOutputs = draft.value?.data?.producerOutputs || {};
     const byId = record?.producerOutputId && producerOutputs[record.producerOutputId]

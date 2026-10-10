@@ -661,7 +661,7 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
     // Trigger mode derives from the graph, never authored: an effect
     // runs automatically iff its event input is wired (the page derives
     // the same fact from canvas edges).
-    if (operationKindOf(record).startsWith('effect.')) {
+    if (EFFECT_SPECIES_KINDS.has(record.kind)) {
       const wired = data.graph.edges.some(edge => (
         edge.target === recordId && parseProcessSocketHandleId(edge.targetHandle) === 'in'
       ));
