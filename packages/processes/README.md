@@ -50,8 +50,15 @@ block fields against their target entity policy at the consumer boundary.
 The grouped authoring palette is a curated projection of CTS semantics. Its
 groups are declaration items, type-bound constructs, effect species, typed
 instance sources/navigation (the generic read presets — an entity source
-binds its type at configure time), values, collections, flow, and pack-owned
-plugin tabs: a pack's
+binds its type at configure time), values, list/tree algebra, flow, and
+pack-owned plugin tabs. The value and list/tree groups are exhaustive over
+the catalog's author-facing basics (owner direction 2026-10-10, SPEC §8):
+every tree-algebra kind (flatten, graft, simplify, branch, zip, unzip,
+cross, transpose, clean, stats), the list reshapes (reverse, shift,
+partition, reduce), the value utilities (cast, parse, convertUnit,
+coalesce, format, required, validate), and the current-time source are
+palette items — only the fixed-arity `collection.makeList` and the
+persisted-array boundary (`packArray`/`unpackArray`) stay catalog-only: a pack's
 declared data operations — the documents pack's `tableData` tab (xlsx/csv
 table decomposition, composition, and management) and the facade pack's
 `facade` tab (cassette geometry extraction beside the solver) — surface

@@ -141,6 +141,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('literal', 'source.literalItem', { preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }),
       paletteItem('literalList', 'source.literalList', { preset: { type: { base: 'string', nullable: false }, value: [] } }),
+      paletteItem('currentTime', 'source.currentTime'),
       paletteItem('compareValues', 'value.compare', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
       paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'and' } }),
       paletteItem('text', 'value.string', { preset: { type: { base: 'string', nullable: false }, operation: 'concat' } }),
@@ -153,7 +154,14 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
           operation: 'addDays',
           inputDefaults: { amount: 30 }
         }
-      })
+      }),
+      paletteItem('castValue', 'value.cast', { preset: { base: 'number', sourceType: { base: 'string' }, outputType: { base: 'number' } } }),
+      paletteItem('parseValue', 'value.parse', { preset: { base: 'number', sourceType: { base: 'string' }, outputType: { base: 'number' } } }),
+      paletteItem('convertUnit', 'value.convertUnit', { preset: { type: { base: 'number', nullable: false }, fromUnit: 'mm', toUnit: 'm' } }),
+      paletteItem('coalesceValue', 'value.coalesce', { preset: { type: { base: 'string', nullable: false } } }),
+      paletteItem('formatValue', 'value.format', { preset: { type: { base: 'number', nullable: false }, template: '' } }),
+      paletteItem('requireValue', 'value.required', { preset: { type: { base: 'string', nullable: false }, required: true } }),
+      paletteItem('validateValue', 'value.validate', { preset: { type: { base: 'string', nullable: false }, required: true } })
     ]
   },
   {
@@ -169,7 +177,20 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('dispatchItems', 'collection.dispatch'),
       paletteItem('removeDuplicates', 'collection.distinct'),
       paletteItem('groupItems', 'collection.groupBy'),
-      paletteItem('aggregateList', 'collection.reduce', { preset: { type: { base: 'number', nullable: true }, operation: 'sum' } })
+      paletteItem('aggregateList', 'collection.reduce', { preset: { type: { base: 'number', nullable: true }, operation: 'sum' } }),
+      paletteItem('reverseList', 'collection.reverse'),
+      paletteItem('shiftList', 'collection.shift', { preset: { offset: 1 } }),
+      paletteItem('partitionList', 'collection.partition', { preset: { size: 2 } }),
+      paletteItem('flattenTree', 'tree.flatten', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('graftTree', 'tree.graft', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('simplifyTree', 'tree.simplify', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('branchTree', 'tree.branch', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('zipTrees', 'tree.zip', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('unzipTree', 'tree.unzip', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('crossTrees', 'tree.cross', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('transposeTree', 'tree.transpose', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('cleanTree', 'tree.clean', { preset: { type: { base: 'json', nullable: true } } }),
+      paletteItem('treeStats', 'tree.stats', { preset: { type: { base: 'json', nullable: true } } })
     ]
   }
 ].map(group => Object.freeze({

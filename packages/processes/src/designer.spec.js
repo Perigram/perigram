@@ -297,24 +297,44 @@ describe('process designer domain contract', () => {
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',
       'source.literalList',
+      'source.currentTime',
       'value.compare',
       'value.logic',
       'value.string',
       'value.recordField',
       'record.construct',
       'value.math',
-      'value.dateTime'
+      'value.dateTime',
+      'value.cast',
+      'value.parse',
+      'value.convertUnit',
+      'value.coalesce',
+      'value.format',
+      'value.required',
+      'value.validate'
     ]);
-    // List construction is authored through concat/collection operations;
-    // the fixed-arity and persisted-array boundary nodes are not palette
-    // items.
+    // List/tree authoring is exhaustive (owner direction 2026-10-10:
+    // operate like a dataflow toolkit): the whole tree-algebra family and
+    // the list reshapes are palette items; only the fixed-arity
+    // constructor and the persisted-array boundary stay catalog-only
+    // (SPEC §8 palette law).
     expect(groups.listTree.map(item => item.kind)).not.toEqual(expect.arrayContaining([
       'collection.makeList',
       'collection.packArray',
       'collection.unpackArray'
     ]));
-    expect(groups.listTree.map(item => item.kind)).not.toContain('tree.cross');
-    expect(groups.listTree.map(item => item.kind)).not.toEqual(expect.arrayContaining([
+    expect(groups.listTree.map(item => item.kind)).toEqual(expect.arrayContaining([
+      'collection.concat',
+      'collection.join',
+      'collection.itemAt',
+      'collection.slice',
+      'collection.count',
+      'collection.filter',
+      'collection.sort',
+      'collection.dispatch',
+      'collection.distinct',
+      'collection.groupBy',
+      'collection.reduce',
       'collection.reverse',
       'collection.shift',
       'collection.partition',
@@ -322,6 +342,9 @@ describe('process designer domain contract', () => {
       'tree.graft',
       'tree.simplify',
       'tree.branch',
+      'tree.zip',
+      'tree.unzip',
+      'tree.cross',
       'tree.transpose',
       'tree.clean',
       'tree.stats'
@@ -339,8 +362,6 @@ describe('process designer domain contract', () => {
     expect(items.map(item => item.kind)).not.toContain('control.manualTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.entityChangedTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.domainEventTrigger');
-    expect(items.map(item => item.kind)).not.toContain('value.cast');
-    expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
     expect(items.map(item => item.kind)).not.toContain('cts.command');
     // stateDefinition and the ctsType reference node are canvas surfaces, not catalog operations
