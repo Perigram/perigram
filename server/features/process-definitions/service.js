@@ -568,7 +568,7 @@ function catalogContextFromDefinition(processData, domain = null) {
   const projectedSchemas = domain?.fieldSchemas || null;
   const schemasFor = typeId => projectedSchemas?.[typeId] ?? getEntityFieldSchemas(typeId);
   return record => {
-    const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
+    const structural = record.kind === 'cts.compose';
     const recordSchemas = structural ? getBlockFieldSchemas(record.block) : schemasFor(record.typeId);
     return {
       fieldSchema: structural
@@ -737,7 +737,7 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
     previewLimit: 100,
     domain: previewDomain,
     catalogContext: record => {
-      const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
+      const structural = record.kind === 'cts.compose';
       return {
         fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.typeId, record.path),
         fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.typeId),

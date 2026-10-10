@@ -1060,8 +1060,5 @@ function iconForNode(kind = '') {
   if (kind.startsWith('value.')) return kind.includes('logic') || kind.includes('compare') ? 'pi pi-sitemap' : 'pi pi-sliders-h';
   if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
   if (kind.startsWith('record.')) return 'pi pi-box';
-  if (kind.startsWith('predicate.')) return 'pi pi-filter';
-  if (kind.startsWith('read.')) return 'pi pi-database';
-  if (kind.startsWith('effect.')) return 'pi pi-bolt';
   return 'pi pi-directions';
 }

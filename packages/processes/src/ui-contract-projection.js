@@ -97,7 +97,7 @@ function lineageRefOfSource(source = {}, mainSourceId) {
 
 // Node labels default to the record's kind string; a button caption that is
 // just the kind leaks machinery vocabulary instead of the target entity.
-const DEFAULT_ACTION_LABELS = new Set(['cts.construct', 'effect.createEntity', 'effect.runProducer', 'Action', 'action', 'Create', 'create']);
+const DEFAULT_ACTION_LABELS = new Set(['cts.construct', 'Action', 'action', 'Create', 'create']);
 
 export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   const legacyKind = action.actionKind || 'createEntity';

@@ -437,7 +437,7 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
 export function transitionNodeStateTargets(processNodes = {}) {
   const byType = new Map();
   for (const record of Object.values(processNodes || {})) {
-    if (operationKindOf(record || {}) !== 'effect.changeStatus') continue;
+    if (operationKindOf(record || {}) !== 'cts.transition') continue;
     const typeId = String(record.typeId || '');
     const to = String(record.state?.to || record.inputDefaults?.state || record.target || '').trim();
     if (!typeId || !to) continue;
