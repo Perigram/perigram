@@ -33,7 +33,7 @@ Support capabilities are documented and classified, but do not need empty
 
 This directory is framework-only: domain implementations (the facade
 fabrication domain — cassettes, nesting, sheet designs) live under their
-pack module, [server/packs/facade](../../../packages/facade/server/), so the pack is the
+installed facade plugin (see [plugins](./plugins/README.md)), so the domain is
 actual deletion unit and no framework feature imports domain code. The
 REST surfaces of pack-owned features keep their stable URLs
 (`/api/cassettes`, `/api/sheet-designs`) as thin route files that import
@@ -136,4 +136,4 @@ services must not self-register through hidden globals.
 - [server/features/directory/README.md](./directory/README.md) — cross-tenant user/organization search and directory cards
 - [server/features/partnerships/README.md](./partnerships/README.md) — organization-to-organization partner relations
 - [server/features/workflow-overrides/README.md](./workflow-overrides/README.md) — organization-owned lifecycle overrides
-- [packages/facade/README.md](../../packages/facade/README.md) — facade fabrication pack (types, editors, services)
+- [workers/facade/README.md](../../workers/facade/README.md) — the facade plugin's executor and listing

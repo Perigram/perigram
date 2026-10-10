@@ -275,12 +275,14 @@ A third-party plugin is declarations plus connectors — never in-process code:
 Owner decision (2026-10-10): the facade's end state is the third-party plugin
 shape itself — declarations installed as pinned snapshots plus connectors to
 an external facade executor process, exactly what any third-party plugin is;
-no in-process facade code remains. The extraction lands in dependency-ordered
-milestones: the plugin grammar first (listings carry editors, attachment
-kinds, conversions, and pack requirements beside types and services), then
-service-backed construction, conversions, and exports in the generic
-machinery, the external facade executor with its listing, and finally the
-cut — the pack, its routes, and every platform reference to it deleted.
+no in-process facade code remains. Delivered: the plugin grammar (listings
+carry editors, attachment kinds, conversions, service-backed construction
+bindings, exports, and pack requirements), service-backed construction,
+conversions, and exports in the generic machinery, the facade executor with
+its listing (workers/facade), and the cut — the pack, its routes, and every
+platform reference to it are deleted. The sheet-design editor owns its
+save-time layout recompute client-side (the cassette-designer precedent);
+DXF exports ride generateAttachment through the plugin's export binding.
 
 Plugin authoring is SDK-first (owner ask, 2026-10-10): a coding agent authors
 a plugin through @perigram/plugin-sdk — the listing contract with its JSON

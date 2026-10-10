@@ -20,7 +20,7 @@ types/processes, not by writing entity services.
 flowchart TB
   subgraph Declarations["Type declarations"]
     Cts["@perigram/cts<br/>value universe, registry, compile R1–R7,<br/>domain projection (synthesis-only)"]
-    Packs["Packs: documents → tech-drawing → facade<br/>(server/packs, SPEC §21)"]
+    Packs["Packs: documents → tech-drawing<br/>(server/packs, SPEC §21)"]
     OrgTypes["Org-authored types<br/>(cts_types store)"]
   end
 
@@ -80,7 +80,7 @@ flowchart TB
 | `@perigram/cts` | Value universe, type declarations, registry/compile, the CTS → compiler-domain projection | Vue, Nuxt, Mongo, workers |
 | `@perigram/processes` | Process normalization, validation, compilation, UI-contract projection, durable evaluation | Concrete domain imports |
 | Packs (`server/packs/*`) | Domain declarations, services/commands/task executors/hook handlers as mountable units | Framework vocabulary |
-| `@perigram/facade` | Facade fabrication pack declarations (cassette/sheet-design types, editors, services, commands) and the server-side domain slice | Runtime handlers, DB access, Vue components |
+| `workers/facade` | The facade plugin's executor (endpoint mode): DXF extraction, OCCS bake, nesting solve, cassette import, sheet DXF — pure compute over values | The platform's connector endpoints |
 | `server/runtime` | Pack mounting, framework services, the instance-service resolver | Business logic |
 | `server/core/*` | Command/task/effect/workflow runtimes (domain-agnostic) | Domain-specific imports |
 | `server/features/*` | Framework entity services; pack-internal feature modules | Core vocabulary or global registration |
@@ -111,9 +111,8 @@ sequenceDiagram
 Commands are business intent and access boundaries. Tasks are async
 execution boundaries. Entity types, construction modes, workflows, and
 field policy all derive from CTS declarations through the projection —
-legacy hardcoded tables are pack-internal and shrink as their surfaces
-are deleted (see [packages/facade/README.md](../packages/facade/README.md)
-Pack direction).
+the facade domain's tables left with its pack (now the installable
+plugin under workers/facade).
 
 ## Golden Standard Checks
 

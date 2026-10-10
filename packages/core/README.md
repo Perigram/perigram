@@ -82,4 +82,3 @@ round-trip contract lives in
 ## Related
 
 - [server/core/blocks](../../server/core/blocks/README.md)
-- [@perigram/facade](../facade/README.md)

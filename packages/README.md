@@ -17,7 +17,7 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 | `@perigram/cts` | Perigram Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
 | `@perigram/tech-drawing` | Technical-drawing reference pack declarations: pen templates and layer standards (requires-aware composition) |
 | `@perigram/documents` | Documents reference pack declarations: generic document/media file types with payload traits and preview modes |
-| `@perigram/facade` | Perigram CNC entity, workflow, command, task, attachment-kind, UI, and summary definitions |
+| `@perigram/plugin-sdk` | Plugin authoring SDK: listing contract (with JSON schema), executor harnesses, API client, and the `perigram-plugin` CLI |
 
 Module boundaries, runtime relationships, and per-package contracts are
 documented in each package's own `README.md`; the system-level graph lives in
@@ -27,6 +27,6 @@ The committed [framework.manifest.json](../framework.manifest.json) is the read-
 
 ## Extraction Rule
 
-Existing runtime imports stay in place until a package is proven by tests and wrapped by compatibility exports. Packages must stay domain-agnostic except `@perigram/facade`.
+Existing runtime imports stay in place until a package is proven by tests and wrapped by compatibility exports. Packages stay domain-agnostic; the facade domain is not a package — it is the installable plugin under `workers/facade`.
 
 Nuxt, Nitro, Vite, and Vitest define `@perigram/*` aliases for tool/test contexts. Runtime app code uses Nuxt root aliases such as `~/packages/core/src/index.js`; avoid deep relative paths from server files because Nuxt dev output is executed from `.nuxt/dev`.

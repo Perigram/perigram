@@ -69,7 +69,7 @@ hardcoded legacy navigation cluster went with them (the boot-time projects
 fetch, the project-slug route hierarchy watcher against an unmounted
 endpoint, the hardcoded per-entity route tables in breadcrumb/trace
 routing, the queue editor flow and its orphan stores). The remaining
-client imports of `@perigram/facade` are owned by legacy server
+client imports of facade declarations are owned by legacy server
 contracts, not by declarations —
 `utils/instance-display-contract.js` (the residual legacy card surface
 registry for undeclared types),

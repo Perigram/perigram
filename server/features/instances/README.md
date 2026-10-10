@@ -151,3 +151,21 @@ change the view, so `defineType`/`removeType` (cts-types) and activate
 
 - [server/runtime/README.md](../../runtime/README.md) — resolver registration.
 - [server/features/cts-types/README.md](../cts-types/README.md) — org type storage.
+
+## Service-backed construction (installed plugins)
+
+`construction-services.js` dispatches construction modes with no standard
+protocol — and the compute half of the payload protocols — to the
+organization's installed-plugin services: the operator's input record
+travels to the executor with ref inputs resolved to values (`{ id, name,
+fields, payloadBase64 }`, cross-org references refuse) and the draft's
+uploaded payload as base64; the executor returns computed field values
+the platform merges before creating the record through the generic
+machinery. `constructionHandlers` reports every mode as served (the
+capability projections filter on it); genuinely unbound modes fail
+loudly at dispatch. Types that declare construction modes never offer a
+bare `genericCreate` — the per-call declaration check refuses it.
+
+See [plugins](../plugins/README.md) for the listing grammar and
+[workers/facade](../../../workers/facade/README.md) for the reference
+executor.

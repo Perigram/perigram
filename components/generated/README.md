@@ -154,7 +154,7 @@ The current default overloads are:
 contract. It combines two halves:
 
 - **Served data by default** — the editor bindings (`{ type, surface, modes }`,
-  see the [facade pack direction](../../packages/facade/README.md)),
+  the facade domain now installs as the plugin under [workers/facade](../../workers/facade/README.md)),
   served with the organization type view by
   [cts-types](../../server/features/cts-types/README.md) and read through the
   `useFileTypeView` cache. This decides which file type opens which surface

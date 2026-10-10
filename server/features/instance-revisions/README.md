@@ -70,5 +70,4 @@ legacy cassette/project fallbacks for existing cassette-derived records.
 
 ## Related
 
-- [cassettes](../../../packages/facade/server/cassettes/README.md) - owns current geometry revision pointers.
-- [sheet-designs](../../../packages/facade/server/sheet-designs/README.md) - stores revision-backed layouts.
+- [facade plugin](../../../workers/facade/README.md) - cassette geometry revisions and sheet-design layouts (payload revision chain rides the generic machinery).

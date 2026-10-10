@@ -52,8 +52,12 @@ The listing may declare beside its types: `services` (SPEC §8 signatures
 with `mode` `endpoint`/`claim`), `editors` (file-type editor bindings —
 only for file types the plugin itself declares), `attachmentKinds`
 (payload upload contracts), `conversions` (artifact conversions, with an
-optional `service` binding), and `requires` (mounted pack ids the types
-resolve against). Shapes: the SDK's
+optional `service` binding), `constructions` (the plugin's types'
+construction modes bound to plugin services — the platform resolves the
+operator's inputs as values and merges the executor's computed fields
+into the created record), `exports` (attachment exports bound to plugin
+services), and `requires` (mounted pack ids the types resolve against).
+Shapes: the SDK's
 [listing contract](../packages/plugin-sdk/README.md).
 
 ## 2. Run the executor

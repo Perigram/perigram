@@ -144,4 +144,4 @@ The rendered video is `out.mp4` (gitignored); regenerate it with `render`.
 ## Related
 
 - [Root README](../../README.md) — documentation map.
-- [Facade domain pack](../../packages/facade/README.md) — the contracts the plot follows.
+- [Facade plugin](../../workers/facade/README.md) — the contracts the plot follows.

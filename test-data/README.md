@@ -104,9 +104,9 @@ New factories follow the same `factories.js` pattern shown above.
 Factories are built from:
 - v24 block contract in `server/core/blocks/README.md`
 - API DTO shapes emitted by feature models/services
-- Entity design-system manifest in `@perigram/facade` through the
+- Entity design-system manifest in the facade plugin listing through the
   compatibility exports in `utils/design-system-contract.js`
-- Workflow state definitions in `packages/facade/src/index.js`
+- Workflow state definitions in the facade plugin listing
 
 Factory modules avoid Nuxt root aliases internally so direct Node imports,
 server scripts, and Nitro-generated chunks resolve the same dependency graph.
