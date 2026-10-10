@@ -40,7 +40,7 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
     const record = ensureRecord(recordKeyForType('processNode'), node, factoryForType('processNode'));
     // Consumer effects never anchor the created-entity panel — a stale
     // producerOutputId on a loaded pre-protocol draft must not resurrect it.
-    if (CONSUMER_SPECIES_KINDS.includes(operationKindOf(record || {}))
+    if (CONSUMER_SPECIES_KINDS.has(operationKindOf(record || {}))
       || ['cts.read', 'cts.field', 'cts.compose', 'cts.decompose', 'cts.join'].includes(record?.kind)) return {};
     const producerOutputs = draft.value?.data?.producerOutputs || {};
     const byId = record?.producerOutputId && producerOutputs[record.producerOutputId]

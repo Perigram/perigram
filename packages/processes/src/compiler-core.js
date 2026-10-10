@@ -1191,7 +1191,7 @@ function upstreamProducerOutputId(process, node, visited = new Set()) {
     if (source.producerOutputId && process.producerOutputs?.[source.producerOutputId]) {
       return source.producerOutputId;
     }
-    if (CONSUMER_SPECIES_KINDS.includes(source.kind)) {
+    if (CONSUMER_SPECIES_KINDS.has(source.kind)) {
       const upstream = upstreamProducerOutputId(process, source, visited);
       if (upstream) return upstream;
     }
@@ -1209,7 +1209,7 @@ function upstreamProducerOutputId(process, node, visited = new Set()) {
 
 function resolveSourceProducerOutputId(process, source, sourcePort) {
   if (!source?.id) return null;
-  if (CONSUMER_SPECIES_KINDS.includes(source.kind)) {
+  if (CONSUMER_SPECIES_KINDS.has(source.kind)) {
     return upstreamProducerOutputId(process, source);
   }
   const candidates = Object.values(process.producerOutputs || {})

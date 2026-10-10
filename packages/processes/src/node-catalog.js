@@ -15,27 +15,29 @@ export const MAKE_LIST_INPUTS = Object.freeze(['item1', 'item2', 'item3', 'item4
 // species transform entities that arrived over an input wire: they own no
 // producer output and bind to the upstream producer of that wire, so the
 // workflow/machine stays anchored where the entity path begins.
-export const PRODUCER_ORIGIN_SPECIES_KINDS = Object.freeze([
+// Kind-membership sets (the `new Set` pattern every kind classifier in
+// this package uses): test with `.has(kind)`.
+export const PRODUCER_ORIGIN_SPECIES_KINDS = new Set([
   'cts.construct',
   'cts.command',
   'cts.service',
   'cts.conversion'
 ]);
 
-export const CONSUMER_SPECIES_KINDS = Object.freeze([
+export const CONSUMER_SPECIES_KINDS = new Set([
   'cts.mutate',
   'cts.transition',
   'cts.remove'
 ]);
 
 // The operational species union: origin + consumer species.
-export const EFFECT_SPECIES_KINDS = Object.freeze([
+export const EFFECT_SPECIES_KINDS = new Set([
   ...PRODUCER_ORIGIN_SPECIES_KINDS,
   ...CONSUMER_SPECIES_KINDS
 ]);
 
 // The species the shared effect mapper aligns per item (mapped mutations).
-export const MAPPED_MUTATION_SPECIES_KINDS = Object.freeze([
+export const MAPPED_MUTATION_SPECIES_KINDS = new Set([
   'cts.construct',
   'cts.mutate',
   'cts.transition',

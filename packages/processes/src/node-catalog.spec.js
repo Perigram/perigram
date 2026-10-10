@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONSUMER_SPECIES_KINDS,
+  EFFECT_SPECIES_KINDS,
+  MAPPED_MUTATION_SPECIES_KINDS,
   PROCESS_NODE_CATALOG,
   PROCESS_NODE_FAMILIES,
+  PRODUCER_ORIGIN_SPECIES_KINDS,
   getProcessNodeDefinition,
   resolveCatalogNodePorts
 } from './node-catalog.js';
@@ -507,5 +511,34 @@ describe('process v4 node catalog', () => {
       .toEqual([['left', true, 'list'], ['right', true, 'list']]);
     expect(ports.inputs.every(input => input.type.base === 'entityRef' && input.type.typeId === 'queue')).toBe(true);
     expect(ports.outputs[0]).toMatchObject({ id: 'value', access: 'list', type: { base: 'entityRef', typeId: 'queue' } });
+  });
+});
+
+describe('species kind-membership sets', () => {
+  // The exported classifiers are the membership contract the designer UI
+  // and the compiler share: they must be Sets (`.has`), pinned by exact
+  // membership. A frozen array here once shipped as far as a browser
+  // TypeError because no suite exercised the UI consumers.
+  it('exports Set instances with the exact species membership', () => {
+    expect([...PRODUCER_ORIGIN_SPECIES_KINDS].sort()).toEqual([
+      'cts.command', 'cts.construct', 'cts.conversion', 'cts.service'
+    ]);
+    expect([...CONSUMER_SPECIES_KINDS].sort()).toEqual([
+      'cts.mutate', 'cts.remove', 'cts.transition'
+    ]);
+    expect([...MAPPED_MUTATION_SPECIES_KINDS].sort()).toEqual([
+      'cts.construct', 'cts.mutate', 'cts.remove', 'cts.transition'
+    ]);
+    for (const set of [
+      PRODUCER_ORIGIN_SPECIES_KINDS, CONSUMER_SPECIES_KINDS,
+      EFFECT_SPECIES_KINDS, MAPPED_MUTATION_SPECIES_KINDS
+    ]) {
+      expect(set).toBeInstanceOf(Set);
+      expect(typeof set.has).toBe('function');
+    }
+    for (const kind of [...PRODUCER_ORIGIN_SPECIES_KINDS, ...CONSUMER_SPECIES_KINDS]) {
+      expect(EFFECT_SPECIES_KINDS.has(kind)).toBe(true);
+    }
+    expect(EFFECT_SPECIES_KINDS.has('value.math')).toBe(false);
   });
 });
