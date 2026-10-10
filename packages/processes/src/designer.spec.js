@@ -306,7 +306,6 @@ describe('process designer domain contract', () => {
       'value.math',
       'value.dateTime',
       'value.cast',
-      'value.parse',
       'value.convertUnit',
       'value.coalesce',
       'value.format',

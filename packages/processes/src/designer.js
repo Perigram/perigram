@@ -156,7 +156,6 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
         }
       }),
       paletteItem('castValue', 'value.cast', { preset: { base: 'number', sourceType: { base: 'string' }, outputType: { base: 'number' } } }),
-      paletteItem('parseValue', 'value.parse', { preset: { base: 'number', sourceType: { base: 'string' }, outputType: { base: 'number' } } }),
       paletteItem('convertUnit', 'value.convertUnit', { preset: { type: { base: 'number', nullable: false }, fromUnit: 'mm', toUnit: 'm' } }),
       paletteItem('coalesceValue', 'value.coalesce', { preset: { type: { base: 'string', nullable: false } } }),
       paletteItem('formatValue', 'value.format', { preset: { type: { base: 'number', nullable: false }, template: '' } }),
@@ -1076,7 +1075,6 @@ function iconForNode(kind = '') {
   if (kind.startsWith('cts.field')) return 'pi pi-angle-right';
   if (kind.startsWith('cts.compose')) return 'pi pi-box';
   if (kind.startsWith('cts.decompose')) return 'pi pi-objects-column';
-  if (kind.startsWith('cts.join')) return 'pi pi-arrows-merge';
   if (kind.startsWith('source.')) return 'pi pi-circle-fill';
   if (kind.startsWith('value.')) return kind.includes('logic') || kind.includes('compare') ? 'pi pi-sitemap' : 'pi pi-sliders-h';
   if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';

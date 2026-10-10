@@ -730,18 +730,6 @@ describe('process v4 data execution', () => {
 });
 
 describe('native structure species execution', () => {
-  it('concatenates same-type streams through cts.join', async () => {
-    const joined = await executeProcessDataNode(
-      { id: 'join', kind: 'cts.join', typeId: 'project' },
-      {
-        primary: createDataPacket([{ id: 'a' }, { id: 'b' }], 'list'),
-        secondary: createDataPacket([{ id: 'c' }], 'list')
-      }
-    );
-
-    expect(joined).toEqual({ branches: [{ path: [0], items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] }] });
-  });
-
   it('composes open entries into one block through cts.compose', async () => {
     const composed = await executeProcessDataNode(
       { id: 'compose', kind: 'cts.compose', block: 'data', compositionMode: 'entries', entries: [{ id: 'e1', key: 'name' }, { id: 'e2', key: 'count' }] },
