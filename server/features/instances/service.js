@@ -554,15 +554,15 @@ function instanceService(typeId) {
         // Types that declare construction modes (payload creation
         // protocols or construct operators) never offer a bare generic
         // create — a record without its constructed geometry is
-        // meaningless. The pack-registration world enforced this at mount;
-        // for plugin/org types the declaration is the law, resolved per
-        // call.
+        // meaningless. The upload default belongs to PAYLOAD declarations
+        // (SPEC §4 creation protocols): a type without a payload offers
+        // no creation protocol, so generic create is exactly its mode.
         const declaration = await declarationFor(typeId, context.organizationId || null);
         const declaredModes = [
           ...Object.values(declaration?.operators || {})
             .filter(operator => operator?.species === 'construct')
             .map(operator => operator.id),
-          ...(declaration?.payload?.creation || ['upload']).map(String)
+          ...(declaration?.payload ? (declaration.payload.creation || ['upload']).map(String) : [])
         ];
         const hasProtocols = Boolean(declaration?.payload) || declaredModes.length > 0;
         if (hasProtocols && !(declaredModes.includes('genericCreate'))) {

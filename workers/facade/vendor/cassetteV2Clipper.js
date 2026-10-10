@@ -12,7 +12,7 @@ const runtimeImport = (specifier) => {
 
 const clipperModuleSpecifier = () => (
   typeof window === 'undefined'
-    ? new URL('../public/vendor/clipper2/clipper2z.js', import.meta.url).href
+    ? new URL('../../../public/vendor/clipper2/clipper2z.js', import.meta.url).href
     : '/vendor/clipper2/clipper2z.js'
 );
 

@@ -534,11 +534,12 @@ export async function startRun(id, payload = {}, auth = {}, options = {}) {
 // run is a single user intent: a failed slot is the action's failure, not a
 // silent partial success behind a success toast. Surface the underlying
 // mutation error (invalid transition, missing machine, denied access) as
-// the action error.
+// the action error. Every effect step is scanned: a failed upstream slot
+// often only surfaces downstream as a confusing data error, and the
+// collected failure is the root cause the user needs to see.
 function assertManualRunHasNoMutationFailures(run) {
-  const effectStep = [...(run?.steps || [])].reverse()
-    .find(step => step.kind?.startsWith('cts.'));
-  const failures = Array.isArray(effectStep?.output?.failures) ? effectStep.output.failures : [];
+  const failures = [...(run?.steps || [])]
+    .flatMap(step => (Array.isArray(step?.output?.failures) ? step.output.failures : []));
   if (!failures.length) return;
   const message = failures
     .map(failure => failure?.error?.message)
