@@ -3,7 +3,6 @@ import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCas
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
-import { facadeEditors } from '@perigram/facade';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
@@ -179,8 +178,11 @@ export function validateEditorBindings(bindings = [], registry = fileSurfaceRegi
 // The mounted packs' editor bindings in composition order — the same
 // records the cts-types feature serves with the organization type view.
 // Validated at module load so pack/registry drift fails here, not as a
-// silently missing editor presentation.
-export const packEditorBindings = validateEditorBindings([...documentsEditors, ...techDrawingEditors, ...facadeEditors]);
+// silently missing editor presentation. The facade domain's bindings
+// (cassette designer, sheet editor) arrive with the organization type
+// view from the installed facade plugin — the pre-auth fallback below
+// covers only always-mounted pack types.
+export const packEditorBindings = validateEditorBindings([...documentsEditors, ...techDrawingEditors]);
 
 // Served-list default (editor-binding guard): when the app has fetched
 // the organization type view, the served editor list is the authoritative
@@ -188,8 +190,8 @@ export const packEditorBindings = validateEditorBindings([...documentsEditors, .
 // import above stays as the explicit fallback for contexts without a
 // fetched view — module-scope evaluation, unit specs, and pre-auth
 // shells. A loaded-but-empty served list also falls back: today every
-// served editor comes from the mounted packs, so empty can only mean
-// "nothing fetched for this context".
+// served editor comes from the mounted packs or installed plugins, so
+// empty can only mean "nothing fetched for this context".
 function activeEditorBindings() {
   try {
     const view = useFileTypeView();

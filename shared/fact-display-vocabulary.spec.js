@@ -12,7 +12,7 @@
 // legacy residual fact channel is gone (artifact family excepted).
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
-import { facadeFileTypes } from '@perigram/facade';
+import { facadeFileTypes } from '../test-tools/facade-plugin.js';
 import { DESIGN_SYSTEM_FIELD_GROUPS } from '../utils/design-system-contract.js';
 import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
 import {

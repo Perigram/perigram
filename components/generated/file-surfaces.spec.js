@@ -19,6 +19,15 @@ import {
   validateEditorBindings
 } from './file-surfaces.js';
 
+// The facade plugin's served editor layer (workers/facade/listing.json):
+// cassette and sheet-design bindings arrive with the organization type
+// view, not the always-mounted pack fallback.
+const servedEditors = [
+  ...packEditorBindings,
+  { type: 'cassette', surface: 'cassette-designer', modes: ['create', 'edit'] },
+  { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['edit'] }
+];
+
 describe('file surface registry', () => {
   it('resolves every pack editor binding to a registered surface', () => {
     for (const editor of packEditorBindings) {
@@ -50,7 +59,7 @@ describe('file surface registry', () => {
   });
 
   it('binds the cassette type to the cassette designer presentations', () => {
-    const surface = resolveFileSurface(packEditorBindings, 'cassette');
+    const surface = resolveFileSurface(servedEditors, 'cassette');
     expect(surface.action).toBeTruthy();
     expect(surface.workspacePage).toMatchObject({ labelKey: 'cassette.designerTitle', icon: 'pi pi-file-edit' });
     expect(surface.workspacePage.props({ entity: { id: 'c-1' }, cassettes: [{ id: 'c-2' }] }, 'cassette'))
@@ -58,23 +67,25 @@ describe('file surface registry', () => {
   });
 
   it('binds sheet design to the editing workspace page', () => {
-    const surface = resolveFileSurface(packEditorBindings, 'sheet-design');
+    const surface = resolveFileSurface(servedEditors, 'sheet-design');
     expect(surface.action).toBe('generic');
     expect(surface.workspacePage).toMatchObject({ labelKey: 'sheetDesign.editor' });
     expect(surface.workspacePage.props({ entity: { id: 'sd-1' } }, 'sheet-design'))
       .toEqual({ design: { id: 'sd-1' } });
   });
 
-  it('derives editor action rows from the bindings', () => {
-    const actions = new Map(fileEditorActions());
+  it('derives editor action rows from the served bindings', () => {
+    const actions = new Map(fileEditorActions(servedEditors));
     expect(actions.get('cassette')?.action?.name).toBe('GeneratedCassetteDesignerAction');
     for (const typeId of ['sheet-design', 'sketch', 'text-document', 'csv-table']) {
       expect(actions.get(typeId)?.action, typeId).toBe('generic');
     }
+    // the pack fallback alone carries no facade bindings
+    expect(new Map(fileEditorActions()).get('cassette')).toBeUndefined();
   });
 
   it('derives a workspace page for every bound file type', () => {
-    const pages = fileWorkspacePages();
+    const pages = fileWorkspacePages(servedEditors);
     expect([...pages.map(page => page.id)].sort()).toEqual([
       'cassette-designer',
       'csv-editor',
@@ -138,16 +149,19 @@ describe('file surface registry', () => {
 
   it('falls back to the pack bindings without a fetched type view', () => {
     // This spec runs without an active Pinia/app context, so the served
-    // list cannot have been fetched: the documented pack fallback drives
-    // the defaulted derivations.
-    expect(resolveFileSurface(undefined, 'cassette').surface).toBe('cassette-designer');
+    // list cannot have been fetched: the always-mounted pack fallback
+    // drives the defaulted derivations — and carries no facade bindings
+    // (the installed plugin layer serves those).
+    expect(resolveFileSurface(undefined, 'sketch').surface).toBe('sketch-editor');
+    expect(resolveFileSurface(undefined, 'cassette')).toBeNull();
     expect(fileWorkspacePages().map(row => row.typeId)).toContain('sketch');
     expect(new Map(fileEditorActions()).get('text-document')?.action).toBe('generic');
   });
 
   it('treats null editors as the active binding set', () => {
     // The editor action resolves its surface with no explicit list.
-    expect(resolveFileSurface(null, 'cassette')?.surface).toBe('cassette-designer');
+    expect(resolveFileSurface(null, 'sketch')?.surface).toBe('sketch-editor');
+    expect(resolveFileSurface(null, 'cassette')).toBeNull();
   });
 
   it('returns null for unknown types and unregistered surfaces', () => {

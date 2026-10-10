@@ -10,21 +10,10 @@
 // this list is its whole mount.
 import { techDrawingPack } from '#packages/tech-drawing/src/index.js';
 import { documentsPack } from '#packages/documents/src/index.js';
-import { facadePackContent, facadeDomain } from '#packages/facade/src/index.js';
 
 export const mountedPackDeclarations = [
   documentsPack,
-  techDrawingPack,
-  {
-    id: 'facade',
-    label: facadePackContent.label,
-    requires: ['tech-drawing', 'documents'],
-    types: facadePackContent.types,
-    editors: facadePackContent.editors,
-    services: facadePackContent.services,
-    attachmentKinds: facadePackContent.attachmentKinds,
-    domain: facadeDomain
-  }
+  techDrawingPack
 ];
 
 // Registered pack services (SPEC §8/§21), composed in mount order: the

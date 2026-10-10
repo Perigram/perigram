@@ -3,7 +3,7 @@
 Declarative lifecycle registry and transition validator. This package is persistence-agnostic; application adapters provide entity loading, event writing, authorization, and hooks.
 
 `server/core/machines/service.js` uses `validateTransition()` as the runtime
-validation step for CNC workflow definitions from `@perigram/facade`.
+validation step for workflow definitions from declared types.
 
 ## Public API
 

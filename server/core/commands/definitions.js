@@ -1,8 +1,37 @@
 // Framework command definitions: the executable intents owned by the
-// framework's own features (attachments). Pack commands live
-// in their packs (`packages/facade`); handlers for these are registered by
-// the app registry beside this table. Service identities they reference
-// live in the mounted domain's serviceContracts table.
+// framework's own features (attachments, artifact conversions). Handlers
+// are registered by the app registry beside this table. Plugin commands
+// derive from installed-plugin services (plugin.<pluginId>.<serviceId>).
+
+// The framework's event declarations: the events its own commands emit or
+// consume. Plugin commands emit none (value services carry no event
+// contracts).
+export const frameworkEventDefinitions = {
+  attachmentGenerationRequested: {
+    id: 'attachment.generationRequested',
+    label: 'Attachment generation requested'
+  },
+  attachmentGenerationQueued: {
+    id: 'attachment.generationQueued',
+    label: 'Attachment generation queued',
+    informational: true
+  },
+  attachmentGenerationCompleted: {
+    id: 'attachment.generationCompleted',
+    label: 'Attachment generation completed',
+    informational: true
+  },
+  attachmentGenerationFailed: {
+    id: 'attachment.generationFailed',
+    label: 'Attachment generation failed',
+    informational: true
+  },
+  artifactConverted: {
+    id: 'artifact.converted',
+    label: 'Artifact converted',
+    informational: true
+  }
+};
 
 export const frameworkCommandDefinitions = {
   generateAttachment: {

@@ -21,14 +21,16 @@ export function useProcessDesignerTypes({
   t,
   toast,
   activeOrganizationId,
-  baseDomain,
-  packContent,
   records = () => ({}),
   syncNow = () => {}
 }) {
   const ctsOrgTypes = ref([]);
+  const servedEditors = ref([]);
+  const servedCommands = ref([]);
   const designer = reactive({});
   let designerCapabilities = null;
+  let servedDomain = { commands: {}, events: {}, construction: {}, serviceContracts: {} };
+  let servedServices = null;
   let ctsRegistryCache = null;
   let ctsDomainCache = null;
   let treeOverlaySignature = '';
@@ -40,11 +42,14 @@ export function useProcessDesignerTypes({
 
   // One projection per registry generation: node syncing resolves ports
   // against the same projected domain object instead of rebuilding it per
-  // node per pass.
+  // node per pass. The base domain and service list come from the served
+  // organization projection (mounted packs + installed plugins — the
+  // /api/admin/domain route); before that fetch answers, the documents
+  // pack alone seeds the local fallback.
   function ctsProjectedDomain() {
     if (!ctsDomainCache) {
-      ctsDomainCache = projectDomainFromView(ctsRegistry(), activeOrganizationId(), baseDomain, {
-        packServices: composePackServices()
+      ctsDomainCache = projectDomainFromView(ctsRegistry(), activeOrganizationId(), servedDomain, {
+        packServices: servedServices || composePackServices()
       });
     }
     return ctsDomainCache;
@@ -90,8 +95,9 @@ export function useProcessDesignerTypes({
   }
 
   // One joint: rebuild the designer option lists from the registry view.
-  // The services group and editor registry come from the mounted pack's
-  // operator registrations (SPEC §8/§21). The palette is operation
+  // The services group and editor registry come from the served
+  // organization projection (SPEC §8/§21: mounted packs and installed
+  // plugins). The palette is operation
   // vocabulary only: registry types (pack or organization-declared) are
   // never palette entries — construction happens through the unbound
   // `construct` operation plus a Type pin wire to a class or
@@ -100,13 +106,13 @@ export function useProcessDesignerTypes({
 
   function refreshDesignerFromTypes() {
     const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities, {
-      editors: packContent.editors
+      editors: servedEditors.value
     });
     Object.assign(designer, refreshed);
   }
 
   const designerContract = createProcessDesignerContract(ctsProjectedDomain(), null, {
-    editors: packContent.editors
+    editors: servedEditors.value
   });
   Object.assign(designer, {
     ...designerContract
@@ -166,6 +172,7 @@ export function useProcessDesignerTypes({
     return $fetch('/api/admin/cts/types')
       .then(response => {
         ctsOrgTypes.value = (response.types || []).filter(type => type.scope === 'org');
+        servedEditors.value = response.editors || [];
         resetCtsRegistry();
         refreshDesignerFromTypes();
       })
@@ -178,6 +185,12 @@ export function useProcessDesignerTypes({
         const capabilities = response?.processCapabilities || null;
         if (!capabilities) return;
         designerCapabilities = capabilities;
+        servedDomain = response.domain && typeof response.domain === 'object'
+          ? response.domain
+          : servedDomain;
+        servedServices = Array.isArray(response.services) ? response.services : servedServices;
+        servedCommands.value = response.commands || [];
+        resetCtsRegistry();
         refreshDesignerFromTypes();
       })
       .catch(() => {
@@ -269,6 +282,7 @@ export function useProcessDesignerTypes({
     ctsProjectedDomain,
     ctsTypeView,
     ctsOrgTypes,
+    servedCommands,
     resetCtsRegistry,
     refreshTreeOverlay,
     refreshDesignerFromTypes,

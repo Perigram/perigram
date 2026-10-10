@@ -91,9 +91,35 @@
               "target": { "type": "object" },
               "service": {
                 "type": "string",
-                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)?$",
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
                 "description": "The plugin service that executes the conversion: a bare service id of this plugin, or a plugin-qualified id"
               }
+            }
+          }
+        },
+        "constructions": {
+          "type": "object",
+          "description": "Construction modes of the plugin's own types bound to plugin services: typeId -> mode -> plugin-qualified service ref",
+          "additionalProperties": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9]*$" },
+            "additionalProperties": { "type": "string", "pattern": "^plugin\\.[a-z0-9-]+\\.[a-z0-9-]+$" }
+          }
+        },
+        "exports": {
+          "type": "array",
+          "description": "Attachment exports bound to plugin services",
+          "items": {
+            "type": "object",
+            "required": ["typeId", "kind", "service"],
+            "additionalProperties": true,
+            "properties": {
+              "typeId": { "type": "string", "minLength": 1 },
+              "kind": { "type": "string", "minLength": 1 },
+              "service": { "type": "string", "pattern": "^plugin\\.[a-z0-9-]+\\.[a-z0-9-]+$" },
+              "extension": { "type": "string" },
+              "mime": { "type": "string" }
             }
           }
         }

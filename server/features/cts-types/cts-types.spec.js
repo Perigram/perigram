@@ -48,10 +48,10 @@ describe('cts type storage', () => {
     const bundle = await describeOrganizationTypes(ORG);
     expect(bundle.bundle.ok).toBe(true);
     expect(bundle.bundle.types.some(type => type.id === 'widget' && type.scope === 'org')).toBe(true);
-    expect(bundle.bundle.types.filter(type => type.id === 'cassette')).toHaveLength(1);
+    expect(bundle.bundle.types.filter(type => type.id === 'dxf-source')).toHaveLength(1);
     expect(bundle.bundle.types.filter(type => type.id === 'queue')).toHaveLength(0);
     expect(bundle.bundle.types.filter(type => type.id === 'organization').length).toBeGreaterThan(0);
-    expect(bundle.attachmentKinds.OCCS_SOURCE).toMatchObject({ mimeType: 'application/perigram+occs' });
+    // no mounted pack declares attachment kinds today (the facade kinds ride the installed plugin layer)
   });
 
   it('composes installed plugin declarations as a resolution source beside the org overlay', async () => {
@@ -76,7 +76,6 @@ describe('cts type storage', () => {
     // kinds compose beside the packs under the same laws
     expect(bundle.editors).toContainEqual({ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] });
     expect(bundle.attachmentKinds.COATING_DOC).toMatchObject({ mimeType: 'text/plain' });
-    expect(bundle.editors.some(editor => editor.type === 'cassette')).toBe(true);
   });
 
   it('refuses an installed editor binding the composed view cannot serve', async () => {
@@ -94,21 +93,21 @@ describe('cts type storage', () => {
   });
 
   it('drops disabled packs from the composed org view and its served editors', async () => {
-    pluginInstalls.listDisabledPacks.mockResolvedValue(['facade']);
+    pluginInstalls.listDisabledPacks.mockResolvedValue(['tech-drawing']);
     const { bundle, attachmentKinds, editors } = await describeOrganizationTypes(ORG);
     expect(bundle.ok).toBe(true);
-    expect(bundle.types.some(type => type.id === 'cassette')).toBe(false);
-    expect(editors.some(editor => editor.type === 'cassette')).toBe(false);
-    expect(Object.keys(attachmentKinds)).not.toContain('OCCS_SOURCE');
+    expect(bundle.types.some(type => type.id === 'dxf-source')).toBe(false);
+    expect(editors.some(editor => editor.type === 'dxf-source')).toBe(false);
     pluginInstalls.listDisabledPacks.mockResolvedValue([]);
   });
 
   it('serves the composed pack editor bindings with the type view', async () => {
     const described = await describeOrganizationTypes(ORG);
     const byType = new Map((described.editors || []).map(editor => [editor.type, editor]));
-    expect(byType.get('cassette')).toMatchObject({ surface: 'cassette-designer', modes: ['create', 'edit'] });
-    expect(byType.get('sheet-design')).toMatchObject({ surface: 'sheet-design-editor', modes: ['edit'] });
-    expect(byType.get('facade-design')).toBeUndefined();
+    // mounted-pack editors (documents/tech-drawing); the cassette and
+    // sheet-design bindings arrive from the installed facade plugin layer
+    expect(byType.size).toBeGreaterThan(0);
+    expect(byType.get('cassette')).toBeUndefined();
   });
 
   it('stores valid org declarations after full-view compile', async () => {
@@ -388,13 +387,13 @@ describe('cts type storage', () => {
 
   it('refuses shadowing a system type', async () => {
     await expect(defineType(
-      { id: 'cassette', class: 'file', fields: { rogue: { base: 'string' } } },
+      { id: 'dxf-source', class: 'file', fields: { rogue: { base: 'string' } } },
       { organizationId: ORG }
     )).rejects.toThrow(/shadows a system type/);
   });
 
   it('deletes org types, refuses system types', async () => {
-    await expect(removeType('cassette', { organizationId: ORG })).rejects.toThrow(/System types/);
+    await expect(removeType('dxf-source', { organizationId: ORG })).rejects.toThrow(/System types/);
     repository.listByOrganization.mockResolvedValue([
       { id: 'widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: {} }
     ]);
@@ -447,7 +446,7 @@ describe('cts type storage', () => {
 
   it('exposes a registry for downstream runtimes', async () => {
     const registry = await compileRegistryForOrganization(ORG);
-    expect(registry.getType('cassette')).toBeTruthy();
-    expect(registry.getType('cassette', 'other-org')?.scope).toBe('system');
+    expect(registry.getType('dxf-source')).toBeTruthy();
+    expect(registry.getType('dxf-source', 'other-org')?.scope).toBe('system');
   });
 });

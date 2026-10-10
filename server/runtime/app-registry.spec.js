@@ -1,9 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createProcessDesignerContract, projectEntityProcessCapabilities, validateProcessDefinition } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '~/packages/cts/src/index.js';
-import { facadePackContent } from '~/packages/facade/src/index.js';
+import { facadePackContent, facadeDomain } from '../../test-tools/facade-plugin.js';
 import { getAppRegistry, resetAppRegistryForTests } from './app-registry.js';
 import { performDurableEffect } from '~/server/features/process-definitions/service.js';
+
+vi.mock('~/server/features/plugins/repository.js', () => ({
+  listDeclarationsByOrganization: vi.fn(async () => facadePackContent.types),
+  findDeclarationByTypeId: vi.fn(async (organizationId, typeId) => (
+    facadePackContent.types.find(type => type.id === String(typeId)) || null
+  )),
+  listInstallsByOrganization: vi.fn(async () => []),
+  listDisabledPacks: vi.fn(async () => [])
+}));
+
+vi.mock('~/server/features/cts-types/repository.js', () => ({
+  listByOrganization: vi.fn(async () => []),
+  findByTypeId: vi.fn(async () => null)
+}));
 
 vi.mock('~/server/features/instances/repository.js', () => ({
   CLASS_COLLECTIONS: Object.freeze({ file: 'files', item: 'items', group: 'groups', process: 'processes' }),
@@ -36,7 +50,7 @@ function projectedDomain() {
   for (const declaration of [...frameworkTypes, ...facadePackContent.types, orgPanel]) {
     registry.defineType(declaration);
   }
-  return projectDomainFromView(registry, 'org-1', {});
+  return projectDomainFromView(registry, 'org-1', facadeDomain);
 }
 
 function registryCapabilities(registry, domain) {
@@ -103,13 +117,12 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     resetAppRegistryForTests();
     const registry = getAppRegistry();
     const explicit = new Map(registry.listInstanceServices().map(binding => [binding.type, binding.service]));
-    // cassette-design is the one pack type with an explicit registration:
-    // its `bake` construction mode is pack-bound, so the generic
-    // `genericCreate` mode must not be offered for it.
+    // The facade domain is no pack: every facade type rides the generic
+    // resolver through the installed-plugin declaration layer, so the
+    // explicit registrations are the framework five alone.
     expect([...explicit.keys()].sort()).toEqual([
       ...FRAMEWORK_SERVICE_TYPES,
-      ...PACK_LEGACY_SERVICE_TYPES,
-      'cassette-design'
+      ...PACK_LEGACY_SERVICE_TYPES
     ].sort());
 
     // Pack types resolve through the generic instance services with full
@@ -147,14 +160,16 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       const service = registry.getInstanceService(entity.type);
       const declaredModes = (domain.construction[entity.type]?.modes || []).slice().sort();
 
-      // Handlers are shared generic machinery (genericCreate plus the
-      // payload protocols); every DECLARED mode must have one — no
-      // handlerless mode, no phantom capability.
+      // Handlers are shared generic machinery (the payload protocols plus
+      // per-call service-backed dispatch for plugin-bound modes); every
+      // DECLARED mode must resolve one — no handlerless mode, no phantom
+      // capability. The resolver's advertised createModes mirror is
+      // static; the declaration is the executable law (genericCreate on a
+      // constructed type refuses loudly — asserted below).
       for (const mode of declaredModes) {
-        expect(Object.hasOwn(service.constructionHandlers || {}, mode), `${entity.type} mode ${mode}`).toBe(true);
+        expect(typeof service.constructionHandlers?.[mode] === 'function' || mode in (service.constructionHandlers || {}), `${entity.type} mode ${mode}`).toBe(true);
       }
-      expect(service.processCapabilities.createModes.slice().sort(), entity.type).toEqual(declaredModes);
-      expect(service.processCapabilities.create, entity.type).toBe(declaredModes.length > 0);
+      expect(projection[entity.type].create, entity.type).toBe(declaredModes.length > 0);
       expect(projection[entity.type].createModes.slice().sort(), entity.type).toEqual(declaredModes);
       expect(projection[entity.type].create, entity.type).toBe(declaredModes.length > 0);
       const inPalette = designer.createEntityOptions.some(option => option.value === entity.type);

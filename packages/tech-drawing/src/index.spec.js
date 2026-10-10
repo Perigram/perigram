@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, checkValue } from '~/packages/cts/src/index.js';
-import { facadePackContent } from '@perigram/facade';
+import { facadePackContent } from '../../../test-tools/facade-plugin.js';
 import { techDrawingPack, techDrawingTypes } from './index.js';
 
 // The tech-drawing pack contract (SPEC §21): declarations compile against

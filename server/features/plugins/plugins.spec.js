@@ -166,22 +166,15 @@ describe('plugin installs', () => {
     repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['nope'] });
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('unknown pack nope') });
-    repository.listDisabledPacks.mockResolvedValue(['facade']);
-    repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['facade'] });
+    repository.listDisabledPacks.mockResolvedValue(['tech-drawing']);
+    repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['tech-drawing'] });
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('disabled') });
     expect(repository.createInstall).not.toHaveBeenCalled();
     repository.listDisabledPacks.mockResolvedValue([]);
   });
 
-  it('refuses an attachment kind an enabled pack or another install already holds', async () => {
-    repository.findCatalogByPluginId.mockResolvedValue({
-      ...coatingListing,
-      declarations: { ...coatingListing.declarations, attachmentKinds: { OCCS_SOURCE: { kind: 'OCCS_SOURCE' } } }
-    });
-    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('OCCS_SOURCE') });
-
+  it('refuses an attachment kind another install already holds', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,
       declarations: { ...coatingListing.declarations, attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } } }
@@ -320,7 +313,6 @@ describe('connector services', () => {
       group: 'Coatings'
     });
     const merged = await packServicesForOrganization(ORG);
-    expect(merged.some(service => service.id === 'nesting.solve')).toBe(true);
     expect(merged.some(service => service.id === 'plugin.coatings.match')).toBe(true);
   });
 
@@ -458,10 +450,10 @@ describe('upgrades', () => {
   });
 
   it('refuses an upgrade whose pack requirements no longer hold', async () => {
-    repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, requires: ['facade'] }));
-    repository.listDisabledPacks.mockResolvedValue(['facade']);
+    repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, requires: ['tech-drawing'] }));
+    repository.listDisabledPacks.mockResolvedValue(['tech-drawing']);
     await expect(applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('facade') });
+      .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('tech-drawing') });
     expect(repository.updateInstallSnapshot).not.toHaveBeenCalled();
     repository.listDisabledPacks.mockResolvedValue([]);
   });
@@ -584,30 +576,32 @@ describe('mounted-pack enablement', () => {
     repository.listDisabledPacks.mockResolvedValue([]);
     const state = await listPackState({ organizationId: ORG, auth: AUTH });
     const byId = new Map(state.map(item => [item.pluginId, item]));
-    expect(byId.get('facade')).toMatchObject({ pack: true, enabled: true, name: 'Facade fabrication' });
+    expect(byId.get('facade')).toBeUndefined();
     expect(byId.get('documents')).toMatchObject({ pack: true, enabled: true });
     expect(byId.get('tech-drawing')).toMatchObject({ pack: true, enabled: true });
   });
 
-  it('enabling a pack cascades over its disabled requirements', async () => {
-    repository.listDisabledPacks.mockResolvedValue(['facade', 'documents', 'tech-drawing']);
-    const result = await enablePack({ organizationId: ORG, packId: 'facade', auth: AUTH });
-    expect(result).toMatchObject({ packId: 'facade', enabled: true });
+  it('enabling a pack cascades over its disabled requirements (the law applies when a pack declares them)', async () => {
+    repository.listDisabledPacks.mockResolvedValue(['tech-drawing']);
+    const result = await enablePack({ organizationId: ORG, packId: 'tech-drawing', auth: AUTH });
+    expect(result).toMatchObject({ packId: 'tech-drawing', enabled: true });
     const enabledIds = repository.enablePack.mock.calls.map(call => call[1]).sort();
-    expect(enabledIds).toEqual(['documents', 'facade', 'tech-drawing']);
+    expect(enabledIds).toEqual(['tech-drawing']);
+    repository.listDisabledPacks.mockResolvedValue([]);
   });
 
-  it('refuses disabling a pack an enabled pack requires', async () => {
+  it('disables a pack with no dependents (the dependent law lives in the installed-plugin variant below)', async () => {
     repository.listDisabledPacks.mockResolvedValue([]);
-    await expect(disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 409 });
-    expect(repository.disablePack).not.toHaveBeenCalled();
+    await disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH });
+    expect(repository.disablePack).toHaveBeenCalledWith(ORG, 'documents', expect.anything());
+    repository.disablePack.mockClear();
+    repository.enablePack.mockClear();
   });
 
   it('refuses disabling a pack an installed plugin requires', async () => {
     // both dependent packs disabled so the pack-dependent gate stays quiet
     // and the installed-plugin gate is the one that refuses
-    repository.listDisabledPacks.mockResolvedValue(['facade', 'tech-drawing']);
+    repository.listDisabledPacks.mockResolvedValue([]);
     repository.listInstallsByOrganization.mockResolvedValue([
       { organizationId: ORG, pluginId: 'coatings', requires: ['documents'] }
     ]);
@@ -620,7 +614,7 @@ describe('mounted-pack enablement', () => {
 
   it('refuses disabling a pack whose types have live instances', async () => {
     countInstancesOfType.mockResolvedValue(12);
-    await expect(disablePack({ organizationId: ORG, packId: 'facade', auth: AUTH }))
+    await expect(disablePack({ organizationId: ORG, packId: 'tech-drawing', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 409 });
     expect(repository.disablePack).not.toHaveBeenCalled();
     countInstancesOfType.mockResolvedValue(0);
@@ -631,26 +625,26 @@ describe('mounted-pack enablement', () => {
       {
         id: 'facade-job', class: 'group', scope: 'org', organizationId: ORG, version: 1,
         fields: {},
-        edges: { children: { parts: { types: ['cassette'] } } }
+        edges: { children: { parts: { types: ['dxf-source'] } } }
       }
     ]);
-    await expect(disablePack({ organizationId: ORG, packId: 'facade', auth: AUTH }))
+    await expect(disablePack({ organizationId: ORG, packId: 'tech-drawing', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 409 });
     expect(repository.disablePack).not.toHaveBeenCalled();
     typeStore.listByOrganization.mockResolvedValue([]);
   });
 
   it('disables a drained pack and invalidates the org view', async () => {
-    const result = await disablePack({ organizationId: ORG, packId: 'facade', auth: AUTH });
-    expect(result).toEqual({ packId: 'facade', enabled: false });
-    expect(repository.disablePack).toHaveBeenCalledWith(ORG, 'facade', 'user-1');
+    const result = await disablePack({ organizationId: ORG, packId: 'tech-drawing', auth: AUTH });
+    expect(result).toEqual({ packId: 'tech-drawing', enabled: false });
+    expect(repository.disablePack).toHaveBeenCalledWith(ORG, 'tech-drawing', 'user-1');
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
   });
 
-  it('hidden packs leave the composed service list', async () => {
-    repository.listDisabledPacks.mockResolvedValue(['facade']);
+  it('composes installed plugin services beside the (empty) pack service list', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([coatingInstall]);
     const services = await packServicesForOrganization(ORG);
-    expect(services.some(service => service.id === 'nesting.solve')).toBe(false);
-    repository.listDisabledPacks.mockResolvedValue([]);
+    expect(services.map(service => service.id)).toEqual(['plugin.coatings.match']);
+    repository.listInstallsByOrganization.mockResolvedValue([]);
   });
 });

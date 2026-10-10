@@ -4,10 +4,9 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { facadeCommands, facadeEvents, facadeFileTypes } from '../packages/facade/src/index.js';
 import { composeSystemDeclarations, orderedMountedPacks } from '../server/packs/declarations.js';
 import { frameworkTypes } from '../packages/cts/src/index.js';
-import { frameworkCommandDefinitions } from '../server/core/commands/definitions.js';
+import { frameworkCommandDefinitions, frameworkEventDefinitions } from '../server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
 
 const FEATURES_DIR = './server/features';
@@ -25,25 +24,17 @@ const genericInstanceTypes = new Set([
   'color', 'dxf-source', 'svg-file', 'sketch',
   // tech-drawing catalogue types whose legacy feature directories are gone:
   // system instances live as §3 documents served by the generic machinery
-  'pen-template', 'layer-standard',
-  // pack production type served by the generic machinery with one
-  // pack-bound construction mode (bake); its handler lives in the
-  // cassettes feature
-  'cassette-design',
+  'pen-template', 'layer-standard'
 ]);
 const classifiedDeclarations = [...frameworkTypes, ...composeSystemDeclarations()]
   .filter(declaration => !genericInstanceTypes.has(declaration.id));
 const FEATURE_DIRECTORY_ALIASES = new Map([
   ['entity-revisions', 'instance-revisions']
 ]);
-// Pack-owned feature implementations: declared features that live inside
-// their pack module (the pack is the deletion unit) instead of the
-// framework features directory. check-arch accepts either home.
-const PACK_OWNED_FEATURES = new Map([
-  ['cassettes', 'packages/facade/server/cassettes'],
-  ['nesting', 'packages/facade/server/nesting'],
-  ['sheet-designs', 'packages/facade/server/sheet-designs']
-]);
+// The facade domain is not a mounted pack: it installs per organization as
+// the facade plugin (workers/facade + the listing) and its types ride the
+// generic instance machinery through the installed-plugin layer.
+const PACK_OWNED_FEATURES = new Map();
 const ENTITY_FEATURES = classifiedDeclarations.map(declaration => (
   FEATURE_DIRECTORY_ALIASES.get(entityTypeToFeature(declaration.id)) || entityTypeToFeature(declaration.id)
 ));
@@ -402,7 +393,7 @@ console.log('\nChecking domain event contracts...');
 // The deleted legacy effect-policy table was the old consumer contract;
 // declared definitions are the boundary the guard enforces now.
 const eventPolicies = [];
-const eventDefinitions = new Map(Object.values(facadeEvents || {}).map(event => [event.id, event]));
+const eventDefinitions = new Map(Object.values(frameworkEventDefinitions).map(event => [event.id, event]));
 const checkDeclaredOutputEvents = (ownerType, ownerId, events = []) => {
   for (const eventId of events || []) {
     const event = eventDefinitions.get(eventId);
@@ -419,7 +410,7 @@ const checkDeclaredOutputEvents = (ownerType, ownerId, events = []) => {
   }
 };
 
-Object.values({ ...facadeCommands, ...frameworkCommandDefinitions }).forEach(command => {
+Object.values(frameworkCommandDefinitions).forEach(command => {
   checkDeclaredOutputEvents('Command', command.id, command.output?.events || []);
 });
 Object.values(frameworkTaskDefinitions || {}).forEach(task => {
@@ -513,50 +504,9 @@ genericUiFiles.forEach(file => {
   }
 });
 
-// 11. Duplicate object keys in domain registry files
-console.log('\nChecking duplicate object keys...');
-const objectKeyFiles = [
-  'packages/facade/src/commands.js',
-  'packages/facade/src/events.js'
-];
-objectKeyFiles.forEach(file => {
-  const content = fs.readFileSync(file, 'utf8');
-  const lines = content.split('\n');
-  let braceDepth = 0;
-  let arrayDepth = 0;
-  const keyPositions = new Map();
-  let inTopLevelObject = false;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (/^export const \w+\s*=\s*\{/.test(line.trim())) {
-      inTopLevelObject = true;
-      braceDepth = 0;
-      arrayDepth = 0;
-      keyPositions.clear();
-      continue;
-    }
-    if (!inTopLevelObject) continue;
-    braceDepth += (line.match(/\{/g) || []).length;
-    braceDepth -= (line.match(/\}/g) || []).length;
-    if (braceDepth <= 0) {
-      inTopLevelObject = false;
-      continue;
-    }
-    arrayDepth += (line.match(/\[/g) || []).length;
-    arrayDepth -= (line.match(/\]/g) || []).length;
-    if (arrayDepth > 0) continue;
-    const keyMatch = line.match(/^\s*(\w+)\s*:\s*/);
-    if (keyMatch && braceDepth === 1) {
-      const key = keyMatch[1];
-      if (keyPositions.has(key)) {
-        console.error(`❌ ${file}:${i + 1} duplicate object key [${key}] (also at line ${keyPositions.get(key)})`);
-        errors++;
-      } else {
-        keyPositions.set(key, i + 1);
-      }
-    }
-  }
-});
+// 11. (the duplicate-key harness for pack registry files died with the
+// facade pack — plugin declarations are JSON listings validated by the
+// SDK contract)
 
 // 12. Concrete entity-name branches in @perigram/processes
 console.log('\nChecking concrete entity-name branches in @perigram/processes...');

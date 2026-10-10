@@ -349,7 +349,10 @@ const handleUpload = async () => {
             }
           }
         })
-      : await $fetch('/api/cassettes/import', { method: 'POST', body: data });
+      : await $fetch('/api/artifact-conversions', {
+          method: 'POST',
+          body: { artifactId: data.artifactId, conversion: 'dxfSourceToCassette', name: data.name, layerMapping: data.layerMapping, parameters: data.parameters }
+        });
     const uploadedTemplate = uploadResult?.template || uploadResult;
 
     emit('uploaded', uploadedTemplate);

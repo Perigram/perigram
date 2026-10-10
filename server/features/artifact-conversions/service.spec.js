@@ -1,21 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// The conversion machinery is pack-agnostic: the catalog (declared
-// conversions and entity-target executors) is injected by the mounted
-// pack's command-handler override (see server/packs/facade). These tests
-// drive the generic halves with an inline catalog — no domain imports.
-const { createUploadedMock, bucketNameForTypeMock, entityRunMock, getFileBufferMock } = vi.hoisted(() => ({
+// The conversion machinery is plugin-agnostic: the catalog (declared
+// conversions) comes from the organization's installed plugins, and
+// entity targets dispatch to the plugin's executor service. These tests
+// drive the generic halves with an inline catalog and a mocked connector
+// path — no domain imports.
+const { createUploadedMock, bucketNameForTypeMock, executeConnectorServiceMock, getFileBufferMock, uploadFileMock, instanceCreateMock } = vi.hoisted(() => ({
   createUploadedMock: vi.fn(),
   bucketNameForTypeMock: vi.fn(),
-  entityRunMock: vi.fn(),
-  getFileBufferMock: vi.fn()
+  executeConnectorServiceMock: vi.fn(),
+  getFileBufferMock: vi.fn(),
+  uploadFileMock: vi.fn(),
+  instanceCreateMock: vi.fn()
 }));
 
 vi.mock('../artifacts/service.js', () => ({
   createUploaded: createUploadedMock,
   bucketNameForType: bucketNameForTypeMock
 }));
-vi.mock('../files/service.js', () => ({ getFileBuffer: getFileBufferMock }));
+vi.mock('../files/service.js', () => ({ getFileBuffer: getFileBufferMock, uploadFile: uploadFileMock }));
+vi.mock('../plugins/service.js', () => ({ executeConnectorService: executeConnectorServiceMock }));
+vi.mock('../instances/service.js', () => ({
+  instanceServiceResolver: () => ({ create: instanceCreateMock })
+}));
 
 import { convertArtifact } from './service.js';
 
@@ -31,7 +38,7 @@ const conversions = [
     label: 'Import widget',
     sourceKinds: ['DXF_SOURCE'],
     target: { kind: 'entity', typeId: 'widget' },
-    run: entityRunMock
+    service: 'plugin.widgets.import-widget'
   }
 ];
 
@@ -62,23 +69,48 @@ describe('artifact conversion service', () => {
     expect(result).toMatchObject({ type: 'artifact', entity: { _id: 'converted-1' } });
   });
 
-  it('delegates entity targets to the pack-registered executor with the conversion inputs', async () => {
-    entityRunMock.mockResolvedValue({ type: 'widget', entity: { _id: 'widget-1' } });
+  it('dispatches entity targets to the plugin executor and creates through the instance machinery', async () => {
     const auth = { userId: 'user-1', organizationId: 'org-1', role: 'member' };
+    getFileBufferMock.mockResolvedValue(Buffer.from('DXFBYTES'));
+    executeConnectorServiceMock.mockResolvedValue({
+      payloadBase64: Buffer.from('DXFBYTES').toString('base64'),
+      payloadMime: 'application/dxf',
+      filename: 'widget.dxf',
+      fields: { templateType: 'STANDARD' }
+    });
+    uploadFileMock.mockResolvedValue({ id: 'file-9' });
+    instanceCreateMock.mockResolvedValue({ _id: 'widget-1', type: 'widget' });
     const result = await convertArtifact({
-      artifact: { _id: 'dxf-1', data: { type: 'DXF_SOURCE' } },
+      artifact: {
+        _id: 'dxf-1',
+        data: { type: 'DXF_SOURCE' },
+        identity: { name: 'Source' },
+        attachments: { primary: { fileId: 'f-1', name: 'src.dxf' } },
+        lineage: { job: 'j-1' }
+      },
       conversionId: 'dxfSourceToWidget',
       name: 'Imported widget',
       layerMapping: { CUT: 'cut.outer' }
     }, auth, { conversions });
 
-    expect(entityRunMock).toHaveBeenCalledWith({
-      artifact: { _id: 'dxf-1', data: { type: 'DXF_SOURCE' } },
-      name: 'Imported widget',
-      layerMapping: { CUT: 'cut.outer' },
-      parameters: undefined
-    }, auth);
-    expect(result).toEqual({ type: 'widget', entity: { _id: 'widget-1' } });
+    expect(executeConnectorServiceMock).toHaveBeenCalledWith(
+      { id: 'plugin.widgets.import-widget' },
+      {
+        parameters: expect.objectContaining({
+          artifact: expect.objectContaining({ id: 'dxf-1', type: 'DXF_SOURCE' }),
+          name: 'Imported widget',
+          layerMapping: { CUT: 'cut.outer' }
+        }),
+        auth
+      }
+    );
+    expect(uploadFileMock).toHaveBeenCalled();
+    expect(instanceCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ identity: { name: 'Imported widget' }, data: { templateType: 'STANDARD' } }),
+      'user-1',
+      'org-1'
+    );
+    expect(result).toEqual({ type: 'widget', entity: { _id: 'widget-1', type: 'widget' } });
   });
 
   it('refuses unknown conversion ids and mismatched source kinds', async () => {
@@ -90,9 +122,9 @@ describe('artifact conversion service', () => {
     }, {}, { conversions })).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('refuses entity conversions whose pack executor is not mounted', async () => {
+  it('refuses entity conversions without a service binding', async () => {
     const executorless = conversions.map(entry => (
-      entry.id === 'dxfSourceToWidget' ? { ...entry, run: undefined } : entry
+      entry.id === 'dxfSourceToWidget' ? { ...entry, service: undefined } : entry
     ));
     await expect(convertArtifact({
       artifact: { _id: 'a', data: { type: 'DXF_SOURCE' } },

@@ -14,7 +14,7 @@ import {
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { createTypeRegistry, projectDomainFromView, resolveCtsRecord, frameworkTypes } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
-import { facadeDomain, facadeServices } from '@perigram/facade';
+import { facadeDomain, facadeServices } from '../../../test-tools/facade-plugin.js';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'palette-trace' });

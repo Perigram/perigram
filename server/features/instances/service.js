@@ -19,6 +19,7 @@ import { listQueryFilter } from './filters.js';
 import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { hasInstanceAccess } from '../../core/access/service.js';
+import { serviceAwareConstructionHandlers, applyConstructionService } from './construction-services.js';
 
 // The composed system view (framework + mounted packs in dependency
 // order): every pack type is executable through the generic instance
@@ -548,24 +549,46 @@ function instanceService(typeId) {
       delete: true,
       archive: false
     },
-    constructionHandlers: {
-      genericCreate: (draft, context = {}) => instanceService(typeId).create(
-        draft, context.userId, context.organizationId
-      ),
+    constructionHandlers: serviceAwareConstructionHandlers(typeId, {
+      genericCreate: async (draft, context = {}) => {
+        // Types that declare construction modes (payload creation
+        // protocols or construct operators) never offer a bare generic
+        // create — a record without its constructed geometry is
+        // meaningless. The pack-registration world enforced this at mount;
+        // for plugin/org types the declaration is the law, resolved per
+        // call.
+        const declaration = await declarationFor(typeId, context.organizationId || null);
+        const declaredModes = [
+          ...Object.values(declaration?.operators || {})
+            .filter(operator => operator?.species === 'construct')
+            .map(operator => operator.id),
+          ...(declaration?.payload?.creation || ['upload']).map(String)
+        ];
+        const hasProtocols = Boolean(declaration?.payload) || declaredModes.length > 0;
+        if (hasProtocols && !(declaredModes.includes('genericCreate'))) {
+          throw createError({
+            statusCode: 400,
+            message: `${typeId} declares construction modes [${declaredModes.join(', ')}] — genericCreate is not offered for it`
+          });
+        }
+        return await instanceService(typeId).create(draft, context.userId, context.organizationId);
+      },
       // Payload creation protocols (SPEC §4): upload/capture require the
       // payload reference the dialog uploaded (trait-validated by the
       // construct path); editor constructs a blank instance whose first
-      // editor save fills the payload.
-      upload: (draft, context = {}) => instanceService(typeId).createWithPayloadProtocol(
-        draft, context, 'upload'
+      // editor save fills the payload. Types whose installed plugin binds
+      // a construction service for the mode run the executor first and
+      // merge its computed fields into the created record.
+      upload: async (draft, context = {}) => instanceService(typeId).createWithPayloadProtocol(
+        await applyConstructionService(typeId, 'upload', draft, context), context, 'upload'
       ),
-      capture: (draft, context = {}) => instanceService(typeId).createWithPayloadProtocol(
-        draft, context, 'capture'
+      capture: async (draft, context = {}) => instanceService(typeId).createWithPayloadProtocol(
+        await applyConstructionService(typeId, 'capture', draft, context), context, 'capture'
       ),
       editor: (draft, context = {}) => instanceService(typeId).create(
         draft, context.userId, context.organizationId
       )
-    }
+    })
   };
 }
 

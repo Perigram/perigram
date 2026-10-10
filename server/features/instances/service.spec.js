@@ -69,7 +69,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
   it('stores flat fields + state and projects the wire DTO', async () => {
     const coll = stubCollection();
     coll.findOneAndUpdate.mockResolvedValue(null); // create path ignores it; update test sets its own
-    const service = instanceServiceResolver('cassette'); // pack type: static declaration, name row field
+    const service = instanceServiceResolver('dxf-source'); // mounted pack file type: static declaration, name row field
 
     const dto = await service.create(
       { identity: { name: 'My cassette' }, data: { name: 'My cassette' }, state: 'draft', lineage: {} },
@@ -78,7 +78,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     );
 
     const stored = coll.insertOne.mock.calls[0][0];
-    expect(stored.type).toBe('cassette');
+    expect(stored.type).toBe('dxf-source');
     expect(stored.fields).toEqual({ name: 'My cassette' });
     expect(stored.state).toBe('draft');
     expect(stored.organizationId).toBe('org-1');
@@ -88,7 +88,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(stored.status).toBeUndefined();
 
     expect(dto).toMatchObject({
-      type: 'cassette',
+      type: 'dxf-source',
       identity: { name: 'My cassette' },
       state: 'draft',
       data: { name: 'My cassette' }
@@ -135,8 +135,8 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
   it('maps wire patch paths to §3 field writes', async () => {
     const coll = stubCollection();
-    coll.findOneAndUpdate.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'cassette', typeVersion: 1, fields: { name: 'Renamed' }, states: { main: 'active' }, lineage: {} });
-    const service = instanceServiceResolver('cassette');
+    coll.findOneAndUpdate.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'dxf-source', typeVersion: 1, fields: { name: 'Renamed' }, states: { main: 'active' }, lineage: {} });
+    const service = instanceServiceResolver('dxf-source');
 
     await service.processUpdate('507f1f77bcf86cd799439011', {
       data: { name: 'Renamed' },
@@ -154,19 +154,19 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
   it('validates and stores the payload slot from either wire shape', async () => {
     const coll = stubCollection();
-    const service = instanceServiceResolver('cassette'); // mounted pack file type, raw payload traits
+    const service = instanceServiceResolver('dxf-source'); // mounted pack file type, raw payload traits
 
     const dto = await service.create(
-      { payload: { fileId: 'file-1', mime: 'application/perigram+occs', size: 1024 } },
+      { payload: { fileId: 'file-1', mime: 'application/dxf', size: 1024 } },
       'user-1',
       'org-1'
     );
     const stored = coll.insertOne.mock.calls[0][0];
-    expect(stored.payload).toEqual({ fileId: 'file-1', mime: 'application/perigram+occs', size: 1024 });
-    expect(dto.attachments.primary).toEqual({ fileId: 'file-1', mime: 'application/perigram+occs', size: 1024 });
+    expect(stored.payload).toEqual({ fileId: 'file-1', mime: 'application/dxf', size: 1024 });
+    expect(dto.attachments.primary).toEqual({ fileId: 'file-1', mime: 'application/dxf', size: 1024 });
 
     const legacy = await service.create(
-      { attachments: { primary: { fileId: 'file-2', mime: 'application/perigram+occs' } } },
+      { attachments: { primary: { fileId: 'file-2', mime: 'application/dxf' } } },
       'user-1',
       'org-1'
     );
@@ -190,22 +190,22 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
   it('rejects payload references that violate the declared traits', async () => {
     stubCollection();
-    const cassette = instanceServiceResolver('cassette');
-    await expect(cassette.create({ payload: { fileId: 'f', mime: 'image/png' } }, 'user-1', 'org-1'))
+    const cassette = instanceServiceResolver('dxf-source');
+    await expect(cassette.create({ payload: { fileId: 'f', mime: 'text/plain' } }, 'user-1', 'org-1'))
       .rejects.toMatchObject({ statusCode: 400 });
     await expect(cassette.create({ payload: {} }, 'user-1', 'org-1'))
       .rejects.toMatchObject({ statusCode: 400 });
 
     const panel = instanceServiceResolver('panel'); // org item type without payload traits
-    await expect(panel.create({ payload: { fileId: 'f', mime: 'image/png' } }, 'user-1', 'org-1'))
+    await expect(panel.create({ payload: { fileId: 'f', mime: 'text/plain' } }, 'user-1', 'org-1'))
       .rejects.toMatchObject({ statusCode: 400 });
   });
 
   it('stores provenance verbatim and never patches it', async () => {
     const coll = stubCollection();
-    coll.findOneAndUpdate.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'cassette', fields: {}, lineage: {} });
-    const service = instanceServiceResolver('cassette');
-    const provenance = { op: 'effect.createEntity:n1:bake', sources: [{ type: 'cassette', id: 'c-1' }], effective: { via: 'bake', targetState: 'READY' } };
+    coll.findOneAndUpdate.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'dxf-source', fields: {}, lineage: {} });
+    const service = instanceServiceResolver('dxf-source');
+    const provenance = { op: 'effect.createEntity:n1:bake', sources: [{ type: 'dxf-source', id: 'c-1' }], effective: { via: 'bake', targetState: 'READY' } };
 
     const dto = await service.create({ provenance }, 'user-1', 'org-1');
     expect(coll.insertOne.mock.calls[0][0].provenance).toEqual(provenance);
@@ -255,7 +255,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
   it('stores tenancy in the §3 slot and re-projects it onto the wire lineage', async () => {
     const coll = stubCollection();
-    const service = instanceServiceResolver('cassette');
+    const service = instanceServiceResolver('dxf-source');
 
     const dto = await service.create(
       { identity: { name: 'Scoped' }, lineage: { projectId: 'p-1', organizationId: 'org-1' } },
@@ -448,11 +448,11 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('requires a payload file') });
 
     const shot = await image.constructionHandlers.upload(
-      { identity: { name: 'Shot' }, payload: { fileId: 'img-1', mime: 'image/png', size: 2048 } },
+      { identity: { name: 'Shot' }, payload: { fileId: 'img-1', mime: 'image/jpeg', size: 2048 } },
       { userId: 'u-1', organizationId: 'org-1' }
     );
     expect(shot.type).toBe('image');
-    expect(coll.insertOne.mock.calls[0][0].payload).toMatchObject({ fileId: 'img-1', mime: 'image/png' });
+    expect(coll.insertOne.mock.calls[0][0].payload).toMatchObject({ fileId: 'img-1', mime: 'image/jpeg' });
 
     const sketch = instanceServiceResolver('sketch'); // editor protocol: blank-first-save
     const blank = await sketch.constructionHandlers.editor({ identity: { name: 'Field notes' } }, { userId: 'u-1', organizationId: 'org-1' });

@@ -17,7 +17,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
-import { facadeDomain, facadePackContent } from '@perigram/facade';
+import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
 function projectedDomain() {

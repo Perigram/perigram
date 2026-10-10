@@ -15,7 +15,7 @@ vi.mock('../plugins/repository.js', () => ({
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
   const pack = await import('~/packages/cts/src/pack/cnc.js');
-  const domainPack = await import('@perigram/facade');
+  const domainPack = await import('../../../test-tools/facade-plugin.js');
   const registry = cts.createTypeRegistry({ id: 'spec-cts' });
   for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.facadeFileTypes]) {
     registry.defineType(declaration);
