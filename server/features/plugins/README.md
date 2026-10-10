@@ -11,12 +11,16 @@ executors through the worker protocol.
 ## Contract
 
 - **Catalog** (`plugin_catalog`): one listing per `pluginId` —
-  `{ pluginId, name, description, version, declarations: { types } }`.
-  Platform-published only; organizations never write it. Publishing
-  rides `server/scripts/plugins-catalog-publish.js <listing.json>`
-  (publisher UI is a later slice).
+  `{ pluginId, name, description, version, requires?, declarations: { types,
+  services, editors, attachmentKinds, conversions } }`.
+  Platform-published only; organizations never write it. Publishing rides
+  `POST /api/plugins/catalog` (operator token) — the
+  [@perigram/plugin-sdk](../../../packages/plugin-sdk/README.md) CLI wraps
+  it (`perigram-plugin publish`); the listing contract is validated by the
+  SDK's `parseListing`, the same parser the install gate runs.
 - **Installs** (`plugin_installs`): one per organization+plugin —
-  `{ organizationId, pluginId, name, version, declarations, installedAt }`.
+  `{ organizationId, pluginId, name, version, declarations, services,
+  requires, connectorToken, installedAt }`.
   The install **snapshots** the listing's declarations: the pinned
   version is the data, so catalog changes never reach an installed
   organization until it upgrades (upgrade flow is a later slice riding
@@ -60,7 +64,14 @@ executors through the worker protocol.
   plugin type id must be free (no system, installed, or org declaration
   holds it; the no-shadowing rule), each type must define cleanly, and
   the compile must introduce no new errors. A refused install writes
-  nothing.
+  nothing. Beside it: a `requires` entry must name a mounted pack that is
+  enabled for the organization (a disabled requirement strands the
+  plugin's types), and an attachment-kind id must be unclaimed (enabled
+  packs and other installs hold their kinds globally — collisions
+  refuse). Editor bindings ride the listing contract (the bound type must
+  be the plugin's own `file` type, one editor per type) and compose into
+  the served type view beside the packs
+  ([cts-types](../cts-types/README.md)).
 - **Mounted-pack enablement**: the installed list includes the mounted
   domain packs (the facade and its dependencies) — enabled by default,
   zero migration. `GET .../plugins/state` serves the combined pack +
@@ -68,7 +79,8 @@ executors through the worker protocol.
   (cascading over its requirements), `DELETE` disables one under the
   same drain law as a plugin uninstall: live instances or process
   bindings on any pack type refuse, an enabled dependent pack refuses,
-  and a trial compose of the org view without the pack refuses when
+  an installed plugin whose `requires` names the pack refuses, and a
+  trial compose of the org view without the pack refuses when
   org-authored declarations still reference its types. Disablement
   records live in `pack_disablements`; absence is enabled. This is the
   management plane the facade extraction lands in — the org-facing
@@ -82,11 +94,14 @@ executors through the worker protocol.
   block the apply (zero-instance types re-break freely, mirroring org
   authoring relief), and covered steps — declared on the new
   declaration's transient `migrate` — execute against instances on
-  apply. The apply trial-composes the org view without the plugin's old
-  layer (`compileRegistryForOrganization`'s `excludePluginId`) so a
-  refused upgrade writes nothing; the persisted pin never carries
-  `migrate`. Services replace with the snapshot; the connector token
-  survives.
+  apply. The apply re-checks the install-gate laws against the world as
+  it is (required packs still enabled, attachment kinds still claimable),
+  trial-composes the org view without the plugin's old layer
+  (`compileRegistryForOrganization`'s `excludePluginId`) so a refused
+  upgrade writes nothing; the persisted pin never carries `migrate` and
+  carries the extended declaration layer (editors, attachment kinds,
+  conversions, requires) beside the types. Services replace with the
+  snapshot; the connector token survives.
 - **Uninstall gate (block until drained)**: live instances of any plugin
   type, or live process definitions binding one, refuse the removal.
   There is no abandon path; the org deletes or migrates first.
@@ -99,6 +114,7 @@ executors through the worker protocol.
 | Route | Access | Action |
 |---|---|---|
 | `GET /api/plugins/catalog` | authenticated | List catalog listings. |
+| `POST /api/plugins/catalog` | platform operator (`x-operator-token`) | Publish/upsert a listing (validated by the SDK contract). |
 | `GET /api/organizations/:id/plugins` | member (`organizations:read`) | List installed plugins. |
 | `POST /api/organizations/:id/plugins` | `organizations:admin` | Install `{ pluginId }` at the catalog's current version. |
 | `DELETE /api/organizations/:id/plugins/:pluginId` | `organizations:admin` | Uninstall (drain-gated). |
@@ -118,8 +134,8 @@ plugins and the central catalog.
 
 ## Not here yet (tracked in TODO)
 
-Version upgrades and cross-org execution (installed processes running
-cross-org sockets) are later slices of the marketplace plan.
+Cross-org execution (installed processes running cross-org sockets) and a
+publisher UI beyond the CLI are later slices of the marketplace plan.
 
 ## Related
 

@@ -265,5 +265,6 @@ builds only).
 | Facade explainer video | [video/README.md](./video/README.md) |
 | Schema specs | [docs/specs/README.md](./docs/specs/README.md) |
 | Plugin authoring guide | [docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md) |
+| Plugin SDK | [packages/plugin-sdk/README.md](./packages/plugin-sdk/README.md) |
 | Animated brand mark (Rive) | [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md) |
 | Codex agent assets | [.codex/README.md](./.codex/README.md) |

@@ -272,6 +272,22 @@ A third-party plugin is declarations plus connectors — never in-process code:
   run cross-org sockets (the live half of OUT-GAP-IN).
 - v1 carries no monetization; money is wired when there is something to sell.
 
+Owner decision (2026-10-10): the facade's end state is the third-party plugin
+shape itself — declarations installed as pinned snapshots plus connectors to
+an external facade executor process, exactly what any third-party plugin is;
+no in-process facade code remains. The extraction lands in dependency-ordered
+milestones: the plugin grammar first (listings carry editors, attachment
+kinds, conversions, and pack requirements beside types and services), then
+service-backed construction, conversions, and exports in the generic
+machinery, the external facade executor with its listing, and finally the
+cut — the pack, its routes, and every platform reference to it deleted.
+
+Plugin authoring is SDK-first (owner ask, 2026-10-10): a coding agent authors
+a plugin through @perigram/plugin-sdk — the listing contract with its JSON
+schema, both executor harnesses, and the perigram-plugin CLI — and publishes
+through the operator publish API. An MCP server over the SDK is optional
+later; the SDK and the API are the contract.
+
 The user-facing word is "Plugins". Mounted domain packs (the facade pack and
 its dependencies) are managed per organization from the Plugins section:
 enabled by default, removable under the same drain law as plugin uninstall,

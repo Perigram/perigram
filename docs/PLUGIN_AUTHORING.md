@@ -6,8 +6,9 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-10-09
-updated: 2026-10-09
+updated: 2026-10-10
 ```
+
 
 How to author, host, and publish a Perigram plugin. A plugin is
 **declarations plus connectors** ([SPEC §Plugin
@@ -23,118 +24,81 @@ Two hosting models, one contract:
 | Cloud-hosted | The publisher | endpoint mode (their URL + API key) |
 
 Parent: [root README](../README.md). Component contract:
-[server/features/plugins](../server/features/plugins/README.md).
+[server/features/plugins](../server/features/plugins/README.md). Toolkit:
+[@perigram/plugin-sdk](../packages/plugin-sdk/README.md) — the listing
+contract (with JSON schema), both executor harnesses, and the
+`perigram-plugin` CLI this guide uses.
 
-## 1. Author the listing
+## 1. Author the listing and the services
 
-One JSON file — the whole plugin contract:
+Two files:
 
-```json
-{
-  "pluginId": "coatings",
-  "name": "Coatings",
-  "description": "Coating reference types and matching service",
-  "version": "1",
-  "declarations": {
-    "types": [
-      {
-        "id": "coating",
-        "class": "item",
-        "name": "Coating",
-        "fields": { "code": { "base": "string" } }
-      }
-    ],
-    "services": [
-      {
-        "id": "match",
-        "label": "Coating match",
-        "mode": "endpoint",
-        "signature": {
-          "input": { "base": "record", "fields": { "code": { "base": "string" } } },
-          "output": { "base": "json" }
-        }
-      }
-    ]
-  }
-}
-```
+- `listing.json` — the whole plugin contract. Validate locally against the
+  contract and schema:
 
-Rules the publisher script and the install gate enforce:
+  ```bash
+  npx perigram-plugin validate listing.json
+  ```
 
-- `pluginId` and every `services[].id` are slugs (`[a-z0-9-]+`).
-- Every type needs `id` and `class` (`file`/`item`/`group`); type ids must
-  not collide with system pack types, other plugins, or the org's own
-  declarations — install refuses loudly. `name` is the display name users
-  see (the SPEC §13 display vocabulary); without it the raw id never
-  renders — the UI falls back to a localized type-name table shared with
-  the platform's own types.
-- Type declarations use the CTS grammar (see
-  [packages/cts](../packages/cts/README.md)); states, edges, and fields
-  follow the same shapes the process designer authors.
-- Service `signature`s are the SPEC §8 V grammar: pure values in and out,
-  no `ref` fields — a service never dereferences instances.
-- `mode` per service: `"endpoint"` (the platform calls a URL) or
-  `"claim"` (your executor polls; default).
+- `services.mjs` — the executor logic, one handler per declared service:
 
-## 2. Publish
+  ```js
+  export const services = {
+    match: async (input) => ({ matched: input?.code ?? null })
+  };
+  ```
+
+The listing may declare beside its types: `services` (SPEC §8 signatures
+with `mode` `endpoint`/`claim`), `editors` (file-type editor bindings —
+only for file types the plugin itself declares), `attachmentKinds`
+(payload upload contracts), `conversions` (artifact conversions, with an
+optional `service` binding), and `requires` (mounted pack ids the types
+resolve against). Shapes: the SDK's
+[listing contract](../packages/plugin-sdk/README.md).
+
+## 2. Run the executor
+
+Endpoint mode (both hosting models) — a local HTTP executor, one URL per
+service:
 
 ```bash
-node server/scripts/plugins-catalog-publish.js coatings.json
+npx perigram-plugin dev services.mjs --port 8787 --token executor-key
 ```
 
-Upserts the listing in the platform catalog (platform-published; orgs
-never write it). Bump `version` for a new release — installed
-organizations see the upgrade with a diff preview.
+Claim mode — poll the worker protocol with the connector token from the
+plugin's connector panel:
 
-## 3. Implement the executor
-
-### endpoint mode (both hosting models)
-
-An HTTP handler: `POST` the service input as the JSON request body,
-respond with the service output as JSON.
-
-- Auth: when the org configured an API key, it arrives as
-  `authorization: Bearer <key>`.
-- Errors: any non-2xx fails the service call (body text surfaces in the
-  error); answer slowly and the call times out at 60 s — long work
-  belongs in claim mode.
-- The org sets the URL (and optional key) in the plugin's Connection
-  settings on the Plugins page.
-
-### claim mode
-
-Poll the worker protocol with the connector token from the plugin's
-connector panel:
-
-```
-POST /api/tasks/claim          { "workerId": "my-executor" }
-  → run: { _id, taskId, input: { parameters: { value: <service input> } }, claimToken }
-POST /api/tasks/{runId}/heartbeat  { "claimToken": "..." }
-POST /api/tasks/{runId}/complete   { "claimToken": "...", "result": { "output": <service output> } }
-POST /api/tasks/{runId}/fail       { "claimToken": "...", "message": "..." }
+```bash
+npx perigram-plugin run services.mjs --token <connector token> --app https://your-perigram
 ```
 
-All calls carry `x-worker-token: <connector token>`. Claims are pinned to
-your organization's queue for your plugin (`plugin.<pluginId>@<orgId>`) —
-you will never receive another org's or plugin's runs. The `taskId` has
-the shape `plugin.<pluginId>.<serviceId>`. A completed run resumes the
-parked process invocation with your output.
+The harnesses also import directly from `@perigram/plugin-sdk`
+(`createEndpointExecutor`, `runClaimExecutor`) when you want to own the
+process.
 
-## 4. Install and connect
+## 3. Publish, install, connect, test
 
-Organization → Plugins → Install (consent lists the types and services),
-then:
+```bash
+export PERIGRAM_APP=https://your-perigram
+export PERIGRAM_OPERATOR_TOKEN=...   # platform operator (publish)
+npx perigram-plugin login --email you@org --password ...   # → PERIGRAM_TOKEN
+export PERIGRAM_ORG_ID=...
 
-- endpoint services: Connection (sliders) → set URLs + API key;
-- claim services: Connector (key) → copy the token into your executor;
-  rotate it there when regenerated.
+npx perigram-plugin publish listing.json
+npx perigram-plugin install coatings
+npx perigram-plugin connector coatings          # token + claim queue
+npx perigram-plugin connect coatings --set match=http://localhost:8787/match --key executor-key
+npx perigram-plugin test coatings match --input input.json
+```
 
-## 5. Test it
+Publishing rides the platform API (`POST /api/plugins/catalog`,
+operator-token gated) — the same validation the install gate runs. Bump
+`version` for a new release; installed organizations see the upgrade with
+a diff preview.
 
-With the dev stack running: publish the listing, install it into a throwaway
-org, exercise the service through a process (drop a `cts.service` node
-bound to `plugin.<x>.<y>` into a draft, enable the service in the
-service-access tab, apply, run), and confirm the executor's output
-surfaces on the invocation. The install gate, upgrade preview, and
-uninstall drain gate all refuse loudly — a clean run through install →
-execute → upgrade → uninstall is the acceptance loop.
+## 4. Acceptance loop
+
+Install → execute → upgrade → uninstall. The install gate (type-id
+no-shadowing, clean compile, claimable attachment kinds, required packs
+enabled), the upgrade preview, and the uninstall drain gate all refuse
+loudly — a clean loop through those four states is the acceptance test.

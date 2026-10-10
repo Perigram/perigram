@@ -174,7 +174,90 @@ seam passes `composePackDomains()` — both composed from mounted packs in
 composition law. `getDomain()`'s registry fallback died with the import (the
 registry's own domain definitions remain for capability binding).
 
+## Facade third-party extraction (owner decision 2026-10-10: full plugin shape)
+
+Owner picked the full third-party shape over the runtime-mounted-package
+middle step: the facade becomes exactly what third-party plugins are —
+declarations installed as pinned snapshots plus connectors to an external
+facade executor process (SPEC §Plugin marketplace, owner decision
+2026-10-10). Dependency-ordered milestones; each is only done when its
+falsifiable check passes:
+
+- [x] M1 — Plugin grammar carries the facade's declaration surface
+  (2026-10-10): listings/installs/upgrades snapshot editors, attachment
+  kinds, conversions, and pack `requires` beside types and services;
+  gates extended (requires-packs mounted+enabled at install and upgrade,
+  pack-disable refuses when an installed plugin requires the pack,
+  attachment-kind collisions refuse, editor bindings follow the pack
+  laws); the served org type view composes the installed layer.
+- [x] Plugin authoring SDK + publish API (2026-10-10):
+  `@perigram/plugin-sdk` — the listing contract single-home (JSON schema
+  mirrored, imported by the install gate and publish path), endpoint and
+  claim executor harnesses, the platform API client, and the
+  `perigram-plugin` CLI (validate/dev/run/publish/install/connector/
+  connect/test); `POST /api/plugins/catalog` (operator token) replaces
+  the Mongo-writing publish script (deleted).
+- [ ] M2 — Service-backed runtime: construct operators bound to plugin
+  services (the platform resolves ref inputs and payloads as values, the
+  executor computes, the platform writes through the generic machinery),
+  artifact conversions and DXF exporters resolving from install
+  snapshots.
+- [ ] M3 — Facade executor + listing: external process hosting the pure
+  compute (DXF extraction, OCCS evaluation, nesting solve, layout
+  recompute, DXF generation); listing published to the catalog; org
+  migration script swapping pack composition for installs with process
+  bindings intact.
+- [ ] M4 — The cut: `packages/facade` deleted, the pack unmounted, its
+  routes and command paths deleted (designer persistence goes generic),
+  every config/guard/manifest/spec reference purged. Falsifiable proof:
+  the platform boots without facade code; an org without the install
+  sees no facade types; install → authoring loop works end to end;
+  uninstall drain-gates.
+
+### Agent Notes (2026-10-10, M1 + SDK)
+
+Session `agent/facade-thirdparty-20261010`. Findings first: the previous
+"runtime-pluggable extensions" claim was false — the facade remained a
+static import in `app-registry` (`FRAMEWORK_PACKS`), nitro-inlined into
+the server bundle (the `noExternal+inline` commits), `private: true`, its
+code never left the repo. The honest mountain was scoped with the owner
+into M1–M4 above; this session landed M1 and the owner-asked SDK.
+
+M1: `server/features/plugins/listing.js` was born and immediately moved
+to its single home `packages/plugin-sdk/src/listing.js` (`parseListing` +
+`normalizeListing`); install/upgrade/publish all run it — one contract.
+Installs persist `{ types, editors, attachmentKinds, conversions }` +
+`requires`; gates: requires mounted+enabled (install and upgrade),
+pack-disable refuses under an installed plugin's `requires`, kind ids
+collide-refuse across packs/installs, upgrade re-checks kind claimability
+against other installs; `describeOrganizationTypes` composes installed
+editors/kinds under the pack laws (file type, one editor per type, loud
+500s on drift). cts-types serving composes the installed layer beside
+packs.
+
+SDK: zero-dependency harnesses — `createEndpointExecutor` (POST
+/<serviceId>, Bearer key, 500-with-message errors) and `runClaimExecutor`
+(claim→heartbeat→complete/fail; poll cadence between EVERY claim — the
+first draft busy-looped on a full queue as a microtask spin that starved
+timers and shutdown, caught by repro before merge). CLI proven live:
+`validate` + `dev` + a real HTTP service call (artifact:
+`/tmp/opencode/demo-plugin/`). Publish API `POST /api/plugins/catalog`
+(operator token via `PLATFORM_OPERATOR_TOKEN`, dev compose default set);
+`plugins-catalog-publish.js` deleted (it wrote Mongo directly from
+inside the network). Bug fixed in passing: plugins repository
+`updateSettings` filtered on an undefined `pluginId` (param was named
+`packId`) — saving connection settings crashed with ReferenceError;
+masked until now because specs mock the repository.
+
+MCP note: `packages/mcp` exists as read-only planning tools; a future
+plugin-authoring MCP wraps the SDK/CLI — recorded in SPEC, not built.
+
+Validation: plugin-sdk 18, plugins + cts-types 80 vitest green;
+check-arch green; CLI smoke green. Not run: E2E against the live stack
+(needs the running app), docs guard until this commit.
+
 ## Business process authoring maturity (2026-10-07)
+
 
 From the type-system audit (priority order accepted by the owner);
 contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
