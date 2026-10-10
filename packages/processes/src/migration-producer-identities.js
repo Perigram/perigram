@@ -1,7 +1,19 @@
-import { CONSUMER_EFFECT_KINDS, resolveCatalogNodePorts } from './node-catalog.js';
+import { resolveCatalogNodePorts } from './node-catalog.js';
+import { CONSUMER_SPECIES_KINDS, PRODUCER_ORIGIN_SPECIES_KINDS } from './node-catalog.js';
 import { operationKindOf } from '../../cts/src/index.js';
 
-const ACTION_EFFECT_KINDS = new Set([
+// The v4 input vocabulary of this one-shot migration: it reads persisted
+// pre-species records, so the retired spellings are local data here beside
+// the species sets. Classification reads the record's own kind.
+const V4_CONSUMER_EFFECT_KINDS = [
+  'effect.updateEntity',
+  'effect.changeStatus',
+  'effect.archiveEntity',
+  'effect.deleteEntity',
+  'effect.sendEntity',
+  'effect.generateAttachment'
+];
+const V4_ACTION_EFFECT_KINDS = [
   'effect.createEntity',
   'effect.runProducer',
   'effect.updateEntity',
@@ -9,7 +21,9 @@ const ACTION_EFFECT_KINDS = new Set([
   'effect.runCommand',
   'effect.sendEntity',
   'effect.generateAttachment'
-]);
+];
+const CONSUMER_KINDS = [...V4_CONSUMER_EFFECT_KINDS, ...CONSUMER_SPECIES_KINDS];
+const ACTION_EFFECT_KINDS = new Set([...V4_ACTION_EFFECT_KINDS, ...PRODUCER_ORIGIN_SPECIES_KINDS]);
 
 function actionHasStaleOwnBinding(actions = {}, nodeId = '') {
   return Object.values(actions || {}).some(action => (
@@ -28,18 +42,18 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
     if (!node?.kind?.startsWith('effect.') && !String(node?.kind || '').startsWith('cts.')) continue;
 
     const nodeId = String(node.id || recordId);
-    // Kind matching runs through the operation-kind twin: designer-bypassed
-    // (API-authored) cts records get the same identity rewrite live
-    // designer sync applies, so both authoring paths persist bindings.
+    // Designer-bypassed (API-authored) species records get the same
+    // identity rewrite live designer sync applies, so both authoring
+    // paths persist bindings.
     const opKind = operationKindOf(node) || node.kind;
     // Only effects participate in producer identity: joins, reads, and
     // value-algebra records never mint producer outputs (the join routes
     // under its selected source by contract).
-    if (!ACTION_EFFECT_KINDS.has(opKind) && !CONSUMER_EFFECT_KINDS.includes(opKind)) continue;
+    if (!ACTION_EFFECT_KINDS.has(opKind) && !CONSUMER_KINDS.includes(opKind)) continue;
     // Consumer effects own no producer output: drop records minted by
     // pre-protocol definitions and their node identity; the derived action
     // rebinds to the upstream producer of the entity input wire.
-    if (CONSUMER_EFFECT_KINDS.includes(opKind)) {
+    if (CONSUMER_KINDS.includes(opKind)) {
       for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
         if (String(output?.nodeId) === nodeId) {
           delete producerOutputs[producerOutputId];
@@ -171,6 +185,7 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
 }
 
 function entityOutputCandidates(nodeId, node, producerOutputs, domain) {
+  const opKindOf = record => String(record?.kind || '');
   const candidates = new Map();
   let declaredOutputs = [];
   try {
@@ -184,6 +199,20 @@ function entityOutputCandidates(nodeId, node, producerOutputs, domain) {
     }).outputs;
   } catch {
     declaredOutputs = [];
+  }
+  // Retired v4 records have no catalog contract anymore. Only the entity
+  // mutation kinds had a structural entity result (the effect result was
+  // always the typed entity output); command/socket/attachment effects
+  // derived outputs from their contracts and stay underivable here.
+  const V4_STRUCTURAL_ENTITY_RESULT = [
+    'effect.createEntity',
+    'effect.runProducer',
+    'effect.updateEntity',
+    'effect.changeStatus',
+    'effect.archiveEntity'
+  ];
+  if (!declaredOutputs.length && node.typeId && V4_STRUCTURAL_ENTITY_RESULT.includes(opKindOf(node))) {
+    declaredOutputs = [{ id: 'result', type: { base: 'entityRef', typeId: node.typeId } }];
   }
   for (const output of [...declaredOutputs, ...(node.outputs || [])]) {
     const typeId = ['entity', 'entityRef'].includes(output?.type?.base)

@@ -13,7 +13,7 @@ export function useProcessDesignerConnectionInference({ nodes, draft, resolveOut
     if (operationKindOf(sourceRecord) === 'control.manualTrigger'
       && !sourceRecord.typeId
       && targetRecord.typeId
-      && ['effect.updateEntity', 'record.getField', 'record.getBlock', 'record.deconstruct'].includes(operationKindOf(targetRecord))) {
+      && ['cts.mutate', 'cts.field', 'cts.decompose'].includes(operationKindOf(targetRecord))) {
       sourceRecord.typeId = targetRecord.typeId;
       syncProcessNode(sourceRecord);
     }

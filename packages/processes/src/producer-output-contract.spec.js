@@ -79,7 +79,7 @@ describe('producer output process contract', () => {
     source.processNodes = {
       create: {
         id: 'create',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId: 'project',
         producerOutputId: 'create:entity',
         construction: { mode: 'genericCreate', inputs: [] },
@@ -145,9 +145,9 @@ describe('producer output entry-state and binding diagnostics', () => {
       project_active: { id: 'project_active', kind: 'state', typeId: 'project', value: 'ACTIVE' }
     };
     source.processNodes = {
-      create: { id: 'create', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, inputDefaults: { state: 'DRAFT' }, state: { to: 'CREATED' } },
-      rename: { id: 'rename', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, state: { to: 'ACTIVE' } },
-      stale: { id: 'stale', kind: 'effect.changeStatus', typeId: 'project', trigger: { mode: 'manual' }, state: { to: 'ACTIVE' }, producerOutputId: 'stale:result' }
+      create: { id: 'create', kind: 'cts.construct', typeId: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, inputDefaults: { state: 'DRAFT' }, state: { to: 'CREATED' } },
+      rename: { id: 'rename', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' }, state: { to: 'ACTIVE' } },
+      stale: { id: 'stale', kind: 'cts.transition', typeId: 'project', trigger: { mode: 'manual' }, state: { to: 'ACTIVE' }, producerOutputId: 'stale:result' }
     };
     source.producerOutputs['stale:result'] = {
       producerOutputId: 'stale:result',

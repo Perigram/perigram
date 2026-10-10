@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDataPacket } from './data-tree.js';
-import { applyPatch, evaluateEntityPredicate, executeProcessDataNode } from './evaluator.js';
+import { executeProcessDataNode } from './evaluator.js';
 import {
   MISSING_FIELD_TAG,
   isMissingField,
@@ -19,8 +19,8 @@ describe('missing-field marker', () => {
 
   it('is not produced for a present null value', async () => {
     const result = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
-      { block: createDataPacket({ name: null }) }
+      { kind: 'cts.field', inputDefaults: { field: 'name' } },
+      { entity: createDataPacket({ name: null }) }
     );
     expect(result.branches[0].items).toEqual([null]);
     expect(isMissingField(result.branches[0].items[0])).toBe(false);
@@ -47,46 +47,35 @@ describe('missing-field marker', () => {
 });
 
 describe('missing vs present-nullable field in the evaluator', () => {
-  const block = { name: null };
+  const entity = { name: null };
+  const readField = path => executeProcessDataNode(
+    { kind: 'cts.field', inputDefaults: { field: path } },
+    { entity: createDataPacket(entity) }
+  );
 
   it('reads a missing path as a marker carrying the read path', async () => {
-    const result = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.reference' },
-      { block: createDataPacket(block) }
-    );
+    const result = await readField('reference');
     const value = result.branches[0].items[0];
     expect(isMissingField(value)).toBe(true);
-    expect(value.path).toBe('identity.reference');
+    expect(value.path).toBe('reference');
   });
 
   it('reads a missing path below a present null as missing, not null', async () => {
-    const result = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.name.length' },
-      { block: createDataPacket(block) }
-    );
+    const result = await readField('name.length');
     expect(isMissingField(result.branches[0].items[0])).toBe(true);
   });
 
   it('does not wrap a missing lineage read into a typed entity reference', async () => {
     const result = await executeProcessDataNode(
-      {
-        kind: 'record.getField',
-        block: 'lineage',
-        path: 'lineage.queueId',
-        compositionMode: 'ancestors',
-        type: { base: 'entityRef', shape: 'item', typeId: 'queue' }
-      },
-      { block: createDataPacket({}) }
+      { kind: 'cts.field', inputDefaults: { field: 'lineage.queueId' } },
+      { entity: createDataPacket({}) }
     );
     const value = result.branches[0].items[0];
     expect(isMissingField(value)).toBe(true);
   });
 
   it('distinguishes missing from null in Logic isNull/isNotNull', async () => {
-    const field = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.reference' },
-      { block: createDataPacket(block) }
-    );
+    const field = await readField('reference');
     const isNull = await executeProcessDataNode({ kind: 'value.logic', operation: 'isNull' }, { left: field });
     const isNotNull = await executeProcessDataNode({ kind: 'value.logic', operation: 'isNotNull' }, { left: field });
     expect(isNull.branches[0].items).toEqual([false]);
@@ -100,10 +89,7 @@ describe('missing vs present-nullable field in the evaluator', () => {
   });
 
   it('treats a missing value as absent for Coalesce fallbacks', async () => {
-    const field = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.reference' },
-      { block: createDataPacket(block) }
-    );
+    const field = await readField('reference');
     const result = await executeProcessDataNode(
       { kind: 'value.coalesce' },
       { value: field, fallback: createDataPacket('fallback') }
@@ -112,62 +98,18 @@ describe('missing vs present-nullable field in the evaluator', () => {
   });
 
   it('reports missing and null as distinct Required errors', async () => {
-    const missing = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.reference' },
-      { block: createDataPacket(block) }
-    );
+    const missing = await readField('reference');
     await expect(executeProcessDataNode({ kind: 'value.required', id: 'req' }, { value: missing }))
-      .rejects.toThrow('missing at identity.reference');
+      .rejects.toThrow('missing at reference');
     await expect(executeProcessDataNode({ kind: 'value.required', id: 'req' }, { value: createDataPacket(null) }))
       .rejects.toThrow('null required value');
   });
 
   it('fails required validation on a missing value', async () => {
-    const missing = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.reference' },
-      { block: createDataPacket(block) }
-    );
+    const missing = await readField('reference');
     await expect(executeProcessDataNode(
       { kind: 'value.validate', required: true },
       { value: missing }
     )).rejects.toThrow('Value is required');
-  });
-
-  it('keeps entity predicates on missing paths distinct from null', () => {
-    const entity = { identity: { name: null } };
-    expect(evaluateEntityPredicate(
-      { kind: 'field', path: 'identity.name', operation: 'isNull' }, entity
-    )).toBe(true);
-    expect(evaluateEntityPredicate(
-      { kind: 'field', path: 'identity.reference', operation: 'isNull' }, entity
-    )).toBe(false);
-    expect(evaluateEntityPredicate(
-      { kind: 'field', path: 'identity.reference', operation: 'isNotNull' }, entity
-    )).toBe(false);
-  });
-
-  it('appends and removes on a missing patch path as if it were absent', () => {
-    const appended = applyPatch({ identity: {} }, {
-      typeId: 'machine',
-      changes: [{ path: 'data.tags', operation: 'append', value: 'a' }]
-    });
-    expect(appended.data.tags).toEqual(['a']);
-    const removed = applyPatch({ identity: {} }, {
-      typeId: 'machine',
-      changes: [{ path: 'data.tags', operation: 'remove', value: 'a' }]
-    });
-    expect(removed.data.tags).toEqual([]);
-  });
-
-  it('composes a missing entry as absent content instead of writing a marker', async () => {
-    const missing = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'identity', path: 'identity.reference' },
-      { block: createDataPacket({}) }
-    );
-    const composed = await executeProcessDataNode(
-      { kind: 'record.composeBlock', block: 'identity', fields: ['identity.reference'] },
-      { 'identity.reference': missing }
-    );
-    expect(composed.branches[0].items).toEqual([{}]);
   });
 });

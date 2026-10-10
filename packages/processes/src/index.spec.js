@@ -55,13 +55,14 @@ function resolveScreens({ compiled, userId } = {}) {
 }
 
 function producerOutputRecords(entries) {
-  return Object.fromEntries(entries.map(([nodeId, typeId, extras = {}]) => {
-    const producerOutputId = `${nodeId}:entity`;
+  return Object.fromEntries(entries.map(entry => {
+    const [nodeId, typeId, extras = {}, outputSocketId = 'entity'] = entry;
+    const producerOutputId = `${nodeId}:${outputSocketId}`;
     return [producerOutputId, {
       id: producerOutputId,
       producerOutputId,
       nodeId,
-      outputSocketId: 'entity',
+      outputSocketId,
       typeId,
       lifecycle: { mode: 'defaultCreated' },
       fields: { read: [], write: [], private: [] },
@@ -231,68 +232,28 @@ describe('@perigram/processes compiler', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
       roles: { operator: { id: 'operator', label: 'Operator' } },
-      producerOutputs: producerOutputRecords([['create_queue', 'queue']]),
+      producerOutputs: producerOutputRecords([['create_queue', 'queue', {}, 'result']]),
       processNodes: {
-        queue_identity: {
-          id: 'queue_identity',
-          kind: 'record.composeBlock',
-          block: 'identity',
-          fields: ['identity.name'],
-          inputDefaults: { 'identity.name': 'Queue' }
-        },
-        queue_lineage: {
-          id: 'queue_lineage',
-          kind: 'record.composeBlock',
-          block: 'lineage',
-          compositionMode: 'ancestors',
-          entries: [{ id: 'project', key: 'projectId', typeId: 'project' }],
-          inputDefaults: { 'entry:project': { type: 'project', id: 'project-1' } }
-        },
         create_queue: {
           id: 'create_queue',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           label: 'Create queue',
           typeId: 'queue',
-          producerOutputId: 'create_queue:entity',
+          producerOutputId: 'create_queue:result',
           construction: domain.construction.queue,
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
           state: { to: SOURCE_STATE },
-          blocks: ['identity', 'lineage'],
-          fields: [],
+          inputDefaults: { name: 'Queue' },
           inputs: [],
           outputs: []
         }
       },
       graph: {
-        nodes: ['queue_identity', 'queue_lineage', 'create_queue'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
-        edges: [
-          {
-            id: 'queue-identity-create',
-            source: 'queue_identity',
-            sourceHandle: 'data:block',
-            target: 'create_queue',
-            targetHandle: 'data:identity',
-            role: 'data'
-          },
-          {
-            id: 'queue-lineage-create',
-            source: 'queue_lineage',
-            sourceHandle: 'data:block',
-            target: 'create_queue',
-            targetHandle: 'data:lineage',
-            role: 'data'
-          }
-        ]
+        nodes: [{ id: 'create_queue', type: 'processNode', data: { refId: 'create_queue' } }],
+        edges: []
       }
-    }, {
-      ...domain,
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
-      }
-    });
+    }, domain);
 
     expect(compiled.actions.create_queue).toMatchObject({
       id: 'create_queue',
@@ -301,28 +262,25 @@ describe('@perigram/processes compiler', () => {
       parentTypeId: null,
       trigger: { mode: 'manual' }
     });
-    expect(compiled.actions.create_queue.inputPolicy.fields).toContainEqual(expect.objectContaining({
-      path: 'identity.name',
-      type: 'string',
-      prompt: false,
-      default: 'Queue'
-    }));
+    expect(compiled.actions.create_queue.inputPolicy).toMatchObject({ prompt: true });
+    // The defaulted name is not prompted again; the remaining typed inputs are.
+    expect(compiled.actions.create_queue.inputPolicy.fields.map(field => field.path))
+      .toEqual(['job.items', 'job.materialPool']);
     expect(compiled.roles.operator.actions).toContainEqual(expect.objectContaining({ actionId: 'create_queue' }));
   });
 
   it('prompts for identity name when a manual create has no identity wire', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
-      producerOutputs: producerOutputRecords([['create_project', 'queue']]),
+      producerOutputs: producerOutputRecords([['create_project', 'queue', {}, 'result']]),
       processNodes: {
         create_project: {
           id: 'create_project',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           typeId: 'queue',
-          producerOutputId: 'create_project:entity',
+          producerOutputId: 'create_project:result',
           trigger: { mode: 'manual' },
           construction: domain.construction.queue,
-          blocks: ['identity'],
           state: { to: SOURCE_STATE }
         }
       },
@@ -332,24 +290,24 @@ describe('@perigram/processes compiler', () => {
       }
     }, domain);
 
-    // The blocks list is presentation: with no composer wired, the typed
-    // construction inputs prompt beside the identity-name fallback.
+    // The blocks list is presentation: with no wire, the typed construction
+    // inputs prompt beside the identity-name fallback.
     expect(compiled.actions.create_project.inputPolicy).toMatchObject({ prompt: true });
     expect(compiled.actions.create_project.inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ path: 'identity.name', type: 'string', prompt: true, required: false })
+      expect.objectContaining({ path: 'name', type: 'string', prompt: true })
     ]));
   });
 
   it('keeps typed construction inputs when a create only lists canonical blocks', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
-      producerOutputs: producerOutputRecords([['create_facade', 'facade']]),
+      producerOutputs: producerOutputRecords([['create_facade', 'facade', {}, 'result']]),
       processNodes: {
         create_facade: {
           id: 'create_facade',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           typeId: 'facade',
-          producerOutputId: 'create_facade:entity',
+          producerOutputId: 'create_facade:result',
           trigger: { mode: 'manual' },
           construction: { mode: 'genericCreate' },
           blocks: ['identity', 'lineage'],
@@ -380,41 +338,39 @@ describe('@perigram/processes compiler', () => {
       }
     });
 
-    // No composer is wired: the canonical block list never implies
+    // No wire carries the canonical content: the block list never implies
     // composition, so every typed input prompts.
     expect(compiled.actions.create_facade.construction.inputs.map(input => input.id)).toEqual(['name', 'customLabel']);
   });
 
-  it('suppresses canonical-block inputs only when a composer is actually wired', () => {
+  it('drops a wired construction input from the prompted create form', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
-      producerOutputs: producerOutputRecords([['create_facade', 'facade']]),
+      producerOutputs: producerOutputRecords([['create_facade', 'facade', {}, 'result']]),
       processNodes: {
-        compose_identity: {
-          id: 'compose_identity',
-          kind: 'record.composeBlock',
-          block: 'identity',
-          fields: ['identity.name'],
-          inputDefaults: { 'identity.name': 'Facade' }
+        name_source: {
+          id: 'name_source',
+          kind: 'source.literalItem',
+          type: { base: 'string', shape: 'item' },
+          value: 'Facade'
         },
         create_facade: {
           id: 'create_facade',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           typeId: 'facade',
-          producerOutputId: 'create_facade:entity',
+          producerOutputId: 'create_facade:result',
           trigger: { mode: 'manual' },
           construction: { mode: 'genericCreate' },
-          blocks: ['identity', 'lineage'],
           state: { to: SOURCE_STATE }
         }
       },
       graph: {
         nodes: [
-          { id: 'compose_identity', type: 'processNode', data: { refId: 'compose_identity' } },
+          { id: 'name_source', type: 'processNode', data: { refId: 'name_source' } },
           { id: 'create_facade', type: 'processNode', data: { refId: 'create_facade' } }
         ],
         edges: [
-          { id: 'identity-block', source: 'compose_identity', sourceHandle: 'data:block', target: 'create_facade', targetHandle: 'data:identity', role: 'data' }
+          { id: 'name-create', source: 'name_source', sourceHandle: 'data:value', target: 'create_facade', targetHandle: 'data:name', role: 'data' }
         ]
       }
     }, {
@@ -437,11 +393,10 @@ describe('@perigram/processes compiler', () => {
       }
     });
 
-    // The wired identity composer owns the canonical content: the name
-    // input is suppressed, non-block inputs stay.
-    expect(compiled.actions.create_facade.construction.inputs).toEqual([
-      expect.objectContaining({ id: 'customLabel', type: 'string', prompt: true })
-    ]);
+    // The wired name input owns the canonical content: it is not prompted,
+    // while the unwired typed input stays.
+    expect(compiled.actions.create_facade.inputPolicy.fields.map(field => field.path))
+      .toEqual(['customLabel']);
   });
 
   it('does not infer persistence contracts from connected data topology', () => {
@@ -1170,49 +1125,6 @@ describe('@perigram/processes compiler', () => {
     }, domain);
 
     expect(validation.errors).toContain('Process node invalid_block uses block summary outside project');
-  });
-
-  it('rejects Get Block and Deconstruct blocks outside the entity contract', () => {
-    const validation = validateProcessDefinition({
-      processNodes: {
-        get_block: {
-          id: 'get_block',
-          kind: 'record.getBlock',
-          typeId: 'project',
-          block: 'summary'
-        },
-        deconstruct: {
-          id: 'deconstruct',
-          kind: 'record.deconstruct',
-          typeId: 'project',
-          blocks: ['identity', 'relations']
-        }
-      }
-    }, domain);
-
-    expect(validation.errors).toContain('Process node get_block uses block summary outside project');
-    expect(validation.errors).toContain('Process node deconstruct uses block relations outside project');
-  });
-
-  it('accepts declared Get Block and Deconstruct blocks, including attachments', () => {
-    const validation = validateProcessDefinition({
-      processNodes: {
-        get_block: {
-          id: 'get_block',
-          kind: 'record.getBlock',
-          typeId: 'queue',
-          block: 'attachments'
-        },
-        deconstruct: {
-          id: 'deconstruct',
-          kind: 'record.deconstruct',
-          typeId: 'queue',
-          blocks: ['identity', 'attachments']
-        }
-      }
-    }, domain);
-
-    expect(validation.errors.filter(error => error.includes('uses block'))).toEqual([]);
   });
 
   it('rejects fields outside the domain field policy', () => {
@@ -2183,6 +2095,7 @@ describe('@perigram/processes compiler', () => {
   it('exposes manual relation updates as generated entity-detail actions', () => {
     const relationDomain = {
       ...domain,
+      relations: [{ ownerType: 'project', key: 'library', targetType: 'library', cardinality: 'one' }],
       fieldAccess: {
         ...domain.fieldAccess,
         project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
@@ -2196,12 +2109,7 @@ describe('@perigram/processes compiler', () => {
           readable: true,
           writable: true
         }]
-      },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
-      },
-      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
+      }
     };
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
@@ -2211,45 +2119,28 @@ describe('@perigram/processes compiler', () => {
       producerOutputs: producerOutputRecords([['project_entity', 'project']]),
       processNodes: {
         current: { id: 'current', kind: 'cts.read', select: 'current', typeId: 'project' },
-        deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'project', blocks: ['relations'] },
         library: {
           id: 'library',
           kind: 'source.literalItem',
           type: { base: 'entityRef', shape: 'item', typeId: 'library' },
           value: { type: 'library', id: 'library-1' }
         },
-        modify: {
-          id: 'modify',
-          kind: 'record.modifyBlock',
-          block: 'relations',
-          compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one', operation: 'append' }]
-        },
         update_relations: {
           id: 'update_relations',
-          kind: 'effect.updateEntity',
+          kind: 'cts.mutate',
           label: 'Link library',
           typeId: 'project',
-          producerOutputId: 'project_entity:entity',
           blocks: ['relations'],
           trigger: { mode: 'manual' },
-          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] },
-          inputs: [
-            { id: 'entity', typeId: 'project', required: true },
-            { id: 'relations', block: 'relations' }
-          ],
-          outputs: [{ id: 'result', typeId: 'project' }]
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
         }
       },
       graph: {
-        nodes: ['current', 'deconstruct', 'library', 'modify', 'update_relations']
+        nodes: ['current', 'library', 'update_relations']
           .map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
-          { id: 'current-deconstruct', source: 'current', sourceHandle: 'data:result', target: 'deconstruct', targetHandle: 'data:entity', role: 'data' },
           { id: 'current-update', source: 'current', sourceHandle: 'data:result', target: 'update_relations', targetHandle: 'data:entity', role: 'data' },
-          { id: 'deconstruct-modify', source: 'deconstruct', sourceHandle: 'data:relations', target: 'modify', targetHandle: 'data:block', role: 'data' },
-          { id: 'library-modify', source: 'library', sourceHandle: 'data:value', target: 'modify', targetHandle: 'data:entry:library', role: 'data' },
-          { id: 'modify-update', source: 'modify', sourceHandle: 'data:block', target: 'update_relations', targetHandle: 'data:relations', role: 'data' }
+          { id: 'library-update', source: 'library', sourceHandle: 'data:value', target: 'update_relations', targetHandle: 'data:relations.library', role: 'data' }
         ]
       }
     }, relationDomain);
@@ -2257,117 +2148,80 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.actions.update_relations).toMatchObject({
       actionKind: 'updateEntity',
       typeId: 'project',
-      mutation: { blocks: ['relations'] }
+      mutation: { fields: ['relations.library'] }
     });
     expect(compiled.screens.auto_role_admin_project_detail.regions
       .find(region => region.id === 'main').actions).toContain('update_relations');
   });
 
-  it('derives Link and Unlink detail actions from a process-composed relation', () => {
+  it('derives Link and Unlink detail actions from construct relation inputs', () => {
     const relationDomain = {
       ...domain,
       entities: [...domain.entities, { type: 'artifact', collection: 'artifacts' }],
-      relations: [{ ownerType: 'project', key: 'libraries', targetType: 'library', cardinality: 'many' }],
-      attachmentKinds: {
-        DXF_SOURCE: { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
-        CAPTURE_PHOTO: { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
-      },
+      relations: [
+        { ownerType: 'project', key: 'libraries', targetType: 'library', cardinality: 'many' },
+        { ownerType: 'project', key: 'artifact', targetType: 'artifact', cardinality: 'one' }
+      ],
       construction: {
         ...domain.construction,
-        artifact: {
-          modes: ['uploadArtifact'],
-          defaultMode: 'uploadArtifact',
-          modeInputs: {
-            uploadArtifact: [{
-              id: 'artifact',
-              creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' }
-            }]
-          }
+        project: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+            { id: 'relations.libraries', path: 'relations.libraries', type: 'entity', typeId: 'library', required: false, prompt: true },
+            { id: 'relations.artifact', path: 'relations.artifact', type: 'entity', typeId: 'artifact', required: false, prompt: true }
+          ]
         }
       },
       fieldAccess: {
         ...domain.fieldAccess,
         project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
-      },
-      fieldSchemas: {
-        ...domain.fieldSchemas,
-        project: [{
-          path: 'relations.library',
-          block: 'relations',
-          type: { base: 'entityRef', shape: 'item', nullable: true, typeId: 'library' },
-          readable: true,
-          writable: true,
-          constructible: true
-        }]
-      },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
-      },
-      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
+      }
     };
     const definition = {
       dataflowVersion: 4,
       roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
       producerOutputs: producerOutputRecords([
-        ['library', 'library'],
-        ['create', 'project']
+        ['library', 'library', {}, 'result'],
+        ['create', 'project', {}, 'result']
       ]),
       processNodes: {
         library: {
           id: 'library',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           typeId: 'library',
-          producerOutputId: 'library:entity',
+          producerOutputId: 'library:result',
           construction: {
             mode: 'genericCreate',
             inputs: [{ id: 'name', path: 'name', label: 'Library name', type: 'string', required: true, prompt: true }]
           },
           state: { to: INITIAL_STATE },
-          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', typeId: 'library' } }],
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
         },
-        artifact: {
-          id: 'artifact',
-          kind: 'source.literalItem',
-          type: { base: 'entityRef', shape: 'item', typeId: 'artifact' },
-          value: { type: 'artifact', id: 'artifact-1' }
-        },
-        relations: {
-          id: 'relations',
-          kind: 'record.composeBlock',
-          block: 'relations',
-          compositionMode: 'relations',
-          entries: [
-            { id: 'library', key: 'libraries', typeId: 'library', cardinality: 'one' },
-            {
-              id: 'artifact',
-              key: 'artifact',
-              typeId: 'artifact',
-              cardinality: 'one',
-              attachmentKinds: []
-            }
-          ]
-        },
         create: {
           id: 'create',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           label: 'Create project',
           typeId: 'project',
-          producerOutputId: 'create:entity',
-          blocks: ['relations'],
+          producerOutputId: 'create:result',
+          construction: {
+            mode: 'genericCreate',
+            inputs: [
+              { id: 'relations.libraries', path: 'relations.libraries', type: 'entity', typeId: 'library', required: false, prompt: true },
+              { id: 'relations.artifact', path: 'relations.artifact', type: 'entity', typeId: 'artifact', required: false, prompt: true }
+            ]
+          },
           state: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
         }
       },
       graph: {
-        nodes: ['library', 'artifact', 'relations', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        nodes: ['library', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
-          { id: 'library-relations', source: 'library', sourceHandle: 'data:result', target: 'relations', targetHandle: 'data:entry:library', role: 'data' },
-          { id: 'artifact-relations', source: 'artifact', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:artifact', role: 'data' },
-          { id: 'relations-create', source: 'relations', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
+          { id: 'library-create', source: 'library', sourceHandle: 'data:result', target: 'create', targetHandle: 'data:relations.libraries', role: 'data' }
         ]
       }
     };
@@ -2381,47 +2235,21 @@ describe('@perigram/processes compiler', () => {
         key: 'libraries',
         targetTypes: ['library'],
         cardinality: 'many',
-        operation: 'link',
-        creator: expect.objectContaining({ actionId: 'library', typeId: 'library' })
+        operation: 'link'
       }
     });
-    expect(compiled.roles.role_admin.actions.find(action => action.actionId === 'create:link:libraries')?.construction).toBeNull();
     expect(compiled.actions['create:unlink:libraries']).toMatchObject({
       label: 'Unlink libraries',
       relationMutation: { key: 'libraries', targetTypes: ['library'], operation: 'unlink' },
       inputPolicy: { prompt: false, fields: [] }
     });
     expect(compiled.actions['create:link:artifact']).toMatchObject({
-      relationMutation: {
-        creator: {
-          typeId: 'artifact',
-          attachmentKinds: [
-            { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
-            { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
-          ]
-        }
-      },
-      inputPolicy: {
-        fields: [expect.objectContaining({
-          typeId: 'artifact',
-          creator: expect.objectContaining({ typeId: 'artifact' })
-        })]
-      }
+      relationMutation: { key: 'artifact', targetTypes: ['artifact'] }
     });
-    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'artifacts', level: 'write' }));
-    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'libraries', level: 'write' }));
     expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
       'create:link:libraries',
       'create:unlink:libraries'
     ]));
-
-    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'artifacts', level: 'write' }));
-    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'libraries', level: 'write' }));
-    expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
-      'create:link:libraries',
-      'create:unlink:libraries'
-    ]));
-
   });
 
   it('expands the userCreatable attachment-kind selector on declared creator inputs', () => {
@@ -2453,13 +2281,13 @@ describe('@perigram/processes compiler', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
       roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
-      producerOutputs: producerOutputRecords([['upload', 'artifact']]),
+      producerOutputs: producerOutputRecords([['upload', 'artifact', {}, 'result']]),
       processNodes: {
         upload: {
           id: 'upload',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           typeId: 'artifact',
-          producerOutputId: 'upload:entity',
+          producerOutputId: 'upload:result',
           construction: {
             mode: 'uploadArtifact',
             // Authored nodes re-carry the domain's selector string verbatim;
@@ -2473,7 +2301,6 @@ describe('@perigram/processes compiler', () => {
             }]
           },
           state: { to: INITIAL_STATE },
-          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', typeId: 'artifact' } }],
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
         }
@@ -2495,43 +2322,30 @@ describe('@perigram/processes compiler', () => {
       .toEqual(expectedKinds);
   });
 
-  it('derives many cardinality for a graph relation fed by Collect Array', () => {
+  it('carries declared many cardinality through construct relation inputs', () => {
     const normalized = normalizeProcessDefinition({
       dataflowVersion: 4,
-      producerOutputs: producerOutputRecords([['update', 'project']]),
+      producerOutputs: producerOutputRecords([['update', 'project', {}, 'result']]),
       processNodes: {
-        collect: {
-          id: 'collect',
-          kind: 'collection.packArray',
-          type: { base: 'entityRef', shape: 'item', typeId: 'library' }
-        },
-        relations: {
-          id: 'relations',
-          kind: 'record.composeBlock',
-          block: 'relations',
-          compositionMode: 'relations',
-          entries: [{ id: 'reviews', key: 'reviewLibraries', typeId: 'library' }]
-        },
         update: {
           id: 'update',
-          kind: 'effect.updateEntity',
+          kind: 'cts.construct',
           typeId: 'project',
-          producerOutputId: 'update:entity',
-          blocks: ['relations'],
+          producerOutputId: 'update:result',
+          construction: {
+            mode: 'genericCreate',
+            inputs: [{ id: 'relations.reviewLibraries', path: 'relations.reviewLibraries', type: 'entity', typeId: 'library' }]
+          },
           trigger: { mode: 'manual' }
         }
       },
       graph: {
-        nodes: ['collect', 'relations', 'update'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
-        edges: [
-          { id: 'collect-relations', source: 'collect', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:reviews', role: 'data' },
-          { id: 'relations-update', source: 'relations', sourceHandle: 'data:block', target: 'update', targetHandle: 'data:relations', role: 'data' }
-        ]
+        nodes: ['update'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: []
       }
     }, {
       entities: [{ type: 'project' }, { type: 'library' }],
-      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } },
-      blockSchemas: { relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }] }
+      relations: [{ ownerType: 'project', key: 'reviewLibraries', targetType: 'library', cardinality: 'many' }]
     });
 
     expect(normalized.actions.update.mutation.relationContracts[0]).toMatchObject({
@@ -4206,70 +4020,69 @@ describe('@perigram/processes compiler', () => {
     expect(access.screens.length).toBeGreaterThan(0);
   });
 
-  it('compiles lineage bindings from a Project -> Compose Lineage -> Queue graph', () => {
+  it('compiles lineage bindings from a Project -> Queue construct graph', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
       roles: { operator: { id: 'operator', label: 'Operator' } },
-      producerOutputs: producerOutputRecords([['project_source', 'project'], ['create_queue', 'queue']]),
+      producerOutputs: producerOutputRecords([
+        ['project_source', 'project', {}, 'result'],
+        ['create_queue', 'queue', {}, 'result']
+      ]),
       processNodes: {
         project_source: {
           id: 'project_source',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           typeId: 'project',
-          producerOutputId: 'project_source:entity',
+          producerOutputId: 'project_source:result',
           label: 'Create project',
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-          state: { to: SOURCE_STATE }
-        },
-        queue_lineage: {
-          id: 'queue_lineage',
-          kind: 'record.composeBlock',
-          block: 'lineage',
-          compositionMode: 'ancestors',
-          entries: [{ id: 'project' }]
+          state: { to: SOURCE_STATE },
+          construction: { mode: 'genericCreate', inputs: [{ id: 'name', path: 'name', type: 'string', required: true, prompt: true }] }
         },
         create_queue: {
           id: 'create_queue',
-          kind: 'effect.createEntity',
+          kind: 'cts.construct',
           typeId: 'queue',
-          producerOutputId: 'create_queue:entity',
+          producerOutputId: 'create_queue:result',
           label: 'Create queue',
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
           state: { to: SOURCE_STATE },
-          blocks: ['lineage'],
-          fields: [],
-          inputs: [],
-          outputs: []
+          construction: {
+            mode: 'genericCreate',
+            inputs: [
+              { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+              { id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project', required: false }
+            ]
+          }
         }
       },
       graph: {
-        nodes: ['project_source', 'queue_lineage', 'create_queue'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        nodes: ['project_source', 'create_queue'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
           {
-            id: 'project-to-lineage',
+            id: 'project-to-queue',
             source: 'project_source',
             sourceHandle: 'data:result',
-            target: 'queue_lineage',
-            targetHandle: 'entry:project'
-          },
-          {
-            id: 'lineage-to-queue',
-            source: 'queue_lineage',
-            sourceHandle: 'data:block',
             target: 'create_queue',
-            targetHandle: 'data:lineage',
+            targetHandle: 'data:lineage.projectId',
             role: 'data'
           }
         ]
       }
     }, {
       ...domain,
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      construction: {
+        ...domain.construction,
+        queue: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            ...domain.construction.queue.inputs,
+            { id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project', required: false }
+          ]
+        }
       }
     });
 
@@ -4281,12 +4094,12 @@ describe('@perigram/processes compiler', () => {
     expect(binding.lineageKey).toBe('projectId');
     expect(binding.sourceNode).toBe('project_source');
     expect(binding.sourceSocket).toBe('data:result');
-    expect(binding.consumingNode).toBe('queue_lineage');
-    expect(binding.consumingSocket).toBe('entry:project');
-    expect(binding.sourceProducerOutputId).toBe('project_source:entity');
-    expect(binding.producerOutputId).toBe('create_queue:entity');
-    expect(compiled.producerOutputs['create_queue:entity'].lineageBindings).toEqual([
-      expect.objectContaining({ producerOutputId: 'create_queue:entity', lineageKey: 'projectId' })
+    expect(binding.consumingNode).toBe('create_queue');
+    expect(binding.consumingSocket).toBe('data:lineage.projectId');
+    expect(binding.sourceProducerOutputId).toBe('project_source:result');
+    expect(binding.producerOutputId).toBe('create_queue:result');
+    expect(compiled.producerOutputs['create_queue:result'].lineageBindings).toEqual([
+      expect.objectContaining({ producerOutputId: 'create_queue:result', lineageKey: 'projectId' })
     ]);
   });
 
@@ -4362,85 +4175,67 @@ describe('@perigram/processes compiler', () => {
   });
 
   it('keeps same-type lineage bindings separate by full producer and socket identity', () => {
+    const lineageQueueConstruct = id => ({
+      id,
+      kind: 'cts.construct',
+      typeId: 'queue',
+      producerOutputId: `${id}:result`,
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+      state: { to: SOURCE_STATE },
+      construction: {
+        mode: 'genericCreate',
+        inputs: [
+          { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+          { id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project', required: false }
+        ]
+      }
+    });
+    const projectConstruct = id => ({
+      id,
+      kind: 'cts.construct',
+      typeId: 'project',
+      producerOutputId: `${id}:result`,
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+      state: { to: SOURCE_STATE },
+      construction: { mode: 'genericCreate', inputs: [{ id: 'name', path: 'name', type: 'string', required: true, prompt: true }] }
+    });
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
       roles: { operator: { id: 'operator', label: 'Operator' } },
       producerOutputs: producerOutputRecords([
-        ['project_a', 'project'],
-        ['project_b', 'project'],
-        ['queue_a', 'queue'],
-        ['queue_b', 'queue']
+        ['project_a', 'project', {}, 'result'],
+        ['project_b', 'project', {}, 'result'],
+        ['queue_a', 'queue', {}, 'result'],
+        ['queue_b', 'queue', {}, 'result']
       ]),
       processNodes: {
-        project_a: {
-          id: 'project_a',
-          kind: 'effect.createEntity',
-          typeId: 'project',
-          producerOutputId: 'project_a:entity',
-          trigger: { mode: 'manual' },
-          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-          state: { to: SOURCE_STATE }
-        },
-        project_b: {
-          id: 'project_b',
-          kind: 'effect.createEntity',
-          typeId: 'project',
-          producerOutputId: 'project_b:entity',
-          trigger: { mode: 'manual' },
-          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-          state: { to: SOURCE_STATE }
-        },
-        lineage_a: {
-          id: 'lineage_a',
-          kind: 'record.composeBlock',
-          block: 'lineage',
-          compositionMode: 'ancestors',
-          entries: [{ id: 'project' }]
-        },
-        lineage_b: {
-          id: 'lineage_b',
-          kind: 'record.composeBlock',
-          block: 'lineage',
-          compositionMode: 'ancestors',
-          entries: [{ id: 'project' }]
-        },
-        queue_a: {
-          id: 'queue_a',
-          kind: 'effect.createEntity',
-          typeId: 'queue',
-          producerOutputId: 'queue_a:entity',
-          trigger: { mode: 'manual' },
-          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-          state: { to: SOURCE_STATE },
-          blocks: ['lineage']
-        },
-        queue_b: {
-          id: 'queue_b',
-          kind: 'effect.createEntity',
-          typeId: 'queue',
-          producerOutputId: 'queue_b:entity',
-          trigger: { mode: 'manual' },
-          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-          state: { to: SOURCE_STATE },
-          blocks: ['lineage']
-        }
+        project_a: projectConstruct('project_a'),
+        project_b: projectConstruct('project_b'),
+        queue_a: lineageQueueConstruct('queue_a'),
+        queue_b: lineageQueueConstruct('queue_b')
       },
       graph: {
-        nodes: ['project_a', 'project_b', 'lineage_a', 'lineage_b', 'queue_a', 'queue_b']
+        nodes: ['project_a', 'project_b', 'queue_a', 'queue_b']
           .map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
-          { id: 'a-lineage', source: 'project_a', sourceHandle: 'data:result', target: 'lineage_a', targetHandle: 'entry:project', role: 'data' },
-          { id: 'a-queue', source: 'lineage_a', sourceHandle: 'data:block', target: 'queue_a', targetHandle: 'data:lineage', role: 'data' },
-          { id: 'b-lineage', source: 'project_b', sourceHandle: 'data:result', target: 'lineage_b', targetHandle: 'entry:project', role: 'data' },
-          { id: 'b-queue', source: 'lineage_b', sourceHandle: 'data:block', target: 'queue_b', targetHandle: 'data:lineage', role: 'data' }
+          { id: 'a-queue', source: 'project_a', sourceHandle: 'data:result', target: 'queue_a', targetHandle: 'data:lineage.projectId', role: 'data' },
+          { id: 'b-queue', source: 'project_b', sourceHandle: 'data:result', target: 'queue_b', targetHandle: 'data:lineage.projectId', role: 'data' }
         ]
       }
     }, {
       ...domain,
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
-      blockSchemas: {
-        ...domain.blockSchemas,
-        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      construction: {
+        ...domain.construction,
+        queue: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            ...domain.construction.queue.inputs,
+            { id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project', required: false }
+          ]
+        }
       }
     });
 
@@ -4448,10 +4243,10 @@ describe('@perigram/processes compiler', () => {
       item.childTypeId === 'queue' && item.parentTypeId === 'project'
     ));
     expect(bindings).toHaveLength(2);
-    expect(new Set(bindings.map(item => item.producerOutputId))).toEqual(new Set(['queue_a:entity', 'queue_b:entity']));
-    expect(new Set(bindings.map(item => item.sourceProducerOutputId))).toEqual(new Set(['project_a:entity', 'project_b:entity']));
-    expect(new Set(bindings.map(item => item.consumingNode))).toEqual(new Set(['lineage_a', 'lineage_b']));
-    expect(compiled.producerOutputs['queue_a:entity'].lineageBindings.map(item => item.producerOutputId)).toEqual(['queue_a:entity']);
-    expect(compiled.producerOutputs['queue_b:entity'].lineageBindings.map(item => item.producerOutputId)).toEqual(['queue_b:entity']);
+    expect(new Set(bindings.map(item => item.producerOutputId))).toEqual(new Set(['queue_a:result', 'queue_b:result']));
+    expect(new Set(bindings.map(item => item.sourceProducerOutputId))).toEqual(new Set(['project_a:result', 'project_b:result']));
+    expect(new Set(bindings.map(item => item.consumingNode))).toEqual(new Set(['queue_a', 'queue_b']));
+    expect(compiled.producerOutputs['queue_a:result'].lineageBindings.map(item => item.producerOutputId)).toEqual(['queue_a:result']);
+    expect(compiled.producerOutputs['queue_b:result'].lineageBindings.map(item => item.producerOutputId)).toEqual(['queue_b:result']);
   });
 });

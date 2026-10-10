@@ -7,9 +7,20 @@ const domain = {
     { type: 'cassette_design' },
     { type: 'artifact' },
     { type: 'project' },
-    { type: 'nest' }
+    { type: 'nest' },
+    { type: 'plate' }
   ],
   construction: {
+    plate: {
+      modes: ['fabricate'],
+      defaultMode: 'fabricate',
+      modeInputs: {
+        fabricate: [
+          { id: 'label', path: 'label', type: 'string', required: true },
+          { id: 'finish', path: 'finish', type: 'enum', options: ['matte', 'gloss'], required: true }
+        ]
+      }
+    },
     cassette_design: {
       modes: ['bakeCassetteDesignFromTemplate'],
       defaultMode: 'bakeCassetteDesignFromTemplate',
@@ -92,7 +103,7 @@ function typedCreate(overrides = {}) {
   return {
     id: 'n',
     label: 'design',
-    kind: 'effect.createEntity',
+    kind: 'cts.construct',
     typeId: 'cassette_design',
     construction: {
       mode: 'bakeCassetteDesignFromTemplate',
@@ -135,17 +146,15 @@ describe('required input availability', () => {
   it('rejects a null fallback for a required input and accepts an empty primitive', () => {
     const node = {
       id: 'n',
-      label: 'design',
-      kind: 'effect.createEntity',
-      typeId: 'cassette_design',
-      construction: {
-        mode: 'bakeCassetteDesignFromTemplate',
-        inputs: [{ id: 'label', path: 'label', type: 'string', required: true }]
-      },
+      label: 'plate',
+      kind: 'cts.construct',
+      typeId: 'plate',
+      construction: { mode: 'fabricate', inputs: [] },
+      inputDefaults: { finish: 'matte' },
       trigger: { mode: 'event' }
     };
-    expect(check({ ...node, inputDefaults: { label: null } })).toHaveLength(1);
-    expect(check({ ...node, inputDefaults: { label: '' } })).toEqual([]);
+    expect(check({ ...node, inputDefaults: { ...node.inputDefaults, label: null } })).toHaveLength(1);
+    expect(check({ ...node, inputDefaults: { ...node.inputDefaults, label: '' } })).toEqual([]);
   });
 
   it('accepts a required entity input on a manual path via its prompt', () => {
@@ -157,7 +166,7 @@ describe('required input availability', () => {
     const node = {
       id: 'n',
       label: 'nest',
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'nest',
       construction: {
         mode: 'buildNest',
@@ -173,12 +182,10 @@ describe('required input availability', () => {
     const node = {
       id: 'n',
       label: 'nest',
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'nest',
-      construction: {
-        mode: 'buildNest',
-        inputs: [{ id: 'mode', path: 'mode', type: 'enum', options: ['A', 'B'], required: true, default: 'A' }]
-      },
+      construction: { mode: 'buildNest', inputs: [] },
+      inputDefaults: { items: [{ id: 'd1' }] },
       trigger: { mode: 'event' }
     };
     expect(check(node)).toEqual([]);
@@ -187,86 +194,80 @@ describe('required input availability', () => {
   it('rejects an authored enum fallback outside the declared members', () => {
     const node = {
       id: 'n',
-      label: 'nest',
-      kind: 'effect.createEntity',
-      typeId: 'nest',
-      construction: {
-        mode: 'buildNest',
-        inputs: [{ id: 'mode', path: 'mode', type: 'enum', options: ['A', 'B'], required: true }]
-      },
+      label: 'plate',
+      kind: 'cts.construct',
+      typeId: 'plate',
+      construction: { mode: 'fabricate', inputs: [] },
+      inputDefaults: { label: 'P' },
       trigger: { mode: 'event' }
     };
-    expect(check({ ...node, inputDefaults: { mode: 'C' } })).toHaveLength(1);
-    expect(check({ ...node, inputDefaults: { mode: 'A' } })).toEqual([]);
+    expect(check({ ...node, inputDefaults: { ...node.inputDefaults, finish: 'chrome' } })).toHaveLength(1);
+    expect(check({ ...node, inputDefaults: { ...node.inputDefaults, finish: 'matte' } })).toEqual([]);
   });
 
-  it('requires the identity block on an automatic generic create and accepts it on a manual create', () => {
+  it('requires the identity name row on an automatic generic create and accepts it on a manual create', () => {
     const node = {
       id: 'n',
       label: 'project',
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'project',
-      construction: { mode: 'genericCreate', inputs: [] },
-      blocks: ['identity']
+      construction: { mode: 'genericCreate', inputs: [] }
     };
     expect(check({ ...node, trigger: { mode: 'event' } })).toHaveLength(1);
     expect(check({ ...node, trigger: { mode: 'manual' } })).toEqual([]);
   });
 
-  it('satisfies the required identity block with a connected block edge', () => {
+  it('satisfies the required identity name row with a connected edge', () => {
     const node = {
       id: 'n',
       label: 'project',
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'project',
       construction: { mode: 'genericCreate', inputs: [] },
-      blocks: ['identity'],
       trigger: { mode: 'event' }
     };
     expect(check(node, [
-      { id: 'e1', source: 'composer', target: 'gn', sourceHandle: 'data:block', targetHandle: 'data:identity' }
+      { id: 'e1', source: 'composer', target: 'gn', sourceHandle: 'data:block', targetHandle: 'data:name' }
     ])).toEqual([]);
   });
 
   // The composer-less construct (SPEC §20) authors identity through the
-  // Name row socket; the lowered twin's legacy identity block socket must
-  // not resurface as a second, unsatisfiable requirement — the v5 surface
-  // renders no block sockets.
-  it('yields the identity block requirement to the composer-less name row', () => {
+  // Name row socket; no separate identity-block requirement resurfaces as a
+  // second, unsatisfiable input — the v5 surface renders no block sockets.
+  it('yields the identity requirement to the composer-less name row', () => {
     const composerLess = {
       id: 'n',
       label: 'panel',
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'project',
       construction: {
         mode: 'genericCreate',
         inputs: [{ id: 'name', path: 'name', type: 'string', required: true, prompt: true }]
       },
-      blocks: ['identity'],
       trigger: { mode: 'event' }
     };
     const unmet = check(composerLess);
     expect(unmet).toHaveLength(1);
     expect(unmet[0]).toContain('Required input name');
     expect(check(composerLess, [
-      { id: 'e1', source: 'src', target: 'gn', sourceHandle: 'output:x', targetHandle: 'input:name' }
+      { id: 'e1', source: 'src', target: 'gn', sourceHandle: 'data:value', targetHandle: 'data:name' }
     ])).toEqual([]);
     expect(check({ ...composerLess, inputDefaults: { name: 'Panel 1' } })).toEqual([]);
   });
 
   it('names nodes by humanized operation and canvas id instead of the raw kind label echo', () => {
     const echoed = checkDiagnostics(typedCreate({ trigger: { mode: 'event' }, label: 'cts.construct' }));
-    expect(echoed[0].message).toContain('Create entity node gn');
+    expect(echoed[0].message).toContain('Construct node gn');
     expect(echoed[0].message).not.toContain('cts.construct');
     const authored = checkDiagnostics(typedCreate({ trigger: { mode: 'event' } }));
-    expect(authored[0].message).toContain('design (Create entity node gn)');
+    expect(authored[0].message).toContain('design (Construct node gn)');
   });
 
   it('rejects an attachment upload construction input whose fallback is empty or scalar', () => {
     const node = {
       id: 'n',
       label: 'artifact',
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       typeId: 'artifact',
       construction: {
         mode: 'uploadArtifact',
@@ -282,7 +283,7 @@ describe('required input availability', () => {
     const node = {
       id: 'n',
       label: 'move',
-      kind: 'effect.changeStatus',
+      kind: 'cts.transition',
       typeId: 'project'
     };
     expect(check({ ...node, trigger: { mode: 'manual' } })).toEqual([]);
@@ -293,7 +294,7 @@ describe('required input availability', () => {
     const node = {
       id: 'n',
       label: 'solve',
-      kind: 'effect.runCommand',
+      kind: 'cts.command',
       commandId: 'solve',
       trigger: { mode: 'manual' }
     };
@@ -306,7 +307,7 @@ describe('required input availability', () => {
     const node = {
       id: 'n',
       label: 'generate',
-      kind: 'effect.runCommand',
+      kind: 'cts.command',
       commandId: 'generate',
       trigger: { mode: 'manual' }
     };

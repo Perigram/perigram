@@ -10,7 +10,6 @@
 //   discriminators, socket ids, ports, and graph edges.
 // - checkCtsGraphBindings: declaration-level binding validation (type
 //   exists, state declared, field in row) beside R1-R6.
-import { SPECIES_BY_EFFECT_KIND } from './process-grammar.js';
 import { classMayDeclareChildren } from '../classes.js';
 const CTS_KIND = Object.freeze({
   construct: 'cts.construct',
@@ -27,53 +26,6 @@ const CTS_KIND = Object.freeze({
 });
 
 const CTS_SERVICE_KIND = 'cts.service';
-
-// v4 kind -> v5 classification table; flags disambiguate kinds that share
-// a species. The reverse table is derived, so the pair cannot drift. The
-// forward direction is metadata for classification only — no seam rewrites
-// authored records through it.
-const V5_MAPPING = Object.freeze({
-  'effect.createEntity': { kind: CTS_KIND.construct },
-  'effect.runProducer': { kind: CTS_KIND.construct, producer: true },
-  'effect.updateEntity': { kind: CTS_KIND.mutate },
-  'effect.changeStatus': { kind: CTS_KIND.transition },
-  'effect.archiveEntity': { kind: CTS_KIND.transition, archive: true },
-  'effect.deleteEntity': { kind: CTS_KIND.remove },
-  'effect.runCommand': { kind: CTS_KIND.command },
-  'effect.sendEntity': { kind: CTS_KIND.command, send: true },
-  'effect.generateAttachment': { kind: CTS_KIND.conversion },
-  'record.getField': { kind: CTS_KIND.field },
-  'record.composeBlock': { kind: CTS_KIND.compose, mode: 'compose' },
-  'record.modifyBlock': { kind: CTS_KIND.compose, mode: 'modify' },
-  'record.construct': { kind: CTS_KIND.compose, record: true },
-  'record.entityDraft': { kind: CTS_KIND.compose, record: true, draft: true },
-  'record.deconstruct': { kind: CTS_KIND.decompose },
-  'record.getBlock': { kind: CTS_KIND.decompose, one: true },
-  'producer.join': { kind: CTS_KIND.join }
-});
-
-const V4_KIND_BY_V5 = buildReverseMapping();
-
-function buildReverseMapping() {
-  const reverse = new Map();
-  for (const [v4Kind, mapping] of Object.entries(V5_MAPPING)) {
-    // Reads never reverse: `cts.read` + select IS the classification.
-    // Reversing would resurrect a retired v4 read kind (the legacy query
-    // leaked `read.queryEntities` back through operationKindOf).
-    if (mapping.kind === CTS_KIND.read) continue;
-    const flags = ['producer', 'archive', 'send', 'record', 'draft', 'one', 'mode'];
-    const key = v5Key(mapping.kind, mapping, flags);
-    if (!reverse.has(key)) reverse.set(key, v4Kind);
-  }
-  return reverse;
-}
-
-function v5Key(kind, record, flagNames) {
-  return [
-    kind,
-    ...flagNames.map(flag => (record[flag] === undefined ? '' : `${flag}=${record[flag]}`))
-  ].filter(Boolean).join('|');
-}
 
 export function isCtsGraphDefinition(data = {}) {
   const source = data?.data || data;
@@ -93,15 +45,12 @@ export function setTypeBinding(record = {}, typeId = '') {
   record.typeId = typeId;
 }
 
-// The operation kind of any record: v4 kinds are themselves; cts records map
-// through the canonical table (flags + read selects included). The single
-// seam every kind-matching consumer routes through — no duplicated
-// vocabulary.
+// The operation kind of any record is its own kind (SPEC §20): the
+// species vocabulary is the only executable one, so classification never
+// translates. The single seam every kind-matching consumer routes
+// through.
 export function operationKindOf(node = {}) {
-  const kind = String(node?.kind || '');
-  if (kind === CTS_SERVICE_KIND) return 'effect.runCommand';
-  if (!kind.startsWith('cts.')) return kind;
-  return v4KindFor(node) || kind;
+  return String(node?.kind || '');
 }
 
 // Single-record resolution is deliberately one-way and native. The
@@ -389,17 +338,6 @@ function resolveNativeDescriptor(record = {}, typeIdFor = () => null) {
   };
 }
 
-function v4KindFor(node) {
-  // This table is classification metadata only. It is intentionally kept
-  // separate from resolveNativeNode: no execution path may use it to replace
-  // a species record.
-  if (node.kind === CTS_KIND.read) return V4_KIND_BY_V5.get(`cts.read|select=${node.select || 'current'}`) || null;
-  if (node.kind === CTS_KIND.compose && !node.mode && !node.record) {
-    return V4_KIND_BY_V5.get('cts.compose|mode=compose') || null;
-  }
-  const flags = ['producer', 'archive', 'send', 'record', 'draft', 'one', 'mode'];
-  return V4_KIND_BY_V5.get(v5Key(node.kind, node, flags)) || null;
-}
 
 // The persisted form of in-tree declaration authoring: `ctsTypes` records
 // (class/field/state kinds, SPEC §20/§21 one tree) travel with the draft
