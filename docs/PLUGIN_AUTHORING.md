@@ -105,6 +105,27 @@ persistence callbacks, never stores, routing, or auth:
   runtimes beside its modules (vendored assets under the executor root,
   resolved by relative URL) — a module never imports host npm packages.
 - Never import `vue`, `primevue`, or `pinia` — the mount injects them.
+
+### 1b. Author a preview surface (read-only)
+
+A plugin can also own how its types PREVIEW (M7): declare a surface with
+`"kind": "preview"` (always contract 1) and bind it with a `previews`
+entry. The platform mounts it in its preview slots — the card preview
+band and the detail previewSource group — over a read-only mount:
+
+- The component's props are `{ record, payload }`: the instance record
+  (the §3 wire shape) and the parsed payload document (`null` when the
+  record has no payload or it does not parse). The host resolves the
+  payload URL — the module never fetches, persists, or queries; it
+  receives no `queries`/`records`/`notify`/`access` io and no
+  persistence callbacks.
+- Card chrome stays the platform's. While the module loads, and whenever
+  it cannot (unconnected executor, offline), the platform's generic
+  preview keeps rendering — render a quiet blank for records with
+  nothing to show instead of an error state.
+- Everything else follows the editor laws: host vue, the vetted
+  component pack (e.g. `DrawingCanvas` for drawings), host locale, no
+  host externals, `perigram-plugin surfaces` validates the module.
   `perigram-plugin surfaces <module.mjs>` refuses a module whose import
   graph carries host externals, whose factory is missing, or whose factory
   logs errors against the stub context (the stub carries the contract-2

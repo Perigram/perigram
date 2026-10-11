@@ -623,7 +623,7 @@ falsifiable check passes:
   components/composables for cassette or sheet design; the cassette and
   sheet-editor e2e flows stay green against the dev stack; the remote
   editors degrade honestly offline.
-- [ ] M7 — Read-side previews migrate as plugin preview modules: the
+- [x] M7 — Read-side previews migrate as plugin preview modules: the
   surface contract grows the preview kind — the listing declares a
   preview module beside the editor surface, the executor serves it, and
   the platform mounts it in its preview slots (the card preview region
@@ -635,12 +635,86 @@ falsifiable check passes:
   DrawingCanvas occs-cassette source leave app code. Check: no cassette
   component or util remains in app code; generated detail and card
   previews still render for orgs with the plugin installed.
-- [ ] M8 — The OCCS engine single-homes in the plugin: utils/occs is
+- [x] M8 — The OCCS engine single-homes in the plugin: utils/occs is
   deleted; workers/facade/occs is the engine's only copy (the
   two-copy drift risk dies here). The doomed app twins
   (utils/cassetteV2*, utils/drawingPreview, public/vendor/clipper2, the
   npm `three` dependency) die with M7's consumers. Check: utils/occs
   absent; vitest suite at parity; facade e2e green.
+
+### Agent Notes (2026-10-11, M7+M8 — previews migrate, twins die, standards ship with the plugin)
+
+Session `agent/m7-preview-20261011`. The preview kind is contract law
+now (shared/plugin-surfaces.js; SDK `parseListing` validates surface
+`kind` editor|preview and `previews` bindings — preview surfaces always
+target contract 1): the listing (v3) declares `cassette-preview`
+(surfaces/cassette-preview.mjs) beside the editors, cassette drops the
+app-side `payload.preview: "occs"` mode, and cts-types serves composed
+`previews` on the type view. The client mounts plugin previews in every
+InstancePreview slot through `RemoteInstancePreview.vue` (read-only
+`{ record, payload }`, host-resolved payload document, lazy
+mount-context import — preview slots sit in every card and an eager
+import would re-create the surface-pack TDZ cycle; the binding resolver
+is a leaf, plugin-preview-bindings.js) with the generic media
+(InstancePreviewMedia: payload attachment or declared previewSource
+through GeometryPreview) as the loading/offline fallback — a plugin
+preview replaces the generic render only when it mounts. Card chrome
+stays InstanceCard; CassetteCard/SheetDesignCard/CassetteThumbnail are
+deleted; the display contract now honors a declared previewSource for
+payload-less types (sheet-design cards preview again).
+
+Beside the owner ask (2026-10-11): the cassette layer standards that
+existed as system-seeded instance data ship WITH the plugin —
+`workers/facade/occs/layerStandards.js` carries the OCCS registry rows
+plus the historical system pens; the renderer bakes them
+(`applyOccsLayerPens`) so designer, sheet editor, and previews render
+with them; org-authored layer-standard rows still shadow-by-code
+host-side. The sheetLayout style table (a drifted duplicate) died in
+favor of the standards; sync with the spec registry is pinned
+repo-side (shared/facade-layer-standards.spec.js — the plugin tree
+reads no platform paths).
+
+§3 fallout fixed in the plugin surfaces (broken by the wire flip,
+proven by preparing the live e2e): the sheet editor reads
+`fields.geometry`, derives sheet dims from the stored polygon, and
+patches `{ geometry }` (the `{data, summary}` patch wrote dropped
+vocabulary); sheetLayout/sheetLayoutEditor read the §3 wire; the
+cassette designer reads `record.name`, §3 label chains, profile rows
+through `fields.*`, and loads template graph trees through
+`persistence.loadDocument` (the payload IS the template document).
+App-side §3 staleness fixed in the same sweep: the layer-standard and
+pen-template stores (fields.code/stroke, name sorts, org-shadow
+projection), utils/drawingPreview and the plugin's layerPens twin, and
+generated-labels gained the deterministic `uiMapping.types.*` channel
+beside the framework contract keys (cassette/sheet-design labels
+resolve again; typeLabelKey normalizes spelling).
+
+M8 deletions: utils/occs, utils/cassetteV2*, utils/sheetDesigns,
+utils/cassette.js, public/vendor/clipper2, npm three + clipper2-wasm,
+ThreeViewport, CassetteThumbnail/CassetteCard/SheetDesignCard; the
+cassette `occs` payload-preview mode left ArtifactViewer and
+RENDERABLE_PREVIEW_MODES; DrawingCanvas dropped its occs-cassette/occs
+sources (geometry/dxf/sketch remain) and generalizes dimension-layer
+detection to `dimension.*`; GeneratedScreen's cassetteParameters input
+edits its authored entries (template-row derivation died with the
+file-type cleanup); GeneratedHomeWorkspace's dead cassettes prop,
+ui-lab cassette mocks (local §3 fixtures now), the design-system
+contract rows for the deleted cards, the framework-inspector stale
+paths + cassette_template compatibility aliases, and 135 orphaned
+cassette/sheet i18n keys (en+ru) went with them.
+
+Marketplace hygiene (owner report 2026-10-11): the Plugins-page upgrade
+UI has existed since 4a962f7c — the real gap was the never-exercised
+deploy path (the dev catalog sat at v1 while the listing was v2, so
+`availableVersion` never fired and no arrow ever rendered). Fixed by
+the runbook line in the facade README (bump version, re-publish, orgs
+upgrade through the page) and proven live: v3 published through the
+operator API and org-demo-acme upgraded through the same upgrade
+endpoints the page calls. The "Fixture Surface Plugin" catalog residue
+died by the new operator retract route (`DELETE /api/plugins/catalog/
+:pluginId`, drain-gated: refuses while any org holds an install) — the
+plugin-surface e2e retracts its fixture after every run and the stale
+dev entry was retracted live.
 
 ### Agent Notes (2026-10-11, cassette file-type cleanup — templateType/parameters deleted)
 

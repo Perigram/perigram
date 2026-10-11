@@ -20,10 +20,14 @@ declarations }` where `declarations` carries `types` (CTS grammar,
 non-empty), `services` (SPEC §8 signatures, `mode` endpoint/claim),
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
-`surfaces` (plugin-delivered editor surface modules, owner decision
-2026-10-11: `[{ id, module, surfaceContract }]` — a root-relative module
-path the plugin's executor serves plus the mount-contract major it
-targets; `checkSurfaceModule` below validates the module author-side),
+`surfaces` (plugin-delivered surface modules, owner decision 2026-10-11:
+`[{ id, module, surfaceContract, kind? }]` — a root-relative module path
+the plugin's executor serves, the mount-contract major it targets, and a
+`kind` of `editor` (the default) or `preview` (M7: the read-only
+`{ record, payload }` mount into the platform's preview slots — always
+contract 1; `checkSurfaceModule` below validates the module
+author-side), `previews` (`[{ type, surface }]` — the plugin's types
+whose preview slots mount the bound preview surface, one per type),
 `attachmentKinds` (payload upload contracts keyed by kind id), and
 `conversions` (artifact conversion entries; an optional `service` names a
 declared plugin service as the executor, bare or plugin-qualified),

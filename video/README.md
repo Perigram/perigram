@@ -69,7 +69,7 @@ The folded cassette is not a separate drawing: `cassette_faces` builds every
 face once (polygon, holes, fold angle, junction line), the flat pattern draws
 them coplanar, and the folded piece folds the same faces about their junction
 lines with composed rotations — the same face/fold graph algorithm as
-`buildCassetteV2FoldedPreview` in [utils](../../utils/cassetteV2FoldedPreview.js).
+`buildCassetteV2FoldedPreview` in [the facade plugin's render family](../../workers/facade/surfaces/lib/cassetteV2FoldedPreview.js).
 At fold 0 the folded piece is the exact flat pattern; holes and hanger notches
 ride their flanges; the corner steps open into relief gaps as the returns
 rise. Piece sizes, sheet size, the layout and the efficiency number are
