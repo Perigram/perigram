@@ -798,11 +798,14 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   compact `InstanceInlineRef` rows. Queue-produced instances are already `CUT`;
   lifecycle action design remains a workflow-machine concern, not a local card
   action override.
-- `CassetteDesignerV2` owns OCCS cassette-template editing. It uses
-  `DesignerWorkspace` for its responsive palette/canvas/inspector layout; the
-  shared workspace owns layout only and does not interpret OCCS state.
-  or nesting records.
-  `StandardDialog` for the profile sketch popup and `ProfileSketchEditor` for
+- OCCS cassette-template editing is the facade plugin's designer surface
+  (`workers/facade/surfaces/cassette-designer.mjs`, a contract-2 module
+  mounted through the remote-surface loader; see
+  [workers/facade](../workers/facade/README.md)). It composes the same
+  shared chrome from the mount's vetted pack — `DesignerWorkspace` for its
+  responsive palette/canvas/inspector layout (layout only, no OCCS
+  interpretation), `StandardDialog` for the profile sketch popup — and the
+  plugin-owned sketch editor for
   reusable `profile_template` sketches. Profile drawing saves library templates;
   cassette geometry consumes those templates from the selected hanger feature's
   profile selector instead of adding a separate profile workpiece to the
@@ -814,15 +817,14 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   the relation instead of duplicated width/height fields in the workpiece row.
   Graph rows must not duplicate hanger family, production mode, or profile
   selectors as badges; those values are edited in the expanded controls.
-  `ProfileSketchEditor` is a compact CAD-style direct editor: new profile
-  sessions start blank, the polyline tool uses a command loop with first point,
-  rubber-band preview, subsequent vertices, explicit Close/Undo/Finish actions,
-  endpoint snaps, typed distance from the previous point, optional ortho
-  projection, circle holes, DXF import, and per-corner fillet radii. It uses
-  thin linework and small square vertex grips, and does not own a general
-  parametric constraint solver. `components/ProfileSketchEditor.spec.js`
-  provides the focused Vue smoke coverage for malformed and empty in-progress
-  sketches; helper math remains covered in `utils/occs/profiles.spec.js`.
+  The plugin-owned sketch editor is a compact CAD-style direct editor: new
+  profile sessions start blank, the polyline tool uses a command loop with
+  first point, rubber-band preview, subsequent vertices, explicit
+  Close/Undo/Finish actions, endpoint snaps, typed distance from the previous
+  point, optional ortho projection, circle holes, DXF import, and per-corner
+  fillet radii. It uses thin linework and small square vertex grips, and does
+  not own a general parametric constraint solver; the helper math lives in
+  the plugin's engine specs (`workers/facade/occs/profiles.spec.js`).
   Profile template selectors must normalize library DTOs through shared
   select-option helpers so PrimeVue receives string `label` and `value` fields
   even while template data is loading. Profile-dialog selects keep their
