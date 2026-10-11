@@ -2,17 +2,20 @@
 
 Cards for `cassette` DTOs — §13 file-class instances served by the generic
 instance service (see
-[server/packs/facade/cassettes/README.md](../../../../packages/facade/server/cassettes/README.md)).
+[server/features/instances/README.md](../../../../server/features/instances/README.md));
+the type declarations and editor bindings arrive with the installed
+facade plugin ([workers/facade](../../../../workers/facade/README.md)).
 
 ## Components
 
 - `CassetteCard.vue` renders inline, compact, and card variants through shared
   `InstanceCard` chrome. It shows cassette identity and declared fields
   through the bundle-resolved fact rows.
-- `CassetteThumbnail.vue` resolves the visual source in order: the stored
-  geometry fields (`data.polygonParts`, `data.layerData`), then the OCCS
-  payload document (PARAMETRIC templates — fetched from the payload channel
-  and parsed).
+- [`CassetteThumbnail.vue`](../../CassetteThumbnail.vue) (components root —
+  shared with `InstancePreview`, not this directory) resolves the visual
+  source in order: the stored geometry fields (`data.polygonParts`,
+  `data.layerData`), then the OCCS payload document (PARAMETRIC templates —
+  fetched from the payload channel and parsed).
 
 ## Contract
 
@@ -30,4 +33,5 @@ instance service (see
 ## Related
 
 - [components/shared/README.md](../../shared/README.md) - InstanceCard, DataBlock, drawing previews
-- [server/packs/facade/cassettes/README.md](../../../../packages/facade/server/cassettes/README.md) - cassette storage contract
+- [server/features/instances/README.md](../../../../server/features/instances/README.md) - cassette storage contract (generic instance service)
+- [workers/facade/README.md](../../../../workers/facade/README.md) - the facade plugin's declarations and construction compute

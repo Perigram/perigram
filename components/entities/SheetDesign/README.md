@@ -44,4 +44,5 @@
 ## Related
 
 - [shared components](../../shared/README.md)
-- [sheet design feature](../../../../packages/facade/server/sheet-designs/README.md)
+- [facade plugin executor](../../../../workers/facade/README.md) — sheet-design
+  construction compute and the `generate-sheet-dxf` export service
