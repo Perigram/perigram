@@ -744,8 +744,9 @@ export default function createSurface({ vue, components, locale, queries, record
         window.localStorage.setItem(onboardingStorageKey, JSON.stringify({ dismissed: true, dismissedAt: Date.now() }));
       };
 
+      const recordTitle = (record) => record?.name ?? record?.fields?.name ?? '';
       const templateName = (template) => (
-        template?.name ||
+        recordTitle(template) ||
         t('cassette.newCassette')
       );
 
@@ -813,7 +814,7 @@ export default function createSurface({ vue, components, locale, queries, record
             fileName: `${name}.occs`,
             mimeType: OCCS_MIME
           });
-          if ((target.name || '') !== name) {
+          if (recordTitle(target) !== name) {
             await props.persistence.rename(target, name);
           }
           persistedTemplateIdOverride.value = target._id?.toString() || persistedTemplateIdOverride.value;
