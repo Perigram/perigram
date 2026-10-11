@@ -6,7 +6,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2025-10-22
-updated: 2026-09-30
+updated: 2026-10-11
 ```
 
 
@@ -145,10 +145,16 @@ These rules are blocking, not advisory:
 - Follow existing project structures, helpers, names, and conventions.
 - Do not add speculative abstractions, features, or future-proofing.
 - Do not refactor unrelated code.
-- Do not add backward compatibility bridges, legacy fallbacks, dual-read
-  paths, or adapter shims when changing data structures, permissions, routes,
-  APIs, or process protocols, until asked for. Replace the old contract and
-  migrate existing data in the same task.
+- No compatibility with retired contracts, ever, unless the owner orders it
+  in so many words this session: not bridges, legacy fallbacks, dual-read
+  paths, adapter shims — and not "boundary projections" or wire adapters
+  that keep a retired shape alive under a new name. When a contract
+  changes, its consumers and stored data migrate in the same task. Compat
+  built to support slop is more slop.
+- No assumed fields: a serialization boundary carries exactly what its
+  domain stores. Synthesizing alias blocks, universal display fields, or
+  costume names for stored slots at the wire is a defect, not a design.
+  Only true must-haves travel, as plain fields.
 - Do not revert or overwrite unrelated user/agent changes.
 - Do not run `npm run build` or start dev servers unless explicitly asked.
 - Continue until the task is implemented, documented, validated, and

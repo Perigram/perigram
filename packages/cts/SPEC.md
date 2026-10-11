@@ -126,9 +126,15 @@ entity := {
 
 Tenancy lives in the top-level `organizationId` slot, never inside an edge
 map: `lineage` holds pure tree edges (a stored `lineage.organizationId` is
-the same drift class R2 forbids). The wire DTO still projects tenancy as
-`lineage.organizationId` for the legacy block vocabulary — that projection
-belongs to the instance service boundary (§13), storage speaks §3.
+the same drift class R2 forbids). Owner decision (2026-10-11): the wire
+DTO **is** the stored §3 shape, with ids rendered JSON-safe — nothing
+else. No boundary synthesizes retired vocabulary: no `identity` block
+(`_id`/`name` travel as themselves), no `attachments.primary` (the slot
+travels as `payload`), no `lineage.organizationId` edge (tenancy travels
+as `organizationId`), no `data`/`specs` slot split (rows travel as flat
+`fields`), and no assumed field of any kind — a wire key that no layer
+stores is a defect. Display names derive client-side from the
+declaration (the §4 identifier law), never from a synthesized block.
 `organizationId: null` marks a **system instance**: pack-seeded reference
 data (catalogs like pens or layer standards) that is read-admitted in
 every organization's view and written only by seeding/admin paths. Org
@@ -733,8 +739,10 @@ The projection is now **synthesis-only**: every type in the view —
 framework, pack, or org — synthesizes its entities entry (per-class
 collection per §13), workflows (graph-derived at compile, never projected
 from declarations), field
-schemas (core-slot convention + rows; `item` quantities land in `specs`,
-everything else in `data`), field access (bound to the cts-types
+schemas (the §3 stored vocabulary — identity/audit keys, declared row
+fields, declared edges, the provenance record, the payload trait —
+following the §3 wire decision: no block slots, no `data`/`specs` split,
+no assumed fields), field access (bound to the cts-types
 feature), containment (children edges), construction (`genericCreate` +
 declared construct operators as `via` modes), relations (declared
 edges), and attachment kinds (payload traits). Nothing passes through

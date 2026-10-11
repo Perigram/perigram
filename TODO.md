@@ -1,5 +1,52 @@
 # TODO
 
+## The instance wire speaks §3: block vocabulary and assumed fields die (owner decision 2026-10-11)
+
+Owner verdict on the wire DTO: compatibility with the entity-era block
+vocabulary is slop nobody asked for; every artificial assumed field dies
+(`identity.*`, `attachments.primary`, `lineage.organizationId`, the
+`data`/`specs` slot split, `data.value`); only stored must-haves travel,
+as plain fields. Declared in
+[packages/cts/SPEC.md](./packages/cts/SPEC.md) §3 (wire decision) and
+enforced repo-wide by AGENTS.md (no-compat / no-assumed-fields rules).
+
+- [ ] A. `toDto` flip: the instance wire DTO is the stored §3 shape —
+  `_id`, `type`, `typeVersion`, `organizationId`, `name`, `fields`,
+  `state`, `stateChangedAt`, `lineage`, `relations`, `payload`,
+  `provenance`, `createdAt`, `updatedAt`; ids JSON-safe. The synthesizing
+  seams (`identity` block, `attachments.primary`, tenancy-in-lineage,
+  `wireFieldsSplit`) are deleted, not adapted.
+- [ ] B. Projection follows: core schemas speak the stored vocabulary
+  (flat row fields, declared edges, provenance record, payload, audit
+  keys); the `data`/`specs` slot convention and the `data.value` phantom
+  die in `field-schema-rows.js` and `domain-projection.js`.
+- [ ] C. Consumer walk (no bridges, same task): evaluator and effect
+  boundary (`identity?.uid` reads), `instance-shape.js`, generated
+  surfaces (created-instance-open, action-inputs, file-surfaces payload
+  channel, remote-surface-mount rename), chats/pickers/inline refs,
+  ui-mapping and fact rows, stores, the mutate leaf/patch vocabulary
+  (`identity.name` patch → `name`), and persisted process drafts
+  referencing block paths (one-shot migration per the no-compat law).
+- [ ] D. Owner call, not assumed: framework legacy entities (user,
+  organization, artifact, entity-revision, catalogs) still run the old
+  block wire wholesale on explicit feature services — flipping their
+  world is a separate decision, recorded here so nobody mistakes it for
+  forgotten.
+
+### Agent Notes (2026-10-11, declaration session)
+
+Session `agent/no-compat-20261011` (docs only). The docs previously
+licensed the opposite: cts SPEC §3 explicitly sanctioned the
+`lineage.organizationId` wire projection "for the legacy block
+vocabulary", the instances README documents `identity.name` and
+`attachments.primary` as deliberate boundary projections, and AGENTS.md's
+no-bridge rule was scoped "until asked for" — the SPEC sanction read as
+the asking. Those sentences are now flipped to the owner's decision;
+READMEs that still describe today's block-projecting reality stay
+accurate until slice A–C land (TODO is the delta). Not started: the
+migration itself — the owner has not yet scoped its scheduling against
+the parallel plugin-service work.
+
 ## CTS honesty pass: §13-true projection schemas, Name-input retirement, undead-kind cleanup (2026-10-11)
 
 Owner direction (2026-10-11, from the types-system maturity review): the
