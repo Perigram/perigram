@@ -11,17 +11,27 @@ hydration (`useScreenSourceSync` + source states), process action runs
 (create-open through the workspace-open seam), and runtime state-machine
 transitions. The routed screens page and floating hosts (the shared
 entity popup) render compiled screens through it — the generator surface
-is never wired twice.
+is never wired twice. Its optional `navigation` prop is the host-injected
+back affordance for the record header (SurfaceHeader's navigation
+channel): the routed screens page feeds it so a detail deep link can
+return to where the user came from.
 
-Every organization management surface — team, partners, billing, and
-the process designer canvas — is a registered workspace page in
-`workspace-pages.js` carrying its `route`; the generated overview's
-system-screen buttons open them as home pane tabs through the page-open
-seam (`utils/workspace-page-open.js` — the page twin of the entity
-workspace-open event, with a mobile route fallback). Nothing routes away
-from home; the routes remain as mobile/deep-link fallbacks. The
+Every organization management surface — team, partners, billing, the
+plugin marketplace, and the process designer canvas — is a registered
+workspace page in `workspace-pages.js` carrying its `route`; the generated
+overview's system-screen buttons open them as home pane tabs through the
+page-open seam (`utils/workspace-page-open.js` — the page twin of the
+entity workspace-open event, with a mobile route fallback). Nothing routes
+away from home; the routes remain as mobile/deep-link fallbacks. The
 workspace-page registry also carries the route→page map
-(`workspacePageIdForRoute`) that chrome resolve through.
+(`workspacePageIdForRoute`) that chrome resolve through. The seam's
+`params` channel carries one-shot page intent (the directory's invite
+action preselects its target in the team page); the opened page consumes
+it through its registry props adapter, and the mobile fallback renders it
+as the route's query. The page host mounts non-`flush` pages inside its
+padded scroll area — the same content rhythm the screen panes use — while
+`flush` rows (the designer canvas, the call stage, the chats inbox, the
+self-padding directory surface) own their shell.
 
 The manifest vocabulary is the projected UI contract, everywhere: screens and
 actions key their target by `typeId`, actions by `id` (with `parentTypeId`

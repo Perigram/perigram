@@ -13,9 +13,13 @@ Nuxt layout shells for public and authenticated app surfaces.
   surface for offline mutations (see the root README PWA section).
 - The layout owns the app-level overlay hosts, one instance each:
   `<ConfirmDialog />` (default group — feature surfaces call `useConfirm`
-  without a group; a second host renders the same require twice) and
+  without a group; a second host renders the same require twice),
   `<Toast />` (every `toast.add()` on app surfaces renders here — a page
-  mounting its own host duplicates every toast).
+  mounting its own host duplicates every toast), and
+  `<ProfileSettingsDialog />` (the profile settings popup, opened through
+  the shared `useProfileDialog` state by every `UserAccountMenu` instance
+  and by record surfaces — the account menu itself is mounted three
+  times: desktop header, mobile bar, home sidebar footer).
 - The desktop header is hidden on the generated home screen: that route's
   Discord-style workspace overload owns the full viewport and mounts brand,
   communication entries (chats open the shared bottom-right popup and the
@@ -72,12 +76,16 @@ an embedded mobile tab inside the app layout instead of the desktop overlay, so
 the chat close button is hidden there.
 Profile is not a tab; it opens the same account menu used on desktop. Theme
 switching lives in that account menu on both desktop and mobile.
-The embedded chats tab, `/chats`, and account routes (`/profile` and `/organization`) use
+The embedded chats tab, `/chats`, and account routes (`/organization` and
+its children) use
 a flush mobile surface with only bottom safe-area spacing for the fixed nav;
 desktop keeps the normal constrained page padding.
 Mobile bottom-panel navigation dispatches the shared transient close event
 before route changes so popovers, menus, and chat do not overlap the
-destination.
+destination. A routed generated screen keeps its owning type tab selected
+in the bottom bar: the manifest resolves the route's screen key (synthesized
+detail keys included) to its type, so opening a record never leaves the bar
+without a selected tab.
 
 The authenticated user control opens a PrimeVue popover and always renders the organization section when at
 least one membership is available. That section contains organization entries only and resolves names from

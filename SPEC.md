@@ -46,7 +46,18 @@ separate tab — they render per role under Roles.
 Popups (profile/org settings, org/user previews, floating call window,
 status badges) are raw PrimeVue: Popover/StandardDialog own the surface
 and chrome, no hand-rolled borders or !utility overrides on PrimeVue
-internals.
+internals. Every standard popup can be expanded: PrimeVue's own maximize
+control is the popup-to-fullscreen affordance, and record popups step up
+to their page surface.
+
+Pages, layouts, and popups are unified and deslopped: management
+surfaces (organization, plugins, team, billing, partners, designer) never
+route the user out of the home workspace — they open as home pane tabs
+with the routes kept as mobile/deep-link fallbacks. Routed surfaces carry
+a back control embedded in their page header that follows real navigation
+history (falling back to the home ladder on deep links). Tabs stay
+consistent: the surface a record belongs to stays selected while its
+screen is open, and popups/pages/tabs share one navigation language.
 
 Mobile devices scale the whole UI through the root font-size (the rem
 basis PrimeVue components and the typography roles share). Mobile record
