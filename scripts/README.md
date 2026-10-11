@@ -114,15 +114,16 @@ agent edit core files ad hoc.
 
 `npm run design:scope-check -- --base origin/local` is the same guard bound
 to `.agents/design-layer.allowlist` — the designer write surface; the
-allowlist file is the canonical list of design-scoped paths.
-`.forgejo/workflows/design-scope.yml` enforces it on pull requests to
-`local`: PRs authored by a login in the workflow's `DESIGNER_LOGINS` env
-are diffed against the allowlist and fail CI on any out-of-scope file,
-while PRs from other authors pass through unchanged, so the job can be a
-required status check. Onboarding a designer: replace the
-`designer-placeholder` login in the workflow, give the account no direct
-push rights to `local`, and mark the `design-scope` job required in branch
-protection.
+allowlist file is the canonical list of design-scoped paths. `local` is the
+owner's personal trunk with no branch protection: the owner performs every
+merge personally, and this guard is the review verdict on a designer's
+branch, not an access wall. Run it from the primary checkout on the
+designer's branch, or let `.forgejo/workflows/design-scope.yml` produce the
+same verdict on pull requests authored by a login in its `DESIGNER_LOGINS`
+env (PRs from other authors pass through). Onboarding a designer is
+replacing the `designer-placeholder` login in the workflow; repository
+access stays the owner's choice (a fork with pull requests gives zero
+write access), since every merge is the owner's anyway.
 
 `npm run docs:validate` is the mandatory documentation guardrail. It resolves
 every internal relative link in the README tree against the repository and
