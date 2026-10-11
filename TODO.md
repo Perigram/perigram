@@ -10,17 +10,17 @@ as plain fields. Declared in
 [packages/cts/SPEC.md](./packages/cts/SPEC.md) §3 (wire decision) and
 enforced repo-wide by AGENTS.md (no-compat / no-assumed-fields rules).
 
-- [ ] A. `toDto` flip: the instance wire DTO is the stored §3 shape —
+- [x] A. `toDto` flip: the instance wire DTO is the stored §3 shape —
   `_id`, `type`, `typeVersion`, `organizationId`, `name`, `fields`,
   `state`, `stateChangedAt`, `lineage`, `relations`, `payload`,
   `provenance`, `createdAt`, `updatedAt`; ids JSON-safe. The synthesizing
   seams (`identity` block, `attachments.primary`, tenancy-in-lineage,
   `wireFieldsSplit`) are deleted, not adapted.
-- [ ] B. Projection follows: core schemas speak the stored vocabulary
+- [x] B. Projection follows: core schemas speak the stored vocabulary
   (flat row fields, declared edges, provenance record, payload, audit
   keys); the `data`/`specs` slot convention and the `data.value` phantom
   die in `field-schema-rows.js` and `domain-projection.js`.
-- [ ] C. Consumer walk (no bridges, same task): evaluator and effect
+- [x] C. Consumer walk (no bridges, same task): evaluator and effect
   boundary (`identity?.uid` reads), `instance-shape.js`, generated
   surfaces (created-instance-open, action-inputs, file-surfaces payload
   channel, remote-surface-mount rename), chats/pickers/inline refs,
@@ -46,6 +46,40 @@ READMEs that still describe today's block-projecting reality stay
 accurate until slice A–C land (TODO is the delta). Not started: the
 migration itself — the owner has not yet scoped its scheduling against
 the parallel plugin-service work.
+
+### Agent Notes (2026-10-11, slices A–C — the wire flip)
+
+Session `agent/wire-s3-20261011`. Landed: `toDto`/`create`/
+`processUpdate`/`patch` speak the stored document (ids JSON-safe); the
+synthesizing seams (`identity` block, `attachments.primary`, tenancy in
+lineage, `wireFieldsSplit`) are deleted. The projection's core schemas
+are the stored keys; rows project as flat `fields.*` (slot convention,
+`slotFor`, `extractRow`, and the `data.value` phantom deleted; the
+`slot` descriptor key strips at `normalizeType`); entity blocks are
+`fields`/`lineage`/`relations`. Persisted drafts heal through
+`rewriteRetiredWirePaths` (the seam rewrite, generalized from the Name
+surgery): `data.*`/`specs.*` paths, identity/attachment spellings, edge
+handles, inputDefaults keys, compose blocks, and producer-output policy
+lists adopt the current vocabulary at resolution and on save — no
+runtime bridge anywhere (the Name→identity.name mapping is gone).
+Consumers walked: evaluator/effect boundary, compiler prompt contracts
+and mutate leaves, chats/support (instance names, snapshots, option
+labels, ancestry), instance-revisions snapshots, relation options and
+entity sources, screen/ui-contract compilation, generated surfaces
+(detail/collection/file/preview/home workspace, created-instance-open,
+action-context, file-surfaces, remote-surface-mount),
+instance-shape/display-contract, pickers/inline refs/TraceChain,
+stores, cassette renderer/designer/thumbnail, e2e fixtures. Party types
+(user/organization) and framework entities (artifact, catalogs) keep
+their own services and wire — their loaders map into the support option
+seam's one contract, and that is slice D's boundary, not a bridge.
+Naming follows §4 end to end: the stored `name` slot is the rename
+channel; the identifier row resolves client-side (titleFor /
+instance-shape absorption); unnamed records render the placeholder.
+Validation: full suite below base failure parity (46 vs 48 — two
+pre-existing failures incidentally fixed), SSR smoke 3/3, check-arch,
+check-docs, framework:validate green. Not run: Playwright E2E (live
+stack).
 
 ### Agent Notes (2026-10-11, first enforced slice — retired Name-input surgery)
 
