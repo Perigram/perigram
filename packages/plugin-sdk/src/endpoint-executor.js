@@ -21,7 +21,8 @@ const STATIC_CONTENT_TYPES = {
   '.json': 'application/json',
   '.css': 'text/css',
   '.html': 'text/html',
-  '.svg': 'image/svg+xml'
+  '.svg': 'image/svg+xml',
+  '.wasm': 'application/wasm'
 };
 
 export function createEndpointExecutor({ services = {}, token = null, staticRoot = null } = {}) {

@@ -11,20 +11,20 @@ import {
   OCCS_LAYER_CUT_INNER,
   OCCS_LAYER_CUT_OUTER,
   OCCS_LAYER_FOLD_ROUTE
-} from './occs/layers.js';
+} from '../../occs/layers.js';
 import {
   collectOccsExpressionIdentifiers,
   resolveOccsAngleExpression,
   resolveOccsExpression
-} from './occs/expressions.js';
+} from '../../occs/expressions.js';
 import {
   buildOccsDrawingFromFaceCurves,
   occsCurveToPath,
   occsShapeToPath
-} from './occs/drawing.js';
-import { buildOccsProductionLayout } from './occs/production-layout.js';
-import { buildOccsFaceDimensionEntities } from './occs/dimensions.js';
-import { buildOccsFoldedPreviewPayload } from './occs/folded-3d.js';
+} from '../../occs/drawing.js';
+import { buildOccsProductionLayout } from '../../occs/production-layout.js';
+import { buildOccsFaceDimensionEntities } from '../../occs/dimensions.js';
+import { buildOccsFoldedPreviewPayload } from '../../occs/folded-3d.js';
 import { differenceCassetteV2FacePolygon } from './cassetteV2Clipper.js';
 import {
   OCCS_EDGE_ARRAY_DEFAULTS,
@@ -42,13 +42,13 @@ import {
   OCCS_HOLE_HARDWARE_FAMILIES,
   normalizeHardwareFamily,
   normalizeHangerProductionMode
-} from './occs/hardware.js';
+} from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
   occsProfileFromSketch
-} from './occs/profiles.js';
+} from '../../occs/profiles.js';
 
 const BOUNDARY_LAYER = OCCS_LAYER_CONTOUR_FLAT_PATTERN;
 const FOLD_ROUTE_LAYER = OCCS_LAYER_FOLD_ROUTE;

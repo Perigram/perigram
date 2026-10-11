@@ -28,9 +28,7 @@ targets a surface mount contract
 | Surface | Contract | Serves |
 |---|---|---|
 | `sheet-design-editor` | 2 | The sheet-design type's editor: layout drag/rotate/snap, layer-pen styling, save through the mount's patch transport. Pure layout compute in `surfaces/lib/`. |
-
-The cassette designer remains an app-side registration until its own
-migration (TODO §Plugin-delivered editor surfaces, M6).
+| `cassette-designer` | 2 | The cassette type's designer: parametric face graph, workpieces/attachments, profile sketch and folded 3D preview. Engine and render family in [`occs/`](./occs/README.md) and `surfaces/lib/`; the three.js preview runtime is vendored under `assets/vendor/three/`. |
 
 ## Services
 

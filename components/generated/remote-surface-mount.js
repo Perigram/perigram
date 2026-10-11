@@ -12,8 +12,10 @@ import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import InputNumber from 'primevue/inputnumber';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
@@ -39,8 +41,8 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 // Grows only by accepted need — each entry is a design system
 // commitment to plugin authors.
 const SURFACE_COMPONENT_PACK = Object.freeze({
-  Button, Checkbox, Dialog, InputText, Message, Popover, ScrollPanel, Select, Tag, Textarea,
-  DesignerSurface, DesignerWorkspace, InstanceSelect, StandardDialog
+  Button, Checkbox, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, Tag, Textarea,
+  DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceSelect, StandardDialog
 });
 
 const SURFACE_VUE = Object.freeze({ h, ref, shallowRef, computed, reactive, watch, onMounted, onBeforeUnmount, nextTick, defineComponent });
@@ -57,6 +59,7 @@ export function surfaceHostContext({ t, te, locale }, surfaceContract = 1, io = 
   return Object.freeze({
     ...base,
     queries: io.queries || null,
+    records: io.records || null,
     notify: io.notify || (() => {}),
     access: io.access || { canWrite: () => false }
   });
@@ -70,6 +73,18 @@ export function editorSurfaceQueries() {
   return Object.freeze({
     list: (typeId, params = {}) => instances.listInstances(instances.canonicalTypeKey(typeId), params, { silent: true }),
     get: (typeId, id) => instances.fetchInstance(instances.canonicalTypeKey(typeId), String(id), { force: true })
+  });
+}
+
+// Cross-type record writes over the generic transport (contract 2): an
+// editor that composes OTHER types' records (the cassette designer's
+// profile templates) creates and updates them through the same instance
+// transports — never a bespoke route.
+export function editorSurfaceRecords() {
+  const instances = useInstancesStore();
+  return Object.freeze({
+    create: (typeId, payload) => instances.createInstance(instances.canonicalTypeKey(typeId), payload),
+    update: (typeId, id, payload) => instances.updateInstance(instances.canonicalTypeKey(typeId), id, payload)
   });
 }
 

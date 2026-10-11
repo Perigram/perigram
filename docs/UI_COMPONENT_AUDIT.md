@@ -141,10 +141,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-calls-callworkspacepage-vue` | `components/calls/CallWorkspacePage.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
 | `ui-components-calls-incomingcalls-vue` | `components/calls/IncomingCalls.vue` | derived usage | replace:chrome (5) |
-| `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (35); narrowly-allowlist:inline-data-driven (2) |
-| `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:layout (6); replace:chrome (2) |
-| `ui-components-cassetteexpressioneditor-vue` | `components/CassetteExpressionEditor.vue` | derived usage | replace:chrome (17); remove:state (1) |
-| `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
 | `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
 | `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (21); remove:state (7); remove:important-override (10); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-directory-directorydetailsurface-vue` | `components/directory/DirectoryDetailSurface.vue` | derived usage | replace:chrome (5); remove:state (1); remove:important-override (6) |
@@ -198,7 +194,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | compliant |
 | `ui-components-process-designer-typedvaluecontrol-vue` | `components/process-designer/TypedValueControl.vue` | derived usage | compliant |
 | `ui-components-process-designer-typemigrationstepsdialog-vue` | `components/process-designer/TypeMigrationStepsDialog.vue` | derived usage | replace:chrome (4) |
-| `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
 | `ui-components-shared-actiontoolbar-vue` | `components/shared/ActionToolbar.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-shared-chatattachmentpicker-vue` | `components/shared/ChatAttachmentPicker.vue` | derived usage | remove:important-override (3) |

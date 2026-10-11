@@ -181,9 +181,10 @@
                         :aria-label="$t('support.instanceChat')"
                         @click="openCardChat"
                     />
-                    <GeneratedCassetteDesignerAction
-                        v-if="inlineShowCassetteDesigner"
+                    <GeneratedEditorPageAction
+                        v-if="inlineHasEditorAction"
                         :entity="inlineActionInstance"
+                        :type-id="inlineEditorTypeId"
                     />
                     <GeneratedActionButton
                         v-for="actionId in inlineActionIds"
@@ -233,7 +234,8 @@ import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import Popover from 'primevue/popover';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
+import { instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
@@ -287,7 +289,7 @@ const inlineTypeLabelRef = inject('instanceInlineTypeLabel', '');
 const inlineActionIdsRef = inject('instanceInlineActionIds', []);
 const inlineActionEntityRef = inject('instanceInlineActionEntity', null);
 const inlineActionTypeIdRef = inject('instanceInlineActionTypeId', '');
-const inlineShowCassetteDesignerRef = inject('instanceInlineShowCassetteDesigner', false);
+const inlineHasEditorActionRef = inject('instanceInlineHasEditorAction', false);
 const inlineExecuteActionRef = inject('instanceInlineExecuteAction', null);
 
 const { t } = useI18n();
@@ -336,9 +338,10 @@ const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
 const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);
 const inlineActionInstance = computed(() => unref(inlineActionEntityRef) || props.instance);
-const inlineShowCassetteDesigner = computed(() => Boolean(unref(inlineShowCassetteDesignerRef)));
+const inlineEditorTypeId = computed(() => unref(inlineActionTypeIdRef) || '');
+const inlineHasEditorAction = computed(() => Boolean(unref(inlineHasEditorActionRef)) || instanceHasEditorAction(inlineEditorTypeId.value));
 const inlinePopupHasActions = computed(() => (
-    inlineShowCassetteDesigner.value
+    inlineHasEditorAction.value
     || inlineActionIds.value.length
 ));
 

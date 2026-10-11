@@ -1,7 +1,7 @@
 import {
   buildCassetteV2CassetteMarkLayerData,
   buildCassetteV2TrapezoidTreeCurves
-} from '../cassetteV2Renderer.js';
+} from '../surfaces/lib/cassetteV2Renderer.js';
 import { buildOccsEvaluatedDimensionEntities } from './dimensions.js';
 import { buildOccsProductionLayout } from './production-layout.js';
 import { OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';

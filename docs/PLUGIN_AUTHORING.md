@@ -77,10 +77,10 @@ persistence callbacks, never stores, routing, or auth:
   `computed`, `watch`, lifecycle hooks — render functions, no template
   compiler), the vetted component pack (compose from it; that is the
   consistency law), and `{ t, te, locale }`. The pack is the PrimeVue
-  primitives (`Button`, `Checkbox`, `Dialog`, `InputText`, `Message`,
-  `Popover`, `ScrollPanel`, `Select`, `Tag`, `Textarea`) plus the host
-  designer chrome (`DesignerSurface`, `DesignerWorkspace`,
-  `StandardDialog`, `InstanceSelect`).
+  primitives (`Button`, `Checkbox`, `Dialog`, `InputText`, `InputNumber`,
+  `Message`, `Popover`, `ScrollPanel`, `Select`, `Tag`, `Textarea`) plus
+  the host designer chrome (`DesignerSurface`, `DesignerWorkspace`,
+  `DrawingCanvas`, `InstanceSelect`, `StandardDialog`).
 - The returned component declares props `{ record, persistence }`.
   `persistence` carries `createBlank()`, `loadDocument(record)`,
   `saveDocument(record, document, { fileName, mimeType })`,
@@ -95,11 +95,15 @@ persistence callbacks, never stores, routing, or auth:
 - Editor-grade mounts (`surfaceContract: 2`) receive three more ctx
   members beside the base: `queries` (`list(typeId, params)` /
   `get(typeId, id)` — cross-type instance reads over the generic
-  transport, the data-only replacement for store access), `notify`
-  (`{ severity, summary, detail }` — the host toast), and `access`
-  (`canWrite(record)` — the host's write-grant resolution; without the
-  grant, degrade to view-only). A surface that needs none of them stays
-  on contract 1.
+  transport, the data-only replacement for store access), `records`
+  (`create(typeId, payload)` / `update(typeId, id, payload)` — cross-type
+  record writes for editors that compose other types' records),
+  `notify` (`{ severity, summary, detail }` — the host toast), and
+  `access` (`canWrite(record)` — the host's write-grant resolution;
+  without the grant, degrade to view-only). A surface that needs none of
+  them stays on contract 1. The plugin serves its own third-party
+  runtimes beside its modules (vendored assets under the executor root,
+  resolved by relative URL) — a module never imports host npm packages.
 - Never import `vue`, `primevue`, or `pinia` — the mount injects them.
   `perigram-plugin surfaces <module.mjs>` refuses a module whose import
   graph carries host externals, whose factory is missing, or whose factory

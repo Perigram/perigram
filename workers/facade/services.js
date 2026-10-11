@@ -7,9 +7,9 @@
 // export live here.
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from './vendor/dxf-extractor.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
-import { OCCS_LAYER_CUT_OUTER } from './vendor/occs/layers.js';
-import { isOccsDocument } from './vendor/occs/parameters.js';
-import { evaluateOccsCassetteTemplate } from './vendor/occs/evaluate.js';
+import { OCCS_LAYER_CUT_OUTER } from './occs/layers.js';
+import { isOccsDocument } from './occs/parameters.js';
+import { evaluateOccsCassetteTemplate } from './occs/evaluate.js';
 import {
   buildValueWorkerRequest,
   enrichNestingResult,

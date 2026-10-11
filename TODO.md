@@ -600,6 +600,61 @@ falsifiable check passes:
   two-copy drift risk dies here). Check: utils/occs absent; vitest suite
   at parity; facade e2e green.
 
+### Agent Notes (2026-10-11, M6.3 — the cassette designer migrated; the OCCS engine single-homed)
+
+Session `agent/m6-m8-cassette-20261011`. The engine went first (owner
+direction: OCCS lives in the plugin, or separate with the plugin as its
+connector — the in-plugin home is the current cut; the executor's service
+seam is where a separate OCCS deployment would bolt on later, the
+nesting-worker pattern): `utils/occs` → `workers/facade/occs` (specs and
+README with it — the canonical home), the executor imports it, the dead
+`vendor/occs` copy and the unconsumed M3 vendored renderer family are
+deleted, and the clipper2/three.js runtimes ship under
+`workers/facade/assets/vendor/` served statically by the executor. The
+app tree keeps explicitly-doomed twins (`utils/occs`,
+`utils/cassetteV2*`, `utils/drawingPreview`) for the M7 read-side
+preview family only — M7 migrates that family and M8 deletes the twins
+(the utils README marks them).
+
+The cassette designer is now the plugin's
+`surfaces/cassette-designer.mjs` (contract 2), with the expression
+editor, profile sketch editor, and folded 3D preview as plugin-side
+component factories (`surfaces/lib/components/`) and the render family
+in `surfaces/lib/`. Deleted app-side: CassetteDesignerV2, the three
+sub-editors, CassetteEditorDialog (dead code — its only consumer was
+the sheet editor's upload entry, gone since M6.2; DXF→cassette import
+remains the server-side `dxfSourceToCassette` conversion),
+GeneratedCassetteDesigner{Action,WorkspacePage},
+useCassetteDesignerPersistence, and the fileSurfaceRegistry entry.
+Deslop forced by the cut: InstanceCard/InstanceInlineRef's hardcoded
+`typeId === 'cassette'` editor-action checks now resolve through
+`instanceHasEditorAction` + the generic `GeneratedEditorPageAction` —
+any editor-bearing plugin type gets its card/popup editor action.
+
+Contract-2 growth measured by the real designer: ctx `records`
+(cross-type create/update — profile templates), pack `InputNumber` and
+`DrawingCanvas` (host drawing chrome), and the vendored-runtimes law
+(module never imports host npm packages; three.js + clipper2 ship beside
+the plugin). Fidelity notes: PrimeVue tooltip directives become native
+`title` attributes in module components (no directive channel on the
+data-only mount); the in-editor open-template dock loads the template
+in place instead of emitting host navigation.
+
+Guard blind spot recorded: the design-system/vue scanners see app
+`.vue` files only — plugin modules' styling is pinned by the surface
+UX laws and the e2e, not `design-system.spec`.
+
+Proof: both facade modules pass `perigram-plugin surfaces`; the listing
+validates with both surfaces declared; focused suites green (SDK,
+file-surfaces, overloads, design-system, workers/facade 78, SSR smoke
+3/3); check-arch and check-docs green. NOT run: the live-stack e2e (no
+running dev stack) — the cassette/sheet editor flows through the real
+loader are the first thing the next session must prove on the dev
+stack, together with the M7 cut (preview channel: CassetteThumbnail,
+CassetteCard's geometry preview, DrawingCanvas occs-cassette source,
+GeneratedScreen preview paths) and M8 (delete the utils twins +
+`three`/`clipper2` from app package.json when the last consumers die).
+
 ### Agent Notes (2026-10-11, M6 in progress — sheet editor migrated, contract 2 shipped)
 
 Session `agent/m6-m8-ladder-20261011`. Review findings fixed first:

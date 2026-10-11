@@ -168,11 +168,14 @@ contract. It combines two halves:
   props adapter receives the page record and the bound type id, because
   one surface may serve several types) and the card/detail editor-action
   component that opens the page (`GeneratedEditorPageAction` for every
-  surface except the cassette designer, which keeps its own action
-  component for its dialog persistence flows). Editors never embed in
+  registered surface). Editors never embed in
   generated instance detail chrome — the instance detail of an editor
   bound type is the ordinary read surface, and the editor opens as a pane
   tab. Process data never selects components; the surface id does.
+  Plugin-delivered editor modules resolve beside the registry through the
+  served surface declarations (`RemoteEditorSurface`, see
+  [remote-surface contract](../../docs/PLUGIN_AUTHORING.md)) — the
+  facade's cassette designer and sheet editor arrive that way.
 
 Two editor-binding guards live here: `validateEditorBindings(bindings,
 registry)` throws naming the binding when a surface id is absent from the
