@@ -498,7 +498,7 @@ editors first, read-side previews and the app-side OCCS engine copy
 after. Dependency-ordered milestones; each is only done when its
 falsifiable check passes:
 
-- [ ] M5 — Surface module contract: the listing grammar carries surface
+- [x] M5 — Surface module contract: the listing grammar carries surface
   UI module declarations (origin + surface-contract version; SDK schema
   and install/upgrade gates extended); the app mounts a declared surface
   as a workspace page over data-only props — the record, the persistence
@@ -597,14 +597,14 @@ From the type-system audit (priority order accepted by the owner);
 contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
 [packages/cts/SPEC.md](./packages/cts/SPEC.md) §2/§7.
 
-- [ ] 1 — Transition guards as expressions: `cts.transition` records
+- [x] 1 — Transition guards as expressions: `cts.transition` records
   carry a boolean guard AST over `{ value }` (row-relative paths);
   compiled onto machine edges; re-evaluated atomically at commit;
   guard-failing edges omitted from action availability; row-checked at
   the declaration seam. (Part of the cts TODO's remaining L2 slice.)
-- [ ] 2 — State deadlines: declared deadline facet compiled to scheduled
+- [x] 2 — State deadlines: declared deadline facet compiled to scheduled
   escalation scans (CTS SPEC §7, specified not built).
-- [ ] 3 — Pin money semantics: minor-unit-integer currency quantities
+- [x] 3 — Pin money semantics: minor-unit-integer currency quantities
   (CTS SPEC §2, specified not built).
 
 ### Agent Notes (2026-10-09, item 3 — money)

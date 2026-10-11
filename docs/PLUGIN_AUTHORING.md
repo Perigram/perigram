@@ -58,7 +58,10 @@ construction modes bound to plugin services — the platform resolves the
 operator's inputs as values and merges the executor's computed fields
 into the created record), `exports` (attachment exports bound to plugin
 services), and `requires` (mounted pack ids the types resolve against).
-Shapes: the SDK's
+Types follow the CTS declaration grammar — fields, states, transitions,
+operators, payload traits, and revision scopes are authored with the
+vocabulary documented in
+[packages/cts](../packages/cts/README.md). Shapes: the SDK's
 [listing contract](../packages/plugin-sdk/README.md).
 
 ## 1a. Author an editor surface (plugin-delivered UI)
@@ -80,7 +83,9 @@ persistence callbacks, never stores, routing, or auth:
   `rename(record, name)` — the generic instance transports. A blank
   create enters unnamed (the type's identifier row names records;
   `rename` renames them); documents ride the payload channel; the module
-  never calls the API itself.
+  never calls the API itself. The bound type must declare a revision
+  scope (`revisions`, e.g. `"document"`): payload replacement requires
+  one, and a type without it refuses saves.
 - Never import `vue`, `primevue`, or `pinia` — the mount injects them.
   `perigram-plugin surfaces <module.mjs>` refuses a module whose import
   graph carries host externals, whose factory is missing, or whose factory
