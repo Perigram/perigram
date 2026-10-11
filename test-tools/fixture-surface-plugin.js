@@ -19,8 +19,9 @@ export function fixtureSurfacePluginListing() {
         id: FIXTURE_TYPE_ID,
         class: 'file',
         name: 'Fixture Surface Note',
-        fields: { name: { base: 'string' } },
-        payload: { mime: 'application/json', creation: ['editor'] }
+        fields: { name: { base: 'string', identifier: true } },
+        payload: { mime: 'application/json', creation: ['editor'] },
+        revisions: 'document'
       }],
       services: [{
         id: 'noop',
