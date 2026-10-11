@@ -41,12 +41,18 @@ export function normalizeEdges(edges = {}, declaringTypeId = '') {
   return Object.freeze(normalized);
 }
 
-// Lineage containment is a forest: cycles are structural corruption.
+// Lineage containment is a forest: cycles across distinct types are
+// structural corruption. A children entry naming its own declaring type is
+// recursion, not a cycle — instance trees stay finite because a parent
+// exists before its children (creation binds an existing ancestor), so
+// self-edges never enter cycle detection (SPEC §6).
 export function checkLineageAcyclic(typeById) {
   const parentsOf = new Map();
   for (const type of typeById.values()) {
     for (const declaration of Object.values(type.edges?.children || {})) {
-      for (const childType of declaration.types) parentsOf.set(childType, type.id);
+      for (const childType of declaration.types) {
+        if (childType !== type.id) parentsOf.set(childType, type.id);
+      }
     }
   }
   const errors = [];
