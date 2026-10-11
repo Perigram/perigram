@@ -464,6 +464,40 @@ falsifiable check passes:
   two-copy drift risk dies here). Check: utils/occs absent; vitest suite
   at parity; facade e2e green.
 
+### Agent Notes (2026-10-11, M5 delivered)
+
+Session `agent/m5-surface-modules-20261011`. The listing grammar carries
+`surfaces` (`[{ id, module, surfaceContract }]`; SDK parser + schema
+extended, `parseListing` validates shape, uniqueness, module path, and
+contract integer). Install and upgrade gates refuse unsupported contract
+versions against `shared/plugin-surfaces.js` — the single supported-set
+home the client loader re-checks before importing. The served type view
+composes installed surface declarations as `{ id, url, surfaceContract }`
+with the module URL resolved against the install's first configured
+endpoint origin (`null` until the executor is connected; connection
+settings stay server-side). The app resolves a binding whose surface is
+not locally registered against the served declarations: generic editor
+action + the `RemoteEditorSurface` loader as the workspace-page
+component, mounted over the data-only contract — `{ record,
+persistence }` props, `createSurface({ vue, components, locale })`
+factory, host-injected Vue subset + vetted PrimeVue pack + i18n (the
+consistency law). The persistence callbacks
+(`components/generated/remote-surface-mount.js`) are the one generic
+binding: blank-create through the compiled construct (reusing the
+newly-exported `createdEntity`), documents through the payload channel
+via `instancePayloadPersistence`, renames through the update transport.
+`perigram-plugin surfaces` runs `checkSurfaceModule` author-side (import
+graph free of host externals, factory shape, stub-context smoke).
+Fixture note: the type must declare `revisions` — payload replacement
+requires a revision scope (the 400 the first e2e run surfaced). Proof:
+`e2e/plugin-surface.spec.js` publishes, installs, and connects the
+fixture plugin through the real APIs, mounts its editor with zero
+app-side code, saves onto the payload channel, and asserts a clean
+runtime. Validation: the 146-test focused suite (SDK, file-surfaces,
+plugins gate, cts-types view, framework packages, design system), SSR
+smoke untouched-but-passing baseline, check-arch, check-docs, and
+framework:validate all green. M6 (facade editors migrate) is next.
+
 ### Agent Notes (2026-10-11, SPEC written from the owner decision)
 
 The decision came out of a review of useCassetteDesignerPersistence.js
