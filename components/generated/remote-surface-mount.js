@@ -37,13 +37,24 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
 // The vetted primitive pack: the component vocabulary a surface may
 // compose from — the PrimeVue primitives plus the host designer chrome
-// (surface frame, dock workspace, standard dialog, instance select).
-// Grows only by accepted need — each entry is a design system
-// commitment to plugin authors.
-const SURFACE_COMPONENT_PACK = Object.freeze({
-  Button, Checkbox, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, Tag, Textarea,
-  DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceSelect, StandardDialog
-});
+// (surface frame, dock workspace, drawing canvas, instance select,
+// standard dialog). Grows only by accepted need — each entry is a design
+// system commitment to plugin authors.
+//
+// The pack resolves lazily: pack members' graphs cycle back through this
+// module (DrawingCanvas → entity cards → instance-editor-action →
+// file-surfaces → RemoteEditorSurface → here), and an eager object
+// literal would read an unfinished module binding at eval time — the
+// vite-node TDZ 500 (or an undefined frozen into the pack under the SSR
+// transform). By mount time every module has finished evaluating.
+let surfacePack = null;
+function surfaceComponentPack() {
+  surfacePack ||= Object.freeze({
+    Button, Checkbox, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, Tag, Textarea,
+    DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceSelect, StandardDialog
+  });
+  return surfacePack;
+}
 
 const SURFACE_VUE = Object.freeze({ h, ref, shallowRef, computed, reactive, watch, onMounted, onBeforeUnmount, nextTick, defineComponent });
 
@@ -52,7 +63,7 @@ const SURFACE_VUE = Object.freeze({ h, ref, shallowRef, computed, reactive, watc
 export function surfaceHostContext({ t, te, locale }, surfaceContract = 1, io = {}) {
   const base = Object.freeze({
     vue: SURFACE_VUE,
-    components: SURFACE_COMPONENT_PACK,
+    components: surfaceComponentPack(),
     locale: Object.freeze({ t, te, locale: () => locale.value })
   });
   if (Number(surfaceContract) < 2) return base;
