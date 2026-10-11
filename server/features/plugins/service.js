@@ -178,7 +178,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types, editors, attachmentKinds, conversions, constructions, exports: exportBindings, surfaces },
+    declarations: { types, editors, attachmentKinds, conversions, constructions, exports: exportBindings, surfaces, previews: layer.previews },
     services,
     requires,
     endpoints: configuredEndpoints,
@@ -803,7 +803,8 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       conversions: layer.conversions,
       constructions: layer.constructions,
       exports: layer.exports,
-      surfaces: layer.surfaces
+      surfaces: layer.surfaces,
+      previews: layer.previews
     },
     services: layer.services,
     requires: layer.requires
