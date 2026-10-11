@@ -75,10 +75,12 @@ persistence callbacks, never stores, routing, or auth:
   compiler), the vetted PrimeVue pack (compose from it; that is the
   consistency law), and `{ t, te, locale }`.
 - The returned component declares props `{ record, persistence }`.
-  `persistence` carries `createBlank({ name })`, `loadDocument(record)`,
+  `persistence` carries `createBlank()`, `loadDocument(record)`,
   `saveDocument(record, document, { fileName, mimeType })`, and
-  `rename(record, name)` — the generic instance transports. Documents ride
-  the payload channel; the module never calls the API itself.
+  `rename(record, name)` — the generic instance transports. A blank
+  create enters unnamed (the type's identifier row names records;
+  `rename` renames them); documents ride the payload channel; the module
+  never calls the API itself.
 - Never import `vue`, `primevue`, or `pinia` — the mount injects them.
   `perigram-plugin surfaces <module.mjs>` refuses a module whose import
   graph carries host externals, whose factory is missing, or whose factory

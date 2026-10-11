@@ -1,5 +1,76 @@
 # TODO
 
+## CTS honesty pass: §13-true projection schemas, Name-input retirement, undead-kind cleanup (2026-10-11)
+
+Owner direction (2026-10-11, from the types-system maturity review): the
+projection's field schemas lie about what instances carry, the hardcoded
+"Name" creation input is slop the type system never declared, and several
+named debts (empty predicates family, undead trigger kinds, the dead
+sheet-design policy entry) are collectible now. Contracts:
+[packages/cts/SPEC.md](./packages/cts/SPEC.md) §4 (not in the row means
+does not exist; the identifier flag and unnamed placeholder are the whole
+naming law) and §13 (the wire DTO vocabulary).
+
+- [x] A. Core field schemas project the §13 wire DTO exactly: phantom
+  legacy paths (`origin.*`, `status.userId/timestamp/metadata/eventId/
+  lifecycle`, `identity.slug/serial/reference`, `provenance.source`,
+  `relations.value`, `summary.value`) are gone; `createdAt`/`updatedAt`/
+  `typeVersion` and the structured provenance record are schema'd; the
+  flat `state` and the payload slot are read-admitted.
+- [x] B. The hardcoded Name construction input is deleted from the
+  projection and the compiler's prompt ghost (`defaultIdentityFields`);
+  construction prompts are rows and addressable edges only. Persisted
+  drafts drop the retired input at compile/authoring sync; their authored
+  name values keep landing through the `identity.name` wire channel.
+- [x] C. Undead kinds retired: `control.manualTrigger`/`webhookTrigger`
+  leave the catalog and the orchestrator (entry discovery is manual
+  effect records; run payloads arrive through `source.triggerPayload`);
+  the empty `predicates` family is deleted.
+- [x] D. Policy dead entry: the legacy `sheetDesign` field-access map
+  (pinned to the deleted `sheet_designs` feature) is removed — sheet-design
+  is §13-served and gates through its class-collection feature.
+- [x] E. The implicit `entity`/`entityRef` coercion (the wire law that
+  absorbed `value.toEntityRef`) is pinned by spec: both directions
+  within one type scope coerce, cross-scope refuses with diagnostics.
+
+### Agent Notes (2026-10-11, cts honesty pass)
+
+Session `agent/cts-honesty-20261011`. Findings before the work: the
+projection's `CORE_BLOCK_FIELDS` restated the legacy BaseEntity wire
+vocabulary for types that never carry it (the framework types that DO
+carry it are `framework`-flagged and never enter the projection), the
+flat `state` field was read-hidden by its own policy list,
+`attachments.primary` was read-hidden the same way, and the "Name"
+prompt existed in three homes (projection `nameInput()`, compiler
+`defaultIdentityFields`, runtime special case) contradicting SPEC §4's
+"not in the row means does not exist". Also found and kept honest: the
+SSR smoke DOES mount the designer page (`test-tools/process-page.ssr-smoke.js`,
+passing before and after) — the maturity review's claim that it doesn't
+is outdated; what escapes it is only browser-lazy dynamic imports.
+
+Migration posture: no graph surgery needed — construction inputs
+refresh from the live projection at every authoring sync
+(`syncProcessNodeConstruction`), the compiler drops the retired name
+input from persisted declared inputs at `normalizeConstruction`, and
+the effect boundary maps any surviving authored `name` value to the
+`identity.name` wire channel until the draft re-syncs.
+
+Not collectible this session (named, with reasons): plugin
+fresh-org service execution (parallel agent's active task), general CEL
+§18 retyping (feature-scale), `cts.compose` deletion (it is the live
+migration target for legacy graphs and dies with them), aggregates §9
+(verified absent by design — SPEC defers them until a real need), and
+`select=parent` decomposition (designed, deferred — needs the SPEC §20
+select-list change plus graph-surgery migration).
+
+Validation: `npx vitest run packages/cts packages/processes` (541,
+includes three new pins: §13-true core schemas, no-Name-input
+construction, entity/entityRef coercion), full-suite base-failure
+parity (48 identical pre-existing failures on base `local` and this
+branch, zero new), `vitest.ssr.config.js` (3), `check-arch`,
+`check-docs`, `framework:validate` + regenerated manifest — all green.
+Not run: Playwright E2E (needs the live dev stack).
+
 ## Node atomicity: one operation home, exhaustive basics, exhaustive decompose, v4 tier retired (2026-10-10)
 
 Owner direction (2026-10-10): the node layer operates like a dataflow

@@ -488,8 +488,14 @@ hidden, as today.
     rename, add default, remove, retype via expression) run by the task
     runtime, idempotent, org-scoped;
   - no migration declared for a breaking diff = compile error, not a script
-    someone remembers to write (the ~20 `server/scripts/migrate-*.js` files
-    are this mechanism's absence).
+    someone remembers to write. The declared-migration gate owns exactly
+    the type-evolution axis: row/enum/edge changes against persisted
+    instances. The remaining `server/scripts/migrate-*.js` one-shots are
+    a different axis — persisted process-graph vocabularies, stored-shape
+    slots (tenancy, state clocks), and legacy-collection-to-instance
+    conversions — each runnable once against data that predates the
+    declaration it now serves; they are not this mechanism's absence and
+    are not absorbed by it.
 - An instance whose `typeVersion` is behind is ill-typed by definition;
   queries may pin versions during rollout.
 
@@ -584,7 +590,7 @@ Authoring loop:
 | `organization`/`user` | party types, framework-owned |
 | snapshot fields on sheets | `provenance.effective` |
 | `contract-diff.js` | compiler diff phase (§11) |
-| migrate-*.js scripts | declared migrations (§11) |
+| migrate-*.js scripts | type-row migrations become declared migrations (§11); persisted-shape one-shots stay one-shot scripts |
 
 ## 16. Worked example
 

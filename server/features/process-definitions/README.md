@@ -315,11 +315,13 @@ the created entity type/id after the optional initial status has persisted.
 Constructor, block, or status failures publish nothing. Mapped Create execution
 therefore emits one event per completed tuple while retaining its ordinary
 item/list/tree result topology and partial-failure reporting contract.
-Generic Create receives block-composed data. `identity.name` and
-`identity.slug` are projected to the owning service's `name`/`slug` inputs;
-the construction `name` input writes the wire `identity.name` block — the
-§3 instance boundary reads `draft.identity.name`, so prompted names land on
-created records (a top-level `name` key is ignored there);
+Generic Create receives block-composed data. `identity.name` is
+projected to the owning service's `name` input; a persisted draft from
+before the Name-input retirement may still carry its authored
+construction `name` input — the effect boundary maps that value to the
+wire `identity.name` block (the §3 instance boundary reads
+`draft.identity.name`; a top-level `name` key is ignored there) until
+the next authoring sync drops the retired input.
 `data` and `specs` values are projected only where the service has no explicit
 top-level value. Non-block generic construction inputs remain available beside
 those blocks, so an entity can declare an explicit source reference without
@@ -328,8 +330,9 @@ its stored ids are also projected to the owning service's top-level creation
 payload. The compiler may use
 one declared lineage entity reference for contextual screen placement, and the
 effect boundary converts its entity reference to the canonical stored id.
-Origin, provenance, status history, and summary are not accepted as generic
-constructible blocks.
+Provenance is stamped by the effect boundary and never composed; origin,
+status history, and summary are not accepted as generic constructible
+blocks.
 Generic Update receives replacement blocks through the same typed process
 dataflow. Relation collection changes are composed with ordinary list/tree
 operations before Modify Block receives the replacement value, then persisted
