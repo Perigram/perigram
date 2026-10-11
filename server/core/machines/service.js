@@ -969,9 +969,19 @@ function mergeLifecycle(current = {}, next = {}) {
   };
 }
 
+// Hook contracts live in whichever registered domain declares them (a
+// pack mounting `hookHandlers` declares them beside its domain); the
+// engine owns no handler names.
+function findHookContract(handler) {
+  for (const domain of getPerigramRegistry().listDomains()) {
+    const contract = domain?.hooks?.[handler];
+    if (contract) return contract;
+  }
+  return null;
+}
+
 function validateHookParams(hookConfig = {}) {
-  const domain = getPerigramRegistry().getDomain('facade');
-  const contract = domain?.hooks?.[hookConfig.handler];
+  const contract = findHookContract(hookConfig.handler);
   if (!contract) throw createError({ statusCode: 500, message: `Hook contract missing for ${hookConfig.handler}` });
 
   const params = hookConfig.params || {};
@@ -1059,8 +1069,7 @@ function resolveHookHandler(registry, typeId, handler) {
 }
 
 function isSynchronousHook(hookConfig = {}) {
-  const domain = getPerigramRegistry().getDomain('facade');
-  const contract = domain?.hooks?.[hookConfig.handler];
+  const contract = findHookContract(hookConfig.handler);
   return hookConfig.mode === 'sync' || hookConfig.blocking === true || contract?.mode === 'sync';
 }
 

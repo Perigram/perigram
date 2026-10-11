@@ -9,7 +9,9 @@ import { onMounted, shallowRef, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { surfaceHostContext, editorSurfacePersistence } from '~/components/generated/remote-surface-mount.js';
+import {
+  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, surfaceNotify, editorSurfaceAccess
+} from '~/components/generated/remote-surface-mount.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
 // The remote-surface loader: mounts a plugin-delivered editor module
@@ -32,6 +34,13 @@ const status = ref('loading');
 const errorSeverity = ref('warn');
 const mounted = shallowRef(null);
 const persistence = editorSurfacePersistence(props.typeId);
+// Contract 2 mounts receive the editor-grade io beside the base context
+// (cross-type queries, host notifications, write-grant resolution).
+const hostIo = {
+  queries: editorSurfaceQueries(),
+  notify: surfaceNotify(),
+  access: editorSurfaceAccess(props.typeId)
+};
 
 function fail(severity, key) {
   errorSeverity.value = severity;
@@ -57,7 +66,7 @@ onMounted(async () => {
       fail('error', 'pluginSurfaces.unsupported');
       return;
     }
-    mounted.value = createSurface(surfaceHostContext({ t, te, locale }));
+    mounted.value = createSurface(surfaceHostContext({ t, te, locale }, props.surface?.surfaceContract, hostIo));
     status.value = 'ready';
   } catch {
     fail('warn', 'pluginSurfaces.unavailable');

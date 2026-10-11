@@ -525,6 +525,13 @@
         ]
       }
     ],
+    "surfaces": [
+      {
+        "id": "sheet-design-editor",
+        "module": "/surfaces/sheet-design-editor.mjs",
+        "surfaceContract": 2
+      }
+    ],
     "attachmentKinds": {
       "OCCS_SOURCE": {
         "kind": "OCCS_SOURCE",

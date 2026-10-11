@@ -6,12 +6,20 @@
 // compose-mounted, or its own install when extracted.
 import { createEndpointExecutor } from '../../packages/plugin-sdk/src/endpoint-executor.js';
 import { services } from './services.js';
+import { fileURLToPath } from 'node:url';
 
 const port = Number(process.env.FACADE_EXECUTOR_PORT || 8790);
 const token = process.env.FACADE_EXECUTOR_KEY || null;
-const server = createEndpointExecutor({ services, token }).listen(port, () => {
+// Surface modules are served beside the services (static GET under the
+// executor root), so the install-resolved module URL
+// `http://<origin>/surfaces/<module>.mjs` lands here.
+const server = createEndpointExecutor({
+  services,
+  token,
+  staticRoot: fileURLToPath(new URL('.', import.meta.url))
+}).listen(port, () => {
   const served = Object.keys(services).map(id => `  POST http://localhost:${port}/${id}`).join('\n');
-  process.stdout.write(`facade executor on :${port}${token ? ' (key required)' : ''}\n${served}\n`);
+  process.stdout.write(`facade executor on :${port}${token ? ' (key required)' : ''}\n${served}\n  GET  http://localhost:${port}/surfaces/*\n`);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

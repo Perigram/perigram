@@ -545,7 +545,7 @@ editors first, read-side previews and the app-side OCCS engine copy
 after. Dependency-ordered milestones; each is only done when its
 falsifiable check passes:
 
-- [ ] M5 — Surface module contract: the listing grammar carries surface
+- [x] M5 — Surface module contract: the listing grammar carries surface
   UI module declarations (origin + surface-contract version; SDK schema
   and install/upgrade gates extended); the app mounts a declared surface
   as a workspace page over data-only props — the record, the persistence
@@ -581,6 +581,51 @@ falsifiable check passes:
   deleted; workers/facade/vendor/occs is the engine's only copy (the
   two-copy drift risk dies here). Check: utils/occs absent; vitest suite
   at parity; facade e2e green.
+
+### Agent Notes (2026-10-11, M6 in progress — sheet editor migrated, contract 2 shipped)
+
+Session `agent/m6-m8-ladder-20261011`. Review findings fixed first:
+hook contracts resolve by scanning registered domains (the hardcoded
+`getDomain('facade')` in machines died with it — the documented Hook
+contract is implementable again, spec-pinned), default installs ride
+`installFromCatalog` (the same gates as the route; the hand-rolled
+direct insert is gone), PLUGIN_AUTHORING gained the revisions law and
+the CTS grammar link, and the stale checkboxes (M5, bp-maturity 1–3)
+were reconciled.
+
+M6.1 — surface mount contract 2 (editor-grade):
+`SUPPORTED_SURFACE_CONTRACTS = [1, 2]`. Contract 2 adds to the ctx
+`queries` (cross-type instance reads), `notify` (host toast), and
+`access` (`canWrite` grant resolution), and to the persistence
+`patch(record, body)`; the primitive pack grew to the PrimeVue
+primitives plus the host designer chrome (DesignerSurface,
+DesignerWorkspace, StandardDialog, InstanceSelect). The loader mounts
+the versioned context; the SDK stub check carries the contract-2
+superset. Grown from the sheet editor's measured needs, not speculation.
+
+M6.2 — the sheet-design editor migrated: `components/SheetDesignEditor.vue`
+deleted; `workers/facade/surfaces/sheet-design-editor.mjs` (contract 2)
+is its faithful render-function translation; the pure layout compute
+(`sheetLayout.js`, `sheetLayoutEditor.js` + spec) moved to
+`surfaces/lib/`; the pen-styling half of `drawingPreview.js` was
+extracted as `surfaces/lib/layerPens.js`. The listing declares the
+surface. The endpoint executor gained `staticRoot` (CORS-open static
+GETs, traversal-refused) — the guide's static-file-route claim is now
+real code. Consciously deferred inside M6: the in-editor "open other
+design" dock (the workspace owns tabs — opening another record is host
+navigation, not editor state) and the DXF-upload entry (cassette-domain
+flow; returns with the cassette editor migration). The app keeps
+`utils/drawingPreview.js` (read-side preview family, M7) and
+`utils/sheetDesigns.js` (SheetDesignCard, M7) — layerPens is a second
+copy until that consolidation; M7/M8 must single-home it. Remaining for
+M6: the cassette designer family (CassetteDesignerV2 + sub-editors +
+GeneratedCassetteDesigner* + useCassetteDesignerPersistence + the
+upload dialog), which needs the occs engine reachable from the module.
+
+Proof so far: the real module passes `perigram-plugin surfaces` and the
+listing validates; the focused suites (SDK 26, plugins, file-surfaces,
+design-system, sheetLayoutEditor 11) are green; check-arch green. Not
+run: the live-stack e2e (no running dev stack in this session).
 
 ### Agent Notes (2026-10-11, M5 delivered)
 
@@ -644,14 +689,14 @@ From the type-system audit (priority order accepted by the owner);
 contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
 [packages/cts/SPEC.md](./packages/cts/SPEC.md) §2/§7.
 
-- [ ] 1 — Transition guards as expressions: `cts.transition` records
+- [x] 1 — Transition guards as expressions: `cts.transition` records
   carry a boolean guard AST over `{ value }` (row-relative paths);
   compiled onto machine edges; re-evaluated atomically at commit;
   guard-failing edges omitted from action availability; row-checked at
   the declaration seam. (Part of the cts TODO's remaining L2 slice.)
-- [ ] 2 — State deadlines: declared deadline facet compiled to scheduled
+- [x] 2 — State deadlines: declared deadline facet compiled to scheduled
   escalation scans (CTS SPEC §7, specified not built).
-- [ ] 3 — Pin money semantics: minor-unit-integer currency quantities
+- [x] 3 — Pin money semantics: minor-unit-integer currency quantities
   (CTS SPEC §2, specified not built).
 
 ### Agent Notes (2026-10-09, item 3 — money)

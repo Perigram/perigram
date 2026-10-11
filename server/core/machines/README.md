@@ -117,7 +117,8 @@ Acts as a decoupled dispatcher for side-effects. Domain logic is NOT implemented
   owning instance service. No handler is registered today; a pack that wants
   transition side effects mounts `hookHandlers` beside its domain.
 - **Typed Settings**: Hook handler ids and parameter fields are declared in
-  the registered domain's hook contracts. The engine validates required and
+  a registered domain's hook contracts — the engine resolves the declaring
+  domain and owns no handler names. The engine validates required and
   unknown hook parameters before executing side effects, and admin editors render
   typed controls instead of raw params JSON.
 - **Effects**: Hook results can return declared effects. The engine validates

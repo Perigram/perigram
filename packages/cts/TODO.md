@@ -165,7 +165,8 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   operators with `provenance.solve.effective` replacing
   `machineSnapshot`/`toolSnapshot`/`materialSnapshot` on runs, designs, and
   sheets; `server/scripts/migrate-nesting-provenance.js` migrates persisted
-  records (run it before deploying); `SheetDesignEditor.vue` reads
+  records (run it before deploying); the sheet-design editor (now the
+  facade plugin's surface module) reads
   provenance. σ stays the external solver behind the typed value request.
 - [ ] Uniform service signatures in `server/runtime/app-registry.js`
   collapsing the four adapter maps + delete switch — touches ~30 feature

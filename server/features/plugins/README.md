@@ -20,11 +20,16 @@ executors through the worker protocol.
   SDK's `parseListing`, the same parser the install gate runs.
 - **Installs** (`plugin_installs`): one per organization+plugin —
   `{ organizationId, pluginId, name, version, declarations, services,
-  requires, connectorToken, installedAt }`.
+  requires, endpoints, connectorToken, installedAt }`.
   The install **snapshots** the listing's declarations: the pinned
   version is the data, so catalog changes never reach an installed
   organization until it upgrades (upgrade flow is a later slice riding
-  the type-migration machinery).
+  the type-migration machinery). Every install write — route or
+  onboarding — rides `installFromCatalog`, the gate-and-write core: the
+  route wrapper only adds caller authority, and an organization's
+  default installs at creation (`organizations/default-plugins.js`)
+  pass the same gates with pre-wired, validated endpoints for
+  endpoint-mode services.
 - **Composition**: installed declarations are a resolution source
   between system pack types and the org-authored overlay
   (`compileRegistryForOrganization` in

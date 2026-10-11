@@ -42,6 +42,9 @@ export async function checkSurfaceModule(path) {
 
 function stubContext() {
   const component = new Proxy({}, { get: (_target, key) => ({ name: String(key) }) });
+  // The stub carries the contract-2 superset: the factory smoke proves a
+  // module composes against the editor-grade context (queries, notify,
+  // access) without reaching anything real.
   return {
     vue: {
       h: () => null,
@@ -53,6 +56,9 @@ function stubContext() {
       defineComponent: value => value
     },
     components: component,
-    locale: { t: key => key, te: () => true, locale: () => 'en' }
+    locale: { t: key => key, te: () => true, locale: () => 'en' },
+    queries: { list: async () => [], get: async () => null },
+    notify: () => {},
+    access: { canWrite: () => true }
   };
 }

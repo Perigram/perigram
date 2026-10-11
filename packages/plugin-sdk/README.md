@@ -62,10 +62,14 @@ loads a surface module and proves what the SDK can prove alone and
 zero-dep — the import graph carries no host externals (`vue`, `primevue`,
 `pinia`: the mount injects them), the default export is the factory
 `createSurface(ctx) -> component`, and the factory returns a component
-against a stub context without logging errors. The real host-shell mount
-(save callbacks over the instance transports) is proven by the platform's
-fixture-plugin e2e. The CLI wraps it: `perigram-plugin surfaces
-<module.mjs>`.
+against a stub context without logging errors. The stub carries the
+contract-2 superset (queries, notify, access beside the base context),
+so editor-grade modules smoke against their full mount context; the
+author-facing contract shapes live in the
+[plugin authoring guide](../../docs/PLUGIN_AUTHORING.md) §1a. The real
+host-shell mount (save callbacks over the instance transports) is proven
+by the platform's fixture-plugin e2e. The CLI wraps it:
+`perigram-plugin surfaces <module.mjs>`.
 
 ## API client (`createPluginClient`)
 

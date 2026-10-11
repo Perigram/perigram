@@ -246,7 +246,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-useraccountmenu-vue` | `components/shared/UserAccountMenu.vue` | derived usage | replace:chrome (5); remove:important-override (3) |
 | `ui-components-shared-workspacelanes-vue` | `components/shared/WorkspaceLanes.vue` | derived usage | compliant |
 | `ui-components-shared-workspacesplitnode-vue` | `components/shared/WorkspaceSplitNode.vue` | derived usage | replace:chrome (3); remove:important-override (2) |
-| `ui-components-sheetdesigneditor-vue` | `components/SheetDesignEditor.vue` | derived usage | compliant |
+| `workers-facade-surfaces-sheet-design-editor-mjs` | `workers/facade/surfaces/sheet-design-editor.mjs` | derived usage | compliant |
 | `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | compliant |
 | `ui-components-type-designer-descriptoreditor-vue` | `components/type-designer/DescriptorEditor.vue` | derived usage | compliant |
 | `ui-components-type-designer-fieldnode-vue` | `components/type-designer/FieldNode.vue` | derived usage | compliant |
