@@ -96,10 +96,10 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.drop('getField', { id: 'matWidth' });
   authoring.configure('matWidth', { typeId: 'sheet-material' });
-  authoring.setInputDefault('matWidth', 'field', 'fields.width');
+  authoring.setInputDefault('matWidth', 'field', 'width');
   authoring.drop('getField', { id: 'matHeight' });
   authoring.configure('matHeight', { typeId: 'sheet-material' });
-  authoring.setInputDefault('matHeight', 'field', 'fields.height');
+  authoring.setInputDefault('matHeight', 'field', 'height');
 
   authoring.drop('service:plugin.facade.nesting-solve', { id: 'solve' });
 
