@@ -18,10 +18,10 @@ Perigram uses PrimeVue 4, Tailwind utilities, and a small app token layer. The d
 - `assets/presets/re_l.js` extends Aura with the primary brand palette only.
 - `tailwind.config.js` exposes semantic Tailwind aliases backed by PrimeVue `--p-*` and Perigram `--ck-*` variables.
 - `assets/css/main.css` contains global app-shell, integration, and layout rules; it does not override PrimeVue selectors or variables.
-- `packages/facade/src/index.js` defines the CNC entity card/demo contract
-  without importing Vue.
-- `utils/design-system-contract.js` re-exports that contract for existing UI
-  lab callers and provides validation.
+- `utils/design-system-contract.js` is the one home of the design-system
+  vocabulary — UI lab variants/groups/primitives and the per-entity demo
+  contracts — as pure data without importing Vue (it absorbed the contract
+  the deleted legacy domain package once carried).
 - `/test/ui-lab` renders directly from that contract and `test-data/factories.js`.
 
 ## Token Policy
