@@ -134,7 +134,7 @@ async function seedStatefulProcess(app) {
       construction: { mode: 'genericCreate', inputs: [{ id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }] },
       state: { to: 'draft' },
       trigger: { mode: 'manual' },
-      slots: ['identity', 'relations', 'attachments', 'data', 'lineage'],
+      slots: ['fields', 'relations', 'payload', 'lineage'],
       access
     },
     advance: {

@@ -5,7 +5,7 @@ export function mergeCollectionActionContext({ incoming = {}, region = {}, sourc
     parentInstance: null,
     parentInstanceId: '',
     parentOptions: items.map(entity => ({
-      label: entity.identity?.name || entity.identity?.uid || entity._id,
+      label: entity.name || entity._id,
       value: instanceIdentifier(entity),
       entity
     }))
@@ -59,7 +59,7 @@ export function generatedActionRequiresParent({ action = {}, entity = null, cont
 }
 
 export function instanceIdentifier(entity = null) {
-  return entity?._id || entity?.identity?.uid || entity?.id || '';
+  return entity?._id || entity?.id || '';
 }
 
 function actionInputTypeId(action = {}) {

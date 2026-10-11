@@ -73,7 +73,7 @@ describe('declaration wire vocabulary (legality + interpretation agree)', () => 
     // The field wire is the field: the path derives exactly as the
     // declaration projection compiles it (slot from the class, id from
     // the authored name).
-    expect(applied['gf:inputDefaults.field']).toBe('data.cutSpeed');
+    expect(applied['gf:inputDefaults.field']).toBe('fields.cutSpeed');
   });
 
   it('a quantity field on an item class lands in the specs slot', () => {
@@ -84,6 +84,6 @@ describe('declaration wire vocabulary (legality + interpretation agree)', () => 
     ];
     const { mutations } = interpretDeclarationEdges(nodes, [edge('d1', 'f1', 'cls', 'field'), edge('e1', 'f1', 'gf', 'field')], { gf: record('gf', 'cts.field', 'panel') }, {}, {}, []);
     const applied = Object.fromEntries(mutations.map(m => [`${m.recordId}:${m.key}`, m.value]));
-    expect(applied['gf:inputDefaults.field']).toBe('specs.width');
+    expect(applied['gf:inputDefaults.field']).toBe('fields.width');
   });
 });

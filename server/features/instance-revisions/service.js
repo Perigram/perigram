@@ -105,12 +105,12 @@ export async function ensureForEntitySnapshot({
   const number = Number(latest?.data?.number || 0) + 1;
   const revisionMachine = await workflowOverridesService.resolveActiveWorkflow({
     typeId: 'entity_revision',
-    organizationId: entity.lineage?.organizationId
+    organizationId: entity.organizationId
   });
   const origin = revisionMachine
     ? await stateService.initialStatusForOrganization(
       'entity_revision',
-      entity.lineage?.organizationId,
+      entity.organizationId,
       userId,
       { note: 'Entity revision created' }
     )
@@ -130,10 +130,11 @@ export async function ensureForEntitySnapshot({
       number,
       contentHash,
       snapshot: snapshot || {
-        identity: entity.identity || null,
-        data: entity.data || {}
+        name: entity.name ?? null,
+        fields: entity.fields || {},
+        state: entity.state ?? null
       },
-      sourceStatus: entity.status || null,
+      sourceStatus: entity.state ?? null,
       reason
     })
   };

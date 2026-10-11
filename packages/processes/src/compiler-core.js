@@ -1066,16 +1066,10 @@ function promptableInputIds(record = {}, domain = {}) {
   const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
   const contractInputs = Array.isArray(contract.inputs) ? contract.inputs : [];
   if (kind === 'cts.construct') {
-    if (construction.mode === 'genericCreate') {
-      ids.add('identity');
-    }
-    // The identity name prompt (SPEC §3 construction boundary) is
-    // available to every create mode, not just generic construction.
-    ids.add('name');
     for (const input of [...modeInputs, ...declaredInputs, ...contractInputs]) {
       if (!input) continue;
       if (input.prompt !== false && input.id) ids.add(input.id);
-      if (input.path && input.path !== 'name') ids.add(input.path);
+      if (input.path) ids.add(input.path);
     }
   }
   if (kind === 'cts.command' || kind === 'cts.service') {
@@ -3936,8 +3930,8 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
 }
 
 function isCanonicalBlockConstructionPath(path = '') {
-  return ['identity', 'lineage', 'relations', 'specs', 'data', 'status', 'attachments', 'summary', 'provenance']
-    .some(block => String(path).startsWith(`${block}.`));
+  return ['fields', 'lineage', 'relations', 'name']
+    .some(block => String(path).startsWith(`${block}.`) || String(path) === block);
 }
 
 function normalizeConstructionInput(input = {}, domain = {}) {

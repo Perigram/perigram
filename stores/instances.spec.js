@@ -66,7 +66,7 @@ describe('instances store cache', () => {
   });
 
   it('caches records with the derived instance shape and deduplicates single reads', async () => {
-    const request = vi.fn().mockResolvedValue({ _id: 'q-1', identity: { name: 'Queue one' }, state: 'draft' });
+    const request = vi.fn().mockResolvedValue({ _id: 'q-1', name: 'Queue one', state: 'draft' });
     vi.stubGlobal('$fetch', request);
     const instances = useInstancesStore();
 
@@ -113,11 +113,11 @@ describe('instances store cache', () => {
   it('reconciles shared entity events into the cache by canonical type key', async () => {
     const instances = useInstancesStore();
 
-    emitInstanceCreated({ type: 'queue', instance: { _id: 'q-1', identity: { name: 'Created' } } });
-    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ identity: { name: 'Created' } });
+    emitInstanceCreated({ type: 'queue', instance: { _id: 'q-1', name: 'Created' } });
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'Created' });
 
-    emitInstanceUpdated({ type: 'queue', instance: { _id: 'q-1', identity: { name: 'Updated' } } });
-    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ identity: { name: 'Updated' } });
+    emitInstanceUpdated({ type: 'queue', instance: { _id: 'q-1', name: 'Updated' } });
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'Updated' });
 
     emitInstanceDeleted({ type: 'queue', id: 'q-1' });
     expect(instances.dtoFor('queue', 'q-1')).toBeNull();

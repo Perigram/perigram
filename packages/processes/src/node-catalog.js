@@ -286,11 +286,13 @@ function nativeMutatePorts(record = {}, context = {}) {
   const declaredRelationKeys = new Set((context.domain?.relations || [])
     .filter(relation => relation.ownerType === typeId)
     .map(relation => relation.key));
+  // Writable leaves: the rename channel (`name`), the flat row home
+  // (`fields.*`), and declared relation edges.
   const leaves = (context.fieldSchemas || [])
     .filter(field => field.writable !== false)
     .filter(field => (
-      (['identity', 'data', 'specs'].includes(field.block)
-        && !(field.block === 'data' && field.path === 'data.value'))
+      field.path === 'name'
+      || field.block === 'fields'
       || (field.block === 'relations' && declaredRelationKeys.has(field.path.split('.').at(1)))
     ))
     .map(field => socket(field.path, field.type, DATA, false, 'list'));

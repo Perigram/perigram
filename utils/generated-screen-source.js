@@ -50,7 +50,7 @@ function accessibleEntityIds(sourceStates = {}) {
     if (!typeId) continue;
     const entities = state.source.mode === 'single' ? [state.entity] : state.items;
     for (const entity of entities || []) {
-      const id = entity?._id?.toString?.() || entity?.identity?.uid?.toString?.() || entity?.id?.toString?.();
+      const id = entity?._id?.toString?.() || entity?._id?.toString?.() || entity?.id?.toString?.();
       if (!id) continue;
       if (!result.has(typeId)) result.set(typeId, new Set());
       result.get(typeId).add(String(id));

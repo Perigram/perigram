@@ -34,13 +34,13 @@ export {
   renderPolicyFor, compileClientBundle
 } from './render.js';
 export {
-  extractRow, rowToFieldSchemas, slotFor
+  rowToFieldSchemas
 } from './compat/field-schema-rows.js';
 export {
   renameLegacyTypeKeys, resolveCtsDefinition, checkCtsGraphBindings,
   isCtsGraphDefinition, operationKindOf, resolveCtsRecord,
   typeIdOf, setTypeBinding, declarationsFromCtsRecords, transitionNodeStateTargets,
-  rewriteRetiredNameInputs
+  rewriteRetiredWirePaths
 } from './compat/graph-protocol.js';
 export {
   cncTypePack, partyTypes, nestingOperators, packFixtures

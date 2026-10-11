@@ -839,13 +839,9 @@
   "entities": [
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -853,13 +849,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -867,13 +859,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -881,13 +869,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -895,13 +879,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -909,13 +889,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -923,13 +899,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -937,13 +909,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -951,13 +919,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -965,13 +929,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -979,13 +939,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},
@@ -993,13 +949,9 @@
     },
     {
       "blocks": [
-        "identity",
-        "status",
+        "fields",
         "lineage",
-        "relations",
-        "provenance",
-        "attachments",
-        "data"
+        "relations"
       ],
       "collection": "files",
       "lineage": {},

@@ -68,7 +68,7 @@ describe('persisted producer output identity migration', () => {
         id: 'work_item',
         typeId: 'work_item',
         lifecycle: { mode: 'domainDefault' },
-        fields: { read: ['identity.*'], write: [], private: [] }
+        fields: { read: ['name', 'fields.*'], write: [], private: [] }
       }
     };
 
@@ -78,7 +78,7 @@ describe('persisted producer output identity migration', () => {
     expect(result.data).not.toHaveProperty('entityProfiles');
     expect(result.data.producerOutputs['processNode_1785860422855:result']).toMatchObject({
       lifecycle: { mode: 'domainDefault' },
-      fields: { read: ['identity.*'], write: [], private: [] }
+      fields: { read: ['name', 'fields.*'], write: [], private: [] }
     });
   });
 

@@ -49,7 +49,7 @@ const toggle = (event) => {
     op.value?.toggle(event);
 };
 
-const instanceId = computed(() => props.instance?._id || props.instance?.identity?.uid || props.instance?.identity?.slug);
+const instanceId = computed(() => props.instance?._id || props.instance?._id || props.instance?.identity?.slug);
 const policyByValue = policyFor(() => props.typeId);
 const stateValue = computed(() => {
     const value = props.instance?.state;
@@ -254,7 +254,7 @@ function normalizeLabel(value = '') {
 function matchesInstanceChange({ type, id, instance } = {}) {
     if (normalizeEventType(type) !== normalizeEventType(props.typeId)) return false;
 
-    const changedId = id || instance?._id || instance?.identity?.uid || instance?.identity?.slug;
+    const changedId = id || instance?._id || instance?._id || instance?.identity?.slug;
     if (!changedId || !instanceId.value) return false;
 
     return changedId.toString() === instanceId.value.toString();

@@ -147,7 +147,7 @@ const parkedCallRoom = computed(() => (
 
 const parkedCallLabel = computed(() => callRoomLabel(parkedCallRoom.value, supportChatStore.conversations, {
     userId: authStore.userData?.userId,
-    orgName: authStore.organizationData?.identity?.name || undefined,
+    orgName: authStore.organizationData?.name || undefined,
     fallback: t('call.title')
 }));
 

@@ -12,25 +12,22 @@ hand-written services.
   with the type id as discriminator; documents carry the §3 stored shape —
   `type`, `typeVersion`, `name`, flat `fields`, the flat `state` string and
   its `stateChangedAt` entered-state clock (the deadline clock, SPEC §7),
-  `lineage` (pure tree edges),
-  `relations`, the top-level `organizationId` tenancy slot, `payload` (iff
-  the type declares payload traits), and `provenance` (set by the construct
-  boundary, never patched).
-  `organizationId: null` marks a system instance (pack-seeded reference
-  catalogs): read-admitted beside org rows in every organization's list,
-  written only by seeding/admin paths. Tenancy never lives
-  inside `lineage` (SPEC §3): the wire DTO still projects it as
-  `lineage.organizationId` for the legacy block vocabulary, and that
-  projection is owned by this service boundary (`toDto`/`create`) and
-  nowhere else. `migrate-instance-tenancy.js` backfills the slot and
-  strips the legacy lineage key one-way. The wire `identity.name` is the
-  same kind of boundary projection: it carries the stored name when one
-  was set explicitly (wire rename), else the declared identifier field's
-  value resolved through the one canonical law (`normalizeType` — an
-  explicit `identifier` flag wins, else the minted first string field;
-  the same identity `titleFor` resolves client-side), so wire-block
-  consumers such as chats, pickers, and inline refs render the
-  identifier value instead of the raw instance id.
+  `lineage` (pure tree edges), `relations`, the top-level
+  `organizationId` tenancy slot, `payload` (iff the type declares payload
+  traits), and `provenance` (set by the construct boundary, never
+  patched).
+  **The wire DTO is this document verbatim** (owner decision 2026-10-11:
+  ids JSON-safe) — no `identity` block, no `lineage.organizationId` edge,
+  no `attachments.primary`, no `data`/`specs` slot split, and no assumed
+  field of any kind. `organizationId: null` marks a system instance
+  (pack-seeded reference catalogs): read-admitted beside org rows in
+  every organization's list, written only by seeding/admin paths. Org
+  customization of a system instance is an org-authored instance
+  shadowing it by declared key (e.g. `code`), never a mutation of the
+  system row. Naming follows SPEC §4: the stored `name` slot is the
+  explicit rename channel; the declared identifier row's value resolves
+  client-side through the display contract (`titleFor`), never by
+  copying row data into a second wire field.
 - Type migration executor (`migrations.js`): runs a covered `migrate` step
   set against the type's persisted instances when
   [cts-types](../cts-types/README.md) lands a breaking redefinition.
@@ -46,20 +43,16 @@ hand-written services.
   `fields` object and `states` axis map are written back per document; the
   summary (per-step counts, failures) returns to the caller for the
   declaration's `migrated` record.
-- Payload (SPEC §3/§4): create accepts a payload reference — §3-honest
-  callers pass `payload`, legacy wire callers pass
-  `attachments.primary` — shaped `{ fileId, mime?, size?, name? }`. The
-  reference is validated against the type's declared payload traits at
-  construct (fileId required; `mime` must be in the declared list;
-  `size` within `maxSize` when both are known — the shared
-  `payloadAccepts` predicate from
+- Payload (SPEC §3/§4): create accepts a `payload` reference shaped
+  `{ fileId, mime?, size?, name? }`. The reference is validated against
+  the type's declared payload traits at construct (fileId required;
+  `mime` must be in the declared list; `size` within `maxSize` when both
+  are known — the shared `payloadAccepts` predicate from
   [packages/cts](../../../packages/cts/README.md)) and stored as the §3
   payload slot. Payload blobs live in the `files` GridFS bucket — the
-  §3 Blob home; upload callers pass `bucket=files` and the wire payload
-  reference carries no bucket by design. `toDto` projects the slot back
-  onto the wire `attachments.primary` block. Payload, tenancy, and
-  provenance are immutable after construct: `processUpdate` ignores
-  their wire keys.
+  §3 Blob home; the wire payload reference carries no bucket by design.
+  Payload, tenancy, and provenance are immutable after construct:
+  `processUpdate` ignores their keys.
 - Provenance (SPEC §3/§8): create accepts `provenance` shaped
   `{ op, sources: [{ type, id }], effective }` and stores it verbatim as
   the causal record. The process effect boundary stamps it for every
@@ -83,9 +76,8 @@ hand-written services.
   `upload`/`capture`/`editor` declared on payload types — upload and
   capture require a payload reference (validated by the construct-time
   trait checks), editor constructs a blank instance whose first editor
-  save fills the payload). Wire patches map to §3 writes; wire
-  `lineage.organizationId` is ignored on update (tenancy is immutable
-  after construct).
+  save fills the payload). Wire patches map to §3 writes (tenancy is
+  immutable after construct).
 - List filters (the compiled screen-source transport contract, the same
   vocabulary the feature routes speak — cassettes' `libraryId`):
   `list`/`processList` accept the flat scalar filter map defined as the
@@ -115,10 +107,9 @@ hand-written services.
   id as the type-id filter, so a write requires a compiled process
   grant — fail-closed.
 - Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the
-  same wire patch blocks `processUpdate` writes (`identity.name`,
-  `data`/`specs` leaves, declared non-main state axes are status-runtime
-  owned, non-tenancy `lineage` edges, `relations`) through the identical §3
-  mapping. It gates through the
+  same wire patch `processUpdate` writes (the `name` rename channel,
+  `fields` leaves, non-tenancy `lineage` edges, `relations` — state
+  writes are status-runtime owned) through the identical §3 mapping. It gates through the
   shared access engine exactly like the payload transport (write level
   on the class-collection feature, type-id filter — fail-closed). This
   is the generated detail surfaces' inline-edit persistence path; the

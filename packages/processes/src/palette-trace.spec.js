@@ -77,7 +77,7 @@ describe('palette trace', () => {
       { domain, fieldSchemas: domain.fieldSchemas.sheet }
     );
     expect(bound.inputs.find(port => port.id === 'type')).toBeTruthy();
-    expect(bound.inputs.some(port => port.id === 'data.serial')).toBe(true);
+    expect(bound.inputs.some(port => port.id === 'fields.serial')).toBe(true);
     expect(bound.outputs.some(port => port.type?.base === 'entityRef')).toBe(true);
   });
 
@@ -103,7 +103,7 @@ describe('palette trace', () => {
       { domain, fieldSchemas: domain.fieldSchemas.sheet }
     );
     expect(adapted.inputs.find(port => port.id === 'entity')).toMatchObject({ id: 'entity', type: { typeId: 'sheet' } });
-    expect(adapted.inputs.some(port => port.id === 'data.serial')).toBe(true);
+    expect(adapted.inputs.some(port => port.id === 'fields.serial')).toBe(true);
   });
 
   it('origin reads keep the pin; entity-derived reads never carry one', () => {

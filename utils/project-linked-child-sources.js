@@ -34,5 +34,5 @@ function containedBy(parentType, childType, containment = []) {
 }
 
 function instanceId(entity = {}) {
-  return entity?._id?.toString?.() || entity?.identity?.uid?.toString?.() || entity?.id?.toString?.() || '';
+  return entity?._id?.toString?.() || entity?._id?.toString?.() || entity?.id?.toString?.() || '';
 }

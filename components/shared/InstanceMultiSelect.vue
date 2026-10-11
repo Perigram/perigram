@@ -117,7 +117,7 @@ function typeFor(option) {
 }
 
 function optionKey(option) {
-  return String(selectOptionValue(option, props.optionValue) ?? entityFor(option)?._id ?? entityFor(option)?.identity?.uid);
+  return String(selectOptionValue(option, props.optionValue) ?? entityFor(option)?._id ?? entityFor(option)?._id);
 }
 
 function labelFor(option) {

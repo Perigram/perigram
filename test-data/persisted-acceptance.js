@@ -48,7 +48,7 @@ export function createPersistedAcceptanceFixture() {
         outputSocketId: 'result',
         typeId: 'cassette',
         lifecycle: { mode: 'domainDefault' },
-        fields: { read: ['identity.*'], write: [], private: [] },
+        fields: { read: ['name'], write: [], private: [] },
         allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
       }
     },

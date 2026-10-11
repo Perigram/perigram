@@ -72,7 +72,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const service = instanceServiceResolver('dxf-source'); // mounted pack file type: static declaration, name row field
 
     const dto = await service.create(
-      { identity: { name: 'My cassette' }, data: { name: 'My cassette' }, state: 'draft', lineage: {} },
+      { name: 'My cassette', fields: { name: 'My cassette' }, state: 'draft', lineage: {} },
       'user-1',
       'org-1'
     );
@@ -89,33 +89,34 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
     expect(dto).toMatchObject({
       type: 'dxf-source',
-      identity: { name: 'My cassette' },
+      name: 'My cassette',
       state: 'draft',
-      data: { name: 'My cassette' }
+      fields: { name: 'My cassette' }
     });
   });
 
-  it('splits quantity fields into the specs slot on the wire for item classes', async () => {
+  it('keeps rows flat on the wire — no slot split (owner decision 2026-10-11)', async () => {
     const coll = stubCollection();
-    const service = instanceServiceResolver('panel'); // org item: quantity -> specs slot
+    const service = instanceServiceResolver('panel'); // org item with a quantity row
 
     const dto = await service.create(
-      { data: { serial: 'SH-1' }, specs: { width: 2500 }, lineage: {} },
+      { fields: { serial: 'SH-1', width: 2500 }, lineage: {} },
       'user-1',
       'org-1'
     );
 
     const stored = coll.insertOne.mock.calls[0][0];
     expect(stored.fields).toEqual({ serial: 'SH-1', width: 2500 });
-    expect(dto.data).toEqual({ serial: 'SH-1' });
-    expect(dto.specs).toEqual({ width: 2500 });
+    expect(dto.fields).toEqual({ serial: 'SH-1', width: 2500 });
+    expect(dto.data).toBeUndefined();
+    expect(dto.specs).toBeUndefined();
   });
 
   it('creates without a state — nothing synthesizes an initial (SPEC §7)', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('panel');
 
-    const dto = await service.create({ data: { serial: 'AX-1' }, lineage: {} }, 'user-1', 'org-1');
+    const dto = await service.create({ fields: { serial: 'AX-1' }, lineage: {} }, 'user-1', 'org-1');
 
     const stored = coll.insertOne.mock.calls[0][0];
     expect(stored.state).toBeNull();
@@ -127,7 +128,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const service = instanceServiceResolver('panel');
 
     await expect(service.processUpdate('507f1f77bcf86cd799439011', {
-      data: { serial: 'AX-2' },
+      fields: { serial: 'AX-2' },
       state: 'passed'
     }, 'org-1')).rejects.toThrow(/status runtime/);
     expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
@@ -139,16 +140,14 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const service = instanceServiceResolver('dxf-source');
 
     await service.processUpdate('507f1f77bcf86cd799439011', {
-      data: { name: 'Renamed' },
-      lineage: { organizationId: 'org-1' }
+      fields: { name: 'Renamed' },
+      name: 'Renamed Too'
     });
 
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set['fields.name']).toBe('Renamed');
+    expect(set.name).toBe('Renamed Too');
     expect(set['states.main']).toBeUndefined();
-    // Tenancy is immutable after construct: the wire lineage projection's
-    // organizationId key is not a writable edge.
-    expect(set['lineage.organizationId']).toBeUndefined();
     expect(set.organizationId).toBeUndefined();
   });
 
@@ -163,14 +162,8 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     );
     const stored = coll.insertOne.mock.calls[0][0];
     expect(stored.payload).toEqual({ fileId: 'file-1', mime: 'application/dxf', size: 1024 });
-    expect(dto.attachments.primary).toEqual({ fileId: 'file-1', mime: 'application/dxf', size: 1024 });
-
-    const legacy = await service.create(
-      { attachments: { primary: { fileId: 'file-2', mime: 'application/dxf' } } },
-      'user-1',
-      'org-1'
-    );
-    expect(legacy.attachments.primary.fileId).toBe('file-2');
+    expect(dto.payload).toEqual({ fileId: 'file-1', mime: 'application/dxf', size: 1024 });
+    expect(dto.attachments).toBeUndefined();
   });
 
   it('accepts wildcard declared mime lists and enforces maxSize', async () => {
@@ -182,7 +175,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
       'user-1',
       'org-1'
     );
-    expect(dto.attachments.primary.mime).toBe('image/png');
+    expect(dto.payload.mime).toBe('image/png');
 
     await expect(service.create({ payload: { fileId: 'big', mime: 'image/png', size: 2048 } }, 'user-1', 'org-1'))
       .rejects.toMatchObject({ statusCode: 400 });
@@ -258,7 +251,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const service = instanceServiceResolver('dxf-source');
 
     const dto = await service.create(
-      { identity: { name: 'Scoped' }, lineage: { projectId: 'p-1', organizationId: 'org-1' } },
+      { name: 'Scoped', lineage: { projectId: 'p-1' } },
       'user-1',
       'org-1'
     );
@@ -266,7 +259,8 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const stored = coll.insertOne.mock.calls[0][0];
     expect(stored.organizationId).toBe('org-1');
     expect(stored.lineage).toEqual({ projectId: 'p-1' });
-    expect(dto.lineage).toEqual({ projectId: 'p-1', organizationId: 'org-1' });
+    expect(dto.organizationId).toBe('org-1');
+    expect(dto.lineage).toEqual({ projectId: 'p-1' });
   });
 });
 
@@ -388,7 +382,7 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     }));
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set.payload).toMatchObject({ fileId: 'stored-scene.json', mime: 'application/json' });
-    expect(dto.attachments.primary.fileId).toBe('stored-scene.json');
+    expect(dto.payload.fileId).toBe('stored-scene.json');
   });
 
   it('refuses types without a revision scope or payload traits', async () => {
@@ -460,48 +454,30 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     expect(blank.attachments).toBeUndefined();
   });
 
-  describe('wire identity projects the declared identifier field', () => {
-    it('derives the stored name from the flagged identifier field on create', async () => {
+  describe('naming (SPEC §4 + wire decision 2026-10-11)', () => {
+    it('keeps the identifier row in fields — nothing copies row data into a second wire field', async () => {
       const coll = stubCollection();
       const service = instanceServiceResolver('label'); // code is flagged identifier
 
-      const dto = await service.create({ data: { code: 'LB-42', note: 'first' }, lineage: {} }, 'user-1', 'org-1');
+      const dto = await service.create({ fields: { code: 'LB-42', note: 'first' }, lineage: {} }, 'user-1', 'org-1');
 
       const stored = coll.insertOne.mock.calls[0][0];
-      expect(stored.name).toBe('LB-42');
-      expect(dto.identity).toMatchObject({ name: 'LB-42' });
+      expect(stored.name).toBeNull();
+      expect(dto.name).toBeNull();
+      expect(dto.fields).toEqual({ code: 'LB-42', note: 'first' });
+      // Display resolution is the client display contract's job: the
+      // identifier row's value renders through titleFor, never a wire
+      // synthesis.
     });
 
-    it('keeps an explicit wire identity name authoritative over the derived one', async () => {
+    it('stores an explicit wire rename in the name slot', async () => {
       const coll = stubCollection();
       const service = instanceServiceResolver('label');
 
-      const dto = await service.create({ identity: { name: 'Custom title' }, data: { code: 'LB-1' }, lineage: {} }, 'user-1', 'org-1');
+      const dto = await service.create({ name: 'Custom title', fields: { code: 'LB-1' }, lineage: {} }, 'user-1', 'org-1');
 
       expect(coll.insertOne.mock.calls[0][0].name).toBe('Custom title');
-      expect(dto.identity).toMatchObject({ name: 'Custom title' });
-    });
-
-    it('uses the minted first string field when the declaration flags no identifier', async () => {
-      const coll = stubCollection();
-      const service = instanceServiceResolver('memo'); // no flag: title is minted
-
-      const dto = await service.create({ data: { title: 'Weekly note', body: 'text' }, lineage: {} }, 'user-1', 'org-1');
-
-      expect(coll.insertOne.mock.calls[0][0].name).toBe('Weekly note');
-      expect(dto.identity).toMatchObject({ name: 'Weekly note' });
-    });
-
-    it('heals existing nameless rows through the identifier field on read', async () => {
-      const coll = stubCollection();
-      coll.find.mockReturnValue({ sort: () => ({ limit: () => ({ toArray: async () => [
-        { _id: new ObjectId(), type: 'label', typeVersion: 1, organizationId: 'org-1', name: null, fields: { code: 'LB-7' }, states: { main: 'new' }, lineage: {}, relations: {} }
-      ] }) }) });
-      const service = instanceServiceResolver('label');
-
-      const rows = await service.list({}, 'user-1', 'org-1');
-
-      expect(rows[0].identity).toMatchObject({ uid: rows[0]._id, name: 'LB-7' });
+      expect(dto.name).toBe('Custom title');
     });
   });
 });

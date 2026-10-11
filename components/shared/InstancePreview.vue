@@ -1,7 +1,7 @@
 <template>
   <ArtifactViewer
     v-if="payloadPreview.hasPayload && payloadPreview.renderable"
-    :source="{ mode: payloadPreview.mode, fileUrl: payloadPreview.fileUrl, attachment: entity.attachments?.primary }"
+    :source="{ mode: payloadPreview.mode, fileUrl: payloadPreview.fileUrl, attachment: entity.payload }"
     :variant="'card'"
     class="h-32 w-full"
   />
@@ -55,7 +55,7 @@ const cassetteId = computed(() => props.entity?._id);
 const thumbnailUrl = computed(() =>
   props.entity?.data?.thumbnailUrl ||
   props.entity?.attachments?.thumbnail?.url ||
-  props.entity?.attachments?.primary?.thumbnailUrl ||
+  props.entity?.payload?.thumbnailUrl ||
   ''
 );
 </script>

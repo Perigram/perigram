@@ -55,11 +55,11 @@ describe('process v4 node catalog', () => {
         kind: node.kind,
         typeId: 'project',
         type: { base: 'string', shape: 'item' },
-        fields: ['identity.name'],
+        fields: ['name'],
         cases: [{ id: 'ready' }]
       }, {
-        fieldSchema: { path: 'identity.name', type: { base: 'string', shape: 'item' } },
-        fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
+        fieldSchema: { path: 'name', type: { base: 'string', shape: 'item' } },
+        fieldSchemas: [{ path: 'name', type: { base: 'string', shape: 'item' } }]
       });
       expect(Array.isArray(ports.inputs), node.kind).toBe(true);
       expect(Array.isArray(ports.outputs), node.kind).toBe(true);
@@ -89,8 +89,8 @@ describe('process v4 node catalog', () => {
   it('derives construct sockets from the construction envelope and mutate leaves from writable rows', () => {
     const context = {
       fieldSchemas: [
-        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } },
-        { path: 'data.note', block: 'data', type: { base: 'string', shape: 'item' } },
+        { path: 'name', block: 'identity', type: { base: 'string', shape: 'item' } },
+        { path: 'fields.note', block: 'fields', type: { base: 'string', shape: 'item' } },
         { path: 'states.main', block: 'states', type: { base: 'status', shape: 'item' } }
       ]
     };
@@ -106,7 +106,7 @@ describe('process v4 node catalog', () => {
 
     expect(create.inputs.map(input => input.id)).toEqual(['in', 'type', 'state']);
     expect(create.outputs.map(output => output.id)).toEqual(['completed', 'result']);
-    expect(modify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity.name', 'data.note']);
+    expect(modify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'name', 'fields.note']);
     expect(modify.inputs.find(input => input.id === 'entity')?.required).toBe(true);
     const typedCreate = resolveCatalogNodePorts({
       kind: 'cts.construct',
@@ -133,8 +133,8 @@ describe('process v4 node catalog', () => {
         mode: 'genericCreate',
         inputs: [
           { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
-          { id: 'specs.width', label: 'specs.width', path: 'specs.width', type: 'number', required: false, prompt: true },
-          { id: 'data.owner', label: 'data.owner', path: 'data.owner', type: 'entity', typeId: 'project', required: true, prompt: true }
+          { id: 'fields.width', label: 'fields.width', path: 'fields.width', type: 'number', required: false, prompt: true },
+          { id: 'fields.owner', label: 'fields.owner', path: 'fields.owner', type: 'entity', typeId: 'project', required: true, prompt: true }
         ]
       }
     }, context);
@@ -142,14 +142,14 @@ describe('process v4 node catalog', () => {
       'in',
       'type',
       'name',
-      'specs.width',
-      'data.owner',
+      'fields.width',
+      'fields.owner',
       'state'
     ]);
-    const owner = rowCreate.inputs.find(input => input.id === 'data.owner');
+    const owner = rowCreate.inputs.find(input => input.id === 'fields.owner');
     expect(owner.type).toMatchObject({ base: 'entityRef', typeId: 'project' });
     expect(owner.required).toBe(true);
-    const width = rowCreate.inputs.find(input => input.id === 'specs.width');
+    const width = rowCreate.inputs.find(input => input.id === 'fields.width');
     expect(width.type).toMatchObject({ base: 'number' });
     expect(width.required).toBe(false);
     // the species record speaks the declaration only — the persistent Type
@@ -162,29 +162,29 @@ describe('process v4 node catalog', () => {
       construction: {
         mode: 'genericCreate',
         inputs: [
-          { id: 'specs.width', label: 'specs.width', path: 'specs.width', type: 'number', required: false, prompt: true }
+          { id: 'fields.width', label: 'fields.width', path: 'fields.width', type: 'number', required: false, prompt: true }
         ]
       }
     }, context);
-    expect(speciesCreate.inputs.map(input => input.id)).toEqual(['in', 'type', 'specs.width', 'state']);
+    expect(speciesCreate.inputs.map(input => input.id)).toEqual(['in', 'type', 'fields.width', 'state']);
     expect(speciesCreate.inputs.some(input => input.id === 'states.main')).toBe(false);
   });
 
   it('exposes writable row fields as leaf sockets on a bound cts.mutate', () => {
     const context = {
       fieldSchemas: [
-        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
-        { path: 'data.width', block: 'data', type: { base: 'number', shape: 'item' }, writable: true },
-        { path: 'specs.thickness', block: 'specs', type: { base: 'number', shape: 'item', unit: 'mm' }, writable: true },
-        { path: 'data.locked', block: 'data', type: { base: 'boolean', shape: 'item' }, writable: false },
+        { path: 'name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
+        { path: 'fields.width', block: 'fields', type: { base: 'number', shape: 'item' }, writable: true },
+        { path: 'fields.thickness', block: 'fields', type: { base: 'number', shape: 'item', unit: 'mm' }, writable: true },
+        { path: 'fields.locked', block: 'fields', type: { base: 'boolean', shape: 'item' }, writable: false },
         { path: 'states.main', block: 'states', type: { base: 'status', shape: 'item' }, writable: false }
       ]
     };
     const ports = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
     const ids = ports.inputs.map(input => input.id);
     expect(ids[0]).toBe('in');
-    expect(ids).toEqual(expect.arrayContaining(['data.width', 'specs.thickness']));
-    expect(ids).not.toContain('data.locked');
+    expect(ids).toEqual(expect.arrayContaining(['fields.width', 'fields.thickness']));
+    expect(ids).not.toContain('fields.locked');
     expect(ids).not.toContain('identity');
     expect(ids).not.toContain('data');
     expect(ids).not.toContain('states.main');
@@ -193,12 +193,12 @@ describe('process v4 node catalog', () => {
   it('never renders block or status sockets on a mutate record', () => {
     const context = {
       fieldSchemas: [
-        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
-        { path: 'data.width', block: 'data', type: { base: 'number', shape: 'item' }, writable: true }
+        { path: 'name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
+        { path: 'fields.width', block: 'fields', type: { base: 'number', shape: 'item' }, writable: true }
       ]
     };
     const migrated = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel', slots: ['identity'] }, context);
-    expect(migrated.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity.name', 'data.width']);
+    expect(migrated.inputs.map(input => input.id)).toEqual(['in', 'entity', 'name', 'fields.width']);
   });
 
   it('splits the species binding contract: origins carry a typed pin, consumers adapt to their entity wire', () => {
@@ -269,7 +269,7 @@ describe('process v4 node catalog', () => {
   it('declares List consumption on every mapped mutation data socket', () => {
     const context = {
       fieldSchemas: [
-        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }
+        { path: 'name', block: 'identity', type: { base: 'string', shape: 'item' } }
       ]
     };
     const dataSockets = ports => ports.inputs.filter(input => input.role === 'data' && input.plane !== 'declaration');
@@ -299,10 +299,10 @@ describe('process v4 node catalog', () => {
       kind: 'cts.mutate',
       typeId: 'project'
     }, {
-      fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
+      fieldSchemas: [{ path: 'name', block: 'identity', type: { base: 'string', shape: 'item' } }]
     });
     const entitySocket = modify.inputs.find(input => input.id === 'entity');
-    const leafSocket = modify.inputs.find(input => input.id === 'identity.name');
+    const leafSocket = modify.inputs.find(input => input.id === 'name');
     for (const access of ['item', 'list', 'tree']) {
       const entitySource = { id: 'entities', label: 'entities', role: 'data', access, type: { base: 'entity', typeId: 'project' } };
       expect(processSocketsCompatible(entitySource, entitySocket).ok, `entity ${access}`).toBe(true);
@@ -383,11 +383,11 @@ describe('process v4 node catalog', () => {
       typeId: 'result',
       construction: {
         mode: 'buildResult',
-        inputs: [{ id: 'quality', path: 'data.quality', type: 'string', required: true, default: 'standard' }]
+        inputs: [{ id: 'quality', path: 'fields.quality', type: 'string', required: true, default: 'standard' }]
       }
     });
 
-    expect(create.inputs.find(input => input.id === 'data.quality')).toMatchObject({ id: 'data.quality', required: false });
+    expect(create.inputs.find(input => input.id === 'fields.quality')).toMatchObject({ id: 'fields.quality', required: false });
   });
 
   it('projects command sockets from the selected command contract', () => {
@@ -452,12 +452,12 @@ describe('process v4 node catalog', () => {
 
   it('keeps field and facet reads item-wise so tree topology flows at runtime', () => {
     const context = {
-      fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
+      fieldSchemas: [{ path: 'name', block: 'identity', type: { base: 'string', shape: 'item' } }]
     };
     expect(resolveCatalogNodePorts({
       kind: 'cts.field',
       typeId: 'project',
-      inputDefaults: { field: 'identity.name' }
+      inputDefaults: { field: 'name' }
     }, context)).toMatchObject({
       inputs: [
         { id: 'entity', access: 'item', type: { base: 'entityRef', typeId: 'project' } },
@@ -468,7 +468,7 @@ describe('process v4 node catalog', () => {
     expect(resolveCatalogNodePorts({
       kind: 'cts.decompose',
       typeId: 'project'
-    }, context).outputs[0]).toMatchObject({ id: 'identity.name', access: 'item', type: { base: 'string' } });
+    }, context).outputs[0]).toMatchObject({ id: 'name', access: 'item', type: { base: 'string' } });
   });
 
   it('exposes items plus aligned keys for Sort, Distinct, and Group By', () => {

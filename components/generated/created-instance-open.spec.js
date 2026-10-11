@@ -9,7 +9,7 @@ describe('created-entity open target', () => {
   it('prefers the compiled detail route when the manifest has one', () => {
     const target = resolveCreatedInstanceOpen({
       action: { typeId: 'cassette', construction: { mode: 'editor' } },
-      result: { entity: { _id: 'c-1', identity: { name: 'Tray' } } },
+      result: { entity: { _id: 'c-1', name: 'Tray' } },
       screenKey: 'home',
       manifest: manifestWithDetail
     });
@@ -20,7 +20,7 @@ describe('created-entity open target', () => {
   it('opens the workspace for editor-protocol creates without a route', () => {
     const target = resolveCreatedInstanceOpen({
       action: { typeId: 'cassette', construction: { mode: 'editor' } },
-      result: { entity: { _id: 'c-2', identity: { name: 'Blank tray' } } },
+      result: { entity: { _id: 'c-2', name: 'Blank tray' } },
       screenKey: 'home',
       manifest: []
     });
@@ -40,7 +40,7 @@ describe('created-entity open target', () => {
   it('falls back to a toast for non-editor creates without a route', () => {
     const target = resolveCreatedInstanceOpen({
       action: { typeId: 'image', construction: { mode: 'upload' } },
-      result: { entity: { _id: 'i-1', identity: { name: 'Shot' } } },
+      result: { entity: { _id: 'i-1', name: 'Shot' } },
       manifest: []
     });
     expect(target).toMatchObject({ kind: 'toast', typeId: 'image', name: 'Shot' });
@@ -54,7 +54,7 @@ describe('created-entity open target', () => {
   it('unwraps single-item mapped mutation results', () => {
     const target = resolveCreatedInstanceOpen({
       action: { typeId: 'cassette', construction: { mode: 'editor' } },
-      result: { result: { branches: [{ items: [{ entity: { _id: 'c-3', identity: { name: 'Mapped' } } }] }] } },
+      result: { result: { branches: [{ items: [{ entity: { _id: 'c-3', name: 'Mapped' } }] }] } },
       manifest: []
     });
     expect(target).toMatchObject({ kind: 'workspace', instanceId: 'c-3', name: 'Mapped' });

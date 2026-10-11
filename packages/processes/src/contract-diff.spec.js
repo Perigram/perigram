@@ -98,10 +98,10 @@ describe('semantic process contract diff', () => {
 
   it('diffs field policies per producer section', () => {
     const previous = contract([
-      producer('create_queue:entity', 'queue', workflow(['CREATED']), { read: ['identity.*'], write: ['identity.name'], private: [], relations: ['parts'] })
+      producer('create_queue:entity', 'queue', workflow(['CREATED']), { read: ['name'], write: ['identity.name'], private: [], relations: ['parts'] })
     ]);
     const next = contract([
-      producer('create_queue:entity', 'queue', workflow(['CREATED']), { read: ['identity.*', 'data.*'], write: [], private: ['data.cost'], relations: [] })
+      producer('create_queue:entity', 'queue', workflow(['CREATED']), { read: ['name', 'data.*'], write: [], private: ['data.cost'], relations: [] })
     ]);
     const diff = diffProcessContracts(previous, next);
     expect(diff.fieldPolicies.changed).toEqual([{

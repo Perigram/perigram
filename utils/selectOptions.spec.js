@@ -9,7 +9,7 @@ import {
 
 describe('select option helpers', () => {
   it('returns a string label from canonical DTO identity data', () => {
-    expect(entitySelectLabel({ identity: { name: 'Warehouse A' }, _id: 'wh-1' })).toBe('Warehouse A');
+    expect(entitySelectLabel({ name: 'Warehouse A', _id: 'wh-1' })).toBe('Warehouse A');
     expect(entitySelectLabel({ identity: { slug: 'warehouse-a' }, _id: 'wh-1' })).toBe('warehouse-a');
   });
 
@@ -19,8 +19,8 @@ describe('select option helpers', () => {
   });
 
   it('normalizes arrays for PrimeVue optionLabel="name" selectors', () => {
-    expect(namedSelectOptions([{ identity: { name: 'Tool' }, _id: 'tool-1' }])).toEqual([
-      { identity: { name: 'Tool' }, _id: 'tool-1', name: 'Tool' }
+    expect(namedSelectOptions([{ name: 'Tool', _id: 'tool-1' }])).toEqual([
+      { name: 'Tool', _id: 'tool-1', name: 'Tool' }
     ]);
   });
 
@@ -30,7 +30,7 @@ describe('select option helpers', () => {
 
   it('normalizes arrays for PrimeVue option-label label selectors', () => {
     expect(labelValueSelectOptions([
-      { identity: { name: 'Template A' }, _id: 'profile-1' },
+      { name: 'Template A', _id: 'profile-1' },
       { name: '', _id: 'profile-2' },
       null,
       { identity: {} }

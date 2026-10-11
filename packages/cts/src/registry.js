@@ -16,15 +16,22 @@ const CREATION_PROTOCOLS = Object.freeze(['upload', 'capture', 'editor']);
 
 // Compact-snapshot preview paths (SPEC §4): dot paths into the wire DTO
 // a compact snapshot keeps. Bounded by design — a snapshot is a preview,
-// never a copy.
+// never a copy. Authored paths adopt the flat row home: a leading
+// `data.`/`specs.` slot prefix (the retired wire split) rewrites to
+// `fields.` once, at this boundary.
+function wireRowPath(path = '') {
+  const clean = String(path).trim();
+  return /^(data|specs)\.[a-z]/.test(clean) ? `fields.${clean.slice(clean.indexOf('.') + 1)}` : clean;
+}
+
 function normalizeSnapshot(paths = []) {
   if (!Array.isArray(paths)) throw new Error('snapshot must be an array of data paths');
-  const cleaned = [...new Set(paths.map(path => String(path).trim()))].filter(Boolean);
+  const cleaned = [...new Set(paths.map(path => wireRowPath(path)))].filter(Boolean);
   if (!cleaned.length) throw new Error('snapshot requires at least one data path');
   if (cleaned.length > 12) throw new Error('snapshot accepts at most 12 data paths');
   for (const path of cleaned) {
-    if (!/^data(\.[a-z][a-zA-Z0-9]*)+$/.test(path)) {
-      throw new Error(`snapshot path ${path} must be a data.* dot path`);
+    if (!/^fields(\.[a-z][a-zA-Z0-9]*)+$/.test(path)) {
+      throw new Error(`snapshot path ${path} must be a fields.* dot path`);
     }
   }
   return Object.freeze(cleaned);
@@ -122,14 +129,14 @@ export function normalizeType(declaration = {}) {
     // snapshot is a preview, never a copy.
     ...(declaration.snapshot ? { snapshot: normalizeSnapshot(declaration.snapshot) } : {}),
     ...(previewSourceRow ? { previewSource: Object.freeze({
-      path: previewSourceRow.path,
+      path: wireRowPath(previewSourceRow.path),
       display: previewSourceRow.display || 'geometry',
-      // Stored-shape fallbacks (the DataBlock fallbackPaths vocabulary):
-      // the preview channel resolves the first non-empty path, so a type
-      // whose renderable geometry lives in more than one stored shape
-      // (baked preview vs raw layer/polygon parts) previews them all.
+      // Stored-shape fallbacks: the preview channel resolves the first
+      // non-empty path, so a type whose renderable geometry lives in
+      // more than one stored shape (baked preview vs raw layer/polygon
+      // parts) previews them all.
       ...(Array.isArray(previewSourceRow.fallbackPaths) && previewSourceRow.fallbackPaths.length
-        ? { fallbackPaths: [...previewSourceRow.fallbackPaths] }
+        ? { fallbackPaths: previewSourceRow.fallbackPaths.map(wireRowPath) }
         : {})
     }) } : {}),
     // Derived types (SPEC §4): operator/service-produced — they enter

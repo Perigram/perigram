@@ -86,23 +86,23 @@ describe('literal -> construct field sockets', () => {
     const ids = ports.map(port => port.id);
     // Ref fields declare relations (SPEC §6): their socket lives in the
   // relations slot, not data.
-  for (const id of ['data.name', 'specs.thicknessMm', 'data.count', 'relations.owner', 'data.madeAt', 'data.flag']) {
+  for (const id of ['fields.name', 'fields.thicknessMm', 'fields.count', 'relations.owner', 'fields.madeAt', 'fields.flag']) {
       expect(ids, `missing socket ${id}`).toContain(id);
     }
-    expect(input(ports, 'specs.thicknessMm').type).toMatchObject({ base: 'number', unit: 'mm' });
+    expect(input(ports, 'fields.thicknessMm').type).toMatchObject({ base: 'number', unit: 'mm' });
   });
 
   it('same-base literals wire into their field sockets', () => {
-    expect(processSocketsCompatible(literalOutput('string'), input(ports, 'data.name')).ok).toBe(true);
-    expect(processSocketsCompatible(literalOutput('number'), input(ports, 'data.count')).ok).toBe(true);
-    expect(processSocketsCompatible(literalOutput('boolean'), input(ports, 'data.flag')).ok).toBe(true);
-    expect(processSocketsCompatible(literalOutput('date'), input(ports, 'data.madeAt')).ok).toBe(true);
-    expect(processSocketsCompatible(literalOutput('dateTime'), input(ports, 'data.madeAt')).ok).toBe(true);
+    expect(processSocketsCompatible(literalOutput('string'), input(ports, 'fields.name')).ok).toBe(true);
+    expect(processSocketsCompatible(literalOutput('number'), input(ports, 'fields.count')).ok).toBe(true);
+    expect(processSocketsCompatible(literalOutput('boolean'), input(ports, 'fields.flag')).ok).toBe(true);
+    expect(processSocketsCompatible(literalOutput('date'), input(ports, 'fields.madeAt')).ok).toBe(true);
+    expect(processSocketsCompatible(literalOutput('dateTime'), input(ports, 'fields.madeAt')).ok).toBe(true);
     expect(processSocketsCompatible(literalOutput('entityRef', { typeId: 'keeper' }), input(ports, 'relations.owner')).ok).toBe(true);
   });
 
   it('a unit-less number adopts the quantity field unit; cross-unit stays explicit', () => {
-    const quantity = input(ports, 'specs.thicknessMm');
+    const quantity = input(ports, 'fields.thicknessMm');
     const raw = processSocketsCompatible(literalOutput('number'), quantity);
     expect(raw.ok).toBe(true);
     expect(raw.coercion).toBe('adoptsUnit');
@@ -111,7 +111,7 @@ describe('literal -> construct field sockets', () => {
   });
 
   it('mismatched bases stay rejected with a named reason', () => {
-    const result = processSocketsCompatible(literalOutput('string'), input(ports, 'data.count'));
+    const result = processSocketsCompatible(literalOutput('string'), input(ports, 'fields.count'));
     expect(result.ok).toBe(false);
     expect(result.reason).toBeTruthy();
     expect(processSocketsCompatible(literalOutput('number'), input(ports, 'relations.owner')).ok).toBe(false);

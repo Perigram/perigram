@@ -2,8 +2,9 @@
 // every type that has no hand-registered feature service — pack-mounted
 // types and org-authored types. Storage is per-class collections
 // (files/items/groups/processes) with the type id as discriminator
-// (`repository.js`); documents carry type, typeVersion, identity/origin/
-// status/lineage/data, org-scoped lineage.
+// (`repository.js`); documents carry the §3 stored shape and the wire DTO
+// IS that document (owner decision 2026-10-11: ids JSON-safe, no
+// synthesized blocks, no slot split, no assumed fields).
 //
 // The service resolves the type's declaration per call: framework and pack
 // types from static declarations, org types from `cts_types` (cached).
@@ -128,90 +129,36 @@ export function staticTypeDeclaration(typeId) {
 }
 
 // Stored shape (SPEC §3): { _id, type, typeVersion, organizationId, name,
-// fields, state, lineage, relations, createdAt, updatedAt }. Tenancy is
-// the top-level `organizationId` slot; `lineage` holds pure tree edges —
-// the wire DTO's `lineage.organizationId` is a boundary projection owned
-// here (create maps it to the slot, toDto re-projects it for the legacy
-// block vocabulary) and nowhere else.
-function wireFieldsSplit(fields = {}, declaration = {}) {
-  const data = {};
-  const specs = {};
-  for (const [name, value] of Object.entries(fields)) {
-    const descriptor = declaration.fields?.[name];
-    const slot = descriptor ? (descriptor.slot || (declaration.class === 'item' && descriptor.base === 'quantity' ? 'specs' : 'data')) : 'data';
-    (slot === 'specs' ? specs : data)[name] = value;
-  }
-  return { data, specs };
-}
-
-// The declared identifier key through the one canonical law (normalizeType):
-// an explicit `identifier` flag wins, else the minted first string field.
-function identifierKeyOf(declaration = {}) {
-  if (!declaration?.id || !declaration?.class) return null;
-  try {
-    const normalized = normalizeType(declaration);
-    const entry = Object.entries(normalized.fields || {}).find(([, descriptor]) => descriptor?.identifier === true);
-    return entry ? entry[0] : null;
-  } catch {
-    return null;
-  }
-}
-
-// Wire identity name precedence: explicit stored name (wire rename), then
-// the declared identifier field's value. Empty strings are absent.
-function wireIdentityName(doc = {}, declaration = {}) {
-  if (doc.name != null && doc.name !== '') return String(doc.name);
-  const key = identifierKeyOf(declaration);
-  const value = key ? (doc.fields || {})[key] : null;
-  return typeof value === 'string' && value !== '' ? value : null;
-}
-
-// One flat state string (SPEC §7): the initial value arrives from the
-// creating process's construct socket or the caller; no declaration owns
-// an initial and nothing synthesizes one.
-function initialStateFor(supplied = {}) {
-  const value = supplied.state;
-  return typeof value === 'string' && value ? value : null;
-}
-
-function toDto(doc, declaration = {}) {
+// fields, state, stateChangedAt, lineage, relations, payload, provenance,
+// createdAt, updatedAt }. The wire DTO IS this document (owner decision
+// 2026-10-11), ids JSON-safe — no synthesized blocks, no slot split, no
+// assumed fields. Display names resolve client-side through the §4
+// identifier law, never by copying row data into a second wire field.
+function toDto(doc) {
   if (!doc) return null;
-  const { data, specs } = wireFieldsSplit(doc.fields || {}, declaration);
-  // §3 tenancy slot projects back into the wire lineage block; the wire
-  // identity name projects the declared identifier field's value (the
-  // SPEC §4 law through normalizeType: an explicit flag wins, else the
-  // minted first string field) — the same identity titleFor resolves
-  // client-side, so wire-block consumers (chats, pickers, refs) render
-  // the identifier value instead of the raw id. An explicit stored name
-  // (wire rename) stays authoritative; malformed declarations resolve no
-  // key instead of failing the read.
-  const lineage = { ...(doc.lineage || {}) };
-  if (doc.organizationId != null) lineage.organizationId = doc.organizationId;
-  const wireName = wireIdentityName(doc, declaration);
   return {
     _id: String(doc._id),
     type: doc.type,
     typeVersion: doc.typeVersion,
-    identity: { uid: doc._id.toString(), ...(wireName != null ? { name: wireName } : {}) },
+    organizationId: doc.organizationId ?? null,
+    name: doc.name ?? null,
+    fields: { ...(doc.fields || {}) },
     state: typeof doc.state === 'string' && doc.state ? doc.state : null,
-    lineage,
-    relations: doc.relations || {},
-    // §3 payload slot projects onto the legacy wire attachments block.
-    ...(doc.payload?.fileId ? { attachments: { primary: doc.payload } } : {}),
+    ...(doc.stateChangedAt ? { stateChangedAt: doc.stateChangedAt } : {}),
+    lineage: { ...(doc.lineage || {}) },
+    relations: { ...(doc.relations || {}) },
+    ...(doc.payload ? { payload: doc.payload } : {}),
     ...(doc.provenance ? { provenance: doc.provenance } : {}),
-    ...(Object.keys(data).length ? { data } : {}),
-    ...(Object.keys(specs).length ? { specs } : {}),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt
   };
 }
 
-// Payload reference (SPEC §3/§4): §3-honest callers pass `payload`, legacy
-// wire callers pass `attachments.primary`. Validated against the type's
-// declared payload traits at construct; mime/size checks run on the values
-// the reference carries.
+// Payload reference (SPEC §3/§4): the wire payload slot, validated
+// against the type's declared payload traits at construct; mime/size
+// checks run on the values the reference carries.
 function payloadFromWire(draft = {}, declaration = {}) {
-  const reference = draft.payload || draft.attachments?.primary || null;
+  const reference = draft.payload || null;
   if (!reference) return null;
   const traits = declaration.payload;
   if (!traits) {
@@ -318,31 +265,24 @@ function instanceService(typeId) {
     return ['genericCreate'];
   })();
   // Shared construct body: the §3 document build common to every
-  // construction mode.
+  // construction mode. The wire draft IS the stored shape: tenancy
+  // travels as `organizationId`, the payload as `payload`, rows as flat
+  // `fields`, the rename channel as `name`.
   async function createValidated(draft, declaration, userId, organizationId) {
-    // Tenancy: the wire may carry lineage.organizationId (the legacy
-    // projection); storage keeps the top-level slot and pure tree edges.
-    const wireLineage = { ...(draft.lineage || {}) };
-    const tenancyId = organizationId ?? wireLineage.organizationId ?? null;
-    delete wireLineage.organizationId;
     const payload = payloadFromWire(draft, declaration);
     const provenance = provenanceFromWire(draft);
     const now = new Date().toISOString();
-    // §3: the row is one flat fields map (data/specs split is wire-only)
-    const fields = { ...(draft.data || {}), ...(draft.specs || {}) };
-    const state = initialStateFor(draft);
+    const state = typeof draft.state === 'string' && draft.state ? draft.state : null;
     const doc = {
       _id: new ObjectId(),
       type: typeId,
       typeVersion: declaration.version || 1,
-      organizationId: tenancyId == null ? null : toFlexibleId(tenancyId),
-      // The stored name is the wire identity name when given, else the
-      // declared identifier field's value (same precedence toDto reads).
-      name: draft.identity?.name ?? wireIdentityName({ fields }, declaration),
-      fields,
+      organizationId: organizationId ?? draft.organizationId ?? null,
+      name: draft.name ?? null,
+      fields: { ...(draft.fields || {}) },
       state,
       ...(state ? { stateChangedAt: now } : {}),
-      lineage: wireLineage,
+      lineage: { ...(draft.lineage || {}) },
       ...(draft.relations ? { relations: draft.relations } : {}),
       ...(payload ? { payload } : {}),
       ...(provenance ? { provenance } : {}),
@@ -350,7 +290,7 @@ function instanceService(typeId) {
       updatedAt: now
     };
     await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
-    return toDto(doc, declaration);
+    return toDto(doc);
   }
 
   return {
@@ -371,11 +311,11 @@ function instanceService(typeId) {
         Number(filters?.limit) || 200,
         filter
       );
-      return docs.map(doc => toDto(doc, declaration));
+      return docs.map(doc => toDto(doc));
     },
 
     async create(draft = {}, userId, organizationId) {
-      const declaration = await requireDeclaration(typeId, organizationId || draft?.lineage?.organizationId);
+      const declaration = await requireDeclaration(typeId, organizationId || draft?.organizationId);
       return await createValidated(draft, declaration, userId, organizationId);
     },
 
@@ -383,11 +323,11 @@ function instanceService(typeId) {
     // protocol's whole point — a missing one is a protocol violation,
     // not a silent blank instance.
     async createWithPayloadProtocol(draft = {}, { userId, organizationId } = {}, protocol = 'upload') {
-      const declaration = await requireDeclaration(typeId, organizationId || draft?.lineage?.organizationId);
+      const declaration = await requireDeclaration(typeId, organizationId || draft?.organizationId);
       if (!declaration.payload) {
         throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload; creation protocol ${protocol} does not apply` });
       }
-      const reference = draft.payload || draft.attachments?.primary || null;
+      const reference = draft.payload || null;
       if (!reference?.fileId && !reference?.id) {
         throw createError({ statusCode: 400, message: `Creation protocol ${protocol} requires a payload file` });
       }
@@ -401,9 +341,9 @@ function instanceService(typeId) {
       const organizationId = typeof context === 'string' ? context : context?.organizationId || null;
       const declaration = await requireDeclaration(typeId, organizationId);
       const collection = repository.collectionForClass(declaration.class);
-      // Wire patches (block paths from the effect boundary) map to §3
-      // writes. Lifecycle is deliberately absent: transitions and
-      // initial-state writes belong to the status runtime.
+      // Wire patches speak the stored shape. Lifecycle is deliberately
+      // absent: transitions and initial-state writes belong to the status
+      // runtime.
       if (patch.state !== undefined) {
         throw createError({
           statusCode: 400,
@@ -411,14 +351,12 @@ function instanceService(typeId) {
         });
       }
       const set = {};
-      const mergeSlot = (slot, value) => {
-        for (const [key, leaf] of Object.entries(value || {})) {
+      if (patch.name !== undefined) set.name = patch.name;
+      if (patch.fields && typeof patch.fields === 'object') {
+        for (const [key, leaf] of Object.entries(patch.fields)) {
           if (leaf !== undefined) set[`fields.${key}`] = leaf;
         }
-      };
-      if (patch.identity?.name !== undefined) set.name = patch.identity.name;
-      if (patch.data && typeof patch.data === 'object') mergeSlot('data', patch.data);
-      if (patch.specs && typeof patch.specs === 'object') mergeSlot('specs', patch.specs);
+      }
       if (patch.lineage && typeof patch.lineage === 'object') {
         for (const [key, value] of Object.entries(patch.lineage)) {
           // Tenancy is immutable after construct: the wire projection's
@@ -436,7 +374,7 @@ function instanceService(typeId) {
         }
       }
       const updated = await repository.updateInstanceFields(collection, id, set);
-      return toDto(updated, declaration);
+      return toDto(updated);
     },
 
     // HTTP update transport: the same wire patch processUpdate writes,
@@ -450,7 +388,7 @@ function instanceService(typeId) {
       if (!doc) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
-      const current = toDto(doc, declaration);
+      const current = toDto(doc);
       const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
       if (!hasInstanceAccess({ entity: current, typeId, feature, level: 'write', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -485,7 +423,7 @@ function instanceService(typeId) {
       if (!doc) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
-      const current = toDto(doc, declaration);
+      const current = toDto(doc);
       const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
       if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -509,7 +447,7 @@ function instanceService(typeId) {
           entity: current,
           scope: declaration.revisions,
           content: { fileId: payload.fileId, mime: payload.mime || null, size: payload.size ?? null, name: payload.name || null },
-          snapshot: { identity: current.identity || null, data: { payload } },
+          snapshot: { payload },
           attachments: {
             primary: {
               fileId: payload.fileId,
@@ -527,7 +465,7 @@ function instanceService(typeId) {
         if (!updated) {
           throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its payload was saved` });
         }
-        return toDto(updated, declaration);
+        return toDto(updated);
       } catch (error) {
         await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
         throw error;

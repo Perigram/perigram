@@ -49,7 +49,7 @@ function isCanonicalEntity(value) {
     && typeof value === 'object'
     && !Array.isArray(value)
     && value.identity
-    && (value._id !== undefined || value.identity?.uid)
+    && (value._id !== undefined || value.id !== undefined)
   );
 }
 

@@ -104,23 +104,23 @@ describe('declaration-check phase', () => {
           bad: { kind: 'cts.transition', typeId: 'widget', state: { to: 'FLYING' } },
           good: { kind: 'cts.transition', typeId: 'widget', state: { to: 'done' } },
           defaulted: { kind: 'cts.construct', typeId: 'widget', inputDefaults: { state: 'raw' } },
-          n1: { kind: 'record.getField', typeId: 'widget', field: 'data.name' },
-          n2: { kind: 'record.getField', typeId: 'widget', field: 'data.rogue' },
-          n3: { kind: 'record.getField', typeId: 'queue', field: 'data.job' },
-          n4: { kind: 'record.getField', typeId: 'queue', field: 'data.rogue' },
-          n5: { kind: 'record.getField', typeId: 'queue', field: 'identity.name' }
+          n1: { kind: 'record.getField', typeId: 'widget', field: 'name' },
+          n2: { kind: 'record.getField', typeId: 'widget', field: 'rogue' },
+          n3: { kind: 'record.getField', typeId: 'queue', field: 'job' },
+          n4: { kind: 'record.getField', typeId: 'queue', field: 'rogue' },
+          n5: { kind: 'record.getField', typeId: 'queue', field: 'legacyData.name' }
         }
       }
     }, registry, 'org-1');
     expect(errors).toContainEqual(expect.stringMatching(/moves widget to undeclared state FLYING/));
     expect(errors).not.toContainEqual(expect.stringMatching(/moves widget to undeclared state done/));
     expect(errors).not.toContainEqual(expect.stringMatching(/moves widget to undeclared state raw/));
-    expect(errors).toContainEqual(expect.stringMatching(/uses field data.rogue outside the widget row/));
+    expect(errors).toContainEqual(expect.stringMatching(/uses field rogue outside the widget row/));
     // queue rows are declared: the job root resolves, unknown roots fail,
-    // managed blocks (identity) are policy facets, not rows
-    expect(errors).not.toContainEqual(expect.stringMatching(/data\.job/));
-    expect(errors).toContainEqual(expect.stringMatching(/uses field data.rogue outside the queue row/));
-    expect(errors).not.toContainEqual(expect.stringMatching(/identity\.name/));
+    // and the retired block-prefixed spelling refuses instead of resolving
+    expect(errors).not.toContainEqual(expect.stringMatching(/uses field job/));
+    expect(errors).toContainEqual(expect.stringMatching(/uses field rogue outside the queue row/));
+    expect(errors).toContainEqual(expect.stringMatching(/uses field legacyData.name outside the queue row/));
   });
 
   it('checks transition guards: boolean vocabulary only, row-relative paths under value', () => {

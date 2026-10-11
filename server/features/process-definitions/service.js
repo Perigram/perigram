@@ -40,7 +40,7 @@ import { compileActiveProcessRuntime, getActiveMergedDataForOrganization } from 
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
-import { operationKindOf, projectDomainFromView, rewriteRetiredNameInputs } from '~/packages/cts/src/index.js';
+import { operationKindOf, projectDomainFromView, rewriteRetiredWirePaths } from '~/packages/cts/src/index.js';
 import { composePackDomains } from '~/server/packs/declarations.js';
 import { packDomainsForOrganization } from '~/server/features/plugins/service.js';
 import { packServicesForOrganization } from '~/server/features/plugins/service.js';
@@ -276,7 +276,9 @@ async function collectStrandedInstanceStatees(process, auth, nextCompiled) {
     }
     const counts = Object.fromEntries(statuses.map(state => [state, 0]));
     for (const entity of entities) {
-      const primary = entity?.states?.main;
+      const primary = typeof entity?.state === 'string' && entity.state
+        ? entity.state
+        : entity?.states?.main;
       if (Object.hasOwn(counts, primary)) counts[primary] += 1;
     }
     const present = statuses.filter(state => counts[state] > 0)
@@ -1044,7 +1046,7 @@ function entityInputId(value) {
     const items = tree.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error);
     return items.length === 1 ? entityInputId(items[0]) : null;
   }
-  return value.id || value._id || value.identity?.uid || null;
+  return value.id || value._id || null;
 }
 
 async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
@@ -1117,7 +1119,7 @@ function normalizedEffectEntities(effects) {
 }
 
 function instanceId(entity = {}) {
-  return entity?._id || entity?.id || entity?.identity?.uid || null;
+  return entity?._id || entity?.id || null;
 }
 
 function hasAsyncOutputBoundary(result = {}) {
@@ -1575,7 +1577,7 @@ function effectEntityTarget(value, typeId) {
   const ref = normalizeInstanceRef(value);
   if (ref) return ref;
   if (value && typeof value === 'object' && !Array.isArray(value)) {
-    const id = value._id ?? value.id ?? value.identity?.uid;
+    const id = value._id ?? value.id;
     return id != null && id !== undefined ? { type: typeId, id: String(id) } : null;
   }
   if (typeof value === 'string' && value) return { type: typeId, id: value };
@@ -1799,7 +1801,7 @@ function effectTransitionContext(record = {}, inputs = {}) {
 async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, created = null, service = null, auth = {}) {
   if (!created || !Object.keys(blockDraft).length) return created;
   if (!service?.processUpdate) throw new Error(`Entity service cannot apply constructed blocks to ${record.typeId}`);
-  const targetId = created._id || created.identity?.uid;
+  const targetId = created._id || created.id;
   if (!targetId) throw new Error(`Created ${record.typeId} has no id`);
   const patch = Object.fromEntries(Object.entries(blockDraft).map(([block, value]) => [
     block,
@@ -2031,7 +2033,7 @@ function persistedRewrites(data, domain) {
   // own the report, so a draft with access rules on a still-unbound node
   // remains savable.
   tryAcceptGraphProtocol(migration.data, domain);
-  return rewriteRetiredNameInputs(migration.data);
+  return rewriteRetiredWirePaths(migration.data);
 }
 
 // One compile path: protocol acceptance (v5 lowering) through
@@ -2070,7 +2072,7 @@ async function loadOrganizationProcessConfiguration(organizationId) {
 }
 
 function projectEntityFields(entity, projection = {}) {
-  const fields = projection.fields?.length ? projection.fields : ['identity.*', 'status.*'];
+  const fields = projection.fields?.length ? projection.fields : ['name', 'state'];
   const excluded = projection.excludeFields || [];
   const projected = {};
   for (const field of fields) copyProjectionPath(entity, projected, field);

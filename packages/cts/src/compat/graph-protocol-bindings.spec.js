@@ -88,8 +88,8 @@ describe('retired Name-input surgery (one-way rewrite at the resolution seam)', 
   it('drops the retired input, its default, and edges wired into data:name', () => {
     const { definition: resolved } = resolveCtsDefinition(draftWithRetiredAuthoring(), domain);
     const construct = resolved.data.processNodes.c1;
-    expect(construct.construction.inputs.map(input => input.id)).toEqual(['data.note']);
-    expect(construct.inputDefaults).toEqual({ 'data.note': 'kept' });
+    expect(construct.construction.inputs.map(input => input.id)).toEqual(['fields.note']);
+    expect(construct.inputDefaults).toEqual({ 'fields.note': 'kept' });
     expect(resolved.data.graph.edges.map(edge => edge.id)).toEqual(['e-note']);
   });
 

@@ -203,7 +203,7 @@ describe('current process-definition service contract', () => {
         'create:result': {
           id: 'create:result', producerOutputId: 'create:result', nodeId: 'create', outputSocketId: 'result',
           typeId: 'fixture-panel-9', lifecycle: { mode: 'domainDefault' },
-          fields: { read: ['identity.*'], write: [], private: [] }
+          fields: { read: ['name'], write: [], private: [] }
         }
       },
       actions: {}, services: {}, sockets: {}, screens: {},
@@ -350,17 +350,17 @@ describe('current process-definition service contract', () => {
       construction: {
         inputs: [
           { id: 'lineage.parentId', path: 'lineage.parentId', type: 'entity' },
-          { id: 'data.note', path: 'data.note', type: 'string' }
+          { id: 'fields.note', path: 'fields.note', type: 'string' }
         ]
       }
     };
     const draft = processConstructionInputRecord(record, {
       'lineage.parentId': { type: 'parent', id: 'p-1' },
-      'data.note': 'hello'
+      'fields.note': 'hello'
     });
     expect(draft).toEqual({
       lineage: { parentId: 'p-1' },
-      data: { note: 'hello' }
+      fields: { note: 'hello' }
     });
   });
 
@@ -543,8 +543,8 @@ describe('current process-definition service contract', () => {
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([
-            { _id: 'p-1', states: { main: 'LEGACY_RETIRED' } },
-            { _id: 'p-2', states: { main: 'draft' } }
+            { _id: 'p-1', state: 'LEGACY_RETIRED' },
+            { _id: 'p-2', state: 'draft' }
           ]) }
         : organizationService
     });
@@ -647,7 +647,7 @@ describe('current process-definition service contract', () => {
 
     expect(result.nodes.present.outputs.value.branches[0].items).toEqual([null]);
     expect(result.nodes.absent.outputs.value.branches[0].items).toEqual([
-      { missing: true, path: 'data.design' }
+      { missing: true, path: 'fields.design' }
     ]);
     // The response is already the JSON contract: no undefined property or
     // array item degrades to null on the wire.
@@ -1352,9 +1352,9 @@ function previewProcessData() {
     sockets: {},
     screens: {},
     processNodes: {
-      entity: { id: 'entity', kind: 'source.literalItem', value: { data: { serial: null } } },
-      present: { id: 'present', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'data.serial' } },
-      absent: { id: 'absent', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'data.design' } }
+      entity: { id: 'entity', kind: 'source.literalItem', value: { fields: { serial: null } } },
+      present: { id: 'present', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'fields.serial' } },
+      absent: { id: 'absent', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'fields.design' } }
     }
   };
 }

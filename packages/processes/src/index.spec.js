@@ -126,39 +126,39 @@ const domain = {
   fieldAccess: {
     project: {
       feature: 'projects',
-      read: ['identity.*', 'status.*', 'lineage.*', 'data.name'],
-      write: ['data.metadata'],
-      admin: ['data.*']
+      read: ['name', 'fields.*', 'status.*', 'lineage.*', 'fields.name'],
+      write: ['fields.metadata'],
+      admin: ['fields.*']
     },
     queue: {
       feature: 'queues',
-      read: ['identity.*', 'status.*', 'lineage.*'],
-      write: ['identity.name', 'data.*'],
+      read: ['name', 'fields.*', 'status.*', 'lineage.*'],
+      write: ['name', 'fields.*'],
       admin: ['attachments.*']
     },
     cassette_design: {
       feature: 'cassettes',
-      read: ['identity.*', 'status.*', 'lineage.*', 'data.*'],
-      write: ['data.*'],
+      read: ['name', 'fields.*', 'status.*', 'lineage.*', 'fields.*'],
+      write: ['fields.*'],
       admin: ['attachments.*']
     },
     catalog: {
       feature: 'catalogs',
-      read: ['identity.*', 'status.*', 'lineage.*', 'data.material', 'data.options'],
-      write: ['data.*'],
+      read: ['name', 'fields.*', 'status.*', 'lineage.*', 'fields.material', 'fields.options'],
+      write: ['fields.*'],
       admin: ['attachments.*']
     },
     library: {
       feature: 'libraries',
-      read: ['identity.*', 'status.*', 'lineage.*', 'data.material'],
-      write: ['data.*'],
+      read: ['name', 'fields.*', 'status.*', 'lineage.*', 'fields.material'],
+      write: ['fields.*'],
       admin: ['attachments.*']
     }
   },
   fieldSchemas: {
     queue: [
       {
-        path: 'identity.name',
+        path: 'name',
         block: 'identity',
         type: { base: 'string', shape: 'item', nullable: false },
         readable: true,
@@ -176,7 +176,7 @@ const domain = {
   },
   blockSchemas: {
     identity: [{
-      path: 'identity.name',
+      path: 'name',
       block: 'identity',
       type: { base: 'string', shape: 'item', nullable: false }
     }],
@@ -456,7 +456,7 @@ describe('@perigram/processes compiler', () => {
       },
       fieldAccess: {
         ...domain.fieldAccess,
-        artifactTemplate: { feature: 'artifact_templates', read: ['identity.*'], write: ['data.*'], admin: ['data.*'] }
+        artifactTemplate: { feature: 'artifact_templates', read: ['name', 'fields.*'], write: ['fields.*'], admin: ['fields.*'] }
       }
     };
     const compiled = compileProcessDefinition({
@@ -536,7 +536,7 @@ describe('@perigram/processes compiler', () => {
             }
           }
         },
-        fields: { read: ['identity.*'], write: [], private: [] }
+        fields: { read: ['name', 'fields.*'], write: [], private: [] }
       }]])
     }, domain);
 
@@ -576,7 +576,7 @@ describe('@perigram/processes compiler', () => {
             }
           }
         },
-        fields: { read: ['identity.*'], write: [], private: [] }
+        fields: { read: ['name', 'fields.*'], write: [], private: [] }
       }]]),
       actions: {
         advance_project: {
@@ -718,14 +718,14 @@ describe('@perigram/processes compiler', () => {
       entities: [...domain.entities, { type: 'gadget' }],
       construction: {
         ...domain.construction,
-        gadget: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [{ id: 'data.code', path: 'data.code', type: 'string', required: true, prompt: true }] }
+        gadget: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [{ id: 'fields.code', path: 'fields.code', type: 'string', required: true, prompt: true }] }
       }
     });
     const fields = compiled.actions.make_gadget.inputPolicy.fields;
     // The derived `field:<path>` echo addresses the same value as the
     // construction input: one typed row, not a second json-typed row.
     expect(fields.length).toBe(1);
-    expect(fields[0]).toMatchObject({ path: 'data.code', type: 'string' });
+    expect(fields[0]).toMatchObject({ path: 'fields.code', type: 'string' });
   });
 
   it('passes the declared workflow through verbatim for defaultCreated producer workflows', () => {
@@ -801,7 +801,7 @@ describe('@perigram/processes compiler', () => {
       { id: 'status', kind: 'status' }
     ).ok).toBe(true);
     expect(portSpecsCompatible(
-      { id: 'name', kind: 'block', block: 'identity', dataPath: 'identity.name' },
+      { id: 'name', kind: 'block', block: 'fields', dataPath: 'name' },
       { id: 'name', kind: 'data', dataPath: 'name' }
     ).ok).toBe(true);
   });
@@ -863,7 +863,7 @@ describe('@perigram/processes compiler', () => {
           id: 'library_profile',
           typeId: 'library',
           lifecycle: { mode: 'defaultCreated' },
-          fields: { read: ['identity.*'], write: [], private: [] },
+          fields: { read: ['name', 'fields.*'], write: [], private: [] },
           allowedRoles: { read: ['role_operator'] },
           outputs: [{ id: 'entity', typeId: 'library' }]
         }
@@ -1060,7 +1060,7 @@ describe('@perigram/processes compiler', () => {
         ],
         edges: [
           { id: 'queue-decompose', source: 'queue_profile', target: 'decompose_queue', sourceHandle: 'output', targetHandle: 'input:entity' },
-          { id: 'decompose-read', source: 'decompose_queue', target: 'read_name', sourceHandle: 'output:identity', targetHandle: 'input:block' },
+          { id: 'decompose-read', source: 'decompose_queue', target: 'read_name', sourceHandle: 'output:fields.name', targetHandle: 'input:block' },
           { id: 'read-compare', source: 'read_name', target: 'name_exists', sourceHandle: 'output', targetHandle: 'input:left' }
         ]
       },
@@ -1069,7 +1069,7 @@ describe('@perigram/processes compiler', () => {
           id: 'queue_profile',
           typeId: 'queue',
           lifecycle: { mode: 'defaultCreated' },
-          fields: { read: ['identity.*'], write: [], private: [] },
+          fields: { read: ['name', 'fields.*'], write: [], private: [] },
           outputs: [{ id: 'entity', typeId: 'queue' }]
         }
       },
@@ -1085,11 +1085,11 @@ describe('@perigram/processes compiler', () => {
           id: 'read_name',
           kind: 'blockRead',
           typeId: 'queue',
-          block: 'identity',
-          path: 'identity.name',
+          block: 'fields',
+          path: 'name',
           valueType: 'string',
-          inputs: [{ id: 'block', kind: 'block', block: 'identity' }],
-          outputs: [{ id: 'value', kind: 'string', block: 'identity', dataPath: 'identity.name' }]
+          inputs: [{ id: 'block', kind: 'block', block: 'fields' }],
+          outputs: [{ id: 'value', kind: 'string', block: 'fields', dataPath: 'name' }]
         },
         name_exists: {
           id: 'name_exists',
@@ -1146,7 +1146,7 @@ describe('@perigram/processes compiler', () => {
         update_project_admin_data: {
           id: 'update_project_admin_data',
           actionKind: 'updateEntity',
-          mutation: { fields: ['data.internal'] },
+          mutation: { fields: ['fields.internal'] },
           access: { level: 'write', roleIds: ['role_editor'] },
           inputs: [{ id: 'entity', typeId: 'project' }],
           outputs: [{ id: 'entity', typeId: 'project' }]
@@ -1155,7 +1155,7 @@ describe('@perigram/processes compiler', () => {
     }, domain);
 
     expect(validation.ok).toBe(false);
-    expect(validation.errors.join('\n')).toContain('data.internal');
+    expect(validation.errors.join('\n')).toContain('fields.internal');
   });
 
   it('rejects mixed action grants when a lower grant reaches an admin-only mutation', () => {
@@ -1168,7 +1168,7 @@ describe('@perigram/processes compiler', () => {
         update_project_admin_data: {
           id: 'update_project_admin_data',
           actionKind: 'updateEntity',
-          mutation: { fields: ['data.internal'] },
+          mutation: { fields: ['fields.internal'] },
           access: {
             grants: [
               { roleId: 'role_admin', level: 'admin' },
@@ -1183,7 +1183,7 @@ describe('@perigram/processes compiler', () => {
 
     expect(validation.ok).toBe(false);
     expect(validation.errors.join('\n')).toContain('role_editor');
-    expect(validation.errors.join('\n')).toContain('admin-only field data.internal');
+    expect(validation.errors.join('\n')).toContain('admin-only field fields.internal');
   });
 
   it('uses an authored grant for a screen requirement without deriving capability from layout', () => {
@@ -1446,7 +1446,7 @@ describe('@perigram/processes compiler', () => {
           id: 'project_source:result', producerOutputId: 'project_source:result',
           nodeId: 'project_source', outputSocketId: 'result', typeId: 'project',
           lifecycle: { mode: 'domainDefault' },
-          fields: { read: ['identity.*'], write: [], private: [] },
+          fields: { read: ['name', 'fields.*'], write: [], private: [] },
           allowedRoles: { read: ['role_op'], write: ['role_op'], admin: [] }
         }
       },
@@ -2813,7 +2813,7 @@ describe('@perigram/processes compiler', () => {
           id: 'design_name',
           block: 'identity',
           valueType: 'string',
-          path: 'identity.name',
+          path: 'name',
           value: 'Named design',
           icon: 'pi pi-id-card'
         }
@@ -3131,12 +3131,12 @@ describe('@perigram/processes compiler', () => {
           id: 'update_project_data',
           actionKind: 'updateEntity',
           producerOutputId: 'project_entity:entity',
-          mutation: { fields: ['data.metadata'] },
+          mutation: { fields: ['fields.metadata'] },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_editor'] },
           inputs: [
             { id: 'entity', typeId: 'project' },
-            { id: 'field:data.metadata', dataPath: 'data.metadata', kind: 'data' }
+            { id: 'field:data.metadata', dataPath: 'fields.metadata', kind: 'data' }
           ],
           outputs: [{ id: 'entity', typeId: 'project' }]
         }
@@ -3152,10 +3152,10 @@ describe('@perigram/processes compiler', () => {
 
     expect(compiled.actions.update_project_data).toMatchObject({
       actionKind: 'updateEntity',
-      mutation: { fields: ['data.metadata'] },
+      mutation: { fields: ['fields.metadata'] },
       inputs: [
         { id: 'entity', typeId: 'project' },
-        { id: 'field:data.metadata', dataPath: 'data.metadata' }
+        { id: 'field:data.metadata', dataPath: 'fields.metadata' }
       ]
     });
     expect(compiled.userAccess.user_editor.permissions.projects[0]).toMatchObject({ level: 'write' });
@@ -3170,7 +3170,7 @@ describe('@perigram/processes compiler', () => {
           actionKind: 'sendToOrganization',
           typeId: 'project',
           producerOutputId: 'send_project:entity',
-          projection: { fields: ['identity.*'], excludeFields: [] },
+          projection: { fields: ['name', 'fields.*'], excludeFields: [] },
           trigger: { mode: 'event' },
           access: { level: 'write', roleIds: [] },
           inputs: [{ id: 'entity', typeId: 'project' }],
@@ -3181,7 +3181,7 @@ describe('@perigram/processes compiler', () => {
 
     expect(compiled.actions.send_project).toMatchObject({
       actionKind: 'sendToOrganization',
-      projection: { fields: ['identity.*'] }
+      projection: { fields: ['name', 'fields.*'] }
     });
   });
 
@@ -3192,7 +3192,7 @@ describe('@perigram/processes compiler', () => {
           id: 'receive_project',
           direction: 'inbound',
           typeId: 'project',
-          projection: { fields: ['identity.*'], excludeFields: [] },
+          projection: { fields: ['name', 'fields.*'], excludeFields: [] },
           receiverLifecycle: { mode: 'defaultCreated', workflow: null },
           access: { receiveRoles: [] }
         }
@@ -3289,7 +3289,7 @@ describe('@perigram/processes compiler', () => {
       },
       producerOutputs: producerOutputRecords([['project_profile', 'project', {
         lifecycle: { mode: 'defaultCreated' },
-        fields: { read: ['identity.*'], write: [], private: [] }
+        fields: { read: ['name', 'fields.*'], write: [], private: [] }
       }]])
     };
 
@@ -3999,7 +3999,7 @@ describe('@perigram/processes compiler', () => {
           typeId: 'library',
           label: 'Library',
           lifecycle: { mode: 'domainDefault', workflow: null },
-          fields: { read: ['identity.*'], write: [], private: [] },
+          fields: { read: ['name', 'fields.*'], write: [], private: [] },
           stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
           allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
         }

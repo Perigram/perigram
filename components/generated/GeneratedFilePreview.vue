@@ -2,7 +2,7 @@
   <div v-if="preview.hasPayload" class="flex min-h-0 flex-col gap-2">
     <ArtifactViewer
       v-if="preview.renderable"
-      :source="{ mode: preview.mode, fileUrl: preview.fileUrl, attachment: entity.attachments?.primary }"
+      :source="{ mode: preview.mode, fileUrl: preview.fileUrl, attachment: entity.payload }"
       class="h-72 w-full shrink-0"
     />
     <div v-else class="flex items-center justify-end">

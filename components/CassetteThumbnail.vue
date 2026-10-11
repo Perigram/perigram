@@ -92,7 +92,7 @@ const loadCassette = async () => {
 // null for payload-less or non-JSON payloads — geometry fields render
 // those.
 const cassettePayloadDefinition = async (cassette) => {
-  const url = instancePayloadFileUrl(cassette?.attachments?.primary);
+  const url = instancePayloadFileUrl(cassette?.payload);
   if (!url) return null;
   try {
     const definition = await $fetch(url, { responseType: 'text' }).then(JSON.parse);
@@ -138,7 +138,7 @@ const updateThumbnail = async () => {
     props.cassetteId,
     props.cassette?._id,
     props.cassette?.updatedAt,
-    props.cassette?.attachments?.primary?.fileId,
+    props.cassette?.payload?.fileId,
     props.cassette?.data?.layerData?.length,
     props.cassette?.data?.polygonParts?.length,
     props.dimensions

@@ -12,13 +12,13 @@ const domain = {
   ],
   fieldSchemas: {
     panel: [
-      { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
-      { path: 'data.note', block: 'data', type: { base: 'string', shape: 'item' }, writable: true },
-      { path: 'specs.width', block: 'specs', type: { base: 'number', shape: 'item', unit: 'mm' }, writable: true }
+      { path: 'name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
+      { path: 'fields.note', block: 'fields', type: { base: 'string', shape: 'item' }, writable: true },
+      { path: 'fields.width', block: 'fields', type: { base: 'number', shape: 'item', unit: 'mm' }, writable: true }
     ]
   },
   construction: {
-    panel: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [{ id: 'data.note', path: 'data.note', type: 'string', required: true }] }
+    panel: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [{ id: 'fields.note', path: 'fields.note', type: 'string', required: true }] }
   },
   workflows: {},
   serviceContracts: {
@@ -44,7 +44,7 @@ const representative = {
   'cts.command': { commandId: 'solveNestingValue', typeId: 'panel' },
   'cts.service': { operator: 'nesting.solve' },
   'cts.read': { typeId: 'panel', select: 'current' },
-  'cts.field': { typeId: 'panel', inputDefaults: { field: 'specs.width' } },
+  'cts.field': { typeId: 'panel', inputDefaults: { field: 'fields.width' } },
   'cts.compose': { typeId: 'panel', slot: 'data' },
   'cts.decompose': { typeId: 'panel' },
   'control.if': {},
@@ -55,7 +55,7 @@ function contextFor() {
   return {
     domain,
     fieldSchemas: domain.fieldSchemas.panel,
-    fieldSchema: domain.fieldSchemas.panel.find(field => field.path === 'specs.width')
+    fieldSchema: domain.fieldSchemas.panel.find(field => field.path === 'fields.width')
   };
 }
 
@@ -106,11 +106,11 @@ describe('port inventory pin (every catalog kind, frozen surface)', () => {
       "control.switch": "control:in(event)!*|data:value(json)!|control:default(event)",
       "cts.command": "control:in(event)!*|control:completed(event)|data:result(json)",
       "cts.compose": "data:block(block)",
-      "cts.construct": "control:in(event)!*|data:type(entityRef:panel)*|data:data.note(string:list)!|data:state(status:panel:list)|control:completed(event)|data:result(entityRef:panel)",
+      "cts.construct": "control:in(event)!*|data:type(entityRef:panel)*|data:fields.note(string:list)!|data:state(status:panel:list)|control:completed(event)|data:result(entityRef:panel)",
       "cts.conversion": "",
-      "cts.decompose": "data:entity(entityRef:panel)!|data:identity.name(string)|data:data.note(string)|data:specs.width(number:mm)",
+      "cts.decompose": "data:entity(entityRef:panel)!|data:name(string)|data:fields.note(string)|data:fields.width(number:mm)",
       "cts.field": "data:entity(entityRef:panel)!|data:field(string)|data:value(number:mm)",
-      "cts.mutate": "control:in(event)!*|data:entity(entityRef:panel:list)!|data:identity.name(string:list)|data:data.note(string:list)|data:specs.width(number:mm:list)|control:completed(event)|data:result(entityRef:panel)",
+      "cts.mutate": "control:in(event)!*|data:entity(entityRef:panel:list)!|data:name(string:list)|data:fields.note(string:list)|data:fields.width(number:mm:list)|control:completed(event)|data:result(entityRef:panel)",
       "cts.read": "data:type(entityRef:panel)*|data:result(entityRef:panel)",
       "cts.remove": "data:entity(entityRef:panel:list)!|control:completed(event)|data:result(entityRef:panel)",
       "cts.service": "control:in(event)!*|data:kerf(number)!|control:completed(event)|data:result(number)",

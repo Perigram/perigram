@@ -16,10 +16,10 @@ export function entitySelectLabel(entity, fallback = '') {
     entity?.name,
     entity?.label,
     entity?.title,
-    entity?.identity?.name,
+    entity?.name,
     entity?.identity?.slug,
-    entity?.identity?.serial,
-    entity?.identity?.uid,
+    entity?.serial,
+    entity?._id,
     entity?.slug,
     entity?.code,
     entity?._id,
@@ -33,7 +33,7 @@ export function entitySelectValue(entity, fallback = '') {
     entity?._id,
     entity?.id,
     entity?.value,
-    entity?.identity?.uid,
+    entity?._id,
     fallback
   );
 }

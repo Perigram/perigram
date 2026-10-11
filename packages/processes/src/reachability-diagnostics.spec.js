@@ -6,7 +6,7 @@ const domain = {
   relations: [],
   workflows: {},
   fieldAccess: {
-    project: { feature: 'projects', read: ['identity.*'], write: ['identity.name'], admin: [] }
+    project: { feature: 'projects', read: ['name'], write: ['identity.name'], admin: [] }
   },
   fieldSchemas: {
     project: [

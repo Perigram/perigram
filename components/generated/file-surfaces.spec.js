@@ -120,7 +120,7 @@ describe('file surface registry', () => {
   it('binds the sketch editor with an instance-backed persistence contract', () => {
     const surface = resolveFileSurface(packEditorBindings, 'sketch');
     const { persistence } = surface.workspacePage.props(
-      { entity: { _id: 's-1', identity: { name: 'Marks' }, attachments: { primary: { fileId: 'f-9' } } } },
+      { entity: { _id: 's-1', name: 'Marks', payload: { fileId: 'f-9' } } },
       'sketch'
     );
     expect(persistence.title).toBe('Marks');
@@ -130,7 +130,7 @@ describe('file surface registry', () => {
   });
 
   it('builds the sketch persistence save against the instance payload route', async () => {
-    const persistence = sketchInstancePersistence({ _id: 's-1', identity: { name: 'Marks' } }, 'sketch');
+    const persistence = sketchInstancePersistence({ _id: 's-1', name: 'Marks' }, 'sketch');
     expect(persistence.title).toBe('Marks');
     await expect(persistence.loadScene()).resolves.toBe('');
   });
@@ -204,7 +204,7 @@ describe('file surface registry', () => {
 
   it('resolves file previews from the payload traits', () => {
     const sketchType = { id: 'sketch', payload: { mime: ['application/json'], preview: 'sketch' } };
-    const entity = { attachments: { primary: { fileId: 'f-1', mime: 'application/json' } } };
+    const entity = { payload: { fileId: 'f-1', mime: 'application/json' } };
     expect(resolveFilePreview(entity, sketchType)).toMatchObject({
       mode: 'sketch',
       fileUrl: '/api/files/download/f-1?bucket=files',
@@ -215,7 +215,7 @@ describe('file surface registry', () => {
 
   it('falls back to attachment mode for payload types without authored preview', () => {
     const occsType = { id: 'cassette', payload: { mime: ['application/perigram+occs'] }, render: {} };
-    const entity = { attachments: { primary: { fileId: 'f-2' } } };
+    const entity = { payload: { fileId: 'f-2' } };
     expect(resolveFilePreview(entity, occsType)).toMatchObject({
       mode: 'attachment',
       renderable: false,

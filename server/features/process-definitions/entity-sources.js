@@ -55,5 +55,5 @@ function entityLineageId(entity, lineageKey) {
 function entityInputId(entity) {
   if (!entity) return null;
   if (typeof entity !== 'object') return String(entity);
-  return String(entity.id || entity._id || entity.identity?.uid || '') || null;
+  return String(entity.id || entity._id || '') || null;
 }

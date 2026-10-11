@@ -21,7 +21,7 @@ export function detailRouteForInstance({ entity = null, typeId = '', screenKey =
 }
 
 export function instanceIdentifier(entity) {
-  return entity?._id || entity?.id || entity?.identity?.uid || '';
+  return entity?._id || entity?.id || '';
 }
 
 function isEntityDetailScreen(screen = {}, screenKey = '', typeId = '') {

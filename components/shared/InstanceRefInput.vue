@@ -35,7 +35,7 @@ const emit = defineEmits(['update:modelValue']);
 const options = computed(() => {
   const byType = props.context.entityOptions || props.context.entitiesByType || {};
   return (byType[props.typeId] || []).map(option => ({
-    label: option.label || option.entity?.identity?.name || option.value,
+    label: option.label || option.entity?.name || option.value,
     value: option.value || option.entity?._id,
     entity: option.entity
   }));

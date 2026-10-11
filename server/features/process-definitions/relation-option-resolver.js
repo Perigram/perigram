@@ -64,7 +64,7 @@ async function queryEntities(registry, typeId, filters, auth) {
 }
 
 function instanceId(entity = {}) {
-  return entity?._id || entity?.id || entity?.identity?.uid || null;
+  return entity?._id || entity?.id || null;
 }
 
 function toPlain(entity) {

@@ -106,7 +106,7 @@ describe('native CTS process execution contract', () => {
     const domain = nativeDomain();
     const definition = graph([
       { id: 'read', kind: 'cts.read', select: 'parent', typeId: 'panel' },
-      { id: 'field', kind: 'cts.field', typeId: 'panel', path: 'data.name' },
+      { id: 'field', kind: 'cts.field', typeId: 'panel', path: 'fields.name' },
       { id: 'mutate', kind: 'cts.mutate', typeId: 'panel' }
     ], [{
       id: 'read-field',
@@ -135,7 +135,7 @@ describe('native CTS process execution contract', () => {
     const construct = portsFor({
       kind: 'cts.construct',
       typeId: 'panel',
-      construction: { mode: 'genericCreate', inputs: [{ id: 'name', path: 'data.name', type: 'string', required: true }] }
+      construction: { mode: 'genericCreate', inputs: [{ id: 'name', path: 'fields.name', type: 'string', required: true }] }
     }, domain);
     const mutate = portsFor({ kind: 'cts.mutate', typeId: 'panel' }, domain);
     const transition = portsFor({
@@ -144,11 +144,11 @@ describe('native CTS process execution contract', () => {
       state: { axis: 'main', from: 'draft', to: 'active' }
     }, domain);
     const read = portsFor({ kind: 'cts.read', select: 'parent', typeId: 'panel' }, domain);
-    const field = portsFor({ kind: 'cts.field', typeId: 'panel', path: 'data.name' }, domain);
+    const field = portsFor({ kind: 'cts.field', typeId: 'panel', path: 'fields.name' }, domain);
 
-    expect(construct.inputs.map(port => port.id)).toEqual(['in', 'type', 'lineage.rackId', 'data.name', 'data.note', 'state']);
+    expect(construct.inputs.map(port => port.id)).toEqual(['in', 'type', 'lineage.rackId', 'fields.name', 'fields.note', 'state']);
     expect(construct.inputs.some(port => port.id === 'states.main')).toBe(false);
-    expect(mutate.inputs.map(port => port.id)).toEqual(['in', 'entity', 'data.name', 'data.note']);
+    expect(mutate.inputs.map(port => port.id)).toEqual(['in', 'entity', 'fields.name', 'fields.note']);
     expect(mutate.inputs.some(port => port.id === 'states.main')).toBe(false);
     expect(transition.inputs.map(port => port.id)).toEqual(['in', 'entity', 'note', 'state']);
     expect(read.inputs.map(port => port.id)).toEqual(['entity']);
@@ -163,7 +163,7 @@ describe('native CTS process execution contract', () => {
       kind: 'cts.construct',
       typeId: 'panel',
       producerOutputId: 'create:result',
-      construction: { mode: 'genericCreate', inputs: [{ id: 'data.name', path: 'data.name', type: 'string', required: true, prompt: true }] },
+      construction: { mode: 'genericCreate', inputs: [{ id: 'fields.name', path: 'fields.name', type: 'string', required: true, prompt: true }] },
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
     };
@@ -171,7 +171,7 @@ describe('native CTS process execution contract', () => {
       id: 'mutate',
       kind: 'cts.mutate',
       typeId: 'panel',
-      inputDefaults: { 'data.name': 'Renamed' },
+      inputDefaults: { 'fields.name': 'Renamed' },
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
     };
@@ -189,7 +189,7 @@ describe('native CTS process execution contract', () => {
       outputSocketId: 'result',
       typeId: 'panel',
       lifecycle: { mode: 'domainDefault' },
-      fields: { read: ['identity.*'], write: ['data.name', 'data.note'], private: [] }
+      fields: { read: ['name'], write: ['fields.name', 'fields.note'], private: [] }
     };
 
     const normalized = normalizeProcessDefinition(definition, domain);
@@ -225,7 +225,7 @@ describe('native CTS process execution contract', () => {
         outputSocketId: 'entity',
         typeId: 'panel',
         lifecycle: { mode: 'domainDefault' },
-        fields: { read: ['identity.*'], write: [], private: [] }
+        fields: { read: ['name'], write: [], private: [] }
       }
     };
     // The domain projection carries no workflows (SPEC §7): the draft's own
@@ -277,7 +277,7 @@ describe('native CTS process execution contract', () => {
         outputSocketId: 'entity',
         typeId: 'panel',
         lifecycle: { mode: 'domainDefault' },
-        fields: { read: ['identity.*'], write: [], private: [] }
+        fields: { read: ['name'], write: [], private: [] }
       }
     };
     definition.ctsTypes = {
@@ -399,15 +399,15 @@ describe('native CTS process execution contract', () => {
       id: 'mutate',
       kind: 'cts.mutate',
       typeId: 'panel',
-      inputDefaults: { 'data.name': 'Renamed' }
+      inputDefaults: { 'fields.name': 'Renamed' }
     };
     const result = await executeProcessEffectNode(record, {
       entity: createDataPacket([
         { type: 'panel', id: 'p1' },
         { type: 'panel', id: 'p2' }
       ], 'list'),
-      'data.name': createDataPacket('Renamed')
-    }, async inputs => ({ ...inputs.entity, data: { name: inputs['data.name'] } }));
+      'fields.name': createDataPacket('Renamed')
+    }, async inputs => ({ ...inputs.entity, data: { name: inputs['fields.name'] } }));
     expect(result.branches[0].items).toEqual([
       { type: 'panel', id: 'p1', data: { name: 'Renamed' } },
       { type: 'panel', id: 'p2', data: { name: 'Renamed' } }
@@ -443,16 +443,16 @@ describe('native CTS process execution contract', () => {
 
   it('keeps native reads and field projections executable as data nodes', async () => {
     const result = await executeProcessDataNode(
-      { id: 'field', kind: 'cts.field', typeId: 'panel', inputDefaults: { field: 'data.name' } },
-      { entity: createDataPacket({ type: 'panel', id: 'p1', data: { name: 'Panel' } }) }
+      { id: 'field', kind: 'cts.field', typeId: 'panel', inputDefaults: { field: 'fields.name' } },
+      { entity: createDataPacket({ type: 'panel', _id: 'p1', fields: { name: 'Panel' } }) }
     );
     expect(result.branches[0].items).toEqual(['Panel']);
     // The field socket is the channel: a wired path wins over the default.
     const wired = await executeProcessDataNode(
-      { id: 'field', kind: 'cts.field', typeId: 'panel', inputDefaults: { field: 'data.name' } },
+      { id: 'field', kind: 'cts.field', typeId: 'panel', inputDefaults: { field: 'fields.name' } },
       {
-        entity: createDataPacket({ type: 'panel', id: 'p1', data: { name: 'Panel' } }),
-        field: createDataPacket('data.name')
+        entity: createDataPacket({ type: 'panel', _id: 'p1', fields: { name: 'Panel' } }),
+        field: createDataPacket('fields.name')
       }
     );
     expect(wired.branches[0].items).toEqual(['Panel']);
