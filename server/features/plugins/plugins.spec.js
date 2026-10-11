@@ -48,7 +48,7 @@ vi.mock('./repository.js', () => ({
 import * as repository from './repository.js';
 import * as typeStore from '../cts-types/repository.js';
 import {
-  install, uninstall, listInstalled, servicesForOrganization,
+  install, installFromCatalog, uninstall, listInstalled, servicesForOrganization,
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   settingsFor, updateSettings, listPackState, enablePack, disablePack
@@ -163,6 +163,39 @@ describe('plugin installs', () => {
       requires: ['documents']
     }));
   });
+
+  it('installs with pre-wired endpoints for endpoint-mode services only', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        services: [
+          { ...coatingListing.declarations.services[0], mode: 'endpoint' },
+          { id: 'poll', label: 'Poll', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+        ]
+      }
+    });
+    await installFromCatalog({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      endpoints: { match: 'http://127.0.0.1:8787/match' }
+    });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      endpoints: { match: 'http://127.0.0.1:8787/match' }
+    }));
+    await expect(installFromCatalog({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      endpoints: { poll: 'http://127.0.0.1:8787/poll' }
+    })).rejects.toThrow(/executes through the worker claim protocol/);
+    await expect(installFromCatalog({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      endpoints: { match: 'not-a-url' }
+    })).rejects.toThrow(/must be an http\(s\) URL/);
+    expect(repository.createInstall).toHaveBeenCalledTimes(1);
+  });
+
   it('refuses a surface declaration targeting an unsupported mount contract', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,

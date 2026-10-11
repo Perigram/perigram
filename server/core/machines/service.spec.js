@@ -822,4 +822,63 @@ describe('status service lifecycle payloads', () => {
     expect(typeof entity.stateChangedAt).toBe('string');
     expect(new Date(entity.stateChangedAt).toString()).not.toBe('Invalid Date');
   });
+
+  it('dispatches hooks whose contracts live in any registered domain', async () => {
+    const calls = [];
+    getPerigramRegistry().defineDomain({
+      id: 'hooks-spec-domain',
+      hooks: {
+        recordArchive: { id: 'recordArchive', parameters: [{ name: 'note', required: true }], mode: 'sync' }
+      }
+    });
+    getPerigramRegistry().registerHookHandler('recordArchive', (context) => {
+      calls.push({ targetId: context.targetId, note: context.dryRun ? 'preflight' : 'commit' });
+      return [];
+    });
+    const hookedWorkflow = {
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'ACTIVE',
+          states: { ACTIVE: {}, ARCHIVED: { terminal: true } },
+          transitions: [{
+            from: 'ACTIVE',
+            to: 'ARCHIVED',
+            intent: 'archiveCassette',
+            access: {
+              system: true,
+              permissions: [{ feature: 'cassettes', typeId: 'cassette', level: 'admin' }]
+            },
+            hooks: [{ handler: 'recordArchive', phase: 'after', params: { note: 'archived' } }]
+          }]
+        }
+      }
+    };
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(hookedWorkflow);
+    const auth = { userId: 'admin-1', memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }] };
+
+    await db.collection('files').insertOne(cassetteDoc('cassette-hooked'));
+    await statusService.transition('cassette', 'cassette-hooked', 'ARCHIVED', 'admin-1', auth);
+    const entity = await db.collection('files').findOne({ _id: 'cassette-hooked' });
+    expect(entity.status.state.primary).toBe('ARCHIVED');
+    // mode: 'sync' rides the domain contract — the handler completes
+    // before the transition returns.
+    expect(calls.map(call => call.note)).toEqual(['commit']);
+
+    await db.collection('files').insertOne(cassetteDoc('cassette-hooked-bad-params'));
+    hookedWorkflow.regions.main.transitions[0].hooks = [
+      { handler: 'recordArchive', phase: 'after', params: { note: 'x', stray: true } }
+    ];
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(hookedWorkflow);
+    await expect(statusService.transition('cassette', 'cassette-hooked-bad-params', 'ARCHIVED', 'admin-1', auth))
+      .rejects.toThrow(/unknown parameter stray/);
+
+    await db.collection('files').insertOne(cassetteDoc('cassette-hooked-no-contract'));
+    hookedWorkflow.regions.main.transitions[0].hooks = [
+      { handler: 'neverDeclaredAnywhere', phase: 'after', params: {} }
+    ];
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(hookedWorkflow);
+    await expect(statusService.transition('cassette', 'cassette-hooked-no-contract', 'ARCHIVED', 'admin-1', auth))
+      .rejects.toThrow(/Hook contract missing for neverDeclaredAnywhere/);
+  });
 });

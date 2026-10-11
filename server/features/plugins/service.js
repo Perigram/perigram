@@ -64,7 +64,16 @@ async function availableVersionFor(install) {
 export async function install({ organizationId, pluginId, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'admin');
+  return installFromCatalog({ organizationId, pluginId });
+}
 
+// The gate-and-write core behind the install route: the wrapper above
+// owns caller authority; platform onboarding (an organization's default
+// installs, server/features/organizations/default-plugins.js) rides this
+// seam so every install write passes the same gates. `endpoints`
+// pre-wires connection settings for endpoint-mode services under the
+// same validation the settings save applies.
+export async function installFromCatalog({ organizationId, pluginId, endpoints = {} }) {
   const listing = await repository.findCatalogByPluginId(pluginId);
   if (!listing) throw createError({ statusCode: 404, message: 'Plugin not found' });
   if (await repository.findInstall(organizationId, pluginId)) {
@@ -143,6 +152,7 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     throw createError({ statusCode: 400, message: introduced.join('; ') });
   }
 
+  const configuredEndpoints = configuredEndpointsFor(services, endpoints);
   await repository.createInstall({
     organizationId: String(organizationId),
     pluginId: String(listing.pluginId),
@@ -151,6 +161,7 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     declarations: { types, editors, attachmentKinds, conversions, constructions, exports: exportBindings, surfaces },
     services,
     requires,
+    endpoints: configuredEndpoints,
     connectorToken: mintConnectorToken()
   });
   invalidateInstanceDeclarations(String(organizationId));
@@ -284,12 +295,10 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   };
 }
 
-export async function updateSettings({ organizationId, pluginId, endpoints = {}, authToken = null, auth = {} }) {
-  assertSameOrganization(organizationId, auth);
-  assertOrganizationPermission(auth, 'admin');
-  const install = await repository.findInstall(organizationId, pluginId);
-  if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
-  const serviceById = new Map((install.services || []).map(service => [service.id, service]));
+// Endpoint settings validation, one home: unknown services, claim-mode
+// services, and non-http(s) URLs refuse.
+function configuredEndpointsFor(services = [], endpoints = {}) {
+  const serviceById = new Map((services || []).map(service => [service.id, service]));
   const configured = {};
   for (const [serviceId, url] of Object.entries(endpoints || {})) {
     const service = serviceById.get(serviceId);
@@ -307,6 +316,15 @@ export async function updateSettings({ organizationId, pluginId, endpoints = {},
       configured[serviceId] = parsed;
     }
   }
+  return configured;
+}
+
+export async function updateSettings({ organizationId, pluginId, endpoints = {}, authToken = null, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  const configured = configuredEndpointsFor(install.services, endpoints);
   await repository.updateSettings(organizationId, pluginId, {
     endpoints: configured,
     authToken: authToken ? String(authToken) : null
