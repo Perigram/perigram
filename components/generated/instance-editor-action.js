@@ -1,4 +1,3 @@
-import GeneratedCassetteDesignerAction from './GeneratedCassetteDesignerAction.vue';
 import GeneratedEditorPageAction from './GeneratedEditorPageAction.vue';
 import { fileEditorActions } from '~/components/generated/file-surfaces.js';
 

@@ -10,7 +10,7 @@ import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
 import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
@@ -24,6 +24,7 @@ import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.j
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
 import { titleFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
+import { instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useStatePolicy } from '~/composables/useStatePolicy';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
@@ -115,7 +116,7 @@ provide('instanceInlineTypeLabel', computed(() => contract.value?.labelKey ? t(c
 provide('instanceInlineActionIds', computed(() => popupActionIds.value));
 provide('instanceInlineActionEntity', resolved);
 provide('instanceInlineActionTypeId', generatedTypeId);
-provide('instanceInlineShowCassetteDesigner', computed(() => popupShowCassetteDesigner.value));
+provide('instanceInlineHasEditorAction', computed(() => popupHasEditorAction.value));
 provide('instanceInlineExecuteAction', executePopupAction);
 const toneStyle = computed(() => entityToneStyle(props.type));
 const { typeById } = useFileTypeView();
@@ -180,9 +181,9 @@ const popupActions = computed(() => {
     .map(action => [action.id, action])).values());
 });
 const popupActionIds = computed(() => popupActions.value.map(action => action.id));
-const popupShowCassetteDesigner = computed(() => generatedTypeId.value === 'cassette');
+const popupHasEditorAction = computed(() => instanceHasEditorAction(generatedTypeId.value));
 const popupHasActions = computed(() => (
-  popupShowCassetteDesigner.value
+  popupHasEditorAction.value
   || popupActionIds.value.length
 ));
 
@@ -488,9 +489,10 @@ function tonePalette(role) {
                 :aria-label="$t('support.instanceChat')"
                 @click="openEntityChatFromRef"
               />
-              <GeneratedCassetteDesignerAction
-                v-if="popupShowCassetteDesigner"
+              <GeneratedEditorPageAction
+                v-if="popupHasEditorAction"
                 :entity="resolved"
+                :type-id="generatedTypeId"
               />
               <GeneratedActionButton
                 v-for="actionId in popupActionIds"

@@ -440,7 +440,7 @@ describe('Design system manifest', () => {
     }
 
     expect(analyzeVueVisuals(
-      'components/CassetteDesignerV2.vue',
+      'workers/facade/surfaces/cassette-designer.mjs',
       '<template><div :style="{ borderRadius: \'1rem\' }" /></template>'
     )).toContain('replace:inline-visual (1)');
     const renderVisual = '<script>\nexport default {\n  render() { return h(\'div\', { style: { borderRadius: \'1rem\' } }) }\n}\n</script>';
@@ -675,13 +675,12 @@ describe('Design system manifest', () => {
   });
 
   it('keeps inline design editing inside its active workspace', () => {
-    const cassetteDesigner = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteDesignerV2.vue'), 'utf8');
-    const generatedCassetteAction = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedCassetteDesignerAction.vue'), 'utf8');
+    const cassetteDesigner = fs.readFileSync(path.join(REPO_ROOT, 'workers/facade/surfaces/cassette-designer.mjs'), 'utf8');
+    const editorPageAction = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedEditorPageAction.vue'), 'utf8');
 
     expect(cassetteDesigner).toContain('saveTemplate({ saveAs: true })');
     expect(cassetteDesigner).toContain('handleDesignerEscape');
-    expect(generatedCassetteAction).toContain(':close-on-escape="false"');
-    expect(generatedCassetteAction).not.toContain('visible.value = false;\n  emit(\'refresh\')');
+    expect(editorPageAction).toContain(':close-on-escape="false"');
   });
 
   it('keeps generated collection cards as horizontal carousel items', () => {

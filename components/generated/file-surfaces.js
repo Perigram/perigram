@@ -1,5 +1,3 @@
-import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
-import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
@@ -32,15 +30,6 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  *   workspace-page-open seam elsewhere; mobile keeps a dialog.
  */
 export const fileSurfaceRegistry = {
-  'cassette-designer': {
-    action: GeneratedCassetteDesignerAction,
-    workspacePage: {
-      labelKey: 'cassette.designerTitle',
-      icon: 'pi pi-file-edit',
-      component: GeneratedCassetteDesignerWorkspacePage,
-      props: page => ({ cassette: page.entity, cassettes: page.cassettes || [] })
-    }
-  },
   'sketch-editor': {
     action: 'generic',
     workspacePage: {
@@ -169,11 +158,10 @@ export function validateEditorBindings(bindings = [], registry = fileSurfaceRegi
 // The mounted packs' editor bindings in composition order — the same
 // records the cts-types feature serves with the organization type view.
 // Validated at module load so pack/registry drift fails here, not as a
-// silently missing editor presentation. The facade domain's bindings
-// (cassette designer, sheet editor) arrive with the organization type
-// view from the installed facade plugin — the sheet editor resolves as
-// a plugin-delivered surface module (RemoteEditorSurface), the cassette
-// designer as a local registration until its own migration — and the
+// silently missing editor presentation. The facade domain's editor
+// bindings (cassette designer, sheet editor) arrive with the
+// organization type view from the installed facade plugin and resolve
+// as plugin-delivered surface modules (RemoteEditorSurface) — the
 // pre-auth fallback below covers only always-mounted pack types.
 export const packEditorBindings = validateEditorBindings([...documentsEditors, ...techDrawingEditors]);
 

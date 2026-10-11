@@ -530,6 +530,11 @@
         "id": "sheet-design-editor",
         "module": "/surfaces/sheet-design-editor.mjs",
         "surfaceContract": 2
+      },
+      {
+        "id": "cassette-designer",
+        "module": "/surfaces/cassette-designer.mjs",
+        "surfaceContract": 2
       }
     ],
     "attachmentKinds": {

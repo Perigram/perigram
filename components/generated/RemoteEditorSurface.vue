@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import {
-  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, surfaceNotify, editorSurfaceAccess
+  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, editorSurfaceRecords, surfaceNotify, editorSurfaceAccess
 } from '~/components/generated/remote-surface-mount.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
@@ -38,6 +38,7 @@ const persistence = editorSurfacePersistence(props.typeId);
 // (cross-type queries, host notifications, write-grant resolution).
 const hostIo = {
   queries: editorSurfaceQueries(),
+  records: editorSurfaceRecords(),
   notify: surfaceNotify(),
   access: editorSurfaceAccess(props.typeId)
 };
