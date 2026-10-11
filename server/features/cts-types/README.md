@@ -76,11 +76,16 @@ strangler layer 0 of the designer rebuild (see
   offending pack and type — a party/group/process type can never carry an
   editor surface (spec: `editor-bindings.spec.js`). Beside the editors the
   view serves the installed plugins' surface declarations (owner decision
-  2026-10-11) as `{ id, url, surfaceContract }` records: each module URL
-  resolves against the install's first configured endpoint origin — the
-  executor serves its UI beside its services, connection settings stay
-  server-side, and no configured endpoint serves `url: null` (the client
-  loader renders the connect-the-executor state instead of guessing).
+  2026-10-11) as `{ id, url, surfaceContract, kind? }` records: each
+  module URL resolves against the install's first configured endpoint
+  origin — the executor serves its UI beside its services, connection
+  settings stay server-side, and no configured endpoint serves `url:
+  null` (the client loader renders the connect-the-executor state instead
+  of guessing). Installed preview bindings (M7) compose the same way as
+  `previews: [{ type, surface, url, surfaceContract }]` — one per type,
+  the bound surface must be the install's own preview-kind surface, and
+  the client's preview slots mount them read-only (see
+  [components/generated](../../../components/generated/README.md)).
 
 ## API
 

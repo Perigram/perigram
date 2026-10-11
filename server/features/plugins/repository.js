@@ -31,6 +31,16 @@ export async function upsertCatalogListing(listing) {
   );
 }
 
+export async function deleteCatalogListing(pluginId) {
+  const db = await connectDB();
+  await db.collection(CATALOG_COLLECTION).deleteOne({ pluginId: String(pluginId) });
+}
+
+export async function countInstallsByPluginId(pluginId) {
+  const db = await connectDB();
+  return await db.collection(INSTALLS_COLLECTION).countDocuments({ pluginId: String(pluginId) });
+}
+
 export async function listInstallsByOrganization(organizationId) {
   const db = await connectDB();
   return await db.collection(INSTALLS_COLLECTION)

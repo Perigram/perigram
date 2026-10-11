@@ -278,15 +278,14 @@ wire `attachments.primary` and its served type record, it returns the
 preview mode from the type's compiled render policy (`render.preview`,
 derived from payload traits) plus the payload download URL (instance
 payload blobs live in the `files` GridFS bucket). Modes that the shared
-viewer modules render (`dxf`, `svg`, `sketch`, `occs`, `image`, `pdf`,
+viewer modules render (`dxf`, `svg`, `sketch`, `image`, `pdf`,
 `docx`, `table`, `workbook`, `text` — single-homed as
 `RENDERABLE_PREVIEW_MODES` in the pure ui-mapping contract) are delegated
 to `ArtifactViewer` through its explicit-source override; `attachment`/
 `download`/unknown modes degrade to a download action instead of an empty
 preview pane. A pack declares `download` for file types without a
 reasonable bounded preview (the documents pack does this for Word
-documents). The `occs` mode renders the cassette OCCS payload through
-`DrawingCanvas`'s graph-tree path. The payload download endpoint serves
+documents). The payload download endpoint serves
 the stored file's real content type inline — image/iframe contexts (SVG
 canvases, PDF frames) refuse sniffed or octet-stream responses — and
 `?download=1` flips the disposition to an attachment.
@@ -304,17 +303,20 @@ the organization-scoped cached read of the served type view. Editor-bound
 types keep this read preview in their details — the editors themselves
 open as workspace pages.
 
-The cassette designer surfaces (`GeneratedCassetteDesignerAction`,
-`GeneratedCassetteDesignerWorkspacePage`) run `CassetteDesignerV2` with
-`persist: false` and own persistence through
-`composables/useCassetteDesignerPersistence.js`: the OCCS document is the
-instance payload (each save swaps it through the revisioned
-`PUT /api/instances/cassette/:id/payload` transport), template lists and
-reads go through the instances store, and a designer Save As runs the
-compiled `createInstance` action for `cassette` before writing the
-payload. The opened template's OCCS document hydrates from its payload
-URL before the designer mounts; payload-less instances start the blank
-designer tree.
+## Plugin preview mounts (M7)
+
+A type whose served view carries a plugin preview binding (the cts-types
+composition of installed `previews` declarations) mounts the plugin's
+preview module in every `InstancePreview` slot — the card preview band
+and the detail previewSource group — through
+`RemoteInstancePreview.vue` over the read-only preview contract
+(`{ record, payload }`; the host resolves and parses the payload
+document). While the module loads, and whenever it cannot (unconnected
+executor, refused contract, offline), the generic preview media
+(`InstancePreviewMedia.vue`: payload attachment viewer or declared
+`previewSource` geometry through `GeometryPreview`) keeps rendering — a
+plugin preview replaces the generic render only when it actually mounts.
+Card chrome stays the platform's `InstanceCard`.
 
 ## Home Workspace
 

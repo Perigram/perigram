@@ -13,22 +13,17 @@ export const strokeDasharray = (pattern = 'SOLID') => {
 };
 
 const sameId = (left, right) => left?.toString?.() === right?.toString?.();
-const standardCode = (standard) => standard?.data?.code || standard?.code || null;
+const standardCode = (standard) => standard?.fields?.code || null;
 const standardPenId = (standard) => (
-  standard?.data?.orgPenId ||
-  standard?.orgPenId ||
-  standard?.data?.defaultPenId ||
-  standard?.defaultPenId ||
+  standard?.fields?.orgPenId ||
+  standard?.fields?.defaultPenId ||
   null
 );
 
 export const resolveStandardPen = (standard, pens = [], fallbackPen = DEFAULT_DRAWING_PEN) => {
   if (!standard) return fallbackPen;
   const penId = standardPenId(standard);
-  return pens.find(pen => (
-    sameId(pen._id, penId) ||
-    sameId(pen.identity?.uid, penId)
-  )) || fallbackPen;
+  return pens.find(pen => sameId(pen._id, penId)) || fallbackPen;
 };
 
 export const resolveLayerStandard = ({
@@ -53,7 +48,7 @@ export const resolveLayerPen = (options = {}) => {
   return options.defaultPen || DEFAULT_DRAWING_PEN;
 };
 
-const penStroke = (pen) => pen?.data?.stroke || pen?.stroke || {};
+const penStroke = (pen) => pen?.fields?.stroke || {};
 
 export const applyLayerPens = (drawing, options = {}) => {
   if (!drawing?.layers) return drawing;

@@ -7,8 +7,8 @@
   />
   <DrawingCanvas
     v-else-if="hasDeclaredPreviewSource"
-    :source="declaredPreviewSource"
-    :source-type="declaredPreviewKind"
+    :source="{ data: { geometry: previewSource } }"
+    source-type="geometry-preview"
     mode="card"
     class="h-28 w-full"
   />
@@ -52,29 +52,20 @@ import { computed } from 'vue';
 import { LAYOUT, RENDERABLE_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
-import { isOccsCassetteDefinition } from '~/utils/drawingPreview.js';
 
 const props = defineProps({
   type: { type: Object, default: null },
   payload: { type: Object, default: null },
   // Declared preview value (the type's authored previewSource field, read
   // off the wire DTO): renders when no payload exists, so declared
-  // previews (cassette geometry) never depend on an uploaded payload.
+  // previews never depend on an uploaded payload. The canvas normalizer
+  // accepts the stored shapes (layer/polygon part lists, pre-built
+  // drawings).
   previewSource: { type: null, default: null },
   seed: { type: String, default: '' }
 });
 
 const preview = computed(() => resolvePreview(props.type || {}));
-// The declared preview channel hands one stored shape through: baked
-// geometry wraps as the geometry value (the shared normalizer accepts
-// layer/polygon part lists there too), while an OCCS cassette definition
-// renders through the canvas's dedicated occs-cassette source — the same
-// decision CassetteThumbnail makes, single-homed in the detector below.
-const declaredIsOccs = computed(() => isOccsCassetteDefinition(props.previewSource));
-const declaredPreviewKind = computed(() => (declaredIsOccs.value ? 'occs-cassette' : 'geometry-preview'));
-const declaredPreviewSource = computed(() => (declaredIsOccs.value
-  ? props.previewSource
-  : { data: { geometry: props.previewSource } }));
 const hasDeclaredPreviewSource = computed(() => Boolean(
   props.type?.previewSource?.display === 'geometry' && props.previewSource
 ));

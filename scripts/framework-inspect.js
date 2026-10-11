@@ -47,36 +47,14 @@ const PACKAGE_NAMES = [
   '@perigram/nitro',
   '@perigram/vue',
   '@perigram/devtools',
-  '@perigram/mcp',
-  '@perigram/facade'
+  '@perigram/mcp'
 ];
 const UI_COMPONENT_PATHS = {
-  project: 'components/entities/Project/ProjectCard.vue',
-  queue: 'components/entities/Queue/QueueCard.vue',
-  nestingRun: 'components/entities/NestingRun/NestingRunCard.vue',
-  sheetDesign: 'components/entities/SheetDesign/SheetDesignCard.vue',
-  cassette: 'components/entities/Cassette/CassetteCard.vue',
-  cassetteDesign: 'components/entities/CassetteDesign/CassetteDesignCard.vue',
-  cassetteTemplate: 'components/entities/CassetteTemplate/CassetteTemplateCard.vue',
-  cassetteInstance: 'components/entities/CassetteInstance/CassetteInstanceCard.vue',
-  requisition: 'components/entities/Requisition/RequisitionCard.vue',
-  material: 'components/entities/Material/MaterialCard.vue',
-  materialPile: 'components/entities/MaterialPile/PileCard.vue',
-  batchPile: 'components/entities/BatchPile/BatchPileCard.vue',
-  sheet: 'components/entities/Sheet/SheetCard.vue',
-  remnant: 'components/entities/Remnant/RemnantCard.vue',
-  catalog: 'components/entities/Catalog/CatalogCard.vue',
-  color: 'components/entities/Color/ColorCard.vue',
-  warehouse: 'components/entities/Warehouse/WarehouseCard.vue',
-  toolProfile: 'components/entities/ToolProfile/ToolProfileCard.vue',
   penTemplate: 'components/entities/PenTemplate/PenTemplateCard.vue',
   layerStandard: 'components/entities/LayerStandard/LayerStandardCard.vue',
   user: 'components/entities/User/UserCard.vue',
   organization: 'components/entities/Organization/OrganizationCard.vue',
   artifact: 'components/entities/Artifact/ArtifactCard.vue'
-};
-const COMPATIBILITY_ALIASES = {
-  cassette_template: ['data.definition', 'data.parameters', 'data.type']
 };
 
 const workflows = Object.entries(cncWorkflows).map(([type, workflow]) => ({ type, workflow }));
@@ -96,9 +74,7 @@ const dataModelFields = (await extractDataModels()).flatMap(model => {
   const fields = [...model.fields].sort((a, b) =>
     fieldOrderScore(a.name) - fieldOrderScore(b.name) || a.name.localeCompare(b.name));
   return fields.flatMap(field => {
-    const entries = [{ typeId, collection: model.collection, name: field.name }];
-    if (typeId === 'cassette') entries.push({ typeId: 'cassette_template', collection: model.collection, name: field.name });
-    return entries;
+    return [{ typeId, collection: model.collection, name: field.name }];
   });
 });
 const componentInventory = createComponentInventory();
@@ -271,8 +247,7 @@ function createManifest() {
         tailwindThemeExtension
       }
     },
-    dataModelFields,
-    compatibilityAliases: COMPATIBILITY_ALIASES
+    dataModelFields
   });
 }
 

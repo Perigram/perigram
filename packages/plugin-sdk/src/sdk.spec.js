@@ -26,11 +26,12 @@ const fullListing = {
     services: [
       { id: 'match', signature: { input: { base: 'json' }, output: { base: 'json' } } }
     ],
-    editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
+    editors: [{ type: 'coating-sheet', surface: 'coating-editor', modes: ['edit'] }],
     attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
     conversions: [
       { id: 'docToCoating', label: 'Import coating', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' }, service: 'match' }
-    ]
+    ],
+    surfaces: [{ id: 'coating-editor', module: '/surfaces/coating-editor.mjs', surfaceContract: 1 }]
   }
 };
 
@@ -40,7 +41,7 @@ describe('parseListing', () => {
     expect(layer.pluginId).toBe('coatings');
     expect(layer.types).toHaveLength(2);
     expect(layer.services).toHaveLength(1);
-    expect(layer.editors).toEqual([{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }]);
+    expect(layer.editors).toEqual([{ type: 'coating-sheet', surface: 'coating-editor', modes: ['edit'] }]);
     expect(Object.keys(layer.attachmentKinds)).toEqual(['COATING_DOC']);
     expect(layer.conversions).toHaveLength(1);
     expect(layer.requires).toEqual(['documents']);
@@ -88,14 +89,14 @@ describe('parseListing', () => {
       requires: ['documents']
     });
     expect(Object.keys(normalized.declarations)).toEqual([
-      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'exports', 'surfaces'
+      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'exports', 'surfaces', 'previews'
     ]);
   });
 
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
     expect(Object.keys(declarations)).toEqual([
-      'types', 'services', 'editors', 'surfaces', 'attachmentKinds', 'conversions', 'constructions', 'exports'
+      'types', 'services', 'editors', 'surfaces', 'previews', 'attachmentKinds', 'conversions', 'constructions', 'exports'
     ]);
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
   });
@@ -103,11 +104,12 @@ describe('parseListing', () => {
   it('validates plugin-delivered surface declarations', () => {
     const withSurfaces = surfaces => parseListing({
       ...fullListing,
-      declarations: { ...fullListing.declarations, surfaces }
+      declarations: { ...fullListing.declarations, surfaces: [...fullListing.declarations.surfaces, ...surfaces] }
     });
     const surfaces = [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }];
-    expect(withSurfaces(surfaces).surfaces).toEqual(surfaces);
-    expect(normalizeListing({ ...fullListing, declarations: { ...fullListing.declarations, surfaces } }).declarations.surfaces).toEqual(surfaces);
+    const combined = [...fullListing.declarations.surfaces, ...surfaces];
+    expect(withSurfaces(surfaces).surfaces).toEqual(combined);
+    expect(normalizeListing({ ...fullListing, declarations: { ...fullListing.declarations, surfaces: combined } }).declarations.surfaces).toEqual(combined);
     expect(() => withSurfaces([{ id: 'Bad Id', module: '/s.js', surfaceContract: 1 }])).toThrow(/surface id must be a slug/);
     expect(() => withSurfaces([
       { id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 },
@@ -119,6 +121,53 @@ describe('parseListing', () => {
       .toThrow(/surfaceContract/);
     expect(() => withSurfaces([{ id: 'coating-designer', module: '/surfaces/x.mjs', surfaceContract: '1' }]))
       .toThrow(/surfaceContract/);
+  });
+
+  it('validates preview surfaces and preview bindings', () => {
+    const withDeclarations = (surfaces, previews) => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        surfaces: [...fullListing.declarations.surfaces, ...surfaces],
+        previews
+      }
+    });
+    const surfaces = [
+      { id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 },
+      { id: 'coating-preview', module: '/surfaces/coating-preview.mjs', surfaceContract: 1, kind: 'preview' }
+    ];
+    const previews = [{ type: 'coating', surface: 'coating-preview' }];
+    const layer = withDeclarations(surfaces, previews);
+    expect(layer.previews).toEqual(previews);
+    expect(normalizeListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, surfaces: [...fullListing.declarations.surfaces, ...surfaces], previews }
+    }).declarations.previews).toEqual(previews);
+    // A preview surface never targets the editor-grade contract.
+    expect(() => withDeclarations([
+      { id: 'coating-preview', module: '/surfaces/coating-preview.mjs', surfaceContract: 2, kind: 'preview' }
+    ], [])).toThrow(/preview surface coating-preview must target contract 1/);
+    expect(() => withDeclarations(surfaces, [{ type: 'coating', surface: 'nope' }]))
+      .toThrow(/not a preview surface/);
+    // Bindings and kinds agree: an editor binding never mounts a preview
+    // surface, a preview binding never mounts an editor surface.
+    expect(() => withDeclarations(surfaces, [{ type: 'coating', surface: 'coating-designer' }]))
+      .toThrow(/not a preview surface/);
+    expect(() => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        surfaces,
+        editors: [{ type: 'coating-sheet', surface: 'coating-preview', modes: ['edit'] }]
+      }
+    })).toThrow(/not an editor surface/);
+    // The bound type must be the plugin's own, once.
+    expect(() => withDeclarations(surfaces, [{ type: 'cassette', surface: 'coating-preview' }]))
+      .toThrow(/preview binding for type cassette/);
+    expect(() => withDeclarations(surfaces, [
+      { type: 'coating', surface: 'coating-preview' },
+      { type: 'coating', surface: 'coating-preview' }
+    ])).toThrow(/exactly one preview per type/);
   });
 
   it('validates construction and export service bindings', () => {

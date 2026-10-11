@@ -94,7 +94,7 @@ All entity-related components MUST use these patterns:
 | Status display + transitions/actions | `<InstanceState :entity="..." type-id="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
 | Current lifecycle location | `status.lifecycle.data.location` rendered by `<InstanceState>` |
-| Drawing and geometry preview | `<DrawingCanvas ... />` for layer-aware DXF/SVG/cassette canvas work; `<GeometryPreview :entity="..." />` as the entity-card wrapper |
+| Drawing and geometry preview | `<DrawingCanvas ... />` for layer-aware DXF/SVG canvas work; `<GeometryPreview :source="..." />` over the resolved previewSource value |
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StateHistory :entity="..." type-id="..." />` |
@@ -257,10 +257,11 @@ loaded child regions, then resolves and filters them through the effective user
 action manifest and project status. Create actions with different internal ids
 but the same visible entity/parent operation collapse to one button, matching
 the generated create-button label contract.
-The cassette designer is an entity-bound registered page that mounts inside a
-pane and receives only workspace-visible cassette templates. Source-loaded
-children and explicitly linked entities use the same page-opening contract, so
-an accessible linked cassette can open the embedded designer. Entity links and
+An entity-bound registered page (for example the facade plugin's cassette
+designer, mounted through the remote-surface loader) mounts inside a
+pane. Source-loaded children and explicitly linked entities use the same
+page-opening contract, so an accessible linked entity can open the embedded
+surface. Entity links and
 actions inside a linked entity's own child regions stay in the active project
 pane as well; they must not fall back to route navigation or a dialog merely
 because the entity was discovered one detail level deeper. The recursive
@@ -365,9 +366,10 @@ rows because the loaded collection is already the authoritative child view.
 Generated entity details do the same when their screen has a compiled child
 region. Outside those collection contexts, keep the numeric count when no
 previewable child refs exist.
-Generated card footers may add an icon-only open-detail action, and generated
-cassette cards also expose the access-gated `CassetteDesignerV2` action in the
-footer so collection/home cards are not detail-only dead ends. Detail
+Generated card footers may add an icon-only open-detail action, and types
+with an editor binding also expose the editor action in the footer (resolved
+through `instanceHasEditorAction`) so collection/home cards are not
+detail-only dead ends. Detail
 navigation must still route through the compiled generated screen manifest
 rather than hardcoded feature paths.
 On mobile, navigation launched from temporary inline entity popovers or lineage
@@ -519,14 +521,9 @@ linking stays on the generic generated-action surface: a compiler-generated Link
 action for any declared relation renders as **Add {target entity}**, uses the
 shared scoped option/creator dialog.
 nesting another entity card inside the queue item panel.
-Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
-action instead of routing users to a static asset page, and generated cassette
-collection/home cards mirror that same editor action in their footers when the
-user has `cassettes:write` on the concrete cassette.
-The generated instance-detail overload registry also maps `cassette` directly to
-the `CassetteDesignerV2` surface. Project panes and ordinary generated cassette
-detail routes therefore use the same editor affiliation and shared full-height
-designer host.
+Plugin-owned editor surfaces (the facade plugin's cassette designer and
+sheet editor) open through the generic editor-page action — no app-side
+overload exists for them (see [generated surfaces](./generated/README.md)).
 safe visual graph document.
 Entity-bound generated actions are filtered before
 rendering: the action entity type must match the region source, and
@@ -540,21 +537,17 @@ visual graph provide constructor/editor data without forcing a dialog field for
 every wired input. Entity construction fields render as entity or entity-list
 selectors when the domain has a canonical list source; entity-list values are
 normalized into the constructor payload shape required by the target domain
-input, such as queue job items from selected cassette designs. Cassette template fields list only
-construction-ready templates and preselect the first available required
-template so process-created designs do not select empty draft templates or
-submit missing template ids. Buttons derive semantic labels and icons from the compiled
+input, such as queue job items from selected cassette designs. Buttons
+derive semantic labels and icons from the compiled
 action kind, entity type, and target status when an old manifest still contains
 a generic label such as `Create`.
 Generated create dialogs are field-driven: a required prompted field inside
 `inputPolicy.fields` opens the dialog even when the action-level prompt flag is
 false. Queue creation therefore asks for a queue name before creating the
-shell. Cassette-design creation uses a typed `cassetteParameters` field: once a
-cassette template or parent cassette is selected, the dialog renders one
-numeric control per OCCS parameter discovered from that cassette definition.
-When the action is already scoped to a cassette parent, the template selector
-is hidden and the current parent cassette supplies both the construction
-template id and the parameter set.
+shell. A typed `cassetteParameters` input renders one numeric control per entry of
+its authored default object — parameter names come from the authored input,
+not from template rows (cassettes are file types since the cleanup; their
+documents ride the payload).
 Generated relation Link dialogs always render the shared entity select for the
 declared target type. They bind the opened detail entity as owner context and do
 not fall back to a raw exact-id text field when the authorized option list is

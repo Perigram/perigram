@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
-  "version": "2",
+  "version": "3",
   "requires": [
     "tech-drawing",
     "documents"
@@ -20,7 +20,6 @@
             ".occs"
           ],
           "maxSize": 10485760,
-          "preview": "occs",
           "creation": [
             "editor"
           ]
@@ -295,66 +294,6 @@
           "icon": "pi pi-th-large",
           "groups": [
             {
-              "id": "specs",
-              "fields": [
-                {
-                  "path": "specs",
-                  "label": "catalog.dimensions",
-                  "display": "dimensions",
-                  "unit": "mm",
-                  "priority": 5
-                },
-                {
-                  "path": "specs.area",
-                  "label": "common.area",
-                  "display": "area",
-                  "unit": "m2",
-                  "priority": 8
-                },
-                {
-                  "path": "specs.sheetThickness",
-                  "label": "catalog.sheetThickness",
-                  "display": "dimension",
-                  "unit": "mm",
-                  "priority": 9
-                },
-                {
-                  "path": "specs.foilThickness",
-                  "label": "catalog.foilThickness",
-                  "display": "dimension",
-                  "unit": "mm",
-                  "priority": 9
-                },
-                {
-                  "path": "summary.efficiency",
-                  "label": "sheetDesign.utilization",
-                  "display": "percent",
-                  "unit": "percent",
-                  "priority": 10
-                },
-                {
-                  "path": "summary.placedCount",
-                  "label": "sheetDesign.parts",
-                  "display": "count",
-                  "priority": 20
-                },
-                {
-                  "path": "specs.cuttingLength",
-                  "label": "sheetDesign.cuttingLength",
-                  "display": "dimension",
-                  "unit": "m",
-                  "priority": 30
-                },
-                {
-                  "path": "specs.estimatedTime",
-                  "label": "sheetDesign.estimatedTime",
-                  "display": "duration",
-                  "unit": "min",
-                  "priority": 40
-                }
-              ]
-            },
-            {
               "id": "geometry",
               "fields": [
                 {
@@ -529,6 +468,12 @@
         "id": "cassette-designer",
         "module": "/surfaces/cassette-designer.mjs",
         "surfaceContract": 2
+      },
+      {
+        "id": "cassette-preview",
+        "module": "/surfaces/cassette-preview.mjs",
+        "surfaceContract": 1,
+        "kind": "preview"
       }
     ],
     "attachmentKinds": {
@@ -594,6 +539,12 @@
         "typeId": "sheet-design",
         "kind": "LAYOUT_DXF",
         "service": "plugin.facade.generate-sheet-dxf"
+      }
+    ],
+    "previews": [
+      {
+        "type": "cassette",
+        "surface": "cassette-preview"
       }
     ]
   }

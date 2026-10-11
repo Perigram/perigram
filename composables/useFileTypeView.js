@@ -14,7 +14,8 @@ async function fetchTypeView(organizationId) {
   return {
     types: response.types || [],
     editors: response.editors || [],
-    surfaces: response.surfaces || []
+    surfaces: response.surfaces || [],
+    previews: response.previews || []
   };
 }
 
@@ -24,13 +25,14 @@ export function useFileTypeView() {
   const cacheKey = organizationId ? String(organizationId) : 'system';
 
   if (!cache.has(cacheKey)) {
-    const entry = { types: ref([]), editors: ref([]), surfaces: ref([]), loaded: ref(false), promise: null };
+    const entry = { types: ref([]), editors: ref([]), surfaces: ref([]), previews: ref([]), loaded: ref(false), promise: null };
     cache.set(cacheKey, entry);
     entry.promise = fetchTypeView(organizationId)
       .then((view) => {
         entry.types.value = view.types;
         entry.editors.value = view.editors;
         entry.surfaces.value = view.surfaces;
+        entry.previews.value = view.previews;
         entry.loaded.value = true;
       })
       .catch(() => {
@@ -64,6 +66,7 @@ export function useFileTypeView() {
     types: entry.types,
     editors: entry.editors,
     surfaces: entry.surfaces,
+    previews: entry.previews,
     loaded: entry.loaded,
     typeById
   };

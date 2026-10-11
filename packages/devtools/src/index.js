@@ -137,13 +137,13 @@ export function summarizeUiPrimitives(primitives = []) {
   }));
 }
 
-export function validateUiFieldPaths({ components = [], dataModelFields = [], compatibilityAliases = {} } = {}) {
+export function validateUiFieldPaths({ components = [], dataModelFields = [] } = {}) {
   const canonicalFields = new Set(dataModelFields.map(field => `${field.typeId}:${field.name}`));
   const issues = [];
 
   for (const component of components) {
     for (const path of component.fieldPaths || []) {
-      if (isAllowedFieldPath(component.typeId, path, canonicalFields, compatibilityAliases)) continue;
+      if (isAllowedFieldPath(component.typeId, path, canonicalFields)) continue;
       issues.push({
         key: component.key,
         typeId: component.typeId,
@@ -188,8 +188,7 @@ export function createFrameworkManifest({
   attachmentKinds = {},
   summaries = [],
   designSystem = {},
-  dataModelFields = [],
-  compatibilityAliases = {}
+  dataModelFields = []
 } = {}) {
   const workflowEntries = Object.entries(workflows).map(([type, workflow]) => ({ type, workflow }));
   const uiComponents = summarizeUiComponents(designSystem.contracts || [], designSystem.componentInventory || {});
@@ -223,7 +222,6 @@ export function createFrameworkManifest({
       tasks,
       attachmentKinds,
       dataModelFields,
-      compatibilityAliases
     })
   };
 }
@@ -236,11 +234,10 @@ export function validateFrameworkManifest({
   attachmentKinds = {},
   uiComponents = [],
   uiPrimitives = [],
-  dataModelFields = [],
-  compatibilityAliases = {}
+  dataModelFields = []
 } = {}) {
   const definitionResult = validateDefinitionSet(entities);
-  const uiFieldIssues = validateUiFieldPaths({ components: uiComponents, dataModelFields, compatibilityAliases });
+  const uiFieldIssues = validateUiFieldPaths({ components: uiComponents, dataModelFields });
   const statusIssues = validateStatusPolicies({ components: uiComponents, workflows });
   const workflowAccessIssues = validateWorkflowAccess(workflows);
   const commandIssues = validateCommands(commands);
@@ -322,14 +319,11 @@ export function validateDefinitionSet(definitions = []) {
   return { ok: errors.length === 0, errors };
 }
 
-function isAllowedFieldPath(typeId, path, canonicalFields, compatibilityAliases) {
-  const aliases = new Set(compatibilityAliases[typeId] || []);
-  if (aliases.has(path)) return true;
-
+function isAllowedFieldPath(typeId, path, canonicalFields) {
   const [root] = path.split('.');
   if (['identity', 'status', 'origin', 'lineage', 'attachments', 'specs', 'summary'].includes(root)) return true;
 
   if (!path.startsWith('data.')) return false;
   const dataRoot = path.split('.').slice(0, 2).join('.');
-  return canonicalFields.has(`${typeId}:${dataRoot}`) || aliases.has(dataRoot);
+  return canonicalFields.has(`${typeId}:${dataRoot}`);
 }

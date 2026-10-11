@@ -3,7 +3,7 @@ function clone(value) {
 }
 
 export function sheetLayoutState(design = {}) {
-  const result = clone(design.data?.geometry?.data || {});
+  const result = clone(design.fields?.geometry?.data || {});
   const layout = result.solution?.layouts?.[0] || result.layouts?.[0] || {};
   return {
     items: Array.isArray(result.items) ? result.items : [],

@@ -4,15 +4,21 @@ The OCCS (Open Cassette Component Standard) engine, single-homed in the
 facade plugin: the executor's construction services
 (`workers/facade/services.js`) and the editor surface modules
 (`../surfaces/`) both import it, and the executor serves it statically so
-the browser-side editor evaluates live geometry from the same files. The
-app tree keeps a transitional twin (`utils/occs/`) for the read-side
-preview family until that migrates. Pure modules — no platform imports.
+the browser-side editor evaluates live geometry from the same files. Pure
+modules — no platform imports.
 
 ## Responsibilities
 
 - `layers.js` exports semantic OCCS layer ids, including production contours,
   fold/cut routes, dimensions, and `code.cassette_mark` annotation marks.
-  Styling remains owned by layer standards and pen templates.
+- `layerStandards.js` ships the cassette layer standards (owner direction
+  2026-10-11): the OCCS layer vocabulary and its pens as one runtime table
+  (code, group, kind, purpose, production, pen), replacing the pre-extraction
+  system-seeded layer-standard instances. The renderer and every editor or
+  preview surface bake these pens through `applyOccsLayerPens`; the spec
+  registry (docs/specs/Cassette spec/layers.json in the platform repo) stays
+  the vocabulary of record, pinned in sync by
+  `shared/facade-layer-standards.spec.js`.
 - `dimensions.js` builds canonical `dimension.cassette` annotation entities
   and drawing primitives. Template dimensions keep expression text such as
   `A`, `B`, or `R`; evaluated design annotations store measured numeric values.

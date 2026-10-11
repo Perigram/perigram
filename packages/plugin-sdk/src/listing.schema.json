@@ -75,7 +75,7 @@
         },
         "surfaces": {
           "type": "array",
-          "description": "Plugin-delivered editor surface modules (owner decision 2026-10-11): the executor serves each module; surfaceContract is the mount-contract major it targets",
+          "description": "Plugin-delivered surface modules (owner decision 2026-10-11): the executor serves each module; surfaceContract is the mount-contract major it targets; kind 'preview' (M7) is the read-only { record, payload } mount into the platform's preview slots and always targets contract 1",
           "items": {
             "type": "object",
             "required": ["id", "module", "surfaceContract"],
@@ -87,7 +87,21 @@
                 "pattern": "^/[a-z0-9/_-]+\\.m?js$",
                 "description": "Root-relative module path the plugin's executor serves"
               },
-              "surfaceContract": { "type": "integer", "minimum": 1 }
+              "surfaceContract": { "type": "integer", "minimum": 1 },
+              "kind": { "enum": ["editor", "preview"], "default": "editor" }
+            }
+          }
+        },
+        "previews": {
+          "type": "array",
+          "description": "Preview bindings (M7): the plugin's types whose preview slots mount the bound preview surface; exactly one per type, the surface must be kind 'preview'",
+          "items": {
+            "type": "object",
+            "required": ["type", "surface"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "type": "string", "minLength": 1 },
+              "surface": { "type": "string", "pattern": "^[a-z0-9-]+$" }
             }
           }
         },

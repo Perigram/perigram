@@ -1,18 +1,20 @@
-// Test/E2E seam for plugin-delivered editor surfaces (SPEC §Plugin
-// marketplace, owner decision 2026-10-11): a fixture plugin whose trivial
-// editor surface exercises the whole mount path — publish, install,
+// Test/E2E seam for plugin-delivered surfaces (SPEC §Plugin marketplace,
+// owner decision 2026-10-11 + M7): a fixture plugin whose editor and
+// preview surfaces exercise the whole mount path — publish, install,
 // endpoint-resolved module URL, loader, host context, persistence
-// callbacks — with zero app-side code for its surface.
+// callbacks, and the read-only preview mount — with zero app-side code
+// for its surfaces.
 export const FIXTURE_SURFACE_PLUGIN_ID = 'fx-surface';
 
 const FIXTURE_TYPE_ID = 'fx-surface-note';
 const FIXTURE_SURFACE_ID = 'fx-surface-editor';
+const FIXTURE_PREVIEW_ID = 'fx-surface-preview';
 
 export function fixtureSurfacePluginListing() {
   return {
     pluginId: FIXTURE_SURFACE_PLUGIN_ID,
     name: 'Fixture Surface Plugin',
-    description: 'E2E fixture: a plugin-delivered editor surface',
+    description: 'E2E fixture: plugin-delivered editor and preview surfaces',
     version: '1',
     declarations: {
       types: [{
@@ -30,13 +32,18 @@ export function fixtureSurfacePluginListing() {
         mode: 'endpoint'
       }],
       editors: [{ type: FIXTURE_TYPE_ID, surface: FIXTURE_SURFACE_ID, modes: ['create', 'edit'] }],
-      surfaces: [{ id: FIXTURE_SURFACE_ID, module: `/surfaces/${FIXTURE_SURFACE_ID}.mjs`, surfaceContract: 1 }]
+      surfaces: [
+        { id: FIXTURE_SURFACE_ID, module: `/surfaces/${FIXTURE_SURFACE_ID}.mjs`, surfaceContract: 1 },
+        { id: FIXTURE_PREVIEW_ID, module: `/surfaces/${FIXTURE_PREVIEW_ID}.mjs`, surfaceContract: 1, kind: 'preview' }
+      ],
+      previews: [{ type: FIXTURE_TYPE_ID, surface: FIXTURE_PREVIEW_ID }]
     }
   };
 }
 
 export const FIXTURE_SURFACE_TYPE_ID = FIXTURE_TYPE_ID;
 export const FIXTURE_SURFACE_MODULE_PATH = `/surfaces/${FIXTURE_SURFACE_ID}.mjs`;
+export const FIXTURE_PREVIEW_MODULE_PATH = `/surfaces/${FIXTURE_PREVIEW_ID}.mjs`;
 
 // The surface module the fixture serves: a factory over the host context
 // (no vue/primevue imports — the mount injects them), rendering the
@@ -59,9 +66,31 @@ export default function createSurface({ vue, components, locale }) {
         status.value = t('common.save');
       }
       return () => h('div', { class: 'fx-surface-editor' }, [
-        h('span', { class: 'fx-surface-record' }, props.record?.identity?.name || ''),
+        h('span', { class: 'fx-surface-record' }, props.record?.name || ''),
         h(components.Button, { label: t('common.save'), onClick: save }),
         status.value ? h('span', { class: 'fx-surface-status' }, status.value) : null
+      ]);
+    }
+  };
+}
+`;
+
+// The preview module (M7): read-only over `{ record, payload }` — the
+// host resolves the payload document; the module renders it and never
+// receives persistence or queries.
+export const FIXTURE_PREVIEW_MODULE_SOURCE = `
+export default function createSurface({ vue }) {
+  const { h } = vue;
+  return {
+    name: 'FxSurfacePreview',
+    props: {
+      record: { type: Object, default: null },
+      payload: { type: Object, default: null }
+    },
+    setup(props) {
+      return () => h('div', { class: 'fx-surface-preview' }, [
+        h('span', { class: 'fx-surface-preview-record' }, props.record?.name || ''),
+        h('span', { class: 'fx-surface-preview-payload' }, props.payload?.note || '')
       ]);
     }
   };

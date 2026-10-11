@@ -71,7 +71,7 @@
             <template v-else-if="primitive.key === 'InstancePage'">
               <InstancePage :instance="primitiveEntity" type-id="cassette">
                 <template #info>
-                  <small>{{ primitiveEntity.identity?.serial }}</small>
+                  <small>{{ primitiveEntity.name }}</small>
                 </template>
                 <template #actions>
                   <Button :label="$t('common.update')" icon="pi pi-refresh" text size="small" />
@@ -103,7 +103,7 @@
             </template>
 
             <template v-else-if="primitive.key === 'DataBlock'">
-              <DataBlock type-id="sheet_design" :entity="sheetDesignEntity" :fields="demoFields" />
+              <DataBlock type-id="sheet_design" :entity="primitiveEntity" :fields="demoFields" />
             </template>
 
 
@@ -118,11 +118,11 @@
             </template>
 
             <template v-else-if="primitive.key === 'GeometryPreview'">
-              <GeometryPreview :entity="sheetDesignEntity" />
+              <GeometryPreview :source="demoDrawing" />
             </template>
 
             <template v-else-if="primitive.key === 'DrawingCanvas'">
-              <DrawingCanvas :source="sheetDesignEntity" source-type="geometry-preview" mode="card" />
+              <DrawingCanvas :source="demoDrawing" source-type="geometry-preview" mode="card" />
             </template>
 
             <template v-else-if="primitive.key === 'DesignerSurface'">
@@ -137,10 +137,6 @@
                 <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-image" />
                 <template #inspector><StateBlock :message="$t('common.settings')" /></template>
               </DesignerWorkspace>
-            </template>
-
-            <template v-else-if="primitive.key === 'ThreeViewport'">
-              <ThreeViewport class="h-48 rounded-ui border border-content-border" />
             </template>
 
             <template v-else-if="primitive.key === 'TraceLink'">
@@ -190,7 +186,7 @@
                 @cancel="dialogVisible = false"
                 @save="dialogVisible = false"
               >
-                <DataBlock type-id="sheet_design" :entity="sheetDesignEntity" :fields="demoFields" />
+                <DataBlock type-id="sheet_design" :entity="primitiveEntity" :fields="demoFields" />
               </StandardDialog>
             </template>
 
@@ -198,7 +194,7 @@
               <Button :label="$t('common.open')" icon="pi pi-window-maximize" @click="designerDialogVisible = true" />
               <DesignerDialog
                 v-model:visible="designerDialogVisible"
-                :header="$t('cassette.designerTitle')"
+                :header="$t('common.details')"
               >
                 <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-image" />
               </DesignerDialog>
@@ -266,7 +262,6 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import DesignerDialog from '~/components/shared/DesignerDialog.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
-import ThreeViewport from '~/components/shared/ThreeViewport.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -290,12 +285,7 @@ import {
   DESIGN_SYSTEM_PRIMITIVES,
   DESIGN_SYSTEM_VARIANTS
 } from '~/utils/design-system-contract.js';
-import {
-  MOCK_IDS,
-  createMockCassette,
-  createMockHistory,
-  createMockSheetDesign
-} from '~/test-data/factories.js';
+import { MOCK_IDS, createMockHistory } from '~/test-data/factories.js';
 import { useInstancesStore } from '~/stores/instances';
 
 const groups = DESIGN_SYSTEM_GROUPS;
@@ -314,7 +304,6 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'DesignerSurface',
   'DesignerWorkspace',
   'DesignerDialog',
-  'ThreeViewport',
   'GeometryPreview',
   'TraceLink',
   'TraceChain',
@@ -348,31 +337,40 @@ const activeGroup = computed(() => groups.find((group) => group.id === activeSec
 const activeRows = computed(() => rows.filter((row) => row.group === activeSection.value));
 const activeRowsWithModels = computed(() => activeRows.value);
 
-const primitiveEntity = createMockCassette();
-const primitiveAlternateQueue = createMockCassette({
-  _id: 'cassette-demo-evening',
-  identity: {
-    ...primitiveEntity.identity,
-    uid: 'cassette-demo-evening',
-    name: 'Evening Run Cassette',
-    slug: 'evening-run-cassette'
-  }
+// Local §3 demo records: the lab owns its demo data — generic primitives
+// mount over plain instance records, no domain factories.
+const demoRecord = (id, name, extraFields = {}) => ({
+  _id: id,
+  type: 'cassette',
+  name,
+  fields: { name, ...extraFields },
+  state: 'ACTIVE',
+  lineage: {},
+  relations: {}
 });
+const primitiveEntity = demoRecord('lab-demo-record', 'Lab demo record');
+const primitiveAlternateQueue = demoRecord('lab-demo-evening', 'Evening Run record');
 const primitiveQueueOptions = [primitiveEntity, primitiveAlternateQueue].map(entity => ({
-  label: entity.identity.name,
+  label: entity.name,
   value: entity._id,
   entity
 }));
 const primitiveSelectedQueueId = ref(primitiveEntity._id);
 const primitiveSelectedQueueIds = ref(primitiveQueueOptions.map(option => option.value));
-const sheetDesignEntity = createMockSheetDesign();
+const demoDrawing = {
+  viewBox: '0 0 200 100',
+  layers: [
+    { name: 'sheet', color: 'currentColor', weight: 2, paths: ['M8 8 H192 V92 H8 Z'] },
+    { name: 'cassettes', color: 'var(--p-primary-color)', weight: 1.5, paths: ['M20 20 H80 V55 H20 Z', 'M96 20 H150 V72 H96 Z'] }
+  ]
+};
 const mockHistory = createMockHistory(['DRAFT', 'NESTING', 'READY']);
 
 seedDemoTraceEntities();
 
 const demoFields = [
-  { path: 'specs.width', i18n: 'uiLab.contract.source' },
-  { path: 'specs.length', i18n: 'uiLab.contract.source' }
+  { path: 'name', i18n: 'uiLab.contract.source' },
+  { path: 'fields.name', i18n: 'uiLab.contract.source' }
 ];
 
 

@@ -30,8 +30,6 @@ import { useStatePolicy } from '~/composables/useStatePolicy';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const CARD_COMPONENTS = {
-  sheetDesign: defineAsyncComponent(() => import('~/components/entities/SheetDesign/SheetDesignCard.vue')),
-  cassette: defineAsyncComponent(() => import('~/components/entities/Cassette/CassetteCard.vue')),
   entityRevision: defineAsyncComponent(() => import('~/components/entities/EntityRevision/EntityRevisionCard.vue')),
   user: defineAsyncComponent(() => import('~/components/entities/User/UserCard.vue')),
   organization: defineAsyncComponent(() => import('~/components/entities/Organization/OrganizationCard.vue')),
@@ -148,9 +146,6 @@ const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.pr
 // lay out grids of empty cards for data without visual fields.
 const compactCardWorthy = computed(() => compactHasPreview.value || compactDataFields.value.length > 0);
 const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
-const compactPreviewHideDimensionLayer = computed(() =>
-  ['cassette', 'sheet_design'].includes(generatedTypeId.value)
-);
 // The compact chip's status resolves through the flat contract: the
 // instance's wire `state` value against the type's policy map.
 const { policyFor } = useStatePolicy();
@@ -384,7 +379,7 @@ function tonePalette(role) {
           :entity="resolved"
           :type-id="generatedTypeId"
           :mode="compactDisplay.surfaceContract.preview"
-          :hide-dimension-layer="compactPreviewHideDimensionLayer"
+          hide-dimension-layer
         />
       </span>
       <span class="instance-inline-compact-main">

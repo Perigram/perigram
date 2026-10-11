@@ -4,16 +4,20 @@ import {
   FIXTURE_SURFACE_PLUGIN_ID,
   FIXTURE_SURFACE_TYPE_ID,
   FIXTURE_SURFACE_MODULE_PATH,
-  FIXTURE_SURFACE_MODULE_SOURCE
+  FIXTURE_SURFACE_MODULE_SOURCE,
+  FIXTURE_PREVIEW_MODULE_PATH,
+  FIXTURE_PREVIEW_MODULE_SOURCE
 } from '../test-tools/fixture-surface-plugin.js';
 
-// M5 proof (TODO §Plugin-delivered editor surfaces): a fixture plugin
-// whose editor surface is plugin-delivered — published through the real
-// catalog API, installed through the real gate, its module URL resolved
-// against the install's executor endpoint, mounted by the app's loader
-// over the host context (host vue, host primitives, host locale), and
-// saving through the generic persistence callbacks. Zero app-side code
-// exists for the fixture's surface.
+// M5/M7 proof (TODO §Plugin-delivered editor surfaces): a fixture plugin
+// whose editor and preview surfaces are plugin-delivered — published
+// through the real catalog API, installed through the real gate, module
+// URLs resolved against the install's executor endpoint, mounted by the
+// app's loaders over the host context (host vue, host primitives, host
+// locale), saving through the generic persistence callbacks and
+// previewing read-only over the resolved payload document. Zero app-side
+// code exists for the fixture's surfaces, and the run retracts its
+// catalog listing so the marketplace stays clean.
 const OPERATOR_TOKEN = process.env.PLATFORM_OPERATOR_TOKEN || 'perigram-dev-operator';
 
 test('a plugin-delivered editor surface installs and opens with zero app code', async ({ app }) => {
@@ -30,6 +34,10 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   expect(published.ok(), await published.text()).toBeTruthy();
   app.trackCleanup(async () => {
     await app.request.delete(`/api/organizations/${organizationId}/plugins/${FIXTURE_SURFACE_PLUGIN_ID}`, { failOnStatusCode: false });
+    await app.request.delete(`/api/plugins/catalog/${FIXTURE_SURFACE_PLUGIN_ID}`, {
+      headers: { 'x-operator-token': OPERATOR_TOKEN },
+      failOnStatusCode: false
+    });
   });
 
   const installed = await app.request.post(`/api/organizations/${organizationId}/plugins`, {
@@ -51,6 +59,9 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   expect(servedSurface.url).toBe(`http://127.0.0.1:8799${FIXTURE_SURFACE_MODULE_PATH}`);
   expect(servedSurface.surfaceContract).toBe(1);
   expect((view.editors || []).some(editor => editor.type === FIXTURE_SURFACE_TYPE_ID && editor.surface === 'fx-surface-editor')).toBeTruthy();
+  const servedPreview = (view.previews || []).find(preview => preview.type === FIXTURE_SURFACE_TYPE_ID);
+  expect(servedPreview, 'Expected the served type view to carry the declared preview binding').toBeTruthy();
+  expect(servedPreview.url).toBe(`http://127.0.0.1:8799${FIXTURE_PREVIEW_MODULE_PATH}`);
 
   // A compiled construct for the installed type creates the record the
   // editor opens (the install composed the type into the org registry;
@@ -64,12 +75,16 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   const id = String(created._id || created.id);
   expect(id, 'Expected the created fixture record id').toBeTruthy();
 
-  // The module itself is served by the plugin's executor — intercepted
-  // hermetically; everything else (install, view, loader, persistence)
-  // runs through the real stack.
+  // The modules themselves are served by the plugin's executor —
+  // intercepted hermetically; everything else (install, view, loader,
+  // persistence) runs through the real stack.
   await app.page.route(`**${FIXTURE_SURFACE_MODULE_PATH}`, route => route.fulfill({
     contentType: 'application/javascript',
     body: FIXTURE_SURFACE_MODULE_SOURCE
+  }));
+  await app.page.route(`**${FIXTURE_PREVIEW_MODULE_PATH}`, route => route.fulfill({
+    contentType: 'application/javascript',
+    body: FIXTURE_PREVIEW_MODULE_SOURCE
   }));
   await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
 
@@ -92,11 +107,19 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   await editor.getByRole('button', { name: 'Save' }).click();
   await expect(editor.locator('.fx-surface-status')).toBeVisible({ timeout: 20_000 });
   const record = await (await app.request.get(`/api/instances/${FIXTURE_SURFACE_TYPE_ID}/${id}`)).json();
-  const fileId = record?.attachments?.primary?.fileId;
+  const fileId = record?.payload?.fileId;
   expect(fileId, 'Expected the saved document as the record payload').toBeTruthy();
   const download = await app.request.get(`/api/files/download/${fileId}?bucket=files`);
   expect(download.ok(), await download.text()).toBeTruthy();
   expect((await download.json()).note).toBe('fixture');
+
+  // M7: the plugin's preview surface mounts in the detail preview slot —
+  // read-only over the record and the host-resolved payload document.
+  await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(id)}`);
+  const preview = app.page.locator('.fx-surface-preview');
+  await expect(preview).toBeVisible({ timeout: 20_000 });
+  await expect(preview.locator('.fx-surface-preview-record')).toHaveText('Fixture Note One');
+  await expect(preview.locator('.fx-surface-preview-payload')).toHaveText('fixture');
 
   await app.expectCleanRuntime();
 });

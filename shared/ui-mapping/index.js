@@ -857,7 +857,11 @@ export function fieldLabel(name, descriptor = {}) {
 // and materializations fall back to the resolver-derived label when a key
 // is absent (localizedLabel). Keys carry no hand-authored vocabulary.
 export function typeLabelKey(typeId) {
-  return `uiMapping.types.${typeId}`;
+  const kebab = String(typeId || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/_/g, '-')
+    .toLowerCase();
+  return `uiMapping.types.${kebab}`;
 }
 
 export function fieldLabelKey(typeId, name) {

@@ -150,12 +150,12 @@ describe('drawing preview contract', () => {
     }, {
       layerMapping: { 'source-layer': 'MAPPED_STD' },
       standards: [
-        { _id: 'boundary-standard', code: 'BOUNDARY_STD', defaultPenId: 'boundary-pen' },
-        { _id: 'mapped-standard', code: 'MAPPED_STD', defaultPenId: 'mapped-pen' }
+        { _id: 'boundary-standard', fields: { code: 'BOUNDARY_STD', defaultPenId: 'boundary-pen' } },
+        { _id: 'mapped-standard', fields: { code: 'MAPPED_STD', defaultPenId: 'mapped-pen' } }
       ],
       pens: [
-        { _id: 'boundary-pen', stroke: { color: '#111111', weight: 1, pattern: 'SOLID' } },
-        { _id: 'mapped-pen', stroke: { color: '#ff0000', weight: 2, pattern: 'DASHED' } }
+        { _id: 'boundary-pen', fields: { stroke: { color: '#111111', weight: 1, pattern: 'SOLID' } } },
+        { _id: 'mapped-pen', fields: { stroke: { color: '#ff0000', weight: 2, pattern: 'DASHED' } } }
       ]
     });
 
@@ -177,10 +177,10 @@ describe('drawing preview contract', () => {
       }]
     }, {
       standards: [
-        { _id: 'fold-standard', data: { code: 'fold.route', defaultPenId: 'fold-pen' } }
+        { _id: 'fold-standard', fields: { code: 'fold.route', defaultPenId: 'fold-pen' } }
       ],
       pens: [
-        { _id: 'fold-pen', data: { stroke: { color: '#0000ff', weight: 0.25, pattern: 'DASHED' } } }
+        { _id: 'fold-pen', fields: { stroke: { color: '#0000ff', weight: 0.25, pattern: 'DASHED' } } }
       ]
     });
 
@@ -189,17 +189,6 @@ describe('drawing preview contract', () => {
     expect(drawing.layers[0].dasharray).toBe('5,5');
     expect(drawing.layers[0].standardId).toBe('fold-standard');
     expect(drawing.layers[0].penId).toBe('fold-pen');
-  });
-
-  it('resolves canonical pen identity uids stored by layer standards', () => {
-    const drawing = applyLayerPens({
-      layers: [{ name: 'cut.outer', standardCode: 'cut.outer', paths: [] }]
-    }, {
-      standards: [{ _id: 'cut-standard', data: { code: 'cut.outer', defaultPenId: 'pen-cut-uid' } }],
-      pens: [{ _id: 'pen-mongo-id', identity: { uid: 'pen-cut-uid' }, data: { stroke: { color: '#ef4444', weight: 0.5, pattern: 'SOLID' } } }]
-    });
-
-    expect(drawing.layers[0]).toMatchObject({ color: '#ef4444', penId: 'pen-mongo-id' });
   });
 
   it('preserves explicit layer styling when a standard pen is missing', () => {
@@ -214,7 +203,7 @@ describe('drawing preview contract', () => {
       }]
     }, {
       standards: [
-        { _id: 'face-standard', data: { code: 'contour.cassette_face', defaultPenId: 'missing-pen' } }
+        { _id: 'face-standard', fields: { code: 'contour.cassette_face', defaultPenId: 'missing-pen' } }
       ],
       pens: []
     });

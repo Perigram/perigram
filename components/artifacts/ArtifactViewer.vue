@@ -15,14 +15,6 @@
       :mode="variant === 'card' ? 'card' : 'viewer'"
       :fill="variant === 'card'"
     />
-    <DrawingCanvas
-      v-else-if="hasFile && mode === 'occs'"
-      :source="fileUrl"
-      source-type="occs"
-      :mode="variant === 'card' ? 'card' : 'viewer'"
-      :fill="variant === 'card'"
-      :scale-dimension-text="variant === 'card'"
-    />
     <img v-else-if="hasFile && mode === 'image'" :src="blobUrl || fileUrl" :class="variant === 'card' ? 'block h-full w-full object-cover' : 'mx-auto block max-h-full max-w-full object-contain'" :alt="artifactName">
     <iframe v-else-if="hasFile && mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full w-full border-0" :title="artifactName || 'PDF'" />
     <!-- The Word document keeps its own document-native scrolling surface
@@ -117,7 +109,7 @@ async function load() {
   releaseBlob();
   text.value = ''; rows.value = []; columns.value = []; error.value = '';
   if (!hasFile.value) return;
-    if (['dxf', 'svg', 'sketch', 'occs'].includes(mode.value)) return;
+    if (['dxf', 'svg', 'sketch'].includes(mode.value)) return;
   try {
     const response = await fetch(fileUrl.value);
     if (!response.ok) throw new Error(response.statusText);

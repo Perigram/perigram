@@ -30,6 +30,8 @@ vi.mock('./repository.js', () => ({
   listCatalog: vi.fn(async () => []),
   findCatalogByPluginId: vi.fn(async () => null),
   upsertCatalogListing: vi.fn(),
+  deleteCatalogListing: vi.fn(),
+  countInstallsByPluginId: vi.fn(async () => 0),
   listInstallsByOrganization: vi.fn(async () => []),
   findInstall: vi.fn(async () => null),
   findInstallByConnectorToken: vi.fn(async () => null),
@@ -51,7 +53,7 @@ import {
   install, installFromCatalog, uninstall, listInstalled, servicesForOrganization,
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
-  settingsFor, updateSettings, listPackState, enablePack, disablePack
+  retractListing, settingsFor, updateSettings, listPackState, enablePack, disablePack
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -146,7 +148,7 @@ describe('plugin installs', () => {
           ...coatingListing.declarations.types,
           { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
         ],
-        editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
+        editors: [{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }],
         attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
         conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }],
         surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
@@ -155,7 +157,7 @@ describe('plugin installs', () => {
     await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
       declarations: expect.objectContaining({
-        editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
+        editors: [{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }],
         attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
         conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }],
         surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
@@ -255,7 +257,7 @@ describe('plugin installs', () => {
   it('refuses a malformed editor binding at the listing contract', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,
-      declarations: { ...coatingListing.declarations, editors: [{ type: 'cassette', surface: 'text-editor', modes: ['edit'] }] }
+      declarations: { ...coatingListing.declarations, editors: [{ type: 'cassette', surface: 'coating-designer', modes: ['edit'] }] }
     });
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('Invalid plugin listing') });
@@ -332,6 +334,21 @@ describe('plugin installs', () => {
     expect(installed[0].types).toEqual([{ id: 'coating', name: 'Coating', class: 'item' }]);
     expect(installed[0].services).toEqual([{ id: 'match', label: 'Coating match', mode: 'claim' }]);
   });
+
+  it('retracts a listing only when no organization holds an install', async () => {
+    repository.findCatalogByPluginId.mockResolvedValueOnce(coatingListing);
+    repository.countInstallsByPluginId.mockResolvedValueOnce(2);
+    await expect(retractListing('coatings')).rejects.toMatchObject({ statusCode: 409 });
+    expect(repository.deleteCatalogListing).not.toHaveBeenCalled();
+
+    repository.findCatalogByPluginId.mockResolvedValueOnce(coatingListing);
+    repository.countInstallsByPluginId.mockResolvedValueOnce(0);
+    await expect(retractListing('coatings')).resolves.toMatchObject({ pluginId: 'coatings', retracted: true });
+    expect(repository.deleteCatalogListing).toHaveBeenCalledWith('coatings');
+
+    await expect(retractListing('missing')).rejects.toMatchObject({ statusCode: 404 });
+  });
+
 });
 
 describe('connector services', () => {
@@ -442,7 +459,8 @@ describe('upgrades', () => {
         { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
       ],
       services: coatingListing.declarations.services,
-      editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
+      editors: [{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }],
+      surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }],
       attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
       conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }]
     }
@@ -499,7 +517,7 @@ describe('upgrades', () => {
     expect(persisted.version).toBe('3');
     expect(persisted.declarations.types.map(type => type.id).sort()).toEqual(['coating', 'coating-sheet', 'primer']);
     // the extended declaration layer rides the pin beside the types
-    expect(persisted.declarations.editors).toEqual([{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }]);
+    expect(persisted.declarations.editors).toEqual([{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }]);
     expect(persisted.declarations.attachmentKinds).toEqual({ COATING_DOC: { kind: 'COATING_DOC' } });
     expect(persisted.declarations.conversions).toHaveLength(1);
     expect(persisted.requires).toEqual(['documents']);

@@ -21,7 +21,7 @@ export const usePenTemplatesStore = defineStore('penTemplates', () => {
     const pens = computed(() => Object.values(instances.records[TYPE_KEY] || {})
         .map(entry => entry.dto)
         .filter(Boolean)
-        .sort((a, b) => String(a.identity?.name || '').localeCompare(String(b.identity?.name || ''))));
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))));
 
     const systemPens = computed(() => pens.value.filter(pen => pen.lineage?.organizationId == null));
     const userPens = computed(() => pens.value.filter(pen => pen.lineage?.organizationId != null));
@@ -55,12 +55,11 @@ export const usePenTemplatesStore = defineStore('penTemplates', () => {
         return fetchPens();
     }
 
-    // Editor form shape ({name, stroke}) maps onto the §3 row through the
-    // wire block vocabulary.
+    // Editor form shape ({name, stroke}) maps onto the §3 rows directly.
     function toWire(penData = {}) {
         return {
-            ...(penData.name != null ? { identity: { name: penData.name } } : {}),
-            ...(penData.stroke != null ? { data: { stroke: penData.stroke } } : {})
+            ...(penData.name != null ? { name: penData.name } : {}),
+            ...(penData.stroke != null ? { fields: { stroke: penData.stroke } } : {})
         };
     }
 

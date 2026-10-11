@@ -396,7 +396,7 @@ export const PREVIEW_ENTRIES = Object.freeze([
 // download. App-side materializations import this list instead of
 // restating it.
 export const RENDERABLE_PREVIEW_MODES = Object.freeze([
-  'dxf', 'svg', 'sketch', 'occs', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'
+  'dxf', 'svg', 'sketch', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'
 ]);
 
 // --- Actions ----------------------------------------------------------------

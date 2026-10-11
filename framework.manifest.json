@@ -181,28 +181,6 @@
   "designSystem": {
     "components": [
       {
-        "componentPath": "components/entities/SheetDesign/SheetDesignCard.vue",
-        "fieldPaths": [],
-        "group": "production",
-        "key": "sheetDesign",
-        "labelKey": "entities.sheetDesign",
-        "propName": "design",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "sheet_design"
-      },
-      {
-        "componentPath": "components/entities/Cassette/CassetteCard.vue",
-        "fieldPaths": [],
-        "group": "production",
-        "key": "cassette",
-        "labelKey": "entities.cassette",
-        "propName": "cassette",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "cassette"
-      },
-      {
         "componentPath": null,
         "fieldPaths": [],
         "group": "system",
@@ -345,7 +323,7 @@
         "componentPath": "components/shared/DrawingCanvas.vue",
         "key": "DrawingCanvas",
         "kind": "block",
-        "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions."
+        "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, and sketch scenes."
       },
       {
         "componentPath": "components/shared/DesignerSurface.vue",
@@ -366,16 +344,10 @@
         "purpose": "Viewport-sized dialog host for standalone designer launches."
       },
       {
-        "componentPath": "components/shared/ThreeViewport.vue",
-        "key": "ThreeViewport",
-        "kind": "viewport",
-        "purpose": "Shared Three.js renderer lifecycle and selectable scene viewport for designers."
-      },
-      {
         "componentPath": "components/shared/GeometryPreview.vue",
         "key": "GeometryPreview",
         "kind": "block",
-        "purpose": "Token-backed SVG preview for DXF layers and polygon geometry stored in data.geometry.preview."
+        "purpose": "Token-backed SVG preview for a resolved previewSource drawing value."
       },
       {
         "componentPath": "components/shared/links/TraceLink.vue",
@@ -980,9 +952,6 @@
     },
     {
       "name": "@perigram/mcp"
-    },
-    {
-      "name": "@perigram/facade"
     }
   ],
   "relationships": [

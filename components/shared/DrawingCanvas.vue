@@ -7,7 +7,6 @@ import ProgressSpinner from 'primevue/progressspinner';
 import ScrollPanel from 'primevue/scrollpanel';
 import Tag from 'primevue/tag';
 import { generateSvgData } from '~/utils/dxfParser';
-import { renderCassetteV2TreeToDrawing } from '~/utils/cassetteV2Renderer';
 import {
   DEFAULT_DRAWING_PEN,
   applyLayerPens,
@@ -99,7 +98,7 @@ const visibleLayerSelection = computed({
 const allLayersVisible = computed(() => hasLayers.value && layerNames.value.every(name => visibleLayerSelection.value.includes(name)));
 const visibleLayerSummary = computed(() => `${visibleLayerSelection.value.length}/${layerNames.value.length}`);
 const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
-const standardCode = (standard) => standard?.data?.code || standard?.code || null;
+const standardCode = (standard) => standard?.fields?.code || null;
 const sourceLayerEntity = (layer) => ({
   _id: `drawing-layer-${layer.name}`,
   identity: {
@@ -250,8 +249,6 @@ const resolveDrawing = async () => {
   if (!props.source) return null;
   const usesLayerContract = (
     ['dxf-text', 'dxf-url'].includes(props.sourceType) ||
-    props.sourceType === 'occs-cassette' ||
-    props.sourceType === 'occs' ||
     Object.keys(props.layerMapping).length > 0 ||
     (props.sourceType === 'geometry-preview' && sourceHasStandardCodes(props.source))
   );
@@ -296,23 +293,6 @@ const resolveDrawing = async () => {
       ? await fetchText(props.source)
       : JSON.stringify(props.source);
     return normalizeSketchDrawing(parseScene(raw));
-  }
-
-  if (props.sourceType === 'occs-cassette') {
-    const graphTree = props.source?.extensions?.perigram?.graphTree || props.source?.graphTree || null;
-    if (!graphTree) return null;
-    return applyLayerPens(await renderCassetteV2TreeToDrawing(graphTree), penOptions);
-  }
-
-  if (props.sourceType === 'occs') {
-    // OCCS payload URL: the stored document of the file instance, parsed
-    // then rendered through the same graph-tree path as the object form.
-    const document = typeof props.source === 'string'
-      ? JSON.parse(await fetchText(props.source))
-      : props.source;
-    const graphTree = document?.extensions?.perigram?.graphTree || document?.graphTree || null;
-    if (!graphTree) return null;
-    return applyLayerPens(await renderCassetteV2TreeToDrawing(graphTree), penOptions);
   }
 
   return null;
@@ -385,9 +365,7 @@ const pathFillRule = (path) => {
   return path.fillRule || path.fillrule || null;
 };
 const isDimensionLayer = (layer = {}) => (
-  layer.standardCode === 'dimension.cassette' ||
-  layer.name === 'dimension.cassette' ||
-  layer.role === 'dimension'
+  layer.role === 'dimension' || /^dimension(\.|$)/i.test(String(layer.name || ''))
 );
 const previewDimensionFontSize = computed(() => {
   const targetScreenPixels = 16;

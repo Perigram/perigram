@@ -396,103 +396,31 @@
     }
   },
   "cassette": {
-    "title": "Кассеты",
-    "create": "Создать кассету",
-    "upload": "Загрузить кассету",
-    "uploadTitle": "Загрузка кассеты",
-    "editTitle": "Редактирование кассеты",
     "name": "Название кассеты",
-    "delete": "Удалить кассету",
-    "edit": "Редактировать кассету",
-    "noCassettes": "Кассет пока нет. Загрузите DXF файл для создания.",
-    "selectCassette": "Выбрать кассету",
-    "layerMapping": "Привязка слоёв",
-    "mapLayers": "Привяжите слои DXF к слоям кассеты",
-    "preview": "Предпросмотр",
-    "noPreview": "Предпросмотр недоступен",
-    "selectLayerType": "Выберите тип слоя",
-    "nestingLayerRequired": "Привяжите контур раскроя к слою {layer}. Этот слой будет сохранён как геометрия реза дизайна кассеты.",
-    "parameters": "Параметры",
-    "design": "Дизайн",
-    "downloadDxf": "Скачать DXF",
-    "geometry": "Геометрия",
-    "parametersHelp": "Определите переменные размеры для записей партии",
-    "parametersPlaceholder": "например, A, B, C",
-    "parametersHint": "Общие: A, B, C, D, E, F, horizontal_seam_width",
-    "layers": {
-      "cut": "Резка",
-      "bend": "Гибка",
-      "frame": "Рамка",
-      "dimensions": "Размеры"
-    },
-    "status": {
-      "pending": "Ожидание",
-      "processing": "Обработка",
-      "done": "Готово",
-      "error": "Ошибка"
-    },
-    "nameExample": "Стандартная кассета",
     "newCassette": "Новая кассета",
-    "selectFile": "Выбрать DXF файл",
-    "detectingLayers": "Определение слоёв...",
-    "detectedLayers": "Обнаруженные слои",
-    "selectLayers": "Выберите слои...",
-    "designer": "Дизайнер",
-    "designerTitle": "Конструктор кассет",
-    "loading": "Загрузка кассет...",
-    "clickToRename": "Нажмите, чтобы переименовать",
-    "parametersTitle": "Параметры кассеты",
     "rootDim": "Осн. размер",
     "faceDepth": "Глубина грани",
     "flangeDepth": "Глубина полки",
     "custom": "Пользовательский",
-    "facesAndFlanges": "Грани и полки",
-    "noFaces": "Граней или полок пока нет.",
-    "clickEdgeToGrow": "Нажмите на ребро, чтобы начать построение.",
-    "edge": "Ребро",
-    "initializingEngine": "Инициализация движка",
-    "addGeometry": "Добавить геометрию",
-    "face": "Грань",
-    "flange": "Полка",
-    "addCustomParameter": "Добавить параметр",
-    "parameterName": "Имя параметра",
-    "initialValue": "Начальное значение",
     "v2": {
-      "face": "Грань",
-      "inspector": "Инспектор",
-      "parameters": "Параметры",
-      "preview": "Предпросмотр раскладки",
       "loadTemplate": "Загрузить шаблон",
       "workpieces": "Заготовки",
-      "workpieceGraph": "Граф заготовок",
-      "topology": "Топология",
-      "selectedWorkpiece": "Выбранная заготовка",
-      "attachment": "Привязка",
-      "attachments": "Привязки",
-      "noAttachment": "У этой заготовки пока нет привязки. Используйте +, чтобы создать связанную заготовку, или действие-связку, чтобы объявить ещё одну привязку.",
-      "addWorkpiece": "Добавить заготовку",
       "addRelatedWorkpiece": "Добавить связанную заготовку",
       "addAttachment": "Добавить привязку",
       "addHardware": "Добавить метиз",
       "addProfile": "Добавить профиль",
       "editProfile": "Редактировать профиль",
-      "profile": "Профиль",
       "deleteWorkpiece": "Удалить заготовку",
       "removeAttachment": "Удалить привязку",
       "driver": "ведущая",
       "foldedPreview": "Предпросмотр 3D гибки",
-      "selectedFoldedPreview": "Выбранная 3D",
       "cassetteFoldedPreview": "Кассета 3D",
       "showWholeCassette": "Показать всю кассету",
       "resetOrbit": "Сбросить 3D вид",
       "occsDraft": "Черновик OCCS",
       "globalParameters": "Глобальные параметры",
-      "renderFailed": "Не удалось отрисовать граф трапеции.",
-      "previewHeld": "Чертёж удержан на последнем корректном предпросмотре. Исправьте выражение, чтобы обновить его.",
-      "addFace": "Добавить трапецию",
       "deleteFace": "Удалить грань",
       "faceRole": "Роль грани",
-      "rootFace": "Корневая трапеция",
       "autosaveDraftAvailable": "Для этой кассеты есть черновик текущей сессии.",
       "recoverDraft": "Восстановить черновик",
       "discardDraft": "Сбросить черновик",
@@ -514,20 +442,12 @@
           "body": "Используйте рельс заготовок для связанных деталей, привязок и 3D предпросмотра гибки."
         }
       },
-      "previewModes": {
-        "workpiece": "Заготовка",
-        "layout": "Плоская раскладка",
-        "assembly": "Сборка"
-      },
       "attachmentFields": {
-        "targetWorkpiece": "Целевая заготовка",
         "targetFace": "Целевая грань",
         "sourceFace": "Исходная грань",
         "targetSnap": "Привязка цели",
         "sourceSnap": "Привязка источника",
         "side": "Сторона",
-        "offsetX": "Смещение X",
-        "offsetY": "Смещение Y",
         "edgeMargin": "Отступ от края",
         "normalOffset": "Смещение от ребра",
         "rotation": "Поворот",
@@ -539,14 +459,11 @@
         "mirrorX": "Зеркало X",
         "mirrorY": "Зеркало Y",
         "driver": "Ведущая привязка",
-        "jointType": "Тип соединения",
-        "method": "Метод"
+        "jointType": "Тип соединения"
       },
       "hardwareFields": {
         "family": "Семейство метиза",
-        "productionMode": "Способ производства",
-        "primarySize": "Основной размер",
-        "secondarySize": "Второй размер"
+        "productionMode": "Способ производства"
       },
       "hardwareFamilies": {
         "bolt": "Болт",
@@ -580,17 +497,13 @@
         "defaultName": "Подвесной профиль",
         "loadTemplate": "Загрузить шаблон профиля",
         "preview": "Предпросмотр эскиза профиля",
-        "points": "Точки",
-        "holes": "Отверстия",
         "polyline": "Полилиния",
         "selection": "Выбор",
         "noSelection": "Выберите точку или окружность.",
-        "filletRadius": "Радиус скругления",
         "cornerFillet": "Скругление угла",
         "distance": "Длина",
         "ortho": "Орто",
         "segmentLength": "Сегмент",
-        "addPoint": "Добавить точку",
         "addCircle": "Добавить окружность",
         "newPolyline": "Новая полилиния",
         "undoPoint": "Отменить точку",
@@ -598,12 +511,9 @@
         "finishPolyline": "Завершить",
         "importDxf": "Импорт DXF",
         "importFailed": "Не удалось импортировать DXF.",
-        "insert": "Вставить в кассету",
         "saved": "Шаблон профиля сохранён",
         "saveFailed": "Не удалось сохранить шаблон профиля",
         "invalidSketch": "Замкните полилинию профиля минимум с тремя точками перед сохранением.",
-        "kind": "Тип",
-        "process": "Процесс",
         "tools": {
           "select": "Выбор",
           "polyline": "Полилиния",
@@ -649,9 +559,6 @@
       },
       "expression": {
         "label": "Выражение",
-        "guideTitle": "Справка по выражению",
-        "guide": "Введите числа, параметры кассеты, + - * /, скобки и sin(30), cos(60), tan(45). Тригонометрия использует градусы.",
-        "angleGuide": "Поля углов используют числа в градусах, например 90.",
         "angleAlias": "Угол гиба от родителя",
         "trigTooltip": "{name}() использует градусы",
         "groups": {
@@ -667,12 +574,6 @@
         "start": "Начало",
         "end": "Конец"
       },
-      "offsetLabels": {
-        "baseStart": "Смещение основания от {anchor}",
-        "baseEnd": "Смещение основания от {anchor}",
-        "topStart": "Смещение верха",
-        "topEnd": "Смещение верха"
-      },
       "fields": {
         "defaultLength": "Длина основания",
         "height": "Высота",
@@ -687,16 +588,7 @@
       }
     },
     "errors": {
-      "nameRequired": "Имя не может быть пустым",
-      "loadFailed": "Не удалось загрузить кассету",
-      "parseDxfFailed": "Не удалось разобрать DXF файл",
-      "uploadFailed": "Не удалось загрузить файл",
-      "renameFailed": "Не удалось переименовать кассету",
       "saveFailed": "Не удалось сохранить шаблон"
-    },
-    "messages": {
-      "renamed": "Кассета переименована",
-      "saveSuccess": "Шаблон успешно сохранен"
     }
   },
   "revision": {
@@ -1741,22 +1633,7 @@
     "surface": "Поверхность",
     "markMilled": "Отметить фрезерованным"
   },
-  "cassetteInstance": {
-    "title": "Экземпляры кассет",
-    "subtitle": "Произведенные кассеты на складе.",
-    "noInstances": "Экземпляры кассет не найдены",
-    "instances": "Экземпляры",
-    "updateStatus": "Обновить статус",
-    "printLabel": "Печать этикетки",
-    "updatePhysicalStatus": "Обновить физический статус",
-    "selectNewStatus": "Выберите новый статус...",
-    "addNotePlaceholder": "Добавьте примечание (напр., Доставлено в сектор 4)...",
-    "create": "Создать экземпляр кассеты",
-    "tracking": "Отслеживание",
-    "lifecycleTitle": "Жизненный цикл",
-    "parentDesign": "Родительский дизайн",
-    "materialSource": "Источник материала"
-  },
+  "cassetteInstance": {},
   "statistics": {
     "title": "Статистика",
     "totalFiles": "Всего файлов",
@@ -2027,18 +1904,8 @@
     "facade": "Фасад",
     "facadePattern": "Шаблон фасада"
   },
-  "facade": {
-    "parts": "Части",
-    "assignments": "Назначения",
-    "save": "Сохранить фасад",
-    "patterns": "Шаблоны",
-    "sourceModel": "Исходная модель"
-  },
-  "facadePattern": {
-    "nodes": "Узлы",
-    "save": "Сохранить шаблон",
-    "graph": "Граф шаблона"
-  },
+  "facade": {},
+  "facadePattern": {},
   "artifactTemplates": {
     "selectFile": "Выбрать DXF или PDF",
     "empty": "Нет шаблонов артефактов",
@@ -2524,23 +2391,8 @@
     "editor": "Редактор раскладки листа",
     "addCassette": "Добавить кассету",
     "selectCassette": "Выберите дизайн кассеты",
-    "snapSize": "Привязка {size} мм",
     "layoutSaved": "Раскладка листа сохранена как ревизия геометрии.",
-    "layoutSaveFailed": "Не удалось сохранить раскладку листа.",
-    "downloadDxf": "Скачать DXF",
-    "dxfRequested": "Генерация DXF поставлена в очередь.",
-    "dxfRequestFailed": "Не удалось поставить генерацию DXF в очередь.",
-    "exportGCode": "Экспорт G-code",
-    "utilization": "Использование",
-    "parts": "Детали",
-    "cuttingLength": "Длина реза",
-    "estimatedTime": "Расчетное время",
-    "cassetteDesigns": "Дизайны кассет",
-    "materialSources": "Источники материала",
-    "instances": "Экземпляры",
-    "notFound": "Дизайн листа не найден",
-    "noSheetDesigns": "Дизайнов листов пока нет",
-    "runNestingFirst": "Запустите раскрой из очереди проекта, чтобы получить раскладки листов."
+    "layoutSaveFailed": "Не удалось сохранить раскладку листа."
   },
   "nestingRun": {
     "sheetDesigns": "Дизайны листов"

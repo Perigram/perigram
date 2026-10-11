@@ -25,6 +25,7 @@ import {
 import { buildOccsProductionLayout } from '../../occs/production-layout.js';
 import { buildOccsFaceDimensionEntities } from '../../occs/dimensions.js';
 import { buildOccsFoldedPreviewPayload } from '../../occs/folded-3d.js';
+import { applyOccsLayerPens } from '../../occs/layerStandards.js';
 import { differenceCassetteV2FacePolygon } from './cassetteV2Clipper.js';
 import {
   OCCS_EDGE_ARRAY_DEFAULTS,
@@ -2989,7 +2990,10 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     drawing.layers = assemblyLayers.concat(hardwareLayers);
   }
   drawing.designerAttachmentMarkers = designerAttachmentMarkers;
-  return drawing;
+  // The plugin's layer standards bake the base pens here — every drawing
+  // this renderer emits is styled; org-authored standards still override
+  // host-side (shadow-by-code over the host transport).
+  return applyOccsLayerPens(drawing);
 };
 
 export const buildCassetteV2Drawing = (result, engine, graph, definition = {}) => {

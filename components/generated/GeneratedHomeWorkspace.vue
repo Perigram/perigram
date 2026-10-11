@@ -308,7 +308,6 @@ const sectionItems = computed(() => sections.value.flatMap(section => section.it
   .map(entity => workspaceEntityItem(section.source.typeId, entity))));
 const workspaceEntityItems = computed(() => [...sectionItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
-const cassetteItems = computed(() => workspaceEntityItems.value.filter(item => item.type === 'cassette'));
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   const entityItem = workspaceEntityItems.value.find(item => (
     item.type === reference.typeId
@@ -323,8 +322,7 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     typeId: reference.typeId,
     // Entity-bound page tabs label from the one title resolver like
     // instance tabs — the page id stays a fallback, not the display.
-    label: instanceLabelOf(reference.typeId, reference.instanceId),
-    cassettes: cassetteItems.value.map(item => item.entity)
+    label: instanceLabelOf(reference.typeId, reference.instanceId)
   };
 }).filter(Boolean));
 // Opened screens as pane tabs. Type screens keep their manifest label;

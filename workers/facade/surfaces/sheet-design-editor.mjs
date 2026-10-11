@@ -52,13 +52,22 @@ export default function createSurface({ vue, components, locale, queries, notify
 
       const editable = computed(() => access.canWrite(props.record));
 
-      const sheetWidth = computed(() => Math.max(Number(props.record?.specs?.width) || 1220, 1));
-      const sheetHeight = computed(() => Math.max(Number(props.record?.specs?.length) || 2440, 1));
+      // Sheet dimensions derive from the stored sheet polygon's bounds —
+      // the §3 record stores no specs block; the standard sheet fallback
+      // stands when no polygon is stored.
+      const sheetWidth = computed(() => Math.max(sheetPolygonBounds().width || 1220, 1));
+      const sheetHeight = computed(() => Math.max(sheetPolygonBounds().height || 2440, 1));
+      function sheetPolygonBounds() {
+        const outer = sheetPolygon.value?.outer || [];
+        if (outer.length < 2) return {};
+        const xs = outer.map(point => Number(point[0]) || 0);
+        const ys = outer.map(point => Number(point[1]) || 0);
+        return { width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+      }
       const sheetPolygon = computed(() => normalizeSheetPolygon(
-        props.record?.data?.geometry?.data?.sheetPolygon ||
-        props.record?.data?.geometry?.data?.sheet_polygon ||
-        props.record?.data?.geometry?.data?.polygon ||
-        props.record?.data?.materialPool?.[0]?.sheetPolygon ||
+        props.record?.fields?.geometry?.data?.sheetPolygon ||
+        props.record?.fields?.geometry?.data?.sheet_polygon ||
+        props.record?.fields?.geometry?.data?.polygon ||
         null
       ));
       const sheetPolygonPoints = computed(() => sheetPolygon.value?.outer?.map(point => point.join(',')).join(' ') || '');
@@ -103,11 +112,11 @@ export default function createSurface({ vue, components, locale, queries, notify
         ? sheetPlacementTransform(placedItems.value[selectedIndex.value])
         : null);
       const cassetteOptions = computed(() => cassettes.value.map(cassette => ({
-        label: cassette.identity?.name || cassette.identity?.slug || cassette._id,
+        label: cassette.name || cassette._id,
         value: cassette._id?.toString(),
         entity: cassette
       })));
-      const displayName = computed(() => localName.value || props.record?.identity?.name || t('sheetDesign.editor'));
+      const displayName = computed(() => localName.value || props.record?.name || t('sheetDesign.editor'));
 
       onMounted(() => {
         queries.list('layer-standard').then(rows => { standards.value = rows || []; }).catch(() => {});
@@ -335,11 +344,11 @@ export default function createSurface({ vue, components, locale, queries, notify
       async function save() {
         saving.value = true;
         try {
-          const { data, summary } = recomputeSheetLayout(props.record, {
+          const { geometry } = recomputeSheetLayout(props.record, {
             items: items.value,
             placedItems: placedItems.value
           });
-          await props.persistence.patch(props.record, { data, summary });
+          await props.persistence.patch(props.record, { geometry });
           notify({ severity: 'success', summary: t('common.success'), detail: t('sheetDesign.layoutSaved'), life: 2500 });
         } catch (error) {
           notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || t('sheetDesign.layoutSaveFailed') });

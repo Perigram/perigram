@@ -114,8 +114,10 @@ export async function describeOrganizationTypes(organizationId) {
   // the browser receives a ready URL (null until the executor is
   // connected, and the loader says so honestly).
   const surfaces = [];
+  const previews = [];
   if (organizationId) {
     const seenEditors = new Set(editors.map(editor => editor.type));
+    const seenPreviewTypes = new Set();
     for (const install of await pluginInstalls.listInstallsByOrganization(organizationId)) {
       const endpointOrigin = firstEndpointOrigin(install);
       for (const surface of install.declarations?.surfaces || []) {
@@ -127,6 +129,46 @@ export async function describeOrganizationTypes(organizationId) {
         }
         surfaces.push(Object.freeze({
           id: surface.id,
+          url: endpointOrigin ? `${endpointOrigin}${surface.module}` : null,
+          surfaceContract: surface.surfaceContract,
+          ...(surface.kind && surface.kind !== 'editor' ? { kind: surface.kind } : {})
+        }));
+      }
+      // Preview bindings (M7): a type's preview slots mount the bound
+      // preview surface read-only. The bound type must be declared by the
+      // composed view (any class — previews are not editor-bound), one
+      // preview per type, and the surface must be one this install
+      // declares as kind preview.
+      for (const preview of install.declarations?.previews || []) {
+        if (!preview?.type || !preview?.surface) {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} carries a malformed preview binding: ${JSON.stringify(preview)}`
+          });
+        }
+        const surface = (install.declarations?.surfaces || []).find(entry => entry.id === preview.surface);
+        if (!surface || (surface.kind || 'editor') !== 'preview') {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} binds a preview for type ${preview.type} on surface ${preview.surface}, which it does not declare as a preview surface`
+          });
+        }
+        if (!registry.getType(preview.type, organizationId)) {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} binds a preview for type ${preview.type}, which the composed view does not declare`
+          });
+        }
+        if (seenPreviewTypes.has(preview.type)) {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} re-binds a preview for type ${preview.type} — exactly one preview per type`
+          });
+        }
+        seenPreviewTypes.add(preview.type);
+        previews.push(Object.freeze({
+          type: preview.type,
+          surface: preview.surface,
           url: endpointOrigin ? `${endpointOrigin}${surface.module}` : null,
           surfaceContract: surface.surfaceContract
         }));
@@ -175,7 +217,8 @@ export async function describeOrganizationTypes(organizationId) {
     bundle: compileClientBundle(registry, organizationId),
     attachmentKinds,
     editors,
-    surfaces
+    surfaces,
+    previews
   };
 }
 

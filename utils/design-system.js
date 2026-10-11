@@ -1,5 +1,3 @@
-import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
-import CassetteCard from '~/components/entities/Cassette/CassetteCard.vue';
 import EntityRevisionCard from '~/components/entities/EntityRevision/EntityRevisionCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
@@ -18,8 +16,6 @@ import {
 } from '~/utils/design-system-contract.js';
 
 const components = {
-  sheetDesign: SheetDesignCard,
-  cassette: CassetteCard,
   entityRevision: EntityRevisionCard,
   penTemplate: PenTemplateCard,
   layerStandard: LayerStandardCard,
