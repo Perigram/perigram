@@ -61,7 +61,9 @@ I'm not currently sure how exactly, probably contract should pass "comments" tog
 generated in same manner in UI. Important to find proper PrimeVue components for it and integrate to
 layout. More important to get aligned with architecture, so it's only assumptions.
 No per-entity hardcoded components. Editors/previews bind through pack editor bindings and the
-surface registry — adding a type never touches app UI code. Files are CTS types with payload traits;
+surface registry — adding a type never touches app UI code, and plugin-delivered editor
+surfaces (owner decision 2026-10-11, §Plugin marketplace) extend the same law to adding an
+editor surface. Files are CTS types with payload traits;
 the `artifact` entity and its overload die when chat/proof/capture/upload flows move to file instances.
 
 ## Chat files
@@ -240,7 +242,8 @@ sheet-designs entity service migrates to the generic instance machinery
 (SPEC §21 transitional), the mount's framework imports become an injected SDK
 context, then the pack's server side moves into the package as one deletable
 unit and the geometry handlers externalize behind endpoints like the already
-external nesting worker; editor surfaces ride the surface registry.
+external nesting worker; editor surfaces ride the surface registry until
+they ship with the plugin (owner decision 2026-10-11, below).
 
 Plugins are hosted two ways, one contract. **Self-written and self-hosted**:
 a coding agent authors the plugin (listing + executor) following the plugin
@@ -283,6 +286,29 @@ its listing (workers/facade), and the cut — the pack, its routes, and every
 platform reference to it are deleted. The sheet-design editor owns its
 save-time layout recompute client-side (the cassette-designer precedent);
 DXF exports ride generateAttachment through the plugin's export binding.
+
+Owner decision (2026-10-11): editor surfaces ship with the plugin. A plugin
+type's editor presentation is plugin-delivered — the listing declares the
+surface's UI module beside its editor binding, and the platform mounts it as
+a workspace page. No editor presentation for a plugin type lives in app
+code. "Declarations plus connectors — never in-process code" stands: the
+module runs in the browser, loaded from the plugin's executor or publisher
+origin; the platform process still executes zero plugin code.
+
+The surface mount is data-only: the module receives the opened record, the
+persistence callbacks (blank-create through the compiled construct, the
+payload channel, rename), and the app's locale and design tokens; it never
+receives stores, routing, auth, or other surfaces. The listing pins the
+surface contract version it targets; an incompatible version refuses at
+install or upgrade, never half-mounts at runtime. Remote editor surfaces are
+online-only and say so; read surfaces stay offline-capable. Platform-owned
+surfaces keep the fixed local registry.
+
+End state for the facade plugin: the cassette designer and the sheet-design
+editor mount from the plugin, their app-side registrations and components
+are deleted, the read-side cassette previews follow the same delivery path,
+and the OCCS engine single-homes in the plugin — no facade presentation code
+remains in the app.
 
 Plugin authoring is SDK-first (owner ask, 2026-10-10): a coding agent authors
 a plugin through @perigram/plugin-sdk — the listing contract with its JSON

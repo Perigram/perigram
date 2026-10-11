@@ -415,8 +415,61 @@ Validation: plugin-sdk 18, plugins + cts-types 80 vitest green;
 check-arch green; CLI smoke green. Not run: E2E against the live stack
 (needs the running app), docs guard until this commit.
 
-## Business process authoring maturity (2026-10-07)
+## Plugin-delivered editor surfaces (owner decision 2026-10-11: editors move into plugins)
 
+Owner verdict on the post-cut state: the cassette editor and the rest of
+the facade presentation layer have no business in app code — an
+editor-bearing plugin ships its own editor surface. The listing declares
+the surface's UI module beside the editor binding and the platform mounts
+it data-only (SPEC §Plugin marketplace, owner decision 2026-10-11).
+"All other stuff" is read as the whole facade presentation layer:
+editors first, read-side previews and the app-side OCCS engine copy
+after. Dependency-ordered milestones; each is only done when its
+falsifiable check passes:
+
+- [ ] M5 — Surface module contract: the listing grammar carries surface
+  UI module declarations (origin + surface-contract version; SDK schema
+  and install/upgrade gates extended); the app mounts a declared surface
+  as a workspace page over data-only props — the record, the persistence
+  callbacks (blank-create via the compiled construct, the payload
+  channel, rename), locale, tokens — and an incompatible contract
+  version refuses at install or upgrade, never half-mounts at runtime.
+  Check: a fixture plugin with a trivial editor surface installs and
+  opens on the dev stack with zero app-side code for it.
+- [ ] M6 — Facade editors migrate: cassette-designer and
+  sheet-design-editor ship from workers/facade as surface modules; the
+  app-side registrations, designer components, dialogs, and
+  useCassetteDesignerPersistence (the duplicated persistence slop) are
+  deleted — persistence becomes the mount contract's callbacks, not a
+  hand-rolled composable. Check: no editor homes remain under
+  components/composables for cassette or sheet design; the cassette and
+  sheet-editor e2e flows stay green against the dev stack; the remote
+  editors degrade honestly offline.
+- [ ] M7 — Read-side previews migrate: the cassette thumbnail/preview
+  channel becomes a plugin preview module under the same contract;
+  CassetteCard/CassetteThumbnail and the DrawingCanvas occs-cassette
+  source leave app code. Check: no cassette component remains in app
+  code; generated detail and card previews still render for orgs with
+  the plugin installed.
+- [ ] M8 — The OCCS engine single-homes in the plugin: utils/occs is
+  deleted; workers/facade/vendor/occs is the engine's only copy (the
+  two-copy drift risk dies here). Check: utils/occs absent; vitest suite
+  at parity; facade e2e green.
+
+### Agent Notes (2026-10-11, SPEC written from the owner decision)
+
+The decision came out of a review of useCassetteDesignerPersistence.js
+(a cassette-branded re-implementation of the generic payload persistence
+in file-surfaces.js — the load/save/payload-URL mechanics duplicated,
+create-result extraction re-implemented weaker than
+created-instance-open.js, and a hardcoded `{ name }` create key riding
+the fragile input-id seam). Deliberately NOT fixed in place: the M6
+migration deletes the composable with the editor, so a mid-flight unslop
+would be wasted motion. Also recorded in the session: the vendored
+engine copy (workers/facade/vendor/occs) is byte-identical to utils/occs
+today with no sync mechanism — M8 closes that by single-homing.
+
+## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);
 contracts live in [SPEC.md](./SPEC.md) "Process authoring maturity" and
