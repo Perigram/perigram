@@ -471,17 +471,20 @@ main/supporting proportions from
 `InstanceWorkspace` and queue card grids use container breakpoints, so the
 main/supporting split and repeated cards respond to the actual editor pane
 width after a workspace split instead of the browser viewport width.
-Sheet-design details similarly mount `SheetDesignEditor` when the active user
-has a concrete `sheet_designs:write` grant. The editor runs on the shared
-designer shell (`DesignerSurface` + `DesignerWorkspace`) with a full-bleed
-sheet canvas and its commands (add/upload/rotate/delete/save) in the shared
-dock. The editor mutates nesting source
+Sheet-design details mount the facade plugin's sheet-design editor surface
+when the active user has a concrete `sheet_designs:write` grant — a
+plugin-delivered module (`workers/facade/surfaces/`, see
+[workers/facade](../workers/facade/README.md)) loaded through the
+remote-surface contract, running on the shared designer shell
+(`DesignerSurface` + `DesignerWorkspace` from the vetted pack) with a
+full-bleed sheet canvas and its commands (add/rotate/delete/save) in the
+shared dock. The editor mutates nesting source
 items and placements, resolves OCCS layer pens through the shared layer
 standards, snaps transformed cassette production-contour edges with tool-kerf
 clearance, checks transformed polygon clearance before accepting a placement,
 clamps complete rotated geometry inside the usable sheet polygon when one is
 present, falls back to rectangular sheet bounds for virtual rectangle sheets,
-supports existing/uploaded cassette designs, and persists through immutable
+and persists through immutable
 geometry revisions. Generated
 sheet-design details keep the sheet identity visible in `InstancePage`; read-only
 details keep the standard geometry display.

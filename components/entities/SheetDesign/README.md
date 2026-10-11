@@ -18,19 +18,24 @@
   `generateAttachment` command with `entities.sheetDesign` and
   `parameters.kind = "LAYOUT_DXF"`, then downloads the returned artifact from
   `/api/artifacts/:id`.
-- Write-authorized detail surfaces mount `SheetDesignEditor`. It draws the
+- Write-authorized detail surfaces mount the facade plugin's
+  sheet-design editor surface (a plugin-delivered module under
+  `workers/facade/surfaces/`, loaded through the remote-surface
+  contract). It draws the
   physical sheet and cassette outlines in sheet coordinates, supports pointer
-  dragging with tool-diameter snapping, keyboard or toolbar deletion, adding
-  existing cassettes, and DXF upload through `CassetteEditorDialog`.
-  The editor loads the same layer-standard and pen stores as `DrawingCanvas`,
+  dragging with tool-diameter snapping, keyboard or toolbar deletion, and adding
+  existing cassettes (the DXF-upload entry returns with the cassette editor
+  surface migration).
+  The editor loads the same layer-standard and pen records as `DrawingCanvas`
+  (through the surface mount's query transport),
   including canonical pen `identity.uid` references, and renders each source
   OCCS layer with its resolved stroke. A padded viewBox keeps the
   `contour.material_sheet` boundary visible; adaptive major-grid lines and
   selected-placement crosshairs make the smaller snap increment visible. Drag
   clamping uses the complete rotated cassette bounds so no part can cross the
-  physical sheet rectangle. Save sends source items and placements to the
-  revision-backed update endpoint. Read-only users continue to receive
-  `GeometryPreview`.
+  physical sheet rectangle. Save sends source items and placements through
+  the surface mount's generic patch transport. Read-only users continue to
+  receive `GeometryPreview`.
 - Generated sheet-design details show the sheet identity in the standard
   `InstancePage` header in addition to lineage context.
 - Cards show a compact placed-cassette summary with distinct cassette and
