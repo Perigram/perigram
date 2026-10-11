@@ -107,10 +107,30 @@ export async function describeOrganizationTypes(organizationId) {
   // bindings and attachment kinds are the installed layer of the same
   // served vocabulary (SPEC §Plugin marketplace), under the same laws —
   // a binding must target a file type the composed view declares, one
-  // editor per type, and a kind id is claimable once.
+  // editor per type, and a kind id is claimable once. Plugin-delivered
+  // surface declarations (owner decision 2026-10-11) ride the same
+  // composition: each surface's module URL resolves against the install's
+  // configured executor endpoints — connection settings stay server-side;
+  // the browser receives a ready URL (null until the executor is
+  // connected, and the loader says so honestly).
+  const surfaces = [];
   if (organizationId) {
     const seenEditors = new Set(editors.map(editor => editor.type));
     for (const install of await pluginInstalls.listInstallsByOrganization(organizationId)) {
+      const endpointOrigin = firstEndpointOrigin(install);
+      for (const surface of install.declarations?.surfaces || []) {
+        if (!surface?.id || !surface?.module || !surface.surfaceContract) {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} carries a malformed surface declaration: ${JSON.stringify(surface)}`
+          });
+        }
+        surfaces.push(Object.freeze({
+          id: surface.id,
+          url: endpointOrigin ? `${endpointOrigin}${surface.module}` : null,
+          surfaceContract: surface.surfaceContract
+        }));
+      }
       for (const editor of install.declarations?.editors || []) {
         if (!editor?.type || !editor?.surface || !(editor.modes || []).length) {
           throw createError({
@@ -154,8 +174,24 @@ export async function describeOrganizationTypes(organizationId) {
   return {
     bundle: compileClientBundle(registry, organizationId),
     attachmentKinds,
-    editors
+    editors,
+    surfaces
   };
+}
+
+// The origin a plugin's surface modules load from: the first configured
+// endpoint-mode connection — the executor serves its UI beside its
+// services. No configured endpoint means no loadable module; the client
+// renders the connect-the-executor state instead of guessing.
+function firstEndpointOrigin(install) {
+  for (const url of Object.values(install?.endpoints || {})) {
+    try {
+      return new URL(String(url)).origin;
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 export async function defineType(declaration = {}, { organizationId, actor = null } = {}) {

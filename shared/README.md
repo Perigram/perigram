@@ -14,6 +14,11 @@ imported through server modules that Nitro externalizes.
 - `access-control.js`: Shared permission grant evaluator for feature levels,
   UI actions, entity lineage scopes, workflow-transition scopes, and optional
   logical grant rules.
+- `plugin-surfaces.js`: The plugin-delivered editor surface contract versions
+  the platform can mount (SPEC §Plugin marketplace, owner decision
+  2026-10-11). The server install/upgrade gates and the client loader read
+  the same supported set — an unsupported surface contract refuses at the
+  gate, never as a runtime half-mount.
 - `permission-templates.js`: Access presets that expand into copied membership
   permission grants when a preset is assigned. Runtime checks consume the
   decomposed grants and do not branch on verbal preset labels.

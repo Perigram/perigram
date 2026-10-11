@@ -1,4 +1,9 @@
 {
+  "pluginSurfaces": {
+    "unavailable": "The editor could not be loaded — plugin editors are online-only.",
+    "notConnected": "Connect the plugin's executor in the plugin settings to use this editor.",
+    "unsupported": "This editor needs a newer platform version."
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",

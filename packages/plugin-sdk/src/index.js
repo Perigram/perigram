@@ -4,3 +4,4 @@ export { parseListing, normalizeListing } from './listing.js';
 export { createEndpointExecutor } from './endpoint-executor.js';
 export { runClaimExecutor } from './claim-executor.js';
 export { createPluginClient } from './api-client.js';
+export { checkSurfaceModule } from './surface-check.js';

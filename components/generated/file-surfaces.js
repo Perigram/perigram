@@ -1,5 +1,6 @@
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
@@ -191,7 +192,9 @@ export const packEditorBindings = validateEditorBindings([...documentsEditors, .
 // fetched view — module-scope evaluation, unit specs, and pre-auth
 // shells. A loaded-but-empty served list also falls back: today every
 // served editor comes from the mounted packs or installed plugins, so
-// empty can only mean "nothing fetched for this context".
+// empty can only mean "nothing fetched for this context". The served
+// surface declarations follow the same law: plugin-delivered surface
+// modules resolve beside the local registry (owner decision 2026-10-11).
 function activeEditorBindings() {
   try {
     const view = useFileTypeView();
@@ -203,24 +206,55 @@ function activeEditorBindings() {
   return packEditorBindings;
 }
 
+function activeSurfaceDeclarations() {
+  try {
+    const view = useFileTypeView();
+    const surfaces = unref(view.surfaces);
+    if (unref(view.loaded) && Array.isArray(surfaces)) return surfaces;
+  } catch {
+    // No active Pinia/app context (module scope, unit specs).
+  }
+  return [];
+}
+
 /**
  * Resolve one file type's surface record from editor bindings. Returns
  * `null` when the type has no editor binding or the bound surface has no
- * app presentation. Omitting `editors` resolves against the served editor
- * list when the organization type view has been fetched, with the pack
- * bindings as the documented fallback.
+ * presentation. A binding resolves against the fixed local registry
+ * first; a surface id the registry does not carry resolves against the
+ * served plugin surface declarations — the loader shell mounts the
+ * plugin's module (see RemoteEditorSurface). Omitting `editors` resolves
+ * both lists against the organization type view when fetched, with the
+ * documented fallbacks.
  */
-export function resolveFileSurface(editors, typeId = '') {
+export function resolveFileSurface(editors, typeId = '', surfaces = null) {
   const bindings = editors == null ? activeEditorBindings() : editors;
-  const editor = (bindings || []).find(item => item?.type === typeId && fileSurfaceRegistry[item.surface]);
+  const declarations = surfaces == null && editors == null ? activeSurfaceDeclarations() : (surfaces || []);
+  const editor = (bindings || []).find(item => item?.type === typeId && (fileSurfaceRegistry[item.surface] || declarations.some(surface => surface.id === item.surface)));
   if (!editor) return null;
-  const surface = fileSurfaceRegistry[editor.surface];
+  const local = fileSurfaceRegistry[editor.surface];
+  if (local) {
+    return {
+      typeId,
+      surface: editor.surface,
+      modes: [...(editor.modes || [])],
+      action: local.action || null,
+      workspacePage: local.workspacePage || null
+    };
+  }
+  const declared = declarations.find(surface => surface.id === editor.surface);
+  if (!declared) return null;
   return {
     typeId,
     surface: editor.surface,
     modes: [...(editor.modes || [])],
-    action: surface.action || null,
-    workspacePage: surface.workspacePage || null
+    action: 'generic',
+    remote: true,
+    workspacePage: {
+      icon: 'pi pi-file-edit',
+      component: RemoteEditorSurface,
+      props: page => ({ record: page.entity, typeId, surface: declared })
+    }
   };
 }
 
@@ -230,10 +264,10 @@ export function resolveFileSurface(editors, typeId = '') {
  * persisted pane state stays stable; the props adapter receives the page
  * record and the bound type id (one surface may serve several types).
  */
-export function fileWorkspacePages(editors = activeEditorBindings()) {
+export function fileWorkspacePages(editors = activeEditorBindings(), surfaces = activeSurfaceDeclarations()) {
   return (editors || [])
     .map(editor => {
-      const surface = resolveFileSurface(editors, editor.type);
+      const surface = resolveFileSurface(editors, editor.type, surfaces);
       return surface?.workspacePage
         ? {
             id: editor.surface,
@@ -252,10 +286,10 @@ export function fileWorkspacePages(editors = activeEditorBindings()) {
  * Derive editor-action rows: every bound file type resolves the action
  * that opens its editor page — a registered component or `'generic'`.
  */
-export function fileEditorActions(editors = activeEditorBindings()) {
+export function fileEditorActions(editors = activeEditorBindings(), surfaces = activeSurfaceDeclarations()) {
   return (editors || [])
     .map((editor) => {
-      const surface = resolveFileSurface(editors, editor.type);
+      const surface = resolveFileSurface(editors, editor.type, surfaces);
       return surface?.action
         ? [editor.type, { action: surface.action }]
         : null;

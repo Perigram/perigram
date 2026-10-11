@@ -15,9 +15,14 @@
 //   plugin services: `{ '<typeId>': { '<mode>': '<service ref>' } }`;
 // - `exports` — attachment exports bound to plugin services:
 //   `[{ typeId, kind, service, extension?, mime? }]`;
+// - `surfaces` — plugin-delivered editor surface modules (owner decision
+//   2026-10-11): `[{ id, module, surfaceContract }]` where `module` is a
+//   root-relative path the plugin's executor serves and
+//   `surfaceContract` is the mount-contract major the module targets;
 // - `requires` — mounted pack ids the plugin's types resolve against.
 
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
+const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
 
 export function parseListing(listing = {}) {
   const declarations = listing.declarations || {};
@@ -28,6 +33,7 @@ export function parseListing(listing = {}) {
   const conversions = declarations.conversions || [];
   const constructions = declarations.constructions || {};
   const exportsList = declarations.exports || [];
+  const surfaces = (declarations.surfaces || []).filter(Boolean);
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');
 
@@ -153,13 +159,30 @@ export function parseListing(listing = {}) {
     serviceRefOf(exporter.service, `export ${exporter.typeId}/${exporter.kind}`);
   }
 
+  const seenSurfaceIds = new Set();
+  for (const surface of surfaces) {
+    if (!/^[a-z0-9-]+$/.test(surface.id || '')) {
+      throw listingError(`surface id must be a slug (got ${JSON.stringify(surface.id)})`);
+    }
+    if (seenSurfaceIds.has(surface.id)) {
+      throw listingError(`duplicate surface id ${surface.id}`);
+    }
+    seenSurfaceIds.add(surface.id);
+    if (!MODULE_PATH.test(String(surface.module || ''))) {
+      throw listingError(`surface ${surface.id} module must be a root-relative .js/.mjs path the executor serves (got ${JSON.stringify(surface.module)})`);
+    }
+    if (!Number.isInteger(surface.surfaceContract) || surface.surfaceContract < 1) {
+      throw listingError(`surface ${surface.id} needs an integer surfaceContract >= 1 (got ${JSON.stringify(surface.surfaceContract)})`);
+    }
+  }
+
   for (const packId of requires) {
     if (!/^[a-z0-9-]+$/.test(packId)) {
       throw listingError(`requires entries must be pack slugs (got ${JSON.stringify(packId)})`);
     }
   }
 
-  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, exports: exportsList, requires };
+  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, exports: exportsList, surfaces, requires };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -179,7 +202,8 @@ export function normalizeListing(listing = {}) {
       attachmentKinds: layer.attachmentKinds,
       conversions: layer.conversions,
       constructions: layer.constructions,
-      exports: layer.exports
+      exports: layer.exports,
+      surfaces: layer.surfaces
     }
   };
 }

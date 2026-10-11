@@ -50,7 +50,8 @@ Two files:
 
 The listing may declare beside its types: `services` (SPEC §8 signatures
 with `mode` `endpoint`/`claim`), `editors` (file-type editor bindings —
-only for file types the plugin itself declares), `attachmentKinds`
+only for file types the plugin itself declares), `surfaces`
+(plugin-delivered editor surface modules — see §1a), `attachmentKinds`
 (payload upload contracts), `conversions` (artifact conversions, with an
 optional `service` binding), `constructions` (the plugin's types'
 construction modes bound to plugin services — the platform resolves the
@@ -59,6 +60,44 @@ into the created record), `exports` (attachment exports bound to plugin
 services), and `requires` (mounted pack ids the types resolve against).
 Shapes: the SDK's
 [listing contract](../packages/plugin-sdk/README.md).
+
+## 1a. Author an editor surface (plugin-delivered UI)
+
+An editor-bearing plugin ships its editor itself (owner decision
+2026-10-11): the listing declares the surface's module, the executor
+serves it, and the platform mounts it inside its own chrome. The surface
+contract is data-only — the module receives the record and the
+persistence callbacks, never stores, routing, or auth:
+
+- Default-export the factory `createSurface(ctx) -> component`. `ctx` is
+  `{ vue, components, locale }`: the host's Vue runtime subset (`h`, `ref`,
+  `computed`, `watch`, lifecycle hooks — render functions, no template
+  compiler), the vetted PrimeVue pack (compose from it; that is the
+  consistency law), and `{ t, te, locale }`.
+- The returned component declares props `{ record, persistence }`.
+  `persistence` carries `createBlank({ name })`, `loadDocument(record)`,
+  `saveDocument(record, document, { fileName, mimeType })`, and
+  `rename(record, name)` — the generic instance transports. Documents ride
+  the payload channel; the module never calls the API itself.
+- Never import `vue`, `primevue`, or `pinia` — the mount injects them.
+  `perigram-plugin surfaces <module.mjs>` refuses a module whose import
+  graph carries host externals, whose factory is missing, or whose factory
+  logs errors against the stub context.
+- The surface UX laws: the host owns the chrome (mount inside the page
+  you are given; never invent toolbars around it), the save affordance
+  and undo behavior match the platform editors, keyboard paths and aria
+  labels are first-class. Remote editors are online-only — mount fast and
+  fail honestly.
+- Declare it in the listing beside the editor binding:
+
+  ```json
+  "surfaces": [{ "id": "coating-designer", "module": "/surfaces/coating-designer.mjs", "surfaceContract": 1 }],
+  "editors": [{ "type": "coating-sheet", "surface": "coating-designer", "modes": ["edit"] }]
+  ```
+
+  The executor serves the module at that path (static file route beside
+  the services); `surfaceContract` is the mount-contract major — the
+  platform refuses an install targeting one it does not support.
 
 ## 2. Run the executor
 

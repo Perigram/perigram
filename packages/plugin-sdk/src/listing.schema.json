@@ -73,6 +73,24 @@
             }
           }
         },
+        "surfaces": {
+          "type": "array",
+          "description": "Plugin-delivered editor surface modules (owner decision 2026-10-11): the executor serves each module; surfaceContract is the mount-contract major it targets",
+          "items": {
+            "type": "object",
+            "required": ["id", "module", "surfaceContract"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+              "module": {
+                "type": "string",
+                "pattern": "^/[a-z0-9/_-]+\\.m?js$",
+                "description": "Root-relative module path the plugin's executor serves"
+              },
+              "surfaceContract": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
         "attachmentKinds": {
           "type": "object",
           "description": "Payload upload contracts keyed by kind id (the pack vocabulary)",
