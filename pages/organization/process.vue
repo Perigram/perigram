@@ -44,6 +44,7 @@
           <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
           <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
+          <template #edge-selfloop="props"><SelfLoopEdge v-bind="props" /></template>
           <template #zoom-pane>
             <LaneBands
               :bands="laneBands"
@@ -691,6 +692,7 @@ import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_
 import { checkDeclarationsAgainstCts, classMayDeclareChildren, compileClientBundle, operationKindOf, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
+import SelfLoopEdge from '~/components/process-designer/SelfLoopEdge.vue';
 import LaneBands from '~/components/process-designer/LaneBands.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
 import FieldNode from '~/components/type-designer/FieldNode.vue';
@@ -2359,7 +2361,11 @@ function decorateEdge(edge = {}) {
   const layer = WIRE_STYLES[edgeLayer(edge)] || WIRE_STYLES.value;
   const decorated = {
     ...edge,
-    type: 'default',
+    // A wire leaving and re-entering one node (a class declaring itself
+    // as its own children target — recursive containment, SPEC §6) draws
+    // as a hoop over the card: the default bezier degenerates there into
+    // a line through the node.
+    type: edge.source === edge.target ? 'selfloop' : 'default',
     animated: selected,
     style: {
       stroke: selected ? 'var(--p-primary-color)' : layer.stroke,

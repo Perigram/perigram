@@ -73,6 +73,18 @@ describe('typed edges (R2)', () => {
     expect(registry.compile().errors).toContainEqual(expect.stringMatching(/lineage cycle/));
   });
 
+  it('accepts recursive containment — a type naming itself as its own child (SPEC §6)', () => {
+    const registry = packRegistry();
+    registry.defineType({
+      id: 'assembly', class: 'item',
+      fields: { name: { base: 'string' } },
+      edges: { children: { parts: { types: ['assembly', 'material'] } } }
+    });
+    expect(registry.compile().errors).toEqual([]);
+    // Self and foreign children share one declared lineage key.
+    expect(registry.getType('assembly').edges.children.parts.lineageKey).toBe('assemblyId');
+  });
+
   it('stamps every children edge with its declared storage lineageKey (SPEC §6)', () => {
     const registry = packRegistry();
     registry.defineType({

@@ -519,6 +519,18 @@ describe('tree declaration compilation', () => {
     expect(compiled.widget.edges).toEqual({ children: { parts: { types: ['gadget'], onRemove: 'cascade' } } });
   });
 
+  it('a class wired to itself declares recursive containment (SPEC §6)', () => {
+    const assembly = classNode('assembly', { class: 'item' });
+    const nodes = [assembly, fieldNode('assembly', 'name', { base: 'string' })];
+    const edges = [
+      declares(nodes[1], assembly, 'field'),
+      { id: `c:${assembly.id}-${assembly.id}`, source: assembly.id, target: assembly.id, role: 'type', label: 'children', data: { key: 'parts', onRemove: 'restrict' } }
+    ];
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
+    expect(diagnostics).toEqual([]);
+    expect(declarations[0].edges).toEqual({ children: { parts: { types: ['assembly'], onRemove: 'restrict' } } });
+  });
+
   it('authored field names are labels; the row id derives, not validates', () => {
     const widget = classNode('widget');
     const nodes = [widget,

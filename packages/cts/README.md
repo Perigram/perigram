@@ -31,7 +31,10 @@ module layout and how the code maps to the spec's build-order tiers.
   `onRemove` integrity; children entries carry their storage `lineageKey`
   (authored, else the derived `camel(declaringTypeId)+"Id"` fallback — one
   derivation home, consumed by the domain projection, derived indexes, and
-  the UI generator); lineage acyclicity (R2).
+  the UI generator); lineage acyclicity (R2): cycles across distinct types
+  are refused, while a children entry naming its own declaring type is
+  recursive containment and compiles clean (SPEC §6 — instance forests stay
+  finite because a parent exists before its children).
 - `states.js` — the state-vocabulary facet of declarations: vocabulary
   normalization (flat values, terminal flags, per-state display policy)
   and its readers. Machines themselves are graph-derived (SPEC §7):
