@@ -589,16 +589,24 @@ falsifiable check passes:
   components/composables for cassette or sheet design; the cassette and
   sheet-editor e2e flows stay green against the dev stack; the remote
   editors degrade honestly offline.
-- [ ] M7 — Read-side previews migrate: the cassette thumbnail/preview
-  channel becomes a plugin preview module under the same contract;
-  CassetteCard/CassetteThumbnail and the DrawingCanvas occs-cassette
-  source leave app code. Check: no cassette component remains in app
-  code; generated detail and card previews still render for orgs with
-  the plugin installed.
+- [ ] M7 — Read-side previews migrate as plugin preview modules: the
+  surface contract grows the preview kind — the listing declares a
+  preview module beside the editor surface, the executor serves it, and
+  the platform mounts it in its preview slots (the card preview region
+  and the detail `previewSource` render group) over a read-only
+  data-only mount (`{ record, payload }`; the host resolves the payload
+  URL — no persistence, no queries). Card chrome stays the platform's
+  InstanceCard. CassetteCard collapses into the generic card + plugin
+  preview; CassetteThumbnail/CassetteFoldedPreview app homes and the
+  DrawingCanvas occs-cassette source leave app code. Check: no cassette
+  component or util remains in app code; generated detail and card
+  previews still render for orgs with the plugin installed.
 - [ ] M8 — The OCCS engine single-homes in the plugin: utils/occs is
-  deleted; workers/facade/vendor/occs is the engine's only copy (the
-  two-copy drift risk dies here). Check: utils/occs absent; vitest suite
-  at parity; facade e2e green.
+  deleted; workers/facade/occs is the engine's only copy (the
+  two-copy drift risk dies here). The doomed app twins
+  (utils/cassetteV2*, utils/drawingPreview, public/vendor/clipper2, the
+  npm `three` dependency) die with M7's consumers. Check: utils/occs
+  absent; vitest suite at parity; facade e2e green.
 
 ### Agent Notes (2026-10-11, M6.3 — the cassette designer migrated; the OCCS engine single-homed)
 

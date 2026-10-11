@@ -321,6 +321,18 @@ are deleted, the read-side cassette previews follow the same delivery path,
 and the OCCS engine single-homes in the plugin — no facade presentation code
 remains in the app.
 
+Owner decision (2026-10-11, cassette is a file type): a cassette is a file
+type, full stop — the record's content is the payload document, and
+everything that operates over cassettes belongs to the plugin. There is no
+PARAMETRIC/STANDARD distinction and no `templateType` field; parameters are
+set in the editor and live inside the document, never on the record; the
+create form never prompts document internals (the Name input is already
+retired — blank creates enter unnamed). The read-side preview channel
+(thumbnail, card preview, geometry preview) is a plugin-delivered module
+under the surface contract: the platform mounts it in its preview slots
+over a read-only data-only mount (`{ record, payload }`), and the card
+chrome stays the platform's InstanceCard.
+
 Plugin authoring is SDK-first (owner ask, 2026-10-10): a coding agent authors
 a plugin through @perigram/plugin-sdk — the listing contract with its JSON
 schema, both executor harnesses, and the perigram-plugin CLI — and publishes
