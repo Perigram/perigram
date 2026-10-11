@@ -746,6 +746,22 @@ died by the new operator retract route (`DELETE /api/plugins/catalog/
 plugin-surface e2e retracts its fixture after every run and the stale
 dev entry was retracted live.
 
+### Agent Notes (2026-10-11, order-process e2e seam — remaining flip debt, named)
+
+Preparing the live proof surfaced where the wire-flip session actually
+left the order-process e2e (it was never run there): the authoring seam
+now speaks the §3 vocabulary — construct input ports `fields.*` (the
+served construction contracts), literal typing, and the sheet-material
+constructs all compose and validate — and the run walks past the old
+`data.*` port errors. The remaining failure is the DESIGNER's field
+select: on draft load it re-persists the cts.field node's `field` input
+default as the option OBJECT (graph-protocol's packet unwrap then
+validates `[object Object]`), and with the re-persisted default the
+getField output types degrade to json. Fix home: the designer node form's
+field-select control must bind the option's path value, not the option
+record; the graph-protocol unwrap then reads the string. Tracked here so
+the next flip-cleanup session picks it up with the root cause named.
+
 ### Agent Notes (2026-10-11, cassette file-type cleanup — templateType/parameters deleted)
 
 Owner verdict on the create-form fields: all three slop. `templateType`
