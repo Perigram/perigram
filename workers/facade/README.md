@@ -2,19 +2,21 @@
 
 The facade fabrication domain as a third-party plugin (SPEC §Plugin
 marketplace, owner decision 2026-10-10): `listing.json` is the whole
-declaration surface (types, services, editor bindings, attachment kinds,
-conversions, service-backed construction bindings, exports), and this
-process is the executor that owns the domain's compute. The platform
-carries zero facade code — it reaches this executor per configured
-service endpoint (endpoint mode), sending referenced instances and
-payloads as base64 values and receiving computed fields and files. The
-executor never calls back.
+declaration surface (types, services, editor bindings, preview bindings,
+attachment kinds, conversions, service-backed construction bindings,
+exports), and this process is the executor that owns the domain's compute
+and its UI. The platform carries zero facade code — it reaches this
+executor per configured service endpoint (endpoint mode), sending
+referenced instances and payloads as base64 values and receiving computed
+fields and files. The executor never calls back.
 
 Runs from the repo mount (compose `facade-executor`, port 8790) or as
-its own deployment — nothing here imports platform code; `vendor/` holds
-the geometry/OCCS/DXF modules (the app keeps its own copies for the
-read-side preview family until that migrates; the executor's are
-authoritative for construction).
+its own deployment — nothing here imports platform code. The OCCS engine
+(`occs/`) is the domain's single copy: the executor's construction
+services and the browser-side surfaces both use it, the executor serves
+it statically, and `occs/layerStandards.js` ships the cassette layer
+standards with their pens (the pre-extraction system seeds) that every
+renderer, editor, and preview bakes through `applyOccsLayerPens`.
 
 ## Editor surfaces
 
@@ -25,10 +27,11 @@ refused — the URL is the only credential the browser gets). Each module
 targets a surface mount contract
 ([plugin-surfaces](../../shared/plugin-surfaces.js)):
 
-| Surface | Contract | Serves |
-|---|---|---|
-| `sheet-design-editor` | 2 | The sheet-design type's editor: layout drag/rotate/snap, layer-pen styling, save through the mount's patch transport. Pure layout compute in `surfaces/lib/`. |
-| `cassette-designer` | 2 | The cassette type's designer: parametric face graph, workpieces/attachments, profile sketch and folded 3D preview. Engine and render family in [`occs/`](./occs/README.md) and `surfaces/lib/`; the three.js preview runtime is vendored under `assets/vendor/three/`. |
+| Surface | Kind | Contract | Serves |
+|---|---|---|---|
+| `sheet-design-editor` | editor | 2 | The sheet-design type's editor: layout drag/rotate/snap, layer-pen styling, save through the mount's patch transport. Pure layout compute in `surfaces/lib/`. |
+| `cassette-designer` | editor | 2 | The cassette type's designer: parametric face graph, workpieces/attachments, profile sketch and folded 3D preview. Engine and render family in [`occs/`](./occs/README.md) and `surfaces/lib/`; the three.js preview runtime is vendored under `assets/vendor/three/`. |
+| `cassette-preview` | preview | 1 | The cassette type's read-only preview (M7): baked geometry rows when the record carries them, else the payload OCCS document through the plugin renderer; mounts in the platform's card and detail preview slots over `{ record, payload }`. |
 
 ## Services
 
@@ -47,6 +50,9 @@ targets a surface mount contract
   `npx perigram-plugin validate workers/facade/listing.json`).
 - Publish + install: the publish API (`POST /api/plugins/catalog`) and the
   org install route, or the CLI (`perigram-plugin publish`, `install`).
+  Deploys bump `version` and re-publish — installed organizations then see
+  the available-version tag and upgrade through the Plugins page (the §11
+  diff preview with declared migration steps).
 - Existing orgs: `server/scripts/migrate-facade-pack-to-plugin.js`
   swaps the mounted pack for the install (disablement record + install
   snapshot + service-node rewrites `nesting.solve` →

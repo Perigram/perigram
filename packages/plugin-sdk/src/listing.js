@@ -15,10 +15,16 @@
 //   plugin services: `{ '<typeId>': { '<mode>': '<service ref>' } }`;
 // - `exports` — attachment exports bound to plugin services:
 //   `[{ typeId, kind, service, extension?, mime? }]`;
-// - `surfaces` — plugin-delivered editor surface modules (owner decision
-//   2026-10-11): `[{ id, module, surfaceContract }]` where `module` is a
-//   root-relative path the plugin's executor serves and
-//   `surfaceContract` is the mount-contract major the module targets;
+// - `surfaces` — plugin-delivered surface modules (owner decision
+//   2026-10-11): `[{ id, module, surfaceContract, kind? }]` where
+//   `module` is a root-relative path the plugin's executor serves,
+//   `surfaceContract` is the mount-contract major the module targets,
+//   and `kind` is `editor` (the default) or `preview` (M7: a read-only
+//   `{ record, payload }` mount into the platform's preview slots —
+//   always contract 1);
+// - `previews` — preview bindings `[{ type, surface }]`: the plugin's
+//   types whose preview slots mount the bound preview surface (one per
+//   type, the surface must be kind `preview`);
 // - `requires` — mounted pack ids the plugin's types resolve against.
 
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
@@ -34,6 +40,7 @@ export function parseListing(listing = {}) {
   const constructions = declarations.constructions || {};
   const exportsList = declarations.exports || [];
   const surfaces = (declarations.surfaces || []).filter(Boolean);
+  const previews = (declarations.previews || []).filter(Boolean);
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');
 
@@ -160,6 +167,7 @@ export function parseListing(listing = {}) {
   }
 
   const seenSurfaceIds = new Set();
+  const surfaceKindOf = new Map();
   for (const surface of surfaces) {
     if (!/^[a-z0-9-]+$/.test(surface.id || '')) {
       throw listingError(`surface id must be a slug (got ${JSON.stringify(surface.id)})`);
@@ -174,6 +182,39 @@ export function parseListing(listing = {}) {
     if (!Number.isInteger(surface.surfaceContract) || surface.surfaceContract < 1) {
       throw listingError(`surface ${surface.id} needs an integer surfaceContract >= 1 (got ${JSON.stringify(surface.surfaceContract)})`);
     }
+    const kind = surface.kind || 'editor';
+    if (!['editor', 'preview'].includes(kind)) {
+      throw listingError(`surface ${surface.id} kind must be 'editor' or 'preview' (got ${JSON.stringify(surface.kind)})`);
+    }
+    if (kind === 'preview' && surface.surfaceContract !== 1) {
+      throw listingError(`preview surface ${surface.id} must target contract 1 — the read-only mount (got ${surface.surfaceContract})`);
+    }
+    surfaceKindOf.set(surface.id, kind);
+  }
+
+  // Bindings and kinds must agree: an editor binding mounts the editor
+  // chrome (persistence callbacks), a preview binding mounts read-only —
+  // a surface cannot serve both roles.
+  for (const editor of editors) {
+    if (surfaceKindOf.get(editor.surface) !== 'editor') {
+      throw listingError(`editor binding for type ${editor.type} references surface ${editor.surface}, which is not an editor surface`);
+    }
+  }
+  const seenPreviewTypes = new Set();
+  for (const preview of previews) {
+    if (!preview?.type || !preview?.surface) {
+      throw listingError(`malformed preview binding: ${JSON.stringify(preview)}`);
+    }
+    if (!typeById.has(preview.type)) {
+      throw listingError(`preview binding for type ${preview.type} must reference a type this plugin declares`);
+    }
+    if (seenPreviewTypes.has(preview.type)) {
+      throw listingError(`duplicate preview binding for type ${preview.type} — exactly one preview per type`);
+    }
+    seenPreviewTypes.add(preview.type);
+    if (surfaceKindOf.get(preview.surface) !== 'preview') {
+      throw listingError(`preview binding for type ${preview.type} references surface ${preview.surface}, which is not a preview surface`);
+    }
   }
 
   for (const packId of requires) {
@@ -182,7 +223,7 @@ export function parseListing(listing = {}) {
     }
   }
 
-  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, exports: exportsList, surfaces, requires };
+  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, exports: exportsList, surfaces, previews, requires };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -203,7 +244,8 @@ export function normalizeListing(listing = {}) {
       conversions: layer.conversions,
       constructions: layer.constructions,
       exports: layer.exports,
-      surfaces: layer.surfaces
+      surfaces: layer.surfaces,
+      previews: layer.previews
     }
   };
 }

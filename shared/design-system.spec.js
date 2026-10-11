@@ -146,14 +146,6 @@ describe('Design system manifest', () => {
     expect(artifact.fileId).toBeUndefined();
   });
 
-  it('uses string cassette template parameters matching the DTO contract', () => {
-    const cassette = factories.createMockCassette();
-
-    expect(cassette.data.parameters).toEqual(['A', 'B', 'C']);
-    expect(cassette.data.type).toBe('PARAMETRIC');
-    expect(cassette).not.toHaveProperty('parameters');
-  });
-
   it('formats concrete cassette parameter maps as exact named values', () => {
     const parameters = { A: 1200, B: 400, C: 35 };
 
@@ -500,11 +492,8 @@ describe('Design system manifest', () => {
 
   it('keeps framework manifest UI fields tied to canonical DTO paths', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'framework.manifest.json'), 'utf8'));
-    const cassette = manifest.designSystem.components.find(component => component.key === 'cassette');
 
     expect(manifest.validations).toEqual({ ok: true, issues: [] });
-    expect(cassette.fieldPaths).toEqual([]);
-    expect(cassette.fieldPaths).not.toContain('data.type');
     // The legacy residual field-group map died with the fact channel: no
     // design-system component carries legacy fact rows anymore.
   });
@@ -517,7 +506,7 @@ describe('Design system manifest', () => {
     // fact grouping derives at compile (sections over the row). Legacy
     // field-group keys remain only for undeclared types.
     const bundleDeclared = new Set([
-      'cassette', 'sheetDesign', 'penTemplate', 'layerStandard',
+      'penTemplate', 'layerStandard',
       'user', 'organization', 'artifact', 'entityRevision'
     ]);
     for (const key of bundleDeclared) {
@@ -690,7 +679,6 @@ describe('Design system manifest', () => {
     const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceInlineRef.vue'), 'utf8');
     const instanceCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceCard.vue'), 'utf8');
     const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstancePreview.vue'), 'utf8');
-    const cassetteThumbnail = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteThumbnail.vue'), 'utf8');
 
     expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
@@ -714,17 +702,15 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('StateTag');
     expect(inlineRef).toContain('compactStatusState');
     expect(inlineRef).toContain('instance-inline-compact-status-row');
-    expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
-    expect(inlineRef).toContain("'sheet_design'");
     expect(inlineRef).not.toContain('instance-inline-compact-fallback');
     expect(instanceCard).toContain('instance-inline-chip');
     expect(instanceCard).toContain('titleFor');
     expect(entityPreview).toContain('hideDimensionLayer');
     expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
-    expect(entityPreview).toContain('GeometryPreview');
+    expect(entityPreview).toContain('InstancePreviewMedia');
     expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isProductionPreviewLayer');
     expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isDimensionLayerName');
-    expect(cassetteThumbnail).toContain("name !== 'dimension.cassette'");
+    expect(entityPreview).toContain('RemoteInstancePreview');
   });
 
 

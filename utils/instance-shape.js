@@ -26,6 +26,26 @@ function nestedRowValues(source = {}, descriptor = {}, prefix = []) {
   return values;
 }
 
+// The declared preview value (the type's authored previewSource group
+// row read off the wire DTO): the path plus its stored-shape fallbacks
+// walk in order, so a type whose renderable geometry lives in more than
+// one stored shape previews whichever one the record carries. Works on
+// wire DTOs and screen instances alike (both carry flat `fields`).
+export function previewSourceValue(dto = {}, typeRecord = {}) {
+  const paths = [
+    typeRecord.previewSource?.path,
+    ...(typeRecord.previewSource?.fallbackPaths || [])
+  ].filter(Boolean);
+  for (const previewPath of paths) {
+    const value = readBlockPath(dto, previewPath.split('.'));
+    if (value !== null && value !== undefined
+      && (Array.isArray(value) ? value.length > 0 : true)) {
+      return value;
+    }
+  }
+  return null;
+}
+
 export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
   const rows = dto.fields || {};
   const fields = {};
@@ -52,25 +72,6 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
   // One flat state string rides verbatim from the wire (SPEC §3/§7); no
   // axis map is projected and nothing synthesizes a value.
   const state = typeof dto.state === 'string' && dto.state ? dto.state : null;
-  // Declared preview field (type.previewSource — the authored
-  // previewSource group row): the value reads straight off the wire DTO,
-  // so generated previews render the declared channel (for example
-  // cassette geometry) even while the payload is absent. The declared
-  // fallbackPaths walk in order, so a type whose renderable source is
-  // stored in several shapes previews whichever one the record carries.
-  const previewSourcePaths = [
-    typeRecord.previewSource?.path,
-    ...(typeRecord.previewSource?.fallbackPaths || [])
-  ].filter(Boolean);
-  let previewSourceValue = null;
-  for (const previewPath of previewSourcePaths) {
-    const value = readBlockPath(dto, previewPath.split('.'));
-    if (value !== null && value !== undefined
-      && (Array.isArray(value) ? value.length > 0 : true)) {
-      previewSourceValue = value;
-      break;
-    }
-  }
   return {
     id: String(dto._id || ''),
     type: typeRecord.id || '',
@@ -82,6 +83,6 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     // File payload reference: kept verbatim so preview surfaces resolve
     // the payload download URL.
     payload: dto.payload || null,
-    previewSource: previewSourceValue
+    previewSource: previewSourceValue(dto, typeRecord)
   };
 }

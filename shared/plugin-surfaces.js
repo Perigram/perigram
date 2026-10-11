@@ -15,6 +15,16 @@
 //     transport, and the grown primitive pack (designer chrome beside
 //     the PrimeVue primitives). Author-facing shapes:
 //     docs/PLUGIN_AUTHORING.md §1a.
+//
+// Kinds (M7): a surface entry is an `editor` (the default — mounts over
+// `{ record, persistence }` inside the editor chrome) or a `preview`
+// (mounts read-only in the platform's preview slots — the card preview
+// band and the detail previewSource group — over `{ record, payload }`:
+// the host resolves and parses the payload document, so a preview module
+// never fetches, persists, or queries; it always targets contract 1).
+// The listing contract validates the kind and its bindings (SDK
+// `parseListing`); the platform serves resolved preview bindings on the
+// type view.
 export const SUPPORTED_SURFACE_CONTRACTS = [1, 2];
 
 export function isSupportedSurfaceContract(version) {

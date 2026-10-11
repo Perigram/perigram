@@ -1,39 +1,30 @@
 <template>
-  <ArtifactViewer
-    v-if="payloadPreview.hasPayload && payloadPreview.renderable"
-    :source="{ mode: payloadPreview.mode, fileUrl: payloadPreview.fileUrl, attachment: entity.payload }"
-    :variant="'card'"
-    class="h-32 w-full"
+  <RemoteInstancePreview
+    v-if="mode !== 'none' && pluginPreview"
+    :record="entity"
+    :type-id="typeId"
+    :preview="pluginPreview"
+  >
+    <InstancePreviewMedia :entity="entity" :type-id="typeId" :hide-dimension-layer="hideDimensionLayer" />
+  </RemoteInstancePreview>
+  <InstancePreviewMedia
+    v-else-if="mode !== 'none'"
+    :entity="entity"
+    :type-id="typeId"
+    :hide-dimension-layer="hideDimensionLayer"
   />
-  <template v-else-if="mode !== 'none'">
-    <CassetteThumbnail
-      v-if="isCassetteLike"
-      :cassette="entity"
-      :cassette-id="cassetteId"
-            :hide-dimension-layer="hideDimensionLayer"
-    />
-    <img
-      v-else-if="mode === 'thumbnail' && thumbnailUrl"
-      :src="thumbnailUrl"
-      :alt="entity.identity?.name || entity.identity?.uid || ''"
-      class="h-32 w-full rounded-ui bg-subtle object-contain"
-    />
-    <GeometryPreview
-      v-else-if="mode === 'hero' || mode === 'canvas'"
-      :entity="entity"
-      :hide-dimension-layer="hideDimensionLayer"
-    />
-  </template>
 </template>
 
 <script setup>
 import { computed } from 'vue';
-import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
-import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
-import GeometryPreview from '~/components/shared/GeometryPreview.vue';
-import { resolveFilePreview } from '~/components/generated/file-preview-contract.js';
-import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import RemoteInstancePreview from '~/components/generated/RemoteInstancePreview.vue';
+import InstancePreviewMedia from '~/components/shared/InstancePreviewMedia.vue';
+import { resolvePluginPreview } from '~/components/generated/plugin-preview-bindings.js';
 
+// The unified preview slot resolver: a type with a served plugin preview
+// binding mounts the plugin's preview module (read-only, over the record
+// and its payload document); every other type — and any slot whose
+// plugin module cannot load — renders the generic preview media.
 const props = defineProps({
   entity: { type: Object, required: true },
   typeId: { type: String, required: true },
@@ -41,21 +32,5 @@ const props = defineProps({
   hideDimensionLayer: { type: Boolean, default: false }
 });
 
-const { typeById } = useFileTypeView();
-// Unified payload preview: a file instance with a stored payload previews
-// through the type's declared preview policy (the same contract generated
-// detail bodies use); legacy DTOs without payload bytes keep their
-// type-specific thumbnail renderers below.
-const payloadPreview = computed(() => resolveFilePreview(props.entity, typeById(props.typeId)));
-
-const isCassetteLike = computed(() =>
-  props.typeId === 'cassette'
-);
-const cassetteId = computed(() => props.entity?._id);
-const thumbnailUrl = computed(() =>
-  props.entity?.data?.thumbnailUrl ||
-  props.entity?.attachments?.thumbnail?.url ||
-  props.entity?.payload?.thumbnailUrl ||
-  ''
-);
+const pluginPreview = computed(() => resolvePluginPreview(props.typeId));
 </script>

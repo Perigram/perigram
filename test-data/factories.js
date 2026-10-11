@@ -80,61 +80,7 @@ export const MOCK_IDS = {
   entityRevisionId: 'entity-revision-demo-001'
 };
 
-export function createMockSheetDesign(overrides = {}) {
-  const geometry = {
-    svgId: 'svg-sheet-demo',
-    dxfId: 'dxf-sheet-demo',
-    preview: {
-      viewBox: '0 0 200 100',
-      layers: [
-        { name: 'sheet', color: 'currentColor', weight: 2, paths: ['M8 8 H192 V92 H8 Z'] },
-        { name: 'cassettes', color: 'var(--p-primary-color)', weight: 1.5, paths: ['M20 20 H80 V55 H20 Z', 'M96 20 H150 V72 H96 Z'] }
-      ]
-    }
-  };
-  return {
-    ...createEntity({
-      uid: MOCK_IDS.sheetDesignId,
-      name: 'Sheet Design SD-NEST-001',
-      serial: 'SD-NEST-001',
-      state: 'READY',
-      lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
-      specs: { width: 2000, length: 1000, area: 2, sheetThickness: 4 },
-      data: { geometry }
-    }),
-    ...overrides
-  };
-}
 
-export function createMockCassette(overrides = {}) {
-  const geometry = {
-    preview: {
-      viewBox: '0 0 160 90',
-      layers: [
-        { name: 'outline', color: 'currentColor', weight: 2, paths: ['M12 12 H148 V78 H12 Z'] },
-        { name: 'folds', color: 'var(--p-primary-color)', weight: 1.5, paths: ['M38 12 V78', 'M122 12 V78'] }
-      ]
-    }
-  };
-
-  return {
-    ...createEntity({
-      uid: 'cassette-demo-001',
-      name: 'Cassette Type A',
-      slug: 'cassette-type-a',
-      state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
-      data: {
-        type: 'PARAMETRIC',
-        parameters: ['A', 'B', 'C'],
-        geometry,
-        organizationId: MOCK_IDS.organizationId,
-        userId: 'user-demo'
-      }
-    }),
-    ...overrides
-  };
-}
 
 
 

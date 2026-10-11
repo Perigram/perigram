@@ -1,4 +1,5 @@
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isCreateAction, isRelationLinkAction, isUpdateAction } from '~/components/generated/action-visibility.js';
 
@@ -30,6 +31,8 @@ function unnamedLabel({ t, te } = {}) {
 export function generatedEntityLabel(typeId = '', { t, te } = {}) {
   const key = ENTITY_CONTRACTS_BY_TYPE.get(typeId)?.labelKey;
   if (key && canTranslate(te, key)) return t(key);
+  const mapped = localizedLabel({ t, te }, typeLabelKey(typeId), '');
+  if (mapped) return mapped;
   return authoredTypeLabel(typeId, { t }) || unnamedLabel({ t, te });
 }
 

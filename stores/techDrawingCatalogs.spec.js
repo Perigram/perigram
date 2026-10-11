@@ -30,8 +30,8 @@ describe('pen templates catalog', () => {
   it('lists pens from the instance transport with system/org grouping', async () => {
     const instances = useInstancesStore();
     vi.stubGlobal('$fetch', vi.fn().mockResolvedValue([
-      { _id: 'pen-sys', identity: { name: 'System red' }, data: { stroke: { color: '#f00', weight: 0.6, pattern: 'SOLID' } }, lineage: {} },
-      { _id: 'pen-org', identity: { name: 'Org blue' }, data: { stroke: { color: '#00f', weight: 0.35, pattern: 'DASHED' } }, lineage: { organizationId: 'org-1' } }
+      { _id: 'pen-sys', name: 'System red', fields: { stroke: { color: '#f00', weight: 0.6, pattern: 'SOLID' } }, lineage: {} },
+      { _id: 'pen-org', name: 'Org blue', fields: { stroke: { color: '#00f', weight: 0.35, pattern: 'DASHED' } }, lineage: { organizationId: 'org-1' } }
     ]));
     const store = usePenTemplatesStore();
     await store.fetchPens();
@@ -39,7 +39,7 @@ describe('pen templates catalog', () => {
     expect(store.pens).toHaveLength(2);
     expect(store.systemPens.map(pen => pen._id)).toEqual(['pen-sys']);
     expect(store.userPens.map(pen => pen._id)).toEqual(['pen-org']);
-    expect(store.pens[0].data.stroke.color).toBe('#00f');
+    expect(store.pens[0].fields.stroke.color).toBe('#00f');
   });
 
   it('maps editor form payloads onto the wire row for create', async () => {
@@ -48,8 +48,8 @@ describe('pen templates catalog', () => {
     const store = usePenTemplatesStore();
     await store.createPen({ name: 'New', stroke: { color: '#111', weight: 0.4, pattern: 'DOTTED' } });
     expect(createInstance).toHaveBeenCalledWith('pen-template', {
-      identity: { name: 'New' },
-      data: { stroke: { color: '#111', weight: 0.4, pattern: 'DOTTED' } }
+      name: 'New',
+      fields: { stroke: { color: '#111', weight: 0.4, pattern: 'DOTTED' } }
     }, { typeId: 'pen-template' });
   });
 });
@@ -62,9 +62,9 @@ describe('layer standards catalog', () => {
 
   it('shadows system rows by code with org rows and projects the effective pen', async () => {
     vi.stubGlobal('$fetch', vi.fn().mockResolvedValue([
-      { _id: 'std-sys', identity: { name: 'Cut outer' }, data: { code: 'cut.outer', category: 'CUT' }, relations: { defaultPen: { type: 'pen-template', id: 'pen-sys' } }, lineage: {} },
-      { _id: 'std-org', identity: { name: 'Cut outer (org)' }, data: { code: 'cut.outer', category: 'CUT' }, relations: { defaultPen: { type: 'pen-template', id: 'pen-org' } }, lineage: { organizationId: 'org-1' } },
-      { _id: 'std-only-sys', identity: { name: 'Fold' }, data: { code: 'fold.route', category: 'FOLD' }, lineage: {} }
+      { _id: 'std-sys', name: 'Cut outer', fields: { code: 'cut.outer', category: 'CUT' }, relations: { defaultPen: { type: 'pen-template', id: 'pen-sys' } }, lineage: {} },
+      { _id: 'std-org', name: 'Cut outer (org)', fields: { code: 'cut.outer', category: 'CUT' }, relations: { defaultPen: { type: 'pen-template', id: 'pen-org' } }, lineage: { organizationId: 'org-1' } },
+      { _id: 'std-only-sys', name: 'Fold', fields: { code: 'fold.route', category: 'FOLD' }, lineage: {} }
     ]));
     const store = useLayerStandardsStore();
     await store.fetchStandards();
@@ -72,7 +72,7 @@ describe('layer standards catalog', () => {
     expect(store.standards).toHaveLength(2);
     const shadowed = store.getByCode('cut.outer');
     expect(shadowed._id).toBe('std-org');
-    expect(shadowed.data.defaultPenId).toBe('pen-org');
+    expect(shadowed.fields.orgPenId).toBe('pen-org');
     expect(store.getByCode('fold.route')._id).toBe('std-only-sys');
     expect(store.getByCategory('CUT')).toHaveLength(1);
   });
@@ -80,7 +80,7 @@ describe('layer standards catalog', () => {
   it('creates an org shadow for overrides instead of mutating the system row', async () => {
     const instances = useInstancesStore();
     vi.stubGlobal('$fetch', vi.fn().mockResolvedValue([
-      { _id: 'std-sys', identity: { name: 'Cut outer' }, data: { code: 'cut.outer', category: 'CUT' }, lineage: {} }
+      { _id: 'std-sys', name: 'Cut outer', fields: { code: 'cut.outer', category: 'CUT' }, lineage: {} }
     ]));
     const createInstance = vi.spyOn(instances, 'createInstance').mockResolvedValue({});
     const updateInstance = vi.spyOn(instances, 'updateInstance').mockResolvedValue({});
@@ -99,7 +99,7 @@ describe('layer standards catalog', () => {
     const records = instances.records;
     records['layer-standard'] = {
       ...records['layer-standard'],
-      'std-shadow': { dto: { _id: 'std-shadow', identity: { name: 'x' }, data: { code: 'cut.outer' }, lineage: { organizationId: 'org-1' } } }
+      'std-shadow': { dto: { _id: 'std-shadow', name: 'x', fields: { code: 'cut.outer' }, lineage: { organizationId: 'org-1' } } }
     };
     await store.setOrgPenOverride('std-sys', 'pen-other');
     expect(updateInstance).toHaveBeenCalledWith('layer-standard', 'std-shadow', {

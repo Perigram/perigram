@@ -5,14 +5,21 @@
 // patch persists them. Construction-time compute lives in the facade
 // plugin's executor (workers/facade); this is the editor surface's copy.
 
-const LAYER_STYLES = {
-  'contour.material_sheet': { color: '#64748b', weight: 1, dasharray: '8,5' },
-  'cut.outer': { color: '#dc2626', weight: 1 },
-  'contour.cassette_face': { color: '#2563eb', weight: 2 },
-  'fold.route': { color: '#d97706', weight: 1, dasharray: '6,4' },
-  'code.cassette_mark': { color: '#059669', weight: 1 },
-  'dimension.cassette': { color: '#7c3aed', weight: 0.7, dasharray: '1,3' }
-};
+import { penForLayer, strokeDasharray } from '../../occs/layerStandards.js';
+
+// The sheet preview draws on its own SVG (not the host canvas), so pen
+// weights scale up to stroke-width range; colors and dash patterns are
+// the layer standards' own.
+const SHEET_DISPLAY_WEIGHT_SCALE = 2.5;
+
+function layerStyle(code) {
+  const pen = penForLayer(code);
+  return {
+    color: pen.color,
+    weight: Math.max(0.7, pen.weight * SHEET_DISPLAY_WEIGHT_SCALE),
+    dasharray: strokeDasharray(pen.pattern)
+  };
+}
 
 function normalizePoint(point) {
   if (!Array.isArray(point) || point.length < 2) return null;
@@ -105,10 +112,6 @@ function itemSourcePointsById(result = {}) {
 
 function layerCode(layer = {}) {
   return layer.layer || layer.standardCode || layer.name || 'geometry';
-}
-
-function layerStyle(code) {
-  return LAYER_STYLES[code] || { color: 'currentColor', weight: 1 };
 }
 
 function layerPathShouldClose(layer = {}) {
@@ -290,11 +293,13 @@ export function nestingResultToPreview(result = {}, params = {}, options = {}) {
 }
 
 // The manual layout update's recompute: the design's stored geometry
-// merged with the editor's placed items → the next geometry record,
-// preview, and summary. Pure — the caller persists through the generic
-// instance patch.
+// (fields.geometry, the §3 wire) merged with the editor's placed items →
+// the next geometry record and preview. Pure — the caller persists the
+// geometry through the generic instance patch; the returned summary is
+// derived display state, never persisted.
 export function recomputeSheetLayout(design = {}, { items = [], placedItems = [] } = {}) {
-  const existingResult = design.data?.geometry?.data || {};
+  const geometry = design.fields?.geometry || {};
+  const existingResult = geometry.data || {};
   const existingSolution = existingResult.solution || {};
   const result = {
     ...existingResult,
@@ -307,25 +312,16 @@ export function recomputeSheetLayout(design = {}, { items = [], placedItems = []
       }]
     }
   };
-  const params = {
-    ...(design.data?.solveParams || {}),
-    width: design.specs?.width,
-    height: design.specs?.length
-  };
+  const params = { ...(existingResult.solveParams || {}) };
   const cassetteDesigns = cassettesForNestingResult(result);
   const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
   return {
-    data: {
-      ...(design.data || {}),
-      cassetteDesigns,
-      geometry: {
-        ...(design.data?.geometry || {}),
-        data: result,
-        preview: nestingResultToPreview(result, params, { layoutIndex: 0 })
-      }
+    geometry: {
+      ...geometry,
+      data: result,
+      preview: nestingResultToPreview(result, params, { layoutIndex: 0 })
     },
     summary: {
-      ...(design.summary || {}),
       placedCount: placedItems.length,
       partsCount: placedItems.length,
       cassetteDesignCount: cassetteDesigns.length,

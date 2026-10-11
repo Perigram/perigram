@@ -2,19 +2,6 @@
 
 Shared frontend utility modules used by Vue pages/components.
 
-## Transitional twins (doomed)
-
-`cassetteV2Renderer.js`, `cassetteV2Clipper.js`,
-`cassetteV2FoldedPreview.js`, `cassetteV2Trapezoid.js`,
-`drawingPreview.js`, and `occs/` are transitional twins of the facade
-plugin's canonical compute
-([workers/facade](../workers/facade/README.md)) — the plugin's executor
-and editor surface modules import the canonical home. These copies stay
-only while the read-side preview family (`DrawingCanvas` occs-cassette
-source, `GeneratedScreen`, `PreviewBox`) lives in app code; M7 migrates
-that family and M8 deletes the twins. No specs run against them — do not
-edit.
-
 ## Design System Contract
 
 - `design-system-contract.js`: Validation for the CNC design-system contract declared by the facade types. It does not import Vue components.

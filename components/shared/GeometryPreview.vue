@@ -3,7 +3,9 @@ import { computed, ref } from 'vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 
 const props = defineProps({
-  entity: { type: Object, required: true },
+  // The resolved drawing value (a pre-built { viewBox, layers } drawing,
+  // or a raw geometry/layer-data value the canvas normalizer accepts).
+  source: { type: [Object, Array], default: null },
   hideDimensionLayer: { type: Boolean, default: false }
 });
 
@@ -23,7 +25,7 @@ function handleDrawingReady(drawing) {
 }
 
 function isProductionPreviewLayer(name = '') {
-  return /^(sheet|stock|cut|fold|bend)(\.|$)/i.test(String(name));
+  return /^(sheet|stock|cut|fold|bend|contour)(\.|$)/i.test(String(name));
 }
 
 function isDimensionLayerName(name = '') {
@@ -32,9 +34,9 @@ function isDimensionLayerName(name = '') {
 </script>
 
 <template>
-  <div data-instance-card-interactive="true" @click.stop>
+  <div v-if="source" data-instance-card-interactive="true" @click.stop>
     <DrawingCanvas
-      :source="entity"
+      :source="source"
       source-type="geometry-preview"
       mode="card"
       :visible-layer-names="previewVisibleLayerNames"

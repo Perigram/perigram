@@ -120,7 +120,7 @@
             class="grid grid-cols-2 gap-2"
           >
             <label
-              v-for="parameter in cassetteParameterFields(field)"
+              v-for="parameter in parameterEntries(promptValues[field.id])"
               :key="parameter.name"
               class="flex flex-col gap-1"
             >
@@ -231,10 +231,9 @@
                   option-label="label"
                   option-value="value"
                   :type-id="creatorField.typeId || ''"
-                  @update:model-value="syncRelationCreatorParameters"
                 />
                 <div v-else-if="creatorField.type === 'cassetteParameters'" class="grid grid-cols-2 gap-2">
-                  <label v-for="parameter in relationCreatorParameterFields(creatorField)" :key="parameter.name" class="flex flex-col gap-1">
+                  <label v-for="parameter in parameterEntries(relationCreatorValues[creatorField.id])" :key="parameter.name" class="flex flex-col gap-1">
                     <span class="text-muted text-supporting">{{ parameter.name }}</span>
                     <InputText v-model="relationCreatorValues[creatorField.id][parameter.name]" type="number" />
                   </label>
@@ -307,7 +306,6 @@ import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction }
 import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
-import { occsQueueParameters } from '~/utils/occs/parameters.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 import { routeContextTraceExclusions } from '~/utils/instance-hierarchy.js';
 import {
@@ -448,7 +446,6 @@ async function openInputDialog(action, entity = null, context = {}) {
   }
   await loadPromptOptions(promptedFields(action));
   syncDependentOptionValues(fields);
-  syncCassetteParameterValues(promptedFields(action));
   syncArtifactTemplateValues(promptedFields(action));
   inputDialogVisible.value = true;
 }
@@ -613,48 +610,12 @@ function actionEntities(action = {}, entity = null, context = {}) {
   return resolveGeneratedActionEntities({ action, entity, context, screen: screen.value });
 }
 
-function selectedTemplateIdForField(field = {}) {
-  const templateFieldId = field.templateFieldId || 'templateId';
-  return promptValues[templateFieldId] || '';
-}
-
-function selectedTemplateForField(field = {}) {
-  const templateId = selectedTemplateIdForField(field);
-  const pending = pendingEntity.value?.entity;
-  const templateTypeId = field.templateTypeId || field.typeId || '';
-  if (pending && templateTypeId && (
-    pending.origin?.type === templateTypeId
-    || pendingEntity.value?.context?.typeId === templateTypeId
-  )) {
-    const pendingId = instanceIdentifier(pending);
-    if (!templateId || pendingId?.toString() === templateId?.toString()) return pending;
-  }
-  if (!templateId) return null;
-  const templateOptions = promptOptions[field.templateFieldId || 'templateId'] || [];
-  return templateOptions.find(option => option.value?.toString() === templateId?.toString())?.entity || null;
-}
-
-function cassetteParameterFields(field = {}) {
-  const parameters = occsQueueParameters(cassetteParameterDefinition(selectedTemplateForField(field)));
-  return Object.entries(parameters).map(([name]) => ({ name }));
-}
-
-function cassetteParameterDefinition(template = {}) {
-  return template?.data?.definition || template?.data?.parameters || {};
-}
-
-function syncCassetteParameterValues(fields = promptedFields(pendingAction.value)) {
-  for (const field of fields.filter(item => item.type === 'cassetteParameters')) {
-    const parameters = occsQueueParameters(cassetteParameterDefinition(selectedTemplateForField(field)));
-    const current = promptValues[field.id] && typeof promptValues[field.id] === 'object' && !Array.isArray(promptValues[field.id])
-      ? promptValues[field.id]
-      : {};
-    const next = {};
-    for (const [name, value] of Object.entries(parameters)) {
-      next[name] = current[name] ?? value;
-    }
-    promptValues[field.id] = next;
-  }
+// A cassetteParameters input edits its declared entries: the authored
+// input's default object names the parameters; the values stay numbers
+// when numeric (the construction services receive them as quantities).
+function parameterEntries(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  return Object.entries(value).map(([name]) => ({ name }));
 }
 
 function fieldOptions(field = {}) {
@@ -753,22 +714,11 @@ async function toggleRelationCreator(field = {}) {
     });
     relationCreatorOptions[creatorField.id] = (items || []).map(entity => entityOption(entity, creatorField.typeId));
   }
-  syncRelationCreatorParameters();
-}
-
-function relationCreatorParameterFields(field = {}) {
-  const templateId = relationCreatorValues[field.templateFieldId || 'templateId'];
-  const template = (relationCreatorOptions[field.templateFieldId || 'templateId'] || [])
-    .find(item => String(item.value) === String(templateId))?.entity;
-  return Object.keys(occsQueueParameters(cassetteParameterDefinition(template))).map(name => ({ name }));
-}
-
-function syncRelationCreatorParameters() {
   for (const field of relationCreatorFields.value.filter(item => item.type === 'cassetteParameters')) {
-    const templateId = relationCreatorValues[field.templateFieldId || 'templateId'];
-    const template = (relationCreatorOptions[field.templateFieldId || 'templateId'] || [])
-      .find(item => String(item.value) === String(templateId))?.entity;
-    relationCreatorValues[field.id] = { ...occsQueueParameters(cassetteParameterDefinition(template)) };
+    const current = relationCreatorValues[field.id];
+    relationCreatorValues[field.id] = current && typeof current === 'object' && !Array.isArray(current)
+      ? current
+      : { ...(field.default && typeof field.default === 'object' ? field.default : {}) };
   }
 }
 
@@ -791,13 +741,6 @@ function entityOption(entity = {}, typeId = '') {
   };
 }
 
-watch(
-  () => [promptValues.templateId, pendingAction.value?.actionId || pendingAction.value?.id || ''],
-  () => {
-    if (!inputDialogVisible.value) return;
-    syncCassetteParameterValues();
-  }
-);
 
 watch(
   () => [promptValues.template, pendingAction.value?.actionId || pendingAction.value?.id || ''],

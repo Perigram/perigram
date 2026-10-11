@@ -24,7 +24,7 @@ describe('drawing catalogue stores', () => {
 
         const first = store.ensureStandards();
         const second = store.ensureStandards();
-        resolveRequest([{ _id: 'standard-1', data: { code: 'cut.outer' } }]);
+        resolveRequest([{ _id: 'standard-1', fields: { code: 'cut.outer' } }]);
 
         await expect(Promise.all([first, second])).resolves.toEqual([
             [expect.objectContaining({ _id: 'standard-1' })],
@@ -34,7 +34,7 @@ describe('drawing catalogue stores', () => {
         expect(request).toHaveBeenCalledTimes(1);
 
         authStore.user = { userId: 'user-1', organizationId: 'org-2' };
-        request.mockResolvedValueOnce([{ _id: 'standard-2', data: { code: 'fold.route' } }]);
+        request.mockResolvedValueOnce([{ _id: 'standard-2', fields: { code: 'fold.route' } }]);
         await store.ensureStandards();
 
         expect(request).toHaveBeenCalledTimes(2);
@@ -51,7 +51,7 @@ describe('drawing catalogue stores', () => {
 
         const first = store.ensurePens();
         const second = store.ensurePens();
-        resolveRequest([{ _id: 'pen-1', data: { stroke: { color: '#000000' } } }]);
+        resolveRequest([{ _id: 'pen-1', fields: { stroke: { color: '#000000' } } }]);
 
         await expect(Promise.all([first, second])).resolves.toEqual([
             [expect.objectContaining({ _id: 'pen-1' })],
@@ -70,7 +70,7 @@ describe('drawing catalogue stores', () => {
 
         // Org switch starts a fresh bucket.
         authStore.user = { userId: 'user-2', organizationId: 'org-2' };
-        request.mockResolvedValueOnce([{ _id: 'pen-2', data: { stroke: { color: '#ffffff' } } }]);
+        request.mockResolvedValueOnce([{ _id: 'pen-2', fields: { stroke: { color: '#ffffff' } } }]);
         await store.ensurePens();
 
         expect(request).toHaveBeenCalledTimes(2);
@@ -83,7 +83,7 @@ describe('drawing catalogue stores', () => {
         vi.spyOn(console, 'error').mockImplementation(() => {});
         const request = vi.fn()
             .mockRejectedValueOnce(new Error('standards unavailable'))
-            .mockResolvedValueOnce([{ _id: 'standard-1', data: { code: 'cut.outer' } }])
+            .mockResolvedValueOnce([{ _id: 'standard-1', fields: { code: 'cut.outer' } }])
             .mockRejectedValueOnce(new Error('pens unavailable'))
             .mockResolvedValueOnce([{ _id: 'pen-1' }]);
         vi.stubGlobal('$fetch', request);

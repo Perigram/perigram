@@ -97,10 +97,10 @@ concerns instead of one flat grid. `DataBlock` renders
 hex-color facts. `InstancePreview` resolves the unified payload preview
 first: a file instance with a stored payload renders through the type's
 declared preview policy (`file-preview-contract.js` → `ArtifactViewer`, the same
-contract generated detail bodies use); legacy DTOs without payload bytes
-fall through to `CassetteThumbnail` or `GeometryPreview`, and ordinary DTO
-thumbnails render from `data.thumbnailUrl` or thumbnail attachment
-metadata for non-cassette entities. `InstanceRelationsBlock` renders relation descriptors through
+contract generated detail bodies use); a type with a served plugin preview
+binding mounts the plugin's preview module (read-only, over the record and
+its payload document); a declared `previewSource` value renders through
+`GeometryPreview` (see [generated surfaces](../generated/README.md)). `InstanceRelationsBlock` renders relation descriptors through
 `InstanceInlineRef`. Single refs render as inline chips; relation lists can also
 render compact micro cards in a bounded responsive grid with preview on the
 left, identity/status/facts on the right, and at most two visible refs before
@@ -270,15 +270,6 @@ entity action uses the same sizing contract as route and pane designers.
 The host keeps the preset's dialog-content padding; its scoped PrimeVue integration
 owns only the flex sizing needed for the designer surface.
 
-### `ThreeViewport.vue`
-
-Shared Three.js host for designer previews. It owns the renderer, camera,
-lights, orbit controls, resize observer, object URL lifetime, selection
-raycasting, and disposal of attached Three.js objects. Feature components
-pass a constructed scene group through `scene`, receive selected object
-metadata through `select`, and must not create their own renderer or global
-pointer listeners.
-
 The `scene` group is feature-owned. It must carry selectable item metadata
 in `object.userData.designerItem`; non-selectable helpers set no such value.
 The viewport disposes geometry and materials when its scene changes or it
@@ -397,7 +388,7 @@ designer markers before they reach `DrawingCanvas`. The shared canvas renders
 those layers but does not own hardware family, production-mode, curve-boolean,
 or edge-array placement math.
 
-Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, source layer styling, then the default pen. Geometry previews that provide `standardCode`, `code`, or an OCCS dot-code layer name load layer standards and pen templates before normalization; concurrent canvases share one in-flight load and reuse the completed catalogues within the active user and organization scope. When a standard exists but its configured pen is missing, the source layer `color`/`weight` is preserved. Standard and pen data are read from canonical v24 DTO fields (`standard.data.code`, `standard.data.defaultPenId`, `standard.data.orgPenId`, `pen.data.stroke`) with flat fallbacks only for migration compatibility. Card and thumbnail canvases choose a portrait or landscape aspect from the resolved viewBox so sheet-layout previews are not forced into a wide frame, and they own that aspect-ratio height instead of requiring parent cards to provide a fixed height. Canvases embedded in a fixed-height card preview band instead opt into `fill`: they paint no own border, rounding, or background (the host card owns the chrome), fill the band bounds exactly, and scale the SVG to cover (sketch scenes, uniform scale, cropped) or contain (dxf/svg/occs vector drawings). Bounded operational cards may opt into `CassetteThumbnail`'s `fixedFrame`; that mode uses the caller's fixed square width and height and fits the complete SVG inside without cropping or suppressing layers. Preview-mode `dimension.cassette` text is intentionally enlarged so cassette thumbnails keep dimension labels readable, and geometry-normalized layer-data previews include dimension text points in the viewBox bounds so those labels are not clipped. The unified OCCS preview keeps the enlargement in card bands but opts out in the interactive pane viewer so it matches that canvas pixel-for-pixel. Generic baked `geometry.type === 'dimension'` entries render as extension lines plus an offset dimension line with the text placed off that line, instead of a raw midpoint label on the measured segment. Geometry-first cassette-design thumbnails prefer baked `layerData` over stored `geometry.preview.layers` so stale preview-layer snapshots do not override the persisted design geometry contract. In thumbnail/card mode, `DrawingCanvas` sizes `dimension.cassette` text from the rendered SVG viewport instead of raw geometry extents, so labels stay visually stable across cassette and cassette-design previews, and the displayed viewBox gets its breathing room from the canvas inset rather than wrapper padding. `CassetteThumbnail` prefers baked geometry-preview / layer-data sources over DXF when that data is available and narrows production previews to `cut.outer`, `fold.route`, `cut.inner`, `cut.hole`, and `dimension.cassette` when those layers exist. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
+Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, source layer styling, then the default pen. Geometry previews that provide `standardCode`, `code`, or a dot-code layer name load layer standards and pen templates before normalization; concurrent canvases share one in-flight load and reuse the completed catalogues within the active user and organization scope. When a standard exists but its configured pen is missing, the source layer `color`/`weight` is preserved. Standard and pen rows are §3 instances — the canvas reads `fields.code`, `fields.defaultPenId`/`fields.orgPenId`, and `fields.stroke`; plugin-delivered drawings arrive with their own standard pens already baked (the facade plugin ships its layer standards beside its renderer), and org-authored standard rows shadow those codes host-side. Card and thumbnail canvases choose a portrait or landscape aspect from the resolved viewBox so sheet-layout previews are not forced into a wide frame, and they own that aspect-ratio height instead of requiring parent cards to provide a fixed height. Canvases embedded in a fixed-height card preview band instead opt into `fill`: they paint no own border, rounding, or background (the host card owns the chrome), fill the band bounds exactly, and scale the SVG to cover (sketch scenes, uniform scale, cropped) or contain (vector drawings). Preview-mode `dimension.*` text is intentionally enlarged so card bands keep dimension labels readable, and geometry-normalized layer-data previews include dimension text points in the viewBox bounds so those labels are not clipped. Generic baked `geometry.type === 'dimension'` entries render as extension lines plus an offset dimension line with the text placed off that line, instead of a raw midpoint label on the measured segment. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
 Layer-standard pen references may point to either the pen Mongo `_id` or its
 canonical `identity.uid`; both resolve to the same pen DTO.
 
@@ -408,7 +399,7 @@ resolved pens/colors use `PenTemplateCard`. Inline color dots, hand-rolled
 layer rows, or custom key/value renderers are not allowed for these entity
 concepts. PrimeVue controls are limited to non-entity interaction chrome such as
 visibility checkboxes, show/hide buttons, scroll containment, and count tags.
-Surfaces that need their own panel, such as `CassetteDesignerV2`, pass
+Surfaces that need their own panel, such as the facade plugin's cassette designer, pass
 `visibleLayerNames` and handle `layer-toggle`; in that controlled mode
 `DrawingCanvas` renders only the selected layer names and does not reset
 visibility during drawing refresh.
@@ -418,9 +409,7 @@ Current drawing display owners:
 | Surface | Source type |
 |---|---|
 | `GeometryPreview.vue` | `geometry-preview` |
-| `CassetteThumbnail.vue` | `dxf-url`, `parametric-cassette`, or `occs-cassette` |
-| `CassetteEditorDialog.vue` | `dxf-text` |
-| `CassetteDesigner.vue` | `parametric-cassette` with designer overlays |
+| `ArtifactViewer.vue` | `dxf-url`, `svg-url`, `sketch` |
 | `/test/ui-lab` | `geometry-preview` demo |
 
 New drawing previews should add a source normalizer for `DrawingCanvas`, not a feature-local `<svg>`.
@@ -683,9 +672,9 @@ buttons stay hidden for that chat-only recipient view. When an older
 chat-only ref still lacks an embedded snapshot, the message renderer disables
 inline fetches for that recipient view instead of probing the protected entity
 endpoint and throwing a visible `403` in the browser console.
-For non-restricted cassette refs, the renderer may still hydrate an embedded
+For non-restricted refs, the renderer may still hydrate an embedded
 snapshot through the normal entity API when that snapshot predates the richer
-chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
+chat snapshot contract and lacks its fields.
 
 ### `ChatAttachments.vue`
 Renders a support message's `attachments[]` (the contract lives in the
@@ -944,7 +933,7 @@ Do not hide all meaningful body content behind `variant === 'card'`; relation
 popovers depend on the same default slot body being available in inline and
 compact cards.
 Nested interactive children such as `InstanceState`, `TraceLink`,
-`GeometryPreview`, `CassetteThumbnail`, buttons, and nested inline entity cards
+`GeometryPreview`, buttons, and nested inline entity cards
 mark themselves as card-interactive targets. Parent card click handlers must use
 `utils/interactive-target.js` before emitting view/select actions. Cards whose
 primary action is a custom preview, such as `ArtifactCard`, can pass

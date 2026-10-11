@@ -95,7 +95,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   // A real PARAMETRIC template through the generic instance machinery —
   // the OCCS document rides the payload (the cassette designer's own
   // persistence path: the compiled create action, then payload PUT).
-  const { createDefaultOccsCassetteTemplateDefinition } = await import('../utils/occs/templates.js');
+  const { createDefaultOccsCassetteTemplateDefinition } = await import('../workers/facade/occs/templates.js');
   const templateName = `Tray 600 ${Date.now()}`;
   const species = await app.seedSpeciesProcess({ types: [TABLE_TYPE, 'cassette'], via: { [TABLE_TYPE]: 'upload', cassette: 'editor' } });
   const cassetteCreate = (await app.activeActions()).find(action => action.actionKind === 'createEntity' && action.typeId === 'cassette');

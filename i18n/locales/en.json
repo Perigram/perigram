@@ -396,103 +396,31 @@
     }
   },
   "cassette": {
-    "title": "Cassettes",
-    "create": "Create Cassette",
-    "upload": "Upload Cassette",
-    "uploadTitle": "Upload Cassette",
-    "editTitle": "Edit Cassette",
     "name": "Cassette Name",
-    "delete": "Delete Cassette",
-    "edit": "Edit Cassette",
-    "noCassettes": "No cassettes yet. Upload a DXF file to create one.",
-    "selectCassette": "Select Cassette",
-    "layerMapping": "Layer Mapping",
-    "mapLayers": "Map DXF layers to cassette layers",
-    "preview": "Preview",
-    "noPreview": "No preview available",
-    "selectLayerType": "Select layer type",
-    "nestingLayerRequired": "Map the nesting boundary layer to {layer}. This layer is stored as the cassette design cut geometry.",
-    "parameters": "Parameters",
-    "design": "Design",
-    "downloadDxf": "Download DXF",
-    "geometry": "Geometry",
-    "parametersHelp": "Define variable dimensions for batch entries",
-    "parametersPlaceholder": "e.g., A, B, C",
-    "parametersHint": "Common: A, B, C, D, E, F, horizontal_seam_width",
-    "layers": {
-      "cut": "Cut",
-      "bend": "Bend",
-      "frame": "Frame",
-      "dimensions": "Dimensions"
-    },
-    "status": {
-      "pending": "Pending",
-      "processing": "Processing",
-      "done": "Done",
-      "error": "Error"
-    },
-    "nameExample": "Standard Cassette",
     "newCassette": "New Cassette",
-    "selectFile": "Choose DXF File",
-    "detectingLayers": "Detecting layers...",
-    "detectedLayers": "Detected Layers",
-    "selectLayers": "Select layers...",
-    "designer": "Designer",
-    "designerTitle": "Cassette Designer",
-    "loading": "Loading cassettes...",
-    "clickToRename": "Click to rename",
-    "parametersTitle": "Cassette Parameters",
     "rootDim": "Root Dim",
     "faceDepth": "Face Depth",
     "flangeDepth": "Flange Depth",
     "custom": "Custom",
-    "facesAndFlanges": "Faces & Flanges",
-    "noFaces": "No faces or flanges yet.",
-    "clickEdgeToGrow": "Click on an edge to start growing.",
-    "edge": "Edge",
-    "initializingEngine": "Initializing Engine",
-    "addGeometry": "Add Geometry",
-    "face": "Face",
-    "flange": "Flange",
-    "addCustomParameter": "Add Custom Parameter",
-    "parameterName": "Parameter Name",
-    "initialValue": "Initial Value",
     "v2": {
-      "face": "Face",
-      "inspector": "Inspector",
-      "parameters": "Parameters",
-      "preview": "Layout preview",
       "loadTemplate": "Load template",
       "workpieces": "Workpieces",
-      "workpieceGraph": "Workpiece graph",
-      "topology": "Topology",
-      "selectedWorkpiece": "Selected workpiece",
-      "attachment": "Attachment",
-      "attachments": "Attachments",
-      "noAttachment": "This workpiece has no attachment yet. Use + to create a related workpiece or the link action to declare another attachment.",
-      "addWorkpiece": "Add workpiece",
       "addRelatedWorkpiece": "Add related workpiece",
       "addAttachment": "Add attachment",
       "addHardware": "Add hardware",
       "addProfile": "Add profile",
       "editProfile": "Edit profile",
-      "profile": "Profile",
       "deleteWorkpiece": "Delete workpiece",
       "removeAttachment": "Remove attachment",
       "driver": "driver",
       "foldedPreview": "Folded 3D preview",
-      "selectedFoldedPreview": "Selected 3D",
       "cassetteFoldedPreview": "Cassette 3D",
       "showWholeCassette": "Show whole cassette",
       "resetOrbit": "Reset 3D view",
       "occsDraft": "OCCS Draft",
       "globalParameters": "Global parameters",
-      "renderFailed": "Failed to render trapezoid graph.",
-      "previewHeld": "Drawing is held at the last valid preview. Fix the expression to update it.",
-      "addFace": "Add trapezoid",
       "deleteFace": "Delete face",
       "faceRole": "Face role",
-      "rootFace": "Root trapezoid",
       "autosaveDraftAvailable": "A session draft is available for this cassette.",
       "recoverDraft": "Recover draft",
       "discardDraft": "Discard draft",
@@ -514,20 +442,12 @@
           "body": "Use the workpiece rail for related workpieces, attachments, and the folded 3D preview."
         }
       },
-      "previewModes": {
-        "workpiece": "Workpiece",
-        "layout": "Flat layout",
-        "assembly": "Assembly"
-      },
       "attachmentFields": {
-        "targetWorkpiece": "Target workpiece",
         "targetFace": "Target face",
         "sourceFace": "Source face",
         "targetSnap": "Target snap",
         "sourceSnap": "Source snap",
         "side": "Side",
-        "offsetX": "Offset X",
-        "offsetY": "Offset Y",
         "edgeMargin": "Edge margin",
         "normalOffset": "Normal offset",
         "rotation": "Rotation",
@@ -539,14 +459,11 @@
         "mirrorX": "Mirror X",
         "mirrorY": "Mirror Y",
         "driver": "Placement driver",
-        "jointType": "Joint type",
-        "method": "Method"
+        "jointType": "Joint type"
       },
       "hardwareFields": {
         "family": "Hardware family",
-        "productionMode": "Production mode",
-        "primarySize": "Primary size",
-        "secondarySize": "Secondary size"
+        "productionMode": "Production mode"
       },
       "hardwareFamilies": {
         "bolt": "Bolt",
@@ -580,17 +497,13 @@
         "defaultName": "Hanger profile",
         "loadTemplate": "Load profile template",
         "preview": "Profile sketch preview",
-        "points": "Points",
-        "holes": "Holes",
         "polyline": "Polyline",
         "selection": "Selection",
         "noSelection": "Select a point or circle.",
-        "filletRadius": "Fillet radius",
         "cornerFillet": "Corner fillet",
         "distance": "Distance",
         "ortho": "Ortho",
         "segmentLength": "Segment",
-        "addPoint": "Add point",
         "addCircle": "Add circle",
         "newPolyline": "New polyline",
         "undoPoint": "Undo point",
@@ -598,12 +511,9 @@
         "finishPolyline": "Finish",
         "importDxf": "Import DXF",
         "importFailed": "DXF import failed.",
-        "insert": "Insert into cassette",
         "saved": "Profile template saved",
         "saveFailed": "Failed to save profile template",
         "invalidSketch": "Close a profile polyline with at least three points before saving.",
-        "kind": "Kind",
-        "process": "Process",
         "tools": {
           "select": "Select",
           "polyline": "Polyline",
@@ -649,9 +559,6 @@
       },
       "expression": {
         "label": "Expression",
-        "guideTitle": "Expression help",
-        "guide": "Type numbers, cassette parameters, + - * /, parentheses, and sin(30), cos(60), tan(45). Trig uses degrees.",
-        "angleGuide": "Angle fields use plain degree numbers, for example 90.",
         "angleAlias": "Fold angle from parent",
         "trigTooltip": "{name}() uses degrees",
         "groups": {
@@ -667,12 +574,6 @@
         "start": "Start",
         "end": "End"
       },
-      "offsetLabels": {
-        "baseStart": "Base offset from {anchor}",
-        "baseEnd": "Base offset from {anchor}",
-        "topStart": "Top offset",
-        "topEnd": "Top offset"
-      },
       "fields": {
         "defaultLength": "Base length",
         "height": "Height",
@@ -687,16 +588,7 @@
       }
     },
     "errors": {
-      "nameRequired": "Name cannot be empty",
-      "loadFailed": "Failed to load cassette",
-      "parseDxfFailed": "Failed to parse DXF file",
-      "uploadFailed": "Upload failed",
-      "renameFailed": "Failed to rename cassette",
       "saveFailed": "Failed to save template"
-    },
-    "messages": {
-      "renamed": "Cassette renamed",
-      "saveSuccess": "Template saved successfully"
     }
   },
   "revision": {
@@ -1741,22 +1633,7 @@
     "surface": "Surface",
     "markMilled": "Mark Milled"
   },
-  "cassetteInstance": {
-    "title": "Cassette Instances",
-    "subtitle": "Produced cassette pieces stored in the warehouse.",
-    "noInstances": "No cassette instances found",
-    "instances": "Instances",
-    "updateStatus": "Update Status",
-    "printLabel": "Print Label",
-    "updatePhysicalStatus": "Update Physical Status",
-    "selectNewStatus": "Select new status...",
-    "addNotePlaceholder": "Add a note (e.g., Arrived at sector 4)...",
-    "create": "Create Cassette Instance",
-    "tracking": "Tracking",
-    "lifecycleTitle": "Lifecycle",
-    "parentDesign": "Parent Design",
-    "materialSource": "Material Source"
-  },
+  "cassetteInstance": {},
   "statistics": {
     "title": "Statistics",
     "totalFiles": "Total Files",
@@ -2027,18 +1904,8 @@
     "facade": "Facade",
     "facadePattern": "Facade Pattern"
   },
-  "facade": {
-    "parts": "Parts",
-    "assignments": "Assignments",
-    "save": "Save facade",
-    "patterns": "Patterns",
-    "sourceModel": "Source model"
-  },
-  "facadePattern": {
-    "nodes": "Nodes",
-    "save": "Save pattern",
-    "graph": "Pattern graph"
-  },
+  "facade": {},
+  "facadePattern": {},
   "artifactTemplates": {
     "selectFile": "Choose DXF or PDF",
     "empty": "No artifact templates",
@@ -2524,23 +2391,8 @@
     "editor": "Sheet layout editor",
     "addCassette": "Add cassette",
     "selectCassette": "Select a cassette design",
-    "snapSize": "Snap {size} mm",
     "layoutSaved": "Sheet layout saved as a geometry revision.",
-    "layoutSaveFailed": "Failed to save the sheet layout.",
-    "downloadDxf": "Download DXF",
-    "dxfRequested": "DXF generation was queued.",
-    "dxfRequestFailed": "Failed to queue DXF generation.",
-    "exportGCode": "Export G-code",
-    "utilization": "Utilization",
-    "parts": "Parts",
-    "cuttingLength": "Cutting Length",
-    "estimatedTime": "Estimated Time",
-    "cassetteDesigns": "Cassette designs",
-    "materialSources": "Material sources",
-    "instances": "Instances",
-    "notFound": "Sheet design not found",
-    "noSheetDesigns": "No sheet designs yet",
-    "runNestingFirst": "Run nesting from a project queue to generate sheet layouts."
+    "layoutSaveFailed": "Failed to save the sheet layout."
   },
   "nestingRun": {
     "sheetDesigns": "Sheet designs"

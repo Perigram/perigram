@@ -42,6 +42,8 @@ import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
 
 const OCCS_MIME = 'application/perigram+occs';
 
+// §3 wire: records carry `name` — the label helper takes the plain
+// candidates and falls back to the record id.
 const entitySelectText = (...values) => {
   for (const value of values) {
     if (typeof value === 'string' && value.trim().length > 0) return value;
@@ -50,9 +52,8 @@ const entitySelectText = (...values) => {
   return '';
 };
 const entitySelectLabel = (entity, fallback = '') => entitySelectText(
-  entity?.name, entity?.label, entity?.title, entity?.identity?.name,
-  entity?.identity?.slug, entity?.identity?.serial, entity?.identity?.uid,
-  entity?.slug, entity?.code, entity?._id, entity?.id, fallback
+  entity?.name, entity?.label, entity?.title,
+  entity?.code, entity?._id, entity?.id, fallback
 );
 const entitySelectValue = (entity) => String(entity?._id || entity?.id || '');
 
@@ -559,7 +560,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const occsJson = computed(() => JSON.stringify(createCassetteV2OccsDocument(cassetteTree.value, cassetteMarkContext.value), null, 2));
       const drawingLayerNames = computed(() => drawingLayers.value.map(layer => layer.name).filter(Boolean));
       const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
-      const standardCodeOf = (standard) => standard?.data?.code || standard?.code || null;
+      const standardCodeOf = (standard) => standard?.fields?.code || null;
       const layerRows = computed(() => drawingLayers.value.map(layer => {
         const standard = standards.value.find(item => (
           sameEntityId(item._id, layer.standardId) ||
@@ -744,14 +745,17 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const templateName = (template) => (
-        template?.identity?.name ||
         template?.name ||
         t('cassette.newCassette')
       );
 
-      const templateTree = (template) => {
-        const graphTree = template?.definition?.extensions?.perigram?.graphTree ||
-          template?.graphTree ||
+      // A template's graph tree rides its payload document (§3): the
+      // host's document transport resolves the payload URL — the module
+      // never fetches.
+      const templateTreeOf = async (template) => {
+        const document = await props.persistence.loadDocument(template);
+        const graphTree = document?.extensions?.perigram?.graphTree ||
+          document?.graphTree ||
           null;
         if (!graphTree) return createCassetteV2GraphTree();
         try {
@@ -761,10 +765,10 @@ export default function createSurface({ vue, components, locale, queries, record
         }
       };
 
-      const applyTemplate = (template) => {
+      const applyTemplate = async (template) => {
         suppressAutosave = true;
         cassetteNameDraft.value = templateName(template);
-        cassetteTree.value = templateTree(template);
+        cassetteTree.value = await templateTreeOf(template);
         selectedNodeId.value = cassetteTree.value.rootId;
         selectedWorkpieceOverrideId.value = '';
         selectedRelationId.value = '';
@@ -809,7 +813,7 @@ export default function createSurface({ vue, components, locale, queries, record
             fileName: `${name}.occs`,
             mimeType: OCCS_MIME
           });
-          if ((target.identity?.name || '') !== name) {
+          if ((target.name || '') !== name) {
             await props.persistence.rename(target, name);
           }
           persistedTemplateIdOverride.value = target._id?.toString() || persistedTemplateIdOverride.value;
@@ -1280,12 +1284,12 @@ export default function createSurface({ vue, components, locale, queries, record
         if (!profile) return;
         profileDraft.value = {
           _id: editableProfileTemplateId(profile),
-          name: profile.identity?.name || profile.name || '',
-          kind: profile.data?.kind || 'hanger',
-          process: profile.data?.process || 'extruded',
-          parameters: profile.data?.parameters || {},
-          sketch: profile.data?.sketch || createDefaultOccsProfileTemplateData().sketch,
-          occsProfile: profile.data?.occsProfile || null
+          name: profile.name || '',
+          kind: profile.fields?.kind || 'hanger',
+          process: profile.fields?.process || 'extruded',
+          parameters: profile.fields?.parameters || {},
+          sketch: profile.fields?.sketch || createDefaultOccsProfileTemplateData().sketch,
+          occsProfile: profile.fields?.occsProfile || null
         };
       };
 
@@ -1611,14 +1615,14 @@ export default function createSurface({ vue, components, locale, queries, record
             ])
           ]),
           row.standard
-            ? h(Tag, { value: row.standard?.data?.code || row.standard?.code || '', severity: 'secondary', size: 'small' })
+            ? h(Tag, { value: row.standard?.fields?.code || '', severity: 'secondary', size: 'small' })
             : null,
           row.pen
             ? h('span', {
                 class: 'block h-3 w-10 shrink-0 rounded-ui border border-content-border',
                 style: {
-                  backgroundColor: row.pen?.data?.stroke?.color || 'currentColor',
-                  height: `${Math.min(6, Number(row.pen?.data?.stroke?.weight) * 2 + 1) || 3}px`
+                  backgroundColor: row.pen?.fields?.stroke?.color || 'currentColor',
+                  height: `${Math.min(6, Number(row.pen?.fields?.stroke?.weight) * 2 + 1) || 3}px`
                 },
                 title: entitySelectLabel(row.pen, ''),
                 'aria-hidden': 'true'
@@ -2187,7 +2191,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const templateOptions = computed(() => templateRecords.value.map(cassette => ({
-        label: cassette.identity?.name || cassette.identity?.slug || cassette._id,
+        label: cassette.name || cassette._id,
         value: cassette._id?.toString(),
         entity: cassette
       })));

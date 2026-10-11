@@ -44,6 +44,14 @@ noise.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
+- `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
+  fixture plugin publishes through the real catalog API, installs through
+  the real gate, its editor surface module URL resolves against the
+  configured endpoint, the workspace mounts the editor over the host
+  context and saves through the generic persistence callbacks onto the
+  payload channel, and its preview surface mounts read-only in the detail
+  preview slot over the host-resolved payload document. The run retracts
+  the fixture's catalog listing, so the marketplace stays clean.
 - `order-process.spec.js`: the composed order process LIVE — the org
   vocabulary declared in-tree and posted (the Apply sequence), the graph
   composed over the overlaid domain through the shared seam fixture

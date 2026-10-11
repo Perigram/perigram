@@ -77,10 +77,14 @@ function synthesizedGroups({ surface, fieldGroups }) {
 
 // Class-generic surface chrome derived from the type record alone: preview
 // follows payload presence (files preview as attachments, detail surfaces
-// hero), status follows the declared state axes, trace follows declared
+// hero) with the declared previewSource row as the payload-less channel,
+// status follows the declared state axes, trace follows declared
 // containment. App extensions and per-call patches compose on top.
 function genericSurfaceFor(typeView, surface) {
   const hasPayload = Boolean(typeView?.payload);
+  const hasDeclaredPreview = Boolean(typeView?.previewSource);
+  const attachmentPreview = hasPayload ? 'attachment' : (hasDeclaredPreview ? 'canvas' : 'none');
+  const detailPreview = hasPayload ? 'hero' : (hasDeclaredPreview ? 'canvas' : 'none');
   const hasStates = Boolean(typeView?.states?.main);
   const hasContainment = Boolean(Object.keys(typeView?.edges?.children || {}).length);
   if (surface === 'inline') {
@@ -88,14 +92,14 @@ function genericSurfaceFor(typeView, surface) {
       status: hasStates ? 'readonly' : 'hidden', trace: 'hidden' };
   }
   if (surface === 'compact') {
-    return { preview: hasPayload ? 'attachment' : 'none', fieldLimit: 3, dataDisplay: 'compact', relations: 'summary',
+    return { preview: attachmentPreview, fieldLimit: 3, dataDisplay: 'compact', relations: 'summary',
       actions: 'menu', status: hasStates ? 'interactive' : 'hidden', trace: 'hidden' };
   }
   if (surface === 'card' || surface === 'table') {
-    return { preview: hasPayload ? 'attachment' : 'none', dataDisplay: 'grid', relations: 'inlineRefs',
+    return { preview: attachmentPreview, dataDisplay: 'grid', relations: 'inlineRefs',
       actions: 'footer', status: hasStates ? 'interactive' : 'hidden', trace: 'hidden' };
   }
-  return { preview: hasPayload ? 'hero' : 'none', dataDisplay: 'sectioned', relations: 'expanded',
+  return { preview: detailPreview, dataDisplay: 'sectioned', relations: 'expanded',
     actions: 'toolbar', status: hasStates ? 'interactive' : 'hidden', trace: hasContainment ? 'full' : 'hidden' };
 }
 

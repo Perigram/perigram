@@ -230,9 +230,7 @@ export default defineNuxtConfig({
                 'primevue/tab',
                 'primevue/tabpanels',
                 'primevue/tabpanel',
-                '@vue-flow/core',
-                'three',
-                'three/examples/jsm/controls/OrbitControls.js'
+                '@vue-flow/core'
             ],
             exclude: ['nodi-modular']
         },

@@ -10,8 +10,8 @@ const messages = {
   'generatedScreen.actions.change': 'Change',
   'generatedScreen.actions.run': 'Run',
   'generatedScreen.actions.send': 'Send',
-  'entities.cassette': 'Cassette',
-  'entities.sheetDesign': 'Sheet design'
+  'uiMapping.types.cassette': 'Cassette',
+  'uiMapping.types.sheet-design': 'Sheet design'
 };
 
 const i18n = {
@@ -22,6 +22,7 @@ const i18n = {
 describe('generated labels', () => {
   it('uses domain entity translations for generated screens and sections', () => {
     expect(generatedEntityLabel('sheet_design', i18n)).toBe('Sheet design');
+    expect(generatedEntityLabel('sheet-design', i18n)).toBe('Sheet design');
     expect(generatedScreenLabel({ template: 'home', label: 'Home' }, i18n)).toBe('Home');
     expect(generatedScreenLabel({ typeId: 'sheet_design', label: 'Монтажник sheet_design' }, i18n)).toBe('Sheet design');
   });

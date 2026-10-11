@@ -14,7 +14,7 @@ import {
 describe('sheet layout editor helpers', () => {
   it('reads the first physical layout', () => {
     const state = sheetLayoutState({
-      data: { geometry: { data: {
+      fields: { geometry: { data: {
         items: [{ id: 1 }],
         solution: { layouts: [{ placed_items: [{ item_id: 1 }] }] }
       } } }

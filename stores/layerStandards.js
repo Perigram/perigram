@@ -13,17 +13,16 @@ import { useInstancesStore } from '~/stores/instances';
 // create/update the org shadow — system rows are never mutated.
 const TYPE_KEY = 'layer-standard';
 
-const standardCode = (standard) => standard?.data?.code || standard?.code || null;
-const standardCategory = (standard) => standard?.data?.category || standard?.category || null;
+const standardCode = (standard) => standard?.fields?.code || null;
+const standardCategory = (standard) => standard?.fields?.category || null;
 
 const withProjectedPen = (dto) => ({
     ...dto,
-    data: {
-        ...(dto.data || {}),
+    fields: {
+        ...(dto.fields || {}),
         defaultPenId: dto.relations?.defaultPen?.id || null,
         orgPenId: dto.relations?.defaultPen?.id || null
-    },
-    orgPenId: dto.relations?.defaultPen?.id || null
+    }
 });
 
 export const useLayerStandardsStore = defineStore('layerStandards', () => {
@@ -111,10 +110,10 @@ export const useLayerStandardsStore = defineStore('layerStandards', () => {
             await instances.updateInstance(TYPE_KEY, shadow._id, relation, { typeId: TYPE_KEY });
             return;
         }
-        // Seed the org shadow from the system row's row data.
+        // Seed the org shadow from the system row's rows.
         await instances.createInstance(TYPE_KEY, {
-            identity: { name: base.identity?.name || standardCode(base) },
-            data: { ...(base.data || {}) },
+            name: base.name || standardCode(base),
+            fields: { ...(base.fields || {}) },
             ...relation
         }, { typeId: TYPE_KEY });
     }

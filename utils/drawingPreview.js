@@ -9,22 +9,17 @@ export const strokeDasharray = (pattern = 'SOLID') => {
 };
 
 const sameId = (left, right) => left?.toString?.() === right?.toString?.();
-const standardCode = (standard) => standard?.data?.code || standard?.code || null;
+const standardCode = (standard) => standard?.fields?.code || null;
 const standardPenId = (standard) => (
-  standard?.data?.orgPenId ||
-  standard?.orgPenId ||
-  standard?.data?.defaultPenId ||
-  standard?.defaultPenId ||
+  standard?.fields?.orgPenId ||
+  standard?.fields?.defaultPenId ||
   null
 );
 
 export const resolveStandardPen = (standard, pens = [], fallbackPen = DEFAULT_DRAWING_PEN) => {
   if (!standard) return fallbackPen;
   const penId = standardPenId(standard);
-  return pens.find(pen => (
-    sameId(pen._id, penId) ||
-    sameId(pen.identity?.uid, penId)
-  )) || fallbackPen;
+  return pens.find(pen => sameId(pen._id, penId)) || fallbackPen;
 };
 
 export const resolveLayerStandard = ({
@@ -49,7 +44,7 @@ export const resolveLayerPen = (options = {}) => {
   return options.defaultPen || DEFAULT_DRAWING_PEN;
 };
 
-const penStroke = (pen) => pen?.data?.stroke || pen?.stroke || {};
+const penStroke = (pen) => pen?.fields?.stroke || {};
 
 export const applyLayerPens = (drawing, options = {}) => {
   if (!drawing?.layers) return drawing;
@@ -369,14 +364,6 @@ const normalizeLayerDataDrawing = (source, options = {}) => {
   }, options);
 };
 
-// An OCCS cassette definition record (the parametric template payload
-// shape `CassetteThumbnail` and the cassette designer consume): `occs`
-// version plus `documentType` mark the graph-tree document.
-export const isOccsCassetteDefinition = (definition = null) => Boolean(
-  definition && typeof definition === 'object'
-  && definition.occs && definition.documentType
-);
-
 export const normalizeGeometryDrawing = (source, options = {}) => {
   const geometry = source?.data?.geometry || source?.geometry || source || {};
   const preview = geometry.preview || geometry.data || geometry;
@@ -444,37 +431,3 @@ export const normalizeGeometryDrawing = (source, options = {}) => {
 
   return null;
 };
-
-export const extractDesignerEdges = (vertices = [], params = {}) => {
-  return vertices.map((vertex, index) => {
-    const next = vertices[(index + 1) % vertices.length];
-    const x1 = vertex[0];
-    const y1 = -vertex[1];
-    const x2 = next[0];
-    const y2 = -next[1];
-    const length = Math.round(Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2));
-    let label = `${length}`;
-    let minDiff = 2;
-
-    Object.entries(params).forEach(([key, value]) => {
-      const diff = Math.abs(Number(value) - length);
-      if (diff < minDiff) {
-        minDiff = diff;
-        label = `${key}: ${length}`;
-      }
-    });
-
-    return {
-      x1,
-      y1,
-      x2,
-      y2,
-      midX: (x1 + x2) / 2,
-      midY: (y1 + y2) / 2,
-      length,
-      label
-    };
-  });
-};
-
-;

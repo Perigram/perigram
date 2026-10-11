@@ -46,6 +46,26 @@ export async function publishListing(listing = {}) {
   return serializeListing(normalized);
 }
 
+// Retract a catalog listing (operator action): installed organizations
+// keep their pinned snapshots, but the listing leaves the Available
+// panel and no new install can target it. Refuses while any
+// organization still holds an install — retracting under live installs
+// would strand them without an upgrade path (the same drain law as
+// uninstall).
+export async function retractListing(pluginId = '') {
+  const listing = await repository.findCatalogByPluginId(pluginId);
+  if (!listing) throw createError({ statusCode: 404, message: 'Plugin not found' });
+  const installs = await repository.countInstallsByPluginId(pluginId);
+  if (installs > 0) {
+    throw createError({
+      statusCode: 409,
+      message: `Plugin is still installed by ${installs} organization${installs === 1 ? '' : 's'} — uninstall everywhere before retracting the listing`
+    });
+  }
+  await repository.deleteCatalogListing(pluginId);
+  return { pluginId: String(pluginId), retracted: true };
+}
+
 export async function listInstalled({ organizationId, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'read');

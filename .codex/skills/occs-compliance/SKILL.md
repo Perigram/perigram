@@ -1,6 +1,6 @@
 ---
 name: occs-compliance
-description: Work with the Open Cassette Component Standard in Perigram, including OCCS cassette template/design specs, docs/specs/Cassette spec, utils/occs helpers, cassette designer OCCS output, semantic layer standards, OCCS migration, previews, baking, nesting inputs, or validation and review of OCCS documents.
+description: Work with the Open Cassette Component Standard in Perigram, including OCCS cassette template/design specs, docs/specs/Cassette spec, workers/facade/occs helpers, cassette designer OCCS output, semantic layer standards, OCCS migration, previews, baking, nesting inputs, or validation and review of OCCS documents.
 ---
 
 # OCCS Compliance
@@ -14,7 +14,7 @@ migration work.
 1. `AGENTS.md`
 2. `docs/specs/README.md`
 3. `docs/specs/Cassette spec/SPEC.md`
-4. `utils/occs/README.md`
+4. `workers/facade/occs/README.md`
 
 Load these only when the task needs them:
 
@@ -33,11 +33,11 @@ Load these only when the task needs them:
   separate persistence model unless the task explicitly requires it.
 - Store cassette OCCS definitions under the cassette `data.definition` contract;
   use `definition.occs` and `definition.documentType` as the discriminator.
-- Keep `utils/occs/` pure: no stores, `$fetch`, Vue component APIs, or database
+- Keep `workers/facade/occs/` pure: no stores, `$fetch`, Vue component APIs, or database
   calls.
 - Preserve expression strings in templates. Resolve numeric values only for
   evaluated previews, designs, nesting inputs, or measurements.
-- Use semantic OCCS layer codes from the registry or `utils/occs/layers.js`;
+- Use semantic OCCS layer codes from the registry or `workers/facade/occs/layers.js`;
   avoid local hardcoded aliases.
 - Route drawing output through the shared `DrawingCanvas` contract with explicit
   layer-standard codes.
@@ -51,8 +51,8 @@ Pick the narrowest checks that cover the touched behavior:
 
 ```bash
 node "docs/specs/Cassette spec/tools/occs-toolkit.mjs" validate "docs/specs/Cassette spec/examples/simple-tray.occs.json"
-npx vitest run utils/occs/evaluate.spec.js
-npx vitest run utils/cassetteV2Renderer.spec.js
+npx vitest run workers/facade/occs/evaluate.spec.js
+npx vitest run workers/facade/surfaces/lib/cassetteV2Renderer.spec.js
 npx vitest run server/scripts/occs-layer-standards.spec.js
 ```
 
@@ -62,6 +62,6 @@ cassette, parametric-cassette, or nesting code.
 
 ## Documentation
 
-Update `docs/specs/README.md`, the relevant OCCS spec file, `utils/occs/README.md`,
+Update `docs/specs/README.md`, the relevant OCCS spec file, `workers/facade/occs/README.md`,
 feature/component READMEs, and `TODO.md` Agent Notes when contracts, supported
 shapes, layers, validation behavior, or migration behavior change.

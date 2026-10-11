@@ -12,9 +12,13 @@ executors through the worker protocol.
 
 - **Catalog** (`plugin_catalog`): one listing per `pluginId` —
   `{ pluginId, name, description, version, requires?, declarations: { types,
-  services, editors, surfaces, attachmentKinds, conversions, constructions, exports } }`.
+  services, editors, surfaces, previews, attachmentKinds, conversions, constructions, exports } }`.
   Platform-published only; organizations never write it. Publishing rides
-  `POST /api/plugins/catalog` (operator token) — the
+  `POST /api/plugins/catalog` (operator token) and retracting rides
+  `DELETE /api/plugins/catalog/:pluginId` (the same token; refused while
+  any organization still holds an install — installed pins are snapshots
+  and keep working, but a retracted-under-installs listing would strand
+  them without an upgrade path) — the
   [@perigram/plugin-sdk](../../../packages/plugin-sdk/README.md) CLI wraps
   it (`perigram-plugin publish`); the listing contract is validated by the
   SDK's `parseListing`, the same parser the install gate runs.
@@ -133,6 +137,7 @@ executors through the worker protocol.
 |---|---|---|
 | `GET /api/plugins/catalog` | authenticated | List catalog listings. |
 | `POST /api/plugins/catalog` | platform operator (`x-operator-token`) | Publish/upsert a listing (validated by the SDK contract). |
+| `DELETE /api/plugins/catalog/:pluginId` | platform operator (`x-operator-token`) | Retract a listing (refused while installs exist). |
 | `GET /api/organizations/:id/plugins` | member (`organizations:read`) | List installed plugins. |
 | `POST /api/organizations/:id/plugins` | `organizations:admin` | Install `{ pluginId }` at the catalog's current version. |
 | `DELETE /api/organizations/:id/plugins/:pluginId` | `organizations:admin` | Uninstall (drain-gated). |
