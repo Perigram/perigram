@@ -18,7 +18,7 @@ const domain = {
     ]
   },
   construction: {
-    panel: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [{ id: 'name', path: 'name', type: 'string', required: true }] }
+    panel: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [{ id: 'data.note', path: 'data.note', type: 'string', required: true }] }
   },
   workflows: {},
   serviceContracts: {
@@ -101,14 +101,12 @@ describe('port inventory pin (every catalog kind, frozen surface)', () => {
       "control.if": "control:in(event)!*|data:condition(boolean)!|control:true(event)|control:false(event)",
       "control.joinAll": "control:branches(event)!|control:out(event)",
       "control.joinAny": "control:branches(event)!|control:out(event)",
-      "control.manualTrigger": "control:start(event)|data:payload(json)",
       "control.stopFailure": "control:in(event)!*",
       "control.stopSuccess": "control:in(event)!*",
       "control.switch": "control:in(event)!*|data:value(json)!|control:default(event)",
-      "control.webhookTrigger": "control:start(event)|data:payload(json)",
       "cts.command": "control:in(event)!*|control:completed(event)|data:result(json)",
       "cts.compose": "data:block(block)",
-      "cts.construct": "control:in(event)!*|data:type(entityRef:panel)*|data:name(string:list)!|data:state(status:panel:list)|control:completed(event)|data:result(entityRef:panel)",
+      "cts.construct": "control:in(event)!*|data:type(entityRef:panel)*|data:data.note(string:list)!|data:state(status:panel:list)|control:completed(event)|data:result(entityRef:panel)",
       "cts.conversion": "",
       "cts.decompose": "data:entity(entityRef:panel)!|data:identity.name(string)|data:data.note(string)|data:specs.width(number:mm)",
       "cts.field": "data:entity(entityRef:panel)!|data:field(string)|data:value(number:mm)",

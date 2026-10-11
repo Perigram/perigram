@@ -1,12 +1,13 @@
 // Domain projection (SPEC §13/§15/§19, after the legacy cut): projects a
 // CTS registry view onto the compiler-consumable domain shape — synthesis
 // only. Every type in the view derives its entities entry, field
-// schemas, field access, containment, construction, relations, and
-// attachment kinds from its declaration. Workflows are graph-derived and
-// never projected (SPEC §7). Nothing passes through from the base domain:
-// legacy entity tables are not read. The base contributes operator
-// contracts (commands/tasks/hooks), the framework canonical block
-// vocabulary, UI metadata, and pack service registrations only.
+// schemas (the §13 wire DTO's own core vocabulary + rows), field access,
+// containment, construction, relations, and attachment kinds from its
+// declaration. Workflows are graph-derived and never projected (SPEC §7).
+// Nothing passes through from the base domain: legacy entity tables are
+// not read. The base contributes operator contracts
+// (commands/tasks/hooks), the framework canonical block vocabulary, UI
+// metadata, and pack service registrations only.
 //
 // This is the single translator between the declaration layer and the
 // process grammar — the designer and the compiler consume only this.
@@ -40,33 +41,28 @@ function constructionInputLabel({ path = '', label = '', typeId = '' } = {}, lab
   return label || clean;
 }
 
+// Core fields are the §13 wire DTO's own vocabulary — nothing the
+// instance services never serve, nothing they serve left unschema'd.
+// The legacy wire blocks (origin.*, status.userId/timestamp/…,
+// identity.slug/serial/reference, summary.*) belong to the framework
+// entities that kept their explicit services; those types are
+// `framework`-flagged and never reach this projection.
 const CORE_BLOCK_FIELDS = [
   coreField('_id', 'identity', 'json', { writable: false }),
   coreField('identity.uid', 'identity', 'string', { writable: false, constructible: false }),
   coreField('identity.name', 'identity', 'string'),
-  coreField('identity.slug', 'identity', 'string'),
-  coreField('identity.serial', 'identity', 'string'),
-  coreField('identity.reference', 'identity', 'string'),
-  coreField('origin.state.primary', 'origin', 'status', { writable: false, constructible: false }),
-  coreField('origin.userId', 'origin', 'string', { writable: false, constructible: false }),
-  coreField('origin.timestamp', 'origin', 'dateTime', { writable: false, constructible: false }),
-  coreField('origin.metadata', 'origin', 'json', { writable: false, constructible: false }),
-  coreField('origin.eventId', 'origin', 'string', { writable: false, constructible: false }),
-  coreField('origin.lifecycle', 'origin', 'json', { writable: false, constructible: false }),
-  coreField('status.userId', 'status', 'string', { writable: false, constructible: false }),
-  coreField('status.timestamp', 'status', 'dateTime', { writable: false, constructible: false }),
-  coreField('status.metadata', 'status', 'json', { constructible: false }),
-  coreField('status.eventId', 'status', 'string', { writable: false, constructible: false }),
-  coreField('status.lifecycle', 'status', 'json', { writable: false, constructible: false }),
+  coreField('typeVersion', 'identity', 'number', { writable: false, constructible: false }),
+  coreField('createdAt', 'status', 'dateTime', { writable: false, constructible: false }),
+  coreField('updatedAt', 'status', 'dateTime', { writable: false, constructible: false }),
   coreField('lineage.organizationId', 'lineage', 'entityRef', { typeId: 'organization', writable: false, constructible: false }),
-  // The relations slot is the graph-authored association surface: its
-  // entries are compiler-validated contracts (key, target type,
-  // cardinality, target access), so the slot itself is writable.
-  coreField('relations.value', 'relations', 'json'),
-  coreField('provenance.source', 'provenance', 'entityRef', { writable: false, constructible: false }),
+  // §3 causal record, immutable after construct: op names the effect,
+  // sources the typed inputs (refs), effective the replay-safety
+  // parameters.
+  coreField('provenance.op', 'provenance', 'string', { writable: false, constructible: false }),
+  { ...coreField('provenance.sources', 'provenance', 'array', { writable: false, constructible: false }), type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef' } } },
+  coreField('provenance.effective', 'provenance', 'json', { writable: false, constructible: false }),
   coreField('attachments.primary', 'attachments', 'json'),
-  coreField('data.value', 'data', 'json'),
-  coreField('summary.value', 'summary', 'json', { writable: false, constructible: false })
+  coreField('data.value', 'data', 'json')
 ];
 
 function coreField(path, block, base, flags = {}) {
@@ -160,7 +156,9 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       // without one (legacy org-stored) serve "Unnamed".
       label: renderPolicyFor(type).name || 'Unnamed',
       collection: CLASS_COLLECTIONS[type.class] || CLASS_COLLECTIONS.file,
-      blocks: ['identity', 'origin', 'status', 'lineage', 'relations', 'provenance', 'attachments', 'data',
+      // The §13 wire vocabulary only: the legacy origin/summary blocks
+      // never existed on generic instances.
+      blocks: ['identity', 'status', 'lineage', 'relations', 'provenance', 'attachments', 'data',
         ...(usesSpecs ? ['specs'] : [])],
       meta: false
     };
@@ -184,7 +182,10 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     const rowPaths = rowEntries.map(entry => entry.path);
     fieldAccess[type.id] = {
       feature: 'cts-types',
-      read: ['_id', 'identity.*', 'origin.*', 'status.*', 'lineage.*', 'relations.*', 'provenance.*', 'summary.*',
+      // The §13 wire vocabulary: what the instance DTO carries, nothing
+      // else. `state`, `createdAt`/`updatedAt`, and `typeVersion` are
+      // top-level DTO keys, not block children.
+      read: ['_id', 'identity.*', 'state', 'createdAt', 'updatedAt', 'typeVersion', 'lineage.*', 'relations.*', 'provenance.*', 'attachments.*',
         ...rowPaths],
       // Association writes travel through relations.<key> paths; their
       // keys, cardinality, and target access are compiler-validated
@@ -267,17 +268,16 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     return (type.payload?.creation || ['upload']);
   }
 
-  function hasIdentifierRow(type = {}) {
-    return Object.values(type.fields || {})
-      .some(descriptor => descriptor?.identifier === true && descriptor?.base === 'string');
-  }
-
-  function nameInput() {
-    return { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true };
-  }
+  // Construction prompts are the type's own vocabulary only — row fields
+  // and addressable edges (SPEC §4 "not in the row means does not
+  // exist"). There is no hardcoded Name input: a type with an identifier
+  // row names its records through the row; a type without one creates
+  // unnamed records and the unnamed placeholder is the authoring prompt
+  // to fix the declaration. Renaming stays a patch-channel concern
+  // (identity.name), never a construct prompt.
 
   function protocolModeInputs(type, protocol) {
-    const inputs = hasIdentifierRow(type) ? [] : [nameInput()];
+    const inputs = [];
     if (protocol === 'upload' || protocol === 'capture') {
       inputs.push({
         id: 'payload',
@@ -336,10 +336,6 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         ? protocols[0]
         : (constructOperators[0]?.id || 'genericCreate'),
       inputs: [
-        // A type whose rows name themselves (an identifier-flagged string
-        // field) has no separate Name input — the row IS the name. Types
-        // without one keep the single required Name prompt.
-        ...(hasIdentifierRow(type) ? [] : [nameInput()]),
         // lineage and relation edges are construct-addressable: a child
         // type's parent key and declared relation keys arrive as typed
         // inputs where the entity begins. Labels are authored vocabulary

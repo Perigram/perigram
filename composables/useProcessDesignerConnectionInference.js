@@ -1,4 +1,3 @@
-import { operationKindOf } from '~/packages/cts/src/index.js';
 import { propagateConnectionType } from '~/packages/processes/src/index.js';
 
 export function useProcessDesignerConnectionInference({ nodes, draft, resolveOutputs, portForHandle, syncProcessNode }) {
@@ -10,13 +9,6 @@ export function useProcessDesignerConnectionInference({ nodes, draft, resolveOut
     if (!sourceRecord || !targetRecord) return;
     const sourcePort = portForHandle(resolveOutputs(sourceRecord), connection.sourceHandle, 'output');
     if (!sourcePort || sourcePort.role !== 'data') return;
-    if (operationKindOf(sourceRecord) === 'control.manualTrigger'
-      && !sourceRecord.typeId
-      && targetRecord.typeId
-      && ['cts.mutate', 'cts.field', 'cts.decompose'].includes(operationKindOf(targetRecord))) {
-      sourceRecord.typeId = targetRecord.typeId;
-      syncProcessNode(sourceRecord);
-    }
     const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
     propagateConnectionType(targetRecord, targetInput, sourcePort);
     const entryId = targetInput.replace(/^entry:/, '');

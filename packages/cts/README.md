@@ -98,18 +98,25 @@ module layout and how the code maps to the spec's build-order tiers.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator, synthesis-only: every type in the view (framework, pack,
   org) synthesizes its entities entry (per-class collection, §13),
-  `fieldSchemas` (core-slot convention + rows), `fieldAccess` (bound to
-  the cts-types feature), `containment` (children edges with lineage
-  keys), `construction` (`genericCreate` + declared construct operators
-  as `via` modes with signature-derived `modeInputs`), `relations`
-  (declared edges), and `attachmentKinds` (payload traits). Nothing
-  passes through from the base domain: legacy entity/workflow/
-  construction/field-schema/access/relation/containment/attachment-kind
-  content supplied on `baseDomain` is ignored; the base contributes
-  operator contracts (commands/tasks/hooks), the framework block
-  vocabulary, and pack service registrations only. Owns the per-class
-  collection map (`CLASS_COLLECTIONS`) shared with the instance
-  repository.
+  `fieldSchemas` (the §13 wire DTO's core vocabulary — `_id`,
+  `identity.uid/name`, `typeVersion`, `state`, `createdAt`/`updatedAt`,
+  tenancy + declared lineage edges, declared relations, the provenance
+  record, the payload slot — plus row fields; the legacy wire blocks
+  `origin.*`/`status.userId`/`identity.slug`/`summary.*` never existed on
+  generic instances and are not projected), `fieldAccess` (bound to the
+  cts-types feature), `containment` (children edges with lineage keys),
+  `construction` (`genericCreate` + declared construct operators as `via`
+  modes with signature-derived `modeInputs`; construction inputs are rows
+  and addressable edges only — there is no hardcoded Name input, a type
+  without an identifier row creates unnamed records and the placeholder
+  is the authoring prompt), `relations` (declared edges), and
+  `attachmentKinds` (payload traits). Nothing passes through from the
+  base domain: legacy entity/workflow/construction/field-schema/access/
+  relation/containment/attachment-kind content supplied on `baseDomain`
+  is ignored; the base contributes operator contracts
+  (commands/tasks/hooks), the framework block vocabulary, and pack
+  service registrations only. Owns the per-class collection map
+  (`CLASS_COLLECTIONS`) shared with the instance repository.
 - `render.js` — display-policy derivation and `compileClientBundle()`,
   the single frontend/designer consumption contract (this is where
   hand-mirrored status tables die). Naming is authored vocabulary

@@ -556,28 +556,26 @@ describe('durable process orchestration', () => {
     }));
   });
 
-  it('resolves a manual trigger entity edge through its declared payload output', async () => {
+  it('resolves the run trigger payload into a construct lineage input', async () => {
     const definition = process([
-      { id: 'trigger', kind: 'control.manualTrigger', typeId: 'project' },
+      { id: 'payload', kind: 'source.triggerPayload', path: ['payload'] },
       {
         id: 'create',
         kind: 'cts.construct',
         typeId: 'queue',
-        trigger: { mode: 'event' },
         construction: {
           mode: 'genericCreate',
           inputs: [{ id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project' }]
         }
       }
-    ], ['trigger', 'create'], [
-      { source: 'trigger', sourceHandle: 'data:payload', target: 'create', targetHandle: 'data:lineage.projectId', role: 'data' },
-      { source: 'trigger', sourceHandle: 'control:start', target: 'create', targetHandle: 'control:in', role: 'control' }
+    ], ['payload', 'create'], [
+      { source: 'payload', sourceHandle: 'data:value', target: 'create', targetHandle: 'data:lineage.projectId', role: 'data' }
     ]);
     const project = { _id: 'project-1', identity: { name: 'Project' } };
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
 
     const completed = await runProcessUntilSettled(
-      createProcessRun(definition, { nodeId: 'trigger', payload: project }),
+      createProcessRun(definition, { payload: project }),
       definition,
       { executeEffect, catalogContext }
     );
@@ -800,28 +798,6 @@ describe('durable process orchestration', () => {
     });
     expect(result.nodes.count.outputs.value.branches[0].items).toEqual([2]);
     expect(result.nodes.effect).toBeUndefined();
-    expect(executeEffect).not.toHaveBeenCalled();
-  });
-
-  it('advances run and step statuses on a read-only graph without entering the effect boundary', async () => {
-    const definition = process([
-      { id: 'trigger', kind: 'control.manualTrigger' },
-      { id: 'entities', kind: 'cts.read', select: 'all', typeId: 'queue' },
-      { id: 'count', kind: 'collection.count', type: { base: 'entity' } }
-    ], ['trigger', 'entities', 'count'], [
-      control('trigger', 'out', 'entities'),
-      { id: 'entities-count', source: 'entities', sourceHandle: 'data:result', target: 'count', targetHandle: 'data:value', role: 'data' }
-    ]);
-    const executeEffect = vi.fn();
-    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
-      executeEffect,
-      catalogContext,
-      data: { queryEntities: async () => [{ _id: 'q1' }, { _id: 'q2' }] }
-    });
-
-    expect(completed.status).toBe('succeeded');
-    expect(completed.steps.length).toBeGreaterThan(0);
-    expect(completed.steps.every(step => ['succeeded', 'skipped'].includes(step.status))).toBe(true);
     expect(executeEffect).not.toHaveBeenCalled();
   });
 

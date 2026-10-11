@@ -111,7 +111,7 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(projected.workflows).toEqual({});
   });
 
-  it('synthesizes field schemas with row fields and lineage from children edges', () => {
+  it('projects field schemas with row fields and lineage from children edges', () => {
     const projected = projectDomainFromView(orgRegistry(), 'org-1');
     const paths = projected.fieldSchemas.panel.map(schema => schema.path);
     expect(paths).toContain('identity.name');
@@ -121,6 +121,58 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(projected.fieldSchemas.panel.find(schema => schema.path === 'specs.width'))
       .toMatchObject({ type: { base: 'number', unit: 'mm' }, constructible: true });
     expect(projected.fieldAccess.panel).toMatchObject({ feature: 'cts-types' });
+  });
+
+  it('projects core field schemas as the §13 wire DTO vocabulary — no phantom legacy blocks', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    const paths = projected.fieldSchemas.panel.map(schema => schema.path);
+    // What the instance DTO carries, it must schema:
+    expect(paths).toEqual(expect.arrayContaining([
+      '_id', 'identity.uid', 'identity.name', 'typeVersion',
+      'state', 'createdAt', 'updatedAt',
+      'lineage.organizationId', 'lineage.binId',
+      'provenance.op', 'provenance.sources', 'provenance.effective',
+      'attachments.primary', 'data.value'
+    ]));
+    // What it never carries, it must not schema (the legacy wire blocks
+    // belong to framework entities outside this projection):
+    for (const phantom of [
+      'identity.slug', 'identity.serial', 'identity.reference',
+      'origin.state.primary', 'origin.userId', 'origin.timestamp', 'origin.metadata', 'origin.eventId', 'origin.lifecycle',
+      'status.userId', 'status.timestamp', 'status.metadata', 'status.eventId', 'status.lifecycle',
+      'provenance.source', 'relations.value', 'summary.value'
+    ]) {
+      expect(paths, phantom).not.toContain(phantom);
+    }
+    // The flat state string is read-admitted (the current axis of the
+    // record) and nothing core is writable except the name channel:
+    expect(projected.fieldSchemas.panel.find(schema => schema.path === 'state'))
+      .toMatchObject({ readable: true, writable: false });
+    expect(projected.fieldSchemas.panel.find(schema => schema.path === 'createdAt'))
+      .toMatchObject({ readable: true, writable: false });
+    // Entity blocks carry the same honesty: no origin/summary blocks on
+    // generic instances.
+    expect(projected.entities.find(entity => entity.type === 'panel').blocks)
+      .not.toEqual(expect.arrayContaining(['origin', 'summary']));
+  });
+
+  it('synthesizes no hardcoded Name construction input for identifier-less types', () => {
+    const reg = registry();
+    reg.defineType({
+      id: 'blank',
+      name: 'Blank',
+      class: 'item',
+      scope: 'org',
+      organizationId: 'org-1',
+      version: 1,
+      fields: { geometry: { base: 'json', nullable: true } }
+    });
+    const projected = projectDomainFromView(reg, 'org-1');
+    const construction = projected.construction.blank;
+    expect(construction.inputs.map(input => input.id)).toEqual(['data.geometry']);
+    // The unnamed placeholder is the authoring prompt (SPEC §4), never a
+    // compiler-invented Name field:
+    expect(construction.inputs.some(input => input.id === 'name' || input.path === 'name')).toBe(false);
   });
 
   it('synthesizes containment from children edges with camel-case lineage keys', () => {

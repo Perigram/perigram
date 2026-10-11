@@ -119,8 +119,6 @@ const definitions = [
   cts('cts.compose', 'compose', 'records', 'data'),
   cts('cts.decompose', 'decompose', 'records', 'data'),
 
-  trigger('control.manualTrigger', 'manualTrigger'),
-  trigger('control.webhookTrigger', 'webhookTrigger'),
   control('control.if', 'ifElse'),
   control('control.switch', 'switch'),
   control('control.fork', 'fork'),
@@ -140,7 +138,6 @@ export const PROCESS_NODE_FAMILIES = Object.freeze([
   'values',
   'collections',
   'records',
-  'predicates',
   'reads',
   'effects',
   'control'
@@ -180,10 +177,6 @@ function data(kind, label) {
     ? 'collections'
     : kind.startsWith('record.') ? 'records' : 'values';
   return definition(kind, label, family, kind.startsWith('read.') ? 'read' : 'data', true, catalogPorts);
-}
-
-function trigger(kind, label) {
-  return definition(kind, label, 'control', 'control', false, catalogPorts);
 }
 
 function control(kind, label) {

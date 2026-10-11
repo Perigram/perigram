@@ -26,6 +26,26 @@ describe('process v4 type algebra', () => {
     expect(processTypesCompatible(processType('entity', { typeId: 'project' }), processType('entity', { typeId: 'queue' })).ok).toBe(false);
   });
 
+  it('coerces entity and entityRef implicitly within one type scope (the wire law that absorbed value.toEntityRef)', () => {
+    // An instance is an instance (SPEC §20): both directions connect under
+    // the same type-scope rule, so a read's entity output wires straight
+    // into a ref socket with no conversion node.
+    expect(processTypesCompatible(processType('entity', { typeId: 'queue' }), processType('entityRef', { typeId: 'queue' })))
+      .toMatchObject({ ok: true, implicit: true, coercion: 'entityToReference' });
+    expect(processTypesCompatible(processType('entityRef', { typeId: 'queue' }), processType('entity', { typeId: 'queue' })))
+      .toMatchObject({ ok: true, implicit: true, coercion: 'entityToReference' });
+    expect(processTypesCompatible(processType('entityRef', { typeId: 'queue' }), processType('entityRef', { typeId: 'queue' })))
+      .toMatchObject({ ok: true, implicit: true });
+    // The type scope is the gate: cross-type coercion refuses with the
+    // expected/received diagnostic, never silently degrades.
+    const cross = processTypesCompatible(processType('entity', { typeId: 'project' }), processType('entityRef', { typeId: 'queue' }));
+    expect(cross.ok).toBe(false);
+    expect(cross.reason).toContain('entityRef<queue>');
+    expect(cross.reason).toContain('entity<project>');
+    // Untyped references accept any instance scope.
+    expect(processTypesCompatible(processType('entity', { typeId: 'project' }), processType('entityRef')).ok).toBe(true);
+  });
+
   it('keeps array values separate from data-tree branches', () => {
     const array = processType('array', { itemType: processType('entityRef', { typeId: 'queue' }) });
     expect(array).toMatchObject({ base: 'array', itemType: { base: 'entityRef' } });
