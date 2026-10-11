@@ -113,6 +113,8 @@ services:
     environment:
       - FACADE_EXECUTOR_PORT=8790
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
+    ports:
+      - "8790:8790"
     depends_on:
       - nesting-worker
     networks:
