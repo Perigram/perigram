@@ -75,30 +75,46 @@ persistence callbacks, never stores, routing, or auth:
 - Default-export the factory `createSurface(ctx) -> component`. `ctx` is
   `{ vue, components, locale }`: the host's Vue runtime subset (`h`, `ref`,
   `computed`, `watch`, lifecycle hooks — render functions, no template
-  compiler), the vetted PrimeVue pack (compose from it; that is the
-  consistency law), and `{ t, te, locale }`.
+  compiler), the vetted component pack (compose from it; that is the
+  consistency law), and `{ t, te, locale }`. The pack is the PrimeVue
+  primitives (`Button`, `Checkbox`, `Dialog`, `InputText`, `Message`,
+  `Popover`, `ScrollPanel`, `Select`, `Tag`, `Textarea`) plus the host
+  designer chrome (`DesignerSurface`, `DesignerWorkspace`,
+  `StandardDialog`, `InstanceSelect`).
 - The returned component declares props `{ record, persistence }`.
   `persistence` carries `createBlank()`, `loadDocument(record)`,
-  `saveDocument(record, document, { fileName, mimeType })`, and
-  `rename(record, name)` — the generic instance transports. A blank
-  create enters unnamed (the type's identifier row names records;
-  `rename` renames them); documents ride the payload channel; the module
-  never calls the API itself. The bound type must declare a revision
-  scope (`revisions`, e.g. `"document"`): payload replacement requires
-  one, and a type without it refuses saves.
+  `saveDocument(record, document, { fileName, mimeType })`,
+  `patch(record, body)`, and `rename(record, name)` — the generic
+  instance transports. A blank create enters unnamed (the type's
+  identifier row names records; `rename` renames them); documents ride
+  the payload channel; `patch` writes record data and summary through
+  the generic update transport; the module never calls the API itself.
+  The bound type must declare a revision scope (`revisions`, e.g.
+  `"document"`): payload replacement requires one, and a type without it
+  refuses saves.
+- Editor-grade mounts (`surfaceContract: 2`) receive three more ctx
+  members beside the base: `queries` (`list(typeId, params)` /
+  `get(typeId, id)` — cross-type instance reads over the generic
+  transport, the data-only replacement for store access), `notify`
+  (`{ severity, summary, detail }` — the host toast), and `access`
+  (`canWrite(record)` — the host's write-grant resolution; without the
+  grant, degrade to view-only). A surface that needs none of them stays
+  on contract 1.
 - Never import `vue`, `primevue`, or `pinia` — the mount injects them.
   `perigram-plugin surfaces <module.mjs>` refuses a module whose import
   graph carries host externals, whose factory is missing, or whose factory
-  logs errors against the stub context.
+  logs errors against the stub context (the stub carries the contract-2
+  superset, so editor-grade modules smoke against their full context).
 - The surface UX laws: the host owns the chrome (mount inside the page
-  you are given; never invent toolbars around it), the save affordance
-  and undo behavior match the platform editors, keyboard paths and aria
-  labels are first-class. Remote editors are online-only — mount fast and
-  fail honestly.
+  you are given; compose the designer chrome from the pack instead of
+  inventing toolbars around it), the save affordance and undo behavior
+  match the platform editors, keyboard paths and aria labels are
+  first-class. Remote editors are online-only — mount fast and fail
+  honestly.
 - Declare it in the listing beside the editor binding:
 
   ```json
-  "surfaces": [{ "id": "coating-designer", "module": "/surfaces/coating-designer.mjs", "surfaceContract": 1 }],
+  "surfaces": [{ "id": "coating-designer", "module": "/surfaces/coating-designer.mjs", "surfaceContract": 2 }],
   "editors": [{ "type": "coating-sheet", "surface": "coating-designer", "modes": ["edit"] }]
   ```
 
