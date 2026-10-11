@@ -733,6 +733,20 @@ contract rows for the deleted cards, the framework-inspector stale
 paths + cassette_template compatibility aliases, and 135 orphaned
 cassette/sheet i18n keys (en+ru) went with them.
 
+Validation: focused suites green (SDK 27, plugins 67 incl. the
+retract drain gate, cts-types, workers/facade 80, layer-standards pins);
+full vitest at exact base-failure parity (30 base failures, zero new);
+SSR smoke 3/3; check-arch, check-docs, framework:validate green;
+manifest regenerated. Live dev-stack proof: listing v3 published through
+the operator API, org-demo-acme... (the e2e org) upgraded v1→v3 through
+the same upgrade endpoints the Plugins page calls (§11 remove-field
+steps covered, version pinned 3, availableVersion cleared), the served
+view carries the cassette-preview binding, and the executor serves the
+module. The plugin-surface e2e is green end to end (publish → install →
+editor mount → payload save → PREVIEW mount over the resolved payload →
+retract). Two live-blocker findings recorded below: the surface-origin
+decision and the designer field-select seam.
+
 Marketplace hygiene (owner report 2026-10-11): the Plugins-page upgrade
 UI has existed since 4a962f7c — the real gap was the never-exercised
 deploy path (the dev catalog sat at v1 while the listing was v2, so
