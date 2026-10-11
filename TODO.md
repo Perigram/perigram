@@ -640,6 +640,16 @@ the plugin). Fidelity notes: PrimeVue tooltip directives become native
 data-only mount); the in-editor open-template dock loads the template
 in place instead of emitting host navigation.
 
+Follow-up fix (same day, live 500 report): the eager surface-pack
+literal hit the DrawingCanvas import cycle
+(DrawingCanvas → entity cards → instance-editor-action → file-surfaces
+→ RemoteEditorSurface → remote-surface-mount) as a vite-node TDZ; the
+pack now resolves lazily at mount time (spec pins the entry order).
+Also observed, NOT from this work: `detail-action-ownership.spec.js`
+is stale since the typeId cutover (`sheet_design` vocabulary, owners
+set never carried cassette/sheet) — its fix is deriving ownership from
+the served editor bindings.
+
 Guard blind spot recorded: the design-system/vue scanners see app
 `.vue` files only — plugin modules' styling is pinned by the surface
 UX laws and the e2e, not `design-system.spec`.
