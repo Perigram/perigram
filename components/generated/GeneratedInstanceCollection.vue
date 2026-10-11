@@ -58,7 +58,7 @@
   <ResponsiveGrid v-else :variant="template === 'workspaceLanes' ? 'wide' : 'bounded'" responsive-context="container">
     <InstanceCard
       v-for="entity in visibleItems"
-      :key="entity._id || entity.id || entity.identity?.uid"
+      :key="entity._id || entity.id"
       :instance="entity"
       :type-id="typeId"
       :surface="surface"
@@ -75,7 +75,7 @@
               <Button
                 link
                 class="min-w-0 max-w-full !justify-start"
-                :aria-label="entity.identity?.name || $t('common.open')"
+                :aria-label="entity.name || $t('common.open')"
                 @click.stop="openEntity(entity)"
               >
                 <span class="flex min-w-0 items-center gap-2">
@@ -283,7 +283,7 @@ const typeRecord = computed(() => typeById(props.typeId));
 const registryTypes = computed(() => [...registry.typesById.values()]);
 const filterRows = computed(() => new Map(props.items.map(entity => {
   const projected = (typeRecord.value ? dtoToScreenInstance(entity, typeRecord.value) : null) || {
-    id: String(entity?._id || entity?.id || entity?.identity?.uid || ''),
+    id: String(entity?._id || entity?.id || entity?.id || ''),
     fields: {},
     lineage: {},
     relations: {}
@@ -338,7 +338,7 @@ function openEntity(entity) {
   // instead of a separate route.
   if (typeof window !== 'undefined'
     && !window.matchMedia?.('(max-width: 767px)')?.matches) {
-    const id = entity?._id || entity?.id || entity?.identity?.uid || '';
+    const id = entity?._id || entity?.id || entity?.id || '';
     if (openInstanceInWorkspace({ typeId: props.typeId, instanceId: String(id || '') })) return;
   }
   const route = detailRouteFor(entity);
@@ -380,7 +380,7 @@ function entityStatus(entity = {}) {
 }
 
 function entityName(entity = {}) {
-  return entity.identity?.name || entity.identity?.slug || entity.identity?.uid || entity._id || entity.id || '';
+  return entity.name || entity._id || entity.id || '';
 }
 
 function compareEntities(left, right) {

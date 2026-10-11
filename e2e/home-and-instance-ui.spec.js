@@ -70,7 +70,7 @@ test.describe('home and entity UI', () => {
     // action — a module-scope binding snapshot froze the pre-auth
     // fallback and dropped the editor entry after the facade cut.
     const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'] });
-    const created = await app.createInstance('cassette', { 'data.name': 'Designer Cassette One' });
+    const created = await app.createInstance('cassette', { 'fields.name': 'Designer Cassette One' });
     const id = String(created._id || created.id);
     expect(id, 'Expected the created cassette id').toBeTruthy();
     const detail = (manifest.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === 'cassette');

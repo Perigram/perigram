@@ -838,7 +838,7 @@ export const addCassetteV2ProfileWorkpiece = (tree, reference = {}) => {
   });
   const sourceWorkpiece = {
     id,
-    name: reference.name || reference.template?.identity?.name || reference.profileTemplate?.identity?.name || `Profile ${index + 1}`,
+    name: reference.name || reference.template?.name || reference.profileTemplate?.name || `Profile ${index + 1}`,
     type: 'profile',
     role: profile.kind,
     profileTemplateId: reference.template?._id || reference.profileTemplate?._id || reference.profileTemplateId || '',

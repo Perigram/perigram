@@ -45,7 +45,7 @@ function collectionItems(response) {
 }
 
 function dtoIds(dto = {}) {
-  return [dto._id, dto.id, dto.identity?.uid]
+  return [dto._id, dto.id]
     .map(value => value?.toString?.() || value)
     .filter(Boolean);
 }

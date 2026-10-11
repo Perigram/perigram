@@ -28,7 +28,7 @@ const data = (source, target, targetHandle) => ({
   role: 'data'
 });
 const catalogContext = () => ({
-  fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
+  fieldSchemas: [{ path: 'name', block: 'identity', type: { base: 'string', shape: 'item' } }]
 });
 
 describe('durable process orchestration', () => {
@@ -140,7 +140,7 @@ describe('durable process orchestration', () => {
       { id: 'mutation', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' } }
     ], ['entities', 'names', 'mutation'], [
       data('entities', 'mutation', 'entity'),
-      data('names', 'mutation', 'identity.name')
+      data('names', 'mutation', 'name')
     ]);
     const executeEffect = vi.fn();
 
@@ -199,9 +199,9 @@ describe('durable process orchestration', () => {
   it('starts a manual effect and feeds a decomposed facet into an automatic effect', async () => {
     const definition = process([
       {
-        id: 'identity',
+        id: 'rows',
         kind: 'cts.compose',
-        block: 'data',
+        block: 'fields',
         compositionMode: 'entries',
         entries: [{ id: 'name', key: 'name' }],
         inputDefaults: { 'entry:name': 'Original' }
@@ -211,7 +211,7 @@ describe('durable process orchestration', () => {
         kind: 'cts.construct',
         typeId: 'project',
         trigger: { mode: 'manual' },
-        construction: { mode: 'genericCreate', inputs: [{ id: 'identity', type: 'json' }] }
+        construction: { mode: 'genericCreate', inputs: [{ id: 'fields', type: 'json' }] }
       },
       {
         id: 'decompose',
@@ -224,13 +224,13 @@ describe('durable process orchestration', () => {
         typeId: 'project',
         trigger: { mode: 'event' }
       }
-    ], ['identity', 'create', 'decompose', 'update'], [
+    ], ['rows', 'create', 'decompose', 'update'], [
       {
-        id: 'identity-create',
-        source: 'identity',
+        id: 'rows-create',
+        source: 'rows',
         sourceHandle: 'data:block',
         target: 'create',
-        targetHandle: 'data:identity',
+        targetHandle: 'data:fields',
         role: 'data'
       },
       {
@@ -252,16 +252,16 @@ describe('durable process orchestration', () => {
       {
         id: 'name-update',
         source: 'decompose',
-        sourceHandle: 'data:identity.name',
+        sourceHandle: 'data:name',
         target: 'update',
-        targetHandle: 'data:identity.name',
+        targetHandle: 'data:name',
         role: 'data'
       },
       control('create', 'completed', 'update')
     ]);
     const executeEffect = vi.fn()
-      .mockResolvedValueOnce({ type: 'project', id: 'project-1', identity: { name: 'Original' } })
-      .mockResolvedValueOnce({ type: 'project', id: 'project-1', identity: { name: 'Original' } });
+      .mockResolvedValueOnce({ type: 'project', _id: 'project-1', name: 'Original', fields: { name: 'Original' } })
+      .mockResolvedValueOnce({ type: 'project', _id: 'project-1', name: 'Original', fields: { name: 'Original' } });
 
     const completed = await runProcessUntilSettled(
       createProcessRun(definition, { nodeId: 'create' }),
@@ -272,8 +272,8 @@ describe('durable process orchestration', () => {
     expect(completed.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenNthCalledWith(2, expect.objectContaining({
       inputs: {
-        entity: { type: 'project', id: 'project-1', identity: { name: 'Original' } },
-        'identity.name': 'Original'
+        entity: { type: 'project', _id: 'project-1', name: 'Original', fields: { name: 'Original' } },
+        'name': 'Original'
       }
     }));
   });
@@ -533,7 +533,7 @@ describe('durable process orchestration', () => {
         source: 'name',
         sourceHandle: 'data:value',
         target: 'modify',
-        targetHandle: 'data:identity.name',
+        targetHandle: 'data:name',
         role: 'data'
       }
     ]);
@@ -551,7 +551,7 @@ describe('durable process orchestration', () => {
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
       inputs: {
         entity,
-        'identity.name': 'Renamed'
+        'name': 'Renamed'
       }
     }));
   });

@@ -114,7 +114,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
 const authStore = useAuthStore();
-const instanceNameValue = computed(() => props.instance?.identity?.name || '');
+const instanceNameValue = computed(() => props.instance?.name || '');
 // The header's conversation entry: same seam as the card/pane chat
 // actions — a user-typed record opens the direct thread, every other
 // type the composed instance thread.
@@ -123,7 +123,7 @@ const openConversation = () => {
   openInstanceChat({ type: props.typeId, id: instanceIdValue.value, name: instanceNameValue.value });
 };
 const instanceIdValue = computed(() => {
-  const id = props.instance?._id || props.instance?.id || props.instance?.identity?.uid || '';
+  const id = props.instance?._id || props.instance?.id || props.instance?.id || '';
   return id ? String(id) : '';
 });
 const editorActionComponent = computed(() => instanceEditorActionFor(props.typeId));

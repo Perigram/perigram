@@ -133,7 +133,7 @@ export function editorSurfacePersistence(typeId) {
       return entity;
     },
     async loadDocument(record, { mimeType = 'application/json' } = {}) {
-      const url = instancePayloadFileUrl(record?.attachments?.primary);
+      const url = instancePayloadFileUrl(record?.payload);
       if (!url) return null;
       return await basePersistence(record, mimeType).load().then(text => (text ? JSON.parse(text) : null));
     },

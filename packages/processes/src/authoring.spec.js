@@ -67,7 +67,7 @@ describe('headless definition authoring', () => {
   it('configures join keys and record composer fields', () => {
     const context = authoring();
     context.drop('joinByKey', { id: 'join' });
-    expect(context.configure('join', { leftKey: 'cassette', rightKey: 'identity.name' }).leftKey).toBe('cassette');
+    expect(context.configure('join', { leftKey: 'cassette', rightKey: 'name' }).leftKey).toBe('cassette');
     context.drop('constructRecord', { id: 'params' });
     expect(context.configure('params', { fields: ['A', 'B'] }).fields).toEqual(['A', 'B']);
   });

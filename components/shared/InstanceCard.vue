@@ -264,7 +264,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh']);
 
 const cardInstanceId = computed(() => {
-    const id = props.instance?._id || props.instance?.id || props.instance?.identity?.uid || '';
+    const id = props.instance?._id || props.instance?.id || props.instance?._id || '';
     return id ? String(id) : '';
 });
 
@@ -273,7 +273,7 @@ function openCardChat() {
     openInstanceChat({
         type: props.typeId,
         id: cardInstanceId.value,
-        name: props.instance?.identity?.name || ''
+        name: props.instance?.name || ''
     });
 }
 const inlineDetailRouteRef = inject('instanceInlineDetailRoute', null);

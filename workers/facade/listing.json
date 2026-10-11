@@ -85,9 +85,9 @@
               "id": "geometry",
               "fields": [
                 {
-                  "path": "data.polygonParts",
+                  "path": "fields.polygonParts",
                   "fallbackPaths": [
-                    "data.layerData"
+                    "fields.layerData"
                   ],
                   "label": "common.details",
                   "role": "previewSource",
@@ -99,11 +99,11 @@
           ]
         },
         "snapshot": [
-          "data.templateType",
-          "data.parameters",
-          "data.mapping",
-          "data.polygonParts",
-          "data.layerData"
+          "fields.templateType",
+          "fields.parameters",
+          "fields.mapping",
+          "fields.polygonParts",
+          "fields.layerData"
         ],
         "operators": {
           "edit": {
@@ -186,8 +186,8 @@
         "name": "Cassette design",
         "glyph": "pi pi-clone",
         "snapshot": [
-          "data.template",
-          "data.parameters"
+          "fields.template",
+          "fields.parameters"
         ],
         "operators": {
           "bake": {
@@ -263,7 +263,7 @@
               }
             },
             "resolve": {
-              "field": "data.geometry.nestingPolygons"
+              "field": "fields.geometry.nestingPolygons"
             }
           }
         ]
@@ -364,7 +364,7 @@
               "id": "geometry",
               "fields": [
                 {
-                  "path": "data.geometry.preview",
+                  "path": "fields.geometry.preview",
                   "label": "common.details",
                   "role": "previewSource",
                   "display": "geometry",

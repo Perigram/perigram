@@ -35,8 +35,22 @@ const ATTACHMENT_AUDIO_EXTENSIONS = {
 };
 const scopedList = (service) => (auth, filters) => service.list(auth.userId, auth.organizationId, auth.role, auth, filters);
 const INSTANCE_OPTION_LOADERS = {
-    artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+    // The artifact feature still speaks its legacy wire (slice D); its
+    // loader maps that contract into this seam's §3 option shape.
+    artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth)
+        .then(rows => rows.map(row => {
+            const dto = row?.toJSON ? row.toJSON() : row;
+            return dto?.name === undefined && dto?.identity?.name != null
+                ? { ...dto, name: dto.identity.name }
+                : dto;
+        })),
     user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
+        .then(rows => rows.map(row => {
+            const dto = row?.toJSON ? row.toJSON() : row;
+            return dto?.name === undefined && dto?.identity?.name != null
+                ? { ...dto, name: dto.identity.name }
+                : dto;
+        }))
 };
 
 /**
@@ -228,16 +242,22 @@ function instanceIdOf(dto = null) {
     return value ? String(value) : '';
 }
 
-function instanceName(dto = null, type = '') {
-    // Identity labels only: never the uid, never the raw id, never the type
-    // id — surfaces fall back to the localized type label client-side when
-    // this is empty (the no-technical-ids rule).
-    return dto?.identity?.name || dto?.identity?.serial || '';
+// Party entities (organization, user) keep their explicit feature
+// services and legacy wire (the instance flip covers CTS instances only).
+function partyNameOf(dto = null) {
+    return dto?.identity?.name || '';
+}
+
+function instanceName(dto = null) {
+    // The stored name slot only: never the raw id, never the type id —
+    // surfaces fall back to the localized type label client-side when
+    // this is empty (the no-technical-ids rule). The declared identifier
+    // row's value resolves client-side through the display contract.
+    return dto?.name || '';
 }
 
 function organizationIdOf(dto = null, scopedAuth = {}) {
-    const fromLineage = dto?.lineage?.organizationId;
-    return String(fromLineage || scopedAuth.organizationId || '');
+    return String(dto?.organizationId || scopedAuth.organizationId || '');
 }
 
 /**
@@ -362,7 +382,10 @@ async function buildInstancePath(scopedAuth, type, instance) {
         path.unshift({
             type: 'organization',
             id: String(organizationId),
-            name: org ? instanceName(instanceDto(org)) : ''
+            // Party types keep their explicit feature service and its wire
+            // contract (the §3 wire decision covers instances): the org
+            // label reads the org service's own DTO shape.
+            name: org ? partyNameOf(instanceDto(org)) : ''
         });
     }
     return path;
@@ -1358,7 +1381,7 @@ async function loadInstanceOptionsForSources(auth, type, sources = []) {
 function normalizeInstanceOption(type, instance) {
     const dto = instance?.toJSON ? instance.toJSON() : instance;
     const value = dto?._id?.toString?.() || dto?._id || dto?.id || '';
-    const label = dto?.identity?.name || dto?.identity?.serial || dto?.identity?.uid || value;
+    const label = dto?.name || value;
     return {
         type,
         value,
@@ -1369,7 +1392,7 @@ function normalizeInstanceOption(type, instance) {
 
 function matchesInstanceQuery(option, query) {
     if (!query) return true;
-    return [option.label, option.value, option.instance?.identity?.uid, option.instance?.identity?.serial]
+    return [option.label, option.value]
         .filter(Boolean)
         .some(value => value.toString().toLowerCase().includes(query));
 }
@@ -1595,15 +1618,14 @@ function compactInstanceSnapshot(type, instance, snapshotPaths = null) {
 
     const snapshot = {
         _id: dto._id,
-        identity: dto.identity || {},
+        name: dto.name ?? null,
+        state: dto.state ?? null,
+        organizationId: dto.organizationId ?? null,
         lineage: dto.lineage || {},
-        origin: dto.origin || null,
-        status: dto.status || null,
-        specs: dto.specs || null,
-        attachments: dto.attachments || {},
-        summary: dto.summary || {}
+        relations: dto.relations || {},
+        payload: dto.payload || null
     };
-    const data = { ...(dto.data || {}) };
+    const fields = { ...(dto.fields || {}) };
 
     // Contract-driven previews (SPEC §4 snapshot facet): a type that
     // declares its snapshot paths keeps exactly those — pack and org
@@ -1615,19 +1637,19 @@ function compactInstanceSnapshot(type, instance, snapshotPaths = null) {
         for (const path of snapshotPaths) {
             const value = path.split('.').reduce((cursor, key) => (cursor?.[key] !== undefined ? cursor[key] : undefined), dto);
             if (value === undefined) continue;
-            if (path === 'data.geometry') kept.geometry = compactGeometrySnapshot(value);
-            else kept[path.slice('data.'.length)] = value;
+            if (path === 'fields.geometry') kept.geometry = compactGeometrySnapshot(value);
+            else kept[path.slice('fields.'.length)] = value;
         }
-        snapshot.data = kept;
+        snapshot.fields = kept;
         return snapshot;
     }
 
-    delete data.layoutData;
-    delete data.layerData;
-    delete data.polygonParts;
-    delete data.artifactIds;
-    if (data.geometry) data.geometry = compactGeometrySnapshot(data.geometry);
-    snapshot.data = data;
+    delete fields.layoutData;
+    delete fields.layerData;
+    delete fields.polygonParts;
+    delete fields.artifactIds;
+    if (fields.geometry) fields.geometry = compactGeometrySnapshot(fields.geometry);
+    snapshot.fields = fields;
     return snapshot;
 }
 

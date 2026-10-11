@@ -189,38 +189,138 @@ function mapRecords(records = {}, mapper) {
 
 // -- resolution: v5 binding seam (native records stay native) --
 
-// One-way rewrite for the retired hardcoded Name construction input
-// (SPEC §4 — not in the row means does not exist): a persisted draft that
-// authored it loses its `name` construction-input entries, its `name`
-// socket default, and any graph edge wired into the retired `data:name`
-// handle. Runs at definition resolution (validate/compile/execute consume
-// the healed form) and in the save-boundary persisted rewrites (storage
-// heals on the next save) — the same two seams every other retired-
-// vocabulary rewrite uses.
-export function rewriteRetiredNameInputs(data = {}) {
+// One-way rewrite for the retired wire vocabulary (owner decision
+// 2026-10-11: the instance wire speaks the stored §3 shape). Persisted
+// authored paths adopt the current wire: `data.*`/`specs.*` rows re-home
+// to flat `fields.*`, `identity.name` → `name`, `identity.uid` → `_id`,
+// `attachments.primary` → `payload`, `lineage.organizationId` →
+// `organizationId`; compose records' `data`/`specs` block becomes
+// `fields`; the retired hardcoded Name construction input, its socket
+// default, and edges into its `data:name` handle drop. Runs at
+// definition resolution (validate/compile/execute consume the healed
+// form) and in the save-boundary persisted rewrites (storage heals on
+// the next save).
+function adoptWirePath(path) {
+  const clean = String(path);
+  if (clean === 'identity.uid') return '_id';
+  if (clean === 'identity.name') return 'name';
+  if (clean === 'attachments.primary') return 'payload';
+  if (clean === 'lineage.organizationId') return 'organizationId';
+  if (/^(data|specs)\.[a-z_]/.test(clean)) return `fields.${clean.slice(clean.indexOf('.') + 1)}`;
+  return clean;
+}
+
+const adoptHandle = (handle) => {
+  const clean = String(handle || '');
+  const separator = clean.indexOf(':');
+  if (separator < 0) return adoptWirePath(clean);
+  return `${clean.slice(0, separator + 1)}${adoptWirePath(clean.slice(separator + 1))}`;
+};
+
+function adoptRecordPaths(record) {
+  const rewritten = { ...record };
+  let changed = false;
+  if (rewritten.inputDefaults && typeof rewritten.inputDefaults === 'object') {
+    const adopted = {};
+    for (const [key, value] of Object.entries(rewritten.inputDefaults)) {
+      const nextKey = key === 'field' || key === 'fieldPath' ? key : adoptWirePath(key);
+      const nextValue = key === 'field' || key === 'fieldPath' ? adoptWirePath(value) : value;
+      if (nextKey !== key || nextValue !== value) changed = true;
+      adopted[nextKey] = nextValue;
+    }
+    rewritten.inputDefaults = adopted;
+  }
+  if (Array.isArray(rewritten.fields)) {
+    const adopted = rewritten.fields.map(adoptWirePath);
+    if (adopted.some((path, index) => path !== rewritten.fields[index])) {
+      rewritten.fields = adopted;
+      changed = true;
+    }
+  }
+  if (Array.isArray(rewritten.construction?.inputs)) {
+    const adopted = rewritten.construction.inputs.map(input => {
+      if (!input || typeof input !== 'object') return input;
+      const id = adoptWirePath(input.id || '');
+      const path = input.path !== undefined ? adoptWirePath(input.path) : undefined;
+      if (id === input.id && path === input.path) return input;
+      return { ...input, ...(id ? { id } : {}), ...(path !== undefined ? { path } : {}) };
+    });
+    if (adopted.some((input, index) => input !== rewritten.construction.inputs[index])) {
+      rewritten.construction = { ...rewritten.construction, inputs: adopted };
+      changed = true;
+    }
+  }
+  for (const key of ['field', 'fieldPath']) {
+    if (typeof rewritten[key] === 'string' && adoptWirePath(rewritten[key]) !== rewritten[key]) {
+      rewritten[key] = adoptWirePath(rewritten[key]);
+      changed = true;
+    }
+  }
+  if ((rewritten.block === 'data' || rewritten.block === 'specs')) {
+    rewritten.block = 'fields';
+    changed = true;
+  }
+  // A legacy identity-block composer whose entries are the rename channel
+  // becomes a `name` block composer (block[key] = value lands on the
+  // draft's top-level name); other identity keys are retired phantoms and
+  // fail validation loudly instead.
+  if (rewritten.block === 'identity'
+    && Array.isArray(rewritten.entries)
+    && rewritten.entries.length
+    && rewritten.entries.every(entry => entry?.key === 'name')) {
+    rewritten.block = 'name';
+    changed = true;
+  }
+  if (!changed) return record;
+  return rewritten;
+}
+
+function adoptProducerOutputPaths(output) {
+  const fields = output?.fields;
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return output;
+  const adopted = {};
+  let changed = false;
+  for (const [level, paths] of Object.entries(fields)) {
+    if (!Array.isArray(paths)) {
+      adopted[level] = paths;
+      continue;
+    }
+    adopted[level] = paths.map(adoptWirePath);
+    if (adopted[level].some((path, index) => path !== paths[index])) changed = true;
+  }
+  return changed ? { ...output, fields: adopted } : output;
+}
+
+export function rewriteRetiredWirePaths(data = {}) {
   if (!data || typeof data !== 'object') return data;
   const constructs = new Set(Object.entries(data.processNodes || {})
     .filter(([, node]) => node?.kind === 'cts.construct')
     .map(([id]) => String(id)));
-  if (!constructs.size) return data;
   const graphNodeConstruct = new Map((data.graph?.nodes || [])
     .map(node => [String(node.id), constructs.has(String(node.data?.refId || node.id || ''))]));
   const isRetiredHandle = handle => String(handle || '').replace(/^(input|data):/, '') === 'name';
-  const edges = (data.graph?.edges || []).filter(edge => {
+  const edges = (data.graph?.edges || []).map(edge => {
+    const nextTarget = adoptHandle(edge.targetHandle);
+    const nextSource = adoptHandle(edge.sourceHandle);
+    if (nextTarget === edge.targetHandle && nextSource === edge.sourceHandle) return edge;
+    return { ...edge, targetHandle: nextTarget, sourceHandle: nextSource };
+  }).filter(edge => {
     const targetIsConstruct = graphNodeConstruct.has(String(edge.target))
       ? graphNodeConstruct.get(String(edge.target))
       : constructs.has(String(edge.target));
     return !(targetIsConstruct && isRetiredHandle(edge.targetHandle));
   });
   const processNodes = Object.fromEntries(Object.entries(data.processNodes || {}).map(([id, node]) => {
-    if (!constructs.has(String(id))) return [id, node];
-    const inputs = Array.isArray(node.construction?.inputs)
-      && node.construction.inputs.some(input => String(input?.id || input?.path || '') === 'name')
-      ? node.construction.inputs.filter(input => String(input?.id || input?.path || '') !== 'name')
+    if (!node || typeof node !== 'object') return [id, node];
+    const adopted = adoptRecordPaths(node);
+    if (!constructs.has(String(id))) return [id, adopted];
+    const inputs = Array.isArray(adopted.construction?.inputs)
+      && adopted.construction.inputs.some(input => String(input?.id || input?.path || '') === 'name')
+      ? adopted.construction.inputs.filter(input => String(input?.id || input?.path || '') !== 'name')
       : null;
-    const hasDefault = node.inputDefaults != null && Object.hasOwn(node.inputDefaults, 'name');
-    if (!inputs && !hasDefault) return [id, node];
-    const rewritten = { ...node };
+    const hasDefault = adopted.inputDefaults != null && Object.hasOwn(adopted.inputDefaults, 'name');
+    if (!inputs && !hasDefault) return [id, adopted];
+    const rewritten = { ...adopted };
     if (inputs) rewritten.construction = { ...rewritten.construction, inputs };
     if (hasDefault) {
       rewritten.inputDefaults = { ...rewritten.inputDefaults };
@@ -228,9 +328,13 @@ export function rewriteRetiredNameInputs(data = {}) {
     }
     return [id, rewritten];
   }));
+  const producerOutputs = data.producerOutputs && typeof data.producerOutputs === 'object' && !Array.isArray(data.producerOutputs)
+    ? Object.fromEntries(Object.entries(data.producerOutputs).map(([id, output]) => [id, adoptProducerOutputPaths(output)]))
+    : data.producerOutputs;
   return {
     ...data,
     processNodes,
+    producerOutputs,
     ...(data.graph ? { graph: { ...data.graph, edges } } : {})
   };
 }
@@ -278,7 +382,7 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
       : {})
   }));
 
-  const resolvedData = rewriteRetiredNameInputs({
+  const resolvedData = rewriteRetiredWirePaths({
     ...data,
     graphProtocol: 5,
     processNodes,

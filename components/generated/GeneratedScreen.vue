@@ -513,9 +513,9 @@ async function postAction(action, entity = null, data = {}, context = {}) {
     const result = await actionOffline({
       url: `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`,
       typeId: action.typeId,
-      instanceId: entity?._id || entity?.identity?.uid || null,
+      instanceId: entity?._id || entity?.id || null,
       body: {
-        instanceId: entity?._id || entity?.identity?.uid || null,
+        instanceId: entity?._id || entity?.id || null,
         entities: { ...actionEntities(action, entity, context), ...(data?.entities || {}) },
         data,
         parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }

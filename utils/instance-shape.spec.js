@@ -28,9 +28,8 @@ describe('dtoToScreenInstance', () => {
   it('maps row fields through their slots with quantity wrapping', () => {
     const instance = dtoToScreenInstance({
       _id: 'ent-1',
-      identity: { uid: 'uid-1', name: 'Bracket' },
-      data: { name: 'Bracket', owner: { type: 'keeper', id: 'k-1' }, margins: { leftMm: 4, note: 'tight' } },
-      specs: { thicknessMm: 3.2 }
+      name: 'Bracket',
+      fields: { name: 'Bracket', owner: { type: 'keeper', id: 'k-1' }, margins: { leftMm: 4, note: 'tight' }, thicknessMm: 3.2 }
     }, typeRecord);
 
     expect(instance.id).toBe('ent-1');
@@ -68,7 +67,7 @@ describe('dtoToScreenInstance', () => {
   it('falls back to identity core fields for labels when rows carry none', () => {
     const instance = dtoToScreenInstance({
       _id: 'ent-3',
-      identity: { name: 'Legacy part' },
+      name: 'Legacy part',
       data: {}
     }, { id: 'legacy', class: 'group', fields: {} });
     expect(instance.fields.name).toBe('Legacy part');
@@ -78,19 +77,19 @@ describe('dtoToScreenInstance', () => {
     const geometry = { preview: { polygons: [[0, 0], [1, 1]] } };
     const instance = dtoToScreenInstance({
       _id: 'ent-4',
-      data: { geometry }
+      fields: { geometry }
     }, {
       id: 'cassette',
       class: 'file',
       fields: { name: { base: 'string' } },
-      previewSource: { path: 'data.geometry.preview', display: 'geometry' }
+      previewSource: { path: 'fields.geometry.preview', display: 'geometry' }
     });
     expect(instance.previewSource).toEqual({ polygons: [[0, 0], [1, 1]] });
-    const payloadless = dtoToScreenInstance({ _id: 'ent-5', data: {} }, {
+    const payloadless = dtoToScreenInstance({ _id: 'ent-5', fields: {} }, {
       id: 'cassette',
       class: 'file',
       fields: { name: { base: 'string' } },
-      previewSource: { path: 'data.geometry.preview', display: 'geometry' }
+      previewSource: { path: 'fields.geometry.preview', display: 'geometry' }
     });
     expect(payloadless.previewSource).toBeNull();
   });

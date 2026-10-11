@@ -10,13 +10,13 @@ export function hierarchyTypeAlias(type = '') {
 }
 
 export function instanceHierarchyId(entity = {}) {
-  return entity._id?.toString?.() || entity.identity?.uid?.toString?.() || entity.id?.toString?.() || '';
+  return entity._id?.toString?.() || entity.id?.toString?.() || '';
 }
 
 export function instanceHierarchyIds(entity = {}) {
   const ids = [
     entity._id?.toString?.(),
-    entity.identity?.uid?.toString?.(),
+    
     entity.identity?.slug?.toString?.(),
     entity.id?.toString?.()
   ].filter(value => value != null && value !== '');

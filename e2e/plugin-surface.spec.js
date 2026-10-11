@@ -60,7 +60,7 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
     via: { [FIXTURE_SURFACE_TYPE_ID]: 'editor' },
     domainTypes: listing.declarations.types
   });
-  const created = await app.createInstance(FIXTURE_SURFACE_TYPE_ID, { 'data.name': 'Fixture Note One' });
+  const created = await app.createInstance(FIXTURE_SURFACE_TYPE_ID, { 'fields.name': 'Fixture Note One' });
   const id = String(created._id || created.id);
   expect(id, 'Expected the created fixture record id').toBeTruthy();
 

@@ -19,7 +19,7 @@ const SYNTHETIC_TEMPLATES = [
         typeId: 'widget',
         label: 'Widget',
         lifecycle: { mode: 'domainDefault', workflow: null },
-        fields: { read: ['identity.*'], write: [], private: [] },
+        fields: { read: ['name'], write: [], private: [] },
         stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
         allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
       }

@@ -35,6 +35,9 @@ export function describeType(descriptor = {}) {
   delete normalized.render;
   if (normalized.identifier !== true) delete normalized.identifier;
   if (normalized.depiction !== true) delete normalized.depiction;
+  // The retired wire slot key (`data`/`specs`) dies at this boundary —
+  // rows live in the one flat `fields` home on the wire.
+  delete normalized.slot;
   if (base === 'ref') {
     if (!Array.isArray(descriptor.accepts) || !descriptor.accepts.length) {
       throw new Error('ref requires a non-empty accepts list of type ids');

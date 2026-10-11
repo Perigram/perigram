@@ -116,11 +116,12 @@ export async function applyStatusMigrations({ mappings = [], auth = {}, organiza
     }
     for (const entity of entities || []) {
       const record = entity?.toJSON ? entity.toJSON() : entity;
-      const from = record?.states?.main
-        ?? (typeof record?.status?.state === 'string' ? record.status.state : record?.status?.state?.primary);
+      const from = typeof record?.state === 'string' && record.state
+        ? record.state
+        : (typeof record?.status?.state === 'string' ? record.status.state : record?.status?.state?.primary);
       const mapping = typeMappings.find(item => item.from === from);
       if (!mapping) continue;
-      const id = record?._id || record?.id || record?.identity?.uid;
+      const id = record?._id || record?.id;
       if (!id) continue;
       try {
         await stateService.setInitialStateForOrganization(

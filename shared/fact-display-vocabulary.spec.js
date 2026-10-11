@@ -99,7 +99,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
       typeRecord: typeRecordFor(bundle, 'sheet-design')
     });
     expect(card.bundleResolved).toBe(true);
-    expect(card.fields.map(field => field.path)).toEqual(['data.title', 'data.geometry', 'data.parts']);
+    expect(card.fields.map(field => field.path)).toEqual(['fields.title', 'fields.geometry', 'fields.parts']);
     const detail = resolveInstanceDisplayContract({
       typeId: 'sheet-design', surface: 'detail',
       typeRecord: typeRecordFor(bundle, 'sheet-design')
@@ -114,10 +114,10 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
 
   it('exposes factsFor as the one bundle-only fact-row resolver', () => {
     const sheetDesign = typeRecordFor(bundle, 'sheet-design');
-    expect(factsFor(sheetDesign, 'card').map(field => field.path)).toEqual(['data.title', 'data.geometry', 'data.parts']);
-    expect(factsFor(sheetDesign, 'detail').map(field => field.path)).toEqual(['data.title', 'data.geometry', 'data.parts']);
+    expect(factsFor(sheetDesign, 'card').map(field => field.path)).toEqual(['fields.title', 'fields.geometry', 'fields.parts']);
+    expect(factsFor(sheetDesign, 'detail').map(field => field.path)).toEqual(['fields.title', 'fields.geometry', 'fields.parts']);
     // Compact surfaces bound to the leading summary facts only.
-    expect(factsFor(sheetDesign, 'compact').map(field => field.path)).toEqual(['data.title', 'data.geometry']);
+    expect(factsFor(sheetDesign, 'compact').map(field => field.path)).toEqual(['fields.title', 'fields.geometry']);
     // No type view, no rows: undeclared types resolve nothing.
     expect(factsFor(null, 'card')).toEqual([]);
   });
@@ -125,21 +125,21 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
   it('composes app extensions and per-call overrides over the bundle rows', () => {
     const widget = typeRecordFor(bundle, 'widget');
     const extensions = {
-      fieldGroups: { widget: { extra: [{ path: 'data.extra', label: 'widget.extra', display: 'text', priority: 1 }] } },
+      fieldGroups: { widget: { extra: [{ path: 'fields.extra', label: 'widget.extra', display: 'text', priority: 1 }] } },
       surfaces: { widget: { surfaces: { card: { fieldGroups: ['extra'] } } } }
     };
     const extended = resolveInstanceDisplayContract({ typeId: 'widget', surface: 'card', typeRecord: widget, extensions });
-    expect(extended.fields.map(field => field.path)).toEqual(['data.extra']);
+    expect(extended.fields.map(field => field.path)).toEqual(['fields.extra']);
     // Per-call overrides win over everything, including extensions.
     const overridden = resolveInstanceDisplayContract({
       typeId: 'widget', surface: 'card', typeRecord: widget, extensions,
-      fieldGroups: { picked: [{ path: 'data.picked', label: 'widget.picked', display: 'text', priority: 1 }] },
+      fieldGroups: { picked: [{ path: 'fields.picked', label: 'widget.picked', display: 'text', priority: 1 }] },
       surfaces: { card: { fieldGroups: ['picked'] } }
     });
-    expect(overridden.fields.map(field => field.path)).toEqual(['data.picked']);
+    expect(overridden.fields.map(field => field.path)).toEqual(['fields.picked']);
     // With no authored list, synthesis runs over the merged map.
     const plain = resolveInstanceDisplayContract({ typeId: 'widget', surface: 'card', typeRecord: widget });
-    expect(plain.fields.map(field => field.path)).toEqual(['data.name', 'data.parts']);
+    expect(plain.fields.map(field => field.path)).toEqual(['fields.name', 'fields.parts']);
   });
 
   it('resolves record titles through the one title resolver (identifier or unnamed)', () => {
@@ -228,7 +228,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
       permissions: {},
       typeId: 'widget'
     });
-    expect(allowed.map(field => field.path)).toEqual(['data.name', 'data.parts']);
+    expect(allowed.map(field => field.path)).toEqual(['fields.name', 'fields.parts']);
     expect(denied).toEqual([]);
     registerDeclarationFieldAccess({});
   });

@@ -15,10 +15,8 @@
 // by teaching the walker new record kinds, never by loosening checks. Type
 // bindings are positional (typeId/typeId/species-kind `type`), so
 // process-vocabulary descriptor strings are never misread as references.
-import { slotFor } from './field-schema-rows.js';
 import { durationMs } from '../values.js';
 
-const RESERVED_GENERIC_SLOT = 'data.value';
 
 export function checkDeclarationsAgainstCts(processDefinition = {}, registry, organizationId = null) {
   const errors = [];
@@ -142,10 +140,9 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
 // 'data.job.items' -> 'data.job'; 'identity.name' -> null (managed block,
 // not row-checked); 'fields.width' -> treated as its root segment.
 function fieldRoot(path = '') {
-  const clean = path.replace(/^fields\./, '');
-  const [block, name] = clean.split('.');
-  if ((block === 'data' || block === 'specs') && name) return `${block}.${name}`;
-  return null;
+  const clean = String(path).replace(/^fields\./, '');
+  const [name] = clean.split('.');
+  return name || null;
 }
 
 // Guard expression check (SPEC §7): the boolean subset of §18 only —
@@ -198,12 +195,8 @@ function checkGuardExpression(ast, rowNames, path) {
 
 function allowedFieldRoots(type = {}) {
   const fields = Object.entries(type.fields || {});
-  if (!fields.length) return null; // no declared rows: generic payload, not row-checked
-  const roots = new Set([RESERVED_GENERIC_SLOT]);
-  for (const [name, descriptor] of fields) {
-    roots.add(`${slotFor(descriptor, type.class)}.${name}`);
-  }
-  return roots;
+  if (!fields.length) return null; // no declared rows: not row-checked
+  return new Set(fields.map(([name]) => name));
 }
 
 function walk(value, visit, path = 'definition') {

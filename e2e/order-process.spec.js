@@ -100,7 +100,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   const species = await app.seedSpeciesProcess({ types: [TABLE_TYPE, 'cassette'], via: { [TABLE_TYPE]: 'upload', cassette: 'editor' } });
   const cassetteCreate = (await app.activeActions()).find(action => action.actionKind === 'createEntity' && action.typeId === 'cassette');
   expect(cassetteCreate, 'the species process seeds a cassette create action').toBeTruthy();
-  const createAction = await app.executeAction(cassetteCreate.id, { data: { 'data.name': templateName } });
+  const createAction = await app.executeAction(cassetteCreate.id, { data: { 'fields.name': templateName } });
   const createdTemplateRecord = createAction?.created ?? createAction?.entity ?? createAction;
   const templateId = createdTemplateRecord?._id || createdTemplateRecord?.id;
   expect(templateId, 'the create action produced a cassette template').toBeTruthy();
@@ -148,7 +148,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   expect(workbookAction, 'an active process exposes a workbook create action').toBeTruthy();
   const tableRun = await app.executeAction(workbookAction.id, {
     data: {
-      'data.name': `Order table 42 ${Date.now()}`,
+      'fields.name': `Order table 42 ${Date.now()}`,
       payload: { fileId: tableFile.id, mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', size: tableBuffer.length }
     }
   });
@@ -161,7 +161,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   const executed = await app.request.post(`/api/process-definitions/active/actions/${orderAction.id}/execute`, {
     data: {
       data: {
-        'data.name': 'Facade order 42',
+        'fields.name': 'Facade order 42',
         'relations.table': { type: TABLE_TYPE, id: String(table._id?.toString?.() || table._id || table.id) }
       }
     }
@@ -174,15 +174,15 @@ test('the order process runs live: table rows become baked designs, materials, a
   };
   const orderIdOf = instance => instance?.lineage?.[ORDER_LINEAGE_KEY]?.toString?.() ?? String(instance?.lineage?.[ORDER_LINEAGE_KEY] ?? '');
   const orders = (await instancesOf('facade-order'))
-    .filter(order => (order.identity?.name ?? order.name) === 'Facade order 42')
+    .filter(order => (order.name) === 'Facade order 42')
     .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
   expect(orders.length).toBeGreaterThanOrEqual(1);
   const orderId = String(orders[0]._id);
 
   const designs = (await instancesOf('cassette-design')).filter(design => orderIdOf(design) === orderId);
-  expect(designs.map(design => design.identity?.name ?? design.name).sort()).toEqual(['Tray A left', 'Tray B small']);
+  expect(designs.map(design => design.name).sort()).toEqual(['Tray A left', 'Tray B small']);
   for (const design of designs) {
-    expect(design.data?.template?.toString?.() || design.data?.template).toBe(String(templateId));
+    expect(design.fields?.template?.toString?.() || design.fields?.template).toBe(String(templateId));
     expect((design.data?.geometry?.nestingPolygons || []).length).toBeGreaterThan(0);
   }
 
@@ -203,7 +203,7 @@ test('the order process runs live: table rows become baked designs, materials, a
     templateId: String(templateId),
     liveRun: {
       orderName: 'Facade order 42',
-      cassetteDesigns: designs.map(design => ({ name: design.identity?.name ?? design.name, template: String(design.data?.template ?? '') })),
+      cassetteDesigns: designs.map(design => ({ name: design.name, template: String(design.fields?.template ?? '') })),
       materials: materials.map(material => material.data?.code ?? material.fields?.code),
       nestingAttempts: attempts.map(attempt => ({ summary: (attempt.data?.result ?? attempt.fields?.result)?.summary }))
     },

@@ -41,14 +41,14 @@ function readModifyWriteDefinition() {
       })),
       edges: [
         { id: 'sheet-update', source: 'sheet', sourceHandle: 'data:result', target: 'update', targetHandle: 'data:entity', role: 'data' },
-        { id: 'serial-update', source: 'serial', sourceHandle: 'data:value', target: 'update', targetHandle: 'data:data.serial', role: 'data' }
+        { id: 'serial-update', source: 'serial', sourceHandle: 'data:value', target: 'update', targetHandle: 'data:fields.serial', role: 'data' }
       ]
     },
     roleGrants: {},
     producerOutputs: {
       'sheet_context:entity': {
         id: 'sheet_context:entity', producerOutputId: 'sheet_context:entity', nodeId: 'sheet_context', outputSocketId: 'entity',
-        typeId: 'sheet', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['data.serial'], private: [] }
+        typeId: 'sheet', lifecycle: { mode: 'domainDefault' }, fields: { read: ['name'], write: ['fields.serial'], private: [] }
       }
     },
     actions: {},
@@ -87,8 +87,8 @@ function fieldReadDefinition() {
     screens: {},
     processNodes: {
       sheet: { id: 'sheet', kind: 'cts.read', select: 'current', typeId: 'sheet' },
-      present: { id: 'present', kind: 'cts.field', typeId: 'sheet', inputDefaults: { field: 'data.serial' } },
-      absent: { id: 'absent', kind: 'cts.field', typeId: 'sheet', inputDefaults: { field: 'data.material' } }
+      present: { id: 'present', kind: 'cts.field', typeId: 'sheet', inputDefaults: { field: 'fields.serial' } },
+      absent: { id: 'absent', kind: 'cts.field', typeId: 'sheet', inputDefaults: { field: 'fields.material' } }
     }
   };
 }
@@ -108,7 +108,7 @@ function grantedCreateDefinition() {
     producerOutputs: {
       'create:result': {
         id: 'create:result', producerOutputId: 'create:result', nodeId: 'create', outputSocketId: 'result',
-        typeId: 'part', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: [], private: [] }
+        typeId: 'part', lifecycle: { mode: 'domainDefault' }, fields: { read: ['name'], write: [], private: [] }
       }
     },
     actions: {}, services: {}, sockets: {}, screens: {},
@@ -154,14 +154,14 @@ describe('graph protocol v5 (SPEC §20)', () => {
     const sheetOutput = {
       id: 's:entity', producerOutputId: 's:entity', nodeId: 's', outputSocketId: 'result',
       typeId: 'sheet', lifecycle: { mode: 'domainDefault' },
-      fields: { read: ['identity.*', 'data.serial', 'data.value'], write: ['data.serial'], private: [] }
+      fields: { read: ['name', 'fields.serial', 'fields.value'], write: ['fields.serial'], private: [] }
     };
     const resolved = resolveCtsDefinition(
       { graphProtocol: 5, processNodes: {}, producerOutputs: { 's:entity': sheetOutput } },
       domain
     ).definition;
     expect(resolved.producerOutputs['s:entity'].typeId).toBe('sheet');
-    expect(resolved.producerOutputs['s:entity'].fields.read).toEqual(['identity.*', 'data.serial', 'data.value']);
+    expect(resolved.producerOutputs['s:entity'].fields.read).toEqual(['name', 'fields.serial', 'fields.value']);
   });
 
   it('binding checks reject unknown types, undeclared states, and fields outside the row', () => {

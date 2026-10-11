@@ -126,7 +126,7 @@ const props = defineProps({
 
 const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 const authStore = useAuthStore();
-const instanceId = computed(() => props.item?.entity?._id || props.item?.entity?.identity?.uid || '');
+const instanceId = computed(() => props.item?.entity?._id || props.item?.entity?.id || '');
 const detailScreen = computed(() => generatedDetailScreenForTypeId({
   screens: authStore.screenManifest,
   typeId: props.item?.type
@@ -163,7 +163,7 @@ function openInstanceChat() {
   openSharedInstanceChat({
     type: props.item?.type || '',
     id: instanceId.value,
-    name: props.item?.entity?.identity?.name || ''
+    name: props.item?.entity?.name || ''
   });
 }
 const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);

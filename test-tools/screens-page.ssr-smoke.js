@@ -25,7 +25,7 @@ globalThis.$fetch = vi.fn(async (url) => {
   // crashed buildInstancePool ("group is not iterable") on every screen
   // with loaded data.
   if (String(url).startsWith('/api/instances/')) {
-    return [{ _id: 'i-1', type: 't-k3x9fj2mqa', identity: { uid: 'i-1', name: 'Ticket one' }, states: { main: 'new' }, lineage: {}, relations: {} }];
+    return [{ _id: 'i-1', type: 't-k3x9fj2mqa', name: 'Ticket one', state: 'new', organizationId: 'org-1', lineage: {}, relations: {}, fields: {} }];
   }
   return [];
 });
@@ -74,7 +74,7 @@ const projectedAction = {
   access: { level: 'write', grants: [{ roleId: 'role_op', level: 'write' }] },
   state: { to: 'new' },
   construction: { mode: 'genericCreate', inputs: ['name', 'data.note'] },
-  fields: ['name', 'data.note', 'field:identity.name'],
+  fields: ['name', 'fields.note', 'field:name'],
   actionId: 'ctor',
   typeId: 't-k3x9fj2mqa',
   parentTypeId: null,
@@ -153,8 +153,8 @@ describe('generated screens page with projected vocabulary', () => {
     // through previously crashed buildInstancePool ("group is not
     // iterable") on every screen with loaded data.
     useInstancesStore().upsertRecord('t-k3x9fj2mqa', {
-      _id: 'i-1', type: 't-k3x9fj2mqa', identity: { uid: 'i-1', name: 'Ticket one' },
-      states: { main: 'new' }, lineage: {}, relations: {}
+      _id: 'i-1', type: 't-k3x9fj2mqa', name: 'Ticket one',
+      state: 'new', lineage: {}, relations: {}, fields: {}
     });
 
     const i18n = createI18n({

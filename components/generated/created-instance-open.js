@@ -53,5 +53,5 @@ export function createdEntity(action = {}, result = null) {
 }
 
 function displayName(entity = {}) {
-  return entity?.identity?.name || entity?.name || '';
+  return entity?.name || '';
 }

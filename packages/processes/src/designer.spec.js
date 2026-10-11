@@ -22,26 +22,26 @@ describe('process designer domain contract', () => {
     workflows: { work_item: { label: 'Work item lifecycle' } },
     fieldAccess: {
       workItem: {
-        read: ['identity.*', 'origin.*', 'status.*', 'lineage.*', 'relations.*', 'provenance.*', 'data.note'],
-        write: ['identity.name', 'relations.owner', 'data.note'],
+        read: ['identity.*', 'origin.*', 'status.*', 'lineage.*', 'relations.*', 'provenance.*', 'fields.note'],
+        write: ['name', 'relations.owner', 'fields.note'],
         admin: ['attachments.*']
       }
     },
     fieldSchemas: {
       workItem: [
-        { path: 'identity.name', block: 'identity', label: 'Name', type: { base: 'string', shape: 'item', nullable: false }, readable: true, writable: true },
+        { path: 'name', block: 'identity', label: 'Name', type: { base: 'string', shape: 'item', nullable: false }, readable: true, writable: true },
         { path: 'relations.owner', block: 'relations', label: 'Owner', type: { base: 'entityRef', shape: 'item', nullable: true }, readable: true, writable: true }
       ]
     },
     blockSchemas: {
-      identity: [{ path: 'identity.name', block: 'identity', label: 'Name', type: { base: 'string', shape: 'item', nullable: false } }],
+      identity: [{ path: 'name', block: 'identity', label: 'Name', type: { base: 'string', shape: 'item', nullable: false } }],
       relations: [{ path: 'relations.owner', block: 'relations', label: 'Owner', type: { base: 'entityRef', shape: 'item', nullable: true } }]
     },
     construction: {
       work_item: {
         modes: ['genericCreate'],
         defaultMode: 'genericCreate',
-        inputs: [{ id: 'name', path: 'identity.name', type: 'string' }]
+        inputs: [{ id: 'name', path: 'name', type: 'string' }]
       }
     }
   };
@@ -113,7 +113,7 @@ describe('process designer domain contract', () => {
       editor: { mode: 'none' }
     }]);
     expect(contract.workflowOptions).toEqual([{ label: 'Work item lifecycle', value: 'work_item' }]);
-    expect(contract.construction('work_item').inputs[0].path).toBe('identity.name');
+    expect(contract.construction('work_item').inputs[0].path).toBe('name');
     expect(contract.fieldPolicy('work_item').write).toContain('relations.owner');
     expect(contract).not.toHaveProperty('lineageOptions');
     expect(contract).not.toHaveProperty('relationOptions');
@@ -372,7 +372,7 @@ describe('process designer domain contract', () => {
       operation: 'addDays',
       inputDefaults: { amount: 30 }
     });
-    expect(contract.fieldType('work_item', 'identity.name')).toMatchObject({ base: 'string', shape: 'item' });
+    expect(contract.fieldType('work_item', 'name')).toMatchObject({ base: 'string', shape: 'item' });
   });
 
   it('offers services from the projected operator registry, never a legacy command list', () => {

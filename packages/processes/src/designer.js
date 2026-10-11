@@ -1,6 +1,6 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { PRODUCER_ORIGIN_SPECIES_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
-import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, slotFor } from '../../cts/src/index.js';
+import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
@@ -672,9 +672,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
     if (record?.kind !== 'cts.field') continue;
     const name = String(fieldNode.data?.name || '').trim();
     if (!name) continue;
-    const classNode = declaredBy.has(fieldNode.id) ? nodeById.get(declaredBy.get(fieldNode.id)) : null;
-    const slot = slotFor(fieldNode.data?.descriptor || {}, classNode?.data?.class || 'file');
-    const path = `${slot}.${camelCaseId(name)}`;
+    const path = `fields.${camelCaseId(name)}`;
     if (record.inputDefaults?.field !== path) {
       mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'inputDefaults.field', value: path });
     }

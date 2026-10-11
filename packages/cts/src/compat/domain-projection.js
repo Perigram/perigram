@@ -11,7 +11,7 @@
 //
 // This is the single translator between the declaration layer and the
 // process grammar — the designer and the compiler consume only this.
-import { rowToFieldSchemas, slotFor } from './field-schema-rows.js';
+import { rowToFieldSchemas } from './field-schema-rows.js';
 import { lineageKeyForParent } from '../edges.js';
 import { renderPolicyFor } from '../render.js';
 
@@ -33,36 +33,39 @@ function constructionInputLabel({ path = '', label = '', typeId = '' } = {}, lab
     const parent = labelByType.get(typeId);
     if (parent) return parent;
   }
-  const [block, name] = clean.split('.');
-  if (['data', 'specs'].includes(block) && name) {
-    return String(name).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+  const [, name] = clean.split('.');
+  if (clean.startsWith('fields.') && name) {
+    return name.replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
   }
   if (label && label !== clean) return label;
   return label || clean;
 }
 
-// Core fields are the §13 wire DTO's own vocabulary — nothing the
-// instance services never serve, nothing they serve left unschema'd.
-// The legacy wire blocks (origin.*, status.userId/timestamp/…,
-// identity.slug/serial/reference, summary.*) belong to the framework
-// entities that kept their explicit services; those types are
-// `framework`-flagged and never reach this projection.
+// Core fields are the §3 stored shape verbatim (wire decision 2026-10-11:
+// the wire IS the stored document, ids JSON-safe) — nothing the instance
+// services never store, nothing they store left unschema'd. There is no
+// `identity` block, no `attachments.primary`, no tenancy-in-lineage, no
+// data/specs slot split: `_id`/`name`/`organizationId`/`payload` travel as
+// themselves and rows live in flat `fields`.
 const CORE_BLOCK_FIELDS = [
   coreField('_id', 'identity', 'json', { writable: false }),
-  coreField('identity.uid', 'identity', 'string', { writable: false, constructible: false }),
-  coreField('identity.name', 'identity', 'string'),
+  coreField('type', 'identity', 'string', { writable: false, constructible: false }),
   coreField('typeVersion', 'identity', 'number', { writable: false, constructible: false }),
+  coreField('organizationId', 'lineage', 'entityRef', { typeId: 'organization', writable: false, constructible: false }),
+  coreField('name', 'identity', 'string'),
+  coreField('state', 'status', 'status', { constructible: false }),
+  coreField('stateChangedAt', 'status', 'dateTime', { writable: false, constructible: false }),
   coreField('createdAt', 'status', 'dateTime', { writable: false, constructible: false }),
   coreField('updatedAt', 'status', 'dateTime', { writable: false, constructible: false }),
-  coreField('lineage.organizationId', 'lineage', 'entityRef', { typeId: 'organization', writable: false, constructible: false }),
+  // §3 payload slot: the stored file reference, immutable through field
+  // writes (replacement is the payload transport's concern).
+  coreField('payload', 'attachments', 'json', { writable: false, constructible: false }),
   // §3 causal record, immutable after construct: op names the effect,
   // sources the typed inputs (refs), effective the replay-safety
   // parameters.
   coreField('provenance.op', 'provenance', 'string', { writable: false, constructible: false }),
   { ...coreField('provenance.sources', 'provenance', 'array', { writable: false, constructible: false }), type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef' } } },
-  coreField('provenance.effective', 'provenance', 'json', { writable: false, constructible: false }),
-  coreField('attachments.primary', 'attachments', 'json'),
-  coreField('data.value', 'data', 'json')
+  coreField('provenance.effective', 'provenance', 'json', { writable: false, constructible: false })
 ];
 
 function coreField(path, block, base, flags = {}) {
@@ -105,7 +108,8 @@ function withAccessFlags(schema, policy) {
 // Declared relations of a type, from both authoring shapes: explicit
 // `edges.relations` entries and ref fields whose `accepts` name the
 // targets (the tree authors relations as ref fields). One entry per
-// key/target pair, edges declared first.
+// key/target pair, edges declared first. A ref row is always a declared
+// relation (SPEC §6: the declared edge is the only legal ref storage).
 function relationEntriesFor(type, view) {
   const entries = [];
   const seen = new Set();
@@ -120,10 +124,6 @@ function relationEntriesFor(type, view) {
   }
   for (const [name, descriptor] of Object.entries(type.fields || {})) {
     if (descriptor?.base !== 'ref') continue;
-    // A slot-pinned ref opted out of relation semantics (the pack's
-    // operator-carried provenance refs live as data rows); only
-    // relation-slot refs declare relations.
-    if (descriptor.slot && descriptor.slot !== 'relations') continue;
     for (const target of descriptor.accepts || []) push(name, target);
   }
   return entries;
@@ -147,22 +147,18 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   const types = [...view.values()].filter(type => type.class !== 'party' && !type.framework);
 
   // entities: one synthesized entry per view type, storage by class.
-  const entities = types.map(type => {
-    const usesSpecs = Object.values(type.fields || {}).some(descriptor => slotFor(descriptor, type.class) === 'specs');
-    return {
+  const entities = types.map(type => (
+    {
       type: type.id,
       // The authored name — the label every compiler and generator
       // surface uses; raw type ids never reach users. Declarations
       // without one (legacy org-stored) serve "Unnamed".
       label: renderPolicyFor(type).name || 'Unnamed',
       collection: CLASS_COLLECTIONS[type.class] || CLASS_COLLECTIONS.file,
-      // The §13 wire vocabulary only: the legacy origin/summary blocks
-      // never existed on generic instances.
-      blocks: ['identity', 'status', 'lineage', 'relations', 'provenance', 'attachments', 'data',
-        ...(usesSpecs ? ['specs'] : [])],
+      blocks: ['fields', 'lineage', 'relations'],
       meta: false
-    };
-  });
+    }
+  ));
 
   // fieldSchemas: core slots + lineage-from-edges + rows per type.
   // A ref field's row entry lives at relations.<key> — the same path the
@@ -182,18 +178,16 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     const rowPaths = rowEntries.map(entry => entry.path);
     fieldAccess[type.id] = {
       feature: 'cts-types',
-      // The §13 wire vocabulary: what the instance DTO carries, nothing
-      // else. `state`, `createdAt`/`updatedAt`, and `typeVersion` are
-      // top-level DTO keys, not block children.
-      read: ['_id', 'identity.*', 'state', 'createdAt', 'updatedAt', 'typeVersion', 'lineage.*', 'relations.*', 'provenance.*', 'attachments.*',
+      // The §3 stored vocabulary: what the wire carries, nothing else.
+      read: ['_id', 'type', 'typeVersion', 'organizationId', 'name', 'state', 'stateChangedAt', 'createdAt', 'updatedAt', 'payload',
+        'lineage.*', 'relations.*', 'provenance.*',
         ...rowPaths],
       // Association writes travel through relations.<key> paths; their
       // keys, cardinality, and target access are compiler-validated
       // contracts, so the write policy grants the slot, not per-key rows.
-      write: [...(rowPaths.length ? rowPaths : ['data.*']), 'relations.*'],
-      admin: ['data.*', 'attachments.*']
+      write: [...(rowPaths.length ? rowPaths : ['fields.*']), 'relations.*'],
+      admin: ['fields.*']
     };
-    const blocks = new Set(entities.find(entity => entity.type === type.id)?.blocks || []);
     const lineageFields = orgLineageFields(type, view);
 
     // Declared relation edges are addressable fields (SPEC §6): each key
@@ -217,8 +211,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       });
     }
     fieldSchemas[type.id] = [
-      ...CORE_BLOCK_FIELDS.filter(field => blocks.has(field.block) || field.path === '_id'),
-      coreField('state', 'status', 'status', { constructible: false }),
+      ...CORE_BLOCK_FIELDS,
       ...lineageFields,
       ...relationFields,
       ...rowEntries

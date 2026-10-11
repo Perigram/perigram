@@ -323,9 +323,9 @@ describe('process v4 data execution', () => {
 
   it('finds entities by field through the full mask path', async () => {
     const entities = [
-      { identity: { name: 'Alpha' } },
-      { identity: { name: 'Beta' } },
-      { identity: { name: 'Gamma' } }
+      { name: 'Alpha' },
+      { name: 'Beta' },
+      { name: 'Gamma' }
     ];
     const selected = await executeProcessDataNode(
       { kind: 'cts.read', select: 'all', typeId: 'project' },
@@ -333,7 +333,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const names = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'identity.name' } },
+      { kind: 'cts.field', inputDefaults: { field: 'name' } },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(
@@ -349,9 +349,9 @@ describe('process v4 data execution', () => {
 
   it('composes multiple Logic conditions without a second query language', async () => {
     const entities = [
-      { identity: { name: 'Alpha' }, states: { main: 'NEW' } },
-      { identity: { name: 'Alpha' }, states: { main: 'DONE' } },
-      { identity: { name: 'Beta' }, states: { main: 'NEW' } }
+      { name: 'Alpha', state: 'NEW' },
+      { name: 'Alpha', state: 'DONE' },
+      { name: 'Beta', state: 'NEW' }
     ];
     const selected = await executeProcessDataNode(
       { kind: 'cts.read', select: 'all', typeId: 'project' },
@@ -362,8 +362,8 @@ describe('process v4 data execution', () => {
       { kind: 'cts.field', inputDefaults: { field: path } },
       { entity: selected }
     ).then(values => executeProcessDataNode({ kind: 'value.compare', operation }, { left: values, right: createDataPacket(target) }));
-    const nameMask = await fieldMask('identity.name', 'eq', 'Alpha');
-    const statusMask = await fieldMask('states.main', 'eq', 'NEW');
+    const nameMask = await fieldMask('name', 'eq', 'Alpha');
+    const statusMask = await fieldMask('state', 'eq', 'NEW');
     const combined = await executeProcessDataNode(
       { kind: 'value.logic', operation: 'and' },
       { left: nameMask, right: statusMask }
@@ -434,7 +434,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const names = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'identity.name' } },
+      { kind: 'cts.field', inputDefaults: { field: 'name' } },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(
@@ -450,9 +450,9 @@ describe('process v4 data execution', () => {
 
   it('finds only records the read source authorized', async () => {
     const all = [
-      { identity: { name: 'Alpha' } },
-      { identity: { name: 'Beta' } },
-      { identity: { name: 'Gamma' } }
+      { name: 'Alpha' },
+      { name: 'Beta' },
+      { name: 'Gamma' }
     ];
     const authorized = [all[0], all[2]];
     const selected = await executeProcessDataNode(
@@ -461,7 +461,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => authorized }
     );
     const names = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'identity.name' } },
+      { kind: 'cts.field', inputDefaults: { field: 'name' } },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(
@@ -567,7 +567,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const dates = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'data.updatedAt' } },
+      { kind: 'cts.field', inputDefaults: { field: 'fields.updatedAt' } },
       { entity: selected }
     );
     const sorted = await executeProcessDataNode(
@@ -767,33 +767,33 @@ describe('native structure species execution', () => {
   });
 
   it('projects every declared facet from the instance through cts.decompose', async () => {
-    const entity = createDataPacket({ identity: { name: 'One' }, data: { note: 'x' } });
+    const entity = createDataPacket({ name: 'One', fields: { note: 'x' } });
     const facets = await executeProcessDataNode(
       { id: 'decompose', kind: 'cts.decompose', typeId: 'project' },
       { entity },
       {
         fieldSchemas: [
-          { path: 'identity.name', block: 'identity', type: { base: 'string' } },
-          { path: 'data.note', block: 'data', type: { base: 'string' } }
+          { path: 'name', block: 'identity', type: { base: 'string' } },
+          { path: 'fields.note', block: 'fields', type: { base: 'string' } }
         ]
       }
     );
 
     expect(facets).toEqual({ branches: [{ path: [], items: [{
-      'identity.name': 'One',
-      'data.note': 'x'
+      'name': 'One',
+      'fields.note': 'x'
     }] }] });
   });
 
   it('returns the selected facet when cts.decompose is pulled from one output', async () => {
     const one = await executeProcessDataNode(
       { id: 'decompose', kind: 'cts.decompose', typeId: 'project' },
-      { entity: createDataPacket({ identity: { name: 'One' }, data: { note: 'x' } }) },
+      { entity: createDataPacket({ name: 'One', fields: { note: 'x' } }) },
       {
-        outputId: 'data.note',
+        outputId: 'fields.note',
         fieldSchemas: [
-          { path: 'identity.name', block: 'identity', type: { base: 'string' } },
-          { path: 'data.note', block: 'data', type: { base: 'string' } }
+          { path: 'name', block: 'identity', type: { base: 'string' } },
+          { path: 'fields.note', block: 'fields', type: { base: 'string' } }
         ]
       }
     );

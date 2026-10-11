@@ -23,7 +23,7 @@ export function useCassetteDesignerPersistence() {
   // starts its blank graph tree for them.
   async function hydrateDefinition(entity = null) {
     if (!entity || entity.definition) return entity;
-    const url = instancePayloadFileUrl(entity.attachments?.primary);
+    const url = instancePayloadFileUrl(entity.payload);
     if (!url) return entity;
     try {
       const document = await $fetch(url, { responseType: 'json' });

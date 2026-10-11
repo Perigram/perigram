@@ -5,7 +5,6 @@ import {
   DESIGN_RELATION_DISPLAYS,
   DESIGN_SURFACES
 } from './design-system-contract.js';
-import { slotFor } from '#packages/cts/src/index.js';
 
 export const DEFAULT_INSTANCE_SURFACE = 'card';
 
@@ -45,7 +44,7 @@ function bundleFieldGroups(typeView) {
     fieldGroups[section.id] = (section.fields || [])
       .filter(fieldId => descriptors[fieldId])
       .map(fieldId => ({
-        path: `${slotFor(descriptors[fieldId], typeView.class)}.${fieldId}`,
+        path: `fields.${fieldId}`,
         label: descriptors[fieldId].label || fieldId,
         ...(descriptors[fieldId].display ? { display: descriptors[fieldId].display } : {})
       }));

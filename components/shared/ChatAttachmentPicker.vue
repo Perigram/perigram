@@ -152,12 +152,12 @@ const effectiveContainment = useEffectiveContainment()
 const iconFor = (type) => instances.iconFor(type)
 
 const instanceId = (entity = null) => {
-  const value = entity?._id || entity?.identity?.uid || ''
+  const value = entity?._id || entity?._id || ''
   return value ? String(value) : ''
 }
 
 const entityLabel = (entity = null, type = '') => (
-  entity?.identity?.name || entity?.identity?.serial || entity?.identity?.uid
+  entity?.name || entity?.serial || entity?._id
   || instanceId(entity) || type
 )
 

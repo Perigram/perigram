@@ -82,7 +82,7 @@ const resolved = computed(() => baseResolved.value);
 const resolvedId = computed(() => normalizedId.value
   || resolved.value?._id?.toString?.()
   || resolved.value?.id?.toString?.()
-  || resolved.value?.identity?.uid
+  || resolved.value?._id
   || ''
 );
 const icon = computed(() => instances.iconFor(props.type));
@@ -204,7 +204,7 @@ watch(
 function instanceId(entity) {
   return entity?._id?.toString?.()
     || entity?.id?.toString?.()
-    || entity?.identity?.uid
+    || entity?._id
     || '';
 }
 
@@ -262,7 +262,7 @@ function openEntityChatFromRef(event) {
   openInstanceChat({
     type: generatedTypeId.value || props.type,
     id: resolvedId.value,
-    name: resolved.value?.identity?.name || ''
+    name: resolved.value?.name || ''
   });
 }
 

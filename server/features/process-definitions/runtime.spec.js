@@ -63,7 +63,7 @@ describe('process runtime auth hydration', () => {
             outputSocketId: 'result',
             typeId: 'queue',
             lifecycle: { mode: 'domainDefault' },
-            fields: { read: ['identity.*'], write: [], private: [] },
+            fields: { read: ['name'], write: [], private: [] },
             allowedRoles: { read: [], write: [], admin: [] }
           }
         }

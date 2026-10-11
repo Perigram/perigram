@@ -112,7 +112,7 @@ const labelKey = (item) => `${item.type}:${item.id}`;
 const fallbackLabel = (item) => item?.label || FALLBACK_LABELS[item?.type] || '';
 
 const entityLabel = (entity) => {
-    return entity?.identity?.name
+    return entity?.name
         || entity?.name
         || entity?.title
         || entity?.data?.name

@@ -300,7 +300,7 @@ describe('support communication service', () => {
       processGetById: vi.fn(async () => null),
       processList: vi.fn(async () => (type === 'sheet_design'
         ? [
-            { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
+            { _id: 'sheet-1', name: 'Sheet Alpha', fields: {} }
           ]
         : []))
     }));
@@ -330,7 +330,7 @@ describe('support communication service', () => {
         type: 'sheet_design',
         value: 'sheet-1',
         label: 'Sheet Alpha',
-        instance: { _id: 'sheet-1', identity: { name: 'Sheet Alpha' }, data: {} }
+        instance: { _id: 'sheet-1', name: 'Sheet Alpha', fields: {} }
       }
     ]);
   });
@@ -346,9 +346,10 @@ describe('support communication service', () => {
       processGetById: vi.fn(async () => (type === 'cassette'
         ? {
             _id: 'cassette-1',
-            identity: { name: 'Iklya 1' },
-            lineage: { organizationId: 'org-1' },
-            data: {
+            name: 'Iklya 1',
+            organizationId: 'org-1',
+            lineage: {},
+            fields: {
               templateType: 'STANDARD',
               mapping: { 'cut.outer': 'cut.outer' },
               polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }],
@@ -360,9 +361,10 @@ describe('support communication service', () => {
         ? [
             {
               _id: 'cassette-1',
-              identity: { name: 'Iklya 1' },
-              lineage: { organizationId: 'org-1' },
-              data: {
+              name: 'Iklya 1',
+              organizationId: 'org-1',
+              lineage: {},
+              fields: {
                 templateType: 'STANDARD',
                 mapping: { 'cut.outer': 'cut.outer' },
                 polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }],
@@ -392,7 +394,7 @@ describe('support communication service', () => {
         id: 'cassette-1',
         instance: expect.objectContaining({
           _id: 'cassette-1',
-          data: expect.objectContaining({
+          fields: expect.objectContaining({
             templateType: 'STANDARD',
             mapping: { 'cut.outer': 'cut.outer' },
             polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }]
@@ -406,10 +408,10 @@ describe('support communication service', () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async () => (type === 'cassette'
-        ? { _id: 'cassette-1', identity: { name: 'Iklya 1' }, data: {} }
+        ? { _id: 'cassette-1', name: 'Iklya 1', fields: {} }
         : null)),
       processList: vi.fn(async () => (type === 'cassette'
-        ? [{ _id: 'cassette-1', identity: { name: 'Iklya 1' }, data: {} }]
+        ? [{ _id: 'cassette-1', name: 'Iklya 1', fields: {} }]
         : []))
     }));
 
@@ -893,7 +895,7 @@ describe('support communication service', () => {
   it('resolves instance conversation contexts through the scoped registry read', async () => {
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async (id) => (type === 'project' && id === 'project-1'
-        ? { toJSON: () => ({ _id: 'project-1', identity: { name: 'Facade Alpha' }, lineage: { organizationId: 'org-1' } }) }
+        ? { toJSON: () => ({ _id: 'project-1', name: 'Facade Alpha', organizationId: 'org-1', lineage: {} }) }
         : null))
     }));
 
@@ -921,7 +923,7 @@ describe('support communication service', () => {
         : { toJSON: () => ({ _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }) })),
       processList: vi.fn(async () => (type === 'cassette'
         ? [
-            { _id: 'cassette-1', identity: { name: 'Iklya' }, lineage: { organizationId: 'org-1', libraryId: 'library-1' }, data: {} }
+            { _id: 'cassette-1', name: 'Iklya', organizationId: 'org-1', lineage: { libraryId: 'library-1' }, fields: {} }
           ]
         : []))
     }));
@@ -960,8 +962,8 @@ describe('support communication service', () => {
   it('links messages to instances with an ancestry path rooted at the organization', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     const table = {
-      'queue:queue-1': { _id: 'queue-1', identity: { name: 'Queue 1' }, lineage: { organizationId: 'org-1', projectId: 'project-1' } },
-      'project:project-1': { _id: 'project-1', identity: { name: 'Facade Alpha' }, lineage: { organizationId: 'org-1' } },
+      'queue:queue-1': { _id: 'queue-1', name: 'Queue 1', organizationId: 'org-1', lineage: { projectId: 'project-1' } },
+      'project:project-1': { _id: 'project-1', name: 'Facade Alpha', organizationId: 'org-1', lineage: {} },
       'organization:org-1': { _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }
     };
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
@@ -1065,7 +1067,7 @@ describe('support communication service', () => {
           organization: { _id: 'org-1', identity: { name: 'Org1' }, lineage: {} },
           project: { _id: 'project-1', identity: { name: 'P1' }, lineage: { organizationId: 'org-1' } },
           library: { _id: 'library-1', identity: { name: 'Lib' }, lineage: { organizationId: 'org-1' } },
-          queue: { _id: 'queue-1', identity: { name: 'Queue 1' }, lineage: { organizationId: 'org-1', projectId: 'project-1' } }
+          queue: { _id: 'queue-1', name: 'Queue 1', organizationId: 'org-1', lineage: { projectId: 'project-1' } }
         };
         const dto = table[type] && table[type]._id === String(id) ? table[type] : null;
         return dto ? { toJSON: () => dto } : null;
@@ -1236,10 +1238,12 @@ describe('support communication service', () => {
       _id: id,
       type: typeId,
       typeVersion: 1,
-      identity: { uid: id, name },
+      organizationId: 'org-1',
+      name,
       state: null,
-      lineage: { organizationId: 'org-1', ...lineage },
-      relations: {}
+      lineage: { ...lineage },
+      relations: {},
+      fields: {}
     });
 
     const registryWith = (servicesByType) => {

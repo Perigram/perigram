@@ -299,7 +299,7 @@ function assertMutationInputsAlign(operation, trees) {
 
 function mutationEntityRef(input, output, typeId) {
   const value = output?.entity || output || input;
-  const id = value?.id || value?._id || value?.identity?.uid;
+  const id = value?.id || value?._id;
   const type = value?.type || value?.typeId || typeId;
   return id && type ? { type, id: String(id) } : null;
 }
@@ -332,7 +332,7 @@ function writeOpenBlockEntry(block, mode, entry, value) {
   // A missing field composes as absent content: the entry is not written.
   if (isMissingField(value)) return;
   if (mode === 'ancestors') {
-    const id = value?.id || value?._id || value?.identity?.uid;
+    const id = value?.id || value?._id;
     if (!entry.key || !entry.typeId || !id) throw new Error(`Lineage entry ${entry.id} requires a key and typed entity reference`);
     block[entry.key] = id;
     return;

@@ -1643,7 +1643,7 @@ watch(groupParticipantIds, async (ids) => {
         const record = await instances.resolveReadableReference('user', String(id), { silent: true })
         return {
             id: String(id),
-            name: record?.identity?.name || '',
+            name: record?.name || '',
             avatarUrl: record?.data?.avatarUrl || ''
         }
     }))
@@ -2421,7 +2421,7 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
                     key: `${source.typeId}:${stripInstanceId(instance)}`,
                     type: source.typeId,
                     id: stripInstanceId(instance),
-                    name: instance?.identity?.name || instance?.identity?.serial || stripInstanceId(instance) || source.typeId,
+                    name: instance?.name || stripInstanceId(instance) || source.typeId,
                     entity: instance
                 }))
             } catch {
@@ -2473,7 +2473,7 @@ function effectiveContainmentForStrip() {
 }
 
 const stripInstanceId = (entity = null) => {
-    const value = entity?._id || entity?.identity?.uid || ''
+    const value = entity?._id || entity?.id || ''
     return value ? String(value) : ''
 }
 
@@ -3223,14 +3223,14 @@ const executeCreateAction = async (action, data) => {
 const attachCreatedInstance = (action, result) => {
     if (!result || typeof result !== 'object') return
     const instance = result.created || (!result.owner ? (result.entity || result) : null)
-    const id = instance?._id?.toString?.() || instance?._id || instance?.id || instance?.identity?.uid || ''
+    const id = instance?._id?.toString?.() || instance?._id || instance?.id || ''
     const type = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId
     if (!id || !type) return
     if (!instanceRefs.value.some(ref => ref.type === type && ref.id === id)) {
         instanceRefs.value.push({
             type,
             id,
-            label: instance?.identity?.name || id,
+            label: instance?.name || id,
             instance
         })
     }
@@ -3288,7 +3288,7 @@ const loadNewChatUsers = async () => {
 const directoryUserOption = (entry) => ({
     type: 'user',
     value: entry._id,
-    label: entry.identity?.name || entry._id,
+    label: entry.name || entry._id,
     instance: entry
 })
 const { query: newChatSearch, results: newChatDirectoryOptions, searching: newChatSearching } = useDirectoryUserSearch()

@@ -83,10 +83,10 @@ export const fileSurfaceRegistry = {
  * surface adapters project this onto their own contract shapes.
  */
 export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 'application/octet-stream') {
-  const payloadUrl = instancePayloadFileUrl(entity.attachments?.primary);
+  const payloadUrl = instancePayloadFileUrl(entity.payload);
   const instanceId = String(entity._id || '');
   return {
-    title: entity.identity?.name || '',
+    title: entity.name || '',
     load: async () => {
       if (!payloadUrl) return '';
       const response = await fetch(payloadUrl);
@@ -103,7 +103,7 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       if (!trimmed) return null;
       return await useInstancesStore().mutateDirect(useInstancesStore().canonicalTypeKey(typeId), 'PATCH', {
         id: instanceId,
-        body: { identity: { name: trimmed } },
+        body: { name: trimmed },
         meta: { change: 'updated', reason: 'editor-rename' }
       });
     }

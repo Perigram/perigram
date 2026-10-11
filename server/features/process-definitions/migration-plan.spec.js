@@ -113,9 +113,9 @@ describe('apply migration executor', () => {
       getInstanceService: type => type === 'project'
         ? {
             processList: vi.fn().mockResolvedValue([
-              { _id: 'p-1', states: { main: 'LEGACY_RETIRED' } },
-              { _id: 'p-2', states: { main: 'draft' } },
-              { _id: 'p-3', states: { main: 'OLD_DRAFT' } }
+              { _id: 'p-1', state: 'LEGACY_RETIRED' },
+              { _id: 'p-2', state: 'draft' },
+              { _id: 'p-3', state: 'OLD_DRAFT' }
             ])
           }
         : null
@@ -167,7 +167,7 @@ describe('apply migration executor', () => {
   it('records per-entity failures without aborting the remaining mappings', async () => {
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'project'
-        ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', states: { main: 'LEGACY_RETIRED' } }]) }
+        ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', state: 'LEGACY_RETIRED' }]) }
         : null
     });
     stateService.setInitialStateForOrganization.mockRejectedValue(new Error('machine missing'));
@@ -225,6 +225,6 @@ describe('construct provenance stamp', () => {
   it('falls back to the generic construct op with no sources', async () => {
     const { constructProvenance } = await import('./service.js');
     const provenance = constructProvenance({ id: 'n2' }, {}, null, {});
-    expect(provenance).toEqual({ op: 'effect.createEntity:n2', sources: [], effective: { via: 'genericCreate' } });
+    expect(provenance).toEqual({ op: 'cts.construct:n2', sources: [], effective: { via: 'genericCreate' } });
   });
 });

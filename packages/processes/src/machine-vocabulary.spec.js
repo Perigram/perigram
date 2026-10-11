@@ -68,12 +68,12 @@ function definition() {
       'folderCreate:result': {
         producerOutputId: 'folderCreate:result', nodeId: 'folderCreate', outputSocketId: 'result',
         typeId: 'folder', lifecycle: { mode: 'domainDefault' },
-        fields: { read: ['identity.*'], write: [], private: [] }
+        fields: { read: ['name'], write: [], private: [] }
       },
       'noteCreate:result': {
         producerOutputId: 'noteCreate:result', nodeId: 'noteCreate', outputSocketId: 'result',
         typeId: 'note', lifecycle: { mode: 'domainDefault' },
-        fields: { read: ['identity.*'], write: [], private: [] }
+        fields: { read: ['name'], write: [], private: [] }
       }
     },
     actions: {},

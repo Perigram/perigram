@@ -869,7 +869,7 @@ onBeforeUnmount(() => {
               <div class="flex min-w-0 flex-1 flex-col gap-2">
                 <label :for="layerInputId(row.layer)" class="min-w-0">
                   <span class="flex min-w-0 flex-col">
-                    <span class="truncate">{{ row.sourceEntity?.identity?.name }}</span>
+                    <span class="truncate">{{ row.sourceEntity?.name }}</span>
                     <small v-if="layerRowMetaText(row)" class="truncate" :title="layerRowMetaText(row)">
                       {{ layerRowMetaText(row) }}
                     </small>

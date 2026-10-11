@@ -97,8 +97,8 @@
               @update:model-value="updateVisibleLayerNames"
             />
             <label :for="layerInputId(row.layer)" class="min-w-0 flex-1 truncate">
-              <span class="instance-inline-chip min-w-0 max-w-full" :title="row.sourceEntity?.identity?.name">
-                <span class="instance-inline-chip-label">{{ row.sourceEntity?.identity?.name }}</span>
+              <span class="instance-inline-chip min-w-0 max-w-full" :title="row.sourceEntity?.name">
+                <span class="instance-inline-chip-label">{{ row.sourceEntity?.name }}</span>
               </span>
             </label>
             <LayerStandardCard v-if="row.standard" :standard="row.standard" variant="inline" />
@@ -1463,7 +1463,7 @@ const applyTemplate = (template) => {
 };
 
 const templateName = (template) => (
-  template?.identity?.name ||
+  template?.name ||
   template?.name ||
   t('cassette.newCassette')
 );
