@@ -746,6 +746,26 @@ died by the new operator retract route (`DELETE /api/plugins/catalog/
 plugin-surface e2e retracts its fixture after every run and the stale
 dev entry was retracted live.
 
+### Agent Notes (2026-10-11, surface-origin decision — named for the owner)
+
+The live proof exposed a deployment-design gap in the surface-serving
+contract (M5): the served module URL resolves from the install's first
+endpoint origin, but the two consumers of that origin live on different
+networks — the platform calls the endpoint server-side (the compose
+network name `facade-executor:8790` is correct there) while the BROWSER
+imports the module from it (a host browser cannot resolve the compose
+name; dev publishes 8790 now so `localhost:8790` works from the host,
+but then the app container's own service calls to that origin miss).
+One origin cannot serve both planes in the dev topology. Options: the
+platform proxies surface-module GETs through the app origin (same-origin
+module loads, no executor exposure — a serving-seam change), or installs
+carry a separate browser-visible origin beside the service endpoints
+(a settings-shape change). Picking between them is an owner call on the
+surface contract; until it lands, host-browser loads of facade surfaces
+degrade honestly (generic preview fallback, connect-the-executor editor
+state), and the mount contract itself is proven hermetically by the
+plugin-surface e2e.
+
 ### Agent Notes (2026-10-11, order-process e2e seam — remaining flip debt, named)
 
 Preparing the live proof surfaced where the wire-flip session actually
