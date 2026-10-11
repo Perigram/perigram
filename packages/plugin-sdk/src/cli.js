@@ -16,10 +16,16 @@ import { parseListing } from './listing.js';
 import { createEndpointExecutor } from './endpoint-executor.js';
 import { runClaimExecutor } from './claim-executor.js';
 import { createPluginClient } from './api-client.js';
+import { checkSurfaceModule } from './surface-check.js';
 
 const APP = process.env.PERIGRAM_APP || 'http://localhost:3000';
 
 const commands = {
+  surfaces: async args => {
+    const ok = await checkSurfaceModule(requireArg(args, 'surface module path'));
+    if (ok) process.stdout.write('surface module OK — import graph clean, factory returns a component\n');
+  },
+
   login: async args => {
     const [emailFlag, passwordFlag] = pickFlags(args, ['--email', '--password']);
     const client = createPluginClient({ appUrl: APP });
@@ -123,6 +129,9 @@ const usage = `perigram-plugin — author Perigram plugins (SDK: @perigram/plugi
   connector <pluginId>                connector panel: token, queue, endpoints
   connect <pluginId> [--set svc=URL ...] [--key K]   read/save connection settings
   test <pluginId> <serviceId> [--input file.json]   invoke an installed service
+  surfaces <module.mjs>               check a surface module: clean import
+                                      graph (host externals are injected),
+                                      factory shape, stub-context smoke
 
 env: PERIGRAM_APP, PERIGRAM_OPERATOR_TOKEN, PERIGRAM_TOKEN, PERIGRAM_ORG_ID`;
 

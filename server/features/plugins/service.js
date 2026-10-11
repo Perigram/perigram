@@ -22,6 +22,7 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { composePackServices, composePackDomains, composePackAttachmentKinds, orderedMountedPacks } from '~/server/packs/declarations.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/src/listing.js';
+import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
 function packById(packId) {
   return orderedMountedPacks().find(pack => pack.id === String(packId)) || null;
@@ -70,7 +71,18 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     throw createError({ statusCode: 409, message: 'Plugin already installed' });
   }
   const layer = parseListingOr400(listing);
-  const { types, services, editors, attachmentKinds, conversions, constructions, exports: exportBindings, requires } = layer;
+  const { types, services, editors, attachmentKinds, conversions, constructions, exports: exportBindings, surfaces, requires } = layer;
+  // Surface modules target a mount-contract major; an unsupported one
+  // refuses at the gate — never a runtime half-mount (SPEC §Plugin
+  // marketplace, owner decision 2026-10-11).
+  for (const surface of surfaces) {
+    if (!isSupportedSurfaceContract(surface.surfaceContract)) {
+      throw createError({
+        statusCode: 400,
+        message: `Surface ${surface.id} targets contract version ${surface.surfaceContract}, which this platform does not support`
+      });
+    }
+  }
   // The plugin's packs must exist and stay enabled under it — a disabled
   // requirement would strand the plugin's types the same way a disabled
   // dependent pack would.
@@ -136,7 +148,7 @@ export async function install({ organizationId, pluginId, auth = {} }) {
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types, editors, attachmentKinds, conversions, constructions, exports: exportBindings },
+    declarations: { types, editors, attachmentKinds, conversions, constructions, exports: exportBindings, surfaces },
     services,
     requires,
     connectorToken: mintConnectorToken()
@@ -671,6 +683,16 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
   assertOrganizationPermission(auth, 'admin');
   const { install, listing } = await loadUpgradePair(organizationId, pluginId);
   const layer = parseListingOr400(listing);
+  // Surface modules target a mount-contract major; the upgrade re-checks
+  // the same law the install gate enforced.
+  for (const surface of layer.surfaces) {
+    if (!isSupportedSurfaceContract(surface.surfaceContract)) {
+      throw createError({
+        statusCode: 409,
+        message: `Upgrade surface ${surface.id} targets contract version ${surface.surfaceContract}, which this platform does not support`
+      });
+    }
+  }
   // The upgraded pin's pack requirements must still hold, and its
   // attachment kinds must stay claimable — the same laws the install gate
   // enforces, re-checked against the world as it is now.
@@ -742,7 +764,8 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       attachmentKinds: layer.attachmentKinds,
       conversions: layer.conversions,
       constructions: layer.constructions,
-      exports: layer.exports
+      exports: layer.exports,
+      surfaces: layer.surfaces
     },
     services: layer.services,
     requires: layer.requires

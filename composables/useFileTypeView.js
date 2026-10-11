@@ -13,7 +13,8 @@ async function fetchTypeView(organizationId) {
   const response = await $fetch('/api/admin/cts/types');
   return {
     types: response.types || [],
-    editors: response.editors || []
+    editors: response.editors || [],
+    surfaces: response.surfaces || []
   };
 }
 
@@ -23,12 +24,13 @@ export function useFileTypeView() {
   const cacheKey = organizationId ? String(organizationId) : 'system';
 
   if (!cache.has(cacheKey)) {
-    const entry = { types: ref([]), editors: ref([]), loaded: ref(false), promise: null };
+    const entry = { types: ref([]), editors: ref([]), surfaces: ref([]), loaded: ref(false), promise: null };
     cache.set(cacheKey, entry);
     entry.promise = fetchTypeView(organizationId)
       .then((view) => {
         entry.types.value = view.types;
         entry.editors.value = view.editors;
+        entry.surfaces.value = view.surfaces;
         entry.loaded.value = true;
       })
       .catch(() => {
@@ -61,6 +63,7 @@ export function useFileTypeView() {
   return {
     types: entry.types,
     editors: entry.editors,
+    surfaces: entry.surfaces,
     loaded: entry.loaded,
     typeById
   };

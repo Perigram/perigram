@@ -20,14 +20,16 @@ const DEFAULT_VIA = {
 
 // The mounted declaration set the app composes (framework + documents +
 // tech-drawing + facade) — the projected domain species processes author
-// against.
-function mountedDomain(organizationId) {
+// against. Extra declarations (a fixture plugin's installed types) join
+// the same registry: authoring validates them exactly like pack types.
+function mountedDomain(organizationId, extraTypes = []) {
   const registry = createTypeRegistry({ id: 'e2e-species' });
   for (const declaration of [
     ...frameworkTypes,
     ...documentsPack.types,
     ...techDrawingPack.types,
-    ...facadePackContent.types
+    ...facadePackContent.types,
+    ...extraTypes
   ]) {
     registry.defineType(declaration);
   }
@@ -124,7 +126,9 @@ export const test = base.extend({
       // authoring seam — the same palette drops and construction modes the
       // designer produces: one manual construct per requested type, granted
       // to a fresh role, activated beside whatever the org already runs.
-      async seedSpeciesProcess({ types = ['cassette', 'image'], via = {}, label = null } = {}) {
+      // `domainTypes` joins the authoring registry beside the mounted packs
+      // (a fixture plugin's installed types).
+      async seedSpeciesProcess({ types = ['cassette', 'image'], via = {}, label = null, domainTypes = [] } = {}) {
         const me = await (await request.get('/api/auth/me')).json();
         const organizationId = me.organizationId;
         const roleResponse = await request.post(`/api/organizations/${organizationId}/roles`, {
@@ -138,7 +142,7 @@ export const test = base.extend({
         );
         expect(assignResponse.ok(), await assignResponse.text()).toBeTruthy();
 
-        const authoring = createDefinitionAuthoring(mountedDomain(organizationId));
+        const authoring = createDefinitionAuthoring(mountedDomain(organizationId, domainTypes));
         types.forEach((typeId, index) => {
           const id = `e2e-${index}`;
           const mode = via[typeId] || DEFAULT_VIA[typeId] || 'genericCreate';

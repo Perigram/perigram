@@ -2,12 +2,16 @@
 // harnesses, and the platform API client. These are the plugin author's
 // guarantees — the platform's install gate imports the same parseListing,
 // so a listing that passes here is publishable there.
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parseListing, normalizeListing } from './listing.js';
 import schema from './listing.schema.json';
 import { createEndpointExecutor } from './endpoint-executor.js';
 import { runClaimExecutor } from './claim-executor.js';
 import { createPluginClient } from './api-client.js';
+import { checkSurfaceModule } from './surface-check.js';
 
 const fullListing = {
   pluginId: 'coatings',
@@ -84,16 +88,37 @@ describe('parseListing', () => {
       requires: ['documents']
     });
     expect(Object.keys(normalized.declarations)).toEqual([
-      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'exports'
+      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'exports', 'surfaces'
     ]);
   });
 
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
     expect(Object.keys(declarations)).toEqual([
-      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'exports'
+      'types', 'services', 'editors', 'surfaces', 'attachmentKinds', 'conversions', 'constructions', 'exports'
     ]);
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
+  });
+
+  it('validates plugin-delivered surface declarations', () => {
+    const withSurfaces = surfaces => parseListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, surfaces }
+    });
+    const surfaces = [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }];
+    expect(withSurfaces(surfaces).surfaces).toEqual(surfaces);
+    expect(normalizeListing({ ...fullListing, declarations: { ...fullListing.declarations, surfaces } }).declarations.surfaces).toEqual(surfaces);
+    expect(() => withSurfaces([{ id: 'Bad Id', module: '/s.js', surfaceContract: 1 }])).toThrow(/surface id must be a slug/);
+    expect(() => withSurfaces([
+      { id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 },
+      { id: 'coating-designer', module: '/surfaces/other.mjs', surfaceContract: 1 }
+    ])).toThrow(/duplicate surface id/);
+    expect(() => withSurfaces([{ id: 'coating-designer', module: 'surfaces/x.js', surfaceContract: 1 }]))
+      .toThrow(/root-relative/);
+    expect(() => withSurfaces([{ id: 'coating-designer', module: '/surfaces/x.mjs', surfaceContract: 0 }]))
+      .toThrow(/surfaceContract/);
+    expect(() => withSurfaces([{ id: 'coating-designer', module: '/surfaces/x.mjs', surfaceContract: '1' }]))
+      .toThrow(/surfaceContract/);
   });
 
   it('validates construction and export service bindings', () => {
@@ -126,6 +151,46 @@ describe('parseListing', () => {
       constructions: { 'coating-sheet': { upload: 'plugin.coatings.match' } },
       exports: [{ typeId: 'coating-sheet', kind: 'COATING_DOC', service: 'plugin.coatings.match' }]
     });
+  });
+});
+
+describe('checkSurfaceModule', () => {
+  const surfaceDir = mkdtempSync(join(tmpdir(), 'surface-module-'));
+  afterAll(() => { rmSync(surfaceDir, { recursive: true, force: true }); });
+
+  const writeModule = source => {
+    const path = join(surfaceDir, `surface-${Math.random().toString(36).slice(2)}.mjs`);
+    writeFileSync(path, source);
+    return path;
+  };
+
+  it('accepts a factory module with a clean import graph', async () => {
+    const path = writeModule(`
+      export default function createSurface({ vue, components }) {
+        const { h } = vue;
+        return { name: 'Ok', setup: () => () => h(components.Button, {}, () => 'x') };
+      }
+    `);
+    await expect(checkSurfaceModule(path)).resolves.toBe(true);
+  });
+
+  it('refuses modules importing host externals', async () => {
+    const vueImport = writeModule(`import { h } from 'vue';\nexport default () => ({ render: () => null });`);
+    await expect(checkSurfaceModule(vueImport)).rejects.toThrow(/must not import host externals/);
+    const primeImport = writeModule(`import Button from 'primevue/button';\nexport default () => ({ render: () => null });`);
+    await expect(checkSurfaceModule(primeImport)).rejects.toThrow(/primevue/);
+  });
+
+  it('refuses a missing factory and a factory that returns nothing', async () => {
+    const noFactory = writeModule(`export const something = 1;`);
+    await expect(checkSurfaceModule(noFactory)).rejects.toThrow(/default-export the factory/);
+    const badFactory = writeModule(`export default () => null;`);
+    await expect(checkSurfaceModule(badFactory)).rejects.toThrow(/must return a component/);
+  });
+
+  it('refuses a factory that logs errors against the stub context', async () => {
+    const logging = writeModule(`export default () => { console.error('boom'); return { render: () => null }; };`);
+    await expect(checkSurfaceModule(logging)).rejects.toThrow(/logged errors/);
   });
 });
 

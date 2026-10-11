@@ -78,6 +78,41 @@ describe('cts type storage', () => {
     expect(bundle.attachmentKinds.COATING_DOC).toMatchObject({ mimeType: 'text/plain' });
   });
 
+  it('serves installed surface declarations with executor-resolved module URLs', async () => {
+    const installedTypes = [{ id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }];
+    pluginInstalls.listDeclarationsByOrganization.mockResolvedValue(installedTypes);
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      endpoints: { match: 'http://10.0.0.5:8790/match' },
+      declarations: {
+        types: installedTypes,
+        editors: [{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }],
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
+      }
+    }]);
+    const view = await describeOrganizationTypes(ORG);
+    expect(view.surfaces).toContainEqual({
+      id: 'coating-designer',
+      url: 'http://10.0.0.5:8790/surfaces/coating-designer.mjs',
+      surfaceContract: 1
+    });
+    // Without a configured endpoint the URL stays null — the loader shows
+    // the connect-the-executor state instead of guessing an origin.
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      declarations: {
+        types: installedTypes,
+        editors: [],
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
+      }
+    }]);
+    const unconnected = await describeOrganizationTypes(ORG);
+    expect(unconnected.surfaces).toContainEqual({ id: 'coating-designer', url: null, surfaceContract: 1 });
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
+  });
+
   it('refuses an installed editor binding the composed view cannot serve', async () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
       organizationId: ORG,

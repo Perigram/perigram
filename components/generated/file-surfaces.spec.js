@@ -139,6 +139,25 @@ describe('file surface registry', () => {
     expect(csv.saveText).toBeInstanceOf(Function);
   });
 
+  it('resolves served plugin surface declarations beside the local registry', () => {
+    const editors = [{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }];
+    const surfaces = [{ id: 'coating-designer', url: 'http://127.0.0.1:8799/surfaces/coating-designer.mjs', surfaceContract: 1 }];
+    const resolved = resolveFileSurface(editors, 'coating-sheet', surfaces);
+    expect(resolved).toMatchObject({ surface: 'coating-designer', action: 'generic', remote: true });
+    expect(resolved.workspacePage.component).toBeTruthy();
+    const page = resolved.workspacePage.props({ entity: { _id: 'c-1' } });
+    expect(page).toMatchObject({ typeId: 'coating-sheet' });
+    expect(page.surface).toEqual(surfaces[0]);
+    expect(page.record?._id).toBe('c-1');
+    // Without the declarations the binding has no presentation.
+    expect(resolveFileSurface(editors, 'coating-sheet', [])).toBeNull();
+    // Derived rows carry remote surfaces through.
+    const actions = new Map(fileEditorActions(editors, surfaces));
+    expect(actions.get('coating-sheet')?.action).toBe('generic');
+    const pages = fileWorkspacePages(editors, surfaces);
+    expect(pages.map(page => page.id)).toContain('coating-designer');
+  });
+
   it('accepts served editor records in place of the pack import', () => {
     const served = [
       { type: 'cassette', surface: 'cassette-designer', modes: ['edit'] }

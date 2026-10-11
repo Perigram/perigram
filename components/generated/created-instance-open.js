@@ -34,7 +34,9 @@ export function resolveCreatedInstanceOpen({ action = {}, result = null, screenK
   return { kind: 'toast', typeId, instanceId: identifier, name: displayName(entity) };
 }
 
-function createdEntity(action = {}, result = null) {
+// The one create-result entity extractor (shared by the created-open
+// contract and the editor surface mount's blank-create callback).
+export function createdEntity(action = {}, result = null) {
   if (!result || typeof result !== 'object') return null;
   const tree = Array.isArray(result?.branches) ? result : result?.result;
   if (Array.isArray(tree?.branches)) {

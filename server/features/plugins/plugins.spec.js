@@ -148,7 +148,8 @@ describe('plugin installs', () => {
         ],
         editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
         attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
-        conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }]
+        conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }],
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
       }
     });
     await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
@@ -156,10 +157,23 @@ describe('plugin installs', () => {
       declarations: expect.objectContaining({
         editors: [{ type: 'coating-sheet', surface: 'text-editor', modes: ['edit'] }],
         attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
-        conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }]
+        conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }],
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
       }),
       requires: ['documents']
     }));
+  });
+  it('refuses a surface declaration targeting an unsupported mount contract', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 99 }]
+      }
+    });
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toThrow(/Surface coating-designer targets contract version 99/);
+    expect(repository.createInstall).not.toHaveBeenCalled();
   });
 
   it('refuses a required pack that is not mounted or is disabled', async () => {
