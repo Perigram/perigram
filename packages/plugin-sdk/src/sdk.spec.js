@@ -3,7 +3,7 @@
 // guarantees — the platform's install gate imports the same parseListing,
 // so a listing that passes here is publishable there.
 import { describe, it, expect, afterAll } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseListing, normalizeListing } from './listing.js';
@@ -267,6 +267,24 @@ describe('createEndpointExecutor', () => {
       headers: { authorization: 'Bearer secret' }
     });
     expect(allowed.status).toBe(200);
+  });
+
+  it('serves declared surface modules as static GETs with CORS, refusing traversal', async () => {
+    const staticDir = mkdtempSync(join(tmpdir(), 'executor-static-'));
+    mkdirSync(join(staticDir, 'surfaces'), { recursive: true });
+    writeFileSync(join(staticDir, 'surfaces', 'editor.mjs'), 'export default () => null;');
+    const base = await listen({ services: {}, staticRoot: staticDir });
+
+    const module = await fetch(`${base}/surfaces/editor.mjs`);
+    expect(module.status).toBe(200);
+    expect(module.headers.get('content-type')).toBe('text/javascript');
+    expect(module.headers.get('access-control-allow-origin')).toBe('*');
+    expect(await module.text()).toBe('export default () => null;');
+
+    expect((await fetch(`${base}/surfaces/missing.mjs`)).status).toBe(404);
+    const traversal = await fetch(`${base}/surfaces/..%2f..%2fetc%2fpasswd`);
+    expect([403, 404]).toContain(traversal.status);
+    rmSync(staticDir, { recursive: true, force: true });
   });
 });
 

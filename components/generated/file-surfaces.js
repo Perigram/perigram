@@ -1,7 +1,6 @@
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue';
-import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
@@ -40,15 +39,6 @@ export const fileSurfaceRegistry = {
       icon: 'pi pi-file-edit',
       component: GeneratedCassetteDesignerWorkspacePage,
       props: page => ({ cassette: page.entity, cassettes: page.cassettes || [] })
-    }
-  },
-  'sheet-design-editor': {
-    action: 'generic',
-    workspacePage: {
-      labelKey: 'sheetDesign.editor',
-      icon: 'pi pi-file-edit',
-      component: SheetDesignEditor,
-      props: page => ({ design: page.entity })
     }
   },
   'sketch-editor': {
@@ -181,8 +171,10 @@ export function validateEditorBindings(bindings = [], registry = fileSurfaceRegi
 // Validated at module load so pack/registry drift fails here, not as a
 // silently missing editor presentation. The facade domain's bindings
 // (cassette designer, sheet editor) arrive with the organization type
-// view from the installed facade plugin — the pre-auth fallback below
-// covers only always-mounted pack types.
+// view from the installed facade plugin — the sheet editor resolves as
+// a plugin-delivered surface module (RemoteEditorSurface), the cassette
+// designer as a local registration until its own migration — and the
+// pre-auth fallback below covers only always-mounted pack types.
 export const packEditorBindings = validateEditorBindings([...documentsEditors, ...techDrawingEditors]);
 
 // Served-list default (editor-binding guard): when the app has fetched

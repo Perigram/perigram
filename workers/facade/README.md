@@ -13,8 +13,24 @@ executor never calls back.
 Runs from the repo mount (compose `facade-executor`, port 8790) or as
 its own deployment — nothing here imports platform code; `vendor/` holds
 the geometry/OCCS/DXF modules (the app keeps its own copies for the
-editor surfaces' client-side previews; the executor's are authoritative
-for construction).
+read-side preview family until that migrates; the executor's are
+authoritative for construction).
+
+## Editor surfaces
+
+The plugin's editor modules live in `surfaces/` and are served by this
+executor as static GETs beside the services (the install-resolved module
+URL `http://<origin>/surfaces/<module>.mjs`; CORS-open, path-traversal
+refused — the URL is the only credential the browser gets). Each module
+targets a surface mount contract
+([plugin-surfaces](../../shared/plugin-surfaces.js)):
+
+| Surface | Contract | Serves |
+|---|---|---|
+| `sheet-design-editor` | 2 | The sheet-design type's editor: layout drag/rotate/snap, layer-pen styling, save through the mount's patch transport. Pure layout compute in `surfaces/lib/`. |
+
+The cassette designer remains an app-side registration until its own
+migration (TODO §Plugin-delivered editor surfaces, M6).
 
 ## Services
 

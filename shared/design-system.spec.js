@@ -399,7 +399,6 @@ describe('Design system manifest', () => {
     const staticFontSize = /\bfont-size=["']\d/;
     const dynamicFontSizeFiles = new Set([
       'components/ArtifactLayoutEditor.vue',
-      'components/SheetDesignEditor.vue',
       'components/shared/DrawingCanvas.vue'
     ]);
     const rawSurfaceBorder = /\bborder-surface-\d+\b/;
@@ -664,7 +663,7 @@ describe('Design system manifest', () => {
 
 
   it('keeps sheet layout editing on semantic layer and bounded snap contracts', () => {
-    const editor = fs.readFileSync(path.join(REPO_ROOT, 'components/SheetDesignEditor.vue'), 'utf8');
+    const editor = fs.readFileSync(path.join(REPO_ROOT, 'workers/facade/surfaces/sheet-design-editor.mjs'), 'utf8');
     const relationBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceRelationsBlock.vue'), 'utf8');
 
     expect(editor).toContain('applyLayerPens');

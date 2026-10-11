@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedCassetteDesignerWorkspacePage' } }));
 vi.mock('~/components/generated/GeneratedCassetteDesignerAction.vue', () => ({ default: { name: 'GeneratedCassetteDesignerAction' } }));
-vi.mock('~/components/SheetDesignEditor.vue', () => ({ default: { name: 'SheetDesignEditor' } }));
 vi.mock('~/components/artifacts/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
 vi.mock('~/components/artifacts/ArtifactTextEditor.vue', () => ({ default: { name: 'ArtifactTextEditor' } }));
 
@@ -21,7 +20,10 @@ import {
 
 // The facade plugin's served editor layer (workers/facade/listing.json):
 // cassette and sheet-design bindings arrive with the organization type
-// view, not the always-mounted pack fallback.
+// view, not the always-mounted pack fallback. The sheet editor ships as
+// a plugin-delivered surface module; the cassette designer is a local
+// registration until its own migration.
+const servedSurfaces = [{ id: 'sheet-design-editor', url: 'http://127.0.0.1:8790/surfaces/sheet-design-editor.mjs', surfaceContract: 2 }];
 const servedEditors = [
   ...packEditorBindings,
   { type: 'cassette', surface: 'cassette-designer', modes: ['create', 'edit'] },
@@ -66,16 +68,19 @@ describe('file surface registry', () => {
       .toEqual({ cassette: { id: 'c-1' }, cassettes: [{ id: 'c-2' }] });
   });
 
-  it('binds sheet design to the editing workspace page', () => {
-    const surface = resolveFileSurface(servedEditors, 'sheet-design');
+  it('binds sheet design to the plugin-delivered surface module', () => {
+    const surface = resolveFileSurface(servedEditors, 'sheet-design', servedSurfaces);
     expect(surface.action).toBe('generic');
-    expect(surface.workspacePage).toMatchObject({ labelKey: 'sheetDesign.editor' });
-    expect(surface.workspacePage.props({ entity: { id: 'sd-1' } }, 'sheet-design'))
-      .toEqual({ design: { id: 'sd-1' } });
+    expect(surface.remote).toBe(true);
+    expect(surface.workspacePage.component).toBeTruthy();
+    expect(surface.workspacePage.props(
+      { entity: { id: 'sd-1' }, typeId: 'sheet-design' },
+      'sheet-design'
+    )).toMatchObject({ typeId: 'sheet-design', surface: servedSurfaces[0] });
   });
 
   it('derives editor action rows from the served bindings', () => {
-    const actions = new Map(fileEditorActions(servedEditors));
+    const actions = new Map(fileEditorActions(servedEditors, servedSurfaces));
     expect(actions.get('cassette')?.action?.name).toBe('GeneratedCassetteDesignerAction');
     for (const typeId of ['sheet-design', 'sketch', 'text-document', 'csv-table']) {
       expect(actions.get(typeId)?.action, typeId).toBe('generic');
@@ -85,7 +90,7 @@ describe('file surface registry', () => {
   });
 
   it('derives a workspace page for every bound file type', () => {
-    const pages = fileWorkspacePages(servedEditors);
+    const pages = fileWorkspacePages(servedEditors, servedSurfaces);
     expect([...pages.map(page => page.id)].sort()).toEqual([
       'cassette-designer',
       'csv-editor',
@@ -187,7 +192,7 @@ describe('file surface registry', () => {
     expect(resolveFileSurface(packEditorBindings, 'queue')).toBeNull();
     expect(resolveFileSurface([{ type: 'x', surface: 'no-such-surface', modes: ['edit'] }], 'x')).toBeNull();
     expect(resolveFileSurface(packEditorBindings, '')).toBeNull();
-    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sheet-design-editor', 'sketch-editor', 'text-editor', 'csv-editor']));
+    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sketch-editor', 'text-editor', 'csv-editor']));
   });
 
   it('builds payload download URLs against the files bucket', () => {
