@@ -434,8 +434,16 @@ falsifiable check passes:
   callbacks (blank-create via the compiled construct, the payload
   channel, rename), locale, tokens — and an incompatible contract
   version refuses at install or upgrade, never half-mounts at runtime.
-  Check: a fixture plugin with a trivial editor surface installs and
-  opens on the dev stack with zero app-side code for it.
+  The consistency law ships here (owner decision 2026-10-11): vue and
+  the component library are host-provided externals (a bundle shipping
+  its own copies fails the harness), the SDK re-exports the vetted
+  primitive pack for composition, PLUGIN_AUTHORING gains the surface UX
+  laws (host owns chrome; save/undo/keyboard/a11y match the platform
+  editors), and `perigram-plugin test` mounts every declared surface in
+  the host shell for the mount-save smoke plus the externals graph
+  check. Check: a fixture plugin with a trivial editor surface —
+  composed from the pack — installs and opens on the dev stack with zero
+  app-side code for it.
 - [ ] M6 — Facade editors migrate: cassette-designer and
   sheet-design-editor ship from workers/facade as surface modules; the
   app-side registrations, designer components, dialogs, and
@@ -468,6 +476,15 @@ migration deletes the composable with the editor, so a mid-flight unslop
 would be wasted motion. Also recorded in the session: the vendored
 engine copy (workers/facade/vendor/occs) is byte-identical to utils/occs
 today with no sync mechanism — M8 closes that by single-homing.
+
+Follow-up the same day (owner answer to "will any agent's editor be
+consistent with the app interface?"): the data-only mount alone
+guarantees theme/locale/chrome/save semantics but not component
+vocabulary or UX conventions — the app's design-system guards
+(design-system.spec, UI audit, check-arch) only see app code. The
+consistency law closes that: host externals + the SDK primitive pack +
+the UX laws + the `perigram-plugin test` host-shell harness, all folded
+into M5.
 
 ## Business process authoring maturity (2026-10-07)
 

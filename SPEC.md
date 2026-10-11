@@ -304,6 +304,17 @@ install or upgrade, never half-mounts at runtime. Remote editor surfaces are
 online-only and say so; read surfaces stay offline-capable. Platform-owned
 surfaces keep the fixed local registry.
 
+The consistency law (owner decision 2026-10-11): a plugin surface composes
+from the host's UI vocabulary — the host's Vue runtime, its component
+library, and its design tokens are provided externals, never bundled copies
+— and follows the surface UX laws: the host owns the chrome, and save
+affordances, undo, and keyboard paths match the platform editors. The SDK
+ships the vetted primitive pack so authors compose instead of reinventing,
+and the plugin test harness mounts every declared surface in the host
+shell; a surface that bundles its own runtime or UI kit, or fails the
+mount-and-save smoke, fails the check. Structural consistency is
+contractual; taste stays review, with the facade editors as the reference.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,
