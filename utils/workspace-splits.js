@@ -68,14 +68,21 @@ export function ensureWorkspaceLeafTabs(root) {
   return { ...root, children: root.children.map(ensureWorkspaceLeafTabs) };
 }
 
-// Tab creation is explicit: only callers that pass `newTab` (the tab strip's
-// add control opening an empty placeholder, live call stages that must not
-// unmount) append a tab. Every other open reuses the pane's selected tab in
-// place — replacing empty placeholders like any content — so exploring does
-// not pile up one tab per entity. Opening an item that already has a tab in
-// the pane keeps the tabs unchanged (selection happens at the caller).
+// Tab creation is explicit: only callers that pass `newTab` (live call
+// stages that must not unmount) append a tab — except that appending
+// onto a selected empty placeholder replaces it: the placeholder exists
+// to be filled, so a new tab never leaves a dead "new tab" behind.
+// Every other open reuses the pane's selected tab in place — replacing
+// empty placeholders like any content — so exploring does not pile up
+// one tab per entity; the pane's navigation history (owned by the
+// workspace) keeps the replaced content reachable through Back.
+// Opening an item that already has a tab in the pane keeps the tabs
+// unchanged (selection happens at the caller).
 export function withPaneTab(pane, key, { newTab = false } = {}) {
   const tabs = pane.tabKeys || [];
+  if (newTab && !isEmptyTabKey(key) && isEmptyTabKey(pane.selectionKey)) {
+    return [...tabs.filter(tabKey => tabKey !== pane.selectionKey), key];
+  }
   if (newTab || isEmptyTabKey(key) || tabs.includes(key) || !tabs.length) {
     return [...new Set([...tabs, key])];
   }

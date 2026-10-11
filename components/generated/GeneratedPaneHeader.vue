@@ -1,6 +1,22 @@
 <template>
   <!-- The one pane-header stripe: the height lives here only. -->
   <div data-pane-header class="flex h-10 shrink-0 items-stretch border-b border-chrome-border">
+    <!-- The pane's back control: walks the workspace-owned navigation
+         history of in-place tab replacements. Appears exactly when there
+         is somewhere to go back to. -->
+    <div v-if="back" class="flex shrink-0 items-center pl-1">
+      <Button
+        icon="pi pi-arrow-left"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('common.back')"
+        :title="$t('common.back')"
+        data-testid="pane-back"
+        @click="$emit('back')"
+      />
+    </div>
     <GeneratedWorkspaceTabs
       :tabs="tabs"
       :active-key="activeKey"
@@ -21,15 +37,20 @@
 </template>
 
 <script setup>
+import Button from 'primevue/button';
 import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
 import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
+import { useI18n } from 'vue-i18n';
 
 defineProps({
   tabs: { type: Array, default: () => [] },
   activeKey: { type: String, default: '' },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true }
+  splittable: { type: Boolean, default: true },
+  back: { type: Boolean, default: false }
 });
 
-defineEmits(['refresh', 'select-tab', 'close-tab', 'add', 'split', 'close']);
+const { t } = useI18n();
+
+defineEmits(['refresh', 'select-tab', 'close-tab', 'add', 'split', 'close', 'back']);
 </script>

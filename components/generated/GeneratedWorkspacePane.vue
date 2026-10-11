@@ -9,6 +9,8 @@
     :action-entries="actionEntries"
     :closeable="closeable"
     :splittable="splittable"
+    :back="back"
+    @back="$emit('back')"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-entity="request => $emit('open-entity', request)"
     @open-page="page => $emit('open-page', page)"
@@ -25,6 +27,8 @@
     :tabs="tabs"
     :closeable="closeable"
     :splittable="splittable"
+    :back="back"
+    @back="$emit('back')"
     @refresh="$emit('refresh')"
     @open-entity="request => $emit('open-entity', request)"
     @select-tab="$emit('select-tab', $event)"
@@ -39,6 +43,8 @@
     :tabs="tabs"
     :closeable="closeable"
     :splittable="splittable"
+    :back="back"
+    @back="$emit('back')"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-page="page => $emit('open-page', page)"
     @open-call="request => $emit('open-call', request)"
@@ -58,6 +64,8 @@
       :tabs="tabs"
       :closeable="closeable"
       :splittable="splittable"
+      :back="back"
+      @back="$emit('back')"
       @refresh="$emit('refresh')"
       @select-tab="$emit('select-tab', $event)"
       @close-tab="$emit('close-tab', $event)"
@@ -88,8 +96,11 @@ defineProps({
   tabs: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true }
+  splittable: { type: Boolean, default: true },
+  // The pane's navigation history has somewhere to go: renders the Back
+  // control at the start of the pane header.
+  back: { type: Boolean, default: false }
 });
 
-defineEmits(['execute-action', 'open-entity', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+defineEmits(['execute-action', 'open-entity', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
 </script>

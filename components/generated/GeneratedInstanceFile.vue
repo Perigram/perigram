@@ -8,6 +8,8 @@
       :active-key="item.key"
       :closeable="closeable"
       :splittable="splittable"
+      :back="back"
+      @back="$emit('back')"
       @refresh="$emit('refresh')"
       @select-tab="$emit('select-tab', $event)"
       @close-tab="$emit('close-tab', $event)"
@@ -121,10 +123,11 @@ const props = defineProps({
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true },
-  showGeneratedActions: { type: Boolean, default: true }
+  showGeneratedActions: { type: Boolean, default: true },
+  back: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
 const authStore = useAuthStore();
 const instanceId = computed(() => props.item?.entity?._id || props.item?.entity?.id || '');
 const detailScreen = computed(() => generatedDetailScreenForTypeId({

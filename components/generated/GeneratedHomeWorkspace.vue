@@ -145,6 +145,8 @@
               :item="itemForPane(pane)"
               :tabs="tabItemsForPane(pane)"
               :closeable="paneCount > 1"
+              :back="paneHasHistory(pane.id)"
+              @back="goBackFromPane(pane.id)"
               @execute-action="executeWorkspaceAction"
               @open-entity="request => openWorkspaceEntity(request.typeId, { _id: request.instanceId })"
               @open-page="openWorkspacePage"
@@ -270,6 +272,12 @@ function defaultLeaf(id) {
 }
 
 const paneTree = ref(defaultLeaf('pane-1'));
+// Per-pane navigation history: every in-place tab replacement pushes the
+// replaced content key, and the pane header's Back control walks the
+// stack. Session-only by design — navigation history is ephemeral, the
+// pane layout itself is what persists.
+const paneHistories = ref(new Map());
+const PANE_HISTORY_LIMIT = 50;
 const sidebarCollapsed = ref(false);
 const expandedKeys = ref({});
 const callsFlyout = ref(null);
@@ -1211,11 +1219,61 @@ function selectPaneTab(paneId, key, options = {}) {
   const pane = panes.value.find(item => item.id === paneId);
   if (!pane) return;
   if (!isEmptyTabKey(key) && !workspaceItems.value.some(item => item.key === key)) return;
+  // An in-place replacement (new content taking over the selected tab)
+  // is a navigation step: remember where the user came from unless this
+  // selection IS the back step.
+  if (!options.back && isReplacingSelection(pane, key, options)) {
+    pushPaneHistory(paneId, pane.selectionKey);
+  }
   paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, {
     selectionKey: key,
     tabKeys: withPaneTab(pane, key, options)
   });
   activePaneId.value = paneId;
+}
+
+// A selection replaces the pane's content in place when it is real
+// content the pane does not already hold, superseding real content
+// (empty placeholders exist to be filled — consuming one is not
+// navigation). Tab switches between already-open tabs are not
+// navigation either.
+function isReplacingSelection(pane, key, options = {}) {
+  const tabs = pane.tabKeys || [];
+  return !options.newTab
+    && !isEmptyTabKey(key)
+    && !isEmptyTabKey(pane.selectionKey)
+    && key !== pane.selectionKey
+    && !tabs.includes(key);
+}
+
+function pushPaneHistory(paneId, key) {
+  if (!key) return;
+  const stack = paneHistories.value.get(paneId) || [];
+  paneHistories.value = new Map([...paneHistories.value, [
+    paneId,
+    [...stack, key].slice(-PANE_HISTORY_LIMIT)
+  ]]);
+}
+
+function paneHasHistory(paneId) {
+  return (paneHistories.value.get(paneId) || []).length > 0;
+}
+
+// Back walks the stack to the last entry whose content still resolves —
+// a closed-and-forgotten tab's key is skipped, not restored.
+function goBackFromPane(paneId) {
+  const pane = panes.value.find(item => item.id === paneId);
+  if (!pane) return;
+  const stack = [...(paneHistories.value.get(paneId) || [])];
+  while (stack.length) {
+    const key = stack.pop();
+    paneHistories.value = new Map([...paneHistories.value, [paneId, stack]]);
+    if (workspaceItems.value.some(item => item.key === key)) {
+      selectPaneTab(paneId, key, { back: true });
+      return;
+    }
+  }
+  paneHistories.value = new Map([...paneHistories.value, [paneId, []]]);
 }
 
 function openEmptyPaneTab(paneId) {
@@ -1279,6 +1337,7 @@ function resizePaneSplit(splitId, sizes) {
 function closePane(paneId) {
   if (paneCount.value <= 1) return;
   paneTree.value = closeWorkspaceLeaf(paneTree.value, paneId);
+  paneHistories.value = new Map([...paneHistories.value].filter(([id]) => id !== paneId));
   activePaneId.value = workspaceLeaves(paneTree.value)[0]?.id || 'pane-1';
 }
 

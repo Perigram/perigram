@@ -5,6 +5,8 @@
       :active-key="activeKey"
       :closeable="closeable"
       :splittable="splittable"
+      :back="back"
+      @back="$emit('back')"
       @refresh="$emit('refresh')"
       @select-tab="$emit('select-tab', $event)"
       @close-tab="$emit('close-tab', $event)"
@@ -66,10 +68,11 @@ const props = defineProps({
   item: { type: Object, required: true },
   tabs: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true }
+  splittable: { type: Boolean, default: true },
+  back: { type: Boolean, default: false }
 });
 
-defineEmits(['refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'open-entity']);
+defineEmits(['refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'open-entity', 'back']);
 
 const authStore = useAuthStore();
 
