@@ -16,7 +16,11 @@
       @close="$emit('close')"
     />
 
-    <div class="min-h-0 flex-1 overflow-hidden">
+    <!-- The pane's content shell: non-flush pages (the organization
+         management surfaces) render inside the padded scroll area every
+         other pane surface uses; flush pages (canvas designer, call
+         stage, self-padding directory surface) own their own shell. -->
+    <div :class="definition.flush ? 'min-h-0 flex-1 overflow-hidden' : 'min-h-0 flex-1 overflow-auto p-4'">
       <component
         :is="definition.component"
         v-bind="pageProps"

@@ -1,7 +1,7 @@
 <template>
-  <StandardPage :title="$t('organization.teamManagement')">
+  <StandardPage :title="$t('organization.teamManagement')" :back="back">
     <template #actions>
-        <Button :label="$t('processDesigner.title')" icon="pi pi-sitemap" severity="secondary" outlined @click="navigateTo('/organization/process')" />
+        <Button :label="$t('processDesigner.title')" icon="pi pi-sitemap" severity="secondary" outlined @click="openProcessDesigner" />
         <Button :label="$t('auth.inviteMember')" icon="pi pi-link" severity="secondary" :disabled="!roleOptions.length" @click="showInviteDialog = true" />
         <Button :label="$t('common.create')" icon="pi pi-user-plus" :disabled="!roleOptions.length" @click="showCreateDialog = true" />
     </template>
@@ -297,6 +297,8 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
+import { usePageBack } from '~/composables/usePageBack.js';
+import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useDirectoryUserSearch } from '~/composables/useDirectoryUserSearch.js';
 import { useRegistryStore } from '~/stores/registry';
@@ -315,6 +317,19 @@ const authStore = useAuthStore();
 const toast = useToast();
 const instances = useInstancesStore();
 const registry = useRegistryStore();
+const props = defineProps({
+  // One-shot invite intent from the page-open seam's params channel
+  // (the directory's invite action); the route query is the mobile
+  // fallback of the same flow.
+  inviteUserId: { type: String, default: '' }
+});
+// The page is mounted both as a standalone route (mobile/deep link) and
+// as a home pane tab: the back control belongs to the routed surface.
+const { navigation: back } = usePageBack({ when: () => route.path === '/organization/users' });
+
+function openProcessDesigner() {
+  openWorkspacePageFromChrome({ pageId: 'organizationProcess', route: '/organization/process' });
+}
 
 const users = ref([]);
 const loading = ref(false);
@@ -634,18 +649,21 @@ async function confirmDelete(user) {
 
 onMounted(async () => {
   await loadUsers();
-  // The user directory page's invite action lands here with the target
-  // user preselected and the invite dialog open.
-  const inviteTarget = route.query.invite;
-  if (inviteTarget) {
-    try {
-      selectedInvitee.value = await $fetch(`/api/directory/user/${inviteTarget}`);
-      showInviteDialog.value = true;
-    } catch {
-      toast.add({ severity: 'error', summary: t('common.error'), detail: t('common.notAvailable'), life: 3000 });
-    }
-  }
+  await consumeInviteTarget(props.inviteUserId || route.query.invite);
 });
+
+// A pane-resident invite intent arrives while the tab is already open.
+watch(() => props.inviteUserId, target => consumeInviteTarget(target));
+
+async function consumeInviteTarget(target) {
+  if (!target) return;
+  try {
+    selectedInvitee.value = await $fetch(`/api/directory/user/${target}`);
+    showInviteDialog.value = true;
+  } catch {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('common.notAvailable'), life: 3000 });
+  }
+}
 </script>
 
 <style scoped>

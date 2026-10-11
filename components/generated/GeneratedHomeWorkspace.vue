@@ -347,9 +347,13 @@ const screenItems = computed(() => openedScreenRefs.value.map(reference => {
 }));
 
 // Registered pages without an entity binding are always openable tabs.
+// `pageParamsByKey` carries one-shot intent (a preselected invite target)
+// from the page-open seam to the opened singleton tab; it is transient —
+// an intent is consumed by the page, not persisted with the layout.
+const pageParamsByKey = ref({});
 const staticPageItems = computed(() => generatedWorkspacePages()
   .filter(page => !page.typeId && !page.ephemeral)
-  .map(page => ({ key: `page:${page.id}`, kind: 'page', pageId: page.id })));
+  .map(page => ({ key: `page:${page.id}`, kind: 'page', pageId: page.id, params: pageParamsByKey.value[`page:${page.id}`] || null })));
 const callPageItems = computed(() => callPageRefs.value.map(call => ({
   key: call.key,
   kind: 'page',
@@ -1026,9 +1030,9 @@ function openRequestedWorkspaceChat(event) {
 // the page-open seam.
 function openRequestedWorkspacePage(event) {
   event?.preventDefault?.();
-  const { pageId, entity, typeId } = event?.detail || {};
+  const { pageId, entity, typeId, params } = event?.detail || {};
   if (!pageId) return;
-  openWorkspacePage({ pageId, entity, typeId });
+  openWorkspacePage({ pageId, entity, typeId, params });
 }
 
 function openCallTab(room = '', meta = {}) {
@@ -1291,6 +1295,9 @@ function openWorkspacePage(request = {}) {
   const definition = resolveGeneratedWorkspacePage(request.pageId);
   if (!definition) return;
   if (!definition.typeId) {
+    if (request.params) {
+      pageParamsByKey.value = { ...pageParamsByKey.value, [`page:${definition.id}`]: request.params };
+    }
     if (activePane.value) selectPaneTab(activePane.value.id, `page:${definition.id}`);
     return;
   }

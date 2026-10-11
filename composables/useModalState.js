@@ -1,21 +1,12 @@
-export const useResultDialog = () => {
-    return useState("resultDialog", () => false);
-};
-export const useScreenshotDialog = () => {
-    return useState("screenshotDialog", () => false);
-};
-export const useFileDialog = () => {
-    return useState("fileDialog", () => false);
-};
-export const useFullScreen = () => {
-    return useState("isFullScreen", () => false);
-}
 export const useSupportDialog = () => {
     return useState("supportDialog", () => false);
 };
 export const useSupportChatTarget = () => {
     return useState("supportChatTarget", () => null);
 };
-export const useInfoAboutNest = () => {
-    return useState("infoAboutNest", () => false);
+// The profile settings popup is shell-owned state: the account menu
+// renders it, and record surfaces (the directory's self-profile action)
+// open the same popup instead of routing to a profile page.
+export const useProfileDialog = () => {
+    return useState("profileDialog", () => false);
 };

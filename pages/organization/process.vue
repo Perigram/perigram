@@ -332,7 +332,7 @@
                   <div v-if="selectedRoleAccessSummary.length" class="flex flex-wrap gap-1">
                     <Tag v-for="item in selectedRoleAccessSummary" :key="item.key" :value="`${item.text} · ${item.contributor.label}`" size="small" />
                   </div>
-                  <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" text size="small" class="self-start" @click="navigateTo('/organization/users')" />
+                  <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" text size="small" class="self-start" @click="openTeamManagement" />
                 </div>
 
                 <!-- Screens live with their role (SPEC "Role management"):
@@ -662,6 +662,7 @@ import { useI18n } from 'vue-i18n';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
 import OperationPalette from '~/components/process-designer/OperationPalette.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
@@ -734,6 +735,12 @@ definePageMeta({
   layout: 'app',
   middleware: 'auth'
 });
+
+// Cross-surface navigation stays inside the home workspace: the team
+// page opens as a pane tab on desktop, routes on mobile.
+function openTeamManagement() {
+  openWorkspacePageFromChrome({ pageId: 'organizationTeam', route: '/organization/users' });
+}
 
 const draft = ref(null);
 const processDefinitions = ref([]);

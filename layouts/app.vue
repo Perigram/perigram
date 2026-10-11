@@ -164,6 +164,11 @@
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
         <CallFloatingWindow v-if="authStore.userIsSet" />
         <MediaDock v-if="authStore.userIsSet" />
+        <!-- The profile settings popup follows the same single-host law:
+             one instance for the whole layout, opened through the shared
+             useProfileDialog state by every account-menu instance and
+             record surface. -->
+        <ProfileSettingsDialog v-if="authStore.userIsSet" />
         <!-- The app-level default confirmation host: one instance for the
              whole layout. Feature surfaces (chat, calls, generated screens)
              call useConfirm without a group; mounting a second host anywhere
@@ -191,6 +196,7 @@
     import EntityPopup from '~/components/shared/EntityPopup.vue'
     import ChatSupport from '~/components/ChatSupport.vue'
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
+    import ProfileSettingsDialog from '~/components/shared/ProfileSettingsDialog.vue'
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
     import IncomingCalls from '~/components/calls/IncomingCalls.vue'
     import CallFloatingWindow from '~/components/calls/CallFloatingWindow.vue'
@@ -350,8 +356,24 @@
     const mobileTabValue = computed(() => {
         if (isChatsRoute.value) return 'chats'
         if (isGeneratedHomeRoute.value) return mobileHomeTabKey.value
-        return null
+        return mobileTabForScreensRoute()
     })
+
+    // A routed screen keeps its owning type tab selected: the detail
+    // screen of a type still belongs to that tab's section, so opening a
+    // record never leaves the bar without a selected tab.
+    function mobileTabForScreensRoute() {
+        if (!route.path.startsWith('/screens/')) return null
+        const rawKey = route.params.screenKey
+        const key = (Array.isArray(rawKey) ? rawKey.join('/') : rawKey) || ''
+        const baseKey = String(key).replace(/_detail$/, '')
+        const manifestScreen = authStore.screenManifest.find(screen => (
+            screen.screenKey === baseKey || screen.id === baseKey
+        ))
+        const typeId = manifestScreen?.typeId || ''
+        if (!typeId) return null
+        return mobileHomeTabs.value.find(tab => tab.screen?.typeId === typeId)?.key || null
+    }
 
     const selectMobileTab = (value) => {
         if (value === 'chats') {
