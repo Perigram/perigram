@@ -110,13 +110,13 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space, shee
   };
 }
 
-// The STANDARD cassette import (the dxfSourceToCassette conversion): the
+// The cassette import (the dxfSourceToCassette conversion): the
 // artifact's DXF extracted once — the cut contour and mapped semantic
 // layers become the template's stored geometry fields; the same DXF rides
 // back as the created cassette's payload. Input: { artifact: {
-// bufferBase64, name }, name, layerMapping, parameters }. Output:
+// bufferBase64, name }, name, layerMapping }. Output:
 // { payloadBase64, payloadMime, filename, fields }.
-export async function importCassette({ artifact = {}, name, layerMapping = {}, parameters = [] } = {}) {
+export async function importCassette({ artifact = {}, name, layerMapping = {} } = {}) {
   const buffer = bufferOf(artifact.bufferBase64, 'Cassette import');
   const layerMap = layerMapping || {};
   const polygonParts = extractNestingPolygons(buffer, layerMap, OCCS_LAYER_CUT_OUTER);
@@ -140,9 +140,7 @@ export async function importCassette({ artifact = {}, name, layerMapping = {}, p
     payloadMime: 'application/dxf',
     filename,
     fields: {
-      templateType: 'STANDARD',
       mapping: layerMap,
-      parameters: parameters || [],
       polygonParts,
       layerData
     }

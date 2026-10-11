@@ -75,9 +75,7 @@ const PREVIEW_LAYER_PRIORITY = [
 ];
 const resolvedPreviewLayerNames = ref(null);
 
-const cassetteType = (cassette) => cassette?.data?.templateType || '';
-const isOccsCassetteDefinition = (definition) => Boolean(definition?.occs && definition?.documentType);
-const hasRenderableGeometry = (cassette) => Boolean(
+const isOccsCassetteDefinition = (definition) => Boolean(definition?.occs && definition?.documentType);const hasRenderableGeometry = (cassette) => Boolean(
   cassette?.data?.layerData?.length ||
   cassette?.data?.polygonParts?.length
 );
@@ -162,14 +160,12 @@ const updateThumbnail = async () => {
       return;
     }
 
-    if (cassetteType(cassette) === 'PARAMETRIC') {
-      const definition = await cassettePayloadDefinition(cassette);
-      if (definition) {
-        setOccsSource(definition);
-        return;
-      }
+    // No stored geometry: the record is its payload document — preview
+    // from it whenever it parses as an OCCS definition.
+    const definition = await cassettePayloadDefinition(cassette);
+    if (definition) {
+      setOccsSource(definition);
     }
-
   } finally {
     loading.value = false;
   }

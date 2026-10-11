@@ -66,7 +66,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     // The declared identifier flag wins at the boundary.
     expect(cassette.identifier).toBe('name');
     expect(cassette.sections).toEqual([
-      { id: 'summary', label: null, fields: ['name', 'templateType', 'parameters', 'mapping', 'polygonParts', 'layerData'] }
+      { id: 'summary', label: null, fields: ['name', 'mapping', 'polygonParts', 'layerData'] }
     ]);
 
     const sheetDesign = typeRecordFor(bundle, 'sheet-design');
