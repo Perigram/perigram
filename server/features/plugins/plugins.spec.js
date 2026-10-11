@@ -209,6 +209,22 @@ describe('plugin installs', () => {
     expect(repository.createInstall).not.toHaveBeenCalled();
   });
 
+  it('installs a surface declaration targeting the editor-grade mount contract', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 2 }]
+      }
+    });
+    await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      declarations: expect.objectContaining({
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 2 }]
+      })
+    }));
+  });
+
   it('refuses a required pack that is not mounted or is disabled', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['nope'] });
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))

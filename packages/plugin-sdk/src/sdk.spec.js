@@ -174,6 +174,32 @@ describe('checkSurfaceModule', () => {
     await expect(checkSurfaceModule(path)).resolves.toBe(true);
   });
 
+  it('accepts an editor-grade module composing the contract-2 context', async () => {
+    const path = writeModule(`
+      export default function createSurface({ vue, components, queries, notify, access }) {
+        const { h, ref, onMounted } = vue;
+        if (typeof queries?.list !== 'function' || typeof notify !== 'function' || typeof access?.canWrite !== 'function') {
+          throw new Error('contract-2 context missing');
+        }
+        return {
+          name: 'EditorGrade',
+          props: { record: { type: Object, default: null }, persistence: { type: Object, default: null } },
+          setup(props) {
+            const rows = ref([]);
+            onMounted(async () => {
+              try {
+                rows.value = await queries.list('some-type');
+                notify({ severity: 'info', summary: 'loaded' });
+              } catch {}
+            });
+            return () => h('div', [access.canWrite(props.record) ? h(components.Button) : null]);
+          }
+        };
+      }
+    `);
+    await expect(checkSurfaceModule(path)).resolves.toBe(true);
+  });
+
   it('refuses modules importing host externals', async () => {
     const vueImport = writeModule(`import { h } from 'vue';\nexport default () => ({ render: () => null });`);
     await expect(checkSurfaceModule(vueImport)).rejects.toThrow(/must not import host externals/);
