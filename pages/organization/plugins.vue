@@ -1,6 +1,6 @@
 <template>
-  <StandardPage :title="$t('plugins.title')">
-    <div class="flex flex-col gap-6 py-4">
+  <StandardPage :title="$t('plugins.title')" :back="back">
+    <div class="flex flex-col gap-6">
       <div v-if="installed.length" class="flex flex-col gap-4">
         <ActionToolbar :title="$t('plugins.installed')" />
         <TableFrame class="ck-collection-rows">
@@ -286,6 +286,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -300,6 +301,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { usePageBack } from '~/composables/usePageBack.js';
 import { typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { useAuthStore } from '~/stores/auth';
 
@@ -307,6 +309,11 @@ definePageMeta({
   layout: 'app',
   middleware: 'auth'
 });
+
+// The page is mounted both as a standalone route (mobile/deep link) and
+// as a home pane tab: the back control belongs to the routed surface.
+const route = useRoute();
+const { navigation: back } = usePageBack({ when: () => route.path === '/organization/plugins' });
 
 // Shared table row-surface recipe (see organization partners page).
 const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-xl))]';

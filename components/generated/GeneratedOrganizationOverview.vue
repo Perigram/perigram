@@ -40,7 +40,6 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import InstancePage from '~/components/shared/InstancePage.vue';
@@ -56,7 +55,6 @@ const props = defineProps({
   screen: { type: Object, required: true }
 });
 
-const router = useRouter();
 const authStore = useAuthStore();
 const { t, te } = useI18n();
 
@@ -78,15 +76,13 @@ function systemLabel(key = '', fallback = '') {
   return key && te(key) ? t(key) : fallback || key;
 }
 
-// System screens open inside the home workspace when a workspace page is
-// registered for their route (team, partners, billing); the process
-// designer keeps its standalone canvas route.
+// System screens open inside the home workspace through the page-open
+// seam: every management surface (team, partners, billing, plugins, the
+// process designer) is a registered workspace page.
 function openSystemScreen(item = {}) {
   const pageId = workspacePageIdForRoute(item.route || '');
   if (pageId) {
     openWorkspacePageFromChrome({ pageId, route: item.route });
-    return;
   }
-  router.push(item.route);
 }
 </script>

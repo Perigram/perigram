@@ -13,7 +13,19 @@
             <ActionToolbar v-if="!$slots.header" :title="title" :subtitle="subtitle" :level="1">
                 <template #title>
                     <div class="flex items-center gap-3">
-                        <!-- <span v-if="title">{{ title }}</span> -->
+                        <Button
+                            v-if="back"
+                            :icon="back.icon || 'pi pi-arrow-left'"
+                            :aria-label="back.label"
+                            :title="back.label"
+                            text
+                            rounded
+                            severity="secondary"
+                            size="small"
+                            class="shrink-0"
+                            @click="back.command"
+                        />
+                        <span v-if="title">{{ title }}</span>
                         <slot name="title-append"></slot>
                     </div>
                 </template>
@@ -28,11 +40,17 @@
 </template>
 
 <script setup>
+import Button from 'primevue/button';
 import ActionToolbar from './ActionToolbar.vue';
 
 defineProps({
     title: { type: String, default: null },
     subtitle: { type: String, default: null },
-    workspace: { type: Boolean, default: false }
+    workspace: { type: Boolean, default: false },
+    // Routed-surface back control (`{ icon, label, command }` — the
+    // shared usePageBack shape). Panes never pass it: their tab strip is
+    // the navigation.
+    back: { type: Object, default: null }
 });
 </script>
+

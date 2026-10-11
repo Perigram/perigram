@@ -45,8 +45,8 @@ import { statePolicyByType, stateTransitionsByType } from '#shared/ui-mapping/in
 const props = defineProps({
   screen: { type: Object, required: true },
   // Host-injected contextual back affordance for the record header
-  // (`{ icon, label, command }`): the mobile item popup feeds its back
-  // button through SurfaceHeader's navigation channel.
+  // (`{ icon, label, command }`): hosts feed SurfaceHeader's navigation
+  // channel when the detail screen is opened from another surface.
   navigation: { type: Object, default: null }
 });
 

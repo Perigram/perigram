@@ -408,6 +408,29 @@ contract — it stays the bar's own route tab navigating `/chats`.
 
 ---
 
+## usePageBack
+
+```js
+const { navigation } = usePageBack({ when: () => route.path === '/organization/users' });
+```
+
+The routed-surface back affordance, one shared `{ icon, label, command }`
+shape rendered by `StandardPage`'s `back` prop and `SurfaceHeader`'s
+navigation channel alike. The command follows in-app history when
+vue-router's history state carries an app-internal previous route, and
+falls back to the process entry route (the home ladder) so deep links
+never dead-end. The affordance turns on client-side after mount (it reads
+`window.history`; an SSR/client difference would hydration-mismatch the
+header). `when` gates dual-hosted surfaces (the organization pages):
+the back control belongs to the routed surface, never the pane tab.
+
+Shell modal state lives in `useModalState.js`: the support chat dialog
+and target, and the profile settings popup (`useProfileDialog` — opened
+by every account-menu instance and record surfaces through the single
+app-level `ProfileSettingsDialog` host).
+
+---
+
 ## State Management (Pinia) — stores/
 
 | Store | Contents |
@@ -422,31 +445,7 @@ the active organization has an active process definition. Membership
 permissions remain the fallback for organizations that have not activated a
 process.
 
----
-
-## Usage Examples
-
-```js
-// Load and display a project
-const { entity, fetch, name, state, changeStatus } = useEntity('project', slug);
-onMounted(() => fetch());
-const close = () => changeStatus('CLOSED', { note: 'Done' });
-const mill = () => changeStatus('MILLED', {
-  metadata: { note: 'Measured after milling' },
-  lifecycle: { attachments: { geometry: geometryRef } }
-});
-
-// List all queues in a project
-const { items: queues, list, loading } = useEntity('queue');
-onMounted(() => list({ 'lineage.projectId': project.value._id }));
-
-// Read computed block values
-const { serial, specs, formattedArea } = useEntity('sheet', id);
-// <span>{{ serial }}</span>  <span>{{ formattedArea }}</span>
-```
-
 ## Related
 
-- [server/core/blocks/README.md](../server/core/blocks/README.md) — Backend block classes
-- [server/core/machines/README.md](../server/core/machines/README.md) — State machine definitions
-- [components/shared/README.md](../components/shared/README.md) — Block display components
+- [stores](../stores/README.md)
+- [components/shared/README.md](../components/shared/README.md) — `InstanceInlineRef` and the chat seam

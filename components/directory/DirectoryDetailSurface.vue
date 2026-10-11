@@ -77,7 +77,7 @@
             text
             severity="secondary"
             size="small"
-            @click="navigateTo('/profile')"
+            @click="openProfileSettings"
           />
           <!-- Direct threads are server-gated to shared-organization (or
                own) recipients, so the chat action stays within that
@@ -183,6 +183,8 @@ import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { openInstanceChat } from '~/utils/instance-chat.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
+import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
+import { useProfileDialog } from '~/composables/useModalState';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -207,6 +209,7 @@ const { t } = useI18n();
 const flatMenu = { root: { style: 'padding: 0' } };
 
 const entry = ref(null);
+const profileDialog = useProfileDialog();
 const detailed = ref({});
 const partnerships = ref([]);
 const loading = ref(true);
@@ -359,8 +362,16 @@ function openOrgChat() {
   });
 }
 
+function openProfileSettings() {
+  profileDialog.value = true;
+}
+
 function inviteToActiveOrganization() {
-  navigateTo({ path: '/organization/users', query: { invite: entry.value?._id } });
+  openWorkspacePageFromChrome({
+    pageId: 'organizationTeam',
+    route: '/organization/users',
+    params: { invite: entry.value?._id }
+  });
 }
 
 async function requestPartnership() {

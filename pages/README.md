@@ -92,7 +92,13 @@ compiled home when one exists, otherwise the default home contract above —
 so the route never dead-ends on an error surface: a stale bookmark or a
 recompiled process renders the workspace instead of a "screen unavailable"
 page. `pages/screens/index.vue` redirects `/screens` to `/home` for
-the same reason. Process screens arrive in the compiled UI
+the same reason. The routed surface owns the back affordance
+(`usePageBack`, one shared `{ icon, label, command }` shape): the page
+header carries it for list screens and the record header's navigation
+channel carries it for detail screens, following in-app history with the
+home entry ladder as the deep-link fallback — routed surfaces never
+dead-end without a way back. The route renders the compiled screen
+label as its page title. Process screens arrive in the compiled UI
 contract vocabulary (`typeList`/`instanceDetail`/`home` plus `typeId`) and
 render through the UI generator (`composeScreen` +
 [components/ui-mapping](../components/ui-mapping/README.md)) with the client
@@ -138,7 +144,9 @@ Operational pages use shared UI shell primitives:
 
 - `StandardPage` owns route title/action spacing and width; the `app` layout
   owns outer route padding and passes bounded flex height to full-height
-  workspace routes.
+  workspace routes. `StandardPage` renders the routed-surface back control
+  (`back` prop, the `usePageBack` shape) beside its title; pane-hosted
+  surfaces never pass it, because their tab strip is the navigation.
 - `ActionToolbar` owns section headers.
 - `ResponsiveGrid` owns repeated card layouts.
 - `StateBlock` owns loading/empty/error surfaces.
@@ -223,7 +231,8 @@ Organization routes are first-class app areas. `/organization`,
 `/organization/users`, and `/organization/process` routing, billing, team, and
 process ownership are covered in
 [pages/organization/README.md](./organization/README.md); `/organization/partners`
-owns partnership management. The overview is not a
+owns partnership management and `/organization/plugins` the plugin
+marketplace. The overview is not a
 grid of navigation cards. Vue Flow renders client-side because its generated
 accessibility ids are not stable across SSR hydration. Breadcrumbs expose these
 routes as organization siblings so users can move between overview, team
@@ -232,16 +241,18 @@ user menu is the account surface: organization switching, organization
 creation, and the profile settings popup (avatar, language,
 notifications); organization capabilities
 remain on these organization routes. No personal profile route exists —
-nothing routes out of the app shell for account concerns.
+nothing routes out of the app shell for account concerns; the directory's
+self-profile action opens the same settings popup.
 Its account surface uploads/removes the current user's avatar through the user
 avatar API; every avatar image uses a square cover crop inside its circular
-frame. Account, preferences, and membership views use semantic navigation links
-backed by the route's `tab` query. Each tab performs real navigation so browser
-history, reloads, and direct membership links retain the selected view.
-Organization memberships render canonical `OrganizationCard` surfaces
-with visible footer actions: inactive memberships switch context, while the
-active membership has one direct action into the generated organization
-overview. Billing, team, and process navigation stays inside that overview.
+frame. The settings popup is one sectioned surface (identity, preferences,
+invitations, memberships) — there is no tab query and no account
+sub-routes.
+Organization memberships render as inline `Menu` entries in the
+settings popup's organizations section: every entry opens the
+organization's in-home pane, the active membership carries the success
+check, and the create entry opens organization creation. Billing, team,
+and process navigation stays inside that overview.
 Targeted invitations addressed to the account render through the shared
 `TargetedInvitations` surface: above the memberships section of the account
 settings popup and on the orgless organization shell. Accepting completes the

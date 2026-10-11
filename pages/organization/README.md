@@ -34,11 +34,13 @@ pending partnership. Partner rows link to the organization directory page.
 The route is exposed as a system screen gated by `organizations:read`, while
 every mutation stays gated by `organizations:admin` on the respective side.
 
-`plugins.vue` is the plugin marketplace route (see
+`plugins.vue` is the plugin marketplace surface (see
 [plugins](../../server/features/plugins/README.md)): the installed list
 (marketplace installs plus enabled mounted packs — the facade and its
 dependencies, removable) and the central catalog (plus disabled packs,
-re-installable). Installing opens
+re-installable). It is a registered workspace page opened as a home pane
+tab from the generated overview; the route stays as the mobile/deep-link
+fallback. Installing opens
 the consent dialog naming the plugin's types and services before the admin
 confirms; the catalog rows of installed plugins carry
 the installed tag instead of the install action. An available catalog
@@ -50,6 +52,13 @@ any plugin type still has live instances or bound processes — the server
 refusal explains the drain requirement. The route is exposed as a system
 screen gated by `organizations:read`; both mutations stay gated by
 `organizations:admin`.
+
+Organization management pages are dual-hosted: standalone routes (mobile
+and deep links, carrying the routed-surface back control) and registered
+home workspace pages (pane tabs — cross-navigation between them goes
+through the page-open seam, never a route change: the team page's process
+button and the designer's team button open each other as pane tabs on
+desktop and navigate the route on mobile).
 
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the
@@ -63,8 +72,9 @@ invitation kinds: the unaddressed link invitation (roles + generated
 search over the directory feature (name-only, cross-tenant) that sends a
 single-handshake invitation to the selected user (see
 [invitations](../../server/features/invitations/README.md)). The
-`?invite=<userId>` query opens the dialog with the target preselected, which
-is how the user directory page's invite action enters the flow. The active
+`?invite=<userId>` query (and, inside a pane, the page-open seam's
+invite param, which the directory's invite action sends) opens the dialog
+with the target preselected. The active
 invitations table distinguishes targeted invitations (invitee name and state)
 from copyable link invitations. The role dialog derives typed
 assignment binding fields from every canonical `$assignment` use in selected

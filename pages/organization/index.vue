@@ -30,7 +30,7 @@
     icon="pi pi-clock"
     :message="$t('profile.membershipPending')"
   />
-  <GeneratedScreen v-else-if="organizationScreen" :screen="organizationScreen" />
+  <GeneratedScreen v-else-if="organizationScreen" :screen="organizationScreen" :back="back" />
   <StandardPage v-else>
     <StateBlock state="error" :message="$t('generatedScreen.notFound')" />
   </StandardPage>
@@ -38,6 +38,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
@@ -46,6 +47,7 @@ import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TargetedInvitations from '~/components/shared/TargetedInvitations.vue';
+import { usePageBack } from '~/composables/usePageBack.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 
@@ -56,9 +58,13 @@ definePageMeta({
 
 const { t } = useI18n();
 const toast = useToast();
+const route = useRoute();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
 const refreshingAuth = ref(!authStore.userIsSet);
+// The overview renders as this route and as the organization pane (the
+// directory surface): the back control belongs to the route.
+const { navigation: back } = usePageBack({ when: () => route.path === '/organization' });
 
 // An account with neither an active organization nor any membership has
 // nothing to show an overview of.

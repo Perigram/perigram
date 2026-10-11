@@ -1,19 +1,17 @@
 <template>
   <StateBlock v-if="refreshingAuth" state="loading" :message="$t('common.loading')" />
-  <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="screen" />
-  <StandardPage v-else-if="screen" workspace>
+  <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="screen" :back="back" />
+  <StandardPage v-else-if="screen" workspace :title="screen.label || screen.screenKey" :back="back">
     <template #actions>
       <Button icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
     </template>
     <Message v-if="poolError" severity="error" :closable="false">{{ poolError }}</Message>
     <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-section-heading">{{ screen.label || screen.screenKey }}</span>
-      </div>
       <GeneratedScreenHost
         ref="host"
         :screen="screen"
         :screen-key="screenKey"
+        :navigation="detailNavigation"
         @open-instance="openInstance"
       />
     </div>
@@ -31,6 +29,7 @@ import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import { usePageBack } from '~/composables/usePageBack.js';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 import { resolveDefaultHomeScreen } from '~/utils/process-navigation.js';
 import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
@@ -47,6 +46,14 @@ const authStore = useAuthStore();
 // navigation. Re-fetching it on mount replaces the manifest and unmounts the
 // generated workspace immediately after hydration.
 const refreshingAuth = ref(!authStore.userIsSet);
+
+// The routed surface owns the back affordance (in-app history with the
+// home ladder fallback — usePageBack): the page header for list screens,
+// the record header's navigation channel for detail screens.
+const { navigation: back } = usePageBack();
+const detailNavigation = computed(() => (
+  screen.value?.template === 'instanceDetail' ? back.value : null
+));
 
 const screenKey = computed(() => Array.isArray(route.params.screenKey)
   ? route.params.screenKey.join('/')

@@ -1,5 +1,5 @@
 <template>
-  <StandardPage :title="pageTitle" :workspace="Boolean(screenOverload)">
+  <StandardPage :title="pageTitle" :workspace="Boolean(screenOverload)" :back="back">
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
@@ -320,10 +320,15 @@ import {
 } from '~/components/generated/action-inputs.js';
 
 const props = defineProps({
-  screen: { type: Object, required: true }
+  screen: { type: Object, required: true },
+  // Routed-surface back control (`{ icon, label, command }`): hosts
+  // that render this screen as a standalone route pass the shared
+  // usePageBack affordance; pane hosts leave it unset.
+  back: { type: Object, default: null }
 });
 
-const toast = useToast();const confirm = useConfirm();
+const toast = useToast();
+const confirm = useConfirm();
 const { t, te } = useI18n();
 const authStore = useAuthStore();
 const route = useRoute();

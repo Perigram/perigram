@@ -804,10 +804,12 @@ transcription stay in the host composer.
 - **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome. The root `error.vue` surface uses this primitive for failures and recovery actions.
 - **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains preset-owned.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and
-  responsiveness. The `full` size is edge-to-edge on mobile with margins
-  from `md` up; the `fill` prop bounds the dialog root to the viewport and
-  turns the content area into a non-scrolling flex column (media viewers,
-  call surfaces — content owns the layout instead of the dialog scrolling).
+  responsiveness. Every standard dialog is maximizable — PrimeVue's own
+  maximize control is the popup-to-fullscreen affordance. The `full` size
+  is edge-to-edge on mobile with margins from `md` up; the `fill` prop
+  bounds the dialog root to the viewport and turns the content area into
+  a non-scrolling flex column (media viewers, call surfaces — content owns
+  the layout instead of the dialog scrolling).
 - **Default confirmation host**: the app layout (`layouts/app.vue`) mounts the
   single default-group PrimeVue `ConfirmDialog`; feature surfaces call
   `useConfirm()` without a group and never mount their own host — a second
@@ -819,7 +821,9 @@ transcription stay in the host composer.
   route padding; `StandardPage` owns max width and header spacing only, so
   pages do not accumulate nested padding. `workspace` turns off the normal
   max-width and vertical gap and establishes a bounded `h-full/min-h-0`
-  propagation chain for registered full-screen workspaces.
+  propagation chain for registered full-screen workspaces. The optional
+  `back` prop renders the routed-surface back control beside the title
+  (the shared `usePageBack` shape); pane-hosted surfaces never pass it.
 - **`TypedSettingsForm.vue`**: Contract-driven form for simple typed field
   descriptors (`string`, `number`, `boolean`, `enum`, `instanceId`,
   `typeId`, `workflowState`, `array`, `object`). Used by admin operation
@@ -832,14 +836,6 @@ transcription stay in the host composer.
   membership's in-home pane (the directory surface — the account-control
   contract is owned by
   [layouts/README.md](../../layouts/README.md); nothing else routes away).
-  The profile settings dialog hosts the personal surface as PrimeVue-owned
-  sections: identity block (avatar, name, active organization, trailing
-  avatar-action icon Buttons), then `Panel`s — Preferences (label +
-  component rows: language, notifications) and My Organizations, whose
-  entries are an inline `Menu` (building icon, active organization marked
-  by the success check, create entry after a separator) that closes the
-  dialog and opens the organization's in-home pane; organization creation
-  lives only here, outside the popover.
   The trigger is customizable through the scoped `#trigger` slot (default
   is the round avatar button), and callers inject leading actions through
   the scoped `#items` slot (receives the popover's `hide`, so an injected
@@ -848,6 +844,18 @@ transcription stay in the host composer.
   the dedicated chats surfaces, not in this menu. The desktop navbar and
   the mobile bottom panel render it for the avatar/profile buttons, and
   the generated home workspace sidebar renders the panel-style trigger.
+- **`ProfileSettingsDialog.vue`**: The profile settings popup — the single
+  app-level host mounted by the app layout and opened through the shared
+  `useProfileDialog` state by every `UserAccountMenu` instance and by
+  record surfaces (the directory's self-profile action). It hosts the
+  personal surface as PrimeVue-owned sections: identity block (avatar,
+  name, active organization, trailing avatar-action icon Buttons), then
+  `Panel`s — Preferences (label + component rows: language,
+  notifications), Targeted Invitations, and My Organizations, whose
+  entries are an inline `Menu` (building icon, active organization marked
+  by the success check, create entry after a separator) that closes the
+  dialog and opens the organization's in-home pane; organization creation
+  lives only here, outside the popover.
   It only flips the `theme-mode` cookie; the app layout applies the theme
   class.
 - **`CommunicationMenu.vue`**: The Calls flyout: a popup PrimeVue

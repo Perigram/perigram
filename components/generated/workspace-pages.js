@@ -16,6 +16,7 @@ const OrganizationTeamPage = defineAsyncComponent(() => import('~/pages/organiza
 const OrganizationPartnersPage = defineAsyncComponent(() => import('~/pages/organization/partners.vue'));
 const OrganizationBillingPage = defineAsyncComponent(() => import('~/pages/organization/billing.vue'));
 const OrganizationProcessPage = defineAsyncComponent(() => import('~/pages/organization/process.vue'));
+const OrganizationPluginsPage = defineAsyncComponent(() => import('~/pages/organization/plugins.vue'));
 
 // Entity-bound editor pages (for example the cassette designer) derive
 // from the editor bindings through the file-surface registry (see
@@ -23,21 +24,26 @@ const OrganizationProcessPage = defineAsyncComponent(() => import('~/pages/organ
 // page ids are the surface ids, so persisted pane state stays stable.
 // Entity-less pages are always openable tabs. `ephemeral: true` marks
 // runtime-parameterized pages that only open programmatically with per-call
-// props (a live call room) and never appear in add-tab lists.
-// The organization management pages (including the process designer)
-// register with their `route` so chrome (the generated overview's
-// system-screen buttons) can open them as pane tabs through the workspace
-// page-open seam instead of routing away from home.
+// props (a live call room) and never appear in add-tab lists. `flush: true`
+// marks pages that own their own full-bleed shell (canvas, call stage,
+// self-padding scroll surfaces); every other page is hosted inside the
+// padded scroll area the workspace page host provides.
+// The organization management pages (including the process designer and
+// the plugin marketplace) register with their `route` so chrome (the
+// generated overview's system-screen buttons) can open them as pane tabs
+// through the workspace page-open seam instead of routing away from home.
 export const fixedWorkspacePages = [
   // Directory pages are the workspace home of user/organization detail:
   // types with no compiled detail screen and no editor still open as pane
-  // tabs, never as standalone routes.
+  // tabs, never as standalone routes. Their surface owns its padding and
+  // scrolling, so the host stays flush.
   {
     id: 'directoryUser',
     typeId: 'user',
     labelKey: 'entities.user',
     icon: 'pi pi-user',
     component: DirectoryDetailSurface,
+    flush: true,
     props: page => ({ typeId: 'user', instanceId: page.entity?._id || page.instanceId || '' })
   },
   {
@@ -46,6 +52,7 @@ export const fixedWorkspacePages = [
     labelKey: 'entities.organization',
     icon: 'pi pi-building',
     component: DirectoryDetailSurface,
+    flush: true,
     props: page => ({ typeId: 'organization', instanceId: page.entity?._id || page.instanceId || '' })
   },
   {
@@ -53,7 +60,10 @@ export const fixedWorkspacePages = [
     labelKey: 'organization.teamManagement',
     icon: 'pi pi-users',
     component: OrganizationTeamPage,
-    route: '/organization/users'
+    route: '/organization/users',
+    // The directory's invite action lands here with its target: the
+    // one-shot param flows through the page-open seam's params channel.
+    props: page => ({ inviteUserId: page.params?.invite || '' })
   },
   {
     id: 'organizationPartners',
@@ -74,13 +84,22 @@ export const fixedWorkspacePages = [
     labelKey: 'processDesigner.title',
     icon: 'pi pi-sitemap',
     component: OrganizationProcessPage,
-    route: '/organization/process'
+    route: '/organization/process',
+    flush: true
+  },
+  {
+    id: 'organizationPlugins',
+    labelKey: 'plugins.title',
+    icon: 'pi pi-puzzle',
+    component: OrganizationPluginsPage,
+    route: '/organization/plugins'
   },
   {
     id: 'chats',
     labelKey: 'support.chatTitle',
     icon: 'pi pi-comments',
     component: ChatSupport,
+    flush: true,
     // A conversationKey pins the tab to one thread (the bottom-right
     // popup's expand action); without it the tab opens the general inbox.
     props: page => ({
@@ -96,6 +115,7 @@ export const fixedWorkspacePages = [
     icon: 'pi pi-phone',
     component: CallWorkspacePage,
     ephemeral: true,
+    flush: true,
     props: page => ({
       room: page.room,
       conversationKey: page.conversationKey || ''

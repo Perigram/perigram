@@ -4,10 +4,10 @@
     <div :class="LAYOUT.headerRow" class="header-row">
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
-           page, a popup with a back stack) injects its back affordance
+           page, a routed detail screen) injects its back affordance
            here, ahead of the identity block. The `navigation` prop is
            the same affordance as data for hosts that mount the screen
-           as a component (the mobile item popup). -->
+           as a component. -->
       <Button
         v-if="navigation"
         :icon="navigation.icon || 'pi pi-arrow-left'"

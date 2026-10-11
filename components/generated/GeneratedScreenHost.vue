@@ -13,6 +13,7 @@
     :runtime-transitions="runtimeTransitions"
     :on-patch="runGeneratedPatch"
     :on-open="openInstance"
+    :navigation="navigation"
     @instance-mounted="loadRuntimeTransitions"
   />
 </template>
@@ -41,7 +42,12 @@ import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#sha
 const props = defineProps({
   screen: { type: Object, required: true },
   // The routed screen key, used only for create-open route targets.
-  screenKey: { type: String, default: '' }
+  screenKey: { type: String, default: '' },
+  // Host-injected back affordance for the record header
+  // (`{ icon, label, command }` — SurfaceHeader's navigation channel):
+  // the routed screens page feeds it so a detail screen deep link can
+  // return to where the user came from.
+  navigation: { type: Object, default: null }
 });
 
 const emit = defineEmits(['open-instance', 'refresh']);
