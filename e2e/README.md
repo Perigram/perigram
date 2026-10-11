@@ -113,6 +113,10 @@ noise.
   process, verifies the compiled Home and detail-context placement,
   parent-responsive entity chrome, and organization switching through the
   account menu.
+- `pane-navigation-history.spec.js`: the home workspace's pane navigation
+  contract — an in-place tab replacement (list → record) surfaces the pane
+  header's Back control and Back restores the replaced content; a new tab
+  opened onto a selected empty placeholder consumes it.
 - `process-designer-boot.spec.js`: boots the process designer against a seeded
   species process, verifies the canvas renders, and creates plus saves a new
   draft from the dock (regression for the reported dead designer).
@@ -145,7 +149,11 @@ retired queue/project/workspace specs (`queue-workflow.spec.js`,
 the surfaces they exercised; the matrix spec above is the live-registry
 reference. Known-stale remainder: `home-and-instance-ui.spec.js`'s
 organization-switch case registers peers through the pre-split register
-contract (registration no longer creates organizations);
+contract (registration no longer creates organizations), its detail cases
+fabricate entity-era wire blocks (`identity:`/`states:`) the §3 flat-wire
+flip no longer reads, and its cassette designer case predates the
+cassette file-type cut; `home-default-screen.spec.js` still expects the
+pre-alias `/screens/home` URL instead of the stable `/home` shell route;
 `home-calls.spec.js` asserts the `[data-active-calls]` selector no component
 renders.
 
