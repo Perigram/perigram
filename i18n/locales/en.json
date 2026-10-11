@@ -1193,7 +1193,7 @@
       "flags": "Flags",
       "decision": "Decision",
       "target": "Target",
-      "targetPlaceholder": "identity.serial, specs.width, data.name...",
+      "targetPlaceholder": "identity.name, specs.width, data.note...",
       "allCollections": "All collections",
       "loadFailed": "Failed to load data models",
       "planTitle": "# Data Model Refactoring Review",

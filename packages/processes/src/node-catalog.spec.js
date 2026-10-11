@@ -32,7 +32,6 @@ describe('process v4 node catalog', () => {
       'values',
       'collections',
       'records',
-      'predicates',
       'reads',
       'effects',
       'control'

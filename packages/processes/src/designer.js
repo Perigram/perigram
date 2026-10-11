@@ -37,17 +37,19 @@ export function prepareAuthoredDefinition(data = {}, domain = {}) {
   return { definition, errors };
 }
 
+// Block presentation is icon-only: field pick lists derive from the
+// projected §13 field schemas (fields(typeId, block)), never from a
+// second restated path table here.
 const BLOCK_PRESENTATION = {
-  identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
-  origin: { defaultPath: 'origin.state.primary', icon: 'pi pi-history', fields: ['origin.state.primary', 'origin.userId', 'origin.timestamp', 'origin.metadata', 'origin.eventId', 'origin.lifecycle'] },
-  status: { defaultPath: 'states.main', icon: 'pi pi-circle-fill', fields: ['states.main', 'status.userId', 'status.timestamp', 'status.metadata', 'status.eventId', 'status.lifecycle'] },
-  lineage: { defaultPath: 'lineage.organizationId', icon: 'pi pi-sitemap' },
-  relations: { defaultPath: 'relations.value', icon: 'pi pi-link' },
-  provenance: { defaultPath: 'provenance.source', icon: 'pi pi-directions-alt' },
-  specs: { defaultPath: 'specs.width', icon: 'pi pi-list-check', fields: ['specs.width', 'specs.length', 'specs.area', 'specs.sheetThickness', 'specs.foilThickness'] },
-  attachments: { defaultPath: 'attachments.primary', icon: 'pi pi-paperclip' },
-  data: { defaultPath: 'data.value', icon: 'pi pi-database' },
-  summary: { defaultPath: 'summary.value', icon: 'pi pi-chart-bar' }
+  identity: { icon: 'pi pi-id-card' },
+  status: { icon: 'pi pi-circle-fill' },
+  lineage: { icon: 'pi pi-sitemap' },
+  relations: { icon: 'pi pi-link' },
+  provenance: { icon: 'pi pi-directions-alt' },
+  specs: { icon: 'pi pi-list-check' },
+  attachments: { icon: 'pi pi-paperclip' },
+  data: { icon: 'pi pi-database' },
+  summary: { icon: 'pi pi-chart-bar' }
 };
 
 const paletteItem = (id, kind, options = {}) => Object.freeze({

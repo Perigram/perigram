@@ -619,12 +619,11 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     ...(record.fields || []),
     ...(record.entries || []).map(entry => `${record.block}.${entry.key}`).filter(path => !path.endsWith('.'))
   ]))];
-  const defaultIdentityFields = node.kind === 'cts.construct'
-    && node.construction?.mode === 'genericCreate'
-    && !composers.some(record => record.block === 'identity')
-    ? ['identity.name']
-    : [];
-  const fields = [...new Set([...composerFields, ...defaultIdentityFields])];
+  // No identity.name ghost: a create prompt offers only what the author
+  // composed or the construction contract declares (rows, edges). The
+  // stored name arrives through the composed identity block or the
+  // declared identifier row — never a compiler-invented prompt field.
+  const fields = [...new Set([...composerFields])];
   const resolvedSchemas = fields.map(consumerFieldSchema).filter(Boolean);
   const allSchemas = [...schemas, ...resolvedSchemas.filter(schema => !schemas.some(item => item.path === schema.path))];
   const parentTypes = [...new Set(allSchemas
@@ -3911,17 +3910,19 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   const declaredInputs = Array.isArray(source.inputs) ? source.inputs : [];
   const blocksOwnConstruction = source.blockComposed && mode === 'genericCreate';
   const contractInputs = constructionInputsForContract(contract, mode)
-    .filter(input => !blocksOwnConstruction || (
-      input.id !== 'name'
-      && input.path !== 'name'
-      && !isCanonicalBlockConstructionPath(input.path)
-    ));
+    .filter(input => !blocksOwnConstruction || !isCanonicalBlockConstructionPath(input.path));
   const inputsById = new Map(contractInputs.map(input => {
     const normalizedInput = normalizeConstructionInput(input, domain);
     return [normalizedInput.id || normalizedInput.path, normalizedInput];
   }));
   for (const input of declaredInputs) {
     const key = input.id || input.path;
+    // The retired hardcoded Name input: construction contracts no longer
+    // declare it (SPEC §4 — not in the row means does not exist), so a
+    // persisted draft still carrying it drops here instead of surviving
+    // as a phantom prompt; authored name values keep flowing through the
+    // identity.name wire channel at the effect boundary.
+    if (key === 'name' || input.path === 'name') continue;
     const contractInput = inputsById.get(key);
     if (contract.derived && !contractInput) continue;
     inputsById.set(key, contractInput

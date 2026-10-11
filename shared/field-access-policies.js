@@ -12,12 +12,6 @@ const COMMON_READ_FIELDS = [
 ];
 
 export const fieldAccessPolicies = {
-  sheetDesign: {
-    feature: 'sheet_designs',
-    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.geometry.*', 'data.materialPool', 'data.instanceIds', 'data.sheetIndex'],
-    write: ['data.*'],
-    admin: ['data.*', 'attachments.*']
-  },
   processDefinition: {
     feature: 'organizations',
     read: [...COMMON_READ_FIELDS, 'data.schemaVersion', 'data.graph.*', 'data.roleGrants.*', 'data.entityProfiles.*', 'data.services.*', 'data.sockets.*', 'data.compiled.*'],
@@ -96,19 +90,15 @@ export const fieldAccessPolicies = {
 };
 
 const ENTITY_ALIASES = {
-  sheet_design: 'sheetDesign',
   artifact_template: 'artifactTemplate',
   entity_revision: 'entityRevision',
   process_definition: 'processDefinition',
   pen_template: 'penTemplate',
   layer_standard: 'layerStandard',
-  // Kebab CTS ids of types whose fact vocabulary moved to the bundle but
-  // whose field-access policy is still served by this legacy map (the
-  // declaration projection's own fieldAccess does not carry the legacy
-  // read paths yet — access migrates when the DTO paths become declared
-  // rows).
+  // Kebab CTS ids of framework types whose field-access policy is still
+  // served by this legacy map: they keep explicit feature services and
+  // never enter the declaration projection's own fieldAccess.
   'entity-revision': 'entityRevision',
-  'sheet-design': 'sheetDesign',
 };
 
 export function normalizeFieldAccessTypeId(typeId = '') {

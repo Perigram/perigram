@@ -840,7 +840,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -855,7 +854,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -870,7 +868,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -885,7 +882,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -900,7 +896,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -915,7 +910,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -930,7 +924,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -945,7 +938,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -960,7 +952,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -975,7 +966,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -990,7 +980,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",
@@ -1005,7 +994,6 @@
     {
       "blocks": [
         "identity",
-        "origin",
         "status",
         "lineage",
         "relations",

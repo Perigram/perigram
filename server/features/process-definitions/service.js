@@ -1906,10 +1906,11 @@ export function processConstructionInputRecord(record = {}, inputs = {}) {
         // single-target spelling).
         ? (Array.isArray(supplied) ? supplied : [supplied]).map(relationInputValue).filter(Boolean)
         : supplied;
-    // The identity 'name' construction input writes the wire identity
-    // block — the §3 instance boundary reads draft.identity.name, and a
-    // top-level `name` key would silently drop (fields landed, names
-    // did not).
+    // A persisted draft from before the Name-input retirement may still
+    // carry its authored `name` construction input (the contract refresh
+    // drops it on the next authoring sync). Its value maps to the one
+    // real name channel — the wire identity block the §3 create boundary
+    // reads — never to a top-level fields key.
     if (id === 'name' || input.path === 'name') {
       setByPath(result, 'identity.name', value);
       continue;

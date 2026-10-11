@@ -184,17 +184,6 @@ export async function runProcessUntilSettled(run, definition, environment = {}, 
 
 async function executeOperationalNode({ run, process, node, record, current, step, environment }) {
   const inputs = await resolveNodeInputs(process, node, run, environment, current);
-  if (record.kind.endsWith('Trigger')) {
-    const payload = run.trigger?.payload ?? run.trigger?.entity ?? run.trigger;
-    enqueueEdges(run, outgoingControl(process, node.id, 'start'), {
-      ...current,
-      values: {
-        ...(current.values || {}),
-        [`${node.id}:payload`]: createDataPacket(structuredClone(payload))
-      }
-    });
-    return;
-  }
   if (isEffectRecord(record)) {
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
     const mappedMutation = NATIVE_MUTATION_KINDS.has(String(record.kind));
@@ -533,10 +522,11 @@ function processData(definition) {
 }
 
 function findTriggerNode(process, trigger) {
+  // Entry points are manual effect records (SPEC §20): the run's first
+  // token lands on the authored entry operation.
   const nodes = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[recordId(node)] || {};
-    return record.kind?.endsWith('Trigger')
-      || (isEffectRecord(record) && (record.trigger?.mode || 'manual') === 'manual');
+    return isEffectRecord(record) && (record.trigger?.mode || 'manual') === 'manual';
   });
   const match = trigger.nodeId
     ? nodes.find(node => String(node.id) === String(trigger.nodeId))

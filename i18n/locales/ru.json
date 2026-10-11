@@ -1193,7 +1193,7 @@
       "flags": "Флаги",
       "decision": "Решение",
       "target": "Цель",
-      "targetPlaceholder": "identity.serial, specs.width, data.name...",
+      "targetPlaceholder": "identity.name, specs.width, data.note...",
       "allCollections": "Все коллекции",
       "loadFailed": "Не удалось загрузить модели данных",
       "planTitle": "# Проверка рефакторинга модели данных",

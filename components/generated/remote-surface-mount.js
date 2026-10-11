@@ -50,12 +50,15 @@ export function editorSurfacePersistence(typeId) {
   }
 
   return {
-    async createBlank({ name = '' } = {}) {
+    async createBlank() {
       const action = authStore.actionManifest
         .filter(isGeneratedSurfaceAction)
         .find(candidate => candidate.actionKind === 'createInstance' && candidate.typeId === typeId);
       if (!action) throw new Error(`No compiled create action for ${typeId}`);
-      const result = await instances.runAction({ actionId: action.id, data: { name } });
+      // Blank means blank (SPEC §4 editor protocol): the instance enters
+      // unnamed — naming is the type's identifier row or the rename
+      // channel, never a create-time side channel.
+      const result = await instances.runAction({ actionId: action.id, data: {} });
       const entity = createdEntity(action, result);
       const id = String(entity?._id || entity?.id || '');
       if (!id) throw new Error(`${typeId} creation returned no instance`);

@@ -97,7 +97,7 @@
               @update:model-value="updateVisibleLayerNames"
             />
             <label :for="layerInputId(row.layer)" class="min-w-0 flex-1 truncate">
-              <span class="instance-inline-chip min-w-0 max-w-full" :title="row.layer.standardCode && row.sourceEntity?.identity?.slug ? `slug: ${row.sourceEntity.identity.slug}` : row.sourceEntity?.identity?.name">
+              <span class="instance-inline-chip min-w-0 max-w-full" :title="row.sourceEntity?.identity?.name">
                 <span class="instance-inline-chip-label">{{ row.sourceEntity?.identity?.name }}</span>
               </span>
             </label>

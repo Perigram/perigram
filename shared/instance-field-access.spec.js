@@ -5,19 +5,18 @@ import {
   redactEntityForAccess
 } from './instance-field-access.js';
 
-// The policy-bearing guinea pig: a type with a legacy field-access
-// policy (cassette is §13-served — its access derives from the class
-// collection, so it no longer exercises this map).
-const sheetDesign = {
-  _id: 'design-1',
-  identity: { uid: 'd-1', name: 'Design One' },
+// The policy-bearing guinea pig: a framework-served type with a legacy
+// field-access policy (sheet-design and cassette are §13-served — their
+// access derives from the class collection and never exercises this map).
+const artifact = {
+  _id: 'art-1',
+  identity: { uid: 'a-1', name: 'Sheet DXF' },
   lineage: { organizationId: 'org-1' },
-  summary: { revisionCount: 2, totalArea: 12 },
-  specs: { sheetIndex: 3 },
+  attachments: { primary: { fileId: 'f-1' } },
   data: {
-    geometry: { outline: [[0, 0], [10, 0], [10, 10]] },
-    materialPool: ['mat-1'],
-    internalCost: 1000
+    filename: 'sheet.dxf',
+    layout: { grid: true },
+    internalNotes: 'secret'
   }
 };
 
@@ -34,7 +33,7 @@ const user = {
       role: 'role_viewer',
       roleIds: ['role_viewer'],
       status: 'active',
-      permissions: { sheet_designs: 'read' }
+      permissions: { artifacts: 'read' }
     }]
   }
 };
@@ -42,42 +41,42 @@ const user = {
 describe('entity field access', () => {
   it('denies fields without a registered entity policy', () => {
     expect(canDisplayEntityField({
-      permissions: { sheet_designs: 'admin' },
+      permissions: { artifacts: 'admin' },
       entity: { _id: 'x-1' },
       typeId: 'not-a-type',
-      path: 'billing.internalCost'
+      path: 'data.internalNotes'
     })).toBe(false);
   });
 
   it('filters card field descriptors by policy and active permissions', () => {
     const fields = [
-      { path: 'summary.revisionCount' },
-      { path: 'data.materialPool' },
-      { path: 'data.geometry.outline' },
-      { path: 'data.internalCost' }
+      { path: 'data.filename' },
+      { path: 'data.layout.grid' },
+      { path: 'attachments.primary.fileId' },
+      { path: 'data.internalNotes' }
     ];
 
     expect(filterEntityFields({
       fields,
-      permissions: { sheet_designs: 'read' },
-      entity: sheetDesign,
-      typeId: 'sheet-design'
+      permissions: { artifacts: 'read' },
+      entity: artifact,
+      typeId: 'artifact'
     }).map(field => field.path)).toEqual([
-      'summary.revisionCount',
-      'data.materialPool',
-      'data.geometry.outline'
+      'data.filename',
+      'data.layout.grid',
+      'attachments.primary.fileId'
     ]);
 
     expect(filterEntityFields({
       fields,
-      permissions: { sheet_designs: 'write' },
-      entity: sheetDesign,
-      typeId: 'sheet-design'
+      permissions: { artifacts: 'write' },
+      entity: artifact,
+      typeId: 'artifact'
     }).map(field => field.path)).toEqual([
-      'summary.revisionCount',
-      'data.materialPool',
-      'data.geometry.outline',
-      'data.internalCost'
+      'data.filename',
+      'data.layout.grid',
+      'attachments.primary.fileId',
+      'data.internalNotes'
     ]);
   });
 
@@ -98,57 +97,57 @@ describe('entity field access', () => {
 
   it('honors scoped permission grants', () => {
     const permissions = {
-      sheet_designs: { level: 'read', scope: { instanceId: 'design-1' } }
+      artifacts: { level: 'read', scope: { instanceId: 'art-1' } }
     };
 
     expect(canDisplayEntityField({
       permissions,
-      entity: sheetDesign,
-      typeId: 'sheet-design',
-      path: 'summary.revisionCount'
+      entity: artifact,
+      typeId: 'artifact',
+      path: 'data.filename'
     })).toBe(true);
 
     expect(canDisplayEntityField({
       permissions,
-      entity: { ...sheetDesign, _id: 'design-2' },
-      typeId: 'sheet-design',
-      path: 'summary.revisionCount'
+      entity: { ...artifact, _id: 'art-2' },
+      typeId: 'artifact',
+      path: 'data.filename'
     })).toBe(false);
   });
 
   it('redacts DTOs to allowed paths for the active membership', () => {
-    const redacted = redactEntityForAccess(sheetDesign, 'sheet-design', {
+    const redacted = redactEntityForAccess(artifact, 'artifact', {
       organizationId: 'org-1',
       memberships: [{
         organizationId: 'org-1',
-        permissions: { sheet_designs: 'read' }
+        permissions: { artifacts: 'read' }
       }]
     });
 
-    expect(redacted.identity.name).toBe('Design One');
-    expect(redacted.summary.revisionCount).toBe(2);
-    expect(redacted.data.materialPool).toEqual(['mat-1']);
-    expect(redacted.data.geometry.outline).toEqual([[0, 0], [10, 0], [10, 10]]);
-    expect(redacted.data.internalCost).toBeUndefined();
+    expect(redacted.identity.name).toBe('Sheet DXF');
+    expect(redacted.data.filename).toBe('sheet.dxf');
+    expect(redacted.data.layout.grid).toBe(true);
+    expect(redacted.attachments.primary.fileId).toBe('f-1');
+    expect(redacted.data.internalNotes).toBeUndefined();
   });
 
   it('uses active process permissions and field policies for redaction', () => {
-    const redacted = redactEntityForAccess(sheetDesign, 'sheet-design', {
+    const redacted = redactEntityForAccess(artifact, 'artifact', {
       organizationId: 'org-1',
-      effectivePermissions: { sheet_designs: 'read' },
-      permissions: { sheet_designs: 'admin' },
+      effectivePermissions: { artifacts: 'read' },
+      permissions: { artifacts: 'admin' },
       fieldPolicies: {
-        'sheet-design': {
+        artifact: {
           read: ['identity.name'],
           write: [],
-          private: ['data.internalCost']
+          private: ['data.internalNotes']
         }
       }
     });
 
-    expect(redacted.identity.name).toBe('Design One');
-    expect(redacted.summary).toBeUndefined();
+    expect(redacted.identity.name).toBe('Sheet DXF');
     expect(redacted.data).toBeUndefined();
+    expect(redacted.attachments).toBeUndefined();
   });
 
   it('keeps team list identity fields under user read access without exposing legacy permission JSON', () => {

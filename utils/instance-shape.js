@@ -48,7 +48,6 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     fields[identifier] = dto.identity.name;
   }
   if (dto.identity?.name != null && fields.name === undefined) fields.name = dto.identity.name;
-  if (dto.identity?.serial != null && fields.serial === undefined) fields.serial = dto.identity.serial;
   const lineage = {};
   for (const [key, value] of Object.entries(dto.lineage || {})) {
     if (value == null) continue;
