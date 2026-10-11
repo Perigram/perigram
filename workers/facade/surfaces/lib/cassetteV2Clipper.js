@@ -1,4 +1,4 @@
-import { OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './occs/layers.js';
+import { OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from '../../occs/layers.js';
 
 export const CASSETTE_V2_CUT_OUTER_LAYER = OCCS_LAYER_CUT_OUTER;
 export const CASSETTE_V2_FOLD_ROUTE_LAYER = OCCS_LAYER_FOLD_ROUTE;
@@ -10,10 +10,10 @@ const runtimeImport = (specifier) => {
   return import(/* @vite-ignore */ specifier);
 };
 
+// The clipper2 runtime ships beside the plugin: the executor serves it
+// (and the browser module resolves it) from the plugin's assets tree.
 const clipperModuleSpecifier = () => (
-  typeof window === 'undefined'
-    ? new URL('../../../public/vendor/clipper2/clipper2z.js', import.meta.url).href
-    : '/vendor/clipper2/clipper2z.js'
+  new URL('../../assets/vendor/clipper2/clipper2z.js', import.meta.url).href
 );
 
 const numeric = (value, fallback = 0) => {
