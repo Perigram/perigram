@@ -20,6 +20,10 @@ declarations }` where `declarations` carries `types` (CTS grammar,
 non-empty), `services` (SPEC §8 signatures, `mode` endpoint/claim),
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
+`surfaces` (plugin-delivered editor surface modules, owner decision
+2026-10-11: `[{ id, module, surfaceContract }]` — a root-relative module
+path the plugin's executor serves plus the mount-contract major it
+targets; `checkSurfaceModule` below validates the module author-side),
 `attachmentKinds` (payload upload contracts keyed by kind id), and
 `conversions` (artifact conversion entries; an optional `service` names a
 declared plugin service as the executor, bare or plugin-qualified),
@@ -51,6 +55,18 @@ the publish API stores.
 A services module is any ESM file exporting `services` (or a default):
 `{ '<serviceId>': async input => output }`.
 
+## Surface module check (`checkSurfaceModule`)
+
+The author-side half of the consistency law: `checkSurfaceModule(path)`
+loads a surface module and proves what the SDK can prove alone and
+zero-dep — the import graph carries no host externals (`vue`, `primevue`,
+`pinia`: the mount injects them), the default export is the factory
+`createSurface(ctx) -> component`, and the factory returns a component
+against a stub context without logging errors. The real host-shell mount
+(save callbacks over the instance transports) is proven by the platform's
+fixture-plugin e2e. The CLI wraps it: `perigram-plugin surfaces
+<module.mjs>`.
+
 ## API client (`createPluginClient`)
 
 `{ appUrl, operatorToken?, token?, organizationId? }` → `{ login,
@@ -72,6 +88,8 @@ install <pluginId>                  install into PERIGRAM_ORG_ID
 connector <pluginId>                connector panel: token, queue, endpoints
 connect <pluginId> [--set svc=URL ...] [--key K]   read/save connection settings
 test <pluginId> <serviceId> [--input file.json]   invoke an installed service
+surfaces <module.mjs>               check a surface module (import graph,
+                                    factory shape, stub-context smoke)
 ```
 
 Env: `PERIGRAM_APP` (default `http://localhost:3000`),

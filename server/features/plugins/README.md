@@ -12,7 +12,7 @@ executors through the worker protocol.
 
 - **Catalog** (`plugin_catalog`): one listing per `pluginId` —
   `{ pluginId, name, description, version, requires?, declarations: { types,
-  services, editors, attachmentKinds, conversions, constructions, exports } }`.
+  services, editors, surfaces, attachmentKinds, conversions, constructions, exports } }`.
   Platform-published only; organizations never write it. Publishing rides
   `POST /api/plugins/catalog` (operator token) — the
   [@perigram/plugin-sdk](../../../packages/plugin-sdk/README.md) CLI wraps
@@ -78,7 +78,13 @@ executors through the worker protocol.
   refuse). Editor bindings ride the listing contract (the bound type must
   be the plugin's own `file` type, one editor per type) and compose into
   the served type view beside the packs
-  ([cts-types](../cts-types/README.md)).
+  ([cts-types](../cts-types/README.md)). A declared surface module must
+  target a mount-contract version the platform supports
+  (`shared/plugin-surfaces.js` is the single supported-set home, read by
+  this gate and the client loader) — an unsupported contract refuses the
+  install and the upgrade, never a runtime half-mount (owner decision
+  2026-10-11). Surface declarations snapshot with the install beside the
+  editor bindings.
 - **Mounted-pack enablement**: the installed list includes the mounted
   domain packs (the facade and its dependencies) — enabled by default,
   zero migration. `GET .../plugins/state` serves the combined pack +

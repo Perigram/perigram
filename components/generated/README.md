@@ -185,6 +185,33 @@ a payload-bearing file class) is enforced at the pack composition seam
 documented in the
 [cts-types README](../../server/features/cts-types/README.md).
 
+### Plugin-delivered surfaces (owner decision 2026-10-11)
+
+A binding whose surface id is not in the fixed registry resolves against
+the served plugin surface declarations — the installed layer composes them
+into the type view as `{ id, url, surfaceContract }` records (module URL
+resolved against the install's executor endpoint, `null` until connected).
+The resolved record carries the generic editor action and the
+`RemoteEditorSurface` loader as its workspace-page component, so every
+existing consumer (detail headers, collection footers, pane tabs) opens a
+plugin editor through the same seams as a local one.
+
+The loader mounts the module's default export — the factory
+`createSurface(ctx) -> component` — with a data-only contract: the
+component receives `{ record, persistence }`; the factory receives the
+host context `{ vue, components, locale }` (the host's Vue runtime subset,
+the vetted PrimeVue pack, i18n) — the consistency law: a surface composes
+from the host's vocabulary, never bundles its own (`checkSurfaceModule` in
+[@perigram/plugin-sdk](../../../packages/plugin-sdk/README.md) enforces
+the import graph author-side). The persistence callbacks
+(`remote-surface-mount.js`) are the one generic binding over the instance
+transports: blank-create through the type's compiled construct, documents
+through the payload channel, renames through the update transport —
+editor modules never touch the API. Remote editors are online-only; the
+loader's failure states say so. The supported mount-contract versions live
+in `shared/plugin-surfaces.js` — the install/upgrade gates and the loader
+read the same set.
+
 `instance-editor-action.js` and `workspace-pages.js` derive
 their file-type rows (cassette, sheet-design, sketch, text-document,
 csv-table, xlsx-workbook) from the editor

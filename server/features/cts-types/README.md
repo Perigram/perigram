@@ -74,13 +74,20 @@ strangler layer 0 of the designer rebuild (see
   (`composePackEditors`) refuses a binding whose type no mounted pack
   declares or whose class is not `file` (payload-bearing), naming the
   offending pack and type — a party/group/process type can never carry an
-  editor surface (spec: `editor-bindings.spec.js`).
+  editor surface (spec: `editor-bindings.spec.js`). Beside the editors the
+  view serves the installed plugins' surface declarations (owner decision
+  2026-10-11) as `{ id, url, surfaceContract }` records: each module URL
+  resolves against the install's first configured endpoint origin — the
+  executor serves its UI beside its services, connection settings stay
+  server-side, and no configured endpoint serves `url: null` (the client
+  loader renders the connect-the-executor state instead of guessing).
 
 ## API
 
 `GET /api/admin/cts/types` — merged org view (the designer types pane and
 the process designer's registry read this): compiled types, diagnostics,
-attachment kinds, and pack editor bindings. `POST /api/admin/cts/types` —
+attachment kinds, pack editor bindings, and installed plugin surface
+declarations. `POST /api/admin/cts/types` —
 author/evolve a declaration. `DELETE /api/admin/cts/types/:id` — remove an
 org type.
 
