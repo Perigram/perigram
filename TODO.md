@@ -608,6 +608,31 @@ falsifiable check passes:
   npm `three` dependency) die with M7's consumers. Check: utils/occs
   absent; vitest suite at parity; facade e2e green.
 
+### Agent Notes (2026-10-11, cassette file-type cleanup — templateType/parameters deleted)
+
+Owner verdict on the create-form fields: all three slop. `templateType`
+(no PARAMETRIC/STANDARD distinction exists), `parameters` (set in the
+editor, inner to the document), and the Name prompt (already retired by
+the cts-honesty compile — orgs see it only until their stored activated
+snapshot re-compiles). Cut: the listing (v2) drops both fields from
+`fields`/`snapshot` and declares §11 `remove-field` steps for each, so
+the upgrade rewrites live cassettes; import-cassette stops writing them;
+CassetteThumbnail's PARAMETRIC gate becomes presence-based (baked
+geometry, else always try the payload document — the file-type rule);
+the dead `migrate-cassette-instances.js` (stamped the dead field,
+consumed a doomed twin) is deleted. Owner decision recorded in SPEC
+(§Plugin marketplace): cassette is a file type — everything operating
+over cassettes is plugin-owned; M7 reshaped to the preview-module
+contract (read-only `{ record, payload }` mount in the platform's
+preview slots, card chrome stays InstanceCard).
+
+Validation: listing validates (v2); 252 focused tests green
+(workers/facade, artifact-conversions, support, plugins, cts); SSR
+smoke 3/3; design-system + generated 107 green (one pre-existing stale
+`detail-action-ownership` failure unchanged); check-arch, check-docs
+green. Deploying orgs upgrade through the Plugins page (diff preview
+shows both field removals covered by the declared steps).
+
 ### Agent Notes (2026-10-11, M6.3 — the cassette designer migrated; the OCCS engine single-homed)
 
 Session `agent/m6-m8-cassette-20261011`. The engine went first (owner
