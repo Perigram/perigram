@@ -40,7 +40,7 @@ import { compileActiveProcessRuntime, getActiveMergedDataForOrganization } from 
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
-import { operationKindOf, projectDomainFromView } from '~/packages/cts/src/index.js';
+import { operationKindOf, projectDomainFromView, rewriteRetiredNameInputs } from '~/packages/cts/src/index.js';
 import { composePackDomains } from '~/server/packs/declarations.js';
 import { packDomainsForOrganization } from '~/server/features/plugins/service.js';
 import { packServicesForOrganization } from '~/server/features/plugins/service.js';
@@ -1906,15 +1906,6 @@ export function processConstructionInputRecord(record = {}, inputs = {}) {
         // single-target spelling).
         ? (Array.isArray(supplied) ? supplied : [supplied]).map(relationInputValue).filter(Boolean)
         : supplied;
-    // A persisted draft from before the Name-input retirement may still
-    // carry its authored `name` construction input (the contract refresh
-    // drops it on the next authoring sync). Its value maps to the one
-    // real name channel — the wire identity block the §3 create boundary
-    // reads — never to a top-level fields key.
-    if (id === 'name' || input.path === 'name') {
-      setByPath(result, 'identity.name', value);
-      continue;
-    }
     setByPath(result, input.path || id, value);
   }
   return result;
@@ -2025,10 +2016,11 @@ async function getProjectedDomain(organizationId = null) {
   });
 }
 
-// The rewrites that PERSIST: producer-identity migration applies to the
-// authored data itself (pre-protocol records only; cts records carry their
-// identities from the designer). Protocol acceptance runs on a lowered copy
-// and never mutates what is stored.
+// The rewrites that PERSIST: producer-identity migration and the retired
+// Name-input surgery apply to the authored data itself (pre-protocol
+// records only for identities; cts records carry their identities from the
+// designer). Protocol acceptance runs on a lowered copy and never mutates
+// what is stored.
 function persistedRewrites(data, domain) {
   const migration = migrateProducerOutputIdentities(data, domain);
   if (migration.errors.length) {
@@ -2039,7 +2031,7 @@ function persistedRewrites(data, domain) {
   // own the report, so a draft with access rules on a still-unbound node
   // remains savable.
   tryAcceptGraphProtocol(migration.data, domain);
-  return migration.data;
+  return rewriteRetiredNameInputs(migration.data);
 }
 
 // One compile path: protocol acceptance (v5 lowering) through

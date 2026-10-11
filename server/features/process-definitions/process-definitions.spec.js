@@ -341,27 +341,24 @@ describe('current process-definition service contract', () => {
     expect(processRepository.updateById).not.toHaveBeenCalledWith('process-active', expect.anything());
   });
 
-  it('maps construction inputs onto the wire blocks the §3 boundary reads', async () => {
-    // Regression: the identity 'name' input wrote a top-level draft key
-    // the instance create ignores (draft.identity.name is what lands) —
-    // fields arrived while every created record stayed unnamed.
+  it('maps construction inputs onto the wire paths the §3 boundary reads', async () => {
+    // The retired hardcoded Name input is gone from contracts; the seam
+    // rewrite (rewriteRetiredNameInputs) drops it from persisted records
+    // before anything executes. What remains maps by its own path.
     const { processConstructionInputRecord } = await import('./service.js');
     const record = {
       construction: {
         inputs: [
-          { id: 'name', path: 'name', type: 'string' },
           { id: 'lineage.parentId', path: 'lineage.parentId', type: 'entity' },
           { id: 'data.note', path: 'data.note', type: 'string' }
         ]
       }
     };
     const draft = processConstructionInputRecord(record, {
-      name: 'Named',
       'lineage.parentId': { type: 'parent', id: 'p-1' },
       'data.note': 'hello'
     });
     expect(draft).toEqual({
-      identity: { name: 'Named' },
       lineage: { parentId: 'p-1' },
       data: { note: 'hello' }
     });

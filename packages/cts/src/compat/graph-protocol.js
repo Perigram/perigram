@@ -189,6 +189,52 @@ function mapRecords(records = {}, mapper) {
 
 // -- resolution: v5 binding seam (native records stay native) --
 
+// One-way rewrite for the retired hardcoded Name construction input
+// (SPEC §4 — not in the row means does not exist): a persisted draft that
+// authored it loses its `name` construction-input entries, its `name`
+// socket default, and any graph edge wired into the retired `data:name`
+// handle. Runs at definition resolution (validate/compile/execute consume
+// the healed form) and in the save-boundary persisted rewrites (storage
+// heals on the next save) — the same two seams every other retired-
+// vocabulary rewrite uses.
+export function rewriteRetiredNameInputs(data = {}) {
+  if (!data || typeof data !== 'object') return data;
+  const constructs = new Set(Object.entries(data.processNodes || {})
+    .filter(([, node]) => node?.kind === 'cts.construct')
+    .map(([id]) => String(id)));
+  if (!constructs.size) return data;
+  const graphNodeConstruct = new Map((data.graph?.nodes || [])
+    .map(node => [String(node.id), constructs.has(String(node.data?.refId || node.id || ''))]));
+  const isRetiredHandle = handle => String(handle || '').replace(/^(input|data):/, '') === 'name';
+  const edges = (data.graph?.edges || []).filter(edge => {
+    const targetIsConstruct = graphNodeConstruct.has(String(edge.target))
+      ? graphNodeConstruct.get(String(edge.target))
+      : constructs.has(String(edge.target));
+    return !(targetIsConstruct && isRetiredHandle(edge.targetHandle));
+  });
+  const processNodes = Object.fromEntries(Object.entries(data.processNodes || {}).map(([id, node]) => {
+    if (!constructs.has(String(id))) return [id, node];
+    const inputs = Array.isArray(node.construction?.inputs)
+      && node.construction.inputs.some(input => String(input?.id || input?.path || '') === 'name')
+      ? node.construction.inputs.filter(input => String(input?.id || input?.path || '') !== 'name')
+      : null;
+    const hasDefault = node.inputDefaults != null && Object.hasOwn(node.inputDefaults, 'name');
+    if (!inputs && !hasDefault) return [id, node];
+    const rewritten = { ...node };
+    if (inputs) rewritten.construction = { ...rewritten.construction, inputs };
+    if (hasDefault) {
+      rewritten.inputDefaults = { ...rewritten.inputDefaults };
+      delete rewritten.inputDefaults.name;
+    }
+    return [id, rewritten];
+  }));
+  return {
+    ...data,
+    processNodes,
+    ...(data.graph ? { graph: { ...data.graph, edges } } : {})
+  };
+}
+
 export function resolveCtsDefinition(definition = {}, domain = {}) {
   const wrapper = definition?.data ? { ...definition, data: { ...definition.data } } : { ...definition };
   const data = wrapper?.data || wrapper;
@@ -232,7 +278,7 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
       : {})
   }));
 
-  const resolvedData = {
+  const resolvedData = rewriteRetiredNameInputs({
     ...data,
     graphProtocol: 5,
     processNodes,
@@ -240,7 +286,7 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
     actions,
     sockets,
     screens
-  };
+  });
   return {
     definition: wrapper?.data ? { ...wrapper, data: resolvedData } : resolvedData,
     diagnostics
