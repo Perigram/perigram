@@ -1,6 +1,16 @@
 <template>
+  <RemoteInstancePreview
+    v-if="pluginPreview"
+    :record="instance"
+    :type-id="typeId"
+    :preview="pluginPreview"
+  >
+    <div class="h-28 w-full" :class="[LAYOUT.row, 'text-supporting text-muted']">
+      <i :class="typeGlyph" />
+    </div>
+  </RemoteInstancePreview>
   <ArtifactViewer
-    v-if="hasRenderablePayload"
+    v-else-if="hasRenderablePayload"
     :source="{ mode: preview.mode, fileUrl, attachment: payload }"
     :variant="'card'"
     class="h-28 w-full"
@@ -52,10 +62,16 @@ import { computed } from 'vue';
 import { LAYOUT, RENDERABLE_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import RemoteInstancePreview from '~/components/generated/RemoteInstancePreview.vue';
+import { resolvePluginPreview } from '~/components/generated/plugin-preview-bindings.js';
 
 const props = defineProps({
   type: { type: Object, default: null },
   payload: { type: Object, default: null },
+  // The screen instance (flat fields, payload reference, previewSource):
+  // present wherever the host holds the record — the plugin preview
+  // mounts over it read-only.
+  instance: { type: Object, default: null },
   // Declared preview value (the type's authored previewSource field, read
   // off the wire DTO): renders when no payload exists, so declared
   // previews never depend on an uploaded payload. The canvas normalizer
@@ -66,6 +82,8 @@ const props = defineProps({
 });
 
 const preview = computed(() => resolvePreview(props.type || {}));
+const typeId = computed(() => String(props.type?.id || ''));
+const pluginPreview = computed(() => (props.instance ? resolvePluginPreview(typeId.value) : null));
 const hasDeclaredPreviewSource = computed(() => Boolean(
   props.type?.previewSource?.display === 'geometry' && props.previewSource
 ));

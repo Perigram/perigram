@@ -1,6 +1,6 @@
 <template>
   <div v-if="d" :class="d.stack">
-    <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
+    <PreviewBox v-if="hasPreview" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
 
     <section v-for="group in groups" :key="group.id" :class="d.stackTight">
       <span v-if="group.label" :class="d.sectionTitle">{{ group.label }}</span>

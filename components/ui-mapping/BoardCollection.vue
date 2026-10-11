@@ -34,7 +34,7 @@
           @dragend="onDragEnd"
         >
           <template #header>
-            <PreviewBox :type="type" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
+            <PreviewBox :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
           </template>
           <template #title>
             <div :class="LAYOUT.rowBetween">
