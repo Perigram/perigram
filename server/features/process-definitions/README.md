@@ -317,11 +317,12 @@ therefore emits one event per completed tuple while retaining its ordinary
 item/list/tree result topology and partial-failure reporting contract.
 Generic Create receives block-composed data. `identity.name` is
 projected to the owning service's `name` input; a persisted draft from
-before the Name-input retirement may still carry its authored
-construction `name` input — the effect boundary maps that value to the
-wire `identity.name` block (the §3 instance boundary reads
-`draft.identity.name`; a top-level `name` key is ignored there) until
-the next authoring sync drops the retired input.
+before the Name-input retirement is healed by the one-way rewrite at the
+definition-resolution seam (`rewriteRetiredNameInputs`, also applied by
+the save-boundary persisted rewrites): its `name` construction-input
+entries, `name` socket defaults, and edges wired into the retired
+`data:name` handle drop before validation, compilation, execution, or
+storage ever see them — there is no runtime bridge.
 `data` and `specs` values are projected only where the service has no explicit
 top-level value. Non-block generic construction inputs remain available beside
 those blocks, so an entity can declare an explicit source reference without

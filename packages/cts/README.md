@@ -177,6 +177,10 @@ module layout and how the code maps to the spec's build-order tiers.
   vocabularies (the v4 twin table is gone with the retired kinds).
   `declarationsFromCtsRecords` receives the declaration graph as well as
   records, so nested state and edge acceptance matches what APPLY posts.
+  `rewriteRetiredNameInputs` is the one-way surgery for the retired
+  hardcoded Name construction input: persisted drafts lose their `name`
+  input entries, `name` socket defaults, and edges into the retired
+  `data:name` handle here (and at the save-boundary persisted rewrites).
   Authored definitions speak the current species vocabulary only: there is
   no v4 rewrite at any seam and no runtime fallback vocabulary.
   `renameLegacyTypeKeys` remains a pure key rewriter exported for the

@@ -65,7 +65,7 @@ export function createPersistedAcceptanceFixture() {
         typeId: 'cassette',
         producerOutputId: 'create_cassette:result',
         label: 'Create cassette',
-        construction: { mode: 'editor', inputs: [{ id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }] },
+        construction: { mode: 'editor', inputs: [] },
         inputDefaults: { state: 'ACTIVE' },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] }

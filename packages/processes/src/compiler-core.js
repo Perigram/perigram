@@ -3917,12 +3917,6 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   }));
   for (const input of declaredInputs) {
     const key = input.id || input.path;
-    // The retired hardcoded Name input: construction contracts no longer
-    // declare it (SPEC §4 — not in the row means does not exist), so a
-    // persisted draft still carrying it drops here instead of surviving
-    // as a phantom prompt; authored name values keep flowing through the
-    // identity.name wire channel at the effect boundary.
-    if (key === 'name' || input.path === 'name') continue;
     const contractInput = inputsById.get(key);
     if (contract.derived && !contractInput) continue;
     inputsById.set(key, contractInput

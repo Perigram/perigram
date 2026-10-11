@@ -47,6 +47,24 @@ accurate until slice A–C land (TODO is the delta). Not started: the
 migration itself — the owner has not yet scoped its scheduling against
 the parallel plugin-service work.
 
+### Agent Notes (2026-10-11, first enforced slice — retired Name-input surgery)
+
+Session `agent/name-edge-surgery-20261011`, triggered by the owner's
+live error: `Edge … references missing input data:name on …` — the
+Name-input retirement had shipped without the stored-graph half of the
+migration. Collected under the new no-compat law (consumers and stored
+data migrate in the same task): `rewriteRetiredNameInputs`
+(packages/cts graph-protocol) drops the retired `name` construction
+input, its socket default, and edges wired into `data:name` at the
+definition-resolution seam (validate/compile/execute consume the healed
+form) and in the save-boundary persisted rewrites (storage heals on the
+next save). The runtime `name → identity.name` mapping and the
+compiler's defensive skip are deleted — the seam rewrite makes both
+unreachable, and keeping them would be the bridge the new law forbids.
+Pinned by spec, including the exact live-error shape healing clean.
+Naming on such drafts now follows SPEC §4: the identifier row, else the
+rename channel, else the unnamed placeholder.
+
 ## CTS honesty pass: §13-true projection schemas, Name-input retirement, undead-kind cleanup (2026-10-11)
 
 Owner direction (2026-10-11, from the types-system maturity review): the
