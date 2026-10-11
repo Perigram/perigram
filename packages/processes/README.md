@@ -108,8 +108,8 @@ palette-item drops (record factory + preset), record configuration (the
 same writes the inspector performs, including socket input defaults), and
 port-gated connections (the same `processSocketsCompatible` gate the
 canvas applies, handles minted by `ports.js`). Children wires accept
-type-reference targets, so an org type's containment may name pack and
-other registry types. A definition whose vocabulary is declared in-tree
+type-reference targets, so an org type's containment may name pack, other
+registry types, and itself (recursive containment, SPEC §6). A definition whose vocabulary is declared in-tree
 follows the Apply shape: compose the tree, post its compiled
 declarations, then re-seat the seam on the overlaid domain
 (`withDomain`) and compose the graph over it. The designer page and its

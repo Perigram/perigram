@@ -276,9 +276,17 @@ forbids a fourth:
 
 | Kind | Semantics | Declared by | Shape |
 |---|---|---|---|
-| `lineage` | containment | parent's children declaration; child stores the key | tree, acyclic |
+| `lineage` | containment | parent's children declaration; child stores the key | tree, acyclic across distinct types; a type may name itself (recursive containment) |
 | `relations` | association | owner type; typed, `one` or `many` | graph |
 | `provenance` | causation | the operator that ran; stored on the product | DAG |
+
+Instance forests are the integrity invariant: every instance stores at most
+one parent key, and a parent exists before its children (creation binds an
+existing ancestor), so instance trees are always finite and acyclic. A
+children entry naming its own declaring type is therefore recursion, not a
+cycle — an assembly of assemblies is one type whose instances nest under
+their own kind. Cycles across distinct types (`A` children `B`, `B` children
+`A`) remain structural corruption and are refused at compile.
 
 Every edge declaration carries integrity semantics:
 

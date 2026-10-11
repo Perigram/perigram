@@ -23,7 +23,9 @@ state declares its single parent (`nested`); there is NO transition
 declaration node — the declaration palette is class/field/state/
 type-reference, and transition operations are process nodes. Children
 wires accept type-reference targets beside in-tree classes: an org type's
-containment may name pack and other registry types. A ref field declares a
+containment may name pack, other registry types, and itself — a class
+wired to its own declare input declares recursive containment (SPEC §6),
+rendered as a hoop over the card. A ref field declares a
 relation — its `accepts` derive from targets wires onto the field node,
 and its row lives in the relations slot (a row-carried reference pins
 `slot: 'data'` in its descriptor)
@@ -356,7 +358,7 @@ construction, not per-card styling.
 | Socket color | transported payload family | reference (instances, typed references, and lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, or data. Events use the primary accent. |
 | Socket mark | the connection point (nothing else) | ONE uniform filled circle for every socket — color is the only socket channel. There is no shape vocabulary: no rings, diamonds, squares, or dot/outline variants. A trigger's manual-vs-wired state reads from whether a wire is attached, which a wire shows by existing. |
 | Wire line style | WHAT TRAVELS on the wire | solid = instances (entity payloads — the data spine between operations); dashed = values; dotted = events — the one wire family allowed color (`var(--p-primary-color)`); declaration bindings keep the demuted structure dashed family (`--ck-signal-structure-muted`) as the second association layer. Selected overrides to primary 3px. |
-| Wire geometry | chrome (readability) | bezier (owner direction 2026-09-28, reverting the V1 smoothstep cut); NO markers anywhere — no arrowheads on any layer. Direction reads from the reading canon: handles on the left are inputs, handles on the right are outputs. |
+| Wire geometry | chrome (readability) | bezier (owner direction 2026-09-28, reverting the V1 smoothstep cut); a wire whose source and target are the same node (the self-referencing children wire) renders as one hoop over the card instead — the bezier degenerates there into a line through the node. NO markers anywhere — no arrowheads on any layer. Direction reads from the reading canon: handles on the left are inputs, handles on the right are outputs. |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
 

@@ -99,6 +99,36 @@ Pinned by spec, including the exact live-error shape healing clean.
 Naming on such drafts now follows SPEC §4: the identifier row, else the
 rename channel, else the unnamed placeholder.
 
+## Recursive containment: a type may name itself as its own child (owner decision 2026-10-11)
+
+Declared in [packages/cts/SPEC.md](./packages/cts/SPEC.md) §6: lineage
+stays a forest at the instance level (a parent exists before its
+children), so a children entry naming its own declaring type is
+recursion, not a cycle — an assembly of assemblies is one type whose
+instances nest under their own kind. Cycles across distinct types remain
+refused. In the designer, the self-wire is a class's type output looped
+back into its own declare input.
+
+- [ ] WAITING — owner verification on a live canvas: drop a class of an
+  item/group/process kind, wire its type output back into its declare
+  input, apply, and create nested instances of the same type.
+
+### Agent Notes (2026-10-11, the law + the wire)
+
+Session `agent/recursive-containment-20261011`. `checkLineageAcyclic`
+(edges.js) skips self-edges when building the parent map — mutual
+A↔B cycles still refuse. The rest of the pipeline already held: the
+home-screen suppression explicitly filters self-pairs, the ancestor
+walker for construct lineage inputs is visited-guarded, containment
+projections and the merged hierarchy view are flat per-pair contracts,
+and the diff gate classifies a self-edge add as minor `add-edge`. The
+designer wire: the connect gate and the declaration compiler accepted
+the self-wire unchanged; `decorateEdge` routes source===target edges to
+the `selfloop` edge type (`SelfLoopEdge.vue` — one hoop over the card;
+Vue Flow ships no loop edge, the default bezier degenerates into a line
+through the node). CTS acceptance suite pins both directions
+(self-reference compiles, A↔B refuses).
+
 ## CTS honesty pass: §13-true projection schemas, Name-input retirement, undead-kind cleanup (2026-10-11)
 
 Owner direction (2026-10-11, from the types-system maturity review): the
