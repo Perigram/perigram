@@ -116,7 +116,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         value: cassette._id?.toString(),
         entity: cassette
       })));
-      const displayName = computed(() => localName.value || props.record?.name || t('sheetDesign.editor'));
+      const displayName = computed(() => localName.value || props.record?.fields?.title || t('sheetDesign.editor'));
 
       onMounted(() => {
         queries.list('layer-standard').then(rows => { standards.value = rows || []; }).catch(() => {});

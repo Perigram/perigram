@@ -66,7 +66,7 @@ export default function createSurface({ vue, components, locale }) {
         status.value = t('common.save');
       }
       return () => h('div', { class: 'fx-surface-editor' }, [
-        h('span', { class: 'fx-surface-record' }, props.record?.name || ''),
+        h('span', { class: 'fx-surface-record' }, props.record?.fields?.name || ''),
         h(components.Button, { label: t('common.save'), onClick: save }),
         status.value ? h('span', { class: 'fx-surface-status' }, status.value) : null
       ]);
@@ -89,7 +89,7 @@ export default function createSurface({ vue }) {
     },
     setup(props) {
       return () => h('div', { class: 'fx-surface-preview' }, [
-        h('span', { class: 'fx-surface-preview-record' }, props.record?.name || ''),
+        h('span', { class: 'fx-surface-preview-record' }, props.record?.fields?.name || ''),
         h('span', { class: 'fx-surface-preview-payload' }, props.payload?.note || '')
       ]);
     }
