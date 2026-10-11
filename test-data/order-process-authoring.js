@@ -42,7 +42,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('construct', { id: 'order' });
   authoring.wireDeclaration('orderClass', 'order', 'binds');
   authoring.configure('order', { access: adminAccess });
-  authoring.setInputDefault('order', 'data.name', 'Facade order 42');
+  authoring.setInputDefault('order', 'fields.name', 'Facade order 42');
 
   authoring.drop('relatedEntities', { id: 'tables' });
   authoring.configure('tables', { typeId: 'facade-order' });
@@ -96,17 +96,17 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.drop('getField', { id: 'matWidth' });
   authoring.configure('matWidth', { typeId: 'sheet-material' });
-  authoring.setInputDefault('matWidth', 'field', 'data.width');
+  authoring.setInputDefault('matWidth', 'field', 'fields.width');
   authoring.drop('getField', { id: 'matHeight' });
   authoring.configure('matHeight', { typeId: 'sheet-material' });
-  authoring.setInputDefault('matHeight', 'field', 'data.height');
+  authoring.setInputDefault('matHeight', 'field', 'fields.height');
 
   authoring.drop('service:plugin.facade.nesting-solve', { id: 'solve' });
 
   authoring.drop('construct', { id: 'attempt' });
   authoring.wireDeclaration('attemptClass', 'attempt', 'binds');
   authoring.configure('attempt', { access: adminAccess });
-  authoring.setInputDefault('attempt', 'data.label', 'Nesting run');
+  authoring.setInputDefault('attempt', 'fields.label', 'Nesting run');
 
   authoring.connect('order', 'completed', 'bake', 'in');
   authoring.connect('bake', 'completed', 'materials', 'in');
@@ -148,7 +148,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('jobItems', 'record', 'solve', 'items');
   authoring.connect('matWidth', 'value', 'solve', 'sheetWidth');
   authoring.connect('matHeight', 'value', 'solve', 'sheetHeight');
-  authoring.connect('solve', 'result', 'attempt', 'data.result');
+  authoring.connect('solve', 'result', 'attempt', 'fields.result');
   authoring.connect('order', 'result', 'attempt', `lineage.${ORDER_LINEAGE_KEY}`);
 
   return authoring.definition();
