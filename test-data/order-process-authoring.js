@@ -133,10 +133,10 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('params', 'record', 'bake', 'parameters');
   authoring.connect('order', 'result', 'bake', `lineage.${ORDER_LINEAGE_KEY}`);
 
-  authoring.connect('codes', 'value', 'materials', 'data.code');
-  authoring.connect('widths', 'value', 'materials', 'data.width');
-  authoring.connect('heights', 'value', 'materials', 'data.height');
-  authoring.connect('thicknesses', 'value', 'materials', 'data.thickness');
+  authoring.connect('codes', 'value', 'materials', 'code');
+  authoring.connect('widths', 'value', 'materials', 'width');
+  authoring.connect('heights', 'value', 'materials', 'height');
+  authoring.connect('thicknesses', 'value', 'materials', 'thickness');
   authoring.connect('order', 'result', 'materials', `lineage.${ORDER_LINEAGE_KEY}`);
 
   authoring.connect('bake', 'result', 'polygons', 'entity');
