@@ -108,6 +108,17 @@ executors through the worker protocol.
   management plane the facade extraction lands in — the org-facing
   contract stays install/remove while the pack's code moves out from
   underneath.
+- **Surface module proxy**: plugin editor/preview modules execute in the
+  browser, so they must load same-origin — the configured endpoints
+  address the server's network (in dev the docker-internal executor
+  host), which a browser can never reach. `GET
+  /api/plugins/:pluginId/module/**` streams the path from the install's
+  endpoint origin server-side (`fetchSurfaceModule` here; GET only, paths
+  resolve strictly under the origin, `..` refused). Access mirrors the
+  served type view: any member of an organization holding the install.
+  The served type view composes these same-origin URLs
+  ([cts-types](../cts-types/README.md)); connection settings never reach
+  the browser.
 - **Upgrades**: pins move only through an explicit diff-plus-migration
   apply (`GET`/`POST /api/organizations/:id/plugins/:pluginId/upgrade`).
   The preview runs the SPEC §11 planner over every changed type
@@ -136,6 +147,7 @@ executors through the worker protocol.
 | Route | Access | Action |
 |---|---|---|
 | `GET /api/plugins/catalog` | authenticated | List catalog listings. |
+| `GET /api/plugins/:pluginId/module/**` | member (org holding the install) | Surface module proxy: stream the module path from the install's endpoint origin (same-origin browser loading). |
 | `POST /api/plugins/catalog` | platform operator (`x-operator-token`) | Publish/upsert a listing (validated by the SDK contract). |
 | `DELETE /api/plugins/catalog/:pluginId` | platform operator (`x-operator-token`) | Retract a listing (refused while installs exist). |
 | `GET /api/organizations/:id/plugins` | member (`organizations:read`) | List installed plugins. |

@@ -1,5 +1,63 @@
 # TODO
 
+## Plugin surface modules load same-origin through the app proxy (2026-10-12, live-stack report)
+
+Report: opening a plugin editor (cassette designer) fails with "The editor
+could not be loaded — plugin editors are online-only." Root cause: the
+served type view composed the browser-facing module URL from the install's
+service endpoints, which address the SERVER's network (in dev the
+docker-internal `http://facade-executor:8790` origin) — a browser can
+never fetch that, so the loader's dynamic import threw. Fix: plugin
+modules stream through an app route (`GET /api/plugins/:pluginId/module/**`)
+that fetches the install's endpoint origin server-side; the served URLs
+are same-origin relative paths, valid on every deployment origin, and
+connection settings stay server-side. Contracts:
+[server/features/plugins/README.md](./server/features/plugins/README.md)
+(surface module proxy),
+[server/features/cts-types/README.md](./server/features/cts-types/README.md)
+(view URL composition).
+
+- [x] A. Plugins service: `fetchSurfaceModule` (install resolve, strict
+  path guard, endpoint-origin GET) exported beside `endpointOriginOf` —
+  the one origin resolver, consumed by the proxy and the type view.
+- [x] B. Route `GET /api/plugins/:pluginId/module/**` (member of an org
+  holding the install; GET only) and the cts-types URL composition flip
+  to the same-origin proxy path (editors and previews), `null` still when
+  no endpoint is connected.
+- [x] C. E2E: the fixture-surface spec serves its modules from a real
+  local executor listener (server-side fetch path) and asserts the
+  proxy-shaped served URLs; the cassette editor-create case now proves
+  the real designer mounts.
+- [ ] WAITING — owner verification on the live stack: the cassette
+  designer opens (create and header action) and saves.
+
+### Agent Notes (2026-10-12, plugin-module-proxy session)
+
+The live install's endpoints all address the docker-internal executor
+(`http://facade-executor:8790`) — right for the app container's
+server-side service calls, unreachable from any browser. The served type
+view composed module URLs from those origins (`firstEndpointOrigin`), so
+`RemoteEditorSurface`'s dynamic import always threw and the loader showed
+`pluginSurfaces.unavailable`. No E2E had caught it: the fixture-plugin
+spec pointed endpoints at a browser-reachable 127.0.0.1 and intercepted
+the module URL with `page.route`, and the cassette designer spec asserted
+only the tab, never the mounted module.
+
+Fix: `shared/plugin-surfaces.js` homes the URL contract
+(`endpointOriginOf` server-side, `pluginModuleUrl` browser-facing);
+plugins service streams modules (`fetchSurfaceModule` — install resolve,
+traversal-refusing path guard, endpoint-origin GET, 502 on executor
+failure); `GET /api/plugins/:pluginId/module/**` wraps it (member of an
+org holding the install); the type view composes the same-origin path for
+editors and previews. Connection settings still never reach the browser,
+and module URLs are valid on localhost/LAN/HTTPS alike.
+
+Validation: `server/features/plugins server/features/cts-types` (71 ✓),
+`shared` (touched suites ✓; 5 failures identical pre-existing base set —
+parity re-checked on current `local`), SSR smoke (3 ✓), `check-arch`,
+`check-docs`, `framework:validate` — green. Live-stack E2E: reported in
+the session handoff.
+
 ## File creates follow the creation protocol and inherit the launch context (owner decision 2026-10-12)
 
 An agent-invented passage had claimed "blank creates enter unnamed" as an

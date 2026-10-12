@@ -144,7 +144,9 @@ band and the detail previewSource group — over a read-only mount:
   ```
 
   The executor serves the module at that path (static file route beside
-  the services); `surfaceContract` is the mount-contract major — the
+  the services); the platform streams it to the browser same-origin
+  through its plugin-module proxy, so the executor host never needs to be
+  browser-reachable. `surfaceContract` is the mount-contract major — the
   platform refuses an install targeting one it does not support.
 
 ## 2. Run the executor

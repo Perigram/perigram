@@ -77,9 +77,11 @@ strangler layer 0 of the designer rebuild (see
   editor surface (spec: `editor-bindings.spec.js`). Beside the editors the
   view serves the installed plugins' surface declarations (owner decision
   2026-10-11) as `{ id, url, surfaceContract, kind? }` records: each
-  module URL resolves against the install's first configured endpoint
-  origin — the executor serves its UI beside its services, connection
-  settings stay server-side, and no configured endpoint serves `url:
+  module URL is the app's same-origin plugin-module proxy path
+  (`/api/plugins/:pluginId/module<module>` — the plugins feature streams
+  it from the install's endpoint origin server-side; browsers can never
+  reach the server-network endpoint), connection settings stay
+  server-side, and no configured endpoint serves `url:
   null` (the client loader renders the connect-the-executor state instead
   of guessing). Installed preview bindings (M7) compose the same way as
   `previews: [{ type, surface, url, surfaceContract }]` — one per type,

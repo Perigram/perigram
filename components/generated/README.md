@@ -215,7 +215,9 @@ documented in the
 A binding whose surface id is not in the fixed registry resolves against
 the served plugin surface declarations — the installed layer composes them
 into the type view as `{ id, url, surfaceContract }` records (module URL
-resolved against the install's executor endpoint, `null` until connected).
+same-origin through the app's plugin-module proxy — see
+[cts-types](../../server/features/cts-types/README.md) — `null` until
+connected).
 The resolved record carries the generic editor action and the
 `RemoteEditorSurface` loader as its workspace-page component, so every
 existing consumer (detail headers, collection footers, pane tabs) opens a
