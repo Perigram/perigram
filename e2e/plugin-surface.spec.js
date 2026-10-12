@@ -68,9 +68,9 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
 
   // The connection settings carry the endpoint the surface module URL
   // resolves against; the browser never sees the settings — only the
-  // resolved URL in the served type view.
+  // resolved same-origin URL in the served type view.
   const settings = await app.request.post(`/api/organizations/${organizationId}/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/settings`, {
-    data: { endpoints: { noop: 'http://127.0.0.1:8799/noop' }, authToken: '' }
+    data: { endpoints: { noop: `${FIXTURE_EXECUTOR_ORIGIN}/noop` }, authToken: '' }
   });
   expect(settings.ok(), await settings.text()).toBeTruthy();
 
