@@ -251,6 +251,9 @@ export default function createSurface({ vue, components, locale, queries, record
       const hiddenLayerNames = ref([]);
       const loadedTemplateId = ref('');
       const persistedTemplateIdOverride = ref('');
+      // The record a blank editor tab created on its first save — later
+      // saves on the same tab update it instead of creating again.
+      let blankCreatedTarget = null;
       const sessionDraftAvailable = ref(false);
       const onboardingIndex = ref(0);
       const onboardingDismissed = ref(false);
@@ -806,10 +809,14 @@ export default function createSurface({ vue, components, locale, queries, record
         const definition = createCassetteV2OccsDocument(tree, cassetteMarkContext.value);
         const name = cassetteNameDraft.value || t('cassette.newCassette');
         try {
-          let target = !saveAs && selectedTemplateId.value ? props.record : null;
+          // A blank editor tab has no record prop: the first save creates
+          // the instance, and the created target binds for every later
+          // save on the same tab.
+          let target = !saveAs && selectedTemplateId.value ? (props.record || blankCreatedTarget) : null;
           if (!target || saveAs) {
             target = await props.persistence.createBlank();
           }
+          blankCreatedTarget = target;
           await props.persistence.saveDocument(target, definition, {
             fileName: `${name}.occs`,
             mimeType: OCCS_MIME

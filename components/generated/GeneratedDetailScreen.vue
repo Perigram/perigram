@@ -33,7 +33,8 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
-import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
@@ -180,6 +181,9 @@ useScreenSourceSync(() => props.screen, reload);
 async function runAction(action, data = {}, context = {}) {
   const scope = props.screen?.scope || {};
   const instanceId = context.instance?.id || scope.instanceId || null;
+  // Unscoped editor creates defer to the editor (SPEC §UI); a
+  // context-bound create keeps the construct with its binding in `data`.
+  if (isEditorProtocolCreate(action) && !Object.keys(data || {}).length && openBlankFileEditor(action.typeId)) return;
   try {
     const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });
     if (isCreateAction(action)) {

@@ -92,11 +92,11 @@ test.describe('home and entity UI', () => {
     await app.expectCleanRuntime();
   });
 
-  test('editor-protocol cassette create opens the designer with no create form', async ({ app }) => {
-    test.setTimeout(150_000);
-    // SPEC §UI: an editor create runs blank — no create form — and the
-    // created instance opens in the type's editor (the facade plugin's
-    // cassette designer as a home pane tab).
+  test('editor-protocol cassette create defers the record to the designer\'s first save', async ({ app }) => {
+    test.setTimeout(180_000);
+    // SPEC §UI: an editor create opens the designer with no record —
+    // nothing exists until the first save, which creates the instance
+    // through the compiled construct and fills its payload in one act.
     const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
     const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
     expect(list?.route, 'Expected a compiled cassette list screen').toBeTruthy();
@@ -104,16 +104,32 @@ test.describe('home and entity UI', () => {
     await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
     await app.gotoClient(list.route);
 
+    const count = async () => {
+      const rows = await (await app.request.get('/api/instances/cassette')).json();
+      return Array.isArray(rows) ? rows.length : 0;
+    };
+    const before = await count();
+
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
     await expect(newButton).toBeVisible({ timeout: 20_000 });
     await newButton.click();
 
-    // The create is the blank construct: no dialog ever opens, and the
-    // workspace-open seam lands the created cassette in its designer (a
-    // cold dev stack may take a while: home SSR plus the designer's
-    // module graph through the module proxy).
+    // The blank designer opens; no create form, and no record exists yet.
     await expect(app.page.locator('.p-dialog')).toHaveCount(0);
     await expect(app.page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
+    expect(await count(), 'No cassette may exist before the first save').toBe(before);
+
+    // The first save creates the record and fills its payload.
+    await app.page.getByRole('button', { name: 'Save', exact: true }).first().click();
+    await expect(async () => {
+      expect(await count()).toBe(before + 1);
+    }).toPass({ timeout: 30_000 });
+    const rows = await (await app.request.get('/api/instances/cassette')).json();
+    const created = rows[rows.length - 1];
+    test.info().annotations.push({ type: 'artifact', description: `created cassette ${created._id}` });
+    const record = await (await app.request.get(`/api/instances/cassette/${created._id}`)).json();
+    expect(record?.payload?.fileId, 'Expected the saved OCCS document as the record payload').toBeTruthy();
+
     await app.expectCleanRuntime();
   });
 

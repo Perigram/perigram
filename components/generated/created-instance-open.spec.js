@@ -79,4 +79,17 @@ describe('created-entity open target', () => {
     });
     expect(target).toMatchObject({ kind: 'workspace', instanceId: 'c-3', name: 'Mapped' });
   });
+
+  it('prefers the created entity of the action\'s own type in chained-construct runs', () => {
+    // A process chaining further constructs after the action's own: the
+    // run result carries every created entity, and the LAST step must
+    // never bind a foreign record to the action's destination.
+    const action = { typeId: 'cassette', construction: { mode: 'editor' } };
+    const result = { result: { branches: [
+      { items: [{ entity: { _id: 'c-chain', type: 'cassette', name: 'Tray' } }] },
+      { items: [{ entity: { _id: 'i-other', type: 'e2e-item', name: 'Side effect' } }] }
+    ] } };
+    expect(resolveCreatedInstanceOpen({ action, result, manifest: [] }))
+      .toMatchObject({ kind: 'workspace', typeId: 'cassette', instanceId: 'c-chain' });
+  });
 });

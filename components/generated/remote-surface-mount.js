@@ -20,9 +20,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
-import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
-import { createdEntity } from '~/components/generated/created-instance-open.js';
-import { instancePayloadPersistence, instancePayloadFileUrl } from './file-surfaces.js';
+import { instancePayloadPersistence, instancePayloadFileUrl, runBlankFileConstruct } from './file-surfaces.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
 // The remote-surface mount (SPEC §Plugin marketplace, owner decision
@@ -145,18 +143,11 @@ export function editorSurfacePersistence(typeId) {
 
   return {
     async createBlank() {
-      const action = authStore.actionManifest
-        .filter(isGeneratedSurfaceAction)
-        .find(candidate => candidate.actionKind === 'createInstance' && candidate.typeId === typeId);
-      if (!action) throw new Error(`No compiled create action for ${typeId}`);
       // Blank means blank (SPEC §4 editor protocol): the instance enters
       // unnamed — naming is the type's identifier row or the rename
-      // channel, never a create-time side channel.
-      const result = await instances.runAction({ actionId: action.id, data: {} });
-      const entity = createdEntity(action, result);
-      const id = String(entity?._id || entity?.id || '');
-      if (!id) throw new Error(`${typeId} creation returned no instance`);
-      return entity;
+      // channel, never a create-time side channel. The construct core
+      // single-homes in file-surfaces.
+      return await runBlankFileConstruct(typeId);
     },
     async loadDocument(record, { mimeType = 'application/json' } = {}) {
       const url = instancePayloadFileUrl(record?.payload);

@@ -16,6 +16,13 @@ import { detailRouteForInstance, instanceIdentifier } from '~/components/generat
 //    guarantees the editor is reachable, not a silent close;
 // 4. a toast fallback so a create without any destination is never
 //    silent.
+// The editor-protocol predicate (SPEC §UI): unscoped editor creates open
+// the blank editor and the first save creates; context-scoped ones run
+// the construct directly with their binding.
+export function isEditorProtocolCreate(action = {}) {
+  return (action.construction?.mode ?? action.via) === 'editor';
+}
+
 export function resolveCreatedInstanceOpen({ action = {}, result = null, screenKey = '', manifest = [] } = {}) {
   const entity = createdEntity(action, result);
   const typeId = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId || '';
@@ -37,18 +44,33 @@ export function resolveCreatedInstanceOpen({ action = {}, result = null, screenK
 }
 
 // The one create-result entity extractor (shared by the created-open
-// contract and the editor surface mount's blank-create callback).
+// contract and the editor surface mount's blank-create callback). A run
+// may chain further constructs after the action's own — the result's
+// created items are filtered to the action's target type first, so the
+// chain's last step never binds a foreign record to the action's
+// destination; a single item of another shape keeps the legacy behavior.
 export function createdEntity(action = {}, result = null) {
+  const preferredType = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId || '';
+  const entityOf = item => item?.entity || item;
+  const ofActionType = items => {
+    if (!preferredType) return null;
+    const matching = items.filter(item => entityOf(item)?.type === preferredType);
+    return matching.length ? entityOf(matching[0]) : null;
+  };
   if (!result || typeof result !== 'object') return null;
   const tree = Array.isArray(result?.branches) ? result : result?.result;
   if (Array.isArray(tree?.branches)) {
     const items = tree.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error);
-    return items.length === 1 ? (items[0].entity || items[0]) : null;
+    if (items.length === 1) return entityOf(items[0]);
+    return ofActionType(items) || null;
   }
   const createdTree = Array.isArray(result?.created?.branches)
     ? result.created.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error)
     : null;
-  if (createdTree) return createdTree.length === 1 ? (createdTree[0].entity || createdTree[0]) : null;
+  if (createdTree) {
+    if (createdTree.length === 1) return entityOf(createdTree[0]);
+    return ofActionType(createdTree) || null;
+  }
   if (result.created) return result.created;
   if (!result.owner) return result.entity || result;
   return null;

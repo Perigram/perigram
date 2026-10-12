@@ -303,7 +303,8 @@ import { usePayloadUpload } from '~/composables/usePayloadUpload.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/components/generated/action-visibility.js';
-import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
@@ -432,6 +433,14 @@ async function executeAction(action, entity = null, context = {}) {
       pendingEntity.value = { entity, context };
       artifactCreatorField.value = { id: 'artifact', creator: artifactCreator };
       artifactCreatorVisible.value = true;
+      return;
+    }
+    // Unscoped editor creates defer to the editor (SPEC §UI): the blank
+    // page opens and the first save creates the record. A context-bound
+    // create keeps the construct — its binding rides the run.
+    if (isCreateAction(action) && isEditorProtocolCreate(action)
+      && !visiblePromptFields(action, entity, context).length
+      && openBlankFileEditor(action.typeId)) {
       return;
     }
     if ((isCreateAction(action) || isUpdateAction(action) || action.actionKind === 'runCommand') && visiblePromptFields(action, entity, context).length) {

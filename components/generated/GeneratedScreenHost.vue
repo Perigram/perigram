@@ -29,7 +29,8 @@ import { useStateController } from '~/composables/useStateController.js';
 import { applyOptimisticState } from '~/utils/optimistic-state.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
-import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
@@ -176,6 +177,10 @@ function labelForState(typeId = '', value = '') {
 async function runGeneratedAction(action, data = {}, context = {}) {
   const scope = props.screen?.scope || {};
   const instanceId = context.instance?.id || scope.instanceId || null;
+  // Unscoped editor creates defer to the editor (SPEC §UI): the blank
+  // page opens and the first save creates the record. A context-bound
+  // create arrives with its binding in `data` and keeps the construct.
+  if (isEditorProtocolCreate(action) && !Object.keys(data || {}).length && openBlankFileEditor(action.typeId)) return;
   try {
     const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });
     // Created entities open in the home workspace (the same-tab

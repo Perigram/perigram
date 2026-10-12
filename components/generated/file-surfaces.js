@@ -5,7 +5,11 @@ import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useInstancesStore } from '~/stores/instances';
+import { useAuthStore } from '~/stores/auth';
 import { unref } from 'vue';
+import { isGeneratedSurfaceAction } from './action-visibility.js';
+import { createdEntity } from './created-instance-open.js';
+import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 
 /**
@@ -66,30 +70,59 @@ export const fileSurfaceRegistry = {
 };
 
 /**
+ * The blank construct an editor's first save rides (SPEC §UI): runs the
+ * type's compiled create action with empty data — blank means blank, the
+ * instance enters unnamed — and returns the created entity. The single
+ * home of the channel; the plugin persistence's createBlank and the
+ * instance persistence's deferred save delegate here.
+ */
+export async function runBlankFileConstruct(typeId = '') {
+  const authStore = useAuthStore();
+  const instances = useInstancesStore();
+  const action = (authStore.actionManifest || [])
+    .filter(isGeneratedSurfaceAction)
+    .find(candidate => ['createInstance', 'createEntity'].includes(candidate.actionKind) && candidate.typeId === typeId);
+  if (!action) throw new Error(`No compiled create action for ${typeId}`);
+  const result = await instances.runAction({ actionId: action.id, data: {} });
+  const entity = createdEntity(action, result);
+  const id = String(entity?._id || entity?.id || '');
+  if (!id) throw new Error(`${typeId} creation returned no instance`);
+  return entity;
+}
+
+/**
  * Generic instance-backed persistence: loads text from the payload
  * download URL, saves through the revisioned instance payload transport
- * (which records an immutable content revision per save). Editors'
- * surface adapters project this onto their own contract shapes.
+ * (which records an immutable content revision per save). An unbound
+ * record (the blank editor page) defers to the first save — the save
+ * runs the blank construct and binds the created id for every later
+ * call. Editors' surface adapters project this onto their own contract
+ * shapes.
  */
 export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 'application/octet-stream') {
-  const payloadUrl = instancePayloadFileUrl(entity.payload);
-  const instanceId = String(entity._id || '');
+  let instanceId = String(entity._id || entity.id || '');
   return {
     title: entity.name || '',
     load: async () => {
+      if (!instanceId) return '';
+      const payloadUrl = instancePayloadFileUrl(entity.payload);
       if (!payloadUrl) return '';
       const response = await fetch(payloadUrl);
       if (!response.ok) return '';
       return await response.text();
     },
     save: async (text, filename) => {
+      if (!instanceId) {
+        const created = await runBlankFileConstruct(typeId);
+        instanceId = String(created._id || created.id || '');
+      }
       const form = new FormData();
       form.append('file', new File([text], filename, { type: mimeType }));
       return await $fetch(`/api/instances/${encodeURIComponent(typeId)}/${encodeURIComponent(instanceId)}/payload`, { method: 'PUT', body: form });
     },
     rename: async (name) => {
       const trimmed = String(name || '').trim();
-      if (!trimmed) return null;
+      if (!trimmed || !instanceId) return null;
       return await useInstancesStore().mutateDirect(useInstancesStore().canonicalTypeKey(typeId), 'PATCH', {
         id: instanceId,
         body: { name: trimmed },
@@ -236,6 +269,23 @@ export function resolveFileSurface(editors, typeId = '', surfaces = null) {
       props: page => ({ record: page.entity, typeId, surface: declared })
     }
   };
+}
+
+/**
+ * Opens the type's bound editor page blank (SPEC §UI): the create button
+ * of an editor-protocol type opens the editor with no record — the first
+ * save creates the instance and fills its payload in one act. Returns
+ * false when no editor page resolves (the caller falls back to running
+ * the construct directly).
+ */
+export function openBlankFileEditor(typeId = '') {
+  // Desktop only: mobile has no panes, and a silent no-op would swallow
+  // the create — mobile falls back to the direct construct and the
+  // routed detail surface (the editor opens through its header action).
+  if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)')?.matches) return false;
+  const surface = resolveFileSurface(undefined, typeId);
+  if (!surface?.workspacePage) return false;
+  return openWorkspacePageFromChrome({ pageId: surface.surface, typeId, entity: null });
 }
 
 /**

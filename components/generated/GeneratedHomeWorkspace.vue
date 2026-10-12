@@ -317,6 +317,18 @@ const sectionItems = computed(() => sections.value.flatMap(section => section.it
 const workspaceEntityItems = computed(() => [...sectionItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
+  // Blank editor pages (SPEC §UI): a singleton entity-less tab keyed by
+  // the page id — the editor's first save creates the record.
+  if (!reference.instanceId) {
+    return {
+      key: reference.key,
+      kind: 'page',
+      pageId: reference.pageId,
+      entity: null,
+      typeId: reference.typeId || '',
+      label: workspacePageLabel(reference.pageId)
+    };
+  }
   const entityItem = workspaceEntityItems.value.find(item => (
     item.type === reference.typeId
     && instanceId(item.entity) === reference.instanceId
@@ -743,6 +755,13 @@ function screenLabelFor(screenKey = '') {
     candidate.screenKey === screenKey || candidate.id === screenKey
   ));
   return localizedLabel({ te, t }, screen?.typeId ? typeLabelKey(screen.typeId) : '', screen?.label || screen?.typeId || screenKey);
+}
+
+// Blank editor tabs label from the page registry's locale key — there is
+// no record to title from until the first save creates it.
+function workspacePageLabel(pageId = '') {
+  const page = generatedWorkspacePages().find(candidate => candidate.id === pageId);
+  return localizedLabel({ te, t }, page?.labelKey || '', pageId);
 }
 
 // Instance tab titles follow the render identity contract over the
@@ -1369,6 +1388,22 @@ function openWorkspacePage(request = {}) {
     return;
   }
   if (definition.typeId !== request.typeId) return;
+
+  // The blank editor page (SPEC §UI): no record yet — the first save
+  // creates it. A singleton entity-less tab per surface.
+  if (!instanceId(request.entity)) {
+    const blankKey = `page:${definition.id}`;
+    if (!openedPageRefs.value.some(page => page.key === blankKey)) {
+      openedPageRefs.value = [...openedPageRefs.value, {
+        key: blankKey,
+        pageId: definition.id,
+        typeId: definition.typeId,
+        instanceId: ''
+      }];
+    }
+    if (activePane.value) selectPaneTab(activePane.value.id, blankKey);
+    return;
+  }
 
   rememberWorkspaceEntity(request.typeId, request.entity);
 
