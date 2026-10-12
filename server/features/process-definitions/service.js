@@ -13,11 +13,13 @@ import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import {
   compileProcessDefinition,
+  constructionInputsForContract,
   diffProcessContracts,
   hasCanonicalProcessSource,
   normalizeProcessDefinition,
   PROCESS_DATAFLOW_VERSION,
   previewProcessDataflow,
+  resolveConstructionMode,
   resumeProcessRun,
   serializeProcessResult,
   validateRoundTrip,
@@ -1618,7 +1620,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     ? processRelationContracts(record, processData, domain)
     : [];
   if (operation === 'cts.construct') {
-    const constructionDraft = processConstructionInputRecord(record, inputs);
+    const constructionDraft = processConstructionInputRecord(record, inputs, domain);
     let blockDraft = processBlockInputRecord(record, inputs);
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
@@ -1892,9 +1894,9 @@ export function constructProvenance(record = {}, constructionDraft = {}, targetS
   };
 }
 
-export function processConstructionInputRecord(record = {}, inputs = {}) {
+export function processConstructionInputRecord(record = {}, inputs = {}, domain = getDomain()) {
   const result = {};
-  for (const input of record.construction?.inputs || []) {
+  for (const input of effectConstructionInputs(record, domain)) {
     const id = input.id || input.path;
     if (!id) continue;
     const supplied = Object.hasOwn(inputs, id) ? inputs[id] : input.default;
@@ -1911,6 +1913,30 @@ export function processConstructionInputRecord(record = {}, inputs = {}) {
     setByPath(result, input.path || id, value);
   }
   return result;
+}
+
+// The effect's construction inputs follow the catalog's single derivation:
+// the contract inputs for the record's resolved mode (authored entries
+// merging over their contract twins, authored extras kept), the record's
+// own list only where the domain declares no contract for the type. The
+// persisted record's `construction.inputs` is an authoring-time copy that
+// can go stale (authored against a domain that lacked the declared
+// types), and the ports plus the compiled prompt contract already speak
+// the live domain — the draft mapping must read the same list or a
+// prompted value that arrived through a port is dropped.
+function effectConstructionInputs(record = {}, domain = {}) {
+  const authored = Array.isArray(record.construction?.inputs) ? record.construction.inputs : [];
+  const contract = domain.construction?.[normalizeTypeId(record.typeId || '')] || null;
+  if (!contract) return authored;
+  const derived = constructionInputsForContract(contract, resolveConstructionMode(record, contract));
+  if (!derived.length) return authored;
+  const authoredById = new Map(authored.map(input => [input.id || input.path, input]));
+  const merged = derived.map(input => {
+    const override = authoredById.get(input.id || input.path);
+    return override ? { ...input, ...override } : input;
+  });
+  const mergedIds = new Set(merged.map(input => input.id || input.path));
+  return [...merged, ...authored.filter(input => !mergedIds.has(input.id || input.path))];
 }
 
 function relationInputValue(supplied) {

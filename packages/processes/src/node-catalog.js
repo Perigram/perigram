@@ -250,14 +250,22 @@ export function constructionInputsForContract(contract = {}, mode = '') {
   return [...modeInputs, ...edgeInputs.filter(input => !seen.has(input?.id || input?.path))];
 }
 
+// The construction mode a record executes: its authored mode when the
+// contract declares it, else the contract default, else the first
+// declared mode. Shared by the port projection and the server's effect
+// boundary so ports and drafts always speak one mode.
+export function resolveConstructionMode(record = {}, contract = {}) {
+  const modes = contract.modes?.length ? contract.modes : ['genericCreate'];
+  return record.construction?.mode && modes.includes(record.construction.mode)
+    ? record.construction.mode
+    : (modes.includes(contract.defaultMode) ? contract.defaultMode : modes[0]);
+}
+
 function nativeConstructionPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   if (!typeId) return { inputs: [declarationTypePin(record)], outputs: [] };
   const contract = context.domain?.construction?.[typeId] || {};
-  const modes = contract.modes?.length ? contract.modes : ['genericCreate'];
-  const mode = record.construction?.mode && modes.includes(record.construction.mode)
-    ? record.construction.mode
-    : (modes.includes(contract.defaultMode) ? contract.defaultMode : modes[0]);
+  const mode = resolveConstructionMode(record, contract);
   const declaredInputs = constructionInputsForContract(contract, mode);
   const hasDomainContract = Boolean(context.domain?.construction?.[typeId]);
   const constructionInputs = declaredInputs.length
