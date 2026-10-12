@@ -870,21 +870,52 @@ describe('create dialog input resolution', () => {
         name: 'Bin',
         edges: { children: { tPart1Id: { types: ['t-part-1'] } } }
       },
-      { id: 't-part-1', class: 'item', fields: { note: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } } }
+      {
+        id: 't-part-1',
+        class: 'item',
+        identifier: 'note',
+        fields: { note: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } }
+      }
     ]
   };
   const type = bundle.types[1];
 
-  it('maps slot-qualified construction inputs onto declared fields', () => {
+  it('maps flat-wire construction inputs onto declared fields', () => {
     const rows = resolveCreateDialogInputs(
-      { construction: { inputs: ['name', 'data.note', 'specs.width'] } },
+      { construction: { inputs: ['fields.note', 'fields.width'] } },
       type,
       bundle
     );
-    expect(rows.map(row => row.id)).toEqual(['name', 'data.note', 'specs.width']);
-    expect(rows[0]).toMatchObject({ label: 'Name', descriptor: { base: 'string' } });
-    expect(rows[1]).toMatchObject({ label: 'Note', descriptor: { base: 'string' } });
-    expect(rows[2]).toMatchObject({ descriptor: { base: 'quantity', unit: 'mm' } });
+    expect(rows.map(row => row.id)).toEqual(['fields.note', 'fields.width']);
+    expect(rows[0]).toMatchObject({ label: 'Note', descriptor: { base: 'string' } });
+    expect(rows[1]).toMatchObject({ descriptor: { base: 'quantity', unit: 'mm' } });
+  });
+
+  it('requires the identifier row and carries the compiled required flag', () => {
+    // The naming law: the identifier row's value is the record's title,
+    // so the create dialog never submits it empty — required regardless
+    // of nullability, while every other row follows the compiled flag.
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: ['fields.note', 'fields.width'] },
+        inputPolicy: {
+          fields: [
+            { id: 'fields.note', path: 'fields.note', type: 'string', required: false },
+            { id: 'fields.width', path: 'fields.width', type: 'number', required: true }
+          ]
+        }
+      },
+      type,
+      bundle
+    );
+    expect(rows[0]).toMatchObject({ required: true });
+    expect(rows[1]).toMatchObject({ required: true });
+    const unflagged = resolveCreateDialogInputs(
+      { construction: { inputs: ['fields.width'] } },
+      type,
+      bundle
+    );
+    expect(unflagged[0].required).toBe(false);
   });
 
   it('resolves lineage inputs to parent pickers over reverse containment', () => {
@@ -935,7 +966,7 @@ describe('create dialog input resolution', () => {
         inputPolicy: {
           fields: [
             { id: 'name', label: 'Name', path: 'name', type: 'string' },
-            { id: 'payload', label: 'File', path: 'payload', type: 'file' }
+            { id: 'payload', label: 'File', path: 'payload', type: 'file', required: true }
           ]
         }
       },
@@ -943,7 +974,7 @@ describe('create dialog input resolution', () => {
       bundle
     );
     expect(rows.map(row => row.id)).toEqual(['name', 'payload']);
-    expect(rows[1]).toMatchObject({ label: 'File', descriptor: { base: 'blob' }, span: 'full' });
+    expect(rows[1]).toMatchObject({ label: 'File', descriptor: { base: 'blob' }, span: 'full', required: true });
   });
 
   it('keeps inputs that resolve to nothing hidden', () => {

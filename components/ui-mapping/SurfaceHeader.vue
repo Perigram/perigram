@@ -25,7 +25,7 @@
         <Avatar :icon="glyph" shape="circle" size="large" />
         <div class="flex min-w-0 flex-1 flex-col gap-0.5 mt-2 ">
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
-          <span class="text-supporting text-muted truncate">{{ type?.name }} · {{ instance.id }}</span>
+          <span v-if="typeLabel" class="text-supporting text-muted truncate">{{ typeLabel }}</span>
         </div>
       </div>
       <div :class="LAYOUT.row">
@@ -129,6 +129,7 @@ import {
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import StateTag from './StateTag.vue';
+import { useLocalizedTypeLabel } from './type-labels.js';
 import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
 import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { openInstanceChat } from '~/utils/instance-chat.js';
@@ -156,6 +157,10 @@ const props = defineProps({
 
 const emit = defineEmits(['run', 'transition', 'toggle-edit', 'refresh']);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
+// The subtitle names the class through the single label seam — instance
+// ids are private display vocabulary and never render (SPEC §UI).
+const { localizedTypeLabel } = useLocalizedTypeLabel();
+const typeLabel = computed(() => localizedTypeLabel(props.type || {}));
 
 // The header's conversation entry: same seam as the card/pane chat
 // actions — a user-typed record opens the direct thread, every other

@@ -73,12 +73,12 @@ const projectedAction = {
   trigger: { mode: 'manual' },
   access: { level: 'write', grants: [{ roleId: 'role_op', level: 'write' }] },
   state: { to: 'new' },
-  construction: { mode: 'genericCreate', inputs: ['name', 'data.note'] },
-  fields: ['name', 'fields.note', 'field:name'],
+  construction: { mode: 'genericCreate', inputs: ['fields.name', 'fields.note'] },
+  fields: ['fields.name', 'fields.note', 'field:name'],
   actionId: 'ctor',
   typeId: 't-k3x9fj2mqa',
   parentTypeId: null,
-  inputPolicy: { prompt: true, fields: [{ id: 'name', type: 'string', prompt: true, required: true }] }
+  inputPolicy: { prompt: true, fields: [{ id: 'fields.name', path: 'fields.name', type: 'string', prompt: true, required: true }] }
 };
 
 const screens = [

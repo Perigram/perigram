@@ -60,5 +60,14 @@ describe('ui-mapping showcase SSR smoke', () => {
     expect(html).toContain('data-testid="gantt-collection"');
     expect(html).toContain('data-testid="calendar-collection"');
     expect(html).toContain('data-testid="board-card"');
+    // Instance ids are private display vocabulary (SPEC §UI): no surface
+    // renders them as text — record headers subtitle the type label, and
+    // ids that ride attributes (the preview seed) are not display.
+    const { generateUiMappingWorld } = await import('~/test-data/ui-mapping-random.js');
+    const world = generateUiMappingWorld(SEED);
+    const text = html.replace(/<[^>]*>/g, '');
+    for (const id of Object.values(world.instances || {}).flat().slice(0, 20).map(instance => instance.id)) {
+      expect(text).not.toContain(id);
+    }
   });
 });

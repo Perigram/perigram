@@ -70,6 +70,14 @@ inside its parent) never prompts that binding: the context's reference is
 submitted with the create, and the form prompts only what the context
 cannot supply. `upload`/`capture` creates prompt only the file.
 
+Generated creates enforce their construction contract (owner decision
+2026-10-12): the form prompts the compiled inputs in the flat-wire
+vocabulary the contract speaks, a required input gates the submit, and
+the type's identifier field is required above all — records are created
+named, and "Unnamed" stays a degradation for legacy rows, never a create
+outcome. Record headers carry the identifier value as title with the
+type label as subtitle; instance ids are private and never render.
+
 Mobile devices scale the whole UI through the root font-size (the rem
 basis PrimeVue components and the typography roles share). Mobile record
 opens ROUTE to the compiled detail screen — no popup middleman.
