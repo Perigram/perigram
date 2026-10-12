@@ -125,7 +125,7 @@ test.describe('home and entity UI', () => {
       expect(await count()).toBe(before + 1);
     }).toPass({ timeout: 30_000 });
     const rows = await (await app.request.get('/api/instances/cassette')).json();
-    const created = rows[rows.length - 1];
+    const created = [...rows].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
     test.info().annotations.push({ type: 'artifact', description: `created cassette ${created._id}` });
     const record = await (await app.request.get(`/api/instances/cassette/${created._id}`)).json();
     expect(record?.payload?.fileId, 'Expected the saved OCCS document as the record payload').toBeTruthy();
