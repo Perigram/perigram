@@ -251,9 +251,19 @@ describe('checkSurfaceModule', () => {
 
   it('refuses modules importing host externals', async () => {
     const vueImport = writeModule(`import { h } from 'vue';\nexport default () => ({ render: () => null });`);
-    await expect(checkSurfaceModule(vueImport)).rejects.toThrow(/must not import host externals/);
+    await expect(checkSurfaceModule(vueImport)).rejects.toThrow(/self-contained.*found: vue/);
     const primeImport = writeModule(`import Button from 'primevue/button';\nexport default () => ({ render: () => null });`);
     await expect(checkSurfaceModule(primeImport)).rejects.toThrow(/primevue/);
+  });
+
+  it('refuses npm dependencies anywhere in the module graph, not just the entry', async () => {
+    const leaf = writeModule(`export const parse = () => null;`);
+    const offender = writeModule(`import DxfParser from 'dxf-parser';\nexport default () => ({ render: () => null });`);
+    const entry = writeModule(`import { parse } from './${leaf.split('/').pop()}';\nexport default () => ({ render: () => parse() });`);
+    await expect(checkSurfaceModule(offender)).rejects.toThrow(/dxf-parser/);
+    await expect(checkSurfaceModule(entry)).resolves.toBe(true);
+    const graphOffender = writeModule(`import { parse } from './${offender.split('/').pop()}';\nexport default () => ({ render: () => parse() });`);
+    await expect(checkSurfaceModule(graphOffender)).rejects.toThrow(/dxf-parser/);
   });
 
   it('refuses a missing factory and a factory that returns nothing', async () => {

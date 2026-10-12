@@ -1,4 +1,4 @@
-import DxfParser from 'dxf-parser';
+import DxfParser from '../assets/vendor/dxf-parser/index.js';
 
 export const OCCS_PROFILE_KINDS = Object.freeze([
   'hanger',
