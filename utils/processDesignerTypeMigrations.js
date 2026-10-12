@@ -76,7 +76,8 @@ export function declarationVocabulary(nodes = [], edges = [], storedTypes = []) 
 // rename gesture and yields ONE rename-field row covering both changes;
 // unpaired adds become add-default-field rows; remove-state becomes a
 // rename-enum-value row targeting the type's retained states; remove-edge
-// is coverable by nothing (SPEC §11) and renders blocked.
+// becomes a confirm-only remove-edge row (execution detaches the stored
+// lineage key — children of the edge become roots).
 export function typeMigrationRows(plan = {}, vocabulary = {}) {
   const changes = plan.changes || [];
   const fieldLabel = fieldId => vocabulary?.fields?.[fieldId] || fieldId;
@@ -124,6 +125,15 @@ export function typeMigrationRows(plan = {}, vocabulary = {}) {
         state: change.state,
         targets,
         to: targets.length === 1 ? targets[0] : null
+      });
+      continue;
+    }
+    if (change.kind === 'remove-edge') {
+      rows.push({
+        key: `remove-edge:${change.edge}`,
+        kind: 'remove-edge',
+        edge: change.edge,
+        subject: change.edge
       });
       continue;
     }
@@ -183,6 +193,7 @@ export function stepsFromTypeMigrationRows(rows = [], answers = {}) {
       continue;
     }
     if (row.kind === 'remove-field') steps.push({ kind: 'remove-field', field: row.field });
+    if (row.kind === 'remove-edge') steps.push({ kind: 'remove-edge', edge: row.edge });
   }
   return steps;
 }

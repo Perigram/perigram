@@ -12,11 +12,13 @@ import { collectionForClass } from './repository.js';
 import * as entityEventService from '../instance-events/service.js';
 
 // Pure transform: one document through all steps in one pass. Returns the
-// rewritten flat fields, changed axis paths, and the labels of steps that
+// rewritten flat fields, the rewritten lineage (when an edge step detached
+// a stored key), changed axis paths, and the labels of steps that
 // applied. A state rename targets one exact axis and rewrites both an exact
 // leaf and any active descendant path beneath a renamed parent.
 export function transformInstanceForSteps(doc = {}, steps = []) {
   const fields = { ...(doc.fields || {}) };
+  const lineage = doc.lineage && typeof doc.lineage === 'object' ? { ...doc.lineage } : null;
   const stateChanges = {};
   const applied = [];
   for (const step of steps) {
@@ -56,15 +58,26 @@ export function transformInstanceForSteps(doc = {}, steps = []) {
           applied.push(step.kind);
         }
         break;
+      case 'remove-edge':
+        // The removed edge detaches its stored parent key (SPEC §11):
+        // children of the edge become roots. Foreign-type children walk
+        // their own collections in applyTypeMigrationSteps; the declaring
+        // type's own documents (self-containment) ride the main loop.
+        if (lineage && step.lineageKey && Object.hasOwn(lineage, step.lineageKey)) {
+          delete lineage[step.lineageKey];
+          applied.push(step.kind);
+        }
+        break;
       default:
         throw new Error(`unknown migration step ${step.kind}`);
     }
   }
-  return { fields, stateChanges, applied };
+  return { fields, ...(lineage ? { lineage } : {}), stateChanges, applied };
 }
 
 export async function applyTypeMigrationSteps({
-  declaration = {}, organizationId = null, steps = [], toVersion = null, actor = null
+  declaration = {}, organizationId = null, steps = [], toVersion = null, actor = null,
+  collectionForType = null
 } = {}) {
   if (!declaration.id || !organizationId || toVersion == null) {
     throw new Error('type migration requires declaration id, organizationId, and toVersion');
@@ -73,6 +86,46 @@ export async function applyTypeMigrationSteps({
   const db = await connectDB();
   const counts = {};
   const failures = [];
+
+  // Foreign-child detach (SPEC §11 remove-edge): children of another type
+  // store the removed key in their own collection and must NOT receive the
+  // declaring type's version stamp — the walk is idempotent by the unset
+  // itself. `collectionForType` resolves a child type's collection from the
+  // registry view the caller already holds.
+  const detachWalks = [];
+  for (const step of steps) {
+    if (step.kind !== 'remove-edge' || !step.lineageKey || typeof collectionForType !== 'function') continue;
+    for (const childType of step.types || []) {
+      if (childType === declaration.id) continue;
+      const childCollection = collectionForType(childType);
+      if (childCollection) detachWalks.push({ childType, childCollection, lineageKey: step.lineageKey });
+    }
+  }
+  for (const { childType, childCollection, lineageKey } of detachWalks) {
+    const cursor = db.collection(childCollection).find({
+      type: childType,
+      organizationId: toFlexibleId(organizationId),
+      [`lineage.${lineageKey}`]: { $exists: true }
+    });
+    for await (const doc of cursor) {
+      try {
+        const update = await db.collection(childCollection).updateOne(
+          { _id: doc._id },
+          { $unset: { [`lineage.${lineageKey}`]: '' }, $set: { updatedAt: new Date().toISOString() } }
+        );
+        if (update?.modifiedCount) {
+          await entityEventService.publishEntityChanged(
+            { userId: actor || 'SYSTEM', organizationId: String(organizationId) },
+            { type: childType, id: String(doc._id), change: 'updated', reason: 'type-migration' }
+          );
+          counts['remove-edge'] = (counts['remove-edge'] || 0) + 1;
+        }
+      } catch (error) {
+        failures.push({ id: String(doc._id), error: error?.message || String(error) });
+      }
+    }
+  }
+
   // Behind documents only: finished documents carry the new stamp, so the
   // scan itself is the resume filter.
   const cursor = db.collection(collection).find({
@@ -82,8 +135,9 @@ export async function applyTypeMigrationSteps({
   });
   for await (const doc of cursor) {
     try {
-      const { fields, stateChanges, applied } = transformInstanceForSteps(doc, steps);
+      const { fields, lineage, stateChanges, applied } = transformInstanceForSteps(doc, steps);
       const set = { fields, typeVersion: toVersion, updatedAt: new Date().toISOString() };
+      if (lineage) set.lineage = lineage;
       for (const [axis, state] of Object.entries(stateChanges)) {
         set[`states.${axis}`] = state;
       }

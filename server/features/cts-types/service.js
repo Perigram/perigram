@@ -22,6 +22,7 @@ import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
+import { collectionForClass } from '../instances/repository.js';
 import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 
@@ -327,7 +328,14 @@ export async function defineType(declaration = {}, { organizationId, actor = nul
       organizationId,
       steps: plan.steps,
       toVersion: versioned.version,
-      actor
+      actor,
+      // remove-edge steps detach the stored key on FOREIGN child types
+      // too; the registry view right here resolves each child's
+      // collection (self-containment rides the declaring type's loop).
+      collectionForType: typeId => {
+        const child = registry.getType(String(typeId), organizationId);
+        return child ? collectionForClass(child.class) : null;
+      }
     });
     stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
       ...withoutMigrateSteps(versioned),

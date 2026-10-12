@@ -61,7 +61,7 @@
               @update:model-value="value => setAnswer(failure.typeId, row, value)"
             />
           </template>
-          <span v-else-if="row.kind === 'remove-field'" class="ml-auto text-supporting text-muted">
+          <span v-else-if="row.kind === 'remove-field' || row.kind === 'remove-edge'" class="ml-auto text-supporting text-muted">
             {{ $t('processDesigner.typeMigrationRemove') }}
           </span>
           <span v-else class="ml-auto text-supporting">{{ $t('processDesigner.typeMigrationBlocked') }}</span>
