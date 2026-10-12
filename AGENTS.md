@@ -6,7 +6,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2025-10-22
-updated: 2026-10-11
+updated: 2026-10-12
 ```
 
 
@@ -132,6 +132,12 @@ These rules are blocking, not advisory:
   unrelated work opportunistically.
 - Remove the session worktree after its branch has been merged, unless the
   user asks to keep it for inspection.
+- An OpenCode session's home directory is never a session worktree. Keep the
+  session homed at the primary checkout and reach worktree files by absolute
+  path. Before removing a session worktree, move any session still homed
+  inside it back to the primary checkout directory: deleting a worktree that
+  homes a session orphans that session — it vanishes from the session list
+  and cannot be resumed.
 - State risky assumptions before making changes.
 - Cite the contract: when a task's conclusion rests on a behavioral claim,
   name the README contract relied on. If no README states the behavior, that
