@@ -258,10 +258,12 @@ test.describe('process generated screens', () => {
 
     // Same-tab creation (SPEC §UI): the created record opens as a home
     // workspace pane tab, never a route outside home — the manifest's
-    // home screen owns the destination.
+    // home screen owns the destination. The opened tab renders the
+    // created record: the create lands its entity in the shared pool
+    // before opening, so the tab title and detail body carry the
+    // prompted identifier value.
     await expect(app.page).toHaveURL(/\/home$/);
-    // The construction landed through the live contract: the created
-    // record carries the prompted identifier value (its title source).
+    await expect(app.page.getByText(name).first()).toBeVisible({ timeout: 20000 });
     const list = await app.request.get(`/api/instances/${PARENT_TYPE}`);
     const rows = await list.json();
     const created = (Array.isArray(rows) ? rows : []).find(row => (row.fields || {}).name === name);

@@ -43,6 +43,21 @@ export function resolveCreatedInstanceOpen({ action = {}, result = null, screenK
   return { kind: 'toast', typeId, instanceId: identifier, name: displayName(entity) };
 }
 
+// Every create host lands its created entity in the shared instances pool
+// before opening the destination (the created-open contract's pool step,
+// see the component README): the opened tab's single source, its label,
+// and the type's list sections all read the pool, and the store's cached
+// list observations refetch only after an upsert marks them stale.
+export function landCreatedInstanceInPool(store = null, action = {}, result = null) {
+  if (!store?.upsertRecord || typeof store.canonicalTypeKey !== 'function') return null;
+  const entity = createdEntity(action, result);
+  const id = entity?._id ?? entity?.id;
+  const typeId = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId || '';
+  if (!id || !typeId) return null;
+  const typeKey = store.canonicalTypeKey(entity?.type || typeId);
+  return typeKey ? store.upsertRecord(typeKey, entity) : null;
+}
+
 // The one create-result entity extractor (shared by the created-open
 // contract and the editor surface mount's blank-create callback). A run
 // may chain further constructs after the action's own — the result's
