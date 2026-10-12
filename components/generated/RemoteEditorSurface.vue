@@ -69,7 +69,10 @@ onMounted(async () => {
     }
     mounted.value = createSurface(surfaceHostContext({ t, te, locale }, props.surface?.surfaceContract, hostIo));
     status.value = 'ready';
-  } catch {
+  } catch (error) {
+    // The failure state says so on the surface; the console keeps the
+    // cause — a swallowed module error is undiagnosable.
+    console.error('plugin surface module failed to mount', props.surface?.url, error);
     fail('warn', 'pluginSurfaces.unavailable');
   }
 });
