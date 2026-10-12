@@ -67,10 +67,10 @@ Detail editing follows the same rule: an `onPatch({ instance, patch })`
 prop enables the record-page edit affordances — the header Edit toggle
 (submit diffs the draft against the instance fields) and the per-field
 inline pencil (confirm patches that one field). RegionBlock maps
-changed field names onto the wire patch blocks (`name` →
-`identity.name`, everything else → `data.<field>`, the same mapping
-`processUpdate` writes) and re-emits both affordances as one `patch`
-event; without `onPatch` neither affordance renders.
+changed field names onto the flat §3 wire patch (the identifier `name`
+row writes the wire name slot, everything else `fields.<name>` — the
+same shape `processUpdate` writes) and re-emits both affordances as one
+`patch` event; without `onPatch` neither affordance renders.
 
 Region data states and the region header's in-place controls are shared
 surface concerns:
