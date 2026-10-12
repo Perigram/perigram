@@ -25,8 +25,12 @@ const OPERATOR_TOKEN = process.env.PLATFORM_OPERATOR_TOKEN || 'perigram-dev-oper
 test('a plugin-delivered editor surface installs and opens with zero app code', async ({ app }) => {
   test.setTimeout(240_000);
 
-  // The fixture executor: serves the surface modules the proxy fetches
-  // server-side (the install's endpoints point here).
+  // The fixture executor: serves the surface modules the app's module
+  // proxy fetches server-side. The install's endpoints must address the
+  // host as the APP sees it — in the compose dev stack the app container
+  // reaches the host through host.docker.internal (extra_hosts
+  // host-gateway), so the listener binds every interface.
+  const FIXTURE_EXECUTOR_ORIGIN = process.env.E2E_FIXTURE_EXECUTOR_ORIGIN || 'http://host.docker.internal:8799';
   const moduleSources = new Map([
     [FIXTURE_SURFACE_MODULE_PATH, FIXTURE_SURFACE_MODULE_SOURCE],
     [FIXTURE_PREVIEW_MODULE_PATH, FIXTURE_PREVIEW_MODULE_SOURCE]
@@ -39,10 +43,10 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
     }
     response.writeHead(200, { 'content-type': 'application/javascript' }).end(source);
   });
-  await new Promise(resolve => executor.listen(8799, '127.0.0.1', resolve));
+  await new Promise(resolve => executor.listen(8799, '0.0.0.0', resolve));
   const closeExecutor = () => new Promise(resolve => executor.close(resolve));
   app.trackCleanup(closeExecutor);
-  test.info().annotations.push({ type: 'fixture-executor', description: 'http://127.0.0.1:8799' });
+  test.info().annotations.push({ type: 'fixture-executor', description: FIXTURE_EXECUTOR_ORIGIN });
 
   const listing = fixtureSurfacePluginListing();
   const me = await (await app.request.get('/api/auth/me')).json();
