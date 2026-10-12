@@ -30,12 +30,32 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   const me = await (await app.request.get('/api/auth/me')).json();
   const organizationId = me.organizationId;
 
+  // Best-effort drain of a previous run's leftovers on this shared dev
+  // stack: live instances and a stale install both refuse the uninstall
+  // gate and 409 the fresh install.
+  await app.request.delete(`/api/organizations/${organizationId}/plugins/${FIXTURE_SURFACE_PLUGIN_ID}`, { failOnStatusCode: false });
+  try {
+    const stale = await (await app.request.get(`/api/instances/${FIXTURE_SURFACE_TYPE_ID}`)).json();
+    for (const record of Array.isArray(stale) ? stale : []) {
+      await app.request.delete(`/api/instances/${FIXTURE_SURFACE_TYPE_ID}/${record._id || record.id}`, { failOnStatusCode: false });
+    }
+  } catch { /* nothing to drain */ }
+  await app.request.delete(`/api/plugins/catalog/${FIXTURE_SURFACE_PLUGIN_ID}`, {
+    headers: { 'x-operator-token': OPERATOR_TOKEN },
+    failOnStatusCode: false
+  });
+
   const published = await app.request.post('/api/plugins/catalog', {
     headers: { 'x-operator-token': OPERATOR_TOKEN },
     data: listing
   });
   expect(published.ok(), await published.text()).toBeTruthy();
   app.trackCleanup(async () => {
+    // Shared dev-stack hygiene: drain this run's created records first so
+    // the uninstall's drain gate never refuses on a shared org.
+    for (const record of createdRecords) {
+      await app.request.delete(`/api/instances/${FIXTURE_SURFACE_TYPE_ID}/${record}`, { failOnStatusCode: false });
+    }
     await app.request.delete(`/api/organizations/${organizationId}/plugins/${FIXTURE_SURFACE_PLUGIN_ID}`, { failOnStatusCode: false });
     await app.request.delete(`/api/plugins/catalog/${FIXTURE_SURFACE_PLUGIN_ID}`, {
       headers: { 'x-operator-token': OPERATOR_TOKEN },
@@ -77,12 +97,10 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   const created = await app.createInstance(FIXTURE_SURFACE_TYPE_ID, { 'fields.name': 'Fixture Note One' });
   const id = String(created._id || created.id);
   expect(id, 'Expected the created fixture record id').toBeTruthy();
+  const createdRecords = [id];
 
-  // The modules are served by the plugin's real local executor; the app
-  // streams them to the browser same-origin through the plugin-module
-  // proxy.
   // The modules load same-origin through the app's plugin-module proxy
-  // (the served-URL assertions below pin the proxy path). The proxy's
+  // (the served-URL assertions above pin the proxy path). The proxy's
   // server-side fetch hop is unit-pinned (fetchSurfaceModule) and proven
   // live by the cassette designer specs against the real executor; here
   // the browser-side hop is intercepted hermetically so the mount

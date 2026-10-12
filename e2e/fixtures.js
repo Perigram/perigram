@@ -216,7 +216,17 @@ export const test = base.extend({
         const action = actions.find(item => item.actionKind === 'createEntity' && item.typeId === typeId);
         expect(action, `Expected a create action for ${typeId}`).toBeTruthy();
         const result = await helper.executeAction(action.id, { data });
-        return result.created || result.entity || result;
+        const created = result.created || result.entity || result;
+        // Create-time fields are construction prompts; protocol creates
+        // (editor/upload) prompt none of the rows (SPEC §UI), so a
+        // requested name rides the identity rename channel afterwards.
+        const name = data?.name || data?.['fields.name'];
+        const id = created?._id || created?.id;
+        if (name && id) {
+          const rename = await request.patch(`/api/instances/${typeId}/${id}`, { data: { name }, failOnStatusCode: false });
+          if (rename.ok()) return { ...created, name };
+        }
+        return created;
       },
       async expectCleanRuntime() {
         expect(errors, errors.join('\n')).toEqual([]);

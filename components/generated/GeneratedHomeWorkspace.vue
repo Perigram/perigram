@@ -1395,7 +1395,10 @@ function rememberWorkspaceEntity(typeId, entity) {
   if (!typeId || !id) return null;
   const key = entityKey(typeId, entity);
   const existing = workspaceEntityItems.value.find(item => item.key === key);
-  if (existing) return existing;
+  if (existing) {
+    hydrateWorkspaceEntityItem(existing);
+    return existing;
+  }
 
   const item = workspaceEntityItem(typeId, entity);
   openedEntityItems.value = [...openedEntityItems.value, item];
@@ -1406,7 +1409,28 @@ function rememberWorkspaceEntity(typeId, entity) {
       instanceId: id
     }];
   }
+  hydrateWorkspaceEntityItem(item);
   return item;
+}
+
+// Opened-entity items carry the real record, never a bare id stub: editor
+// pages render `page.entity` and the explorer nests over lineage, while
+// create-opens arrive with only the created id. A record already in the
+// pool replaces the stub immediately; anything else fetches once and
+// lands reactively.
+function hydrateWorkspaceEntityItem(item) {
+  const typeKey = instances.canonicalTypeKey(item.type);
+  const id = instanceId(item.entity);
+  if (!typeKey || !id) return;
+  if (item.entity && item.entity.name !== undefined) return;
+  const pooled = instances.recordFor(typeKey, id)?.dto;
+  if (pooled && pooled.name !== undefined) {
+    item.entity = pooled;
+    return;
+  }
+  instances.fetchInstance(typeKey, id).then(fetched => {
+    if (fetched && instanceId(fetched) === id && fetched.name !== undefined) item.entity = fetched;
+  }).catch(() => {});
 }
 
 function executeWorkspaceAction(action, entry = {}) {
