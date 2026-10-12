@@ -46,9 +46,10 @@ separate tab — they render per role under Roles.
 Popups (profile/org settings, org/user previews, floating call window,
 status badges) are raw PrimeVue: Popover/StandardDialog own the surface
 and chrome, no hand-rolled borders or !utility overrides on PrimeVue
-internals. Every standard popup can be expanded: PrimeVue's own maximize
-control is the popup-to-fullscreen affordance, and record popups step up
-to their page surface.
+internals. A record popup expands to its page: one explicit expand
+control steps the record up to its page surface (pane/route); no dead
+chrome — a type with no record surface never renders a popup link, and
+popups never carry duplicate or non-functional expansion buttons.
 
 Pages, layouts, and popups are unified and deslopped: management
 surfaces (organization, plugins, team, billing, partners, designer) never

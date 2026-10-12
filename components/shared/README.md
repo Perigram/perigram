@@ -628,8 +628,13 @@ screen through the generator host
 ([components/generated](../generated/README.md)) for instance types.
 The header carries the record's display name (never an id; resolved from
 the instances store cache, falling back to its readable-reference
-resolution) with the icon-only expand action beside it, and the dialog is
-`maximizable` — PrimeVue's own header toggle full-screens any popup. The
+resolution) with exactly one expansion affordance beside it: the
+icon-only expand action that steps the record up to its page. The
+composable's `openable(typeId)` is the guard: a type with neither a
+directory profile nor a resolvable detail screen has no record surface
+anywhere (panes stay silent for it too), so `open()` refuses it and
+callers (chat thread headers, message links) render plain text instead
+of a link — an empty popup shell with dead chrome never renders. The
 expand step-up renders only where it has somewhere to go: desktop always
 (the home pane tab), mobile only for records with a routed page — a
 compiled detail screen, or the **active organization**, whose real page
@@ -793,12 +798,10 @@ transcription stay in the host composer.
 - **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome. The root `error.vue` surface uses this primitive for failures and recovery actions.
 - **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains preset-owned.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and
-  responsiveness. Every standard dialog is maximizable — PrimeVue's own
-  maximize control is the popup-to-fullscreen affordance. The `full` size
-  is edge-to-edge on mobile with margins from `md` up; the `fill` prop
-  bounds the dialog root to the viewport and turns the content area into
-  a non-scrolling flex column (media viewers, call surfaces — content owns
-  the layout instead of the dialog scrolling).
+  responsiveness. The `full` size is edge-to-edge on mobile with margins
+  from `md` up; the `fill` prop bounds the dialog root to the viewport and
+  turns the content area into a non-scrolling flex column (media viewers,
+  call surfaces — content owns the layout instead of the dialog scrolling).
 - **Default confirmation host**: the app layout (`layouts/app.vue`) mounts the
   single default-group PrimeVue `ConfirmDialog`; feature surfaces call
   `useConfirm()` without a group and never mount their own host — a second

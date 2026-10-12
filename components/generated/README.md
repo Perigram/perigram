@@ -485,8 +485,9 @@ from the compiled manifest.
   and the selected key are persisted pane state. In-place replacement is a
   navigation step: the workspace keeps a per-pane history stack of the
   replaced content keys (session-only, capped), and the pane header
-  renders its Back control whenever the stack has a resolvable entry —
-  Back walks the pane's navigation path, skipping entries whose content
+  renders its Back control — always visible, disabled while the pane has
+  no history — so navigation stays discoverable; Back walks the pane's
+  navigation path, skipping entries whose content
   no longer resolves. Detail tab titles follow
   the one title resolver (`titleFor` from the mapping
   contract over the instances pool), so the declared identity field wins
