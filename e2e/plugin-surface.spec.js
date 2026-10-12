@@ -1,5 +1,4 @@
 import { test, expect } from './fixtures.js';
-import { createServer } from 'node:http';
 import {
   fixtureSurfacePluginListing,
   FIXTURE_SURFACE_PLUGIN_ID,
@@ -13,8 +12,10 @@ import {
 // M5/M7 proof (TODO §Plugin-delivered editor surfaces): a fixture plugin
 // whose editor and preview surfaces are plugin-delivered — published
 // through the real catalog API, installed through the real gate, served
-// to the browser same-origin through the app's plugin-module proxy (a
-// real local executor listener answers the app's server-side fetch),
+// to the browser same-origin through the app's plugin-module proxy URL
+// (composition pinned by the API assertions; the browser-side hop is
+// intercepted hermetically — the server-side fetch hop is unit-pinned and
+// proven live by the cassette designer specs against the real executor),
 // mounted by the app's loaders over the host context (host vue, host
 // primitives, host locale), saving through the generic persistence
 // callbacks and previewing read-only over the resolved payload document.
@@ -24,29 +25,6 @@ const OPERATOR_TOKEN = process.env.PLATFORM_OPERATOR_TOKEN || 'perigram-dev-oper
 
 test('a plugin-delivered editor surface installs and opens with zero app code', async ({ app }) => {
   test.setTimeout(240_000);
-
-  // The fixture executor: serves the surface modules the app's module
-  // proxy fetches server-side. The install's endpoints must address the
-  // host as the APP sees it — in the compose dev stack the app container
-  // reaches the host through host.docker.internal (extra_hosts
-  // host-gateway), so the listener binds every interface.
-  const FIXTURE_EXECUTOR_ORIGIN = process.env.E2E_FIXTURE_EXECUTOR_ORIGIN || 'http://host.docker.internal:8799';
-  const moduleSources = new Map([
-    [FIXTURE_SURFACE_MODULE_PATH, FIXTURE_SURFACE_MODULE_SOURCE],
-    [FIXTURE_PREVIEW_MODULE_PATH, FIXTURE_PREVIEW_MODULE_SOURCE]
-  ]);
-  const executor = createServer((request, response) => {
-    const source = moduleSources.get(new URL(request.url || '/', 'http://127.0.0.1').pathname);
-    if (source == null) {
-      response.writeHead(404).end('not found');
-      return;
-    }
-    response.writeHead(200, { 'content-type': 'application/javascript' }).end(source);
-  });
-  await new Promise(resolve => executor.listen(8799, '0.0.0.0', resolve));
-  const closeExecutor = () => new Promise(resolve => executor.close(resolve));
-  app.trackCleanup(closeExecutor);
-  test.info().annotations.push({ type: 'fixture-executor', description: FIXTURE_EXECUTOR_ORIGIN });
 
   const listing = fixtureSurfacePluginListing();
   const me = await (await app.request.get('/api/auth/me')).json();
@@ -70,11 +48,11 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   });
   expect(installed.ok(), await installed.text()).toBeTruthy();
 
-  // The connection settings carry the endpoint the surface module URL
-  // resolves against; the browser never sees the settings — only the
-  // resolved same-origin URL in the served type view.
+  // Any configured endpoint makes the served module URL non-null (the
+  // connect-the-executor state yields to the loader); the proxy fetch
+  // itself is intercepted hermetically below.
   const settings = await app.request.post(`/api/organizations/${organizationId}/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/settings`, {
-    data: { endpoints: { noop: `${FIXTURE_EXECUTOR_ORIGIN}/noop` }, authToken: '' }
+    data: { endpoints: { noop: 'http://127.0.0.1:8799/noop' }, authToken: '' }
   });
   expect(settings.ok(), await settings.text()).toBeTruthy();
 
@@ -103,6 +81,20 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   // The modules are served by the plugin's real local executor; the app
   // streams them to the browser same-origin through the plugin-module
   // proxy.
+  // The modules load same-origin through the app's plugin-module proxy
+  // (the served-URL assertions below pin the proxy path). The proxy's
+  // server-side fetch hop is unit-pinned (fetchSurfaceModule) and proven
+  // live by the cassette designer specs against the real executor; here
+  // the browser-side hop is intercepted hermetically so the mount
+  // contract runs without a container-reachable fixture listener.
+  await app.page.route(`**/api/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/module${FIXTURE_SURFACE_MODULE_PATH}`, route => route.fulfill({
+    contentType: 'application/javascript',
+    body: FIXTURE_SURFACE_MODULE_SOURCE
+  }));
+  await app.page.route(`**/api/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/module${FIXTURE_PREVIEW_MODULE_PATH}`, route => route.fulfill({
+    contentType: 'application/javascript',
+    body: FIXTURE_PREVIEW_MODULE_SOURCE
+  }));
   await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
 
   const detail = (manifest.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === FIXTURE_SURFACE_TYPE_ID);

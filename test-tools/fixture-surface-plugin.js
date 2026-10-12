@@ -48,8 +48,8 @@ export const FIXTURE_PREVIEW_MODULE_PATH = `/surfaces/${FIXTURE_PREVIEW_ID}.mjs`
 // The surface module the fixture serves: a factory over the host context
 // (no vue/primevue imports — the mount injects them), rendering the
 // opened record and saving a document through the persistence callbacks.
-// E2E serves this source from a real local executor listener; the app's
-// plugin-module proxy fetches it server-side.
+// E2E serves this source by intercepting the module's same-origin proxy
+// URL browser-side.
 export const FIXTURE_SURFACE_MODULE_SOURCE = `
 export default function createSurface({ vue, components, locale }) {
   const { h, ref } = vue;
