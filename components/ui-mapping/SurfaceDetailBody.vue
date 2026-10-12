@@ -8,64 +8,15 @@
         <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
           <span :class="LAYOUT.labelCell">{{ field.label }}</span>
           <div :class="LAYOUT.factCell">
-            <FieldControl
-              v-if="editing"
-              v-model="draft[field.name]"
-              :descriptor="field.descriptor"
-              variant="detail"
+            <InlineField
+              :field="field"
+              :editable="editable"
+              :editing="editing"
+              :draft="draft"
               :pool="pool"
               :bundle="bundle"
+              @inline-change="change => emit('inline-change', change)"
             />
-            <Inplace v-else-if="editable" closable>
-              <template #display>
-                <div class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5 transition-colors hover:bg-subtle">
-                  <FieldControl
-                    :model-value="inlineValue(field)"
-                    :descriptor="field.descriptor"
-                    variant="row"
-                    :pool="pool"
-                    :bundle="bundle"
-                  />
-                  <i class="pi pi-pencil text-muted shrink-0" />
-                </div>
-              </template>
-              <template #content="{ closeCallback }">
-                <div class="flex min-w-0 flex-1 items-center gap-2">
-                  <FieldControl
-                    v-model="inlineDraft[field.name]"
-                    :descriptor="field.descriptor"
-                    variant="detail"
-                    :pool="pool"
-                    :bundle="bundle"
-                  />
-                  <Button
-                    icon="pi pi-check"
-                    size="small"
-                    :aria-label="$t('uiMapping.save')"
-                    :title="$t('uiMapping.save')"
-                    @click="confirmInline(field); closeCallback()"
-                  />
-                  <Button
-                    icon="pi pi-times"
-                    size="small"
-                    severity="danger"
-                    text
-                    :aria-label="$t('uiMapping.discard')"
-                    :title="$t('uiMapping.discard')"
-                    @click="discardInline(field); closeCallback()"
-                  />
-                </div>
-              </template>
-            </Inplace>
-            <div v-else class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5">
-              <FieldControl
-                :model-value="inlineValue(field)"
-                :descriptor="field.descriptor"
-                variant="row"
-                :pool="pool"
-                :bundle="bundle"
-              />
-            </div>
           </div>
         </div>
         <div v-if="hiddenFactCount(group) > 0" :class="d.specRow">
@@ -100,12 +51,14 @@
       </Fieldset>
       <div v-else-if="structuralOf(group).length === 1" :class="d.specRow">
         <span class="text-body text-muted">{{ structuralOf(group)[0].label }}</span>
-        <FieldControl
-          :model-value="instance.fields?.[structuralOf(group)[0].name]"
-          :descriptor="structuralOf(group)[0].descriptor"
-          variant="row"
+        <InlineField
+          :field="structuralOf(group)[0]"
+          :editable="editable"
+          :editing="editing"
+          :draft="draft"
           :pool="pool"
           :bundle="bundle"
+          @inline-change="change => emit('inline-change', change)"
         />
       </div>
       <div
@@ -114,21 +67,14 @@
         class="flex w-full flex-col gap-1"
       >
         <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
-        <FieldControl
-          v-if="editing"
-          v-model="draft[field.name]"
-          :descriptor="field.descriptor"
-          variant="detail"
+        <InlineField
+          :field="field"
+          :editable="editable"
+          :editing="editing"
+          :draft="draft"
           :pool="pool"
           :bundle="bundle"
-        />
-        <FieldControl
-          v-else
-          :model-value="instance.fields?.[field.name]"
-          :descriptor="field.descriptor"
-          variant="row"
-          :pool="pool"
-          :bundle="bundle"
+          @inline-change="change => emit('inline-change', change)"
         />
       </div>
       <Accordion v-if="structuralOf(group).length > 1" :value="['0']" multiple class="w-full">
@@ -189,10 +135,9 @@ import Button from 'primevue/button';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import Fieldset from 'primevue/fieldset';
-import Inplace from 'primevue/inplace';
-import { reactive } from 'vue';
-import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, typeLabelKey, fieldLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
+import InlineField from './InlineField.vue';
 import InstanceChip from './InstanceChip.vue';
 import PreviewBox from './PreviewBox.vue';
 import HierarchyTree from './HierarchyTree.vue';
@@ -214,18 +159,7 @@ const props = defineProps({
 const emit = defineEmits(['toggle', 'inline-change', 'run']);
 const d = inject('uiMappingSpacing');
 
-const inlineDraft = reactive({});
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
-const inlineValue = (field) => {
-  if (!(field.name in inlineDraft)) inlineDraft[field.name] = props.instance.fields?.[field.name];
-  return inlineDraft[field.name];
-};
-const confirmInline = field => {
-  emit('inline-change', { name: field.name, value: inlineDraft[field.name] });
-};
-const discardInline = field => {
-  inlineDraft[field.name] = props.instance.fields?.[field.name];
-};
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
 
 const isLongString = descriptor => descriptor.base === 'string'
@@ -241,24 +175,29 @@ const groups = computed(() => resolveFieldGroups(props.type)
     ...group,
     fields: group.fields.map(field => ({
       ...field,
+      value: props.instance.fields?.[field.name],
       label: localizedLabel({ te, t }, fieldLabelKeyOf(field.name), field.label)
     }))
   })));
 const isQuantityMap = field => field.descriptor.base === 'map'
   && field.descriptor.itemType?.base === 'quantity';
-const inlineMapsOf = group => group.fields.filter(isQuantityMap);
+// Structural fields follow the scalar law: an unfilled field renders
+// nothing in display mode (empty panels are junk) and joins the surface
+// only while editing, where every declared field exposes its editor.
+const editableNow = field => props.editing || hasValue(field);
+const inlineMapsOf = group => group.fields.filter(field => isQuantityMap(field) && editableNow(field));
 const isRichStructure = field => {
-  const value = props.instance.fields?.[field.name];
+  const value = field.value;
   if (field.descriptor.base === 'blob') return false;
   if (value && typeof value === 'object' && !Array.isArray(value)) return Object.keys(value).length > 1;
   if (Array.isArray(value)) return value.length > 2;
   return typeof value === 'string' && value.length > 80;
 };
-const hasValue = field => props.instance.fields?.[field.name] !== null
-  && props.instance.fields?.[field.name] !== undefined
-  && props.instance.fields?.[field.name] !== '';
+const hasValue = field => field.value !== null
+  && field.value !== undefined
+  && field.value !== '';
 const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && (props.editing || hasValue(field)));
-const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field));
+const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
   const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);
   return outcome.mode === 'collapsed' ? outcome.visible : scalarsOf(group);

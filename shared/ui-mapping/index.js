@@ -880,19 +880,12 @@ export function localizedLabel(translator, key, fallback) {
   return translator.te(key) ? translator.t(key) : fallback;
 }
 
-// Create-dialog input resolution: compiled construction inputs are
-// slot-qualified row paths ('data.note', 'specs.width'), the identity
-// 'name', and lineage parent references ('lineage.<key>'), while the
-// type's authored fields are bare row names. One resolver maps every
-// input onto a dialog row: declared fields (matched by bare name or by
-// slot-qualified path) render through their descriptor, the identity name
-// renders as a plain string control, and a lineage input renders an
-// instance picker over the parent types whose children edges declare that
-// key for this type (reverse containment over the bundle). Inputs that
-// resolve to nothing stay hidden — typed constructor inputs owned by
-// editor surfaces keep their owners.
+// Create-dialog input resolution — the contract (flat-wire input
+// matching, the identifier-required law, row shapes) is canonical in
+// this module's README; keep this comment a pointer.
 export function resolveCreateDialogInputs(action = {}, type = null, bundle = null) {
   const fields = type?.fields || {};
+  const identifier = type?.identifier || null;
   const policyById = new Map((action.inputPolicy?.fields || []).map(field => [field?.id || field?.path, field]));
   const rows = [];
   for (const inputId of action.construction?.inputs || []) {
@@ -904,23 +897,24 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
     // from the type's payload traits at render) instead of resolving
     // against declared fields.
     if (policy?.type === 'file' || policy?.base === 'blob' || policy?.base === 'file') {
-      rows.push({ id, label: policy.label || fieldLabel(id), descriptor: { base: 'blob' }, span: 'full' });
+      rows.push({ id, label: policy.label || fieldLabel(id), descriptor: { base: 'blob' }, span: 'full', required: policy?.required === true });
       continue;
     }
     const fieldName = Object.hasOwn(fields, id)
       ? id
-      : Object.keys(fields).find(name => id === `data.${name}` || id === `specs.${name}`);
+      : Object.keys(fields).find(name => id === `fields.${name}`);
     if (fieldName) {
       rows.push({
         id,
         label: fieldLabel(fieldName, fields[fieldName]),
         descriptor: fields[fieldName],
-        span: 'half'
+        span: 'half',
+        required: policy?.required === true || fieldName === identifier
       });
       continue;
     }
     if (id === 'name') {
-      rows.push({ id, label: fieldLabel('name'), descriptor: { base: 'string' }, span: 'half' });
+      rows.push({ id, label: fieldLabel('name'), descriptor: { base: 'string' }, span: 'half', required: policy?.required === true });
       continue;
     }
     if (id.startsWith('lineage.')) {

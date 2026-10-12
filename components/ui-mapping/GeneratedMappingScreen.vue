@@ -105,7 +105,7 @@
       </div>
       <template #footer>
         <Button :label="$t('uiMapping.dialogCancel')" severity="secondary" text :disabled="submitting" @click="dialogVisible = false" />
-        <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" @click="submitDialog" />
+        <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" :disabled="dialogIncomplete" @click="submitDialog" />
       </template>
     </Dialog>
     <!-- The screen hosts its own Toast (without a host in the tree,
@@ -288,6 +288,16 @@ const visibleDialogRows = computed(() => {
 });
 
 const submitting = ref(false);
+// Required rows gate the submit (the create never runs with its record
+// unnamed or its required construction inputs empty): a row counts as
+// unfilled when its draft value is nullish, an empty string, or an empty
+// list — picker/file models are objects and count as filled.
+const rowUnfilled = row => {
+  if (!row.required) return false;
+  const value = dialogDraft[row.id];
+  return value == null || value === '' || (Array.isArray(value) && !value.length);
+};
+const dialogIncomplete = computed(() => visibleDialogRows.value.some(rowUnfilled));
 const runAction = async (action, draft = {}, context = {}) => {
   if (props.onRun) {
     submitting.value = true;
