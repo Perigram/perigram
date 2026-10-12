@@ -14,7 +14,7 @@ import {
 } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
 import { frameworkTypes } from '../../cts/src/pack/framework.js';
-import { normalizeProcessDefinition } from './index.js';
+import { normalizeProcessDefinition, validateProcessDefinition } from './index.js';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'designer-roundtrip' });
@@ -85,7 +85,7 @@ describe('graph protocol v5 designer round trip', () => {
     expect(data.producerOutputs['n2:result']).toBeUndefined();
   });
 
-  it('type reference nodes persist through the canvas and their wires never reach validation', () => {
+  it('type reference nodes persist through the canvas and their wires stay declaration-plane', () => {
     const domain = projectedDomain();
     const v5 = {
       schemaVersion: 1,
@@ -127,9 +127,47 @@ describe('graph protocol v5 designer round trip', () => {
     expect(resaved.history).toEqual(versioned.history);
     expect(resaved.activated).toEqual(versioned.activated);
 
-    // normalization drops the binding wire: it is a canvas gesture, not dataflow
+    // normalization keeps the binding wire with its role: machine
+    // vocabulary reads declaration wires from the normalized graph, while
+    // every role-classifying consumer (cycle checks, data/control walkers)
+    // skips them — a declaration wire is never dataflow.
     const normalized = normalizeProcessDefinition(saved, domain);
-    expect((normalized.graph.edges || []).some(edge => edge.role === 'type')).toBe(false);
+    const bindingEdge = (normalized.graph.edges || []).find(edge => edge.id === 'bind');
+    expect(bindingEdge?.role).toBe('type');
+  });
+
+  it('a class wired to itself (recursive containment) validates without a data cycle', () => {
+    const domain = projectedDomain();
+    const definition = {
+      schemaVersion: 1,
+      dataflowVersion: 4,
+      graphProtocol: 5,
+      graph: {
+        nodes: [
+          { id: 'cls', type: 'ctsClass', position: { x: 0, y: 0 }, data: { refId: 'cls', typeId: 'assembly', class: 'item' } }
+        ],
+        edges: [
+          { id: 'children:cls-cls', source: 'cls', target: 'cls', sourceHandle: 'output:type', targetHandle: 'input:declare', role: 'type', label: 'children', data: { key: 'parts', onRemove: 'restrict' } }
+        ]
+      },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      stateDefinitions: {},
+      valueInputs: {},
+      screens: {},
+      processNodes: {},
+      ctsTypes: {
+        cls: { id: 'cls', kind: 'class', typeId: 'assembly', class: 'item' }
+      }
+    };
+    const normalized = normalizeProcessDefinition(definition, domain);
+    const childrenWire = normalized.graph.edges.find(edge => edge.label === 'children');
+    expect(childrenWire?.role).toBe('type');
+    const { errors } = validateProcessDefinition(definition, domain);
+    expect(errors.some(error => error.includes('graph contains a cycle'))).toBe(false);
   });
 
   it('registered services appear as palette operators and resolve to their commands', () => {
@@ -171,8 +209,8 @@ describe('graph protocol v5 designer round trip', () => {
     expect(Object.keys(definition.ctsTypes).sort()).toEqual(['c1', 'f1', 's1']);
     expect(definition.ctsTypes.f1).toMatchObject({ kind: 'field', typeId: 'panel', name: 'width' });
     expect(definition.graph.nodes.map(node => node.type).sort()).toEqual(['ctsClass', 'ctsField', 'ctsState']);
-    // declaration wires persist as graph gestures; the compiler drops
-    // role:'type' edges at normalization (SPEC §20)
+    // declaration wires persist as graph gestures through normalization,
+    // classified by role — never dataflow
     expect(definition.graph.edges.filter(edge => edge.role === 'type')).toHaveLength(2);
 
     const reloaded = definitionToCanvas(definition);
