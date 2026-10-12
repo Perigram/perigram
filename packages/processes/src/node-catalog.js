@@ -232,16 +232,20 @@ const nativeControlInput = () => [{ ...socket('in', processType('event'), CONTRO
 // the mode's declared inputs plus the lineage/relation edge inputs, which
 // are addressable where the entity begins regardless of mode — a typed
 // construct (bake, upload) wires its parent under a declared children
-// edge exactly like a generic create does. The single derivation shared
+// edge exactly like a generic create does. A mode the contract declares
+// but leaves input-less (the editor protocol's blank construct) addresses
+// the edges alone; only an undeclared mode falls back to the contract's
+// whole input list. The single derivation shared
 // by the catalog's port projection, the compiler's construction
 // normalization, and the designer's node sync.
 export function constructionInputsForContract(contract = {}, mode = '') {
-  const modeInputs = contract.modeInputs?.[mode] || [];
+  const modeDeclared = Object.hasOwn(contract.modeInputs || {}, mode);
+  const modeInputs = modeDeclared ? contract.modeInputs[mode] : null;
   const edgeInputs = (contract.inputs || []).filter(input => {
     const path = String(input?.path || input?.id || '');
     return path.startsWith('lineage.') || path.startsWith('relations.');
   });
-  if (!modeInputs.length) return [...(contract.inputs || [])];
+  if (modeInputs == null) return [...(contract.inputs || [])];
   const seen = new Set(modeInputs.map(input => input?.id || input?.path));
   return [...modeInputs, ...edgeInputs.filter(input => !seen.has(input?.id || input?.path))];
 }
