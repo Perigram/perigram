@@ -546,16 +546,20 @@ watch(() => [props.node.typeId, props.loadType], ensureParentTypes);
 
 const editing = ref(false);
 const draft = reactive({});
-// Field-name changes map onto the wire patch blocks: `name` writes the
-// identity block, every other field lands under `data` — the same
-// mapping the instance update transport writes server-side.
+// Field-name changes map onto the flat §3 wire patch: the identifier row
+// `name` writes the wire name slot, every other field lands under
+// `fields.<name>` — the same shape the instance update transport
+// (processUpdate) writes server-side.
 const wirePatchFor = changes => {
-  const patch = { data: {} };
+  const patch = {};
   for (const [name, value] of Object.entries(changes)) {
-    if (name === 'name') patch.identity = { name: value };
-    else patch.data[name] = value;
+    if (name === 'name') patch.name = value;
+    else {
+      patch.fields = patch.fields || {};
+      patch.fields[name] = value;
+    }
   }
-  return Object.keys(patch.data).length || patch.identity ? patch : null;
+  return Object.keys(patch).length ? patch : null;
 };
 const emitPatch = changes => {
   const instance = props.node.instances[0];
