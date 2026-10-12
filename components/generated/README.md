@@ -133,13 +133,20 @@ backstop for changes made outside this screen. Successful `createEntity`
 actions additionally open the created entity
 (resolved through `created-instance-open.js`: while the manifest carries a
 compiled home screen the created entity opens — or reuses — a home-workspace
-tab; an editor-protocol create (`construction.mode === 'editor'`) opens the
-type's editor workspace page directly — the blank instance whose first
-editor save fills the payload (SPEC §UI) — while every other create opens
+tab; an editor-protocol create that ran as a direct construct
+(context-scoped creates) opens the
+type's editor workspace page bound to the created record, while every
+other create opens
 its compiled detail tab, and a type with no detail screen opens its editor
 page instead; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
-fallback is a success toast with the created name). Mobile keeps the routed
+fallback is a success toast with the created name). Unscoped editor
+creates never reach this path — the create button opens the blank editor
+page and the first save creates the record (`openBlankFileEditor`,
+SPEC §UI). The created entity resolves as the run's created item **of the
+action's own type**: a process chaining further constructs returns their
+entities too, and the last step must never bind a foreign record to the
+action's destination. Mobile keeps the routed
 detail contract: the editor stays reachable through the detail header's
 editor action. A mapped
 mutation response is either a bare shape-preserving data tree (zero failures)
@@ -193,7 +200,12 @@ contract. It combines two halves:
   registered surface). Editors never embed in
   generated instance detail chrome — the instance detail of an editor
   bound type is the ordinary read surface, and the editor opens as a pane
-  tab. Process data never selects components; the surface id does.
+  tab. A bound editor page also opens **blank** — `openBlankFileEditor`
+  rides the page-open seam with no entity (the create button of an
+  editor-protocol type), the blank tab is a singleton entity-less page
+  keyed `page:<surfaceId>`, and the editor's first save creates the
+  record through the compiled construct and fills its payload in one act
+  (SPEC §UI). Process data never selects components; the surface id does.
   Plugin-delivered editor modules resolve beside the registry through the
   served surface declarations (`RemoteEditorSurface`, see
   [remote-surface contract](../../docs/PLUGIN_AUTHORING.md)) — the

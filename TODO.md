@@ -1,5 +1,56 @@
 # TODO
 
+## Editor creates defer to the first save (owner decision 2026-10-12, live-stack report)
+
+Report: creating a cassette "gets created immediately, not after save",
+and saving failed with `cassette <id> not found` — the report's process
+chains the cassette construct into a second construct, and the action
+run's returned created entity was the chain's LAST step, so the
+created-open resolution bound the cassette designer to a foreign record's
+id. The real law (SPEC.md §UI): an editor create opens the editor with no
+record; the first save creates the instance (compiled construct + payload
+in one act), so chained effects fire at save. Contracts:
+[components/generated/README.md](./components/generated/README.md).
+
+- [x] A. Editor-protocol creates open the blank editor page (both
+  engines, all four execution sites): nothing runs at click. Context-
+  scoped creates (a context-bound parent edge) keep the construct with
+  their binding.
+- [x] B. First save creates: the blank construct core single-homes in
+  file-surfaces (`runBlankFileConstruct` — the plugin persistence's
+  createBlank delegates to it); the instance payload persistence
+  creates-then-saves when unbound, the blank editor tab is a singleton
+  entity-less workspace page (`page:<surfaceId>`), and the cassette
+  designer binds its first-save target so later saves update it.
+- [x] C. The created-open extraction prefers the created entity of the
+  action's own type (multi-construct runs no longer bind the last step's
+  entity).
+- [ ] WAITING — owner verification on the live stack: New opens an empty
+  designer, no record until save, save creates and fills the payload.
+
+### Agent Notes (2026-10-12, editor-deferred-create session)
+
+The reported save-404 reconstructed from data: the org's process chains
+the cassette construct into a second construct (an org "Item" type with
+an authored default), and the action run's returned created entity was
+the chain's LAST step — the created-open resolution bound the cassette
+designer to the Item's id, and `replacePayload` honestly refused
+(`cassette <id> not found`; the id lived in `items` as another type).
+With deferred creation the click runs nothing at all, so the chain can
+no longer mis-bind; the extraction type-preference covers the remaining
+direct-run channels (API, context-scoped creates).
+
+Mobile note: `openBlankFileEditor` is desktop-only — mobile has no panes,
+and a silently-swallowed create would be worse than the direct construct
+(it keeps the routed detail + header editor action).
+
+Validation: `components/generated components/ui-mapping packages/plugin-sdk`
+(all touched suites ✓; the one failure is the pre-existing
+`detail-action-ownership` base pin), `created-instance-open` chained-run
+pin ✓, SSR smoke (3 ✓), `check-arch`, `check-docs`, `framework:validate`
+green, designer graph still clean under the strengthened surface check.
+Live-stack E2E reported in the session handoff.
+
 ## Plugin surface modules load same-origin through the app proxy (2026-10-12, live-stack report)
 
 Report: opening a plugin editor (cassette designer) fails with "The editor

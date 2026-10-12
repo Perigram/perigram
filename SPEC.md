@@ -61,13 +61,14 @@ consistent: the surface a record belongs to stays selected while its
 screen is open, and popups/pages/tabs share one navigation language.
 
 File creates follow the type's declared creation protocol (owner decision
-2026-10-12): an `editor` create runs blank — no create form, no prompted
-fields — and the created instance opens in the type's editor, whose first
-save fills the payload; `upload`/`capture` creates prompt only the file.
-A create launched from a context that already binds a related record (a
-child created from inside its parent) never prompts that binding: the
-context's reference is submitted with the create, and the form prompts
-only what the context cannot supply.
+2026-10-12): an `editor` create opens the type's editor with no record —
+nothing exists until the editor's first save, which creates the instance
+through the type's compiled construct and fills its payload in the same
+act, so chained process effects fire at creation, not at click. A create
+launched from a context that already binds a record (a child created from
+inside its parent) never prompts that binding: the context's reference is
+submitted with the create, and the form prompts only what the context
+cannot supply. `upload`/`capture` creates prompt only the file.
 
 Mobile devices scale the whole UI through the root font-size (the rem
 basis PrimeVue components and the typography roles share). Mobile record
