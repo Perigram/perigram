@@ -59,6 +59,15 @@ history (falling back to the home ladder on deep links). Tabs stay
 consistent: the surface a record belongs to stays selected while its
 screen is open, and popups/pages/tabs share one navigation language.
 
+File creates follow the type's declared creation protocol (owner decision
+2026-10-12): an `editor` create runs blank — no create form, no prompted
+fields — and the created instance opens in the type's editor, whose first
+save fills the payload; `upload`/`capture` creates prompt only the file.
+A create launched from a context that already binds a related record (a
+child created from inside its parent) never prompts that binding: the
+context's reference is submitted with the create, and the form prompts
+only what the context cannot supply.
+
 Mobile devices scale the whole UI through the root font-size (the rem
 basis PrimeVue components and the typography roles share). Mobile record
 opens ROUTE to the compiled detail screen — no popup middleman.
@@ -337,8 +346,8 @@ type, full stop — the record's content is the payload document, and
 everything that operates over cassettes belongs to the plugin. There is no
 PARAMETRIC/STANDARD distinction and no `templateType` field; parameters are
 set in the editor and live inside the document, never on the record; the
-create form never prompts document internals (the Name input is already
-retired — blank creates enter unnamed). The read-side preview channel
+create form never prompts document internals (file creates follow the
+creation-protocol law in §UI). The read-side preview channel
 (thumbnail, card preview, geometry preview) is a plugin-delivered module
 under the surface contract: the platform mounts it in its preview slots
 over a read-only data-only mount (`{ record, payload }`), and the card

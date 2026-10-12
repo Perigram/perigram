@@ -42,9 +42,10 @@ exactly on the construction paths; pickers model `{ type, id }` and are
 reduced to the bare instance id at submit. When the dialog opens on a
 detail surface whose scope carries the opened instance
 (`screen.scope.instanceId` + `screen.typeId`), every lineage row whose
-accepted parent types include that type is preselected to the opened
-instance — parent-scoped creates stamp their lineage instead of landing
-unparented. `link`
+accepted parent types include that type submits the opened instance's
+reference without rendering — the form never re-asks a binding the
+context supplies (SPEC §UI) — and when no visible rows remain the create
+runs with no form at all. `link`
 actions prompt for the relation target through `InstancePicker` over the
 pool before dispatch (`onRun` receives `{ relations: { key: ref } }`).
 The screen accepts a `sourceStates` prop (per-source
