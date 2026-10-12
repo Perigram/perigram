@@ -338,8 +338,12 @@
                                 >
                                     {{ conversationLabel(activeConversation) }}
                                 </Button>
+                                <!-- The thread target opens its popup only
+                                     when the type has a record surface;
+                                     otherwise the label stays plain text —
+                                     never a link that opens an empty shell. -->
                                 <Button
-                                    v-else-if="activeConversation.conversationKind === 'instance' && activeConversation.instanceId"
+                                    v-else-if="activeConversation.conversationKind === 'instance' && activeConversation.instanceId && entityPopupOpenable(activeConversation.typeId)"
                                     link
                                     class="!p-0 text-left"
                                     data-testid="chat-header-entity"
@@ -709,9 +713,11 @@
                                          control, so a plain minimal element beats
                                          PrimeVue button chrome here. Only the
                                          label underlines on hover; the icon
-                                         never does. -->
+                                         never does. Types without a record
+                                         surface render the plain caption — no
+                                         dead link. -->
                                     <button
-                                        v-if="lowerInstanceChip(messageItem)"
+                                        v-if="lowerInstanceChip(messageItem) && entityPopupOpenable(messageItem.instanceLink.type)"
                                         type="button"
                                         class="group flex min-w-0 items-center gap-1 transition-opacity"
                                         :aria-label="instanceLinkLabel(messageItem.instanceLink)"
@@ -720,6 +726,13 @@
                                         <i :class="instances.iconFor(messageItem.instanceLink.type)" class="shrink-0 scale-90" aria-hidden="true"></i>
                                         <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ instanceLinkLabel(messageItem.instanceLink) }}</span>
                                     </button>
+                                    <span
+                                        v-else-if="lowerInstanceChip(messageItem)"
+                                        class="flex min-w-0 items-center gap-1"
+                                    >
+                                        <i :class="instances.iconFor(messageItem.instanceLink.type)" class="shrink-0 scale-90" aria-hidden="true"></i>
+                                        <span class="min-w-0 truncate">{{ instanceLinkLabel(messageItem.instanceLink) }}</span>
+                                    </span>
                                 </span>
                             </div>
                         </div>
@@ -1370,7 +1383,7 @@ const confirm = useConfirm()
 const toast = useToast()
 const supportDialog = useSupportDialog()
 const chatTarget = useSupportChatTarget()
-const { open: openEntityPopup } = useEntityPopup()
+const { open: openEntityPopup, openable: entityPopupOpenable } = useEntityPopup()
 const authStore = useAuthStore()
 const supportChatStore = useSupportChatStore()
 

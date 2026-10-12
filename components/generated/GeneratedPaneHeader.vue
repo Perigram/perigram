@@ -2,15 +2,17 @@
   <!-- The one pane-header stripe: the height lives here only. -->
   <div data-pane-header class="flex h-10 shrink-0 items-stretch border-b border-chrome-border">
     <!-- The pane's back control: walks the workspace-owned navigation
-         history of in-place tab replacements. Appears exactly when there
-         is somewhere to go back to. -->
-    <div v-if="back" class="flex shrink-0 items-center pl-1">
+         history of in-place tab replacements. Always visible, disabled
+         while the pane has no history — navigation stays discoverable
+         instead of appearing after the fact. -->
+    <div class="flex shrink-0 items-center pl-1">
       <Button
         icon="pi pi-arrow-left"
         text
         rounded
         size="small"
         severity="secondary"
+        :disabled="!back"
         :aria-label="$t('common.back')"
         :title="$t('common.back')"
         data-testid="pane-back"

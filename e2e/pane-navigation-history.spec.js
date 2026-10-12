@@ -33,7 +33,10 @@ test.describe('home workspace pane navigation', () => {
     await app.page.locator('.p-panelmenu-header', { hasText: 'E2E Doc' }).click({ position: { x: 80, y: 10 } });
     const paneTabs = app.page.locator('[data-pane-header] .p-tab');
     await expect(paneTabs.filter({ hasText: 'E2E Doc' })).toBeVisible();
-    await expect(app.page.locator('[data-testid="pane-back"]')).toHaveCount(0);
+    // Navigation stays discoverable: Back renders disabled until the
+    // pane has history.
+    await expect(app.page.locator('[data-testid="pane-back"]')).toBeVisible();
+    await expect(app.page.locator('[data-testid="pane-back"]')).toBeDisabled();
 
     // The collection identity opens the record as the pane's selected
     // tab in place — the list is replaced.
@@ -42,10 +45,10 @@ test.describe('home workspace pane navigation', () => {
     await expect(paneTabs.filter({ hasText: 'E2E Doc' })).toHaveCount(0);
 
     // Back appears with the replaced list behind it and restores it.
-    await expect(app.page.locator('[data-testid="pane-back"]')).toBeVisible();
+    await expect(app.page.locator('[data-testid="pane-back"]')).toBeEnabled();
     await app.page.locator('[data-testid="pane-back"]').click();
     await expect(paneTabs.filter({ hasText: 'E2E Doc' })).toBeVisible();
-    await expect(app.page.locator('[data-testid="pane-back"]')).toHaveCount(0);
+    await expect(app.page.locator('[data-testid="pane-back"]')).toBeDisabled();
   });
 
   test('a new tab consumes the selected empty placeholder', async ({ app }) => {

@@ -1,8 +1,9 @@
 <template>
-  <!-- The entity popup: the standard centered dialog (the project's
-       dialog contract — proper size ladder, modal, footer controls)
-       hosting the entity's real detail surface. Expand steps up to the
-       home pane. -->
+  <!-- The entity popup: the standard centered dialog hosting the
+       entity's real record surface. Exactly one expansion affordance:
+       the expand arrow steps the record up to its page (the home pane
+       on desktop, its route on mobile). Unopenable types never get
+       here — useEntityPopup refuses them. -->
   <StandardDialog
     v-model:visible="visible"
     :size="isDirectoryType ? 'md' : 'xl'"
@@ -37,9 +38,6 @@
         :screen="detailScreen"
         @open-instance="openInstance"
       />
-      <div v-else-if="visible" class="p-4">
-        <StateBlock :message="$t('common.notAvailable')" />
-      </div>
     </div>
   </StandardDialog>
 </template>
@@ -48,7 +46,6 @@
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
-import StateBlock from '~/components/shared/StateBlock.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
 import { resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
@@ -71,7 +68,10 @@ const { typeById } = useFileTypeView();
 const { t, te } = useI18n();
 
 const visible = computed({
-  get: () => Boolean(request.value),
+  // The composable's open() already refuses unopenable types; the guard
+  // here keeps a stale request (recompiled process dropped the screen)
+  // from rendering the empty shell.
+  get: () => Boolean(request.value) && (isDirectoryType.value || Boolean(detailScreen.value)),
   set: value => { if (!value) close(); }
 });
 const isDirectoryType = computed(() => ['user', 'organization'].includes(request.value?.typeId));
@@ -126,10 +126,10 @@ function expand() {
   openInstanceInWorkspace({ typeId: current.typeId, instanceId: current.instanceId });
 }
 
-// The expand step-up renders only where it has somewhere to go: desktop
-// always (the home pane), mobile only for records with a routed page
-// (a compiled detail screen or the active organization's overview) —
-// every popup also carries PrimeVue's own maximize toggle.
+// The expand step-up goes where a page exists: desktop always opens the
+// home pane (the popup only renders types with a pane destination);
+// mobile has no panes, so it needs the record's routed page — a
+// compiled detail screen or the active organization's overview.
 function expandable() {
   if (!isMobileViewport()) return true;
   const current = request.value;

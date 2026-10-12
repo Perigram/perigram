@@ -2,7 +2,6 @@
     <Dialog 
         v-bind="$attrs" 
         :modal="true" 
-        :maximizable="true"
         :class="['w-full flex flex-col', sizeClass, fill ? 'max-h-dvh md:max-h-[calc(100dvh-2rem)]' : '']"
         :pt="fill ? { content: { class: 'flex min-h-0 flex-1 flex-col overflow-hidden' } } : undefined"
     >
