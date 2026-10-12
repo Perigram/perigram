@@ -129,6 +129,27 @@ Vue Flow ships no loop edge, the default bezier degenerates into a line
 through the node). CTS acceptance suite pins both directions
 (self-reference compiles, A↔B refuses).
 
+### Agent Notes (2026-10-12, live-verification fix — declaration wires reclassified as data)
+
+Owner hit `Data graph contains a cycle: ctsClass_… → ctsClass_…` on Apply
+with a self-wired class. Root cause was NOT the lineage law:
+`normalizeEdge` (compiler-core) stripped `role` from every edge, which
+made the `.filter(edge.role !== 'type')` in `normalizeGraph` dead code —
+declaration wires reached validation as roleless edges, and `findGraphCycle`
+classified them as data by handle prefix. Every declaration wire was
+misclassified all along; the self-wire was simply the first that could
+form a one-node "cycle". The filter's removal intent was also already
+abandoned in practice: machine vocabulary (`stateNestingPairs`, entry
+wires) reads declaration wires from the NORMALIZED graph by node type and
+handle. Fix: `normalizeEdge` preserves `role` and `label`, the dead
+filter is deleted, and every role-classifying consumer (cycle checks,
+data/control walkers, orchestration's `edgeRole`) skips `type`-role edges
+— they were already written to honor `role`. Also swapped the loop
+rendering to the canonical elliptical arc from Vue Flow's official
+loopback example (docs/examples/loopback). Two stale assertions that
+pinned the stripping as "drops the binding wire" are corrected, plus a
+regression pin: a self-wired class validates with no cycle error.
+
 ## CTS honesty pass: §13-true projection schemas, Name-input retirement, undead-kind cleanup (2026-10-11)
 
 Owner direction (2026-10-11, from the types-system maturity review): the
