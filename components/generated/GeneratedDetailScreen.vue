@@ -33,7 +33,7 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
-import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen, landCreatedInstanceInPool } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useAuthStore } from '~/stores/auth';
@@ -187,6 +187,7 @@ async function runAction(action, data = {}, context = {}) {
   try {
     const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });
     if (isCreateAction(action)) {
+      landCreatedInstanceInPool(instances, action, result);
       const target = resolveCreatedInstanceOpen({
         action,
         result,

@@ -140,7 +140,13 @@ other create opens
 its compiled detail tab, and a type with no detail screen opens its editor
 page instead; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
-fallback is a success toast with the created name). Unscoped editor
+fallback is a success toast with the created name). Every create host
+first lands the created entity in the shared instances pool
+(`landCreatedInstanceInPool`) before opening the destination: the opened
+tab's single source, its label, and the type's list sections all read the
+pool, and the store's cached list observations refetch only after the
+upsert marks them stale — without the landing the opened record renders
+missing behind a stale pool. Unscoped editor
 creates never reach this path — the create button opens the blank editor
 page and the first save creates the record (`openBlankFileEditor`,
 SPEC §UI). The created entity resolves as the run's created item **of the

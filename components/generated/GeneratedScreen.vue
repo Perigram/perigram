@@ -303,7 +303,7 @@ import { usePayloadUpload } from '~/composables/usePayloadUpload.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/components/generated/action-visibility.js';
-import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen, landCreatedInstanceInPool } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
@@ -606,6 +606,7 @@ function mappedMutationItems(result) {
 
 async function openCreatedEntity(action = {}, result = null) {
   if (!isCreateAction(action)) return;
+  landCreatedInstanceInPool(instances, action, result);
   const target = resolveCreatedInstanceOpen({
     action,
     result,

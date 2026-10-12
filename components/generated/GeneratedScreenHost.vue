@@ -29,7 +29,7 @@ import { useStateController } from '~/composables/useStateController.js';
 import { applyOptimisticState } from '~/utils/optimistic-state.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
-import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen, landCreatedInstanceInPool } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
@@ -187,6 +187,7 @@ async function runGeneratedAction(action, data = {}, context = {}) {
     // contract); hosts without a compiled home keep the routed detail
     // destination.
     if (isCreateAction(action)) {
+      landCreatedInstanceInPool(instances, action, result);
       const target = resolveCreatedInstanceOpen({
         action,
         result,
