@@ -501,6 +501,14 @@ hidden, as today.
   - rename/remove/retype: requires declared `migrate` steps (declarative:
     rename, add default, remove, retype via expression) run by the task
     runtime, idempotent, org-scoped;
+  - removing a children edge requires a declared `remove-edge` step
+    (`{ kind: 'remove-edge', edge: 'children.<key>' }`, owner decision
+    2026-10-12 — containment must be revertible): execution detaches the
+    edge's stored lineage key on live instances of the declared child
+    types, so children of the removed edge become roots. Foreign-type
+    children keep their own `typeVersion` (their type did not change);
+    the declaring type's documents (self-containment) ride the normal
+    stamped pass;
   - no migration declared for a breaking diff = compile error, not a script
     someone remembers to write. The declared-migration gate owns exactly
     the type-evolution axis: row/enum/edge changes against persisted

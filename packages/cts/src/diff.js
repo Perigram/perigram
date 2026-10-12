@@ -60,7 +60,7 @@ export function requireCompatible(previous, next) {
   return plan.diff;
 }
 
-const STEP_KINDS = ['rename-field', 'add-default-field', 'remove-field', 'retype-field'];
+const STEP_KINDS = ['rename-field', 'add-default-field', 'remove-field', 'retype-field', 'remove-edge'];
 
 function nonEmpty(value) {
   return typeof value === 'string' && value.length > 0 ? value : null;
@@ -92,6 +92,11 @@ export function normalizeMigrateSteps(steps) {
       }
       return { kind, field, via: step.via };
     }
+    if (kind === 'remove-edge') {
+      const edge = nonEmpty(step.edge);
+      if (!edge) throw new Error('remove-edge requires edge (children.<key>)');
+      return { kind, edge };
+    }
     const field = nonEmpty(step.field);
     if (!field) throw new Error(`${kind} requires field`);
     return { kind, field };
@@ -100,6 +105,7 @@ export function normalizeMigrateSteps(steps) {
 
 function labelOf(step) {
   if (step.kind === 'rename-field') return `${step.kind} ${step.from} -> ${step.to}`;
+  if (step.kind === 'remove-edge') return `${step.kind} ${step.edge}`;
   return `${step.kind} ${step.field}`;
 }
 
@@ -111,8 +117,9 @@ function changeLabel(change) {
 // The one planner: diff + normalized steps + coverage verdict. Every
 // breaking change needs one covering step; every declared step must match
 // a breaking change (stale steps fail the gate instead of rotting on the
-// declaration). remove-edge is coverable by nothing (SPEC §11 names no
-// edge step) and stays a refusal.
+// declaration). remove-edge is covered by a declared remove-edge step
+// whose execution detaches the stored lineage key on live instances
+// (children of the removed edge become roots, SPEC §11).
 export function planTypeMigration(previous = {}, next = {}) {
   const diff = diffTypes(previous, next);
   let steps;
@@ -125,6 +132,7 @@ export function planTypeMigration(previous = {}, next = {}) {
   const errors = [];
   const used = new Array(steps.length).fill(false);
   const renameAddsCovered = new Set();
+  const resolved = steps.map(step => ({ ...step }));
 
   for (const change of breaking) {
     if (change.kind === 'remove-field') {
@@ -168,6 +176,25 @@ export function planTypeMigration(previous = {}, next = {}) {
       }
       continue;
     }
+    if (change.kind === 'remove-edge') {
+      const index = steps.findIndex((step, i) => !used[i] && step.kind === 'remove-edge' && step.edge === change.edge);
+      if (index === -1) {
+        errors.push(`${changeLabel(change)} requires a remove-edge step`);
+      } else {
+        used[index] = true;
+        // Executor context (SPEC §11): the removed previous entry names
+        // the stored lineage key and the child types whose documents
+        // carry it.
+        const key = change.edge.slice('children.'.length);
+        const entry = previous.edges?.children?.[key] || {};
+        resolved[index] = {
+          ...resolved[index],
+          lineageKey: entry.lineageKey || null,
+          types: [...(entry.types || [])]
+        };
+      }
+      continue;
+    }
     errors.push(`${changeLabel(change)} is not coverable by any declared migration step`);
   }
 
@@ -175,7 +202,7 @@ export function planTypeMigration(previous = {}, next = {}) {
     if (!used[i]) errors.push(`declared migration step ${labelOf(step)} matches no breaking change`);
   });
 
-  return { diff, steps, breaking, covered: errors.length === 0, errors: Object.freeze(errors) };
+  return { diff, steps: Object.freeze(resolved), breaking, covered: errors.length === 0, errors: Object.freeze(errors) };
 }
 
 function signatureOf(descriptor = {}) {

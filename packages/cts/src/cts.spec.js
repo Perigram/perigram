@@ -269,16 +269,43 @@ describe('evolution (R7, refuse-on-diff)', () => {
     expect(() => requireCompatible(v1, v2)).not.toThrow();
   });
 
+  it('a declared remove-edge step covers edge removal and resolves its execution context', () => {
+    const v1 = {
+      id: 'assembly', class: 'item',
+      fields: { name: { base: 'string' } },
+      edges: { children: { parts: { types: ['assembly', 'material'], lineageKey: 'assemblyId' } } }
+    };
+    const plan = planTypeMigration(v1, {
+      id: 'assembly', class: 'item',
+      fields: v1.fields,
+      migrate: [{ kind: 'remove-edge', edge: 'children.parts' }]
+    });
+    expect(plan.covered).toBe(true);
+    expect(plan.breaking.map(change => change.kind)).toEqual(['remove-edge']);
+    // The step the executor receives carries the removed previous entry's
+    // stored key and child types (SPEC §11).
+    expect(plan.steps[0]).toEqual({
+      kind: 'remove-edge', edge: 'children.parts', lineageKey: 'assemblyId', types: ['assembly', 'material']
+    });
+    expect(() => requireCompatible(v1, {
+      id: 'assembly', class: 'item', fields: v1.fields,
+      migrate: [{ kind: 'remove-edge', edge: 'children.parts' }]
+    })).not.toThrow();
+  });
+
   it('refuses uncovered breaking changes, stale steps, and unknown step kinds', () => {
     const v1 = { id: 'item', fields: { note: { base: 'string' } } };
     // A declared step matching nothing fails the gate instead of rotting.
     expect(planTypeMigration(v1, {
       ...v1, migrate: [{ kind: 'remove-field', field: 'note' }]
     }).errors).toEqual(['declared migration step remove-field note matches no breaking change']);
-    // remove-edge is coverable by nothing.
+    // remove-edge without its declared step refuses; a stale remove-edge
+    // step (no matching removal) fails like any stale step.
     const parent = { id: 'parent', edges: { children: { batch: { typeId: 'batch' } } } };
     expect(planTypeMigration(parent, { id: 'parent' }).errors)
-      .toEqual(['remove-edge children.batch is not coverable by any declared migration step']);
+      .toEqual(['remove-edge children.batch requires a remove-edge step']);
+    expect(planTypeMigration({ id: 'parent' }, { id: 'parent', migrate: [{ kind: 'remove-edge', edge: 'children.batch' }] }).errors)
+      .toEqual(['declared migration step remove-edge children.batch matches no breaking change']);
     // Malformed steps refuse normalization.
     expect(planTypeMigration(v1, { ...v1, migrate: [{ kind: 'nope' }] }).errors)
       .toEqual(['unknown migration step kind nope']);

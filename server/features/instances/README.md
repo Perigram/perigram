@@ -36,13 +36,21 @@ hand-written services.
   one pass — `rename-enum-value` rewrites the exact axis/path and descendant
   prefixes, `rename-field`,
   `remove-field`, `add-default-field`, and `retype-field` (CEL expression
-  over `{ value }`, step-budgeted) rewrite flat `fields` — then the doc
+  over `{ value }`, step-budgeted) rewrite flat `fields`, and
+  `remove-edge` deletes the removed entry's stored lineage key from
+  `lineage` (SPEC §11: children of the edge become roots) — then the doc
   takes the new `typeVersion` stamp, so re-running skips finished
   documents (idempotent resume) and each rewrite publishes the shared
   typed invalidation event with reason `type-migration`. The whole
-  `fields` object and `states` axis map are written back per document; the
+  `fields`, `lineage`, and `states` axis maps are written back per
+  document; the
   summary (per-step counts, failures) returns to the caller for the
-  declaration's `migrated` record.
+  declaration's `migrated` record. `remove-edge` steps whose declared
+  child types are OTHER types detach those children in their own
+  collections through the caller's `collectionForType` resolver — an
+  in-place `$unset`, no version stamp (their type did not change);
+  the declaring type's own documents (self-containment) ride the normal
+  stamped pass.
 - Payload (SPEC §3/§4): create accepts a `payload` reference shaped
   `{ fileId, mime?, size?, name? }`. The reference is validated against
   the type's declared payload traits at construct (fileId required;

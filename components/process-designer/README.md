@@ -91,9 +91,11 @@ record access, roles, screens, and panel state:
   `retype-field` (keep the value as-is, `{op:'var',name:'value'}`, or set
   it empty, `{op:'lit',value:null}` — the only two expressions the CEL
   evaluator honestly supports for retypes today), `add-default-field`
-  (one default value), `remove-field` (confirm-only); an uncoverable
-  change (`remove-edge`) renders blocked with the reason and offers no
-  step. Confirming writes the steps onto the matching class node's
+  (one default value), `remove-field` (confirm-only), and `remove-edge`
+  (confirm-only — the removed containment's stored parent links detach,
+  children become roots); an uncoverable
+  change renders blocked with the reason and offers no step. Confirming
+  writes the steps onto the matching class node's
   `data.migrate` (found by typeId), syncs, and retries the Apply — the
   dialog is the author's consent; nothing auto-declares. Consumed steps
   clear from the tree when their declaration post succeeds (steps are

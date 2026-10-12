@@ -12,14 +12,21 @@ vi.mock('~/server/db/mongo', () => {
     connectDB: vi.fn(async () => ({
       collection: () => ({
         find: filter => {
-          // Mirror the executor's behind-documents filter so specs assert
-          // the real scan contract (finished documents carry the stamp).
-          const behind = state.docs.filter(doc => doc.typeVersion !== filter.typeVersion.$ne);
-          return (async function* () { yield* behind; })();
+          // Mirror the executor's scan contracts so specs assert the real
+          // filters: the stamped pass scans behind documents; the
+          // remove-edge detach pass scans foreign children still carrying
+          // the removed lineage key.
+          const behind = doc => !filter.typeVersion || doc.typeVersion !== filter.typeVersion.$ne;
+          const carrying = doc => {
+            const [key] = Object.keys(filter).filter(candidate => candidate.startsWith('lineage.'));
+            return !key || Object.hasOwn(doc.lineage || {}, key.slice('lineage.'.length));
+          };
+          const typed = doc => !filter.type || doc.type === filter.type;
+          return (async function* () { yield* state.docs.filter(doc => behind(doc) && carrying(doc) && typed(doc)); })();
         },
         updateOne: async (filter, update) => {
           state.updates.push({ filter, update });
-          return { matchedCount: 1 };
+          return { matchedCount: 1, modifiedCount: 1 };
         }
       })
     })),
@@ -58,6 +65,20 @@ describe('transformInstanceForSteps', () => {
     const once = transformInstanceForSteps({ fields: { note: 'a' } }, steps);
     const twice = transformInstanceForSteps(once.fields, steps);
     expect(twice.applied).toEqual([]);
+  });
+
+  it('a remove-edge step detaches only the removed lineage key', () => {
+    const doc = { fields: {}, lineage: { assemblyId: 'p-1', projectId: 'p-2' } };
+    const { lineage, applied } = transformInstanceForSteps(doc, [
+      { kind: 'remove-edge', edge: 'children.parts', lineageKey: 'assemblyId', types: ['assembly'] }
+    ]);
+    expect(lineage).toEqual({ projectId: 'p-2' });
+    expect(applied).toEqual(['remove-edge']);
+    // The source document is not mutated; a second pass applies nothing.
+    expect(doc.lineage).toEqual({ assemblyId: 'p-1', projectId: 'p-2' });
+    expect(transformInstanceForSteps({ ...doc, lineage }, [
+      { kind: 'remove-edge', edge: 'children.parts', lineageKey: 'assemblyId', types: ['assembly'] }
+    ]).applied).toEqual([]);
   });
 });
 
@@ -106,5 +127,28 @@ describe('applyTypeMigrationSteps', () => {
     });
     expect(summary.failures.map(failure => failure.id)).toEqual(['d-1']);
     expect(summary.counts).toEqual({ 'add-default-field': 1 });
+  });
+
+  it('remove-edge detaches foreign children without the declaring type version stamp', async () => {
+    __state.docs = [
+      { _id: 'a-1', type: 'assembly', typeVersion: 5, fields: {}, lineage: { assemblyId: 'a-0' } },
+      { _id: 'm-1', type: 'material', typeVersion: 2, fields: {}, lineage: { assemblyId: 'a-1' } },
+      { _id: 'm-2', type: 'material', typeVersion: 2, fields: {}, lineage: {} }
+    ];
+    const summary = await applyTypeMigrationSteps({
+      declaration: { id: 'assembly', class: 'item' },
+      organizationId: 'org-1',
+      steps: [{ kind: 'remove-edge', edge: 'children.parts', lineageKey: 'assemblyId', types: ['assembly', 'material'] }],
+      toVersion: 6,
+      collectionForType: typeId => (typeId === 'material' ? 'materials' : 'items')
+    });
+    // The self-type document rides the stamped pass with its lineage
+    // rewritten; the foreign child is unset in place and keeps typeVersion.
+    expect(summary.counts).toEqual({ 'remove-edge': 2 });
+    const stamped = __state.updates.find(update => update.update.$set?.typeVersion === 6);
+    expect(stamped.update.$set.lineage).toEqual({});
+    const detached = __state.updates.find(update => update.update.$unset);
+    expect(detached.update.$unset).toEqual({ 'lineage.assemblyId': '' });
+    expect(detached.update.$set?.typeVersion).toBeUndefined();
   });
 });

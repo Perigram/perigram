@@ -203,6 +203,26 @@ loopback example (docs/examples/loopback). Two stale assertions that
 pinned the stripping as "drops the binding wire" are corrected, plus a
 regression pin: a self-wired class validates with no cycle error.
 
+### Agent Notes (2026-10-12, revertibility — the remove-edge migration step)
+
+Owner verdict after live use: "applied recursion can't be reverted" is a
+trap — deleting the self-wire made every Apply die at the declaration
+post (`remove-edge children.… is not coverable by any declared migration
+step`), wedging all further authoring. SPEC §11 now declares the
+`remove-edge` step (owner decision 2026-10-12): the planner covers a
+children-edge removal with `{ kind: 'remove-edge', edge:
+'children.<key>' }`, resolves the removed previous entry's
+`lineageKey`/`types` onto the step, and the executor detaches the stored
+key — the declaring type's own documents (self-containment) ride the
+normal stamped pass; foreign child types are `$unset` in place in their
+own collections (no version stamp — their type did not change), so
+children of the removed edge become roots. The designer's
+TypeMigrationStepsDialog offers the row confirm-only beside remove-field.
+Note: the recursion interface itself was verified generated and served
+(compiled child-collection source on the Item detail screen filtered by
+`tJgczn6n27lId`, contextual create, nav entries, SSR render) — the
+"missing interface" experience was the wedged apply.
+
 ## CTS honesty pass: §13-true projection schemas, Name-input retirement, undead-kind cleanup (2026-10-11)
 
 Owner direction (2026-10-11, from the types-system maturity review): the

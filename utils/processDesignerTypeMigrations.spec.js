@@ -99,7 +99,7 @@ describe('type migration rows', () => {
     expect(surplusAdd[1]).toMatchObject({ field: 'count', fieldLabel: 'Count' });
   });
 
-  it('a removed state offers the retained states as rename targets; remove-edge is blocked with the reason', () => {
+  it('a removed state offers the retained states as rename targets; remove-edge is a confirm-only row', () => {
     const rows = typeMigrationRows({
       changes: [
         { severity: 'breaking', kind: 'remove-state', state: 'scrap' },
@@ -107,14 +107,15 @@ describe('type migration rows', () => {
       ],
       requiredSteps: [
         'remove-state scrap requires a rename-enum-value step',
-        'remove-edge children.parts is not coverable by any declared migration step'
+        'remove-edge children.parts requires a remove-edge step'
       ]
     }, { states: ['ready', 'done'] });
     const enumRow = rows.find(row => row.kind === 'rename-enum-value');
     expect(enumRow.targets).toEqual(['ready', 'done']);
-    const blocked = rows.find(row => row.kind === 'blocked');
-    expect(blocked.subject).toBe('children.parts');
-    expect(blocked.reason).toBe('remove-edge children.parts is not coverable by any declared migration step');
+    const edgeRow = rows.find(row => row.kind === 'remove-edge');
+    expect(edgeRow).toMatchObject({ edge: 'children.parts', subject: 'children.parts' });
+    // Confirming the row authors exactly the step the gate demands.
+    expect(stepsFromTypeMigrationRows([edgeRow])).toEqual([{ kind: 'remove-edge', edge: 'children.parts' }]);
   });
 });
 
