@@ -364,6 +364,47 @@ describe('current process-definition service contract', () => {
     });
   });
 
+  it('derives the effect construction inputs from the live domain contract', async () => {
+    // A record authored against a domain that lacked the declared types
+    // stamps a stale (often empty) construction.inputs copy, while the
+    // ports and the compiled prompt contract speak the live domain —
+    // the draft mapping reads the same derived list, so a prompted value
+    // that arrived through a contract port is never dropped. Authored
+    // entries keep merging over their contract twins.
+    const { processConstructionInputRecord } = await import('./service.js');
+    const domain = {
+      construction: {
+        widget: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            { id: 'lineage.binId', path: 'lineage.binId', type: 'entity' },
+            { id: 'fields.name', path: 'fields.name', type: 'string', required: true },
+            { id: 'fields.width', path: 'fields.width', type: 'number' }
+          ]
+        }
+      }
+    };
+    const staleRecord = {
+      typeId: 'widget',
+      construction: { mode: 'genericCreate', inputs: [] }
+    };
+    expect(processConstructionInputRecord(staleRecord, { 'fields.name': 'Probe' }, domain))
+      .toEqual({ fields: { name: 'Probe' } });
+    const authoredRecord = {
+      typeId: 'widget',
+      construction: {
+        mode: 'genericCreate',
+        inputs: [{ id: 'fields.width', path: 'fields.width', type: 'number', default: 12 }]
+      }
+    };
+    expect(processConstructionInputRecord(authoredRecord, { 'fields.name': 'Probe' }, domain))
+      .toEqual({ fields: { name: 'Probe', width: 12 } });
+    // No domain contract: the record's own list stays the whole truth.
+    expect(processConstructionInputRecord(staleRecord, { 'fields.name': 'Probe' }, {}))
+      .toEqual({});
+  });
+
   it('accepts the manifest action record shape in the availability check', async () => {    // Regression: the assignment manifest carries full records keyed `id`
     // while the check matched only `actionId` — every manual action 403'd.
     const { executeActiveProcessAction } = await import('./service.js');

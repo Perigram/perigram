@@ -100,7 +100,8 @@ export {
   getProcessNodeDefinition,
   processNodeDefinitionsForFamily,
   requireProcessNodeDefinition,
-  resolveCatalogNodePorts
+  resolveCatalogNodePorts,
+  resolveConstructionMode
 } from './node-catalog.js';
 export {
   PROCESS_OPERATION_REGISTRY,
