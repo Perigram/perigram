@@ -28,6 +28,12 @@ connection settings stay server-side. Contracts:
   local executor listener (server-side fetch path) and asserts the
   proxy-shaped served URLs; the cassette editor-create case now proves
   the real designer mounts.
+- [x] D. (found live) The cassette designer's browser graph imported
+  `dxf-parser` bare — resolvable in node, never in a browser; the whole
+  graph failed evaluation behind the "online-only" message. Vendored
+  under `assets/vendor/dxf-parser/`, and `checkSurfaceModule` now walks
+  the whole local import graph refusing bare or browser-unresolvable
+  specifiers.
 - [ ] WAITING — owner verification on the live stack: the cassette
   designer opens (create and header action) and saves.
 
@@ -52,11 +58,27 @@ org holding the install); the type view composes the same-origin path for
 editors and previews. Connection settings still never reach the browser,
 and module URLs are valid on localhost/LAN/HTTPS alike.
 
+With the URL loadable, the second stacked cause surfaced: the cassette
+designer's graph imported `dxf-parser` bare (fine in node, fatal in a
+browser) — vendored, and the SDK's surface check now walks whole graphs.
+Two more findings fixed along the way: workspace entity items hydrate
+from the pool instead of id stubs (create-opens left editor pages
+rendering `{_id}`), and preview mounts hand plugin modules the §3 wire
+record the authoring contract promises (the slots passed the screen
+instance). Vite's dev import-analysis appends `?import` to relative
+dynamic imports — the proxy ignores it and the e2e intercept globs
+tolerate it.
+
+Live-stack proof (dev stack hot-reloaded over the merged code):
+`e2e/plugin-surface.spec.js` ✓ (publish → install → proxy URLs → mount →
+save → preview), both cassette specs ✓ — the editor-action open and the
+blank editor-protocol create both mount the real designer
+(`.designer-workspace__canvas`) through the real proxy and executor.
+
 Validation: `server/features/plugins server/features/cts-types` (71 ✓),
-`shared` (touched suites ✓; 5 failures identical pre-existing base set —
-parity re-checked on current `local`), SSR smoke (3 ✓), `check-arch`,
-`check-docs`, `framework:validate` — green. Live-stack E2E: reported in
-the session handoff.
+`packages/plugin-sdk` (28 ✓), `shared` (5 pre-existing base failures,
+parity re-checked), SSR smoke (3 ✓), `check-arch`, `check-docs`,
+`framework:validate` — green.
 
 ## File creates follow the creation protocol and inherit the launch context (owner decision 2026-10-12)
 
