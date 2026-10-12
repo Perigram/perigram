@@ -32,14 +32,16 @@ fall back to their authored render label, the raw id last. Materializations
 never resolve type names straight from the bundle.
 the generated create dialog, whose rows are the declared construction
 inputs resolved by `resolveCreateDialogInputs`
-([shared/ui-mapping](../../shared/ui-mapping/README.md)): authored fields
-(bare name or slot-qualified `data.`/`specs.` path) render through their
+([shared/ui-mapping](../../shared/ui-mapping/README.md)): declared fields
+(flat-wire `fields.<name>` path or bare name) render through their
 descriptor, the identity `name` renders as a plain string control, and
 `lineage.<key>` inputs render an `InstancePicker` over the parent types
 whose children edges declare that key (reverse containment over the
 bundle). The draft keys are the compiled input ids, so the payload lands
 exactly on the construction paths; pickers model `{ type, id }` and are
-reduced to the bare instance id at submit. When the dialog opens on a
+reduced to the bare instance id at submit. The submit stays disabled
+while a required row (the identifier row above all — the naming law)
+is empty, so a create never lands an unnamed record. When the dialog opens on a
 detail surface whose scope carries the opened instance
 (`screen.scope.instanceId` + `screen.typeId`), every lineage row whose
 accepted parent types include that type submits the opened instance's
@@ -309,8 +311,10 @@ surface concerns:
   RegionBlock to the depth-0 header for hosts that mount the screen as
   a component; a host that opened the record inside another surface —
   a workspace tab reached from another page, a popup with a back stack —
-  injects its back affordance ahead of the identity block), Avatar identity with title and a `type · id` muted
-  subtitle, placed actions, the Edit toggle (rendered only on patchable
+  injects its back affordance ahead of the identity block), Avatar identity with title and the
+  localized type label as muted subtitle (resolved through the
+  `type-labels.js` seam — instance ids are private display vocabulary
+  and never render), placed actions, the Edit toggle (rendered only on patchable
   surfaces; see `onPatch` above — while editing it reads as Save and
   submits the draft), and exactly one state
   surface. A state axis is a tree, never a line, so stateful records
@@ -350,10 +354,18 @@ surface concerns:
   flattens to a Divider), `row` / `inline` → dense flex row with budgeted
   fields and relation chips.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
-  scalar facts strip (`DETAIL_FACT_BUDGET`, labeled via `fieldLabel`:
-  descriptor label or start-case name), structural fields as an Accordion,
+  scalar facts strip (`DETAIL_FACT_BUDGET`), structural fields as an Accordion,
   budgeted relation chips with show-more toggles for relations not already
-  covered by a child region, and the hierarchy tree for groups.
+  covered by a child region, and the hierarchy tree for groups. Every
+  field renders through `InlineField.vue`, the one detail value cell
+  (plain display; the click-to-edit Inplace with pencil on patchable
+  surfaces; the record's edit-mode draft while editing) — hosts own the
+  label placement, so facts, simple structural rows, and quantity maps
+  share the same affordance. Unfilled fields follow the scalar law
+  everywhere: display mode renders only fields that carry values (empty
+  panels are junk), edit mode exposes every declared field. Rich
+  structural values keep their panel chrome (Fieldset/Accordion) and
+  edit through the record's Edit toggle.
 - `PreviewBox.vue` — preview materialization keyed on the declared payload,
   in one fixed-height band (`h-28`) for every content kind. An instance
   payload reference with a renderable declared

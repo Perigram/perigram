@@ -82,14 +82,20 @@ stale bundle left unassigned trailing in an unlabeled default group),
 so record views carry field-group semantics instead of one
 undifferentiated stream. Generated create dialogs resolve their rows from
 compiled construction inputs through `resolveCreateDialogInputs(action,
-type, bundle)`: authored fields match by bare name or slot-qualified
-`data.`/`specs.` path and render through their descriptor; the identity
-`name` renders as a plain string control; `lineage.<key>` inputs render
+type, bundle)`: declared fields match by flat-wire `fields.<name>` path
+(the §3 stored shape compiled construction inputs speak) or bare name
+(authored compose inputs) and render through their descriptor; the
+identity `name` renders as a plain string control; `lineage.<key>`
+inputs render
 instance pickers over the parent types whose children edges declare that
 lineage key for the target type (reverse containment over the bundle —
 parents' edges are the declaration home, the child carries no parent list;
 an edge matches by its declared `lineageKey`, the entry's map key is
-authoring identity). Inputs
+authoring identity). Rows carry the compiled input's `required` flag, and
+the type's `identifier` row is required unconditionally (the naming law:
+its value is the record's title, so a create never submits an unnamed
+record — the dialog's submit stays disabled while a required row is
+empty). Inputs
 resolving to nothing stay hidden, so typed constructor inputs keep their
 editor surfaces. Construction-input labels are authored vocabulary
 resolved at the domain projection (parent type name, start-cased row
