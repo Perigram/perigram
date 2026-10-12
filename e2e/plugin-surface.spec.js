@@ -86,15 +86,18 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   // server-side fetch hop is unit-pinned (fetchSurfaceModule) and proven
   // live by the cassette designer specs against the real executor; here
   // the browser-side hop is intercepted hermetically so the mount
-  // contract runs without a container-reachable fixture listener.
-  await app.page.route(`**/api/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/module${FIXTURE_SURFACE_MODULE_PATH}`, route => route.fulfill({
-    contentType: 'application/javascript',
-    body: FIXTURE_SURFACE_MODULE_SOURCE
-  }));
-  await app.page.route(`**/api/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/module${FIXTURE_PREVIEW_MODULE_PATH}`, route => route.fulfill({
-    contentType: 'application/javascript',
-    body: FIXTURE_PREVIEW_MODULE_SOURCE
-  }));
+  // contract runs without a container-reachable fixture listener. Vite's
+  // dev import-analysis appends `?import` to relative dynamic imports, so
+  // the glob matches the whole path tail and the handler switches on the
+  // pathname.
+  await app.page.route(`**/api/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/module/**`, route => {
+    const path = new URL(route.request().url()).pathname;
+    const source = path.endsWith(FIXTURE_SURFACE_MODULE_PATH)
+      ? FIXTURE_SURFACE_MODULE_SOURCE
+      : path.endsWith(FIXTURE_PREVIEW_MODULE_PATH) ? FIXTURE_PREVIEW_MODULE_SOURCE : null;
+    if (source == null) return route.continue();
+    return route.fulfill({ contentType: 'application/javascript', body: source });
+  });
   await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
 
   const detail = (manifest.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === FIXTURE_SURFACE_TYPE_ID);
