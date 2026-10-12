@@ -64,7 +64,9 @@ module layout and how the code maps to the spec's build-order tiers.
   returns the diff, the normalized steps, and the coverage verdict —
   every breaking change must be covered by a declared step (rename-field
   covers its remove/add pair when the descriptors match;
-  remove-edge is coverable by nothing and stays refused), and every
+  remove-edge is covered by a declared `remove-edge` step whose execution
+  detaches the stored lineage key on live instances — children of the
+  removed edge become roots), and every
   declared step must match a breaking change, so stale steps fail the
   gate instead of rotting on the declaration. A covered plan is what the
   registry accepts and the server executes against instances (see
