@@ -1,5 +1,5 @@
 <template>
-  <component :is="mounted" v-if="mounted" :record="record" :payload="payloadDocument" />
+  <component :is="mounted" v-if="mounted" :record="wireRecord" :payload="payloadDocument" />
   <!-- The generic preview renders while the module loads and whenever it
        cannot (offline executor, refused contract): a plugin preview
        replaces the generic render only when it actually mounts. -->
@@ -7,8 +7,9 @@
 </template>
 
 <script setup>
-import { onMounted, shallowRef, ref, watch } from 'vue';
+import { computed, onMounted, shallowRef, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useInstancesStore } from '~/stores/instances';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
@@ -26,6 +27,16 @@ const props = defineProps({
   typeId: { type: String, required: true },
   // The served preview binding: { type, surface, url, surfaceContract }.
   preview: { type: Object, required: true }
+});
+
+// The module's record is the §3 wire DTO (the authoring contract), not
+// the generator's screen instance — preview slots receive screen
+// instances, so resolve the pooled wire record by id and fall back to
+// whatever the slot carried.
+const instances = useInstancesStore();
+const wireRecord = computed(() => {
+  const id = String(props.record?._id || props.record?.id || '');
+  return instances.dtoFor(instances.canonicalTypeKey(props.typeId), id) || props.record;
 });
 
 const { t, te, locale } = useI18n();
