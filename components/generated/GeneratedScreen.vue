@@ -297,7 +297,7 @@ import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrgan
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
 import GeneratedObjectInput from '~/components/generated/GeneratedObjectInput.vue';
-import { instanceIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
+import { instanceIdentifier, isContextBoundInput, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { usePayloadUpload } from '~/composables/usePayloadUpload.js';
 import { useInstancesStore } from '~/stores/instances';
@@ -382,7 +382,19 @@ const detailTraceExclusions = computed(() => {
   );
 });
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
-const promptFields = computed(() => promptedFields(pendingAction.value));
+// Launch-context bindings (SPEC §UI): a lineage/relation input whose
+// reference the context already carries never prompts — the entities
+// channel submits it.
+function visiblePromptFields(action = null, entity = null, context = {}) {
+  if (!action) return [];
+  const bound = new Set(Object.keys(actionEntities(action, entity, context)));
+  return promptedFields(action).filter(field => !isContextBoundInput(field, bound));
+}
+const promptFields = computed(() => visiblePromptFields(
+  pendingAction.value,
+  pendingEntity.value?.entity || null,
+  pendingEntity.value?.context || {}
+));
 const relationCreatorFields = computed(() => pendingAction.value?.relationMutation?.creator?.inputPolicy?.fields
   ?.filter(field => field.prompt) || []);
 const pendingActionLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.confirm'));
@@ -422,7 +434,7 @@ async function executeAction(action, entity = null, context = {}) {
       artifactCreatorVisible.value = true;
       return;
     }
-    if ((isCreateAction(action) || isUpdateAction(action) || action.actionKind === 'runCommand') && promptedFields(action).length) {
+    if ((isCreateAction(action) || isUpdateAction(action) || action.actionKind === 'runCommand') && visiblePromptFields(action, entity, context).length) {
       await openInputDialog(action, entity, context);
       return;
     }
@@ -444,7 +456,7 @@ async function openInputDialog(action, entity = null, context = {}) {
   for (const field of fields) {
     promptValues[field.id] = initialPromptValue(field);
   }
-  await loadPromptOptions(promptedFields(action));
+  await loadPromptOptions(visiblePromptFields(action, entity, context));
   syncDependentOptionValues(fields);
   syncArtifactTemplateValues(promptedFields(action));
   inputDialogVisible.value = true;
@@ -602,7 +614,7 @@ async function openCreatedEntity(action = {}, result = null) {
   // when the workspace opens the editor.
   toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.typeId, life: 4000 });
   if (target.kind === 'workspace') {
-    openInstanceInWorkspace({ typeId: target.typeId, instanceId: target.instanceId });
+    openInstanceInWorkspace({ typeId: target.typeId, instanceId: target.instanceId, editor: target.editor === true });
   }
 }
 

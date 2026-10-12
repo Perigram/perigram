@@ -92,6 +92,29 @@ test.describe('home and entity UI', () => {
     await app.expectCleanRuntime();
   });
 
+  test('editor-protocol cassette create opens the designer with no create form', async ({ app }) => {
+    test.setTimeout(150_000);
+    // SPEC §UI: an editor create runs blank — no create form — and the
+    // created instance opens in the type's editor (the facade plugin's
+    // cassette designer as a home pane tab).
+    const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
+    const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
+    expect(list?.route, 'Expected a compiled cassette list screen').toBeTruthy();
+
+    await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+    await app.gotoClient(list.route);
+
+    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
+    await expect(newButton).toBeVisible({ timeout: 20_000 });
+    await newButton.click();
+
+    // The create is the blank construct: no dialog ever opens, and the
+    // workspace-open seam lands the created cassette in its designer.
+    await expect(app.page.locator('.p-dialog')).toHaveCount(0);
+    await expect(app.page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 30_000 });
+    await app.expectCleanRuntime();
+  });
+
   test('instance detail layout follows its pane width', async ({ app }) => {
     test.setTimeout(120_000);
     // Image has no editor binding, so its detail renders the generic

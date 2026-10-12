@@ -90,6 +90,13 @@ instead of being coerced to `false` or the current time; once touched, the
 control submits a real boolean or an ISO string (`YYYY-MM-DD` for `date`,
 full ISO for `dateTime`).
 
+Prompted lineage/relation inputs whose reference the launch context
+already binds are hidden from the form: `action-context.js` resolves the
+context's entity refs onto the action's `entities` channel, the run binds
+the edge from there, and a child created from inside its parent never
+re-chooses the parent (SPEC §UI). The form prompts only what the context
+cannot supply.
+
 The pure `action-inputs.js` contract combines compiled `inputPolicy.fields`
 with normalized construction inputs, removes duplicate field ids, selects
 required/prompted controls, and builds the nested submission payload. This is
@@ -126,10 +133,15 @@ backstop for changes made outside this screen. Successful `createEntity`
 actions additionally open the created entity
 (resolved through `created-instance-open.js`: while the manifest carries a
 compiled home screen the created entity opens — or reuses — a home-workspace
-tab, whose pane body mounts the type's editor workspace page when no
-detail screen exists; orgs without a home
+tab; an editor-protocol create (`construction.mode === 'editor'`) opens the
+type's editor workspace page directly — the blank instance whose first
+editor save fills the payload (SPEC §UI) — while every other create opens
+its compiled detail tab, and a type with no detail screen opens its editor
+page instead; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
-fallback is a success toast with the created name). A mapped
+fallback is a success toast with the created name). Mobile keeps the routed
+detail contract: the editor stays reachable through the detail header's
+editor action. A mapped
 mutation response is either a bare shape-preserving data tree (zero failures)
 or a failure-carrying `{ result, failures, completedMutations }` envelope;
 every completed item is applied to matching source state, while failed slots
@@ -439,7 +451,9 @@ from the compiled manifest.
    through the generator; there is no entity renderer in the home shell.
    Editor-bound types without a detail surface open their registered
    editor page instead, and a type with neither stays silent, exactly
-   like the routed surface contract. Rows whose instance is open in the
+   like the routed surface contract; a create that ran with the editor
+   protocol opens the editor page first whatever the type's detail
+   surface (SPEC §UI). Rows whose instance is open in the
    active pane carry the normal text color. The
    desktop sidebar does not link out to hub entity-list screens; the full
    hierarchy is navigable in place.

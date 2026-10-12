@@ -1,5 +1,58 @@
 # TODO
 
+## File creates follow the creation protocol and inherit the launch context (owner decision 2026-10-12)
+
+An agent-invented passage had claimed "blank creates enter unnamed" as an
+owner decision — slop. The real law (SPEC.md §UI): an editor-protocol
+create runs blank (no create form at all) and opens the editor, whose
+first save fills the payload; upload/capture prompt only the file; a
+create launched from inside a parent never prompts that parent — the
+context's reference rides the action's entities channel. Contracts:
+[components/generated/README.md](./components/generated/README.md)
+(created-open and prompt-form contracts),
+[packages/cts/SPEC.md](./packages/cts/SPEC.md) §4 (creation protocols).
+
+- [x] A. `constructionInputsForContract` distinguishes a declared-blank
+  mode (editor) from an undeclared one: a declared mode addresses only its
+  mode inputs plus lineage/relation edges — editor creates stop compiling
+  a prompted `fields.name`.
+- [x] B. Persisted drafts drop declared construction inputs and policy
+  fields that a declared mode no longer addresses (compile-time guard).
+- [x] C. Editor-protocol creates open the editor: the created-open
+  resolution flags them, the workspace-open seam carries the flag, and the
+  home workspace opens the editor page instead of the detail tab.
+- [x] D. Generated create forms hide lineage/relation inputs whose
+  reference the launch context already binds.
+- [ ] WAITING — owner verification on the live stack: an editor create
+  opens the editor and its first save fills the payload; a child created
+  from inside a parent never prompts that parent.
+
+### Agent Notes (2026-10-12, editor-create-open session)
+
+Root cause of the popup: `constructionInputsForContract` fell back to the
+contract's whole input list whenever a mode declared no inputs, so the
+editor protocol's declared-blank mode inherited the `name` identifier row
+every file type declares — compiled editor creates carried a prompted
+`fields.name` and the generated surfaces opened the generic form. Verified
+headlessly before and after: the compiled cassette/text-document editor
+create now carries `construction.inputs: []`; xlsx upload keeps `payload`
+only. The ui-mapping engine's create dialog additionally submitted
+context-bound lineage rows silently (the detail-scope preselection became
+a hidden binding) and runs with no form when every row is context-bound.
+The created-open resolution flags editor-protocol creates (`editor: true`)
+through the workspace-open seam; `openInstanceTab` opens the editor page
+first for flagged creates, the detail chain otherwise. Mobile keeps the
+routed detail contract (editor reachable through the header action).
+
+Validation: `npx vitest run packages/processes packages/cts` (551 ✓),
+`components/generated components/ui-mapping shared` (all touched suites ✓;
+6 failures are identical pre-existing base failures on `local` — parity
+checked), `vitest.ssr.config.js` (3 ✓), `check-arch`, `check-docs`,
+`framework:validate` — all green. Not run: Playwright E2E — the live dev
+stack serves the primary checkout, not the session worktree; the new
+`home-and-instance-ui` case (blank cassette create opens the designer, no
+dialog) runs on the next stack cycle over this code.
+
 ## The instance wire speaks §3: block vocabulary and assumed fields die (owner decision 2026-10-11)
 
 Owner verdict on the wire DTO: compatibility with the entity-era block

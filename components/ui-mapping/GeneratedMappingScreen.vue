@@ -79,7 +79,7 @@
     >
       <div :class="LAYOUT.formGrid">
         <div
-          v-for="row in dialogRows"
+          v-for="row in visibleDialogRows"
           :key="row.id"
           class="flex min-w-0 flex-col gap-1"
           :class="row.span === 'full' ? 'md:col-span-2' : ''"
@@ -273,6 +273,20 @@ const dialogType = computed(() => (props.bundle.types || []).find(type => type.i
 // id, so the submitted payload lands exactly on the construction paths.
 const dialogRows = computed(() => resolveCreateDialogInputs(dialogAction.value || {}, dialogType.value, props.bundle));
 
+// The opened record on a scoped detail surface — the launch context's
+// parent binding for creates (SPEC §UI): lineage rows accepting that type
+// submit its reference and never render.
+const scopedInstance = computed(() => {
+  const scopeTypeId = props.screen?.typeId;
+  const scopeInstanceId = props.screen?.scope?.instanceId;
+  return scopeTypeId && scopeInstanceId ? { type: scopeTypeId, id: String(scopeInstanceId) } : null;
+});
+const visibleDialogRows = computed(() => {
+  const scoped = scopedInstance.value;
+  if (!scoped) return dialogRows.value;
+  return dialogRows.value.filter(row => !row.lineage?.accepts?.includes(scoped.type));
+});
+
 const submitting = ref(false);
 const runAction = async (action, draft = {}, context = {}) => {
   if (props.onRun) {
@@ -293,16 +307,21 @@ const runAction = async (action, draft = {}, context = {}) => {
 };
 const submitDialog = () => {
   const action = dialogAction.value;
-  // Lineage pickers model `{ type, id }`; the construction path wants the
-  // bare instance id. File references (`{ fileId, ... }`) already are the
-  // payload the construct path validates — unwrapping them to `.id`
-  // would silently drop the upload.
+  const payload = draftPayload();
+  dialogVisible.value = false;
+  if (action) runAction(action, payload);
+};
+
+// Lineage pickers model `{ type, id }`; the construction path wants the
+// bare instance id. File references (`{ fileId, ... }`) already are the
+// payload the construct path validates — unwrapping them to `.id`
+// would silently drop the upload.
+const draftPayload = () => {
   const payload = {};
   for (const [key, value] of Object.entries(dialogDraft)) {
     payload[key] = value && typeof value === 'object' && !Array.isArray(value) && !value.fileId ? value.id : value;
   }
-  dialogVisible.value = false;
-  if (action) runAction(action, payload);
+  return payload;
 };
 
 const linkDialogVisible = ref(false);
@@ -337,18 +356,23 @@ const openAction = (action, context = {}) => {
   if (launch === 'dialog') {
     dialogAction.value = action;
     for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
-    // Parent-scoped creates: on a detail surface whose scope carries the
-    // opened instance, lineage rows accepting that type preselect it, so
-    // children created from the parent's region stamp their lineage
-    // instead of landing unparented.
-    const scopeTypeId = props.screen?.typeId;
-    const scopeInstanceId = props.screen?.scope?.instanceId;
-    if (scopeTypeId && scopeInstanceId) {
+    // Parent-scoped creates (SPEC §UI): on a detail surface whose scope
+    // carries the opened instance, lineage rows accepting that type
+    // submit the context's reference — never re-asked. When every row is
+    // context-bound the create runs with no form at all.
+    const scoped = scopedInstance.value;
+    if (scoped) {
       for (const row of dialogRows.value) {
-        if (row.lineage?.accepts?.includes(scopeTypeId)) {
-          dialogDraft[row.id] = { type: scopeTypeId, id: String(scopeInstanceId) };
+        if (row.lineage?.accepts?.includes(scoped.type)) {
+          dialogDraft[row.id] = { type: scoped.type, id: scoped.id };
         }
       }
+    }
+    if (!visibleDialogRows.value.length) {
+      const payload = draftPayload();
+      dialogAction.value = null;
+      runAction(action, payload, context);
+      return;
     }
     dialogVisible.value = true;
     return;

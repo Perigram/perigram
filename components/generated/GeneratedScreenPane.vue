@@ -33,13 +33,13 @@
       <GeneratedTypeScreen
         v-else-if="resolvedScreen.template === 'typeList' && !item.instanceId"
         :screen="resolvedScreen"
-        @open-instance="instance => $emit('open-entity', { typeId: instance.type, instanceId: instance.id })"
+        @open-instance="instance => $emit('open-entity', { typeId: instance.type, instanceId: instance.id, ...(instance.editor ? { editor: true } : {}) })"
         @refresh="$emit('refresh')"
       />
       <GeneratedDetailScreen
         v-else-if="item.instanceId && resolvedScreen"
         :screen="scopedScreen"
-        @open-instance="instance => $emit('open-entity', { typeId: instance.type, instanceId: instance.id })"
+        @open-instance="instance => $emit('open-entity', { typeId: instance.type, instanceId: instance.id, ...(instance.editor ? { editor: true } : {}) })"
         @refresh="$emit('refresh')"
       />
       <GeneratedScreen v-else :screen="resolvedScreen" @refresh="$emit('refresh')" />

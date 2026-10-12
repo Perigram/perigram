@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   generatedActionRequiresParent,
+  isContextBoundInput,
   mergeCollectionActionContext,
   resolveGeneratedActionEntities
 } from './action-context.js';
@@ -70,5 +71,13 @@ describe('generated action context', () => {
     });
 
     expect(entities).toEqual({ sheet_design: 'sheet-1' });
+  });
+
+  it('flags only edge inputs whose related type the context binds (SPEC §UI)', () => {
+    const bound = new Set(['library']);
+    expect(isContextBoundInput({ id: 'lineage.libraryId', path: 'lineage.libraryId', typeId: 'library' }, bound)).toBe(true);
+    expect(isContextBoundInput({ id: 'relations.docs', path: 'relations.docs', accepts: ['library', 'archive'] }, bound)).toBe(true);
+    expect(isContextBoundInput({ id: 'lineage.otherId', path: 'lineage.otherId', typeId: 'publisher' }, bound)).toBe(false);
+    expect(isContextBoundInput({ id: 'fields.name', path: 'fields.name', typeId: 'library' }, bound)).toBe(false);
   });
 });

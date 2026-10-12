@@ -24,7 +24,26 @@ describe('created-entity open target', () => {
       screenKey: 'home',
       manifest: []
     });
-    expect(target).toMatchObject({ kind: 'workspace', typeId: 'cassette', instanceId: 'c-2', name: 'Blank tray' });
+    expect(target).toMatchObject({ kind: 'workspace', typeId: 'cassette', instanceId: 'c-2', name: 'Blank tray', editor: true });
+  });
+
+  it('flags editor-protocol creates in the home workspace too (SPEC §UI: the editor opens)', () => {
+    const target = resolveCreatedInstanceOpen({
+      action: { typeId: 'text-document', construction: { mode: 'editor' } },
+      result: { entity: { _id: 't-1', name: 'Notes' } },
+      manifest: [{ template: 'home', route: '/home' }]
+    });
+    expect(target).toMatchObject({ kind: 'workspace', typeId: 'text-document', instanceId: 't-1', editor: true });
+  });
+
+  it('keeps non-editor creates unflagged in the home workspace', () => {
+    const target = resolveCreatedInstanceOpen({
+      action: { typeId: 'image', construction: { mode: 'upload' } },
+      result: { entity: { _id: 'i-2', name: 'Shot' } },
+      manifest: [{ template: 'home', route: '/home' }]
+    });
+    expect(target).toMatchObject({ kind: 'workspace', instanceId: 'i-2' });
+    expect(target.editor).toBeUndefined();
   });
 
   it('reads the protocol from the v5 via binding too', () => {
@@ -35,6 +54,7 @@ describe('created-entity open target', () => {
     });
     expect(target.kind).toBe('workspace');
     expect(target.typeId).toBe('sketch');
+    expect(target.editor).toBe(true);
   });
 
   it('falls back to a toast for non-editor creates without a route', () => {

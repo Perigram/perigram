@@ -194,7 +194,7 @@ async function runAction(action, data = {}, context = {}) {
       // a destination the success toast is the confirmation.
       if (target?.kind === 'route' || target?.kind === 'workspace') {
         toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.typeId, life: 4000 });
-        emit('open-instance', { type: target.typeId, id: target.instanceId });
+        emit('open-instance', { type: target.typeId, id: target.instanceId, ...(target.editor ? { editor: true } : {}) });
         return;
       }
     }

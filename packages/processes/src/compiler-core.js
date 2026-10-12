@@ -3914,6 +3914,10 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   const blocksOwnConstruction = source.blockComposed && mode === 'genericCreate';
   const contractInputs = constructionInputsForContract(contract, mode)
     .filter(input => !blocksOwnConstruction || !isCanonicalBlockConstructionPath(input.path));
+  // A declared mode (creation protocols, construct operators) addresses
+  // exactly its mode inputs plus edges: authored inputs outside that set
+  // are stale drafts, dropped here instead of surviving as prompts.
+  const restrictToContract = contract.derived || Object.hasOwn(contract.modeInputs || {}, mode);
   const inputsById = new Map(contractInputs.map(input => {
     const normalizedInput = normalizeConstructionInput(input, domain);
     return [normalizedInput.id || normalizedInput.path, normalizedInput];
@@ -3921,7 +3925,7 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   for (const input of declaredInputs) {
     const key = input.id || input.path;
     const contractInput = inputsById.get(key);
-    if (contract.derived && !contractInput) continue;
+    if (restrictToContract && !contractInput) continue;
     inputsById.set(key, contractInput
       ? mergeConstructionInput(contractInput, input)
       : { ...input }
@@ -4006,11 +4010,14 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, typeId 
     const input = normalizedConstruction.inputs.find(candidate => (candidate.id || candidate.path) === path);
     return input ? (input.id || input.path) : null;
   };
+  const contract = constructionContract(domain, typeId);
+  const restrictToContract = Boolean(contract?.derived)
+    || Object.hasOwn(contract?.modeInputs || {}, normalizedConstruction.mode || '');
   for (const field of policyFields) {
     const key = field.id || field.path;
     const constructionKey = keyOfConstructionPath(field.path) || key;
     const constructionField = normalizedConstruction.inputs.find(input => (input.id || input.path) === constructionKey);
-    if (constructionContract(domain, typeId)?.derived && !constructionField) continue;
+    if (restrictToContract && !constructionField) continue;
     const merged = constructionField
       ? mergeConstructionInput(constructionField, field)
       : {

@@ -104,7 +104,7 @@ async function runAction(action, data = {}, context = {}) {
       }
       if (target?.kind === 'workspace') {
         toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.typeId, life: 4000 });
-        openInstanceInWorkspace({ typeId: target.typeId, instanceId: target.instanceId });
+        openInstanceInWorkspace({ typeId: target.typeId, instanceId: target.instanceId, editor: target.editor === true });
         return;
       }
     }

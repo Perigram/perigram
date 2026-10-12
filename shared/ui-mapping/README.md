@@ -315,7 +315,10 @@ regardless of grant level), `'confirm'` when the resolved action button
 declares confirmation (the destructive kinds), else `'run'`. Grant level is
 an access signal, never a presentation one: an admin-level create still
 opens its construction dialog, so no create executes with an empty draft
-merely because it was granted at admin.
+merely because it was granted at admin. The launch decision is
+context-free; the screen engine adds the launch context (a dialog whose
+every row the context supplies runs with no form — see the component
+README's create-dialog contract).
 
 `resolveInstanceActions(actions, typeId)` selects the per-instance quick
 actions a collection surface may offer without a form context: manual

@@ -62,6 +62,16 @@ export function instanceIdentifier(entity = null) {
   return entity?._id || entity?.id || '';
 }
 
+// A prompted edge input (lineage/relation) whose related type the launch
+// context already binds (SPEC §UI): the action's entities channel carries
+// the reference, so the create form must not re-ask for it.
+export function isContextBoundInput(field = {}, boundTypeIds = new Set()) {
+  const path = String(field.path || field.id || '');
+  if (!path.startsWith('lineage.') && !path.startsWith('relations.')) return false;
+  const related = field.typeId || [].concat(field.accepts || []).find(Boolean) || '';
+  return Boolean(related) && boundTypeIds.has(related);
+}
+
 function actionInputTypeId(action = {}) {
   if (action.actionKind === 'createInstance') return '';
   return action.typeId
