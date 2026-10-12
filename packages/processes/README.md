@@ -996,7 +996,11 @@ only two execution modes: `manual`, which is exposed through authorized UI, and
 durable control tokens, foreach scopes, join arrivals, attempts,
 and step outputs. Data subgraphs are evaluated lazily for the operational node
 that consumes them. Arbitrary data or control cycles are rejected during
-activation.
+activation. Declaration wires (`role: 'type'`) survive normalization with
+their role and label intact — machine vocabulary reads them by node type and
+handle — and every role-classifying consumer (cycle checks, data and control
+walkers) skips them, so a declaration wire, including a class wired to itself,
+never counts as dataflow.
 
 Manual effect inputs resolve the supplied entity from the persisted run context
 when no data wire overrides that socket. Entity access remains resolved from

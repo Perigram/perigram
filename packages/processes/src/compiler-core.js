@@ -1552,11 +1552,14 @@ export function resolveScreens({ access } = {}) {
 function normalizeGraph(graph = {}) {
   return {
     nodes: Array.isArray(graph.nodes) ? graph.nodes.map(normalizeNode) : [],
-    // `type`-role edges are canvas binding gestures (type node -> species
-    // node); the binding itself lives in the record's type field. They are
-    // not dataflow and never reach validation.
+    // Declaration wires (`role: 'type'`) survive normalization: machine
+    // vocabulary (state nesting, entry wires) reads them from the
+    // normalized graph by node type and handle. They are not dataflow —
+    // every role-classifying consumer (cycle checks, control/data walkers)
+    // skips a `type`-role edge, so a declaration wire never counts as a
+    // data or control connection.
     edges: Array.isArray(graph.edges)
-      ? graph.edges.map(normalizeEdge).filter(edge => edge.role !== 'type')
+      ? graph.edges.map(normalizeEdge)
       : [],
     viewport: {
       x: Number(graph.viewport?.x || 0),
@@ -1588,6 +1591,12 @@ function normalizeEdge(edge = {}) {
     sourceHandle,
     targetHandle,
     type: edge.type || 'default',
+    // The declaration wire's role and label are its semantics (children/
+    // declares/entry/targets); stripping them here reclassified every
+    // declaration wire as data, so a declaration self-wire read as a
+    // one-node data cycle.
+    ...(edge.role ? { role: edge.role } : {}),
+    ...(edge.label ? { label: edge.label } : {}),
     data: edge.data && typeof edge.data === 'object' ? edge.data : {}
   };
 }

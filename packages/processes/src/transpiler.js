@@ -372,12 +372,10 @@ function normalizeCanvasEdge(edge = {}) {
     sourceHandle,
     targetHandle,
     type: edge.type || 'default',
-    // 'type'-role wires are binding gestures (type node -> species node);
-    // they persist with the canvas and are filtered from validation. Their
-    // label IS the wire's semantics (field/state/transition/children/
-    // ref-target declares; transition intents) — compileTreeDeclarations
-    // matches declaration partners by it, so it must round-trip or the
-    // declaration tree hollows out after reload.
+    // A 'type'-role wire's label IS its semantics (children/declares/
+    // entry/targets) — compileTreeDeclarations matches declaration
+    // partners by it, so it must round-trip or the declaration tree
+    // hollows out after reload.
     ...(edge.role ? { role: edge.role } : {}),
     ...(edge.label ? { label: edge.label } : {}),
     data: edge.data && typeof edge.data === 'object' ? edge.data : {}
