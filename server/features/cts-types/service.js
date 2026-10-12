@@ -8,6 +8,7 @@ import * as repository from './repository.js';
 import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
 } from '~/packages/cts/src/index.js';
+import { isSupportedSurfaceContract, pluginModuleUrl } from '#shared/plugin-surfaces.js';
 import { composeSystemDeclarations, composePackEditors, composePackAttachmentKinds, orderedMountedPacks } from '~/server/packs/declarations.js';
 import * as pluginInstalls from '../plugins/repository.js';
 
@@ -120,7 +121,6 @@ export async function describeOrganizationTypes(organizationId) {
     const seenEditors = new Set(editors.map(editor => editor.type));
     const seenPreviewTypes = new Set();
     for (const install of await pluginInstalls.listInstallsByOrganization(organizationId)) {
-      const endpointOrigin = firstEndpointOrigin(install);
       for (const surface of install.declarations?.surfaces || []) {
         if (!surface?.id || !surface?.module || !surface.surfaceContract) {
           throw createError({
@@ -130,7 +130,7 @@ export async function describeOrganizationTypes(organizationId) {
         }
         surfaces.push(Object.freeze({
           id: surface.id,
-          url: endpointOrigin ? `${endpointOrigin}${surface.module}` : null,
+          url: pluginModuleUrl(install, surface.module),
           surfaceContract: surface.surfaceContract,
           ...(surface.kind && surface.kind !== 'editor' ? { kind: surface.kind } : {})
         }));
@@ -170,7 +170,7 @@ export async function describeOrganizationTypes(organizationId) {
         previews.push(Object.freeze({
           type: preview.type,
           surface: preview.surface,
-          url: endpointOrigin ? `${endpointOrigin}${surface.module}` : null,
+          url: pluginModuleUrl(install, surface.module),
           surfaceContract: surface.surfaceContract
         }));
       }
@@ -221,21 +221,6 @@ export async function describeOrganizationTypes(organizationId) {
     surfaces,
     previews
   };
-}
-
-// The origin a plugin's surface modules load from: the first configured
-// endpoint-mode connection — the executor serves its UI beside its
-// services. No configured endpoint means no loadable module; the client
-// renders the connect-the-executor state instead of guessing.
-function firstEndpointOrigin(install) {
-  for (const url of Object.values(install?.endpoints || {})) {
-    try {
-      return new URL(String(url)).origin;
-    } catch {
-      continue;
-    }
-  }
-  return null;
 }
 
 export async function defineType(declaration = {}, { organizationId, actor = null } = {}) {

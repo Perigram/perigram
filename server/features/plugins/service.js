@@ -22,7 +22,7 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { composePackServices, composePackDomains, composePackAttachmentKinds, orderedMountedPacks } from '~/server/packs/declarations.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/src/listing.js';
-import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
+import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
 
 function packById(packId) {
   return orderedMountedPacks().find(pack => pack.id === String(packId)) || null;
@@ -297,6 +297,39 @@ export function serviceModeOf(service = {}) {
 // The plugin's connection settings: per-service endpoints for
 // endpoint-mode services, and the API key sent to the publisher's
 // executor when calling them.
+// The plugin-module proxy core (the README's surface module proxy
+// contract): resolves the caller's install and streams the module path
+// from its endpoint origin. Browsers load plugin modules same-origin
+// through the route wrapper — never the server-network origin.
+export async function fetchSurfaceModule({ organizationId, pluginId, modulePath = '', auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'read');
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) throw createError({ statusCode: 404, message: 'Plugin not installed' });
+  const origin = endpointOriginOf(install);
+  if (!origin) throw createError({ statusCode: 503, message: `Plugin ${pluginId} has no connected executor endpoint` });
+  const segments = String(modulePath || '').split('/')
+    .map(segment => { try { return decodeURIComponent(segment); } catch { return null; } })
+    .filter(Boolean);
+  if (!segments.length || segments.some(segment => segment === '.' || segment === '..' || /[\\/]/.test(segment))) {
+    throw createError({ statusCode: 400, message: 'Invalid module path' });
+  }
+  const url = `${origin}/${segments.map(encodeURIComponent).join('/')}`;
+  let response;
+  try {
+    response = await fetch(url, { headers: { accept: '*/*' } });
+  } catch (error) {
+    throw createError({ statusCode: 502, message: `Plugin ${pluginId} executor did not serve the module (${error?.message || 'unreachable'})` });
+  }
+  if (!response.ok) {
+    throw createError({ statusCode: 502, message: `Plugin ${pluginId} executor did not serve the module (${response.status})` });
+  }
+  return {
+    contentType: response.headers.get('content-type') || 'application/octet-stream',
+    body: Buffer.from(await response.arrayBuffer())
+  };
+}
+
 export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'admin');

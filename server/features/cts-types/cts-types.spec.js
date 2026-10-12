@@ -78,7 +78,7 @@ describe('cts type storage', () => {
     expect(bundle.attachmentKinds.COATING_DOC).toMatchObject({ mimeType: 'text/plain' });
   });
 
-  it('serves installed surface declarations with executor-resolved module URLs', async () => {
+  it('serves installed surface declarations with same-origin proxy module URLs', async () => {
     const installedTypes = [{ id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }];
     pluginInstalls.listDeclarationsByOrganization.mockResolvedValue(installedTypes);
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
@@ -92,9 +92,12 @@ describe('cts type storage', () => {
       }
     }]);
     const view = await describeOrganizationTypes(ORG);
+    // The endpoint origin (10.0.0.5 — the server's network) never reaches
+    // the browser: modules load same-origin through the plugin-module
+    // proxy, valid on every deployment origin.
     expect(view.surfaces).toContainEqual({
       id: 'coating-designer',
-      url: 'http://10.0.0.5:8790/surfaces/coating-designer.mjs',
+      url: '/api/plugins/coatings/module/surfaces/coating-designer.mjs',
       surfaceContract: 1
     });
     // Without a configured endpoint the URL stays null — the loader shows

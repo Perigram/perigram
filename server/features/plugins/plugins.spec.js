@@ -53,7 +53,8 @@ import {
   install, installFromCatalog, uninstall, listInstalled, servicesForOrganization,
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
-  retractListing, settingsFor, updateSettings, listPackState, enablePack, disablePack
+  retractListing, settingsFor, updateSettings, listPackState, enablePack, disablePack,
+  fetchSurfaceModule
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -645,6 +646,85 @@ describe('endpoint-mode services', () => {
       endpoints: { match: 'https://cloud.example/match' },
       auth: AUTH
     })).rejects.toMatchObject({ statusCode: 400 });
+  });
+});
+
+describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
+  const moduleInstall = {
+    organizationId: ORG,
+    pluginId: 'coatings',
+    declarations: coatingListing.declarations,
+    endpoints: { match: 'https://executor.example/match' }
+  };
+
+  beforeEach(() => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? moduleInstall : null
+    ));
+  });
+
+  it('streams the module from the install endpoint origin, strictly under it', async () => {
+    const fetchMock = vi.fn(async () => new Response('export default null;', {
+      status: 200,
+      headers: { 'content-type': 'application/javascript' }
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/surfaces/designer.mjs',
+        auth: AUTH
+      });
+      expect(module.contentType).toBe('application/javascript');
+      expect(module.body.toString()).toBe('export default null;');
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/surfaces/designer.mjs', expect.anything());
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('refuses traversal-shaped paths', async () => {
+    for (const modulePath of ['/surfaces/../../etc/passwd', '/%2E%2E/secret', '/a/b\\c']) {
+      await expect(fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath,
+        auth: AUTH
+      })).rejects.toMatchObject({ statusCode: 400 });
+    }
+  });
+
+  it('404s without an install and 503s without a connected endpoint', async () => {
+    await expect(fetchSurfaceModule({
+      organizationId: ORG,
+      pluginId: 'missing',
+      modulePath: '/surfaces/designer.mjs',
+      auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 404 });
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? { ...moduleInstall, endpoints: {} } : null
+    ));
+    await expect(fetchSurfaceModule({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      modulePath: '/surfaces/designer.mjs',
+      auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 503 });
+  });
+
+  it('surfaces executor failures as 502', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 404 })));
+    try {
+      await expect(fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/surfaces/designer.mjs',
+        auth: AUTH
+      })).rejects.toMatchObject({ statusCode: 502 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

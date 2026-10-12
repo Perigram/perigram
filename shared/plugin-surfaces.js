@@ -30,3 +30,31 @@ export const SUPPORTED_SURFACE_CONTRACTS = [1, 2];
 export function isSupportedSurfaceContract(version) {
   return SUPPORTED_SURFACE_CONTRACTS.includes(Number(version));
 }
+
+// Where a plugin's surface modules load from: the install's first
+// configured endpoint origin — the executor serves its UI beside its
+// services. Server-side consumers only: that origin addresses the
+// server's network (dev's docker-internal executor host is the canonical
+// example), which a browser can never reach, so the platform serves
+// modules same-origin through `pluginModuleUrl`'s app proxy route.
+export function endpointOriginOf(install) {
+  for (const url of Object.values(install?.endpoints || {})) {
+    try {
+      return new URL(String(url)).origin;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+// The browser-facing module URL: the app's plugin-module proxy path
+// (`GET /api/plugins/:pluginId/module**` — the plugins feature streams it
+// from the endpoint origin server-side). `null` until an endpoint is
+// connected; the client loader renders the connect-the-executor state
+// then.
+export function pluginModuleUrl(install, modulePath) {
+  return endpointOriginOf(install)
+    ? `/api/plugins/${encodeURIComponent(install.pluginId)}/module${modulePath}`
+    : null;
+}

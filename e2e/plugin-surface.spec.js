@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { createServer } from 'node:http';
 import {
   fixtureSurfacePluginListing,
   FIXTURE_SURFACE_PLUGIN_ID,
@@ -11,17 +12,37 @@ import {
 
 // M5/M7 proof (TODO §Plugin-delivered editor surfaces): a fixture plugin
 // whose editor and preview surfaces are plugin-delivered — published
-// through the real catalog API, installed through the real gate, module
-// URLs resolved against the install's executor endpoint, mounted by the
-// app's loaders over the host context (host vue, host primitives, host
-// locale), saving through the generic persistence callbacks and
-// previewing read-only over the resolved payload document. Zero app-side
-// code exists for the fixture's surfaces, and the run retracts its
-// catalog listing so the marketplace stays clean.
+// through the real catalog API, installed through the real gate, served
+// to the browser same-origin through the app's plugin-module proxy (a
+// real local executor listener answers the app's server-side fetch),
+// mounted by the app's loaders over the host context (host vue, host
+// primitives, host locale), saving through the generic persistence
+// callbacks and previewing read-only over the resolved payload document.
+// Zero app-side code exists for the fixture's surfaces, and the run
+// retracts its catalog listing so the marketplace stays clean.
 const OPERATOR_TOKEN = process.env.PLATFORM_OPERATOR_TOKEN || 'perigram-dev-operator';
 
 test('a plugin-delivered editor surface installs and opens with zero app code', async ({ app }) => {
   test.setTimeout(240_000);
+
+  // The fixture executor: serves the surface modules the proxy fetches
+  // server-side (the install's endpoints point here).
+  const moduleSources = new Map([
+    [FIXTURE_SURFACE_MODULE_PATH, FIXTURE_SURFACE_MODULE_SOURCE],
+    [FIXTURE_PREVIEW_MODULE_PATH, FIXTURE_PREVIEW_MODULE_SOURCE]
+  ]);
+  const executor = createServer((request, response) => {
+    const source = moduleSources.get(new URL(request.url || '/', 'http://127.0.0.1').pathname);
+    if (source == null) {
+      response.writeHead(404).end('not found');
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'application/javascript' }).end(source);
+  });
+  await new Promise(resolve => executor.listen(8799, '127.0.0.1', resolve));
+  const closeExecutor = () => new Promise(resolve => executor.close(resolve));
+  app.trackCleanup(closeExecutor);
+  test.info().annotations.push({ type: 'fixture-executor', description: 'http://127.0.0.1:8799' });
 
   const listing = fixtureSurfacePluginListing();
   const me = await (await app.request.get('/api/auth/me')).json();
@@ -56,12 +77,12 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   const view = await (await app.request.get('/api/admin/cts/types')).json();
   const servedSurface = (view.surfaces || []).find(surface => surface.id === 'fx-surface-editor');
   expect(servedSurface, 'Expected the served type view to carry the declared surface').toBeTruthy();
-  expect(servedSurface.url).toBe(`http://127.0.0.1:8799${FIXTURE_SURFACE_MODULE_PATH}`);
+  expect(servedSurface.url).toBe(`/api/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/module${FIXTURE_SURFACE_MODULE_PATH}`);
   expect(servedSurface.surfaceContract).toBe(1);
   expect((view.editors || []).some(editor => editor.type === FIXTURE_SURFACE_TYPE_ID && editor.surface === 'fx-surface-editor')).toBeTruthy();
   const servedPreview = (view.previews || []).find(preview => preview.type === FIXTURE_SURFACE_TYPE_ID);
   expect(servedPreview, 'Expected the served type view to carry the declared preview binding').toBeTruthy();
-  expect(servedPreview.url).toBe(`http://127.0.0.1:8799${FIXTURE_PREVIEW_MODULE_PATH}`);
+  expect(servedPreview.url).toBe(`/api/plugins/${FIXTURE_SURFACE_PLUGIN_ID}/module${FIXTURE_PREVIEW_MODULE_PATH}`);
 
   // A compiled construct for the installed type creates the record the
   // editor opens (the install composed the type into the org registry;
@@ -75,17 +96,9 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   const id = String(created._id || created.id);
   expect(id, 'Expected the created fixture record id').toBeTruthy();
 
-  // The modules themselves are served by the plugin's executor —
-  // intercepted hermetically; everything else (install, view, loader,
-  // persistence) runs through the real stack.
-  await app.page.route(`**${FIXTURE_SURFACE_MODULE_PATH}`, route => route.fulfill({
-    contentType: 'application/javascript',
-    body: FIXTURE_SURFACE_MODULE_SOURCE
-  }));
-  await app.page.route(`**${FIXTURE_PREVIEW_MODULE_PATH}`, route => route.fulfill({
-    contentType: 'application/javascript',
-    body: FIXTURE_PREVIEW_MODULE_SOURCE
-  }));
+  // The modules are served by the plugin's real local executor; the app
+  // streams them to the browser same-origin through the plugin-module
+  // proxy.
   await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
 
   const detail = (manifest.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === FIXTURE_SURFACE_TYPE_ID);
