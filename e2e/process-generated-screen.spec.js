@@ -178,7 +178,7 @@ test.describe('process generated screens', () => {
     expect(listRequests).toBe(listRequestsAfterLoad);
     const reloaded = await app.request.get(`/api/instances/${PARENT_TYPE}/${id}`);
     expect(reloaded.ok()).toBeTruthy();
-    expect(((await reloaded.json()).identity || {}).name).toBe('Patch Folder Renamed');
+    expect((await reloaded.json()).name).toBe('Patch Folder Renamed');
 
     await app.expectCleanRuntime();
   });
@@ -254,8 +254,16 @@ test.describe('process generated screens', () => {
     await dialog.locator('input:visible').first().fill(name);
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await expect(app.page).toHaveURL(new RegExp(`auto_${PARENT_TYPE}_detail`));
-    await expect(app.page.getByText(name).first()).toBeVisible({ timeout: 20000 });
+    // Same-tab creation (SPEC §UI): the created record opens as a home
+    // workspace pane tab, never a route outside home — the manifest's
+    // home screen owns the destination.
+    await expect(app.page).toHaveURL(/\/home$/);
+    // The construction landed through the live contract: the created
+    // record carries the prompted identifier value (its title source).
+    const list = await app.request.get(`/api/instances/${PARENT_TYPE}`);
+    const rows = await list.json();
+    const created = (Array.isArray(rows) ? rows : []).find(row => (row.fields || {}).name === name);
+    expect(created, 'created record carries the prompted identifier value').toBeTruthy();
 
     await app.expectCleanRuntime();
   });
@@ -291,17 +299,16 @@ async function mockStatusActions(page) {
 }
 
 function instanceDto(id, type, name, overrides = {}) {
+  // The §3 flat wire: `name` and `state` travel as themselves, rows in
+  // flat `fields` (the identifier row absorbs the wire name client-side).
   return {
     _id: id,
     type,
-    identity: { uid: id, name },
-    origin: {},
-    states: { main: 'CREATED' },
+    name,
+    state: 'CREATED',
     lineage: { organizationId: 'org' },
     relations: {},
-    provenance: {},
-    summary: {},
-    data: {},
+    fields: {},
     ...overrides
   };
 }
