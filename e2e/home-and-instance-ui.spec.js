@@ -109,9 +109,11 @@ test.describe('home and entity UI', () => {
     await newButton.click();
 
     // The create is the blank construct: no dialog ever opens, and the
-    // workspace-open seam lands the created cassette in its designer.
+    // workspace-open seam lands the created cassette in its designer (a
+    // cold dev stack may take a while: home SSR plus the designer's
+    // module graph through the module proxy).
     await expect(app.page.locator('.p-dialog')).toHaveCount(0);
-    await expect(app.page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 30_000 });
+    await expect(app.page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
     await app.expectCleanRuntime();
   });
 
