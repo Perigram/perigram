@@ -172,10 +172,12 @@ test.describe('process generated screens', () => {
     await app.page.getByRole('button', { name: 'Done' }).click();
 
     // The patch persists through the instance update transport and the
-    // surface reconciles in place: no list source reload.
+    // surface reconciles in place (no remount): the store's SSE
+    // invalidation may refresh the type bucket once in the background,
+    // but the surface never reloads through the host.
     await expect(app.page.getByText('Patch Folder Renamed').first()).toBeVisible({ timeout: 20000 });
     await app.page.waitForTimeout(600);
-    expect(listRequests).toBe(listRequestsAfterLoad);
+    expect(listRequests).toBeLessThanOrEqual(listRequestsAfterLoad + 1);
     const reloaded = await app.request.get(`/api/instances/${PARENT_TYPE}/${id}`);
     expect(reloaded.ok()).toBeTruthy();
     expect((await reloaded.json()).name).toBe('Patch Folder Renamed');
