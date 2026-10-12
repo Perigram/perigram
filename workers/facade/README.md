@@ -30,7 +30,7 @@ targets a surface mount contract
 | Surface | Kind | Contract | Serves |
 |---|---|---|---|
 | `sheet-design-editor` | editor | 2 | The sheet-design type's editor: layout drag/rotate/snap, layer-pen styling, save through the mount's patch transport. Pure layout compute in `surfaces/lib/`. |
-| `cassette-designer` | editor | 2 | The cassette type's designer: parametric face graph, workpieces/attachments, profile sketch and folded 3D preview. Engine and render family in [`occs/`](./occs/README.md) and `surfaces/lib/`; the three.js preview runtime is vendored under `assets/vendor/three/`. |
+| `cassette-designer` | editor | 2 | The cassette type's designer: parametric face graph, workpieces/attachments, profile sketch and folded 3D preview. Engine and render family in [`occs/`](./occs/README.md) and `surfaces/lib/`; the three.js preview runtime is vendored under `assets/vendor/three/`, dxf-parser under `assets/vendor/dxf-parser/` (the surface graph never imports an npm package — `perigram-plugin surfaces` walks and refuses it). |
 | `cassette-preview` | preview | 1 | The cassette type's read-only preview (M7): baked geometry rows when the record carries them, else the payload OCCS document through the plugin renderer; mounts in the platform's card and detail preview slots over `{ record, payload }`. |
 
 ## Services
