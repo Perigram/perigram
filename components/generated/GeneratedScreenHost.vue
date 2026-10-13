@@ -34,7 +34,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
 import { applyOptimisticState } from '~/utils/optimistic-state.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
-import { isCreateAction } from '~/components/generated/action-visibility.js';
+import { isCreateAction } from '~/utils/action-visibility.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
