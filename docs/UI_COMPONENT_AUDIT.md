@@ -131,7 +131,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | ID | Path | Primary ownership | Current disposition |
 |---|---|---|---|
 | `ui-components-artifactlayouteditor-vue` | `components/ArtifactLayoutEditor.vue` | derived usage | centralize:layout (1); replace:chrome (4) |
-| `ui-components-artifacts-artifacttexteditor-vue` | `components/artifacts/ArtifactTextEditor.vue` | derived usage | replace:inline-visual (1) |
+| `ui-components-artifacts-artifacttexteditor-vue` | `components/artifacts/ArtifactTextEditor.vue` | derived usage | replace:chrome (3) |
 | `ui-components-artifacts-artifactviewer-vue` | `components/artifacts/ArtifactViewer.vue` | derived usage | replace:chrome (2) |
 | `ui-components-artifacts-sketcheditor-vue` | `components/artifacts/SketchEditor.vue` | derived usage | replace:chrome (1) |
 | `ui-components-authprogress-vue` | `components/AuthProgress.vue` | derived usage | compliant |
