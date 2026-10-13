@@ -32,9 +32,10 @@ the domain attachment kind instead of accepting component names.
   `Editor` (Quill) rich text control whose HTML converts to markdown on
   save (`turndown`) and from markdown on load (`marked`). The document
   chrome is one toolbar: the name edits in place in the toolbar itself
-  (committed on blur/enter through the persistence `rename` seam — no
-  separate rename affordance), save sits beside it, and the format
-  controls follow in the editor's own toolbar slot, restricted to
+  (committed through enter, the apply control that appears beside the
+  field while the draft differs, or blur — all through the persistence
+  `rename` seam), save sits beside it, and the format controls follow in
+  the editor's own toolbar slot, restricted to
   formats markdown can round-trip. The csv surface shares the same
   name/save row. Quill never loads its own stylesheet beside the
   component: the PrimeVue editor theme already embeds the snow base with
