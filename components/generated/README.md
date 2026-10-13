@@ -455,7 +455,11 @@ from the compiled manifest.
   beside containment — expanding a row resolves its relation refs
   (`resolveInstanceRelationRefs` over the canonical DTO, fetching the full
   record when the list DTO omits relations) and nests the referenced
-  entities under the row. Section roots never nest. Entity nodes whose type
+  entities under the row. Section roots never nest, and a type is never its
+  own type-level parent: recursive containment nests instances under
+  instances (`typeParentOf` skips self-pairs, the same law the compiler's
+  home suppression applies), so a self-referential type keeps its root
+  node. Entity nodes whose type
   declares containment children or carries relation refs are expandable;
   because PanelMenu draws the chevron only for items with non-empty
   `items`, an expandable row whose children are not loaded yet carries a

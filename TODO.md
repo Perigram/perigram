@@ -354,7 +354,23 @@ Note: the recursion interface itself was verified generated and served
 `tJgczn6n27lId`, contextual create, nav entries, SSR render) — the
 "missing interface" experience was the wedged apply.
 
+### Agent Notes (2026-10-13, the vanishing section — self-pair rooting)
+
+The real client symptom behind "recursion doesn't create interface": the
+explorer rooted a recursive type under ITSELF. `explorerNodes` and the
+mobile home tabs built their type trees from the raw effective containment
+— a self-pair put the type in the "rooted" set (its own child), so no
+root node was emitted and the class's section vanished from the sidebar
+and mobile tabs completely. The compiler's home suppression already
+excluded self-pairs; the client tree builders did not. Fix:
+`typeParentOf` (utils/generated-screen-source.js) is the one type-level
+parent map — self-pairs never root the type (recursion nests instances
+under instances via the entity-level walk) — consumed by
+`visibleTypes`/`explorerNodes` and `useMobileHomeTabs`. Pinned in
+`generated-screen-source.spec.js`.
+
 ## CTS honesty pass: §13-true projection schemas, Name-input retirement, undead-kind cleanup (2026-10-11)
+
 
 Owner direction (2026-10-11, from the types-system maturity review): the
 projection's field schemas lie about what instances carry, the hardcoded
