@@ -321,6 +321,26 @@ A `Ref` stored outside a declared edge slot (the `data.manufacturerId`,
 `data.queueId`, `lineage.catalogId` drift) is a static error (R2). `Id`
 fields without a carrier `Ref` are the same error.
 
+### Target domains
+
+A relation entry — explicit `edges.relations` declaration or a `ref` field
+— may constrain its targets with `where`: a boolean expression AST (§18,
+the same boolean subset transition guards use, membership `in` included)
+evaluated over `{ value }`, where `value` is the TARGET instance's stored
+row. One declaration, three consumers, no duplication: compile row-checks
+the paths against every declared target's row; every ref write evaluates
+it exactly (R2 — a value outside the domain is refused whatever offered
+it); pickers project the same expression so they offer what writes accept
+(one evaluator home, shared). Party types are legal relation targets
+(readable principals, §13); their wire rows — including the derived
+`user.roles` — are domain vocabulary.
+
+```yaml
+edges:
+  relations:
+    assignee: { types: [user], where: "{'role-operator' in value.roles}" }  # AST, shown as CEL for reading
+```
+
 ## 7. States
 
 States are authored in the process graph, never in the type declaration.
@@ -552,7 +572,7 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 | CTS concept | Storage | Code home |
 |---|---|---|
 | type declaration | `types` collection (versioned docs) | designer writes; starter packs are seed files in domain packages |
-| party entities | `parties` | framework, fixed |
+| party entities | framework feature services (`users`, `organizations` collections) | party services own storage; the process plane reads them on the §3 wire (`party-wire`) |
 | file entities | `files` (+ GridFS blobs) | generic file service (today's artifacts service) |
 | item entities | `items` | generic item service |
 | group entities | `groups` | generic group service |
@@ -576,6 +596,19 @@ type's class collection and each declared relation edge adds
 `(type, organizationId, relations.<key>)` on the owner's. The instance
 feature derives and (idempotently) applies them when declarations change
 and at process activation.
+
+### Readable principals (party projection)
+
+Party types project as READ-ONLY entities (`meta`, flagged `party`, no
+class collection, no construction): they join the process plane as
+instance-source bindings, relation targets (§6 domains included), and
+decomposition inputs — never as constructs, mutations, transitions,
+removes, or lineage children (compile refuses all of these). The party
+wire is §3 identity slots plus the declared rows; `user.roles` is derived
+at the read boundary from the active organization's authoritative
+`roleAssignments` — assignment stays organization data, the wire carries
+the derived read. Party reads gate on shared membership (self always
+readable) and ride the registered party services.
 
 ## 14. Process designer in development
 
@@ -731,7 +764,9 @@ sits in predicate position. Four completions follow from this principle:
    belong to `s`. The runtime's missing-field marker contract
    (`missing-field.js`: missing stays distinguishable from null through the
    whole pipeline, serialized only at result boundaries) is adopted as part
-   of this discipline.
+   of this discipline. Membership `in` (scalar in list, deep-equal items)
+   completes the boolean vocabulary — guards and relation target domains
+   (§6) test list rows with it.
 
 3. **Concurrency** — optimistic. Guards are re-evaluated atomically at commit
    against the current state snapshot (a conditional update on the stored

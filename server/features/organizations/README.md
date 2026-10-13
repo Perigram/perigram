@@ -17,6 +17,10 @@ repository across feature boundaries.
 
 ## Data Structure
 Collection: `organizations`
+The process plane reads organizations through the registered party
+bindings (`server/runtime/party-wire.js`): the §3 wire shape, readable by
+members only. Organizations are readable principals — never
+process-mutable; the feature routes below own every mutation.
 
 Key fields:
 - `processTemplateId`: Starter process id used at creation time.

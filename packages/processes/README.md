@@ -50,7 +50,9 @@ block fields against their target entity policy at the consumer boundary.
 The grouped authoring palette is a curated projection of CTS semantics. Its
 groups are declaration items, type-bound constructs, effect species, typed
 instance sources/navigation (the generic read presets — an entity source
-binds its type at configure time), values, list/tree algebra, flow, and
+binds its type at configure time; party types bind as read-only principals,
+and the two run-context sources resolve the acting user and the active
+organization), values, list/tree algebra, flow, and
 pack-owned plugin tabs. The value and list/tree groups are exhaustive over
 the catalog's author-facing basics (owner direction 2026-10-10, SPEC §8):
 every tree-algebra kind (flatten, graft, simplify, branch, zip, unzip,
@@ -95,6 +97,22 @@ max) join the collection family. Current species ports mint
 `entityRef` — the `entity` spelling survives only inside the persisted-v4
 compatibility tier and the wire coercion (`types.js`), and every
 producer-output acceptance rule recognizes both spellings.
+
+## Readable principals (party types in processes)
+
+Party types (`user`, `organization` — CTS SPEC §13 readable principals)
+project as read-only entities: they bind as instance-source types and
+declared relation targets, their rows decompose like any entity, and the
+`source.currentUser`/`source.currentOrganization` palette items resolve
+the acting user and the active organization from the run context at
+execution (fixed `entityRef` outputs, no binding — the party twin of the
+current-time source). The capability projection emits list/getById only
+for party entities whatever the raw service bindings advertise, and
+validation refuses `cts.construct`/`cts.mutate`/`cts.transition`/
+`cts.remove` bound to a party type: parties are readable, never
+process-mutable. Party reads ride the framework party services on the §3
+wire with their own membership gates and the derived `user.roles` row
+([server/runtime/party-wire](../../server/runtime/README.md)).
 
 ## Headless definition authoring
 
@@ -697,7 +715,9 @@ accepts every declared target type of the entry (an authored ref field may
 wire several targets — the union stays one entry and one storage key), and
 Unlink receives the already-rendered target reference, so it never opens an
 entity selector. The compiled contract carries the relation key, the accepted
-target types, cardinality, and access grants (each accepted type's read).
+target types, cardinality, the declared target domain (`where`, CTS SPEC §6 —
+pickers offer what writes accept; the write boundary evaluates the same
+expression), and access grants (each accepted type's read).
 The compiled contract preserves the authored owner type, entry key, accepted
 target types, and scalar/array cardinality. Array cardinality is inferred from the
 typed Collect Array output when the relation entry is not a global domain

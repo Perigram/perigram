@@ -149,9 +149,13 @@ derived node data.
 
 The palette is grouped by authoring concern. **Declarations** owns class,
 field, state, transition, operator, and type-reference nodes. The registry
-catalog contributes one bound construct per constructible type/mode.
-**Operations** owns construct, mutate, transition, remove, command, and
-registered service species. **Instances** owns context, all, the declared
+catalog contributes one bound construct per constructible type/mode (party
+types are never constructible — they bind as read-only relation targets
+and instance-source types instead). **Operations** owns construct, mutate,
+transition, remove, command, and
+registered service species. **Instances** owns context, all, the acting
+user and active organization (run-context principals, fixed party-typed
+outputs), the declared
 projection, exact declared-edge traversal, the single-field projection,
 and the instance elimination form (`cts.decompose` — every declared facet
 as its own typed output). **Values** owns literals, comparison, logic,

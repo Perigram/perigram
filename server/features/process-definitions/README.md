@@ -490,6 +490,12 @@ each stored relation reference through `processGetById` by its declared target
 type. They receive the full auth context and never fall back to an unfiltered
 repository read. A missing or denied parent/relation target fails clearly;
 root entities and empty relation values return null or an empty list.
+Relation writes evaluate the entry's declared target domain (`where`, CTS
+SPEC §6) over the target's stored row at the write boundary — the same
+expression `relation-option-resolver.js` filters Link-picker candidates
+with (one evaluator home:
+[`shared/relation-domain.js`](../../../shared/relation-domain.js)) — so a
+value outside the domain is refused whatever offered it.
 Returned models are serialized before type-idd field predicates are evaluated in memory. Predicate
 conditions and gates remain process algebra values; they are not translated
 into database filters. The runtime does not infer service signatures, read
