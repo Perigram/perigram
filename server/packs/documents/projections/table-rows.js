@@ -64,7 +64,7 @@ async function sheetMatrix(projection, target) {
   const service = instanceServiceResolver(typeId);
   const table = await service.getById(id);
   if (!table) throw createError({ statusCode: 400, message: `Table ${id} not found` });
-  const payloadRef = table.attachments?.primary || null;
+  const payloadRef = table.payload || null;
   if (!payloadRef?.fileId && !payloadRef?.id) {
     throw createError({ statusCode: 400, message: `Table ${id} carries no payload` });
   }

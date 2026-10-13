@@ -85,7 +85,10 @@ export function hasInstanceAccess({ entity, feature, level = 'read', action = nu
   if (requiredLevel === 'read' && isPublicReadEntity({ entity, typeId, feature })) return true;
   if (!auth) return false;
 
-  const orgId = entity?.lineage?.organizationId?.toString();
+  // Tenancy travels top-level on the §3 wire DTO and inside lineage on
+  // the legacy framework wire (slice D keeps it) — either key refusing a
+  // foreign org.
+  const orgId = (entity?.organizationId ?? entity?.lineage?.organizationId)?.toString();
   const activeOrgId = auth.organizationId?.toString();
   if (orgId && activeOrgId && orgId !== activeOrgId) return false;
   const membership = orgId

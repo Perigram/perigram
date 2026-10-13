@@ -115,7 +115,8 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
     if (!instance) {
       throw createError({ statusCode: 400, message: `Construction input ${field} references ${id}, which none of [${accepted.join(', ')}] serves` });
     }
-    const instanceOrg = instance.lineage?.organizationId ? String(instance.lineage.organizationId) : null;
+    const tenancy = instance.organizationId ?? instance.lineage?.organizationId;
+    const instanceOrg = tenancy != null ? String(tenancy) : null;
     if (instanceOrg && instanceOrg !== String(organizationId)) {
       throw createError({ statusCode: 400, message: `Construction input ${field} references an instance of another organization` });
     }
@@ -125,7 +126,7 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
   // The upload protocol's file: the draft's payload as base64.
   let payloadBase64 = null;
   let payloadMeta = null;
-  const payloadRef = draft?.payload || draft?.attachments?.primary || null;
+  const payloadRef = draft?.payload || null;
   const fileId = payloadRef?.fileId || payloadRef?.id || null;
   if (fileId) {
     const buffer = await filesService.getFileBuffer(fileId, 'files');
