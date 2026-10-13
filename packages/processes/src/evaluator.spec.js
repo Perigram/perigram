@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createDataPacket } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
+import { missingFieldMarker } from './missing-field.js';
 
 describe('process v4 data execution', () => {
   it.each(['cts.mutate', 'cts.transition', 'cts.remove'])(
@@ -98,6 +99,28 @@ describe('process v4 data execution', () => {
       { operation: 'cts.transition', branchPath: [], itemIndex: 0, entityRef: { type: 'project', id: 'p1' } },
       { operation: 'cts.transition', branchPath: [], itemIndex: 2, entityRef: { type: 'project', id: 'p3' } }
     ]);
+  });
+
+  it('names the missing value instead of invoking with it', async () => {
+    // A Record field whose path matched nothing yields one marker per
+    // item; the effect must refuse with the input id and the authored
+    // path — never hand the marker to the handler.
+    const invoke = vi.fn(async inputs => inputs);
+    const result = await executeProcessEffectNode(
+      { kind: 'cts.construct', typeId: 'text-document', construction: { mode: 'content' } },
+      { content: createDataPacket([missingFieldMarker('A'), 'real text'], 'list') },
+      invoke
+    );
+
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalledWith({ content: 'real text' }, expect.objectContaining({ itemIndex: 1 }));
+    expect(result.failures).toEqual([{
+      operation: 'cts.construct',
+      branchPath: [],
+      itemIndex: 0,
+      error: { name: 'Error', message: `cts.construct input 'content' received a missing value (nothing at path 'A')` }
+    }]);
+    expect(result.completedMutations).toHaveLength(1);
   });
 
   it('carries a single failed item in the failure-carrying output', async () => {

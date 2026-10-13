@@ -242,6 +242,14 @@ export async function executeProcessEffectNode(record = {}, inputs = {}, invoke)
     const branchPath = [...slot.branch.path];
     const itemIndex = invocation.location.index ?? slot.itemIndex;
     try {
+      // A missing value never reaches the handler: an upstream path read
+      // matched nothing, and the handler would fail cryptically on the
+      // marker. Name the input and the authored path instead.
+      for (const [id, value] of Object.entries(invocation.inputs)) {
+        if (isMissingField(value)) {
+          throw new Error(`${record.id || record.kind} input '${id}' received a missing value (nothing at path '${value.path}')`);
+        }
+      }
       const value = await invoke(invocation.inputs, { branchPath, itemIndex, single });
       slot.branch.items[slot.itemIndex] = value;
       singleValue = value;
