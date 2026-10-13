@@ -119,6 +119,7 @@
           @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
           @toggle-edit="toggleEditing"
           @refresh="emit('refresh')"
+          @open-instance="emitOpen"
         />
         <SurfaceBody
           :instance="node.instances[0]"
@@ -135,6 +136,7 @@
           :state-policy="node.statePolicy"
           @run="emitRun"
           @inline-change="inlineChange"
+          @open-instance="emitOpen"
         />
       </div>
       <div v-if="node.childRegions.length" class="detail-side-col min-w-0 flex flex-col gap-4">
@@ -164,6 +166,7 @@
         :bundle="bundle"
         :state-policy="node.statePolicy"
         @run="emitRun"
+        @open-instance="emitOpen"
       />
       <RegionChildren
         v-if="node.childRegions.length"

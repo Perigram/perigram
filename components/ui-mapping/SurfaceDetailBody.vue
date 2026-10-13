@@ -107,7 +107,13 @@
     </section>
 
     <div v-for="relation in relationViews" :key="relation.key" :class="LAYOUT.row">
-      <InstanceChip v-for="ref in relation.shown" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
+      <InstanceInlineRef
+        v-for="ref in relation.shown"
+        :key="ref.id"
+        :type="String(ref?.type || '')"
+        :id="ref?.id"
+        :entity="pool?.[ref?.type]?.[ref?.id] || null"
+      />
       <Tag v-if="relation.overflow === 'count' && relation.hidden > 0" :value="`+${relation.hidden}`" severity="contrast" />
       <Button
         v-if="(relation.overflow === 'more' && relation.hidden > 0) || relation.expanded"
@@ -123,6 +129,7 @@
       :root="instance"
       :bundle="bundle"
       :pool="pool"
+      @open="target => emit('open-instance', target)"
     />
   </div>
 </template>
@@ -138,7 +145,7 @@ import Fieldset from 'primevue/fieldset';
 import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InlineField from './InlineField.vue';
-import InstanceChip from './InstanceChip.vue';
+import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import PreviewBox from './PreviewBox.vue';
 import HierarchyTree from './HierarchyTree.vue';
 
@@ -156,7 +163,7 @@ const props = defineProps({
   draft: { type: Object, default: null }
 });
 
-const emit = defineEmits(['toggle', 'inline-change', 'run']);
+const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
 const d = inject('uiMappingSpacing');
 
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));

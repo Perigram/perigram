@@ -52,7 +52,7 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
   { match: { base: 'enum', ordinal: true }, component: 'Rating', span: 'full' },
   { match: { base: 'quantity', unit: 'percent' }, component: 'Knob', span: 'half' },
   { match: { base: 'enum' }, component: 'Tag', span: 'half' },
-  { match: { base: 'ref' }, component: 'InstanceChip', span: 'half' },
+  { match: { base: 'ref' }, component: 'InstanceInlineRef', span: 'half' },
   { match: { base: 'quantity' }, component: 'QuantityText', span: 'half' },
   { match: { base: 'instant' }, component: 'InstantText', span: 'half' },
   { match: { base: 'boolean' }, component: 'BooleanIcon', span: 'half' },

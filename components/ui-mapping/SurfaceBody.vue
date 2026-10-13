@@ -15,6 +15,7 @@
       @toggle="toggleRelation"
       @run="$emit('run', $event)"
       @inline-change="$emit('inline-change', $event)"
+      @open-instance="target => $emit('open-instance', target)"
     />
   </div>
 
@@ -43,6 +44,7 @@
           @toggle="toggleRelation"
           @run="$emit('run', $event)"
           @inline-change="$emit('inline-change', $event)"
+          @open-instance="target => $emit('open-instance', target)"
         />
       </div>
     </template>
@@ -72,12 +74,20 @@
         @toggle="toggleRelation"
         @run="$emit('run', $event)"
         @inline-change="$emit('inline-change', $event)"
+        @open-instance="target => $emit('open-instance', target)"
       />
   </div>
 
   <div v-else class="flex min-w-0 flex-wrap items-center gap-2">
     <i :class="glyph" />
-    <span class="text-body">{{ instanceLabel }}</span>
+    <Button
+      v-if="openable"
+      link
+      :label="instanceLabel"
+      class="text-left [&_.p-button-label]:truncate"
+      @click="$emit('open', instance)"
+    />
+    <span v-else class="text-body">{{ instanceLabel }}</span>
     <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
     <FieldControl
       v-for="field in shownFields"
@@ -89,20 +99,27 @@
       :bundle="bundle"
     />
     <Tag v-if="hiddenFieldCount > 0" :value="`+${hiddenFieldCount}`" severity="contrast" />
-    <InstanceChip v-for="ref in rowRefs" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
+    <InstanceInlineRef
+      v-for="ref in rowRefs"
+      :key="ref.id"
+      :type="String(ref?.type || '')"
+      :id="ref?.id"
+      :entity="pool?.[ref?.type]?.[ref?.id] || null"
+    />
     <Tag v-if="rowHidden > 0" :value="`+${rowHidden}`" severity="contrast" />
   </div>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue';
+import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import { useI18n } from 'vue-i18n';
 import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
-import InstanceChip from './InstanceChip.vue';
+import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
 
 const props = defineProps({
@@ -118,11 +135,14 @@ const props = defineProps({
   draft: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
+  // Row identities render as links when an instance-open handler exists
+  // upstream (the handful-list projection's rows).
+  openable: { type: Boolean, default: false },
   // Per-type state policy map from the compiled process contract.
   statePolicy: { type: Object, default: null }
 });
 
-defineEmits(['run', 'inline-change']);
+defineEmits(['run', 'inline-change', 'open', 'open-instance']);
 
 const expanded = ref({});
 const flattened = computed(() => (props.chrome ? props.chrome.flattened : props.parentRole === 'card' && props.variant === 'detail'));

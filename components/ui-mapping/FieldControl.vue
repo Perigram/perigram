@@ -41,7 +41,12 @@
     <Chip v-for="tag in chipsShown" :key="tag" :label="String(tag ?? fallback)" />
     <Tag v-if="chipsHidden > 0" :value="`+${chipsHidden}`" severity="contrast" />
   </div>
-  <InstanceChip v-else-if="outcome.component === 'InstanceChip'" :value="model" :pool="pool" :bundle="bundle" />
+  <InstanceInlineRef
+    v-else-if="outcome.component === 'InstanceInlineRef'"
+    :type="String(model?.type || '')"
+    :id="model?.id ?? null"
+    :entity="pool?.[model?.type]?.[model?.id] || null"
+  />
   <Chip v-else-if="outcome.component === 'FileChip'" :label="model?.mime || fallback" icon="pi pi-file" />
   <div v-else-if="outcome.component === 'ObjectSummary'" :class="LAYOUT.stackTight">
     <div v-for="entry in summaryEntries" :key="entry.key" :class="LAYOUT.rowBetween">
@@ -181,7 +186,7 @@ import Slider from 'primevue/slider';
 import OrderList from 'primevue/orderlist';
 import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue } from '#shared/ui-mapping/index.js';
 import { designTokens } from '~/assets/tokens/index.js';
-import InstanceChip from './InstanceChip.vue';
+import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
 import InstancePicker from './InstancePicker.vue';

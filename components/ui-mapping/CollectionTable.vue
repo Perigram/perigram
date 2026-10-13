@@ -61,12 +61,12 @@
     <Column v-if="relationKey" :header="relationLabel">
       <template #body="{ data }">
         <div class="flex flex-wrap items-center gap-1">
-          <InstanceChip
+          <InstanceInlineRef
             v-for="ref in budgetedRefs(data)"
             :key="ref.id"
-            :value="ref"
-            :pool="pool"
-            :bundle="bundle"
+            :type="String(ref?.type || '')"
+            :id="ref?.id"
+            :entity="pool?.[ref?.type]?.[ref?.id] || null"
           />
           <Tag v-if="hiddenRefCount(data) > 0" :value="`+${hiddenRefCount(data)}`" severity="contrast" />
         </div>
@@ -90,7 +90,7 @@ import {
 } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import FieldControl from './FieldControl.vue';
-import InstanceChip from './InstanceChip.vue';
+import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import ParentRef from './ParentRef.vue';
 
 const props = defineProps({
