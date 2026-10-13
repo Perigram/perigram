@@ -160,6 +160,33 @@ describe('process v4 data execution', () => {
     expect(result.branches[0].items).toEqual([20, 30]);
   });
 
+  it('fills named template slots from a record, one render per aligned row', async () => {
+    const result = await executeProcessDataNode(
+      { kind: 'value.format', template: 'Budget for {Category}: {Budget}' },
+      { record: createDataPacket([{ Category: 'Housing', Budget: 1800 }, { Category: 'Groceries', Budget: 600 }], 'list') }
+    );
+    expect(result.branches[0].items).toEqual([
+      'Budget for Housing: 1800',
+      'Budget for Groceries: 600'
+    ]);
+  });
+
+  it('keeps the {value} token substituting from the value input beside record slots', async () => {
+    const result = await executeProcessDataNode(
+      { kind: 'value.format', template: '{Category} = {value}' },
+      { value: createDataPacket('ok'), record: createDataPacket({ Category: 'Housing' }) }
+    );
+    expect(result.branches[0].items).toEqual(['Housing = ok']);
+  });
+
+  it('keeps unmatched placeholders and skips missing-field cells in format templates', async () => {
+    const result = await executeProcessDataNode(
+      { kind: 'value.format', template: '{Category} -> {Missing}' },
+      { record: createDataPacket([{ Category: 'Housing', Missing: missingFieldMarker('Missing') }], 'list') }
+    );
+    expect(result.branches[0].items).toEqual(['Housing -> {Missing}']);
+  });
+
   it('loads All unfiltered', async () => {
     const queryEntities = vi.fn().mockResolvedValue([{ id: 'wide' }, { id: 'narrow' }]);
     const result = await executeProcessDataNode(

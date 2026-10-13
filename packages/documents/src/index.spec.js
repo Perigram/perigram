@@ -86,7 +86,20 @@ describe('documents pack declarations', () => {
         && projection.output.itemType.base === 'record')).toBe(true);
     }
     expect(projections('csv-table')[1].resolve.handler).toBe('documents.tableCells');
-    expect(projections('text-document').length).toBe(0);
+  });
+
+  it('declares the text projection on the text document only', () => {
+    const projections = typeId => (documentsTypes.find(type => type.id === typeId).projections || []);
+    expect(projections('text-document')).toEqual([{
+      id: 'text',
+      label: 'Text',
+      group: 'tableData',
+      output: { base: 'string' },
+      resolve: { handler: 'documents.text' }
+    }]);
+    for (const typeId of ['csv-table', 'xlsx-workbook', 'image', 'pdf-document', 'docx-document']) {
+      expect(projections(typeId).some(projection => projection.id === 'text'), typeId).toBe(false);
+    }
   });
 
   it('declares the csvText composition service with its command and tableData group', () => {

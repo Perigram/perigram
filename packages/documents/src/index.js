@@ -31,6 +31,15 @@ const cellsProjection = {
   output: { base: 'list', itemType: { base: 'record' } },
   resolve: { handler: 'documents.tableCells' }
 };
+// The text payload gate: markdown in, one string out — template documents
+// enter the graph through it.
+const textProjection = {
+  id: 'text',
+  label: 'Text',
+  group: 'tableData',
+  output: { base: 'string' },
+  resolve: { handler: 'documents.text' }
+};
 const tableProjections = Object.freeze([rowsProjection, cellsProjection]);
 
 function documentType({ id, mime, accept, maxSize, preview, glyph, name, revisions = null, creation = null, projections = null }) {
@@ -76,7 +85,8 @@ export const documentsTypes = Object.freeze([
     glyph: 'pi pi-file-edit',
     name: 'Text document',
     revisions: 'content',
-    creation: ['editor', 'content']
+    creation: ['editor', 'content'],
+    projections: Object.freeze([textProjection])
   }),
   documentType({
     id: 'csv-table',

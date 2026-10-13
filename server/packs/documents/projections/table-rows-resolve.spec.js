@@ -8,7 +8,7 @@ vi.mock('../../../features/files/service.js', () => ({
 }));
 
 import { instanceServiceResolver } from '../../../features/instances/service.js';
-import { tableRows } from './table-rows.js';
+import { tableRows, textOf } from './table-rows.js';
 
 // The projection reads the §3 wire DTO: the payload lives in the
 // top-level `payload` slot (owner decision 2026-10-11) — the retired
@@ -35,5 +35,16 @@ describe('table projection payload resolution', () => {
     serveTable({ _id: 't1', type: 'csv-table', attachments: { primary: { fileId: 'f1' } } });
     await expect(tableRows({ type: 'csv-table', id: 't1' }))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('carries no payload') });
+  });
+
+  it('reads a text-document payload as one string', async () => {
+    instanceServiceResolver.mockReturnValue({ getById: async () => ({ _id: 'd1', type: 'text-document', payload: { fileId: 'f1', mime: 'text/markdown' } }) });
+    await expect(textOf({ type: 'text-document', id: 'd1' }))
+      .resolves.toBe('name,width\nTray A,600\n');
+  });
+
+  it('refuses the text projection on non-text types', async () => {
+    await expect(textOf({ type: 'xlsx-workbook', id: 't1' }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('text projection requires a text-document') });
   });
 });

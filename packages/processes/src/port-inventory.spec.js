@@ -138,7 +138,7 @@ describe('port inventory pin (every catalog kind, frozen surface)', () => {
       "value.compare": "data:left(json)!|data:right(json)!|data:result(boolean)",
       "value.convertUnit": "data:value(json)!|data:value(json)",
       "value.dateTime": "data:date(dateTime)!|data:amount(number)!|data:value(dateTime)",
-          "value.format": "data:value(json)!|data:value(json)",
+          "value.format": "data:value(json)|data:record(record:list)|data:value(json)",
       "value.logic": "data:left(boolean)!|data:right(boolean)!|data:result(boolean)",
       "value.math": "data:left(number)!|data:right(number)!|data:value(number)",
           "value.recordField": "data:value(record:list)!|data:value(json:list)",

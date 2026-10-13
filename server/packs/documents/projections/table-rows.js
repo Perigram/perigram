@@ -12,6 +12,7 @@ import { instanceServiceResolver } from '../../../features/instances/service.js'
 import * as filesService from '../../../features/files/service.js';
 
 const TABLE_TYPES = new Set(['xlsx-workbook', 'csv-table']);
+const TEXT_TYPES = new Set(['text-document']);
 
 function instanceId(target) {
   if (typeof target === 'string') return target;
@@ -53,37 +54,44 @@ export function recordsByPosition(matrix) {
   ));
 }
 
-async function sheetMatrix(projection, target) {
+// The shared entity→payload loader: type guard, instance read, payload
+// reference off the §3 wire DTO, blob fetch.
+async function instancePayload(projection, target, acceptedTypes) {
   const typeId = String(target?.type || '');
-  if (!TABLE_TYPES.has(typeId)) {
-    throw createError({ statusCode: 400, message: `${projection} projection requires an xlsx-workbook or csv-table instance (received ${typeId || '(none)'})` });
+  if (!acceptedTypes.has(typeId)) {
+    throw createError({ statusCode: 400, message: `${projection} projection requires a ${[...acceptedTypes].join(' or ')} instance (received ${typeId || '(none)'})` });
   }
   const id = instanceId(target);
   if (!id) throw createError({ statusCode: 400, message: `${projection} projection requires an instance reference` });
 
   const service = instanceServiceResolver(typeId);
-  const table = await service.getById(id);
-  if (!table) throw createError({ statusCode: 400, message: `Table ${id} not found` });
-  const payloadRef = table.payload || null;
+  const instance = await service.getById(id);
+  if (!instance) throw createError({ statusCode: 400, message: `Instance ${id} not found` });
+  const payloadRef = instance.payload || null;
   if (!payloadRef?.fileId && !payloadRef?.id) {
-    throw createError({ statusCode: 400, message: `Table ${id} carries no payload` });
+    throw createError({ statusCode: 400, message: `Instance ${id} carries no payload` });
   }
-  const buffer = await filesService.getFileBuffer(payloadRef.fileId || payloadRef.id, 'files');
+  return await filesService.getFileBuffer(payloadRef.fileId || payloadRef.id, 'files');
+}
+
+async function sheetMatrix(projection, target) {
+  const buffer = await instancePayload(projection, target, TABLE_TYPES);
 
   let workbook;
   try {
+    const typeId = String(target?.type || '');
     workbook = typeId === 'csv-table'
       ? XLSX.read(new TextDecoder().decode(buffer), { type: 'string' })
       : XLSX.read(buffer, { type: 'array' });
   } catch {
-    throw createError({ statusCode: 400, message: `Table ${id} payload is not a readable spreadsheet` });
+    throw createError({ statusCode: 400, message: `Table ${instanceId(target)} payload is not a readable spreadsheet` });
   }
   const sheetName = workbook.SheetNames?.[0];
   const sheet = sheetName ? workbook.Sheets?.[sheetName] : null;
-  if (!sheet) throw createError({ statusCode: 400, message: `Table ${id} carries no sheet` });
+  if (!sheet) throw createError({ statusCode: 400, message: `Table ${instanceId(target)} carries no sheet` });
   const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
     .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim() !== ''));
-  if (!matrix.length) throw createError({ statusCode: 400, message: `Table ${id} carries no rows` });
+  if (!matrix.length) throw createError({ statusCode: 400, message: `Table ${instanceId(target)} carries no rows` });
   return matrix;
 }
 
@@ -93,4 +101,10 @@ export async function tableRows(target) {
 
 export async function tableCells(target) {
   return recordsByPosition(await sheetMatrix('cells', target));
+}
+
+// `documents.text`: a text-document's markdown payload as one string —
+// the template-reading gate.
+export async function textOf(target) {
+  return new TextDecoder().decode(await instancePayload('text', target, TEXT_TYPES));
 }

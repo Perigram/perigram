@@ -92,7 +92,13 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   // Polymorphic operations evaluate through the registry (SPEC §8
   // atomicity law): one home owns sockets and evaluation.
   if (PROCESS_OPERATION_REGISTRY[kind]) return runProcessOperation(record, packets);
-  if (kind === 'value.format') return mapDataPacket(required(packets, 'value', record), value => format(record, value));
+  if (kind === 'value.format') {
+    // Template mode: the record input's named `{key}` slots substitute per
+    // aligned item beside the `{value}` token; a record-only wire still
+    // formats (the value side is the empty broadcast).
+    const inputs = [packets.value || createDataPacket(''), packets.record].filter(Boolean);
+    return combineDataPackets(inputs, ([value, row]) => format(record, value, row));
+  }
   if (kind === 'collection.makeList') {
     const connected = MAKE_LIST_INPUTS.filter(id => packets[id]);
     if (!connected.length) return createDataPacket([], 'list');
@@ -448,8 +454,18 @@ function convertUnit(value, from, to, custom = {}) {
   return Number(value) * factors[from] / factors[to];
 }
 
-function format(record, value) {
-  if (record.template) return String(record.template).replaceAll('{value}', String(value ?? ''));
+function format(record, value, row = null) {
+  let text = record.template != null ? String(record.template) : '';
+  if (record.template && row && typeof row === 'object' && !Array.isArray(row)) {
+    for (const [key, cell] of Object.entries(row)) {
+      // A missing-field marker leaves its placeholder in place — the
+      // gap stays visible in the rendered text instead of stringifying
+      // the marker.
+      if (isMissingField(cell)) continue;
+      text = text.replaceAll(`{${key}}`, String(cell ?? ''));
+    }
+  }
+  if (record.template) return text.replaceAll('{value}', String(value ?? ''));
   return new Intl.NumberFormat(record.locale || 'en', record.options || {}).format(value);
 }
 
