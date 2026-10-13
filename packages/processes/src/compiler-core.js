@@ -3349,7 +3349,10 @@ function ensureChildRegion({ sourcesByEntity, regions, childTypeId, childFeature
   if (!region) {
     region = {
       id: `${sourceId}_region`,
-      slot: 'main',
+      // Child collections nest under the detail surface's record page
+      // (the ui-mapping composer's children slot), never beside it as
+      // top-level regions.
+      slot: 'children',
       sourceId,
       surface: 'card',
       actions: []

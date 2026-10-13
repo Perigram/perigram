@@ -147,19 +147,21 @@ surface concerns:
   The list header is one wrapping line — label, count, in-place expanding
   search and filter controls, and actions. The search toggle expands into
   an icon field AT the button's position (the icon or Esc collapses it;
-  an empty blur collapses too) and the filter toggle unfolds its facet
-  selects directly beside the button (the button stays as the collapse
-  anchor and carries the active-selection count badge). The standalone list region
-  renders as a borderless Panel — regions paint
-  no box; the higher record surface (`SurfaceHeader`'s `headerBar`) keeps
-  the hairline border, and pane boxes own their own frames. A create
+  an empty blur collapses too). List regions paint no box: the header
+  row and the collection surface (`RegionCollections.vue`, the one
+  materialization of the layout switch embedded and standalone lists
+  share) stack on the section rhythm, and nested child regions arrange
+  through `RegionChildren.vue` (tabs when heavy, stacked otherwise) —
+  the same component the record page's side column uses. A create
   action for the region's own type collapses its caption to the bare
   localized `uiMapping.new` ("New") through ActionButton's context label:
   the header already names the class, so the caption never repeats it
   (creates for other types and every other action keep the full label).
   Top-level detail regions compose a record page: `SurfaceHeader` plus the
-  main content in a 7-column lane with child regions in a 5-column lane
-  (`detailSplit`, collapsing to stacked below xl); nested detail regions
+  main content in a 7-column lane with child regions in a 5-column lane —
+  container-relative through RegionBlock's scoped CSS (stacked under 60rem
+  of container width, so workspace panes and narrow columns never force
+  the split); nested detail regions
   keep the Card surface. Empty regions render a Message.
 - `BoardCollection.vue` — the state board: the projection whose columns
   are the type's served state vocabulary
@@ -252,7 +254,8 @@ surface concerns:
   `listControls` contract (filled short scalars bounded by the richness
   budget — a field no loaded instance fills never becomes a column),
   identity/status/scalar columns are sortable (quantity values sort by
-  their numeric value), the declared `render.sortKey` is the default
+  their numeric value), the list-controls contract's `defaultSort` (the
+  first filled short scalar) is the default
   sort, the user's last sort persists per type through
   `utils/ui-sort-preference.js`, and the paginate/virtualize thresholds are the shared
   `TABLE_*` budgets from the mapping contract, never literals. Filtering

@@ -7,7 +7,6 @@
     :source-states="poolStates"
     :on-run="runGeneratedAction"
     :on-transition="runRuntimeTransition"
-    :on-transition-applied="applyTransitionSnapshot"
     :on-fetch-transitions="fetchTransitions"
     :on-load-type="loadTypeIntoPool"
     :runtime-transitions="runtimeTransitions"
@@ -19,6 +18,13 @@
 </template>
 
 <script setup>
+// The generator-screen host: the single home of the compiled-screen
+// wiring (bundle/contract projection, pool hydration, action runs,
+// runtime machine transitions) for the ui-mapping generator. The routed
+// screens page, workspace panes, and mobile home tabs all render compiled
+// screens through this component — no duplicated wiring. Instance
+// navigation emits to the host consumer; created instances resolve
+// through the shared created-open contract (utils/created-instance-open).
 import { computed, ref, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -28,26 +34,22 @@ import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
 import { applyOptimisticState } from '~/utils/optimistic-state.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
-import { isCreateAction } from '~/utils/action-visibility.js';
+import { isCreateAction } from '~/components/generated/action-visibility.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
+import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
-
-// The generator-screen host: the single home of the compiled-screen
-// wiring (bundle/contract projection, pool hydration, action runs,
-// runtime machine transitions) for the ui-mapping generator. The routed
-// screens page and floating hosts (the entity popup) render compiled
-// screens through this component — no duplicated wiring.
 
 const props = defineProps({
   screen: { type: Object, required: true },
-  // The routed screen key, used only for create-open route targets.
+  // The host context's screen key (create-open route targets); panes and
+  // mobile tabs omit it and the screen's own key applies.
   screenKey: { type: String, default: '' },
   // Host-injected back affordance for the record header
   // (`{ icon, label, command }` — SurfaceHeader's navigation channel):
-  // the routed screens page feeds it so a detail screen deep link can
-  // return to where the user came from.
+  // hosts that opened this record inside another surface feed it so a
+  // detail deep link can return to where the user came from.
   navigation: { type: Object, default: null }
 });
 
@@ -146,6 +148,11 @@ async function fetchTransitions(instance = {}) {
     .map(action => ({ to: action.to, intent: action.intent || null, region: action.region || null }));
 }
 
+function labelForState(typeId = '', value = '') {
+  const display = stateDisplayFor(statePolicy.value[typeId] || null, value);
+  return display?.label || value;
+}
+
 async function runRuntimeTransition(payload = {}) {
   const instance = payload.instance || {};
   const typeId = instance.type || props.screen?.typeId;
@@ -159,6 +166,9 @@ async function runRuntimeTransition(payload = {}) {
     });
     applyTransitionSnapshot(result?.entity || result);
     toast.add({ severity: 'success', summary: labelForState(typeId, payload.to), detail: t('generatedScreen.actionCompleted'), life: 2000 });
+    // The machine's legal transitions depend on the new state — the
+    // opened record's strip refetches after every hop.
+    await loadRuntimeTransitions({ type: typeId, _id: id });
   } catch (error) {
     if (isOfflineQueuedError(error)) {
       toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
@@ -169,11 +179,6 @@ async function runRuntimeTransition(payload = {}) {
   }
 }
 
-function labelForState(typeId = '', value = '') {
-  const display = stateDisplayFor(statePolicy.value[typeId] || null, value);
-  return display?.label || value;
-}
-
 async function runGeneratedAction(action, data = {}, context = {}) {
   const scope = props.screen?.scope || {};
   const instanceId = context.instance?.id || scope.instanceId || null;
@@ -182,15 +187,17 @@ async function runGeneratedAction(action, data = {}, context = {}) {
   // create arrives with its binding in `data` and keeps the construct.
   if (isEditorProtocolCreate(action) && !Object.keys(data || {}).length && openBlankFileEditor(action.typeId)) return;
   try {
+    // The store's runAction lands the created entity in the pool itself
+    // (create hosts only decide where the record opens).
     const result = await instances.runAction({ action, actionId: action.id, instanceId, entities: {}, data, parameters: {} });
-    // Created entities open in the home workspace (the same-tab
-    // contract); hosts without a compiled home keep the routed detail
-    // destination.
+    // Created entities open through the shared created-open contract
+    // (the workspace seam or the compiled detail route); hosts without a
+    // compiled home keep the routed detail destination.
     if (isCreateAction(action)) {
       const target = resolveCreatedInstanceOpen({
         action,
         result,
-        screenKey: props.screenKey,
+        screenKey: props.screenKey || props.screen?.screenKey || props.screen?.id || '',
         manifest: authStore.screenManifest
       });
       if (target?.kind === 'workspace') {
@@ -231,15 +238,11 @@ async function loadTypeIntoPool(typeId = '') {
   return Object.values(instances.instancePool?.[key] || {});
 }
 
-// Collection identity navigation: emits the resolved detail target; the
-// host consumer decides whether it routes (the screens page) or swaps the
-// popup subject. Types without a paired detail screen stay
-// non-navigable.
+// Collection identity navigation emits the instance to the host
+// consumer — the routed page, the workspace pane, or the mobile shell
+// decides where it opens.
 function openInstance(instance) {
   if (!instance?.type || !instance?.id) return;
-  const detailKey = `auto_${instance.type}_detail`;
-  const exists = authStore.screenManifest.some(item => item.screenKey === detailKey);
-  if (!exists) return;
-  emit('open-instance', { screenKey: detailKey, typeId: instance.type, instanceId: String(instance.id) });
+  emit('open-instance', { typeId: instance.type, instanceId: String(instance.id) });
 }
 </script>

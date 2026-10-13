@@ -23,7 +23,7 @@
       <slot name="navigation" />
       <div :class="LAYOUT.headerIdentity" class="header-identity">
         <Avatar :icon="glyph" shape="circle" size="large" />
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5 mt-2 ">
+        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
           <span v-if="typeLabel" class="text-supporting text-muted truncate">{{ typeLabel }}</span>
         </div>

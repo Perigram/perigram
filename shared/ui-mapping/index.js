@@ -22,7 +22,6 @@ import {
   CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
   SCALAR_BASES,
-  SCREEN_DENSITY_AT,
   SURFACE_ENTRIES,
   PREVIEW_ENTRIES,
   RENDERABLE_PREVIEW_MODES,
@@ -57,8 +56,6 @@ export {
   TABLE_VIRTUALIZE_AT,
   CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
-  SCREEN_DENSITY_AT,
-  DENSITY,
   GAP_BY_LEVEL,
   TYPE_BY_LEVEL,
   DETAIL_FACT_BUDGET,
@@ -93,6 +90,11 @@ function pickEntry(entries, candidate) {
 const ENUM_MANY_AT = 7;
 const LONG_STRING_AT = 120;
 
+// The long-string rule in one home: multiline flags and max-length caps
+// past LONG_STRING_AT make a string field prose.
+const isLongText = descriptor => descriptor?.base === 'string'
+  && (descriptor.multiline === true || (descriptor.max || 0) >= LONG_STRING_AT);
+
 export function createUiMapping(overrides = {}) {
   const fieldEntries = [...(overrides.fields || []), ...FIELD_EDIT_ENTRIES];
   const fieldDisplayEntries = [...(overrides.fieldDisplay || []), ...FIELD_DISPLAY_ENTRIES];
@@ -104,10 +106,7 @@ export function createUiMapping(overrides = {}) {
   function fieldCandidate(descriptor, variant) {
     const base = descriptor.base;
     const candidate = { type: descriptor.type || null, base: base || null, variant };
-    if (base === 'string' && (descriptor.multiline === true
-      || (Number.isFinite(descriptor.max) && descriptor.max >= LONG_STRING_AT))) {
-      candidate.long = true;
-    }
+    if (isLongText(descriptor)) candidate.long = true;
     if ((base === 'number' || base === 'quantity')
       && Number.isFinite(descriptor.min) && Number.isFinite(descriptor.max)) {
       candidate.bounded = true;
@@ -210,9 +209,6 @@ export function createUiMapping(overrides = {}) {
     return Object.freeze(outcome);
   }
 
-  const isLongText = descriptor => descriptor?.base === 'string'
-    && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
-
   // analyzeTypeShape(type): the shape signals that pick presentations —
   // a chronological type is prose-or-instant dominant (timeline), a
   // statlike type carries mostly percent/quantity scalars (stat cards),
@@ -224,10 +220,6 @@ export function createUiMapping(overrides = {}) {
     const percents = scalars.filter(descriptor => descriptor.base === 'quantity' && descriptor.unit === 'percent');
     const quantities = scalars.filter(descriptor => descriptor.base === 'quantity' || descriptor.base === 'number');
     const instants = fields.filter(descriptor => descriptor.base === 'instant');
-    // The retired declaration-era states signal folded into the constant:
-    // type records carry no state vocabulary (SPEC §7), so shape analysis
-    // no longer tightens the prose bound by statefulness.
-    const chronologySignal = 1;
     return Object.freeze({
       fieldCount: fields.length,
       scalarCount: scalars.length,
@@ -239,7 +231,7 @@ export function createUiMapping(overrides = {}) {
       // stronger structure than a prose stream.
       durational: instants.length >= 2,
       scheduled: instants.length === 1,
-      chronological: longTexts.length >= 1 && scalars.length <= 3 + chronologySignal,
+      chronological: longTexts.length >= 1 && scalars.length <= 4,
       statlike: !typeRecord.payload && scalars.length >= 2
         && percents.length + quantities.length >= Math.max(2, scalars.length - 1),
       metricField: Object.entries(typeRecord.fields || {}).find(([, descriptor]) => descriptor.base === 'quantity' && descriptor.unit === 'percent')?.[0]
@@ -503,14 +495,16 @@ export function resolveListControls(typeRecord = {}, instances = []) {
     .filter(name => {
       const descriptor = descriptors[name];
       if (!SCALAR_BASES.includes(descriptor.base)) return false;
-      return !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120));
+      return !isLongText(descriptor);
     })
     .map(name => ({ name, label: fieldLabel(name, descriptors[name]), base: descriptors[name].base }));
   const declaredIdentity = typeRecord.identifier;
   const shortStringNames = Object.entries(descriptors)
-    .filter(([, descriptor]) => descriptor.base === 'string'
-      && !(descriptor.multiline === true || (descriptor.max || 0) >= 120))
+    .filter(([, descriptor]) => descriptor.base === 'string' && !isLongText(descriptor))
     .map(([name]) => name);
+  // The natural default sort: the first filled short scalar, the same
+  // first entry the sort keys list (the shared README's list-controls
+  // contract) — collections open ordered, not in pool insertion order.
   const searchKeys = declaredIdentity && shortStringNames.includes(declaredIdentity)
     ? [declaredIdentity]
     : [];
@@ -520,7 +514,7 @@ export function resolveListControls(typeRecord = {}, instances = []) {
   return Object.freeze({
     searchKeys: Object.freeze(searchKeys),
     sortKeys: Object.freeze(sortKeys.map(key => Object.freeze({ ...key }))),
-    defaultSort: null,
+    defaultSort: sortKeys[0]?.name || null,
     facets: Object.freeze(facets.map(facet => Object.freeze({ ...facet, values: Object.freeze([...facet.values]) }))),
     pagination: Object.freeze({
       paginateAt: TABLE_PAGINATE_AT,
@@ -795,8 +789,12 @@ export function estimateRegionWeight(node = {}) {
       .reduce((sum, refs) => sum + (Array.isArray(refs) ? refs.length : refs ? 1 : 0), 0);
     return facts + structural * 2 + Math.ceil(relationRefs / 4);
   }
+  const count = node.instances?.length || 0;
+  // The same size classes and derivation the materialization resolves —
+  // sibling arrangement must weight the layout that actually renders.
   const layout = resolveListLayout(node.type || {}, {
-    stateful: hasStateVocabulary(node.statePolicy)
+    stateful: hasStateVocabulary(node.statePolicy),
+    size: count <= SMALL_LIST_AT ? 'small' : count > 12 ? 'large' : null
   });
   const perRow = ROW_WEIGHT_BY_LAYOUT[layout] || 1;
   // Rows grow with budgeted relation chips: the first declared relation's
@@ -808,15 +806,7 @@ export function estimateRegionWeight(node = {}) {
         return sum + (Array.isArray(refs) ? refs.length : refs ? 1 : 0);
       }, 0)
     : 0;
-  return 2 + (node.instances?.length || 0) * perRow + Math.ceil(relationRefs / 4);
-}
-
-// screenDensityFor(totalWeight, bias): density stays procedural — the
-// global driver shifts the classification threshold (positive bias =
-// relaxed, tolerates more weight before compacting), never overrides
-// the outcome.
-export function screenDensityFor(totalWeight = 0, bias = 0) {
-  return totalWeight > SCREEN_DENSITY_AT + bias ? 'compact' : 'regular';
+  return 2 + count * perRow + Math.ceil(relationRefs / 4);
 }
 
 export function childrenModeFor(childRegions = [], level = 0) {

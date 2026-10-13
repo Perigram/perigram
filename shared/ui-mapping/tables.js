@@ -157,35 +157,10 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   table: 1,
   timeline: 2,
   'card-grid': 4,
+  carousel: 3,
   board: 4,
   gantt: 2,
   calendar: 3
-});
-
-// Density x hierarchy: how much information the screen carries picks the
-// density scale; spacing, control size, and value typography follow it.
-export const SCREEN_DENSITY_AT = 24;
-export const DENSITY = Object.freeze({
-  compact: Object.freeze({
-    stack: 'flex flex-col gap-3',
-    stackTight: 'flex flex-col gap-2',
-    factsGrid: 'grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-4',
-    specRow: 'flex min-w-0 items-center justify-between gap-3 py-1',
-    chipRow: 'flex flex-wrap items-center gap-1.5 pt-1',
-    sectionTitle: 'text-label text-muted uppercase mb-1',
-    knob: 40,
-    factValue: 'text-body'
-  }),
-  regular: Object.freeze({
-    stack: 'flex flex-col gap-6',
-    stackTight: 'flex flex-col gap-3',
-    factsGrid: 'grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
-    specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
-    chipRow: 'flex flex-wrap items-center gap-2 pt-2',
-    sectionTitle: 'text-label text-muted uppercase',
-    knob: 64,
-    factValue: 'text-body'
-  })
 });
 
 // Card anatomy variants, selected by type shape: media cards for payloads,
@@ -223,10 +198,12 @@ export const LAYOUT = Object.freeze({
   row: 'flex flex-wrap items-center gap-2',
   labelCell: 'shrink-0 text-body text-muted',
   rowBetween: 'flex flex-wrap items-center justify-between gap-2',
-  factsGrid: 'grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
   factCell: 'flex min-w-0 flex-col gap-1',
-  formGrid: 'grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2',
-  cardGrid: 'grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
+  // Container-relative form grid: the utility body lives in the global
+  // stylesheet (assets/css/main.css) beside SurfaceHeader's scoped block —
+  // the tailwindcss build has no container-queries plugin, so viewport
+  // variants cannot express "wide where I am rendered" (dialogs, panes).
+  formGrid: 'ck-form-grid',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
   bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
@@ -295,9 +272,6 @@ export const LAYOUT = Object.freeze({
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',
   specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
-  detailSplit: 'grid grid-cols-1 gap-6 xl:grid-cols-12',
-  mainCol: 'xl:col-span-7',
-  sideCol: 'xl:col-span-5',
   dialog: 'w-full max-w-full sm:w-[36rem]'
 });
 
@@ -460,7 +434,6 @@ export const SPACING_SCALES = Object.freeze({
   0.5: Object.freeze({
     stack: 'flex flex-col gap-2',
     stackTight: 'flex flex-col gap-1',
-    factsGrid: 'grid grid-cols-1 gap-x-2 gap-y-1 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-2 py-0.5',
     chipRow: 'flex flex-wrap items-center gap-1 pt-0.5',
     toolbar: 'flex flex-wrap items-center gap-1',
@@ -471,7 +444,6 @@ export const SPACING_SCALES = Object.freeze({
   0.75: Object.freeze({
     stack: 'flex flex-col gap-3',
     stackTight: 'flex flex-col gap-2',
-    factsGrid: 'grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-3 py-1',
     chipRow: 'flex flex-wrap items-center gap-1 pt-1',
     toolbar: 'flex flex-wrap items-center gap-1',
@@ -482,7 +454,6 @@ export const SPACING_SCALES = Object.freeze({
   1: Object.freeze({
     stack: 'flex flex-col gap-6',
     stackTight: 'flex flex-col gap-3',
-    factsGrid: 'grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
     chipRow: 'flex flex-wrap items-center gap-2 pt-2',
     toolbar: 'flex flex-wrap items-center gap-2',
@@ -493,7 +464,6 @@ export const SPACING_SCALES = Object.freeze({
   1.25: Object.freeze({
     stack: 'flex flex-col gap-6',
     stackTight: 'flex flex-col gap-4',
-    factsGrid: 'grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-5 py-2',
     chipRow: 'flex flex-wrap items-center gap-2 pt-2',
     toolbar: 'flex flex-wrap items-center gap-2',
@@ -504,7 +474,6 @@ export const SPACING_SCALES = Object.freeze({
   1.5: Object.freeze({
     stack: 'flex flex-col gap-8',
     stackTight: 'flex flex-col gap-5',
-    factsGrid: 'grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-3',
     chipRow: 'flex flex-wrap items-center gap-3 pt-3',
     toolbar: 'flex flex-wrap items-center gap-3',
@@ -515,7 +484,6 @@ export const SPACING_SCALES = Object.freeze({
   1.75: Object.freeze({
     stack: 'flex flex-col gap-8',
     stackTight: 'flex flex-col gap-6',
-    factsGrid: 'grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-4',
     chipRow: 'flex flex-wrap items-center gap-3 pt-4',
     toolbar: 'flex flex-wrap items-center gap-3',
@@ -526,7 +494,6 @@ export const SPACING_SCALES = Object.freeze({
   2: Object.freeze({
     stack: 'flex flex-col gap-8',
     stackTight: 'flex flex-col gap-8',
-    factsGrid: 'grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-8 py-6',
     chipRow: 'flex flex-wrap items-center gap-4 pt-4',
     toolbar: 'flex flex-wrap items-center gap-4',

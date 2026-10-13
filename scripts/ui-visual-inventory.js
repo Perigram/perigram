@@ -10,6 +10,7 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/shared/ResponsiveGrid.vue': 'layout',
   'components/generated/GeneratedInstanceCollection.vue': 'layout',
   'components/ui-mapping/CollectionTable.vue': 'layout',
+  'components/ui-mapping/RegionBlock.vue': 'layout',
   'components/ui-mapping/SurfaceHeader.vue': 'layout',
   'pages/organization/users.vue': 'layout',
   'pages/organization/partners.vue': 'layout',

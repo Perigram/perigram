@@ -172,16 +172,16 @@ describe('generated screens page with projected vocabulary', () => {
     app.directive('tooltip', { getSSRProps: () => ({}) });
 
     const html = await renderToString(app);
-    // The generator owns the route (ui-mapping Panel chrome, not the legacy
-    // GeneratedScreen shell); the region header names the class and the
-    // class-level create collapses its caption to the bare localized new
-    // (identity under the smoke's empty-locale i18n), never repeating the
-    // class name or the initial state.
+    // The generator owns the route (the ui-mapping engine's region header
+    // and collection projection, not the legacy GeneratedScreen shell);
+    // the region header names the class and the class-level create
+    // collapses its caption to the bare localized new (identity under the
+    // smoke's empty-locale i18n), never repeating the class name or the
+    // initial state.
     expect(html).toContain('Job Ticket');
-    expect(html).toContain('p-panel');
+    expect(html).toContain('text-section-heading');
     expect(html).toContain('uiMapping.new');
     expect(html).not.toContain('Create Job Ticket');
-    expect(html).toContain('Ticket one');
     expect(html).toContain('Ticket one');
     expect(html).not.toContain('t-k3x9fj2mqa');
   });

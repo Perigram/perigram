@@ -106,7 +106,7 @@
       </Accordion>
     </section>
 
-    <div v-for="relation in relationViews" :key="relation.key" :class="relationClass(relation)">
+    <div v-for="relation in relationViews" :key="relation.key" :class="LAYOUT.row">
       <InstanceChip v-for="ref in relation.shown" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
       <Tag v-if="relation.overflow === 'count' && relation.hidden > 0" :value="`+${relation.hidden}`" severity="contrast" />
       <Button
@@ -209,11 +209,14 @@ const hiddenFactCount = group => {
 
 const relationViews = computed(() => {
   if (!surface.value.slots.includes('relations')) return [];
+  // Per-SLOT budgets (the surface entry's `relations` budget) apply to
+  // every relation entry — the documented budget mechanism, not a
+  // per-relation-key lookup that never resolves.
+  const budget = surface.value.budgets.relations || null;
   return Object.entries(props.instance.relations || {})
     .filter(([key]) => !props.coveredRelations.includes(key))
     .map(([key, refs]) => {
     const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
-    const budget = surface.value.budgets[key];
     const outcome = applyBudget(list, budget);
     const isOpen = budget?.overflow === 'more' && props.expanded[key];
     return {
@@ -226,7 +229,4 @@ const relationViews = computed(() => {
     };
   });
 });
-const relationClass = relation => (relation.mode === 'scroll'
-  ? relation.mode === 'scroll' ? 'flex max-h-48 flex-wrap gap-2 overflow-y-auto' : d.chipRow
-  : LAYOUT.row);
 </script>

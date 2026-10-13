@@ -120,8 +120,10 @@ async function reload() {
 // Collection identity navigation on the routed surface: the compiler-
 // paired detail screen with the instance id in the route scope. Types
 // without a paired detail screen stay non-navigable.
-function openInstance({ screenKey: detailKey, instanceId } = {}) {
-  if (!detailKey || !instanceId) return;
+function openInstance({ typeId, instanceId } = {}) {
+  const detailKey = `auto_${typeId}_detail`;
+  const exists = authStore.screenManifest.some(item => item.screenKey === detailKey);
+  if (!typeId || !instanceId || !exists) return;
   navigateTo({ path: `/screens/${encodeURIComponent(detailKey)}`, query: { instanceId } });
 }
 

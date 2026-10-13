@@ -1470,7 +1470,7 @@ describe('@perigram/processes compiler', () => {
     // filtered by the declared lineage key.
     const projectDetail = access.screens.find(screen => screen.screenKey === 'auto_project_detail');
     const childRegion = (projectDetail.regions || []).find(region => region.sourceId === 'queue_children');
-    expect(childRegion).toMatchObject({ slot: 'main' });
+    expect(childRegion).toMatchObject({ slot: 'children' });
     expect(projectDetail.sources.find(source => source.id === 'queue_children'))
       .toMatchObject({ typeId: 'queue', mode: 'list', filters: { projectId: '$screen.scope.instanceId' } });
   });

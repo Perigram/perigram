@@ -1,7 +1,7 @@
 // Screen composition: projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface, resolveChrome, childrenModeFor, estimateRegionWeight, screenDensityFor, resolveListControls } from './index.js';
+import { resolveSurface, resolveChrome, childrenModeFor, estimateRegionWeight, resolveListControls } from './index.js';
 import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 
 // Region data state: the data layer may report per-source states
@@ -179,20 +179,18 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
 export function composeScreen(screen = {}, contract = { actions: {} }, bundle = { types: [] }, pool = {}, options = {}) {
   const typesById = Object.fromEntries((bundle.types || []).map(type => [type.id, type]));
   const providedStates = options.sourceStates || null;
+  // Every top-level region sits at depth 0 — the tree position decides
+  // chrome and variant, never the region's index in the contract.
   const regions = (screen.regions || [])
     .filter(region => region.slot !== 'children')
-    .map((region, index) => composeRegion(region, screen, contract, pool, typesById, index === 0 ? 0 : 1, providedStates));
-  const totalWeight = regions.reduce((sum, region) => sum + region.weight
-    + region.childRegions.reduce((childSum, child) => childSum + child.weight, 0), 0);
-  const density = screenDensityFor(totalWeight, options.densityBias || 0);
+    .map(region => composeRegion(region, screen, contract, pool, typesById, 0, providedStates));
   return Object.freeze({
     key: screen.screenKey || screen.id,
     template: screen.template,
     label: screen.label,
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
-    regions: Object.freeze(regions.map(region => Object.freeze({ ...region, density }))),
-    regionsMode: childrenModeFor(regions, 0),
-    density
+    regions: Object.freeze(regions),
+    regionsMode: childrenModeFor(regions, 0)
   });
 }

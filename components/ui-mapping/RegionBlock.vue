@@ -1,9 +1,9 @@
 <template>
-  <div v-if="embedded && node.surfaceKind === 'list'" :class="[embeddedStack, 'w-full']">
+  <div v-if="node.surfaceKind === 'list'" :class="[listStack, 'w-full']">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
-        <span class="text-label min-w-0 truncate">{{ regionLabel }}</span>
+        <span :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
       <div v-if="collectionActions.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
@@ -68,263 +68,41 @@
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />
-    <template v-if="showSurfaces">
-      <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
-      <CollectionTable
-        v-if="listLayout === 'table'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :controls="node.listControls"
-        :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        @open="emitOpen"
-      />
-      <CardGrid
-        v-else-if="listLayout === 'card-grid'"
-        :instances="sortedInstances"
-        :type="node.type"
-        :controls="node.listControls"
-        :actions="instanceActionsForType"
-        :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        @open="emitOpen"
-        @run="emitRun"
-      />
-      <BoardCollection
-        v-else-if="listLayout === 'board'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :controls="node.listControls"
-        :actions="instanceActionsForType"
-        :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        :state-transitions="node.stateTransitions"
-        :resolve-transitions="resolveTransitions"
-        @open="emitOpen"
-        @run="emitRun"
-        @transition="payload => emit('transition', payload)"
-      />
-      <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="effectivePool" :bundle="bundle" />
-      <TimelineCollection
-        v-else-if="listLayout === 'timeline'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :controls="node.listControls"
-        :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        @open="emitOpen"
-      />
-      <GanttCollection
-        v-else-if="listLayout === 'gantt'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :openable="openable"
-        :state-policy="node.statePolicy"
-        @open="emitOpen"
-      />
-      <CalendarCollection
-        v-else-if="listLayout === 'calendar'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :openable="openable"
-        @open="emitOpen"
-      />
-      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="effectivePool" :bundle="bundle" :state-policy="node.statePolicy" />
-      <div v-else :class="LAYOUT.stackTight">
-        <SurfaceBody
-          v-for="instance in filteredInstances"
-          :key="instance.id"
-          :instance="instance"
-          :type="node.type"
-          variant="row"
-          parent-role="card"
-          :pool="effectivePool"
-          :bundle="bundle"
-        />
-      </div>
-    </template>
-  </div>
-
-  <Panel v-else-if="node.surfaceKind === 'list'" class="w-full !border-0" :pt="panelPt">
-    <template #header>
-      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
-        <span class="text-section-heading">{{ regionLabel }}</span>
-        <Tag :value="String(node.instances.length)" severity="secondary" />
-      </div>
-    </template>
-    <template v-if="collectionActions.length || searchToggleAvailable || facetsToggleAvailable" #icons>
-      <div class="flex min-w-0 flex-wrap items-center justify-end gap-2">
-        <!-- Search expands IN PLACE: the icon button becomes an icon field
-             at the same position; the icon or Esc collapses it back (an
-             empty blur collapses too). -->
-        <IconField v-if="searchOpen">
-          <InputIcon class="pi pi-search cursor-pointer" @click="searchOpen = false" />
-          <InputText
-            v-model="search"
-            size="small"
-            class="min-w-0 max-w-48 flex-1"
-            :placeholder="$t('uiMapping.searchPlaceholder')"
-            :aria-label="$t('uiMapping.searchPlaceholder')"
-            @keydown.esc="searchOpen = false"
-            @blur="search || (searchOpen = false)"
-          />
-        </IconField>
-        <Button
-          v-else-if="searchToggleAvailable"
-          icon="pi pi-search"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('uiMapping.searchPlaceholder')"
-          @click="searchOpen = true"
-        />
-        <FilterBuilder
-          v-if="facetsToggleAvailable"
-          :model-value="builderFilter"
-          :fields="builderFields"
-          @update:model-value="value => (builderFilter = value)"
-        />
-        <Button
-          v-if="projectionSwitchable"
-          :icon="listLayout === 'board' ? 'pi pi-list' : 'pi pi-objects-column'"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="listLayout === 'board' ? $t('uiMapping.projectionTable') : $t('uiMapping.projectionBoard')"
-          @click="toggleProjection"
-        />
-        <SortControl
-          v-if="sortToggleAvailable"
-          :options="sortOptions"
-          :model-value="sortName"
-          :order="sortOrder"
-          @update:model-value="value => (sortName = value)"
-          @update:order="value => (sortOrder = value)"
-        />
-        <ActionButton
-          v-for="action in collectionActions"
-          :key="action.id"
-          :action="action"
-          :render="node.type?.render"
-          :state-policy="node.statePolicy"
-          :label="headerActionLabel(action)"
-          @run="emitRun"
-        />
-      </div>
-    </template>
-    <RegionDataState v-if="showState" :node="node" />
-    <!-- Panel content has no strip-to-content gap of its own: the progress
-         and collection surface stack on the system rhythm. -->
     <div v-if="showSurfaces" :class="embeddedStack">
-      <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
-      <CollectionTable
-        v-if="listLayout === 'table'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :controls="node.listControls"
-        :openable="openable"
-        :pool="effectivePool"
+      <RegionCollections
+        :node="node"
+        :list-layout="listLayout"
+        :filtered-instances="filteredInstances"
+        :sorted-instances="sortedInstances"
+        :effective-pool="effectivePool"
         :bundle="bundle"
-        :state-policy="node.statePolicy"
-        @open="emitOpen"
-      />
-      <CardGrid
-        v-else-if="listLayout === 'card-grid'"
-        :instances="sortedInstances"
-        :type="node.type"
-        :controls="node.listControls"
-        :actions="instanceActionsForType"
         :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        @open="emitOpen"
-        @run="emitRun"
-      />
-      <BoardCollection
-        v-else-if="listLayout === 'board'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :controls="node.listControls"
-        :actions="instanceActionsForType"
-        :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        :state-transitions="node.stateTransitions"
+        :instance-actions="instanceActionsForType"
         :resolve-transitions="resolveTransitions"
+        :is-reloading="isReloading"
         @open="emitOpen"
         @run="emitRun"
         @transition="payload => emit('transition', payload)"
       />
-      <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="effectivePool" :bundle="bundle" />
-      <TimelineCollection
-        v-else-if="listLayout === 'timeline'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :controls="node.listControls"
-        :openable="openable"
-        :pool="effectivePool"
-        :bundle="bundle"
-        @open="emitOpen"
-      />
-      <GanttCollection
-        v-else-if="listLayout === 'gantt'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :openable="openable"
-        :state-policy="node.statePolicy"
-        @open="emitOpen"
-      />
-      <CalendarCollection
-        v-else-if="listLayout === 'calendar'"
-        :instances="filteredInstances"
-        :type="node.type"
-        :openable="openable"
-        @open="emitOpen"
-      />
-      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="effectivePool" :bundle="bundle" :state-policy="node.statePolicy" />
-      <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
-        <SurfaceBody
-          v-for="instance in filteredInstances"
-          :key="instance.id"
-          :instance="instance"
-          :type="node.type"
-          variant="row"
-          parent-role="card"
-          :pool="effectivePool"
-          :bundle="bundle"
-        />
-      </div>
     </div>
-    <RegionBlock
-      v-for="child in node.childRegions"
-      :key="child.id"
-      :node="child"
+    <RegionChildren
+      v-if="node.childRegions.length"
+      :regions="node.childRegions"
+      :mode="node.childrenMode"
+      :depth="depth"
       :pool="pool"
       :bundle="bundle"
-      :depth="depth + 1"
       :openable="openable"
       :instance-actions="instanceActions"
       @run="emitRun"
       @open="emitOpen"
     />
-  </Panel>
+  </div>
 
-  <div v-else :class="[stackFor, 'w-full']">
+  <div v-else :class="[stackFor, 'w-full', 'region-detail']">
     <RegionDataState v-if="showState" :node="node" />
-    <div v-if="depth === 0 && showSurfaces" :class="LAYOUT.detailSplit">
-      <div :class="[LAYOUT.mainCol, 'min-w-0 flex flex-col gap-6']">
+    <div v-if="depth === 0 && showSurfaces" class="detail-split grid w-full grid-cols-1 gap-6">
+      <div class="detail-main-col min-w-0 flex flex-col gap-6">
         <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
         <SurfaceHeader
           :type="node.type"
@@ -359,28 +137,13 @@
           @inline-change="inlineChange"
         />
       </div>
-      <div v-if="node.childRegions.length" :class="[LAYOUT.sideCol, 'min-w-0 flex flex-col gap-4']">
-        <Tabs v-if="node.childrenMode === 'tabs'" :value="node.childRegions[0].id" class="w-full">
-          <TabList>
-            <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
-              {{ regionLabelFor(child) }}
-              <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
-            </Tab>
-          </TabList>
-          <TabPanels>
-            <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
-              <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" :openable="openable" :instance-actions="instanceActions" embedded @run="emitRun" @open="emitOpen" />
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-        <RegionBlock
-          v-for="child in node.childRegions"
-          v-else
-          :key="child.id"
-          :node="child"
+      <div v-if="node.childRegions.length" class="detail-side-col min-w-0 flex flex-col gap-4">
+        <RegionChildren
+          :regions="node.childRegions"
+          :mode="node.childrenMode"
+          :depth="depth"
           :pool="pool"
           :bundle="bundle"
-          :depth="depth + 1"
           :openable="openable"
           :instance-actions="instanceActions"
           @run="emitRun"
@@ -402,30 +165,18 @@
         :state-policy="node.statePolicy"
         @run="emitRun"
       />
-      <Tabs v-if="node.childrenMode === 'tabs'" :value="node.childRegions[0].id" class="w-full">
-        <TabList>
-          <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
-            {{ regionLabelFor(child) }}
-            <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
-          </Tab>
-        </TabList>
-        <TabPanels>
-          <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
-            <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" :openable="openable" :instance-actions="instanceActions" embedded @run="emitRun" @open="emitOpen" />
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-      <template v-else>
-        <RegionBlock
-          v-for="child in node.childRegions"
-          :key="child.id"
-          :node="child"
-          :pool="pool"
-          :bundle="bundle"
-          :depth="depth + 1"
-          @run="emitRun"
-        />
-      </template>
+      <RegionChildren
+        v-if="node.childRegions.length"
+        :regions="node.childRegions"
+        :mode="node.childrenMode"
+        :depth="depth"
+        :pool="pool"
+        :bundle="bundle"
+        :openable="openable"
+        :instance-actions="instanceActions"
+        @run="emitRun"
+        @open="emitOpen"
+      />
     </template>
   </div>
 </template>
@@ -433,14 +184,8 @@
 <script setup>
 import { computed, inject, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
 import ProgressBar from 'primevue/progressbar';
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
-import TabPanels from 'primevue/tabpanels';
-import TabPanel from 'primevue/tabpanel';
 import Button from 'primevue/button';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
@@ -456,19 +201,12 @@ import { loadProjectionPreference, storeProjectionPreference } from '~/utils/ui-
 import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
-import CollectionTable from './CollectionTable.vue';
-import CardGrid from './CardGrid.vue';
-import BoardCollection from './BoardCollection.vue';
-import GanttCollection from './GanttCollection.vue';
-import CalendarCollection from './CalendarCollection.vue';
-import CarouselGrid from './CarouselGrid.vue';
-import TimelineCollection from './TimelineCollection.vue';
-import StatGrid from './StatGrid.vue';
 import ActionButton from './ActionButton.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
-import InstanceMultiSelect from '../shared/InstanceMultiSelect.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
+import RegionCollections from './RegionCollections.vue';
+import RegionChildren from './RegionChildren.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 const props = defineProps({
   node: { type: Object, required: true },
@@ -488,8 +226,8 @@ const props = defineProps({
   // Whether the detail affordances may persist edits (the engine binds
   // this to the presence of an onPatch executor).
   patchable: { type: Boolean, default: false },
-  // Machine-authority transition resolver for board drags (the host's
-  // state service): passed through to the board projection.
+  // Machine-authority transition resolver for board drags (the host's state
+  // service): passed through to the board projection.
   resolveTransitions: { type: Function, default: null },
   // Host-injected contextual back affordance for the record header
   // (`{ icon, label, command }` — SurfaceHeader's navigation channel).
@@ -501,11 +239,11 @@ const emitOpen = instance => emit('open', instance);
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
 
-// One compact toolbar row; the host pads the pane.
-const panelPt = {
-  contentWrapper: { class: 'min-w-0' },
-  header: { class: 'flex min-w-0 flex-1 items-center gap-2 !py-1 !px-0' }
-};
+// The standalone list region sits on the section rhythm; embedded ones
+// (side columns, tabs) stack tight.
+const listStack = computed(() => (props.embedded
+  ? (spacing ? spacing.stackTight : LAYOUT.stackTight)
+  : (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack'])));
 const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
 
 // The containment cross-cut's data: a region whose type someone's children
@@ -619,8 +357,7 @@ const showSurfaces = computed(() => state.value === 'ready' || isReloading.value
 const showState = computed(() => !showSurfaces.value);
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
 const { localizedTypeLabel } = useLocalizedTypeLabel();
-const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? localizedTypeLabel(region.type) : region.id);
-const regionLabel = computed(() => regionLabelFor(props.node));
+const regionLabel = computed(() => localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? localizedTypeLabel(props.node.type) : props.node.id));
 // The derived list layout — the resolver's contract decision over shape,
 // class, size, and the served state vocabulary. The projection
 // switch below is the user's view-state override inside a bounded pair,
@@ -733,3 +470,34 @@ const filteredInstances = computed(() => {
     && instanceMatchesFilter(instance, builderFilter.value, { pool: props.pool }));
 });
 </script>
+
+<style scoped>
+/* Container-relative record page (the SurfaceHeader pattern — the
+   tailwindcss build has no container-queries plugin, so this lives in
+   real CSS): the detail region is its own layout container. The record
+   header and main content stack under 60rem of container width (panes,
+   dialogs, narrow columns); wide surfaces engage the 7/5 side column
+   where child collections render beside the record instead of
+   below it. */
+.region-detail {
+  container-type: inline-size;
+}
+
+.detail-split {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container (min-width: 60rem) {
+  .detail-split {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .detail-main-col {
+    grid-column: span 7;
+  }
+
+  .detail-side-col {
+    grid-column: span 5;
+  }
+}
+</style>
