@@ -224,7 +224,7 @@ import { useCallsStore } from '~/stores/calls';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js';
 import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
-import { shouldRenderHomeSection, typeParentOf } from '~/utils/generated-screen-source.js';
+import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { containmentParent, normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
@@ -441,24 +441,12 @@ const screenfulTypes = computed(() => new Set((authStore.screenManifest || [])
   .filter(screen => screen.typeId && screen.template === 'typeList')
   .map(screen => screen.typeId)));
 
-// Types worth rendering: every screen-backed type plus its containment
-// ancestors (structural nodes keep the hierarchy real). A type's parent
-// never includes itself — recursive containment nests instances under
-// instances, not the type node under itself (typeParentOf).
-const visibleTypes = computed(() => {
-  const parentOf = typeParentOf(effectiveContainment());
-  const visible = new Set();
-  for (const typeId of screenfulTypes.value) {
-    let cursor = typeId;
-    const guard = new Set();
-    while (cursor && !guard.has(cursor) && registryStore.typeRecord(cursor)) {
-      guard.add(cursor);
-      visible.add(cursor);
-      cursor = parentOf.get(cursor) || '';
-    }
-  }
-  return visible;
-});
+// Types worth rendering: exactly the screen-backed types of the active
+// process. Registry-only types never render — a declaration some OLD
+// apply posted (a group the current definition never authored) must not
+// phantom into the app as a "structural" node: no station, no UI. Type
+// nesting renders only between stationed types (both endpoints visible).
+const visibleTypes = computed(() => new Set(screenfulTypes.value));
 
 // The PanelMenu model is the explorer tree plus the communication
 // panel: type nodes become panels (their registry icon is PanelMenu's

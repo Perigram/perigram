@@ -7,11 +7,12 @@ import { typeParentOf } from '~/utils/generated-screen-source.js';
 import { typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 
 // The mobile home tab contract: the sidebar tree's top level as one
-// fixed tab list. Roots are derived exactly like the desktop tree's —
-// manifest-backed typeList types plus their containment ancestors form
-// the visible set, and a visible type that is another visible type's
-// containment child is not a root. Structural ancestors without their
-// own compiled screen are folders, not tabs. The selection is shared
+// fixed tab list. Tabs are exactly the active process's stationed
+// typeList types; a type is not a tab only when its containment parent
+// is itself stationed (it is reached through the parent instead).
+// Registry declarations no active definition stations neither render
+// nor root anything — stale types from old applies stay invisible.
+// The selection is shared
 // app state: the app-shell bottom bar writes it, the home workspace
 // renders it (mobile branch), and an unknown or unset key resolves to
 // the first tab.
@@ -20,33 +21,22 @@ export function useMobileHomeTabs() {
   const registryStore = useRegistryStore();
   const effectiveContainment = useEffectiveContainment();
 
-  const screenfulTypes = computed(() => (authStore.screenManifest || [])
-    .filter(screen => screen.typeId && screen.template === 'typeList')
-    .map(screen => screen.typeId));
-
   const { te, t } = useI18n();
 
   const tabs = computed(() => {
     const parentOf = typeParentOf(effectiveContainment());
-    const visible = new Set();
-    for (const typeId of screenfulTypes.value) {
-      let cursor = typeId;
-      const guard = new Set();
-      while (cursor && !guard.has(cursor) && registryStore.typeRecord(cursor)) {
-        guard.add(cursor);
-        visible.add(cursor);
-        cursor = parentOf.get(cursor) || '';
-      }
-    }
-    const rooted = new Set([...visible].filter(typeId => {
-      const parent = parentOf.get(typeId);
-      return parent && visible.has(parent);
-    }));
     const screenOf = new Map((authStore.screenManifest || [])
       .filter(screen => screen.typeId && screen.template === 'typeList')
       .map(screen => [screen.typeId, screen]));
-    return [...visible]
-      .filter(typeId => !rooted.has(typeId) && screenOf.has(typeId))
+    // Tabs are the active process's stationed types. A child is rooted
+    // only under a parent that is itself stationed: registry-only parents
+    // (declarations some old apply posted, absent from every active
+    // definition) neither render nor root anything.
+    return [...screenOf.keys()]
+      .filter(typeId => {
+        const parent = parentOf.get(typeId);
+        return !(parent && screenOf.has(parent));
+      })
       .map(typeId => {
         const screen = screenOf.get(typeId);
         // Procedural label contract only: the generated type key (locale
