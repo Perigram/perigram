@@ -71,13 +71,13 @@ export const frameworkAttachmentKinds = {
   },
   TEXT_FILE: {kind: 'TEXT_FILE',
     bucket: 'uploads', mimeType: 'text/plain', preview: { mode: 'text' },
-    creation: { mode: 'upload', accept: '.txt,text/plain' }, editor: { mode: 'text' },
-    file: { extensions: ['.txt'], mimeTypes: ['text/plain'], maxBytes: 10 * 1024 * 1024 }
+    creation: { mode: 'upload', accept: '.txt,text/plain,.md,text/markdown' }, editor: { mode: 'text' },
+    file: { extensions: ['.txt', '.md'], mimeTypes: ['text/plain', 'text/markdown'], maxBytes: 10 * 1024 * 1024 }
   },
   TEXT_DOCUMENT: {kind: 'TEXT_DOCUMENT',
     bucket: 'uploads', mimeType: 'text/plain', preview: { mode: 'text' },
     creation: { mode: 'editor' }, editor: { mode: 'text' },
-    file: { extensions: ['.txt'], mimeTypes: ['text/plain'], maxBytes: 10 * 1024 * 1024 }
+    file: { extensions: ['.txt', '.md'], mimeTypes: ['text/plain', 'text/markdown'], maxBytes: 10 * 1024 * 1024 }
   },
   CSV_FILE: {kind: 'CSV_FILE',
     bucket: 'uploads', mimeType: 'text/csv', preview: { mode: 'table' },

@@ -62,16 +62,22 @@ const sketchPersistence = computed(() => ({
   origin: { value: props.artifact.data?.metadata?.origin || null }
 }));
 // Artifact-backed persistence for the shared text/csv editor: bytes
-// through the artifact file-revision transport, mime preserved. Legacy
-// text artifacts are plain .txt documents; the markdown default belongs
-// to the instance-backed editor contract.
+// through the artifact file-revision transport, mime preserved. Text
+// artifacts carry `.txt` or `.md` — markdown stays markdown on save
+// (extension and mime follow the stored file); the markdown default
+// belongs to the instance-backed editor contract.
+const isMarkdownArtifact = computed(() => {
+  const primary = props.artifact.attachments?.primary || {};
+  const name = primary.name || primary.metadata?.originalFilename || props.artifact.identity?.name || '';
+  return primary.metadata?.mimeType === 'text/markdown' || /\.md$/i.test(name);
+});
 const textPersistence = computed(() => ({
   title: props.artifact.identity?.name || '',
-  extension: '.txt',
+  extension: editor.value.mode === 'csv' ? '.csv' : (isMarkdownArtifact.value ? '.md' : '.txt'),
   loadText: () => fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`).then(response => response.text()),
   saveText: async (text, filename) => {
     const mimeType = props.artifact.attachments?.primary?.metadata?.mimeType
-      || (editor.value.mode === 'csv' ? 'text/csv' : 'text/plain');
+      || (editor.value.mode === 'csv' ? 'text/csv' : (isMarkdownArtifact.value ? 'text/markdown' : 'text/plain'));
     const form = new FormData();
     form.append('file', new File([text], filename, { type: mimeType }));
     return await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form });

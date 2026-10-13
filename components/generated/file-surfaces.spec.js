@@ -108,6 +108,15 @@ describe('file surface registry', () => {
     ]);
   });
 
+  it('marks the text/csv editor pages flush so the editor owns its shell', () => {
+    const pages = new Map(fileWorkspacePages().map(page => [page.typeId, page]));
+    expect(pages.get('text-document')?.flush).toBe(true);
+    expect(pages.get('csv-table')?.flush).toBe(true);
+    expect(resolveFileSurface(packEditorBindings, 'text-document')?.flush).toBe(true);
+    expect(resolveFileSurface(packEditorBindings, 'csv-table')?.flush).toBe(true);
+    expect(resolveFileSurface(packEditorBindings, 'sketch')?.flush).toBeUndefined();
+  });
+
   it('passes the bound type id into page props adapters', () => {
     const row = fileWorkspacePages().find(page => page.typeId === 'text-document');
     const props = row.props({ entity: { _id: 't-1' } });
