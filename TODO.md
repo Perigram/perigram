@@ -1,5 +1,52 @@
 # TODO
 
+## Documents content both ways: `content` creation protocol + CSV composition (owner direction 2026-10-13)
+
+The documents pack's content must be usable end to end: text documents and
+CSV tables creatable from procedural content in the designer (a `content`
+creation protocol beside upload/editor), and rows composable back into CSV
+text (a pack value service in the `tableData` tab). Contracts:
+[packages/documents/README.md](./packages/documents/README.md),
+[packages/cts/SPEC.md](./packages/cts/SPEC.md) §4 (creation protocols).
+
+- [x] A. `content` protocol: mode input (content string) in the construction
+  projection, instance-machinery construct handler (text → payload blob
+  through the trait checks), textarea prompts on both dialog engines;
+  declared on `text-document` and `csv-table`.
+- [x] B. `documents.csvText` value service: rows → CSV text (pure V→V,
+  `tableData` tab), command definition + handler bound in the pack
+  declaration/mount pair.
+- [ ] WAITING — owner verification on the live stack: wire composed strings
+  into a text-document create; rows → csvText → CSV table create
+  round-trips through the `rows` projection.
+
+### Agent Notes (2026-10-13, documents-content session)
+
+Session `agent/docs-content-20261013`. Slice A: `content` joined the
+standard creation protocols (registry `CREATION_PROTOCOLS`, SPEC §4
+grammar, construction projection `modeInputs` — a required string input
+pinned `control: 'Textarea'`), the generic instance machinery owns the
+construct handler (text → GridFS blob → payload reference through the same
+`payloadFromWire` trait checks, blob cleaned up if the insert fails), and
+both create-dialog engines prompt it as a textarea (GeneratedScreen branch
+on the control pin; ui-mapping resolves a string protocol input into a
+full-width row whose descriptor carries the pin). Slice B: the pack's
+first value service — declaration (`services` + `domain.commands`) in
+`packages/documents`, handler in
+`server/packs/documents/value-services/csv-text.js` (pure RFC-4180
+serializer: first-seen header union, quote on `"`/`,`/newlines, CRLF),
+command bound in the mount; the arch guard's ref-field and import rules
+hold (input is `list<record>`, no instance/files imports). Workbooks stay
+read-only per the owner's scope call.
+
+Validation: `packages/documents` + `server/packs` (15), `packages/cts` +
+`server/features/instances` + `shared/ui-mapping` (217; the one failure —
+`tones status transitions from the target state display policy` — fails
+identically on pristine base `local`, pre-existing), `packages/processes`
+(471), SSR smoke (3), `check-arch`, `check-docs`, `framework:validate` —
+green. Not run: Playwright E2E (needs the live dev stack serving this
+code).
+
 ## Editor creates defer to the first save (owner decision 2026-10-12, live-stack report)
 
 Report: creating a cassette "gets created immediately, not after save",

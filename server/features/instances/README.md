@@ -81,10 +81,12 @@ hand-written services.
   processUpdate/remove) plus the process bindings (processList,
   processGetById, processDelete, processCapabilities, and construction
   handlers: `genericCreate` plus the payload creation protocols
-  `upload`/`capture`/`editor` declared on payload types — upload and
+  `upload`/`capture`/`editor`/`content` declared on payload types — upload and
   capture require a payload reference (validated by the construct-time
   trait checks), editor constructs a blank instance whose first editor
-  save fills the payload). Wire patches map to §3 writes (tenancy is
+  save fills the payload, and content stores the wired or prompted text
+  as the payload blob at construct (SPEC §4, owner decision 2026-10-13).
+  Wire patches map to §3 writes (tenancy is
   immutable after construct).
 - List filters (the compiled screen-source transport contract, the same
   vocabulary the feature routes speak — cassettes' `libraryId`):

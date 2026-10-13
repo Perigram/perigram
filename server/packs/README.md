@@ -43,8 +43,10 @@ files features are rejected at the mount (see
 
 - `documents/` — the pack mount binding the `rows` projection handler
   (`documents.tableRows`, see
-  [@perigram/documents](../../packages/documents/README.md)); the types
-  ride the generic instance machinery.
+  [@perigram/documents](../../packages/documents/README.md)) and the
+  `documents.csvText` value-service command (rows → CSV text); the types
+  ride the generic instance machinery, whose `content` creation protocol
+  serves their graph-authored creates.
 - `tech-drawing/` — mounted purely by composition (no service bindings):
   the `pen-template` and `layer-standard` reference types and their
   system-catalog instances ride the generic instance machinery.
