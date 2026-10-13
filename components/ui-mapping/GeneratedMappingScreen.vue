@@ -18,6 +18,7 @@
             :patchable="patchable"
             :resolve-transitions="onFetchTransitions"
             :load-type="onLoadType"
+            :navigation="navigation"
             embedded
             @run="openAction"
             @transition="executeTransition"
@@ -82,7 +83,7 @@
           v-for="row in visibleDialogRows"
           :key="row.id"
           class="flex min-w-0 flex-col gap-1"
-          :class="row.span === 'full' ? 'md:col-span-2' : ''"
+          :class="row.span === 'full' ? 'ck-span-full' : ''"
         >
           <span class="text-label">{{ row.label }}</span>
           <InstancePicker
@@ -164,7 +165,6 @@ const props = defineProps({
   // Runtime state-transition executor: `async (payload) => any` — the
   // page owns dispatch so store refreshes and navigation stay app-side.
   onTransition: { type: Function, default: null },
-  onTransitionApplied: { type: Function, default: null },
   // Runtime state-service transitions by type (the declaration machine):
   // `{ [typeId]: [{ __runtime, state: { to }, intent, region, label }] }`.
   // The app fetches per opened instance and owns dispatch; the generator
@@ -189,7 +189,12 @@ const pool = computed(() => buildInstancePool(props.instances));
 const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value, {
   sourceStates: props.sourceStates || null
 }));
-provide('uiMappingSpacing', spacingClasses(props.spacingScale));
+// Reactive spacing injection: consumers read the object's keys, so the
+// showcase's coefficient slider re-rhythms every mounted surface without
+// a remount.
+const spacing = reactive(spacingClasses(props.spacingScale));
+watch(() => props.spacingScale, scale => Object.assign(spacing, spacingClasses(scale)));
+provide('uiMappingSpacing', spacing);
 
 const { te, t } = useI18n();
 const { localizedTypeLabel } = useLocalizedTypeLabel();
@@ -210,10 +215,7 @@ const instanceActionsByType = computed(() => Object.fromEntries((props.bundle.ty
 // Runtime state transitions dispatch through the page's executor
 // (`onTransition`); without one they are display-only.
 async function executeTransition(payload = {}) {
-  if (typeof props.onTransition === 'function') {
-    await props.onTransition(payload);
-    return;
-  }
+  if (typeof props.onTransition !== 'function') return;
   await props.onTransition(payload);
 }
 const emit = defineEmits(['instance-mounted']);

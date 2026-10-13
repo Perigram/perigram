@@ -9,7 +9,6 @@ import {
   resolveFieldGroups,
   estimateRegionWeight,
   childrenModeFor,
-  screenDensityFor,
   spacingClasses,
   SPACING_STEPS,
   resolveFieldControl,
@@ -368,7 +367,9 @@ describe('action button resolution', () => {
       .toMatchObject({ tone: 'state', severity: 'danger', label: 'Failed' });
     expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'DONE' } }, { statePolicy }))
       .toMatchObject({ severity: 'success' });
-    expect(resolveActionButton({ actionKind: 'updateInstance' }, { statePolicy }).tone).toBe('secondary');
+    // Stateless updates are the field-edit form: fields edit inline on
+    // detail surfaces, so the bulk form never renders as an action.
+    expect(resolveActionButton({ actionKind: 'updateInstance' }, { statePolicy }).hidden).toBe(true);
   });
 
   it('derives a transition button label from the target value when the policy has none', () => {
@@ -522,9 +523,13 @@ describe('value formatting and layout vocabulary', () => {
   });
 
   it('exposes the layout vocabulary as the single styling home', () => {
-    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'factsGrid', 'formGrid', 'cardGrid', 'scrollX', 'dialog']) {
+    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'formGrid', 'scrollX', 'dialog']) {
       expect(LAYOUT[key], key).toBeTruthy();
     }
+    // Retired with the viewport-split layouts: facts grids never
+    // materialized, and card grids render through ResponsiveGrid.
+    expect(LAYOUT.factsGrid).toBeUndefined();
+    expect(LAYOUT.cardGrid).toBeUndefined();
   });
 
   it('keeps the record header contract static-token plus scoped CSS', () => {
@@ -611,14 +616,6 @@ describe('weight-driven arrangement', () => {
     expect(loose.knob).toBe(96);
     expect(spacingClasses(0.6)).toBe(spacingClasses(1));
     expect(SPACING_STEPS).toEqual([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
-  });
-
-  it('picks screen density from total information; the driver biases the threshold', () => {
-    expect(screenDensityFor(58)).toBe('compact');
-    expect(screenDensityFor(12)).toBe('regular');
-    expect(screenDensityFor(30, 16)).toBe('regular');
-    expect(screenDensityFor(30, -12)).toBe('compact');
-    expect(screenDensityFor(30, 100)).toBe('regular');
   });
 
   it('tabs only when siblings are many and heavy at the top level', () => {
@@ -714,7 +711,7 @@ describe('instance-aware list controls', () => {
     const controls = resolveListControls(type, instances);
     expect(controls.searchKeys).toEqual(['name']);
     expect(controls.sortKeys.map(key => key.name)).toEqual(['name', 'size', 'grade']);
-    expect(controls.defaultSort).toBeNull();
+    expect(controls.defaultSort).toBe('name');
     expect(controls.facets).toEqual([{ name: 'grade', label: 'Grade', values: ['a', 'b'] }]);
     expect(controls.pagination).toEqual({ paginateAt: 10, rows: 10, virtualizeAt: 50 });
   });

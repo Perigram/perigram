@@ -171,7 +171,7 @@
          nothing routes away from the shell on mobile. -->
     <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden" data-home-workspace-mobile>
       <div class="min-h-0 flex-1 overflow-y-auto p-4">
-        <GeneratedTypeScreen
+        <GeneratedScreenHost
           v-if="mobileTypeScreen"
           :key="mobileTypeScreen.screenKey || mobileTypeScreen.id"
           :screen="mobileTypeScreen"
@@ -196,7 +196,6 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
-import GeneratedDetailScreen from '~/components/generated/GeneratedDetailScreen.vue';
 import Avatar from 'primevue/avatar';
 import PanelMenu from 'primevue/panelmenu';
 import { useI18n } from 'vue-i18n';
@@ -207,7 +206,7 @@ import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/u
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import { consumePendingWorkspacePage, workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
-import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
+import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
 import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
@@ -724,8 +723,8 @@ function routeInstanceToScreen(typeId, instanceId) {
   return Boolean(route);
 }
 
-function openMobileInstance(instance = {}) {
-  routeInstanceToScreen(instance.type, instance.id);
+function openMobileInstance({ typeId, instanceId } = {}) {
+  routeInstanceToScreen(typeId, instanceId);
 }
 
 function typeLabelOf(typeId = '') {

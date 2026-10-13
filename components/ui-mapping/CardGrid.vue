@@ -1,5 +1,11 @@
 <template>
-  <DataView :value="instances" data-key="id" layout="grid" :paginator="instances.length > 8" :rows="8">
+  <DataView
+    :value="instances"
+    data-key="id"
+    layout="grid"
+    :paginator="instances.length > pagination.paginateAt"
+    :rows="pagination.rows"
+  >
     <template #grid="slotProps">
       <ResponsiveGrid variant="dense" responsive-context="container">
         <Card v-for="instance in slotProps.items" :key="instance.id" :class="[LAYOUT.clip, 'w-full']">
@@ -94,7 +100,6 @@ import ParentRef from './ParentRef.vue';
 import { incomingChildrenEdges } from '#shared/ui-mapping/index.js';
 
 const spacing = inject('uiMappingSpacing', null);
-const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -120,6 +125,7 @@ const emit = defineEmits(['open', 'run']);
 const { te, t } = useI18n();
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
+const pagination = computed(() => resolvedControls.value.pagination);
 
 // The containment cross-cut: cards of a child-capable type carry their
 // parent beside the type name (see ParentRef) — containment stays visible

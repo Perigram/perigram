@@ -292,4 +292,29 @@ body {
     .grid-details {
         @apply grid grid-cols-1 lg:grid-cols-4 gap-[var(--ck-details-gap)];
     }
+
+    /* Container-relative form grid (the ui-mapping LAYOUT.formGrid token):
+       generated create dialogs and structural editors render inside
+       dialogs and workspace panes, so "wide" must mean the container,
+       never the viewport — the tailwindcss build has no
+       container-queries plugin, so this lives in real CSS like
+       SurfaceHeader's scoped block. Full-span rows opt in via
+       .ck-span-full. */
+    .ck-form-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        column-gap: 1rem;
+        row-gap: 1rem;
+        container-type: inline-size;
+    }
+
+    .ck-form-grid .ck-span-full {
+        grid-column: 1 / -1;
+    }
+
+    @container (min-width: 40rem) {
+        .ck-form-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
 }

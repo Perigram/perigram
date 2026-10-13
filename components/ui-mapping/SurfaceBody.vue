@@ -36,8 +36,13 @@
           :pool="pool"
           :bundle="bundle"
           :expanded="expanded"
+          :covered-relations="coveredRelations"
+          :editable="editable"
+          :editing="editing"
+          :draft="draft"
           @toggle="toggleRelation"
           @run="$emit('run', $event)"
+          @inline-change="$emit('inline-change', $event)"
         />
       </div>
     </template>
@@ -151,10 +156,11 @@ const hiddenFieldCount = computed(() => (fieldOutcome.value.mode === 'collapsed'
 
 const rowRelation = computed(() => {
   if (!surface.value.slots.includes('relations')) return { shown: [], hidden: 0 };
+  // Per-SLOT budgets (the surface entry's `relations` budget), applied to
+  // the first declared relation's refs — the documented budget mechanism.
   const first = Object.values(props.instance.relations || {})[0];
   const list = Array.isArray(first) ? first : first ? [first] : [];
-  const budget = surface.value.budgets[Object.keys(props.instance.relations || {})[0]];
-  const outcome = applyBudget(list, budget);
+  const outcome = applyBudget(list, surface.value.budgets.relations || null);
   return { shown: outcome.visible, hidden: outcome.hidden };
 });
 const rowRefs = computed(() => rowRelation.value.shown);

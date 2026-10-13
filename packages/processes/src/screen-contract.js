@@ -4,7 +4,7 @@ export const SCREEN_TEMPLATES = ['typeList', 'instanceDetail', 'workspaceLanes',
 // URL — no screenKey vocabulary appears in the address bar for it.
 export const HOME_SCREEN_ROUTE = '/home';
 export const SCREEN_SOURCE_MODES = ['list', 'single'];
-export const SCREEN_REGION_SLOTS = ['main', 'left', 'center', 'right', 'supporting'];
+export const SCREEN_REGION_SLOTS = ['main', 'children', 'left', 'center', 'right', 'supporting'];
 // Canonical registry of region surfaces the generated screen runtime renders:
 // card/compact/table/workspace for list-mode regions, detail for single-mode.
 export const SCREEN_REGION_SURFACES = ['card', 'compact', 'detail', 'table', 'workspace'];

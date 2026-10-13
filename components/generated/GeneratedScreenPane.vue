@@ -30,16 +30,16 @@
         :screen="scopedScreen"
         @refresh="$emit('refresh')"
       />
-      <GeneratedTypeScreen
+      <GeneratedScreenHost
         v-else-if="resolvedScreen.template === 'typeList' && !item.instanceId"
         :screen="resolvedScreen"
-        @open-instance="instance => $emit('open-entity', { typeId: instance.type, instanceId: instance.id, ...(instance.editor ? { editor: true } : {}) })"
+        @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
         @refresh="$emit('refresh')"
       />
-      <GeneratedDetailScreen
+      <GeneratedScreenHost
         v-else-if="item.instanceId && resolvedScreen"
         :screen="scopedScreen"
-        @open-instance="instance => $emit('open-entity', { typeId: instance.type, instanceId: instance.id, ...(instance.editor ? { editor: true } : {}) })"
+        @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
         @refresh="$emit('refresh')"
       />
       <GeneratedScreen v-else :screen="resolvedScreen" @refresh="$emit('refresh')" />
@@ -56,8 +56,7 @@
 // workspace — routing stays with the host, never the generator.
 import { computed } from 'vue';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
-import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
-import GeneratedDetailScreen from '~/components/generated/GeneratedDetailScreen.vue';
+import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
