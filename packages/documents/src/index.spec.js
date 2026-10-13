@@ -68,7 +68,7 @@ describe('documents pack declarations', () => {
 
   it('declares the content creation protocol on the editable text payloads only', () => {
     const creation = Object.fromEntries(documentsTypes.map(type => [type.id, type.payload.creation || []]));
-    expect(creation['text-document']).toEqual(['editor', 'content']);
+    expect(creation['text-document']).toEqual(['editor', 'content', 'upload']);
     expect(creation['csv-table']).toEqual(['editor', 'content']);
     for (const [id, protocols] of Object.entries(creation)) {
       if (id !== 'text-document' && id !== 'csv-table') {

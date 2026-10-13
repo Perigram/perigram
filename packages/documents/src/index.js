@@ -85,7 +85,7 @@ export const documentsTypes = Object.freeze([
     glyph: 'pi pi-file-edit',
     name: 'Text document',
     revisions: 'content',
-    creation: ['editor', 'content'],
+    creation: ['editor', 'content', 'upload'],
     projections: Object.freeze([textProjection])
   }),
   documentType({
