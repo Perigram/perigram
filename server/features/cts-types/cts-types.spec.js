@@ -43,7 +43,7 @@ beforeEach(() => {
 describe('cts type storage', () => {
   it('compiles the org view as system types plus the org overlay', async () => {
     repository.listByOrganization.mockResolvedValue([
-      { id: 'widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: { code: { base: 'string' } } }
+      { id: 'widget', name: 'Widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: { code: { base: 'string' } } }
     ]);
     const bundle = await describeOrganizationTypes(ORG);
     expect(bundle.bundle.ok).toBe(true);
@@ -149,7 +149,7 @@ describe('cts type storage', () => {
   });
 
   it('stores valid org declarations after full-view compile', async () => {
-    const stored = await defineType({ id: 'gadget', class: 'file', fields: { code: { base: 'string' } } }, { organizationId: ORG });
+    const stored = await defineType({ id: 'gadget', name: 'Gadget', class: 'file', fields: { code: { base: 'string' } } }, { organizationId: ORG });
     expect(stored.id).toBe('gadget');
     expect(stored.scope).toBe('org');
     expect(stored.version).toBe(1);
@@ -353,19 +353,19 @@ describe('cts type storage', () => {
     // later write in the org (each compiles the same broken view).
     const { countInstancesOfType } = await import('../instances/count.js');
     countInstancesOfType.mockResolvedValueOnce(0);
-    const storedGadget = { id: 'gadget', class: 'file', scope: 'org', organizationId: ORG, version: 2,
+    const storedGadget = { id: 'gadget', name: 'Gadget', class: 'file', scope: 'org', organizationId: ORG, version: 2,
       fields: { code: { base: 'string' } } };
     repository.findByTypeId.mockResolvedValue(storedGadget);
     repository.listByOrganization.mockResolvedValue([storedGadget]);
     await expect(defineType(
-      { id: 'gadget', class: 'file', fields: {} },
+      { id: 'gadget', name: 'Gadget', class: 'file', fields: { code: { base: 'string', identifier: true }, serial: { base: 'string', identifier: true } } },
       { organizationId: ORG }
-    )).rejects.toThrow(/file requires payload or fields/);
+    )).rejects.toThrow(/identifier flag on multiple fields/);
     expect(repository.upsertByTypeId).not.toHaveBeenCalled();
 
     countInstancesOfType.mockResolvedValueOnce(0);
     await expect(defineType(
-      { id: 'gadget', class: 'file', fields: { code: { base: 'string' } }, edges: { children: { parts: { types: ['missing-child'] } } } },
+      { id: 'gadget', name: 'Gadget', class: 'file', fields: { code: { base: 'string' } }, edges: { children: { parts: { types: ['missing-child'] } } } },
       { organizationId: ORG }
     )).rejects.toThrow(/may not declare lineage children/);
     expect(repository.upsertByTypeId).not.toHaveBeenCalled();
@@ -408,7 +408,7 @@ describe('cts type storage', () => {
     // A valid new type lands even though the stored view carries YU's
     // obligation error.
     const child = await defineType(
-      { id: 't-child-1', class: 'file', fields: { note: { base: 'string' } } },
+      { id: 't-child-1', name: 'Child', class: 'file', fields: { note: { base: 'string' } } },
       { organizationId: ORG }
     );
     expect(child.id).toBe('t-child-1');
@@ -417,9 +417,9 @@ describe('cts type storage', () => {
     // A candidate that introduces its OWN error is still refused.
     repository.upsertByTypeId.mockClear();
     await expect(defineType(
-      { id: 't-empty-1', class: 'file', fields: {} },
+      { id: 't-empty-1', name: 'Empty', class: 'file', fields: { code: { base: 'string', identifier: true }, serial: { base: 'string', identifier: true } } },
       { organizationId: ORG }
-    )).rejects.toThrow(/file requires payload or fields/);
+    )).rejects.toThrow(/identifier flag on multiple fields/);
     expect(repository.upsertByTypeId).not.toHaveBeenCalled();
   });
 

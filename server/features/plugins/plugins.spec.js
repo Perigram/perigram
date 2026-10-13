@@ -268,7 +268,7 @@ describe('plugin installs', () => {
   it('refuses a plugin type shadowing a system type id', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,
-      declarations: { types: [{ id: 'cassette', class: 'item', fields: {} }] }
+      declarations: { types: [{ id: 'organization', class: 'item', fields: {} }] }
     });
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 400 });

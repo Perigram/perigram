@@ -150,7 +150,7 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
       .toEqual(['fields', 'lineage', 'relations']);
   });
 
-  it('synthesizes no hardcoded Name construction input for identifier-less types', () => {
+  it('offers the minted name row as a construction input (no hardcoded Name)', () => {
     const reg = registry();
     reg.defineType({
       id: 'blank',
@@ -163,9 +163,10 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     });
     const projected = projectDomainFromView(reg, 'org-1');
     const construction = projected.construction.blank;
-    expect(construction.inputs.map(input => input.id)).toEqual(['fields.geometry']);
-    // The unnamed placeholder is the authoring prompt (SPEC §4), never a
-    // compiler-invented Name field:
+    // Identifier totality: the boundary minted the `name` row, so it is a
+    // real declared row input — never a compiler-invented bare identity
+    // prompt, and never absent (creates of this type name their records).
+    expect(construction.inputs.map(input => input.id)).toEqual(['fields.geometry', 'fields.name']);
     expect(construction.inputs.some(input => input.id === 'name' || input.path === 'name')).toBe(false);
   });
 
