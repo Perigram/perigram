@@ -387,6 +387,17 @@ shell; a surface that bundles its own runtime or UI kit, or fails the
 mount-and-save smoke, fails the check. Structural consistency is
 contractual; taste stays review, with the facade editors as the reference.
 
+Owner decision (2026-10-13): the cassette profile sketch is drawn on a
+real CAD engine, not a bespoke sketch widget. The facade plugin's profile
+sketch editor embeds the MIT-licensed MLightCAD browser CAD engine
+(cad-simple-viewer, vendored as a self-contained executor asset) with
+real drawing commands, object snaps, and engine undo; drawn entity
+records normalize into the OCCS profile sketch through the engine's one
+normalization path (tangent corner arcs become fillet modifiers, other
+arcs flatten, circles become holes). DXF only: the open-source DWG
+parser is GPL LibreDWG and the alternative is commercial, so DWG stays
+out of the plugin and DXF remains the pipeline's exchange format.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,

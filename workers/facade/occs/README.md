@@ -45,17 +45,24 @@ modules — no platform imports.
   not duplicated in the workpiece row when a saved profile supplies geometry.
 - `profiles.js` declares the reusable OCCS profile sketch helper used by
   Cassette Designer v2. It keeps profile templates declarative but direct:
-  blank profile drawing sessions, editable snap points, point-by-point
-  polylines with explicit open/closed state, typed segment-distance projection,
-  ortho projection, circle holes, DXF-imported geometry, and per-corner fillet
-  modifiers are normalized into `profile.section` polygon/circle data plus a
-  linear `profile.sweep`. Save workflows accept any drawn boundary with at least
-  three points and close it into a profile section snapshot so users do not need
-  to run a separate close command before persisting. Cassette Designer v2 uses
-  saved profile templates from hanger feature selectors; selecting one stores
-  the template id plus a snapshot on that feature, and renderer cut-in-parent
-  output uses the snapshot geometry instead of the default hanger polygon. The
-  current editor does not run a parametric constraint solver.
+  editable snap points, point-by-point polylines with explicit open/closed
+  state, circle holes, and per-corner fillet modifiers are normalized into
+  `profile.section` polygon/circle data plus a linear `profile.sweep`.
+  The same module normalizes CAD entity records (LINE/ARC/CIRCLE/polyline)
+  into the sketch model (`occProfileSketchFromEntities`) and back
+  (`occProfileEntitiesFromSketch`): the browser sketch canvas — the
+  vendored MLightCAD CAD engine — seeds from the sketch and is re-extracted
+  through this one path. A tangent corner arc between two line segments
+  maps to the corner's fillet modifier (the polygon keeps the theoretical
+  sharp corner); any other arc flattens to chords within a 0.05 mm sagitta
+  tolerance; circles become holes. Save workflows accept any drawn
+  boundary with at least three points and close it into a profile section
+  snapshot so users do not need to run a separate close command before
+  persisting. Cassette Designer v2 uses saved profile templates from
+  hanger feature selectors; selecting one stores the template id plus a
+  snapshot on that feature, and renderer cut-in-parent output uses the
+  snapshot geometry instead of the default hanger polygon. The current
+  editor does not run a parametric constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.
 - `evaluate.js` resolves OCCS graph-tree templates into production data. It
