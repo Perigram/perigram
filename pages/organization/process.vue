@@ -633,7 +633,7 @@
     <TypeDeathDialog
       :visible="Boolean(pendingTypeDeath || pendingDefinitionDeath)"
       :type-death="(pendingTypeDeath || pendingDefinitionDeath)?.typeDeath || []"
-      :deleting-definition="Boolean(pendingDefinitionDeath)"
+      :deleting-definition="pendingDefinitionDeath?.action === 'delete'"
       :loading="applyingProcess || Boolean(definitionBusyId)"
       @update:visible="value => { if (!value) { cancelTypeDeath(); pendingDefinitionDeath = null; } }"
       @confirm="pendingDefinitionDeath ? confirmDefinitionDeath() : confirmTypeDeath()"
@@ -735,7 +735,7 @@ import { useProcessDesignerNodeSync } from '~/composables/useProcessDesignerNode
 import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.js';
 import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
 import { useProcessDesignerContextPalette } from '~/composables/useProcessDesignerContextPalette.js';
-import { useProcessDesignerApply } from '~/composables/useProcessDesignerApply.js';
+import { typeDeathOf, useProcessDesignerApply } from '~/composables/useProcessDesignerApply.js';
 import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPreview.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
@@ -2112,6 +2112,13 @@ async function toggleDefinitionActive(process, active) {
     upsertProcessDefinition(updated);
     if (String(draft.value?._id) === id) setDraft(updated);
   } catch (error) {
+    // Type lifetime (cts SPEC §4): activating through the switch can
+    // orphan types too — same disclaimer, same consent.
+    const death = typeDeathOf(error);
+    if (death?.length) {
+      pendingDefinitionDeath.value = { definitionId: id, typeDeath: death, action: 'activate' };
+      return;
+    }
     toast.add({ severity: 'error', summary: t('processDesigner.activate'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {
     definitionBusyId.value = null;
@@ -2130,8 +2137,9 @@ async function removeDefinition(process) {
   } catch (error) {
     // Type lifetime (cts SPEC §4): deleting a definition takes its
     // exclusively-owned types with it — pause on the death disclaimer.
-    if (error?.data?.typeDeath?.length) {
-      pendingDefinitionDeath.value = { definitionId: id, typeDeath: error.data.typeDeath };
+    const death = typeDeathOf(error);
+    if (death?.length) {
+      pendingDefinitionDeath.value = { definitionId: id, typeDeath: death, action: 'delete' };
       return;
     }
     toast.add({ severity: 'error', summary: t('common.delete'), detail: error?.data?.message || error?.message || '', life: 5000 });
@@ -2145,15 +2153,26 @@ async function confirmDefinitionDeath() {
   if (!pending || definitionBusyId.value) return;
   definitionBusyId.value = pending.definitionId;
   try {
-    await persistence.request(`/api/process-definitions/${pending.definitionId}`, {
-      method: 'DELETE',
-      body: { confirmTypeDeath: true }
-    });
+    const updated = pending.action === 'activate'
+      ? await persistence.request(`/api/process-definitions/${pending.definitionId}/activate`, {
+        method: 'POST',
+        body: { confirmTypeDeath: true }
+      })
+      : await persistence.request(`/api/process-definitions/${pending.definitionId}`, {
+        method: 'DELETE',
+        body: { confirmTypeDeath: true }
+      });
     pendingDefinitionDeath.value = null;
-    dropRemovedDefinition(pending.definitionId);
+    if (pending.action === 'activate') {
+      upsertProcessDefinition(updated);
+      if (String(draft.value?._id) === pending.definitionId) setDraft(updated);
+    } else {
+      dropRemovedDefinition(pending.definitionId);
+    }
   } catch (error) {
-    if (error?.data?.typeDeath?.length) {
-      pendingDefinitionDeath.value = { ...pending, typeDeath: error.data.typeDeath };
+    const death = typeDeathOf(error);
+    if (death?.length) {
+      pendingDefinitionDeath.value = { ...pending, typeDeath: death };
       return;
     }
     pendingDefinitionDeath.value = null;

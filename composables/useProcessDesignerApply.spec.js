@@ -265,3 +265,40 @@ describe('useProcessDesignerApply migration pause', () => {
     expect(persistence.activateDraft).not.toHaveBeenCalled();
   });
 });
+
+describe('type lifetime pause (SPEC §4)', () => {
+  it('extracts the death payload from both h3 nestings', async () => {
+    const { typeDeathOf } = await import('./useProcessDesignerApply.js');
+    const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
+    // h3 createError nests its data one level deep in the ofetch body.
+    expect(typeDeathOf({ data: { statusCode: 409, data: { typeDeath: rows } } })).toEqual(rows);
+    // Some transports hand the payload over already unwrapped.
+    expect(typeDeathOf({ data: { typeDeath: rows } })).toEqual(rows);
+    expect(typeDeathOf({ data: { message: 'other' } })).toBeNull();
+  });
+
+  it('the death 409 pauses with the disclaimer and confirms with consent', async () => {
+    const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
+    const activateError = { data: { statusCode: 409, data: { typeDeath: rows } } };
+    let calls = 0;
+    const persistence = {
+      saveDraft: vi.fn(async () => ({ _id: 'draft-1' })),
+      validateDraft: vi.fn(async () => ({ ok: true, errors: [], warnings: [] })),
+      activateDraft: vi.fn(async () => {
+        calls += 1;
+        if (calls === 1) throw activateError;
+        return { _id: 'draft-1', data: { compiled: {} } };
+      })
+    };
+    const { apply } = mountApply({ persistence });
+
+    await apply.applyProcess();
+    // Paused, not failed: the disclaimer holds the rows, activation ran once.
+    expect(apply.pendingTypeDeath.value?.typeDeath).toEqual(rows);
+
+    const activated = await apply.confirmTypeDeath();
+    expect(activated?._id).toBe('draft-1');
+    expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1', { confirmTypeDeath: true });
+    expect(apply.pendingTypeDeath.value).toBeNull();
+  });
+});
