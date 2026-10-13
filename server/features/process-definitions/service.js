@@ -11,6 +11,7 @@ import * as instanceRevisionsService from '~/server/features/instance-revisions/
 import * as entityEventService from '~/server/features/instance-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
+import { findTypeDeathCandidates, killTypesWithData, typeDeathManifest } from '../cts-types/lifetime.js';
 import {
   compileProcessDefinition,
   constructionInputsForContract,
@@ -315,7 +316,7 @@ export async function validate(id, auth) {
   return { ...validation, diff, ...(migrationPlan ? { migrationPlan } : {}) };
 }
 
-export async function activate(id, auth) {
+export async function activate(id, auth, { confirmTypeDeath = false } = {}) {
   const process = await loadAuthorized(id, auth, 'admin');
   const domain = await getProjectedDomain(process.lineage.organizationId);
   const accepted = currentProcessDefinition(process.data, domain);
@@ -328,6 +329,22 @@ export async function activate(id, auth) {
   const roundTrip = validateRoundTrip(accepted);
   if (!roundTrip.ok) {
     throw createError({ statusCode: 400, message: roundTrip.errors.join('; '), data: roundTrip });
+  }
+  // Type lifetime (cts SPEC §4, owner decision 2026-10-13): the apply that
+  // orphans a type kills it WITH its data — never without the author's
+  // confirmed consent. The stored set (this definition's draft included,
+  // saved by the preceding save) is the declaring set.
+  const deathCandidates = await findTypeDeathCandidates({ organizationId: process.lineage.organizationId });
+  if (deathCandidates.length) {
+    const typeDeath = await typeDeathManifest(deathCandidates, process.lineage.organizationId);
+    if (!confirmTypeDeath) {
+      throw createError({
+        statusCode: 409,
+        message: `This apply orphans ${typeDeath.length} type(s) no stored definition declares — they and their data will be deleted`,
+        data: { typeDeath }
+      });
+    }
+    await killTypesWithData(typeDeath, { organizationId: process.lineage.organizationId, actor: auth.userId });
   }
   process.data = {
     ...process.data,
@@ -474,8 +491,27 @@ export async function deactivate(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
-export async function remove(id, auth) {
+export async function remove(id, auth, { confirmTypeDeath = false } = {}) {
   const process = await loadAuthorized(id, auth, 'admin');
+  // Type lifetime (cts SPEC §4): deleting a definition takes its
+  // exclusively-owned types with it — declaration AND data — behind the
+  // same disclaimer the apply gate uses. Types other stored definitions
+  // (any state) still declare survive.
+  const deathCandidates = await findTypeDeathCandidates({
+    organizationId: process.lineage.organizationId,
+    ignoringDefinitionId: id
+  });
+  if (deathCandidates.length) {
+    const typeDeath = await typeDeathManifest(deathCandidates, process.lineage.organizationId);
+    if (!confirmTypeDeath) {
+      throw createError({
+        statusCode: 409,
+        message: `Deleting this definition deletes ${typeDeath.length} type(s) no other definition declares, with all their data`,
+        data: { typeDeath }
+      });
+    }
+    await killTypesWithData(typeDeath, { organizationId: process.lineage.organizationId, actor: auth.userId });
+  }
   await repository.removeById(id);
   if (process.status?.state?.primary === 'ACTIVE') {
     await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
