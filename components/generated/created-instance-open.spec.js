@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveCreatedInstanceOpen, landCreatedInstanceInPool } from './created-instance-open.js';
+import { resolveCreatedInstanceOpen } from './created-instance-open.js';
 
 const manifestWithDetail = [
   { template: 'instanceDetail', screenKey: 'cassette_detail', sources: [{ typeId: 'cassette', mode: 'single' }] }
@@ -91,44 +91,5 @@ describe('created-entity open target', () => {
     ] } };
     expect(resolveCreatedInstanceOpen({ action, result, manifest: [] }))
       .toMatchObject({ kind: 'workspace', typeId: 'cassette', instanceId: 'c-chain' });
-  });
-});
-
-describe('created-entity pool landing', () => {
-  function recordingStore() {
-    const calls = [];
-    return {
-      calls,
-      canonicalTypeKey: typeId => String(typeId || '').replace(/_/g, '-'),
-      upsertRecord(typeKey, dto) {
-        calls.push([typeKey, dto]);
-        return { dto };
-      }
-    };
-  }
-
-  it('lands the created entity under its own type before the destination opens', () => {
-    const store = recordingStore();
-    const entity = { _id: 'c-9', type: 'e2e-folder', name: 'Probe', fields: {} };
-    const landed = landCreatedInstanceInPool(store, { typeId: 'e2e-folder' }, { created: entity });
-    expect(landed).toBeTruthy();
-    expect(store.calls).toEqual([['e2e-folder', entity]]);
-  });
-
-  it('keys entities without a type by the action target (relation target first)', () => {
-    const store = recordingStore();
-    landCreatedInstanceInPool(store,
-      { typeId: 'cassette', relationMutation: { targetTypes: ['sheet'] } },
-      { entity: { _id: 'x-1', name: 'Shot' } });
-    expect(store.calls).toEqual([['sheet', { _id: 'x-1', name: 'Shot' }]]);
-  });
-
-  it('stays a no-op without a store, a created entity, or an id', () => {
-    expect(landCreatedInstanceInPool(null, { typeId: 'cassette' }, { entity: { _id: 'c-1' } })).toBeNull();
-    const store = recordingStore();
-    expect(landCreatedInstanceInPool(store, { typeId: 'cassette' }, null)).toBeNull();
-    expect(landCreatedInstanceInPool(store, { typeId: 'cassette' }, { entity: {} })).toBeNull();
-    expect(landCreatedInstanceInPool(store, {}, { entity: { _id: 'c-1' } })).toBeNull();
-    expect(store.calls).toEqual([]);
   });
 });

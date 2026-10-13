@@ -1,7 +1,7 @@
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { useRegistryStore } from '~/stores/registry';
-import { isCreateAction, isRelationLinkAction, isUpdateAction } from '~/components/generated/action-visibility.js';
+import { isCreateAction, isRelationLinkAction, isUpdateAction } from '~/utils/action-visibility.js';
 
 const ENTITY_CONTRACTS_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(entry => [
   [entry.typeId, entry],

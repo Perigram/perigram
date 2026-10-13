@@ -28,8 +28,8 @@ import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
 import { applyOptimisticState } from '~/utils/optimistic-state.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
-import { isCreateAction } from '~/components/generated/action-visibility.js';
-import { isEditorProtocolCreate, resolveCreatedInstanceOpen, landCreatedInstanceInPool } from '~/components/generated/created-instance-open.js';
+import { isCreateAction } from '~/utils/action-visibility.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
@@ -182,12 +182,11 @@ async function runGeneratedAction(action, data = {}, context = {}) {
   // create arrives with its binding in `data` and keeps the construct.
   if (isEditorProtocolCreate(action) && !Object.keys(data || {}).length && openBlankFileEditor(action.typeId)) return;
   try {
-    const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });
+    const result = await instances.runAction({ action, actionId: action.id, instanceId, entities: {}, data, parameters: {} });
     // Created entities open in the home workspace (the same-tab
     // contract); hosts without a compiled home keep the routed detail
     // destination.
     if (isCreateAction(action)) {
-      landCreatedInstanceInPool(instances, action, result);
       const target = resolveCreatedInstanceOpen({
         action,
         result,

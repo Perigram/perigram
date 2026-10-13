@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { computed, reactive, ref } from 'vue';
 import { emitInstanceCreated, emitInstanceDeleted, emitInstanceUpdated, onInstanceChanged } from '~/utils/instance-events.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
+import { createdEntity } from '~/utils/instance-run-results.js';
+import { isCreateAction } from '~/utils/action-visibility.js';
 import { useRegistryStore } from './registry';
 import { useOutboxStore } from './outbox';
 
@@ -260,15 +262,30 @@ export const useInstancesStore = defineStore('instances', () => {
 
   // Process actions are the mutation boundary: the projected manifest
   // action id is the execution contract; the run API resolves the rest
-  // server-side. Offline replays carry the idempotency key.
-  async function runAction({ actionId, instanceId = null, entities = {}, data = {}, parameters = {} } = {}) {
+  // server-side. Offline replays carry the idempotency key. A create run
+  // lands its created entity in the pool eagerly — the local half of
+  // run-action reconciliation (the server-published event remains the
+  // cross-session backstop): create-open destinations read the pool
+  // immediately, and the upsert marks the type's cached list observations
+  // stale so surfaces refetch.
+  async function runAction({ action = null, actionId, instanceId = null, entities = {}, data = {}, parameters = {} } = {}) {
     const outbox = useOutboxStore();
-    return outbox.mutate({
+    const result = await outbox.mutate({
       url: `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`,
       method: 'POST',
       body: { instanceId, entities, data, parameters },
       meta: { kind: 'action', instanceId, change: 'updated', reason: 'process-action' }
     });
+    if (isCreateAction(action)) {
+      const entity = createdEntity(action, result);
+      const id = entity?._id ?? entity?.id;
+      const typeId = entity?.type
+        || [].concat(action.relationMutation?.targetTypes || [])[0]
+        || action.typeId
+        || '';
+      if (id && typeId) upsertRecord(canonicalTypeKey(typeId), entity);
+    }
+    return result;
   }
 
   // Framework/party types, editor feature endpoints, and the generic

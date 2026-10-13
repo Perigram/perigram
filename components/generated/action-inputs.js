@@ -1,4 +1,4 @@
-import { isCreateAction } from '~/components/generated/action-visibility.js';
+import { isCreateAction } from '~/utils/action-visibility.js';
 
 export function hasUploadCreator(field = {}) {
   return Boolean(field.creator?.typeId)

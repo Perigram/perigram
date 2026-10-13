@@ -7,8 +7,8 @@ import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { unref } from 'vue';
-import { isGeneratedSurfaceAction } from './action-visibility.js';
-import { createdEntity } from './created-instance-open.js';
+import { isGeneratedSurfaceAction, isCreateAction } from '~/utils/action-visibility.js';
+import { createdEntity } from '~/utils/instance-run-results.js';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 
@@ -81,9 +81,9 @@ export async function runBlankFileConstruct(typeId = '') {
   const instances = useInstancesStore();
   const action = (authStore.actionManifest || [])
     .filter(isGeneratedSurfaceAction)
-    .find(candidate => ['createInstance', 'createEntity'].includes(candidate.actionKind) && candidate.typeId === typeId);
+    .find(candidate => isCreateAction(candidate) && candidate.typeId === typeId);
   if (!action) throw new Error(`No compiled create action for ${typeId}`);
-  const result = await instances.runAction({ actionId: action.id, data: {} });
+  const result = await instances.runAction({ action, actionId: action.id, data: {} });
   const entity = createdEntity(action, result);
   const id = String(entity?._id || entity?.id || '');
   if (!id) throw new Error(`${typeId} creation returned no instance`);

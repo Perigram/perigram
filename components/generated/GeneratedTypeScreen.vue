@@ -25,7 +25,7 @@ import { computed, ref, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
-import { isCreateAction } from '~/components/generated/action-visibility.js';
+import { isCreateAction } from '~/utils/action-visibility.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
@@ -94,7 +94,7 @@ async function runAction(action, data = {}, context = {}) {
   // context-bound create keeps the construct with its binding in `data`.
   if (isEditorProtocolCreate(action) && !Object.keys(data || {}).length && openBlankFileEditor(action.typeId)) return;
   try {
-    const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });
+    const result = await instances.runAction({ action, actionId: action.id, instanceId, entities: {}, data, parameters: {} });
     if (isCreateAction(action)) {
       const target = resolveCreatedInstanceOpen({
         action,

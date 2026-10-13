@@ -1,4 +1,4 @@
-import { isCreateAction, isRelationLinkAction, isRelationUnlinkAction } from './action-visibility.js';
+import { isCreateAction, isRelationLinkAction, isRelationUnlinkAction } from '~/utils/action-visibility.js';
 
 export const GENERATED_ACTION_SURFACES = Object.freeze({
   collection: 'collection',

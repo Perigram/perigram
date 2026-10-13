@@ -1,4 +1,4 @@
-import { isDetailScreenTemplate } from '~/components/generated/action-visibility.js';
+import { isDetailScreenTemplate } from '~/utils/action-visibility.js';
 import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
 
 import {
