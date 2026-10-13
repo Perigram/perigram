@@ -64,7 +64,7 @@ export const documentsTypes = Object.freeze([
     glyph: 'pi pi-file-edit',
     name: 'Text document',
     revisions: 'content',
-    creation: ['editor']
+    creation: ['editor', 'content']
   }),
   documentType({
     id: 'csv-table',
@@ -75,7 +75,7 @@ export const documentsTypes = Object.freeze([
     glyph: 'pi pi-table',
     name: 'CSV table',
     revisions: 'content',
-    creation: ['editor'],
+    creation: ['editor', 'content'],
     projections: rowsProjection
   }),
   documentType({
@@ -113,10 +113,41 @@ export const documentsEditors = Object.freeze([
   { type: 'csv-table', surface: 'csv-editor', modes: ['edit'] }
 ]);
 
+// The pack's one value service (SPEC §8 s species): the composition twin
+// of the `rows` decomposition — rows back into CSV text. The command is
+// declared once here; the pack mount binds its handler
+// (server/packs/documents/value-services/csv-text.js).
+export const documentsCommands = Object.freeze({
+  'documents.csvText': Object.freeze({
+    id: 'documents.csvText',
+    service: 'documents',
+    action: 'csvText',
+    label: 'CSV text',
+    input: { parameters: [{ name: 'rows', type: 'array', required: true }] },
+    output: { data: [{ name: 'text', type: 'string' }] }
+  })
+});
+
+export const documentsServices = Object.freeze([Object.freeze({
+  id: 'documents.csvText',
+  command: 'documents.csvText',
+  group: 'tableData',
+  render: Object.freeze({ label: 'CSV text', icon: 'pi pi-table' }),
+  signature: Object.freeze({
+    input: Object.freeze({
+      base: 'record',
+      fields: Object.freeze({ rows: Object.freeze({ base: 'list', itemType: Object.freeze({ base: 'record' }) }) })
+    }),
+    output: Object.freeze({ base: 'string' })
+  })
+})]);
+
 export const documentsPack = Object.freeze({
   id: 'documents',
   label: 'Documents',
   requires: [],
   types: documentsTypes,
-  editors: documentsEditors
+  editors: documentsEditors,
+  services: documentsServices,
+  domain: Object.freeze({ commands: documentsCommands })
 });

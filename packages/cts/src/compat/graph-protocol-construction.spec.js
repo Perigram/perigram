@@ -105,6 +105,20 @@ describe('creation-protocol construction inputs', () => {
     expect(constructionInputsForContract(contract, 'upload').map(input => input.id)).toEqual(['payload']);
   });
 
+  it('a content mode prompts the content string (the wired text becomes the payload)', () => {
+    const contract = realDomain().construction['text-document'];
+    expect(contract.modeInputs.content).toEqual([{
+      id: 'content',
+      label: 'Content',
+      path: 'content',
+      type: 'string',
+      required: true,
+      prompt: true,
+      control: 'Textarea'
+    }]);
+    expect(constructionInputsForContract(contract, 'content').map(input => input.id)).toEqual(['content']);
+  });
+
   it('an undeclared mode keeps the whole contract input list (genericCreate)', () => {
     const contract = { modes: ['genericCreate'], inputs: [{ id: 'name', path: 'name' }] };
     expect(constructionInputsForContract(contract, 'genericCreate')).toEqual([{ id: 'name', path: 'name' }]);

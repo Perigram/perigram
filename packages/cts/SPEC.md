@@ -229,10 +229,12 @@ Payload traits: the payload declaration carries the accepted MIME list
 and byte limits (enforced at construct time) plus the preview mode
 (a payload trait projected to UI like the state display policy of §7)
 and the creation
-protocols — a list of `upload | capture | editor` stating how instances
-of the type come into being (`upload`: file picker on the payload
+protocols — a list of `upload | capture | editor | content` stating how
+instances of the type come into being (`upload`: file picker on the payload
 traits; `capture`: camera capture; `editor`: blank instance whose first
-editor save fills the payload). Protocols project as construct `via`
+editor save fills the payload; `content`: the wired or prompted text
+becomes the payload at construct — the graph-authored document, owner
+decision 2026-10-13). Protocols project as construct `via`
 modes and are the ONLY construct modes of a payload-bearing type (the
 editor protocol is its blank-create). A type marked `derived: true`
 synthesizes no construction at all — operator/service-produced types

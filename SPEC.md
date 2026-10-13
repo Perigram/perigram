@@ -70,6 +70,14 @@ inside its parent) never prompts that binding: the context's reference is
 submitted with the create, and the form prompts only what the context
 cannot supply. `upload`/`capture` creates prompt only the file.
 
+Documents carry their content both ways (owner direction 2026-10-13): text
+documents and CSV tables are creatable from procedural content — a `content`
+creation protocol beside upload/editor whose wired or prompted text becomes
+the payload at construct — and table data composes back through a pack
+service that serializes rows (header-keyed records) into CSV text in the
+pack's designer tab. Workbooks stay read-only: binary write-back is out of
+scope until a plugin executor owns it.
+
 Generated creates enforce their construction contract (owner decision
 2026-10-12): the form prompts the compiled inputs in the flat-wire
 vocabulary the contract speaks, a required input gates the submit, and

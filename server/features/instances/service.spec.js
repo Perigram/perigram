@@ -454,6 +454,27 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     expect(blank.attachments).toBeUndefined();
   });
 
+  it('constructs content-protocol documents: the wired text becomes the payload', async () => {
+    const coll = stubCollection();
+    const text = instanceServiceResolver('text-document');
+
+    await expect(text.constructionHandlers.content({ name: 'Report' }, { userId: 'u-1', organizationId: 'org-1' }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('requires a text body') });
+
+    const { uploadFile } = await import('../files/service.js');
+    const doc = await text.constructionHandlers.content(
+      { name: 'Report', content: '# Hello' },
+      { userId: 'u-1', organizationId: 'org-1' }
+    );
+    expect(uploadFile).toHaveBeenCalledWith(expect.any(Buffer), 'Report.md', expect.objectContaining({ type: 'text-document' }), 'files');
+    expect(doc.type).toBe('text-document');
+    expect(coll.insertOne.mock.calls[0][0].payload).toMatchObject({
+      fileId: 'stored-Report.md',
+      mime: 'text/markdown',
+      size: Buffer.byteLength('# Hello')
+    });
+  });
+
   describe('naming (SPEC §4 + wire decision 2026-10-11)', () => {
     it('keeps the identifier row in fields — nothing copies row data into a second wire field', async () => {
       const coll = stubCollection();

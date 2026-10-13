@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry } from '~/packages/cts/src/index.js';
-import { documentsPack, documentsTypes, documentsEditors } from './index.js';
+import { documentsPack, documentsTypes, documentsEditors, documentsServices, documentsCommands } from './index.js';
 
 // The documents pack contract (SPEC §21): the generic file types compile
 // through the real registry (R1–R6) with payload traits whose preview
@@ -64,5 +64,32 @@ describe('documents pack declarations', () => {
     expect(documentsPack.editors).toEqual(documentsEditors);
     expect(documentsEditors).toContainEqual({ type: 'text-document', surface: 'text-editor', modes: ['edit'] });
     expect(documentsEditors).toContainEqual({ type: 'csv-table', surface: 'csv-editor', modes: ['edit'] });
+  });
+
+  it('declares the content creation protocol on the editable text payloads only', () => {
+    const creation = Object.fromEntries(documentsTypes.map(type => [type.id, type.payload.creation || []]));
+    expect(creation['text-document']).toEqual(['editor', 'content']);
+    expect(creation['csv-table']).toEqual(['editor', 'content']);
+    for (const [id, protocols] of Object.entries(creation)) {
+      if (id !== 'text-document' && id !== 'csv-table') {
+        expect(protocols, id).not.toContain('content');
+      }
+    }
+  });
+
+  it('declares the csvText composition service with its command and tableData group', () => {
+    expect(documentsServices).toEqual([{
+      id: 'documents.csvText',
+      command: 'documents.csvText',
+      group: 'tableData',
+      render: { label: 'CSV text', icon: 'pi pi-table' },
+      signature: {
+        input: { base: 'record', fields: { rows: { base: 'list', itemType: { base: 'record' } } } },
+        output: { base: 'string' }
+      }
+    }]);
+    expect(documentsPack.services).toEqual(documentsServices);
+    expect(documentsCommands['documents.csvText']).toMatchObject({ id: 'documents.csvText', service: 'documents', action: 'csvText' });
+    expect(documentsPack.domain.commands).toEqual(documentsCommands);
   });
 });

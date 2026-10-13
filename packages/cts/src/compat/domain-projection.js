@@ -283,6 +283,19 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         ...(protocol === 'capture' ? { capture: 'environment' } : {})
       });
     }
+    if (protocol === 'content') {
+      // The wired or prompted text becomes the payload at construct (SPEC
+      // §4): a string construction input, pinned to the multiline control.
+      inputs.push({
+        id: 'content',
+        label: 'Content',
+        path: 'content',
+        type: 'string',
+        required: true,
+        prompt: true,
+        control: 'Textarea'
+      });
+    }
     return inputs;
   }
 

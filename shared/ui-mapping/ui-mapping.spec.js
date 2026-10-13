@@ -932,6 +932,27 @@ describe('create dialog input resolution', () => {
     });
   });
 
+  it('prompts a string protocol input as a full-width row carrying its control pin', () => {
+    // The `content` creation protocol's text body: not a row field, so it
+    // resolves through the input object itself, control pin riding the
+    // descriptor (Textarea).
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: [{ id: 'content', path: 'content', type: 'string', required: true, control: 'Textarea' }] },
+        inputPolicy: { fields: [] }
+      },
+      type,
+      bundle
+    );
+    expect(rows).toEqual([{
+      id: 'content',
+      label: 'Content',
+      descriptor: { base: 'string', control: 'Textarea' },
+      span: 'full',
+      required: true
+    }]);
+  });
+
   it('matches reverse containment by the declared lineageKey, not the edge map key', () => {
     // Designer-authored children edges are keyed by authoring identity
     // (`t-part-1s`) and declare their storage key (`tBin1Id`) — the

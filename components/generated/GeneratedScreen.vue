@@ -257,6 +257,12 @@
             display="chip"
             class="w-full"
           />
+          <Textarea
+            v-else-if="field.control === 'Textarea'"
+            v-model="promptValues[field.id]"
+            autoResize
+            class="w-full"
+          />
           <InputText
             v-else
             v-model="promptValues[field.id]"
@@ -282,6 +288,7 @@ import DatePicker from 'primevue/datepicker';
 import InputText from 'primevue/inputtext';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Select from '~/components/shared/InstanceSelect.vue';
+import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
