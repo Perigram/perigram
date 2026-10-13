@@ -64,7 +64,15 @@ executors through the worker protocol.
   list the designer, compiler, and admin domain route resolve), as species
   records whose id and command are the same plugin-qualified id
   `plugin.<pluginId>.<serviceId>`; they obey the same active-process
-  service gating as pack services. Executing one dispatches by mode:
+  service gating as pack services. Palette law (SPEC §20 — the palette is
+  operations, never an implementation-mechanism catalog): only wireable
+  services compose — a signature input of `record` projects data sockets
+  (the s-species port projection maps record fields only); a bare-value
+  input (`json`, `list`, …) names an implementation executor that a graph
+  could never feed, so it stays out of the palette and the operator
+  domain while remaining fully dispatchable through its construction,
+  conversion, or export binding and the connector path. Executing one
+  dispatches by mode:
   endpoint mode calls the URL (missing endpoint refuses with a
   configure-it message), claim mode enqueues a task run on
   the claim queue `plugin.<pluginId>@<organizationId>` (the whole service

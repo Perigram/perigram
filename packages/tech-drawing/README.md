@@ -32,7 +32,9 @@ fabrication domain (laser, vinyl, plotter) can require it without CNC.
   texture URLs) is a different domain concern and re-declares under the
   materials domain later, under its own id.
 - `dxf-source` (file class): the CAD drawing exchange document —
-  `application/dxf` payload (50 MB), preview mode `dxf` (renders through
+  `application/dxf` / `image/vnd.dxf` payload (50 MB; the vendor-tree
+  mime is the freedesktop-registered type real uploads arrive as),
+  preview mode `dxf` (renders through
   the shared drawing canvas). Home is here, not in documents: DXF is
   drawing vocabulary, and the nesting/cassette pipelines consume it as
   their drawing input.
