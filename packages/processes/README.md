@@ -78,8 +78,11 @@ loop PAIR: dropping it creates `control.forEach` and its `control.forEachEnd`
 closer, because a loop without its closer is not authorable vocabulary.
 Record-carried semantics are configured on the record through the seam and
 the inspector: `collection.join` keys (`leftKey`/`rightKey`),
-`value.recordField` (`path` plus authored output type), and
-`record.construct` (`fields`).
+`value.recordField` (`path` plus authored output type),
+`record.construct` (`fields`), and `value.format` (template — named
+`{key}` slots substitute from a wired record, missing keys keep their
+placeholder, `{value}` from the value input; no template means number
+formatting).
 
 One home per operation (SPEC §8 palette law): `value.compare` owns value
 comparison and `value.logic` composes boolean algebra only (the null tests

@@ -1,5 +1,50 @@
 # TODO
 
+## Template documents from graph data: `text` projection + named-slot format (owner direction 2026-10-13)
+
+A text document with placeholders is a template; the graph fills it from
+data — no new machinery, the node grammar does the work. Missing pieces
+delivered: a `text` projection (text-document payload → string — the
+graph's only way to read a text payload, SPEC §8's entity→value gate) and
+`value.format` growing named `{key}` slots substituted from a wired record
+(`{value}` unchanged). Contracts:
+[packages/documents/README.md](./packages/documents/README.md),
+[packages/processes/README.md](./packages/processes/README.md) (format
+semantics beside the other record-carried kinds).
+
+- [x] A. `documents.text` projection on `text-document` (`tableData` tab):
+  payload → string, sharing the pack's instance/payload loader.
+- [x] B. `value.format` record input: `{key}` substitution (missing keys
+  keep their placeholder — visible, non-destructive), `{value}` and the
+  number-format mode unchanged.
+- [ ] WAITING — owner verification on the live stack: template doc →
+  `text` → format with a rows record → `content` create produces the
+  filled document.
+
+### Agent Notes (2026-10-13, text-template session)
+
+Session `agent/text-template-20261013`. Slice A: `textProjection`
+declared on `text-document` (string output, `tableData` tab);
+`table-rows.js` gained a shared `instancePayload` loader (type guard,
+§3 payload read, blob fetch) that `sheetMatrix` and the new `textOf`
+both ride — the per-projection load preamble that existed twice is once
+now. Slice B: `value.format` carries an optional `record` input
+(record-list socket); the evaluator substitutes named `{key}` slots per
+aligned row before the `{value}` token — a scalar template broadcast
+over a row list renders once per row for free (the alignment solver does
+it). Missing keys and missing-field marker cells keep their placeholder:
+the gap stays visible in the rendered text. Template-only and
+number-format modes unchanged. Housekeeping beside the task: the
+interrupted edge-anchor session was finished and merged first
+(`8a743ef01`), and the record-honesty SPEC/TODO declarations were moved
+out of the primary checkout into their own worktree (staged there,
+implementation still pending).
+
+Validation: `server/packs` + `packages/documents` (25), `packages/processes`
+(477), `packages/cts` + `shared/ui-mapping` (178), `check-arch`,
+`check-docs`, `framework:validate` — green. Not run: Playwright E2E
+(needs the live stack serving this code).
+
 ## Text editor fills its pane; markdown artifacts upload and edit (owner direction 2026-10-13)
 
 The text editor collapsed inside a double padded scroll area instead of

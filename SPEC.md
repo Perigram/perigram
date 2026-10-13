@@ -80,7 +80,11 @@ scope until a plugin executor owns it. Headerless sheets are first-class:
 not every spreadsheet carries column names, so beside the header-keyed
 `rows` decomposition the pack declares a positional one — every row is
 data, keyed by spreadsheet column letters (`A`, `B`, …) — and the author
-picks the projection that matches the file.
+picks the projection that matches the file. Template workflows ride the
+same grammar (owner direction 2026-10-13): a `text` projection reads a
+text document's payload into the graph, and `value.format` substitutes
+named `{key}` slots from a wired record — a placeholder document fills
+from data with no new machinery.
 
 The text editor fills its container: it opens as a flush workspace page
 and owns its document shell — one toolbar carrying the document name

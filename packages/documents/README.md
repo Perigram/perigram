@@ -65,6 +65,15 @@ both payload kinds, then the header-keyed or positional conversion. The
 workbook preview renders from the same parse shape; the projections are
 the one data seam.
 
+## The text projection
+
+`text-document` declares the `text` projection: payload → its markdown
+as one string (the entity→value gate for text payloads — a template
+document enters the graph, `value.format` fills its `{key}` placeholders
+from a record, and a `content`-mode construct writes the filled document
+back). It rides the same `tableData` tab and the same pack loader
+(`documents.text` in `server/packs/documents/table-rows.js`).
+
 Rows downstream: the projection's output type is `list<record>` — plain
 header-keyed row records, every cell the value SheetJS parsed — and at
 runtime that value travels the packet tree like any list (branches/items;
