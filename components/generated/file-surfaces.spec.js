@@ -154,6 +154,21 @@ describe('file surface registry', () => {
     expect(csv.saveText).toBeInstanceOf(Function);
   });
 
+  it('builds the blank-page persistence against a null entity', async () => {
+    // The blank editor page passes entity: null (no record until the
+    // first save) — the adapter must coerce it, not crash on `._id`.
+    const blank = textInstancePersistence(null, 'text-document', 'text');
+    expect(blank.title).toBe('');
+    expect(blank.extension).toBe('.md');
+    await expect(blank.loadText()).resolves.toBe('');
+    expect(blank.saveText).toBeInstanceOf(Function);
+    expect(blank.rename).toBeInstanceOf(Function);
+
+    const sketchBlank = sketchInstancePersistence(null, 'sketch');
+    expect(sketchBlank.title).toBe('');
+    await expect(sketchBlank.loadScene()).resolves.toBe('');
+  });
+
   it('resolves served plugin surface declarations beside the local registry', () => {
     const editors = [{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }];
     const surfaces = [{ id: 'coating-designer', url: 'http://127.0.0.1:8799/surfaces/coating-designer.mjs', surfaceContract: 1 }];

@@ -110,12 +110,16 @@ export async function runBlankFileConstruct(typeId = '') {
  * shapes.
  */
 export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 'application/octet-stream') {
-  let instanceId = String(entity._id || entity.id || '');
+  // The blank editor page passes `entity: null` — nothing exists until
+  // the first save — and default parameters only catch `undefined`, so
+  // the record is coerced here; every surface adapter rides this base.
+  const record = entity || {};
+  let instanceId = String(record._id || record.id || '');
   return {
-    title: entity.name || '',
+    title: record.name || '',
     load: async () => {
       if (!instanceId) return '';
-      const payloadUrl = instancePayloadFileUrl(entity.payload);
+      const payloadUrl = instancePayloadFileUrl(record.payload);
       if (!payloadUrl) return '';
       const response = await fetch(payloadUrl);
       if (!response.ok) return '';
