@@ -316,6 +316,22 @@ the parallel plugin-service work.
 
 ### Agent Notes (2026-10-11, slices A–C — the wire flip)
 
+### Agent Notes (2026-10-13, wire-flip leftover — the payload miss)
+
+Live report: `Table <id> carries no payload` on a real workbook. The
+`rows`/`cells` projection handler still read the retired
+`attachments.primary` key off the instance DTO — dead since the flip, so
+every table projection failed on live data while specs (pure converters
+only) stayed green. Fixed in the same cut: the handler reads the §3
+top-level `payload` slot; `construction-services.js` drops its dead
+`attachments?.primary` draft fallback and its `lineage?.organizationId`
+cross-org guard now keys off top-level `organizationId` (the guard was
+silently skipped on the new wire); `hasInstanceAccess` reads
+`organizationId ?? lineage.organizationId` so the foreign-org refusal is
+live on both wires (slice D keeps the legacy framework wire). Pinned by a
+handler-level spec: payload slot resolves, missing payload refuses, and
+the retired spelling resolves nothing.
+
 Session `agent/wire-s3-20261011`. Landed: `toDto`/`create`/
 `processUpdate`/`patch` speak the stored document (ids JSON-safe); the
 synthesizing seams (`identity` block, `attachments.primary`, tenancy in
