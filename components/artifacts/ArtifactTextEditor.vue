@@ -104,11 +104,13 @@ const editorFormats = ['bold', 'italic', 'underline', 'strike', 'code', 'blockqu
 // internals through inline pt styles — they sit above every theme class
 // in the cascade without scoped CSS, and the root flex layout is applied
 // the same way because PrimeVue injects `.p-editor { display: block }`
-// after Tailwind.
+// after Tailwind. The root grows into its host (the workspace page host
+// is flush for this editor, so the editor owns the shell) and the content
+// scrolls inside it — long documents never push the page.
 const editorPt = {
-  root: { style: { display: 'flex', flexDirection: 'column' } },
+  root: { style: { display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', height: '100%' } },
   toolbar: { style: { fontFamily: 'var(--ck-font-ui)' } },
-  content: { style: { fontFamily: 'inherit', fontSize: 'inherit' } }
+  content: { style: { flex: '1 1 0', minHeight: '0', overflowY: 'auto', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' } }
 };
 
 onMounted(async () => {

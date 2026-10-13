@@ -38,11 +38,16 @@ the domain attachment kind instead of accepting component names.
   keeps the UI font. The editor
   toolbar is restricted to formats markdown can round-trip. The
   persistence adapter carries the file `extension` (`.md` for instance
-  documents, `.txt` for legacy plain-text artifacts) and the save mime.
-  The editor is a document surface, not a flush canvas editor: it owns
+  documents, `.txt` or `.md` following the stored file for artifacts) and
+  the save mime. Text artifacts upload as `.txt` or `.md`
+  (`text/plain` or `text/markdown`); markdown keeps its kind on save.
+  The editor is a document surface, not an edge-to-edge canvas: it owns
   its own pane padding, and its document chrome is one `ActionToolbar`
   row — display name, rename (through the persistence `rename` seam),
-  save — matching the shared designer document contract.
+  save — matching the shared designer document contract. Its workspace
+  pages register as `flush`, so the pane host renders them without its
+  own padded scroll area: the editor root grows into the pane and long
+  documents scroll inside the editor content, never the page.
 - `SketchEditor.vue` owns the SKETCH editing surface: perfect-freehand pen
   plus line/rect/ellipse/eraser tools, undo/redo and the standard zoom
   cluster (both through `composables/useSnapshotHistory.js` and a

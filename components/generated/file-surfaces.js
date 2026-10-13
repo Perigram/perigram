@@ -32,6 +32,10 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  *   The action renders like its neighbor generated action buttons and
  *   opens the page through the pane chain in-workspace or the
  *   workspace-page-open seam elsewhere; mobile keeps a dialog.
+ *   `flush` marks surfaces that own their shell (the text/csv editor's
+ *   document surface): the pane host renders them without its padded
+ *   scroll area, and the flag rides `resolveFileSurface` into the derived
+ *   workspace-page rows.
  */
 export const fileSurfaceRegistry = {
   'sketch-editor': {
@@ -45,6 +49,10 @@ export const fileSurfaceRegistry = {
   },
   'text-editor': {
     action: 'generic',
+    // The text editor owns its document shell (padding + bounded scroll),
+    // so the pane host stays flush instead of wrapping it in a second
+    // padded scroll area.
+    flush: true,
     workspacePage: {
       labelKey: 'editors.text',
       icon: 'pi pi-file-edit',
@@ -57,6 +65,8 @@ export const fileSurfaceRegistry = {
   },
   'csv-editor': {
     action: 'generic',
+    // Same owned shell as the text editor: one editor, one scroll.
+    flush: true,
     workspacePage: {
       labelKey: 'editors.csv',
       icon: 'pi pi-file-edit',
@@ -252,6 +262,7 @@ export function resolveFileSurface(editors, typeId = '', surfaces = null) {
       surface: editor.surface,
       modes: [...(editor.modes || [])],
       action: local.action || null,
+      ...(local.flush ? { flush: true } : {}),
       workspacePage: local.workspacePage || null
     };
   }
@@ -305,6 +316,7 @@ export function fileWorkspacePages(editors = activeEditorBindings(), surfaces = 
             labelKey: surface.workspacePage.labelKey,
             icon: surface.workspacePage.icon,
             component: surface.workspacePage.component,
+            ...(surface.flush ? { flush: true } : {}),
             props: page => surface.workspacePage.props(page, editor.type)
           }
         : null;
