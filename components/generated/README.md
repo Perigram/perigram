@@ -466,7 +466,13 @@ from the compiled manifest.
   own type-level parent: recursive containment nests instances under
   instances (`typeParentOf` skips self-pairs, the same law the compiler's
   home suppression applies), so a self-referential type keeps its root
-  node. Entity nodes whose type
+  node — and its home section lists ROOT rows only (compiled-binding
+  recursion through `filterRootSourceItems`, declared self-containment
+  through the merged containment the nesting itself reads), so a child
+  never appears both beneath its parent and beside it. Every workspace
+  lineage walk matches refs in both stored shapes (the `{ id }` object
+  the instance store projects and the normalized id — the same law the
+  ui-mapping matchers read). Entity nodes whose type
   declares containment children or carries relation refs are expandable;
   because PanelMenu draws the chevron only for items with non-empty
   `items`, an expandable row whose children are not loaded yet carries a
