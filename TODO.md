@@ -177,6 +177,24 @@ canvas). `nameFieldPt` strips its background and border: the name reads
 as quiet document text, the focus ring keeps the edit affordance, the
 apply control marks the pending rename.
 
+### Agent Notes (2026-10-13, editor-blank-create + ground-truth session)
+
+Sessions `agent-editor-blank-create-20261013-181401` and the Playwright
+probe. Two findings behind the "BRUH": (1) the blank editor create
+CRASHED — the blank page passes `entity: null` and default parameters
+only catch `undefined`, so `instancePayloadPersistence` threw on `._id`
+and clicking New opened nothing (fixed: record coerced at the base
+adapter; spec pins the null-entity contract). (2) The white toolbar was
+correct code on a stale theme: component tokens are baked into the
+PrimeVue preset at boot and Nuxt restarts on `nuxt.config.js` edits but
+not its imports, so the transparent editor tokens never reached the
+running dev server — verified by computed-style dump before/after an
+app restart. Post-restart probe: toolbar/editable `rgba(0,0,0,0)`, name
+field borderless, Save visible, zero console errors, blank create
+opens the editor. Artifacts: `.playwright/editor-blank-open.png`,
+`.playwright/editor-chrome-styles.json`. The runbook note lives in the
+root README dev-stack section.
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection

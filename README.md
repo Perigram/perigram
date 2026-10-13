@@ -173,6 +173,15 @@ a user-level `environments` object in a production build deroutes the
 vite 7 SSR build output, and nitro fails with `Could not load
 .nuxt/dist/server/server.mjs`. Run a production build when touching this
 config; dev and the guards do not exercise the SSR bundle emit.
+- Theme tokens are startup-evaluated: the PrimeVue preset chain
+  (`assets/tokens/index.js` → `assets/presets/re_l.js` → `nuxt.config.js`)
+  bakes component tokens into the running theme at boot. Nuxt restarts
+  when `nuxt.config.js` itself changes but not when its imports do, so a
+  token-table edit never reaches a running dev server — component pt
+  and CSS changes hot-reload, token changes need an app restart
+  (measured 2026-10-13: the transparent editor tokens computed white in
+  the live app until `docker compose -f docker-compose.dev.yml restart
+  app`).
 Server-side `xlsx` imports target the package's ESM build
 (`import … from 'xlsx/xlsx.mjs'`): the CJS main carries an
 `export `-leading prose comment that nitro's import-validity check
