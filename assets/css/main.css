@@ -283,62 +283,6 @@ body {
     word-break: normal;
 }
 
-/* Quill internals the component pt surface cannot reach: the editable
-   child, document marks, and the link tooltip carry hardcoded snow
-   values inside the `primevue` cascade layer; these unlayered rules
-   (scoped to Quill's own classes — main.css never targets PrimeVue
-   `.p-*` internals) re-home them on app tokens: the document voice's
-   line-height, zero inset, and themed marks. Never import
-   quill/dist/quill.snow.css beside the component: it stacks an
-   unlayered hardcoded copy over the themed layer, which is how the
-   white #ccc borders regress. */
-.ql-snow .ql-editor {
-    padding: 0;
-    line-height: inherit;
-}
-
-.ql-editor.ql-blank::before {
-    inset-inline-start: 0;
-    inset-inline-end: 0;
-}
-
-.ql-snow .ql-editor blockquote {
-    border-color: var(--ck-border-subtle);
-}
-
-.ql-snow .ql-editor code,
-.ql-snow .ql-editor pre {
-    background: var(--ck-subtle-background);
-}
-
-.ql-snow .ql-tooltip {
-    background: var(--ck-surface-raised);
-    border-color: var(--ck-chrome-border);
-    box-shadow: var(--p-overlay-popover-shadow);
-    color: var(--p-text-color);
-}
-
-.ql-snow .ql-tooltip input[type='text'] {
-    border-color: var(--ck-chrome-border);
-}
-
-.ql-snow .ql-tooltip a.ql-action::after {
-    border-color: var(--ck-chrome-border);
-}
-
-.ql-snow a {
-    color: var(--p-primary-color);
-}
-
-/* Snow also styles every non-quill button inside its toolbar (the
-   28×24 backgroundless icon-box rule) — app controls there re-assert
-   their box through component pt, and their hover/focus keeps the app
-   ink instead of snow's #06c. */
-.ql-toolbar button:not([class*='ql-']):hover,
-.ql-toolbar button:not([class*='ql-']):focus {
-    color: var(--p-text-color);
-}
-
 /* Minimal layout helpers only */
 @layer utilities {
     .grid-hub {

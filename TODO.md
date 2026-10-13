@@ -195,6 +195,22 @@ opens the editor. Artifacts: `.playwright/editor-blank-open.png`,
 `.playwright/editor-chrome-styles.json`. The runbook note lives in the
 root README dev-stack section.
 
+### Agent Notes (2026-10-13, md-source-editor session)
+
+Session `agent/md-source-editor-20261013-183002`, owner direction: "I
+don't see md files supported… no real md editor still." Both true:
+`text-document` declared no `upload` protocol (no path to bring an
+existing `.md` in), and the editing surface was a Quill rich-text proxy
+converting HTML↔markdown on every load/save. Replaced: the text surface
+edits the markdown source directly (PrimeVue `Textarea`, technical mono
+voice, form chrome stripped via pt) with a preview toggle rendering the
+same marked+DOMPurify pipeline as the read viewer (prose voice); load
+and save pass the text through untouched. `text-document` gains the
+`upload` creation protocol (accept `.md`/`text/markdown` from the
+payload traits). Quill is deleted from the app: the PrimeVue `Editor`
+import, `quill.snow.css`, the editor component tokens, and the
+main.css quill block are gone. common.preview i18n key added (en/ru).
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection

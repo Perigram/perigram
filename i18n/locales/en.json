@@ -22,6 +22,7 @@
     "revert": "Revert to default",
     "delete": "Delete",
     "edit": "Edit",
+    "preview": "Preview",
     "create": "Create",
     "add": "Add",
     "upload": "Upload",

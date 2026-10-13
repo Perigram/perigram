@@ -199,10 +199,6 @@ describe('Design system manifest', () => {
       listbox: { root: { borderColor: 'transparent' } },
       splitter: { gutter: { background: 'transparent' } },
       card: { root: { shadow: 'none' } },
-      editor: {
-        toolbar: { background: 'transparent' },
-        content: { background: 'transparent' }
-      },
       datatable: {
         root: { background: 'transparent' },
         header: {
@@ -368,11 +364,12 @@ describe('Design system manifest', () => {
     expect(dataBlock).toContain('text-technical');
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
     // Document previews read in the app's prose voice (serif), not the
-    // technical mono role; the rich text editor edits in the same serif
-    // voice one size step larger (the `editor` role).
+    // technical mono role; the markdown editor edits its source in the
+    // technical voice and previews in the prose voice.
     expect(artifactViewer).toContain('text-prose');
     expect(artifactViewer).not.toContain('text-technical');
-    expect(artifactTextEditor).toContain('text-editor');
+    expect(artifactTextEditor).toContain('text-technical');
+    expect(artifactTextEditor).toContain('text-prose');
     expect(supportMessageContent).not.toContain('text-prose');
   });
 
