@@ -1,5 +1,6 @@
 import { normalizeInstanceRef } from '~/packages/core/src/index.js';
 import { resolveRelationOptionPath, resolveRelationOptionScope } from './relation-options.js';
+import { filterByRelationDomain } from '#shared/relation-domain.js';
 
 export async function resolveCompiledRelationOptions({
   action,
@@ -13,12 +14,13 @@ export async function resolveCompiledRelationOptions({
 } = {}) {
   const creator = action.relationMutation.creator;
   const targetTypes = [].concat(action.relationMutation.targetTypes || []).filter(Boolean);
+  const where = action.relationMutation.where || null;
   const optionScope = resolveRelationOptionScope(creator);
   if (!optionScope.scoped) {
     // The entry accepts a union of target types: every accepted type's
     // instances are options.
     const pools = await Promise.all(targetTypes.map(typeId => queryEntities(registry, typeId, {}, auth)));
-    return pools.flat();
+    return withinDomain(pools.flat(), where);
   }
   const sourceInput = optionScope.sourceInput;
   if (!sourceInput) return [];
@@ -56,7 +58,14 @@ export async function resolveCompiledRelationOptions({
     { templateId: id },
     optionAuth
   ))))).flat();
-  return Array.from(new Map(targets.map(item => [String(instanceId(item)), toPlain(item)])).values());
+  return withinDomain(Array.from(new Map(targets.map(item => [String(instanceId(item)), toPlain(item)])).values()), where);
+}
+
+// The declared target domain (SPEC §6): the same expression the write
+// boundary enforces, applied to the picker's candidates (one home:
+// shared/relation-domain.js).
+function withinDomain(candidates = [], where = null) {
+  return filterByRelationDomain(candidates, where);
 }
 
 async function queryEntities(registry, typeId, filters, auth) {

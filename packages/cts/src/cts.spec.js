@@ -7,7 +7,7 @@ import {
   evaluate, checkMatch, checkValue,
   normalizeOperator,
   renderPolicyFor, compileClientBundle,
-  cncTypePack, partyTypes, nestingOperators, packFixtures,
+  cncTypePack, partyTypes, frameworkTypes, nestingOperators, packFixtures,
   classMayDeclareChildren, lineageKeyForParent,
   declarationsFromCtsRecords,
   payloadAccepts
@@ -119,6 +119,11 @@ describe('class obligations (R6)', () => {
     expect(registry.compile().errors).toContainEqual(expect.stringMatching(/bad-file: file may not declare lineage children/));
     registry.defineType({ id: 'bad-party', class: 'party', scope: 'org', organizationId: 'org-1', fields: {} });
     expect(registry.compile('org-1').errors).toContainEqual(expect.stringMatching(/party types are framework-only/));
+    // Parties are auth principals (SPEC §13 readable principals): no
+    // declared containment may target them — membership is party-side.
+    registry.defineType({ id: 'party-child', class: 'group', scope: 'system', fields: {}, edges: { children: { folks: { types: ['user'] } } } });
+    expect(registry.compile().errors).toContainEqual(
+      expect.stringMatching(/party-child: children.folks may not target party type user/));
   });
 
   it('exposes the containment predicate the authoring surfaces gate on', () => {
@@ -127,6 +132,34 @@ describe('class obligations (R6)', () => {
     expect(classMayDeclareChildren('item')).toBe(true);
     expect(classMayDeclareChildren('group')).toBe(true);
     expect(classMayDeclareChildren('process')).toBe(true);
+  });
+
+  it('checks relation target domains: boolean vocabulary, target-row paths (SPEC §6)', () => {
+    // The framework party declarations carry the derived `roles` row the
+    // domain vocabulary row-checks against.
+    const registry = createTypeRegistry({ id: 'relation-domains' });
+    for (const declaration of [...frameworkTypes, ...cncTypePack]) registry.defineType(declaration);
+    registry.defineType({
+      id: 'order', class: 'item', scope: 'system',
+      fields: {
+        assignee: { base: 'ref', accepts: ['user'], where: { op: 'in', args: [{ op: 'lit', value: 'role-operator' }, { op: 'field', path: ['value', 'roles'] }] } }
+      }
+    });
+    expect(registry.compile().errors.filter(error => error.includes('assignee'))).toEqual([]);
+
+    registry.defineType({
+      id: 'bad-order', class: 'item', scope: 'system',
+      fields: { owner: { base: 'ref', accepts: ['user'], where: { op: 'map' } } }
+    });
+    expect(registry.compile().errors).toContainEqual(
+      expect.stringMatching(/bad-order: fields.owner where \(target user\): op map is not boolean vocabulary/));
+
+    registry.defineType({
+      id: 'off-row-order', class: 'item', scope: 'system',
+      fields: { owner: { base: 'ref', accepts: ['user'], where: { op: 'eq', args: [{ op: 'field', path: ['value', 'ghost'] }, { op: 'lit', value: 1 }] } } }
+    });
+    expect(registry.compile().errors).toContainEqual(
+      expect.stringMatching(/off-row-order: fields.owner where \(target user\): field ghost outside the row/));
   });
 });
 
@@ -199,6 +232,16 @@ describe('expressions (totality, CEL semantics)', () => {
     const sum = evaluate({ op: 'add', args: [{ op: 'lit', value: quantity(500, 'mm') }, { op: 'lit', value: quantity(0.5, 'm') }] });
     expect(sum).toEqual(quantity(1, 'm'));
     expect(() => evaluate({ op: 'add', args: [{ op: 'lit', value: quantity(1, 'mm') }, { op: 'lit', value: quantity(1, 'min') }] })).toThrow(/Unit mismatch/);
+  });
+
+  it('in is list membership (role-domain boolean vocabulary)', () => {
+    const hasRole = role => ({
+      op: 'in',
+      args: [{ op: 'lit', value: role }, { op: 'field', path: ['value', 'roles'] }]
+    });
+    expect(evaluate(hasRole('operator'), { value: { roles: ['operator', 'viewer'] } })).toBe(true);
+    expect(evaluate(hasRole('admin'), { value: { roles: ['operator'] } })).toBe(false);
+    expect(() => evaluate(hasRole('admin'), { value: { roles: 'operator' } })).toThrow(/in requires a list/);
   });
 
   it('currency stays in integer minor units (rows and arithmetic)', () => {

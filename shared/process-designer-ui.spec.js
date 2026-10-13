@@ -13,12 +13,14 @@ import { normalizeScreenContract, validateScreenContract } from '~/packages/proc
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
 describe('process designer interaction boundaries', () => {
-  it('uses producer-output ownership instead of the removed entity-profile helper', () => {
+  it('delegates producer-output ownership to the package record-sync pipeline', () => {
     const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
     const nodeSync = readFileSync(new URL('../composables/useProcessDesignerNodeSync.js', import.meta.url), 'utf8');
 
-    // The sync pass owns producer-output synchronization now.
-    expect(nodeSync).toContain('syncProcessNodeProducerOutputs');
+    // Producer outputs sync inside the package pipeline the composable
+    // delegates to (the same pass headless authoring runs).
+    expect(nodeSync).toContain('createProcessRecordSync');
+    expect(nodeSync).not.toContain('entityProfile');
     expect(designer).not.toContain('requiredEntityProfileTypes');
     expect(designer).not.toContain('ensureRequiredEntityProfiles');
   });

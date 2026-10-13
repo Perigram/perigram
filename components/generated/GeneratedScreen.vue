@@ -309,6 +309,7 @@ import { usePayloadUpload } from '~/composables/usePayloadUpload.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/utils/action-visibility.js';
+import { withinRelationDomain } from '#shared/relation-domain.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
@@ -708,6 +709,9 @@ async function entityOptions(typeId, field = {}) {
   return (Array.isArray(items) ? items : items.items || items.data || [])
     .filter(constructable || (entity => true))
     .filter(entity => !field.attachmentKinds?.length || field.attachmentKinds.includes(entity.data?.type))
+    // The declared target domain (SPEC §6): pickers offer what writes
+    // accept — the same expression the write boundary enforces.
+    .filter(entity => withinRelationDomain(entity, field.where))
     .map(entity => entityOption(entity, typeId));
 }
 

@@ -13,6 +13,13 @@ User authentication and permission management. Built on the v24 BaseEntity archi
 Collection: `users`
 Inherits all `BaseEntity` fields.
 
+The process plane reads users through the registered party bindings
+(`server/runtime/party-wire.js`): the §3 wire shape (identity slots plus
+the declared rows — name, email, and the `roles` derived from the active
+organization's authoritative `roleAssignments`), membership-gated (self
+always readable). Users are readable principals — never process-mutable;
+user mutation stays on the feature routes below.
+
 **Identity Block:**
 - `uid`: `user-XXXX` format
 

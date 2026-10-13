@@ -421,6 +421,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
       if (!entry.targetTypes.includes(relation.targetType)) entry.targetTypes.push(relation.targetType);
       if (relation.cardinality === 'many') entry.cardinality = 'many';
       if (relation.association && !entry.association) entry.association = relation.association;
+      if (relation.where && !entry.where) entry.where = relation.where;
       if (relation.creator && !entry.creator) entry.creator = relation.creator;
     }
     for (const entry of contractsByKey.values()) {
@@ -457,6 +458,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           cardinality: entry.cardinality,
           required: true,
           prompt: operation === 'link',
+          ...(entry.where ? { where: entry.where } : {}),
           ...(operation === 'link' && creator ? { creator } : {})
         };
         derived[id] = {
@@ -470,6 +472,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
             targetTypes: entry.targetTypes,
             cardinality: entry.cardinality,
             operation,
+            ...(entry.where ? { where: entry.where } : {}),
             ...(entry.association ? { association: entry.association } : {}),
             ...(operation === 'link' && creator ? { creator } : {})
           },
@@ -658,6 +661,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       key: declared?.key || entry.key,
       targetType: declared?.targetType || entry.typeId,
       cardinality: declared?.cardinality || (entry.type?.base === 'array' || sourcePort?.type?.base === 'array' ? 'many' : 'one'),
+      ...(declared?.where ? { where: declared.where } : {}),
       ...(processCreator ? { creator: processCreator } : {}),
       ...(hasDomainAttachmentKinds(declared?.targetType || entry.typeId, domain) ? {
         creator: {
@@ -737,7 +741,13 @@ function declaredRelationContracts(domain = {}, ownerType = '', targetType = '',
   const pinned = targetType ? byKey.filter(relation => relation.targetType === targetType) : byKey;
   return (pinned.length ? pinned : byKey)
     .filter(relation => relation.targetType)
-    .map(relation => ({ ownerType, key: relation.key, targetType: relation.targetType, cardinality: relation.cardinality || 'one' }));
+    .map(relation => ({
+      ownerType,
+      key: relation.key,
+      targetType: relation.targetType,
+      cardinality: relation.cardinality || 'one',
+      ...(relation.where ? { where: relation.where } : {})
+    }));
 }
 
 export function requiredEffectCapability(kind = '', record = {}) {
@@ -757,6 +767,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
   const warnings = [];
   const nodeIds = new Set(process.graph.nodes.map(node => node.id));
   const entities = new Set((domain.entities || []).map(entity => entity.type));
+  const partyTypes = new Set((domain.entities || []).filter(entity => entity.party).map(entity => entity.type));
   const commands = new Set(Object.keys(domain.commands || {}));
 
   for (const edge of process.graph.edges) {
@@ -850,7 +861,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
   }
 
   for (const [nodeId, node] of Object.entries(process.processNodes)) {
-    validateProcessNode(nodeId, node, { entities, domain, errors });
+    validateProcessNode(nodeId, node, { entities, domain, errors, partyTypes });
   }
   if (capabilities) {
     validateEffectCapabilities(process, domain, capabilities, errors);
@@ -4303,10 +4314,10 @@ function validateEffectCapabilities(process = {}, domain = {}, capabilities = {}
   }
 }
 
-function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
+function validateProcessNode(nodeId, node = {}, { entities, domain, errors, partyTypes }) {
   const kind = node.kind || '';
   if (kind.includes('.')) {
-    validateDataflowProcessNode(nodeId, node, { entities, domain, errors });
+    validateDataflowProcessNode(nodeId, node, { entities, domain, errors, partyTypes });
     return;
   }
   const kinds = [
@@ -4390,7 +4401,7 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   }
 }
 
-function validateDataflowProcessNode(nodeId, node, { entities, domain, errors }) {
+function validateDataflowProcessNode(nodeId, node, { entities, domain, errors, partyTypes }) {
   const definition = getProcessNodeDefinition(node.kind);
   if (!definition) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${node.kind}`);
@@ -4399,6 +4410,13 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
   const classification = effectKindOf(node);
   if (node.typeId && !entities.has(node.typeId)) {
     errors.push(`Process node ${nodeId} uses unknown typeId ${node.typeId}`);
+  }
+  // Party types are readable principals (SPEC §13): no effect species may
+  // construct, mutate, transition, or remove them — the party services own
+  // every mutation path.
+  if (['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove'].includes(node.kind)
+    && partyTypes?.has(node.typeId)) {
+    errors.push(`Process node ${nodeId} cannot target party type ${node.typeId} — parties are read-only in processes`);
   }
   if (processNodeRequiresTypeId(node.kind) && !node.typeId) {
     errors.push(`Process node ${nodeId} must select an entity type`);

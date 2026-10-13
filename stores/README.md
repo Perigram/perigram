@@ -28,11 +28,15 @@ Three cells; every surface derives from them, nothing else caches:
   cross-session backstop (the upsert marks the type's cached list
   observations stale so surfaces refetch) — and `mutateDirect` serves the
   framework/party/editor feature endpoints the
-  same way. Endpoint resolution is owned here: framework party/service types
-  keep their feature routes (mirrors the server's framework service set),
-  remaining pack feature modules keep theirs (pinned by spec to the mounted
-  `server/api` routes), and every declared type without an explicit service
-  resolves to the generic instance transport `/api/instances/:typeId`.
+  same way. Endpoint resolution is owned here, split by plane: READS
+  resolve through the generic instance transport `/api/instances/:typeId`
+  for every type the server resolver serves — party types included (their
+  process bindings speak the same §3 wire); mutations keep the feature
+  routes for types that own them (party administration, framework
+  services, editor feature modules — pinned by spec to the mounted
+  `server/api` routes), and everything else mutates through the transport.
+  The team surface reads its feature DTO directly (`/api/users`) — it is a
+  feature surface, not a process-plane consumer.
   Icons and constructibility resolve from the registry bundle (render
   policy, declared construct operators) — the render-policy icon is the
   single icon source for every generated/shared surface (cards, pages,

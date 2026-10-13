@@ -52,6 +52,11 @@ const definitions = [
   source('source.triggerPayload', 'triggerPayload'),
   source('source.currentTime', 'currentTime'),
   source('source.secretRef', 'secretReference'),
+  // Run-context principals (SPEC §13 readable principals): resolve the
+  // acting user and the active organization at execution — fixed types,
+  // no binding, the party twin of the currentTime source.
+  source('source.currentUser', 'currentUser'),
+  source('source.currentOrganization', 'currentOrganization'),
 
   data('value.cast', 'cast'),
   data('value.recordField', 'recordField'),
@@ -591,7 +596,9 @@ function catalogPorts(record = {}, context = {}) {
   if (kind.startsWith('source.')) {
     const output = kind === 'source.currentTime' ? processType('dateTime')
       : kind === 'source.secretRef' ? processType('opaque', { opaqueType: 'secretRef' })
-        : configured;
+        : kind === 'source.currentUser' ? processType('entityRef', { typeId: 'user' })
+          : kind === 'source.currentOrganization' ? processType('entityRef', { typeId: 'organization' })
+            : configured;
     const access = kind === 'source.literalTree' ? 'tree' : kind === 'source.literalList' ? 'list' : 'item';
     return { inputs: [], outputs: [socket('value', output, DATA, false, access)] };
   }

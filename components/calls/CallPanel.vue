@@ -232,7 +232,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
-import Select from 'primevue/select';
+import Select from '~/components/shared/InstanceSelect.vue';
 import SelectButton from 'primevue/selectbutton';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';

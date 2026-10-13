@@ -102,6 +102,38 @@ function portsFor(record, domain) {
 }
 
 describe('native CTS process execution contract', () => {
+  it('treats party types as readable principals — reads and fields pass, effect species refuse', () => {
+    const domain = nativeDomain();
+    expect(domain.entities.find(entity => entity.type === 'user')?.party).toBe(true);
+
+    const readable = validateProcessDefinition(graph([
+      { id: 'users', kind: 'cts.read', select: 'all', typeId: 'user' },
+      { id: 'email', kind: 'cts.field', typeId: 'user', path: 'fields.email', inputDefaults: { field: 'fields.email' } }
+    ], [{
+      id: 'users-email',
+      source: 'users',
+      sourceHandle: 'data:result',
+      target: 'email',
+      targetHandle: 'data:entity',
+      role: 'data'
+    }]), domain);
+    expect(readable.errors).toEqual([]);
+
+    for (const kind of ['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove']) {
+      const refused = validateProcessDefinition(graph([{ id: 'op', kind, typeId: 'user' }]), domain);
+      expect(refused.errors.join('\n'), kind).toContain('cannot target party type user');
+    }
+  });
+
+  it('mints the run-context principal sources with fixed party-typed outputs', () => {
+    const domain = nativeDomain();
+    const who = portsFor({ kind: 'source.currentUser' }, domain);
+    const which = portsFor({ kind: 'source.currentOrganization' }, domain);
+
+    expect(who.outputs[0]).toMatchObject({ id: 'value', type: { base: 'entityRef', typeId: 'user' } });
+    expect(which.outputs[0]).toMatchObject({ id: 'value', type: { base: 'entityRef', typeId: 'organization' } });
+  });
+
   it('keeps native species kinds, discriminators, socket ids, and graph edges through resolution', () => {
     const domain = nativeDomain();
     const definition = graph([

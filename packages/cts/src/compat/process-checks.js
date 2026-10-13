@@ -16,6 +16,7 @@
 // bindings are positional (typeId/typeId/species-kind `type`), so
 // process-vocabulary descriptor strings are never misread as references.
 import { durationMs } from '../values.js';
+import { checkBooleanExpression } from '../expressions.js';
 
 
 export function checkDeclarationsAgainstCts(processDefinition = {}, registry, organizationId = null) {
@@ -145,52 +146,11 @@ function fieldRoot(path = '') {
   return name || null;
 }
 
-// Guard expression check (SPEC §7): the boolean subset of §18 only —
-// comparisons, and/or/not, field paths rooted at `value`, literals.
-// Row-checking is best-effort like the rest of this phase: types without
-// declared rows skip the path check.
-const GUARD_COMPARISON_OPS = new Set(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']);
-
+// Guard expression check (SPEC §7): the shared boolean-subset checker
+// (expressions.js owns the grammar); transition guards row-check against
+// the bound type.
 function checkGuardExpression(ast, rowNames, path) {
-  const errors = [];
-  visit(ast, 0);
-  return errors;
-
-  function visit(node, depth) {
-    if (!node || typeof node !== 'object' || typeof node.op !== 'string') {
-      errors.push(`${path} guard: expression nodes must carry an op`);
-      return;
-    }
-    if (depth > 32) {
-      errors.push(`${path} guard: expression nesting exceeds 32 levels`);
-      return;
-    }
-    const { op } = node;
-    if (op === 'lit') return;
-    if (op === 'field') {
-      const fieldPath = node.path;
-      if (!Array.isArray(fieldPath) || fieldPath[0] !== 'value' || fieldPath.length < 2) {
-        errors.push(`${path} guard: field path must start at 'value'`);
-      } else if (rowNames && !rowNames.has(String(fieldPath[1]))) {
-        errors.push(`${path} guard: field ${fieldPath.slice(1).join('.')} outside the row`);
-      }
-      return;
-    }
-    if (op === 'not') {
-      visit(node.arg, depth + 1);
-      return;
-    }
-    if (!GUARD_COMPARISON_OPS.has(op) && op !== 'and' && op !== 'or') {
-      errors.push(`${path} guard: op ${op} is not guard vocabulary`);
-      return;
-    }
-    const args = Array.isArray(node.args) ? node.args : [];
-    if (args.length !== 2) {
-      errors.push(`${path} guard: ${op} requires two arguments`);
-      return;
-    }
-    for (const arg of args) visit(arg, depth + 1);
-  }
+  return checkBooleanExpression(ast, rowNames, `${path} guard`);
 }
 
 function allowedFieldRoots(type = {}) {

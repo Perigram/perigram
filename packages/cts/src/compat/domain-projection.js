@@ -113,18 +113,18 @@ function withAccessFlags(schema, policy) {
 function relationEntriesFor(type, view) {
   const entries = [];
   const seen = new Set();
-  const push = (key, target) => {
+  const push = (key, target, where = null) => {
     const dedupe = `${key}:${target}`;
     if (seen.has(dedupe) || !view.has(target)) return;
     seen.add(dedupe);
-    entries.push({ key, target });
+    entries.push(where ? { key, target, where } : { key, target });
   };
   for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-    for (const target of declaration.types || []) push(key, target);
+    for (const target of declaration.types || []) push(key, target, declaration.where || null);
   }
   for (const [name, descriptor] of Object.entries(type.fields || {})) {
     if (descriptor?.base !== 'ref') continue;
-    for (const target of descriptor.accepts || []) push(name, target);
+    for (const target of descriptor.accepts || []) push(name, target, descriptor.where || null);
   }
   return entries;
 }
@@ -141,24 +141,44 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     relations: _relations, attachmentKinds: _attachmentKinds, ...base
   } = baseDomain || {};
 
-  // Authorable types: party types are framework auth principals and
-  // `framework`-flagged machinery types are service-owned — neither
-  // projects as an authorable instance.
+  // Authorable types: `framework`-flagged machinery types are
+  // service-owned and never project. Party types (SPEC §13) project as
+  // readable principals: read-only entities that join the process plane
+  // as instance sources, relation targets, and decomposition inputs —
+  // never as constructs, mutations, or lineage (the registry refuses
+  // party children targets; the process compiler refuses party-bound
+  // effects).
   const types = [...view.values()].filter(type => type.class !== 'party' && !type.framework);
+  const partyTypes = [...view.values()].filter(type => type.class === 'party');
 
   // entities: one synthesized entry per view type, storage by class.
-  const entities = types.map(type => (
-    {
-      type: type.id,
-      // The authored name — the label every compiler and generator
-      // surface uses; raw type ids never reach users. Declarations
-      // without one (legacy org-stored) serve "Unnamed".
-      label: renderPolicyFor(type).name || 'Unnamed',
-      collection: CLASS_COLLECTIONS[type.class] || CLASS_COLLECTIONS.file,
-      blocks: ['fields', 'lineage', 'relations'],
-      meta: false
-    }
-  ));
+  // Party entities carry no class collection (their feature services own
+  // storage) and are `meta` — administration surfaces, never inferred
+  // screens.
+  const entities = [
+    ...types.map(type => (
+      {
+        type: type.id,
+        // The authored name — the label every compiler and generator
+        // surface uses; raw type ids never reach users. Declarations
+        // without one (legacy org-stored) serve "Unnamed".
+        label: renderPolicyFor(type).name || 'Unnamed',
+        collection: CLASS_COLLECTIONS[type.class] || CLASS_COLLECTIONS.file,
+        blocks: ['fields', 'lineage', 'relations'],
+        meta: false
+      }
+    )),
+    ...partyTypes.map(type => (
+      {
+        type: type.id,
+        label: renderPolicyFor(type).name || 'Unnamed',
+        collection: null,
+        blocks: ['fields'],
+        meta: true,
+        party: true
+      }
+    ))
+  ];
 
   // fieldSchemas: core slots + lineage-from-edges + rows per type.
   // A ref field's row entry lives at relations.<key> — the same path the
@@ -216,6 +236,28 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       ...relationFields,
       ...rowEntries
     ].map(schema => withAccessFlags(schema, fieldAccess[type.id]));
+  }
+
+  // Party field schemas (SPEC §13 readable principals): the identity
+  // slots the party wire carries plus the declared rows — every slot
+  // read-only. The party wire adapters expose exactly this vocabulary;
+  // tenancy, lifecycle, payload, and edge slots do not exist for parties.
+  for (const type of partyTypes) {
+    const rows = rowToFieldSchemas(type.fields, type.class)
+      .map(schema => ({ ...schema, writable: false, constructible: false }));
+    const access = {
+      read: ['_id', 'type', 'typeVersion', 'name', ...rows.map(row => row.path)],
+      write: [],
+      admin: []
+    };
+    fieldAccess[type.id] = access;
+    fieldSchemas[type.id] = [
+      coreField('_id', 'identity', 'json', { writable: false, constructible: false }),
+      coreField('type', 'identity', 'string', { writable: false, constructible: false }),
+      coreField('typeVersion', 'identity', 'number', { writable: false, constructible: false }),
+      coreField('name', 'identity', 'string', { writable: false, constructible: false }),
+      ...rows
+    ].map(schema => withAccessFlags(schema, access));
   }
 
   // workflows: graph-derived, never projected (SPEC §7) — state
@@ -389,11 +431,19 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     };
   }
 
-  // relations: declared relation edges from every view type.
+  // relations: declared relation edges from every view type. The target
+  // domain (`where`, SPEC §6) rides the contract — enforced at every ref
+  // write, projected to pickers.
   const relations = [];
   for (const type of types) {
-    for (const { key, target } of relationEntriesFor(type, view)) {
-      relations.push({ ownerType: type.id, key, targetType: target, cardinality: 'many' });
+    for (const entry of relationEntriesFor(type, view)) {
+      relations.push({
+        ownerType: type.id,
+        key: entry.key,
+        targetType: entry.target,
+        cardinality: 'many',
+        ...(entry.where ? { where: entry.where } : {})
+      });
     }
   }
 

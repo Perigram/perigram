@@ -18,13 +18,15 @@ import { composeSystemDeclarations } from '../server/packs/declarations.js';
 import { extractDataModels } from '../server/utils/extract-data-models.js';
 
 // The registry view is the domain catalog (one source): entities and
-// workflows project from the mounted declarations.
+// workflows project from the mounted declarations. Party entities read
+// through the instance transport by TYPE id (their feature services own
+// storage, no class collection).
 const viewRegistry = createTypeRegistry({ id: 'framework-manifest-view' });
 for (const declaration of [...frameworkTypes, ...composeSystemDeclarations()]) viewRegistry.defineType(declaration);
 const projected = projectDomainFromView(viewRegistry, null);
 const cncEntities = projected.entities.map(entity => ({ ...entity, surfaceKey: entity.type }));
 const cncWorkflows = projected.workflows || {};
-const cncDomain = { ui: { endpoints: cncEntities.map(entity => ({ type: entity.type, path: `/api/instances/${entity.collection}` })) } };
+const cncDomain = { ui: { endpoints: cncEntities.map(entity => ({ type: entity.type, path: `/api/instances/${entity.party ? entity.type : entity.collection}` })) } };
 const cncCommands = { ...frameworkCommandDefinitions };
 const cncTasks = frameworkTaskDefinitions;
 const cncSummaries = [];

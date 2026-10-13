@@ -24,7 +24,17 @@ const orgPanel = {
     serial: { base: 'string' },
     width: { base: 'quantity', unit: 'mm' }
   },
-  edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } }
+  edges: {
+    relations: {
+      'placed-on': {
+        types: ['sheet'],
+        onRemove: 'detach',
+        // Target domain (SPEC §6): only wide sheets are placement
+        // candidates — the same expression the write boundary enforces.
+        where: { op: 'gte', args: [{ op: 'field', path: ['value', 'width'] }, { op: 'lit', value: 500 }] }
+      }
+    }
+  }
 };
 
 const orgBin = {
@@ -79,7 +89,7 @@ const legacyBase = {
 };
 
 describe('domain projection (synthesis only, after the legacy cut)', () => {
-  it('synthesizes entities with per-class collections for every non-party type', () => {
+  it('synthesizes entities with per-class collections for every authorable type', () => {
     const projected = projectDomainFromView(orgRegistry(), 'org-1', legacyBase);
     const byType = new Map(projected.entities.map(entity => [entity.type, entity]));
     expect(byType.get('panel')).toMatchObject({ type: 'panel', collection: CLASS_COLLECTIONS.item, meta: false });
@@ -88,7 +98,21 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(byType.get('occs')).toMatchObject({ collection: CLASS_COLLECTIONS.file });
     expect(byType.get('sheet')).toMatchObject({ collection: CLASS_COLLECTIONS.item });
     expect(byType.get('oldqueue')).toBeUndefined();
-    expect(projected.entities.some(entity => entity.type === 'organization')).toBe(false);
+  });
+
+  it('projects party types as readable principals — read-only, meta, no construction', () => {    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    const byType = new Map(projected.entities.map(entity => [entity.type, entity]));
+    expect(byType.get('user')).toMatchObject({ party: true, meta: true, collection: null, blocks: ['fields'] });
+    expect(byType.get('organization')).toMatchObject({ party: true, meta: true, collection: null });
+    const paths = projected.fieldSchemas.user.map(schema => schema.path);
+    expect(paths).toEqual(['_id', 'type', 'typeVersion', 'name', 'fields.email', 'fields.name', 'fields.roles']);
+    for (const schema of projected.fieldSchemas.user) {
+      expect(schema.writable).toBe(false);
+      expect(schema.constructible).toBe(false);
+    }
+    expect(projected.fieldAccess.user).toMatchObject({ read: paths, write: [], admin: [] });
+    expect(projected.construction.user).toBeUndefined();
+    expect(projected.construction.organization).toBeUndefined();
   });
 
   it('ignores legacy domain content on the base while keeping operator contracts', () => {
@@ -232,9 +256,9 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
 
   it('projects declared relation edges from view types', () => {
     const projected = projectDomainFromView(orgRegistry(), 'org-1');
-    expect(projected.relations).toEqual(expect.arrayContaining([
-      { ownerType: 'panel', key: 'placed-on', targetType: 'sheet', cardinality: 'many' }
-    ]));
+    const placedOn = projected.relations.find(relation => relation.ownerType === 'panel' && relation.key === 'placed-on');
+    expect(placedOn).toMatchObject({ targetType: 'sheet', cardinality: 'many' });
+    expect(placedOn.where).toEqual({ op: 'gte', args: [{ op: 'field', path: ['value', 'width'] }, { op: 'lit', value: 500 }] });
   });
 
   it('synthesizes attachment kinds from payload traits', () => {

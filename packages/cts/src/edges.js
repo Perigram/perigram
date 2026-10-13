@@ -34,6 +34,12 @@ export function normalizeEdges(edges = {}, declaringTypeId = '') {
         const authored = String(declaration.lineageKey || '').trim();
         normalizedEntry.lineageKey = authored || lineageKeyForParent(declaringTypeId);
       }
+      if (kind === 'relations' && declaration.where) {
+        // The target domain (SPEC §6): a boolean expression over the
+        // TARGET instance — checked against every declared target's row at
+        // compile, enforced at every ref write, projected to pickers.
+        normalizedEntry.where = declaration.where;
+      }
       entries[key] = Object.freeze(normalizedEntry);
     }
     normalized[kind] = Object.freeze(entries);

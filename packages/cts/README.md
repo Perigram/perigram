@@ -31,7 +31,9 @@ module layout and how the code maps to the spec's build-order tiers.
   `onRemove` integrity; children entries carry their storage `lineageKey`
   (authored, else the derived `camel(declaringTypeId)+"Id"` fallback — one
   derivation home, consumed by the domain projection, derived indexes, and
-  the UI generator); lineage acyclicity (R2): cycles across distinct types
+  the UI generator); relation entries carry their optional target domain
+  `where` (SPEC §6) — a boolean expression over the target's row, enforced
+  at ref writes and projected to pickers; lineage acyclicity (R2): cycles across distinct types
   are refused, while a children entry naming its own declaring type is
   recursive containment and compiles clean (SPEC §6 — instance forests stay
   finite because a parent exists before its children).
@@ -44,8 +46,10 @@ module layout and how the code maps to the spec's build-order tiers.
 - `operators.js` — the six species with typed signatures, event/schedule
   triggers; services and projections are ref-free.
 - `expressions.js` — CEL-semantics expression ASTs: total evaluation with a
-  step budget, `map`/`filter` comprehensions, compile-checked exhaustive
-  `match` (§18).
+  step budget, `map`/`filter` comprehensions, membership `in`,
+  compile-checked exhaustive `match` (§18), and `checkBooleanExpression` —
+  the one boolean-subset checker transition guards and relation target
+  domains share.
 - `diff.js` — version stamping, evolution classification, and the declared
   migration gate (R7, SPEC §11). The classification is complete over the
   row, the single-axis state enum, and children edges: additive changes
@@ -84,7 +88,9 @@ module layout and how the code maps to the spec's build-order tiers.
   the generic construct boundary and the chat materialization seam both call
   it instead of restating the rule.
 - `registry.js` — type records as data, tenancy resolution (system first,
-  one org overlay, no shadowing), `compile()` running R1–R6, instance
+  one org overlay, no shadowing), `compile()` running R1–R6 (party types
+  are refused as children targets and relation `where` domains are
+  row-checked against every declared target), instance
   validation with `typeVersion` ill-typing. Payload declarations normalize
   to the canonical trait shape (`mime` list, `accept`, `maxSize`,
   `preview`, `creation` protocol list — `upload | capture | editor`,
@@ -103,8 +109,8 @@ module layout and how the code maps to the spec's build-order tiers.
   deviate), at most one `depiction` field, and a name on every type
   (write-gated through the introduced-errors channel; views stay served).
 - `compat/domain-projection.js` — the single CTS → compiler-domain
-  translator, synthesis-only: every type in the view (framework, pack,
-  org) synthesizes its entities entry (per-class collection, §13),
+  translator, synthesis-only: every authorable type in the view (framework,
+  pack, org) synthesizes its entities entry (per-class collection, §13),
   `fieldSchemas` (the §3 stored shape — `_id`, `type`, `typeVersion`,
   `organizationId`, `name`, `state`, `stateChangedAt`,
   `createdAt`/`updatedAt`, declared lineage edges, declared relations,
@@ -116,8 +122,12 @@ module layout and how the code maps to the spec's build-order tiers.
   modes with signature-derived `modeInputs`; construction inputs are
   `fields.*` rows and addressable edges only — there is no hardcoded Name
   input; the identifier row is total by boundary mint, so every generic
-  create prompts the record's name source), `relations` (declared edges), and
-  `attachmentKinds` (payload traits). Nothing passes through from the
+  create prompts the record's name source), `relations` (declared edges, with
+  their target domains), and `attachmentKinds` (payload traits). Party
+  types project as readable principals (SPEC §13): `meta` entities flagged
+  `party`, read-only field schemas (identity slots + declared rows),
+  no construction — instance sources, relation targets, and decomposition
+  only. Nothing passes through from the
   base domain: legacy entity/workflow/construction/field-schema/access/
   relation/containment/attachment-kind content supplied on `baseDomain`
   is ignored; the base contributes operator contracts
@@ -171,8 +181,6 @@ module layout and how the code maps to the spec's build-order tiers.
   here too: `after` parses as an ISO-8601 duration, `to` names another
   declared state of the type's vocabulary, and the deadline guard follows
   the guard contract.
-- `compat/domain-projection.js` — the single CTS → compiler-domain
-  translator. See SPEC §15/§19 for what it owns per key.
 - `compat/graph-protocol.js` — the native species graph protocol (SPEC §20):
   `resolveCtsDefinition` resolves declaration ids and row paths while
   preserving species kinds, discriminators, socket ids, and graph edges;

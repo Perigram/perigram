@@ -469,7 +469,10 @@ watch(roleOptions, (options) => {
 async function loadUsers() {
   loading.value = true;
   try {
-    const allUsers = await instances.listInstances('user');
+    // The team surface speaks the feature route's DTO (memberships drive
+    // the active/pending split); the instance store serves the §3
+    // process-plane shape for party types.
+    const allUsers = await $fetch('/api/users');
     await loadActiveProcess();
     await loadOrganizationRoles();
     const organizationId = activeOrganizationId.value?.toString();

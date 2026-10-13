@@ -59,7 +59,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import Select from 'primevue/select';
+import Select from '~/components/shared/InstanceSelect.vue';
 
 const emit = defineEmits(['join']);
 

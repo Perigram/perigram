@@ -28,11 +28,16 @@ describe('graph protocol v5 designer round trip', () => {
   it('the palette speaks species kinds only for entity-bound operations', () => {
     const groups = Object.fromEntries(PROCESS_DESIGNER_PALETTE_GROUPS.map(group => [group.id, group.items]));
     for (const item of [...groups.operations, ...groups.instances]) {
+      // Run-context principals (source.*) are the one non-species family
+      // beside the reads — fixed-type values, no binding.
+      if (String(item.kind).startsWith('source.')) continue;
       expect(item.kind, item.id).toMatch(/^cts\./);
       expect(getProcessNodeDefinition(item.kind), item.kind).not.toBeNull();
     }
     const readPresets = groups.instances.filter(item => item.kind === 'cts.read').map(item => item.preset.select);
     expect(readPresets).toEqual(['current', 'all', 'extract', 'parent', 'children', 'related']);
+    expect(groups.instances.filter(item => String(item.kind).startsWith('source.')).map(item => item.kind))
+      .toEqual(['source.currentUser', 'source.currentOrganization']);
   });
 
   it('catalog ports resolve native species records without legacy sockets', () => {

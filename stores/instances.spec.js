@@ -38,7 +38,7 @@ describe('instances store type keys and endpoints', () => {
     expect(instances.canonicalTypeKey('cassetteDesign')).toBe('cassette_design');
   });
 
-  it('resolves endpoints like the server resolver: feature routes, else the instance transport', () => {
+  it('resolves endpoints like the server resolver: §3 transport reads, feature-route mutations, else the generic transport', () => {
     const instances = useInstancesStore();
     expect(instances.endpointsFor('queue').list()).toBe('/api/instances/queue');
     expect(instances.endpointsFor('queue').single('q-1')).toBe('/api/instances/queue/q-1');
@@ -46,7 +46,12 @@ describe('instances store type keys and endpoints', () => {
     expect(instances.endpointsFor('cassette').list()).toBe('/api/instances/cassette');
     expect(instances.endpointsFor('cassette').single('c-1')).toBe('/api/instances/cassette/c-1');
     expect(instances.endpointsFor('artifact').single('a-1')).toBe('/api/artifacts/a-1');
-    expect(instances.endpointsFor('organization').list()).toBe('/api/organizations');
+    // Party reads ride the §3 instance transport; their mutations keep the
+    // feature routes (party administration is feature-owned).
+    expect(instances.endpointsFor('user').list()).toBe('/api/instances/user');
+    expect(instances.endpointsFor('user').single('u-1')).toBe('/api/instances/user/u-1');
+    expect(instances.endpointsFor('user').mutationList()).toBe('/api/users');
+    expect(instances.endpointsFor('organization').mutationSingle('o-1')).toBe('/api/organizations/o-1');
   });
 
   it('derives icons and constructibility from the registry bundle', () => {

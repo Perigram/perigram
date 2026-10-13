@@ -32,6 +32,29 @@ export function projectEntityProcessCapabilities(domain = {}, serviceBindings = 
   for (const entity of entities) {
     const type = entity.type;
     const binding = bindings[type] || {};
+
+    // Party types (SPEC §13 readable principals) are read-only in the
+    // process plane: the registered party services own every mutation
+    // path, so only the read bindings project — whatever the raw service
+    // bindings advertise.
+    if (entity.party) {
+      result[type] = {
+        list: Boolean(binding.list),
+        getById: Boolean(binding.getById),
+        create: false,
+        createModes: [],
+        processUpdate: false,
+        delete: false,
+        archive: false,
+        archiveIntent: null,
+        statusMutation: false,
+        writableFields: [],
+        constructibleFields: [],
+        relationMutations: []
+      };
+      continue;
+    }
+
     const construction = entityConstruction(domain, type);
     const workflow = domain.workflows?.[type] || null;
     const schemas = entityFieldSchemas(domain, type);

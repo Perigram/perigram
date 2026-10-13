@@ -45,6 +45,52 @@ Validation: `server/packs` + `packages/documents` (25), `packages/processes`
 `check-docs`, `framework:validate` — green. Not run: Playwright E2E
 (needs the live stack serving this code).
 
+## Parties in processes: readable refs, decomposition, context sources (owner direction 2026-10-13)
+
+Users and organizations enter the process plane as read-only data: relation
+refs on org types, instance sources, decompose over their declared rows, and
+current-user/current-organization run-context sources. Relation entries may
+declare target domains (role-scoped assignee pickers included). Contracts:
+[packages/cts/SPEC.md](./packages/cts/SPEC.md) (§6 domains, §13/§19 party
+projection), [packages/processes/README.md](./packages/processes/README.md)
+(palette, capabilities, context sources).
+
+- [x] A. CTS: party types project as `meta` entities (read-only field
+  schemas, no construction); party types refused as lineage-children targets.
+- [x] B. Processes: capability rows for parties are list/getById only;
+  validation refuses construct/mutate/transition/remove bound to a party
+  type; `source.currentUser`/`source.currentOrganization` palette items.
+- [x] C. Server: party process bindings speak the §3 wire DTO with their own
+  read gates; the run data environment resolves the acting user and active
+  organization.
+- [x] D. Client: party types join the ref-target type view; instance
+  pickers load party options through the generic instance transport.
+- [x] E. The derived `user.roles` row (from the active organization's
+  authoritative roleAssignments, never copied onto the user record) and the
+  `in` membership op complete the domain vocabulary (SPEC §18).
+- [x] F. Relation target domains: `where` on relation entries compiles
+  (row-checked against every target), rides the compiled Link/prompt
+  contracts, filters picker options, and is enforced at the ref-write
+  boundary (one evaluator home: `shared/relation-domain.js`).
+- [ ] WAITING — owner verification on the live stack: an org type declares
+  `assignee: Ref(user) where 'role-operator' in value.roles`; the task
+  detail Set-assignee picker lists only operators; writing a non-operator
+  through any channel is refused.
+
+### Agent Notes (2026-10-13, party read-only projection + domains)
+
+Implemented A–F in one pass. Findings: the manifest validator and inspector
+needed the party exemption (collection-less entities, transport-by-type-id
+endpoints); the instance store's read/mutation route split is the plane
+boundary (party reads §3 through `/api/instances/user|organization`, party
+mutations and the team page keep the feature routes); four pre-existing
+stale specs were repaired in passing (node-spec v4 seam, producer-output
+sync pin, calls components' direct PrimeVue Select imports, app-registry
+v4 effect kinds). `server/features/process-definitions` carries ~24
+pre-existing failures on `local` HEAD (query planning, hydration,
+migrations — `processQueryFilters is not a function` and Mongo-env
+failures) that predate this branch and are not touched here.
+
 ## Text editor fills its pane; markdown artifacts upload and edit (owner direction 2026-10-13)
 
 The text editor collapsed inside a double padded scroll area instead of

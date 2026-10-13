@@ -22,6 +22,25 @@ programming environment, it should be the cleanest and most elegant thing ever s
 operations, architecture, mapping cts to interface, nodes UI/UX: contracts/layouts/etc unified, core behavior tested, all the legacy removed, all architectural inconsistencies cleaned. Nodes represent CTS, ensure anything can be programmed with it. Types created, instances mutated/deleted, fields modified, data structures managed, and so on.
 
 
+## Parties in processes (owner direction 2026-10-13)
+
+Users and organizations are readable process data, never process-mutable
+auth principals. In the designer they bind as instance sources (All, context)
+and as declared relation targets (owner/assignee refs), their declared rows
+(name, email, and the roles derived from the organization's authoritative
+assignments) decompose like any entity, and two run-context sources resolve
+the acting user and the active organization. Reads ride the framework party
+services on the §3 wire DTO with their own scoping and redaction; creating,
+mutating, or deleting parties through a process graph is refused, parties are
+never lineage children, and role identity / user assignment stay organization
+data.
+
+Relation entries may declare a target domain — a boolean expression over the
+target instance (role membership included) — so an assignee picker offers,
+and a write accepts, only instances inside the declared domain. One
+declaration, one evaluator, every surface: pickers project it, the write
+boundary enforces it.
+
 ## UI
 
 All UI is written in raw, unmodified PrimeVue plus the repo's registered

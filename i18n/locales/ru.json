@@ -823,7 +823,8 @@
     "usageStatisticsComingSoon": "Статистика использования проекта еще не реализована.",
     "themeNotImplemented": "Выбор темы еще не реализован.",
     "theme": "Тема",
-    "termsAndConditions": "Условия и положения"
+    "termsAndConditions": "Условия и положения",
+    "roles": "Роли"
   },
   "terms": {
     "title": "Условия и положения",
@@ -2565,6 +2566,8 @@
       "class": "Класс",
       "contextEntity": "Сущность из контекста",
       "allEntities": "Все сущности",
+      "currentUser": "Текущий пользователь",
+      "currentOrganization": "Текущая организация",
       "switchPaths": "Переключить пути",
       "finish": "Завершить",
       "fail": "Ошибка",

@@ -369,6 +369,11 @@ function blockLocalPath(block, path) {
 
 async function executeSource(record, context) {
   if (record.kind === 'source.currentTime') return createDataPacket((context.now || (() => new Date()))().toISOString());
+  // Run-context principals: the execution environment resolves the acting
+  // user and the active organization through the party read adapters —
+  // the graph never sees an author-typed identity.
+  if (record.kind === 'source.currentUser') return createDataPacket(await context.currentUser?.());
+  if (record.kind === 'source.currentOrganization') return createDataPacket(await context.currentOrganization?.());
   if (record.kind === 'source.processInput') return createDataPacket(readPath(context.inputs || {}, record.path), record.access || 'item');
   if (record.kind === 'source.triggerPayload') return createDataPacket(readPath(context.trigger || {}, record.path), record.access || 'item');
   if (record.kind === 'source.secretRef') return createDataPacket({ secretRef: record.secretRef });

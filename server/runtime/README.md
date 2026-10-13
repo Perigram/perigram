@@ -23,7 +23,10 @@ should call `getAppRegistry()`.
   `process_definition`, `entity_revision`), each with explicit
   `processList`/`processGetById` bindings, `processCapabilities`, and
   construction handlers (`artifact` keeps the `uploadArtifact` typed
-  constructor).
+  constructor). The party services' process bindings speak the §3 wire
+  shape with their own membership read gates and the derived
+  `user.roles` row (`party-wire.js` — the single party translation home);
+  party mutation stays on the feature routes.
 - The generic instance-service resolver (SPEC §13 of the CTS spec): every
   type without a framework or pack service resolves to its per-class
   instance service — pack types and org-authored types are executable

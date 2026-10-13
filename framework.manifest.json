@@ -928,6 +928,24 @@
       "collection": "files",
       "lineage": {},
       "type": "sketch"
+    },
+    {
+      "blocks": [
+        "fields"
+      ],
+      "collection": null,
+      "lineage": {},
+      "meta": true,
+      "type": "organization"
+    },
+    {
+      "blocks": [
+        "fields"
+      ],
+      "collection": null,
+      "lineage": {},
+      "meta": true,
+      "type": "user"
     }
   ],
   "name": "perigram-framework",
@@ -1046,6 +1064,16 @@
       "list": null,
       "single": null,
       "type": "sketch"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "organization"
+    },
+    {
+      "list": null,
+      "single": null,
+      "type": "user"
     }
   ],
   "schemaVersion": 1,
