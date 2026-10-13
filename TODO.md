@@ -41,6 +41,16 @@ file-surfaces specs, docs guard — green; audit matrix regenerated
 (inline finding dropped with the `editor-style` prop). Not run:
 Playwright E2E (needs live stack).
 
+### Agent Notes (2026-10-13, editor-rename-apply session)
+
+Session `agent/editor-rename-apply-20261013-160920`, owner feedback:
+"where is apply renaming and save?" — the silent blur/enter commit gave
+the name field no visible verb. An explicit apply control (check,
+secondary text) now rides the name field in both toolbars whenever the
+draft differs from the applied name; enter/apply/blur all commit
+(idempotent). Save keeps its label+icon and stays content-gated — a
+name change alone never creates a content revision.
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection
