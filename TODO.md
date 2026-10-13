@@ -1,5 +1,27 @@
 # TODO
 
+## Text editor fills its pane; markdown artifacts upload and edit (owner direction 2026-10-13)
+
+The text editor collapsed inside a double padded scroll area instead of
+filling its container, and markdown files had no artifact home (`.md`
+uploads rejected, saves forced to `.txt`). After this task the text/csv
+editor pages are flush (the editor owns its shell and scroll) and the
+text attachment kinds accept `.md`/`text/markdown` with the save keeping
+the stored kind. Contracts:
+[components/artifacts/README.md](./components/artifacts/README.md),
+[components/generated/README.md](./components/generated/README.md).
+
+- [x] A. Editor layout: `flush` on the text/csv surface registry rows,
+  carried through `resolveFileSurface` into the derived workspace pages;
+  the PrimeVue editor root grows into its host and its content scrolls
+  inside it.
+- [x] B. Markdown artifacts: `TEXT_FILE`/`TEXT_DOCUMENT` accept `.md` and
+  `text/markdown`; the artifact text persistence keeps the stored
+  extension and mime on save.
+- [ ] WAITING — owner verification on the live stack: a text document
+  fills its pane with one scroll, and a `.md` file uploads and
+  round-trips through the editor.
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection

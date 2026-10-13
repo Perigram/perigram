@@ -82,6 +82,11 @@ not every spreadsheet carries column names, so beside the header-keyed
 data, keyed by spreadsheet column letters (`A`, `B`, …) — and the author
 picks the projection that matches the file.
 
+The text editor fills its container: it opens as a flush workspace page
+and owns its document shell (one toolbar row, the editing surface growing
+into the pane, its own scroll), and markdown files (`.md`, `text/markdown`)
+upload and edit beside plain text — the save keeps the stored kind.
+
 Generated creates enforce their construction contract (owner decision
 2026-10-12): the form prompts the compiled inputs in the flat-wire
 vocabulary the contract speaks, a required input gates the submit, and

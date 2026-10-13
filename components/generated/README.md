@@ -302,7 +302,10 @@ surface keeps the cell-table editor. Both editors take only that
 persistence contract —
 `ArtifactDetail` supplies the artifact-backed adapters for
 `SKETCH`/`TEXT`/`CSV`-kind artifacts, so one editor serves both hosts
-without duplicate editing logic.
+without duplicate editing logic. The text/csv editor pages register as
+`flush` workspace pages: the pane host renders them without its padded
+scroll area because the editor owns its document shell — one scroll,
+inside the editor.
 
 ### File payload previews
 
