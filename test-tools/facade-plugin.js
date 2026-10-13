@@ -8,8 +8,11 @@ export const facadeListing = listing;
 
 export const facadeFileTypes = listing.declarations.types;
 
-// Plugin-service species records — the shape the projected domain composes
-// for installed plugins (plugin-qualified ids, the service is its command).
+// Plugin-service species records for fixture domains: every listing
+// service as a plugin-qualified record (the service is its command). The
+// platform's palette law filters non-record-input services out of the
+// real composition (server/features/plugins service.js, SPEC §20);
+// fixtures that need the palette-exact shape apply the same predicate.
 export const facadeServices = listing.declarations.services.map(service => ({
   id: `plugin.${listing.pluginId}.${service.id}`,
   species: 'service',

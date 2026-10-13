@@ -388,11 +388,25 @@ export async function updateSettings({ organizationId, pluginId, endpoints = {},
 // Service-species records for the projected domain: the palette,
 // compiler, and designer treat them exactly like pack services. The
 // command id and service id are the same plugin-qualified id.
+//
+// Palette law (SPEC §20, "the palette is operations, never an
+// implementation-mechanism catalog"): only wireable services compose —
+// a service whose signature input is a bare value (json, list, …)
+// projects no data sockets (the s-species port projection maps record
+// fields only), so its node could never be fed from a graph. Such
+// services are implementation executors (construction/conversion/export
+// bindings dispatch them by service ref) and stay off the palette.
+function wireableValueService(service = {}) {
+  const input = service.signature?.input;
+  return !input || input.base === 'record';
+}
+
 export async function servicesForOrganization(organizationId) {
   const installs = await repository.listInstallsByOrganization(organizationId);
   const services = [];
   for (const install of installs) {
     for (const service of install.services || []) {
+      if (!wireableValueService(service)) continue;
       const id = `plugin.${install.pluginId}.${service.id}`;
       services.push({
         id,

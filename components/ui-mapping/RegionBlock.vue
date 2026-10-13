@@ -2,7 +2,7 @@
   <div v-if="node.surfaceKind === 'list'" :class="[listStack, 'w-full']">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
+        <i v-if="node.type" :class="iconFor(node.type)" />
         <span :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
@@ -60,7 +60,6 @@
           v-for="action in collectionActions"
           :key="action.id"
           :action="action"
-          :render="node.type?.render"
           :state-policy="node.statePolicy"
           :label="headerActionLabel(action)"
           @run="emitRun"
@@ -195,7 +194,7 @@ import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import {
   LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor, sortControlRows,
-  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges
+  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges, iconFor
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
