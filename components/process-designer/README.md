@@ -417,8 +417,8 @@ Unselected cards are diagram elements; the canvas speaks through wire and
 socket channels, not per-node chrome:
 
 - The per-node `?` affordance is gone — the card header's hover/focus
-  tooltip carries the node spec summary (element type, access,
-  qualifier, description) that the `?` used to surface.
+  tooltip carries the node's socket contract (`Expects`/`Outputs` lines:
+  name — type · access · optional), computed from the real ports.
 - `CtsTypeNode` renders no hint line.
 - Class-card meta rows (scope version tag, editor tag, field/state
   counts) live in the header tooltip, not the card face.

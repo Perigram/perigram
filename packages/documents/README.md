@@ -53,10 +53,12 @@ dialogs prompt a textarea.
 Both carry the output type `list<record>`; column semantics live entirely
 in the graph that reads them (`value.recordField` paths are the authored
 column selection); the projections carry none. The `tableData` palette
-group surfaces both per type: the pack's plugin tab in the process
-designer, where table decomposition and composition drop pre-bound — the
-tab is the vocabulary home for spreadsheet data operations, and nothing
-table-specific may land in the core value groups.
+group surfaces one item per operation — Table rows, Table cells, Text —
+never per-type copies: the dropped node keeps the projection preset and
+binds its type at configure time, the inspector's projection switch the
+single mode selector. The tab is the vocabulary home for spreadsheet
+data operations, and nothing table-specific may land in the core value
+groups.
 
 Both resolve through pack-mounted handlers in
 `server/packs/documents/table-rows.js` (`documents.tableRows` /
