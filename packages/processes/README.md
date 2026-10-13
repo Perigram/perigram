@@ -446,7 +446,12 @@ instead of collapsing onto an arbitrary feature sibling; feature-only
 grants keep legacy feature resolution. Each inferred
 role/entity list screen also gets a paired `entityDetail` screen with the same
 required access and action set, so generated collection names can open an
-entity page through `screen.scope.instanceId`. Inferred list screens carry their own list region so class-level actions
+entity page through `screen.scope.instanceId`. The inferred detail
+screen's child collections (lineage children and parent-bound creates
+the merged hierarchy places under the type) ride as `slot: 'children'`
+regions — the one slot the ui-mapping composer nests, so child
+collections render beside the record instead of below it. Inferred list
+screens carry their own list region so class-level actions
 (the create button) render through the same region mechanism authored
 screens use, and both inferred surfaces are labeled by the entity's
 authored render label — role names and raw type ids never reach screen

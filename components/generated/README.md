@@ -9,12 +9,15 @@ renderer maps those contracts to registered Vue surfaces.
 for the ui-mapping generator: bundle/contract projection, instance-pool
 hydration (`useScreenSourceSync` + source states), process action runs
 (create-open through the workspace-open seam), and runtime state-machine
-transitions. The routed screens page and floating hosts (the shared
-entity popup) render compiled screens through it — the generator surface
+transitions. The routed screens page, the workspace panes, and the mobile
+home tabs all render compiled screens through it — the generator surface
 is never wired twice. Its optional `navigation` prop is the host-injected
 back affordance for the record header (SurfaceHeader's navigation
 channel): the routed screens page feeds it so a detail deep link can
-return to where the user came from.
+return to where the user came from. Instance opens emit
+`{ typeId, instanceId }` to the host consumer — the routed page
+navigates to the compiler-paired detail screen, panes and mobile map it
+to their own open seams.
 
 Every organization management surface — team, partners, billing, the
 plugin marketplace, and the process designer canvas — is a registered
@@ -370,8 +373,8 @@ from the compiled manifest.
   tree's root types; the bar replaces the previous in-workspace strip
   (user-added tabs and a home tab are disabled while the migration
   settles, chats stays the bar's route tab). A type tab renders through
-  `GeneratedTypeScreen` (the
-  same generator contract as the desktop panes); instance opens on
+  `GeneratedScreenHost` (the
+  same generator host the desktop panes and the routed page use); instance opens on
   mobile follow the routed surface contract: the compiled detail screen
   route. Types with no compiled detail screen but a registered
   entity-bound workspace page (`user`, `organization` — the directory
@@ -506,9 +509,9 @@ from the compiled manifest.
   surface — cassette designer, sheet layout editor, sketch, text/csv,
   table import — plus chats and calls), and screen panes
   (`GeneratedScreenPane`): type
-  screens through the shared type host, instance-bound detail screens
-  through the detail host (`GeneratedDetailScreen`) with the instance id
-  in the screen scope. The artifact detail overload keeps the legacy
+  screens and instance-bound detail screens both render through
+  `GeneratedScreenHost` — the single generator host, with the instance id
+  in the screen scope for detail panes. The artifact detail overload keeps the legacy
   renderer inside the pane, exactly like
   the routed page. There is no Explorer header or project
   action strip; collection creation belongs to sidebar sections and

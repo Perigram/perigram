@@ -169,7 +169,8 @@ strings → Textarea, payload blobs → FileUpload, and `record`/`variant`/
 heterogeneous `list` → recursive structural editors. Display variants resolve
 read-only presentations (`enum` → Tag, `ref` → InstanceChip, `quantity` →
 QuantityText, `blob` → FileChip). Spans are `'full' | 'half'`; the layout is
-a dumb responsive grid that consumes spans. Dense rows bound their field
+a dumb responsive grid that consumes spans (the container-relative
+`.ck-form-grid`; see Chrome below). Dense rows bound their field
 count through the same budget mechanism (`ROW_FIELD_BUDGET`).
 
 ### Instance shape and list controls
@@ -374,25 +375,26 @@ shared semantics for surfaces that sort or page without PrimeVue.
 
 Presentation context is tree-owned: every composed region node carries
 `chrome` (`resolveChrome` of its container role by depth — top regions are
-sections, nested regions are cards) plus its `level`, so materializations
+sections, nested regions are cards) plus its `level` — real tree depth:
+every top-level region sits at level 0, and the record-page treatment
+follows surface kind, never array position — so materializations
 style themselves from their position in the hierarchy instead of guessing.
 Sibling arrangement is weight-driven and compose-time: `estimateRegionWeight`
 estimates each region's full rendered height from its own data — facts,
 structural fields, and relation refs for detail regions; per-layout row
 factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4 table rows, a board
-card ≈ 4, a timeline entry ≈ 2) times actual instance counts for lists,
+card ≈ 4, a carousel card ≈ 3, a timeline entry ≈ 2) times actual
+instance counts for lists (with the same size classes the materialization
+derives, so the weighted layout is the rendered layout),
 plus the wrapped
 relation-chip rows the first declared relation adds, with no sampling
 cap —
 and `childrenModeFor` stacks siblings until their combined weight exceeds
 `SURFACE_ROW_BUDGET`, then arranges them into tabs at the top level. Never
-measured from the DOM. The screen's total weight also picks its density
-(`screenDensityFor(totalWeight, bias)` → `DENSITY.compact | regular`;
-the bias shifts the classification threshold and never overrides the
-outcome). One global spacing coefficient (0.5–2, the showcase slider)
+measured from the DOM. One global spacing coefficient (0.5–2, the showcase slider)
 selects the rhythm set (`spacingClasses` over the literal
 `SPACING_SCALES` table): stack rhythm, section gaps, fact-row padding,
-chip-row leading, toolbar gaps, facts-grid gutters, control size, and
+chip-row leading, toolbar gaps, control size, and
 editor size
 move together — real coefficients, Tailwind-scannable by construction. The rule binds everywhere siblings exist: composed screens carry
 `regionsMode` for their top-level regions (a heavy home tabs its
@@ -402,16 +404,22 @@ regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
 scale are data too. Widths stay in
 the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item
 tokens) and card grids run through the shared `ResponsiveGrid` primitive
-(container queries), never viewport breakpoints inside panels. Record
-headers are container-relative the same way, but through scoped CSS in
-`SurfaceHeader` (the `ResponsiveGrid` pattern), never Tailwind variants —
-the tailwindcss build ships no container-queries plugin, so
-`@container`/`@[w]:` classes silently compile to nothing. The header bar
-declares its own `container-type`; wide headers lay identity and actions
-on one wrapping row with a 16rem title floor (long names still truncate
-through the `min-w-0` chain), narrow headers stack — with at most
+(container queries), never viewport breakpoints inside panels.
+Container-relative layout that Tailwind variants cannot express (the
+build ships no container-queries plugin, so `@container`/`@[w]:` classes
+silently compile to nothing) lives in real CSS through three sanctioned
+homes: record headers (scoped CSS in `SurfaceHeader`, which declares its
+own `container-type`; wide headers lay identity and actions on one
+wrapping row with a 16rem title floor — long names still truncate
+through the `min-w-0` chain — narrow headers stack, with at most
 `HEADER_ACTIONS_INLINE` generated buttons inline before the ellipsis
-overflow menu.
+overflow menu), the record page's detail split (scoped CSS in
+`RegionBlock`: header plus main content stack under 60rem of container
+width — panes, dialogs, narrow columns — and engage the 7/5 side column
+where child regions render beside the record), and the form grid
+(`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
+`assets/css/main.css`: one column under 40rem of container width, two
+above; full-span rows opt in with `.ck-span-full`).
 
 ## Composition
 
@@ -446,7 +454,13 @@ regions to surface kinds (detail main regions at `full`, nested detail at
 action records, the per-region `dataState` (see Data states), the
 `listControls` contract for list regions (see Instance shape and list
 controls), the per-type `statePolicy` map off the contract (see State
-display), and nested child regions. `buildInstancePool(instances)`
+display), and nested child regions. Region nesting is slot-driven and
+matches the compiler's emission: regions with `slot: 'children'` (the
+child collections inferred detail screens carry) nest under every
+top-level region — the detail record page renders them in its side
+column, and their relation keys cover the detail body's relation chips —
+while every other slot composes top-level at depth 0.
+`buildInstancePool(instances)`
 normalizes instance groups into the `{ type -> { id -> instance } }` pool
 the data layer stands in with. The region tree is frozen, pure, and what
 [components/ui-mapping](../../components/ui-mapping/README.md)
