@@ -32,6 +32,14 @@ function declaredMappingsCover(plan, statuses = []) {
     )
   );
 }
+
+// The type-death 409 payload: h3's createError nests its `data` one level
+// deep in the ofetch error body (the same nesting as the migration plan —
+// `error.data.data.*`), while some transports hand the payload over
+// already unwrapped. One extraction for every death-gate catch.
+export function typeDeathOf(error) {
+  return error?.data?.data?.typeDeath || error?.data?.typeDeath || null;
+}
 export function useProcessDesignerApply({
   persistence,
   t,
@@ -160,8 +168,9 @@ export function useProcessDesignerApply({
     } catch (error) {
       // Type lifetime (cts SPEC §4): the apply that orphans types pauses
       // with the death disclaimer; confirming retries with consent.
-      if (error?.data?.typeDeath?.length) {
-        pendingTypeDeath.value = { typeDeath: error.data.typeDeath, onConfirm: confirmTypeDeath };
+      const death = typeDeathOf(error);
+      if (death?.length) {
+        pendingTypeDeath.value = { typeDeath: death, onConfirm: confirmTypeDeath };
         return null;
       }
       throw error;
@@ -176,9 +185,10 @@ export function useProcessDesignerApply({
       pendingTypeDeath.value = null;
       return completeActivation(activated);
     } catch (error) {
-      if (error?.data?.typeDeath?.length) {
+      const death = typeDeathOf(error);
+      if (death?.length) {
         // Live counts drifted since the pause: refresh the disclaimer.
-        pendingTypeDeath.value = { typeDeath: error.data.typeDeath, onConfirm: confirmTypeDeath };
+        pendingTypeDeath.value = { typeDeath: death, onConfirm: confirmTypeDeath };
         return null;
       }
       reportApplyError(error);
