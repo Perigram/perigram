@@ -174,26 +174,25 @@ FieldType ::= any V production without Ref
 Naming is vocabulary, not rendering. Every type declares `name` — the
 required, only user-plane identifier — and may declare `glyph` (an icon id
 such as `'pi pi-box'`; the class default table is the compiled fallback).
-Field descriptors carry the naming facet alongside their type: `label?`
-(display label), `display?` (a value format kind — text/number/code/email/
-phone/date/area/percent/dimensions/parameterMap/count/geometry/entityRef/
-entityRefList — passed through verbatim, not validated here), and
-`control?` (an edit-widget pin consumed by editor variants). Two closed
-boolean flags mark display roles: `identifier?: true` on exactly one
-field (the record's name source — the unnamed placeholder means "the
-identifier field's value is null" and nothing else) and `depiction?: true`
-on at most one field (its visual thumbnail source). When no field carries
-the identifier flag, normalization MINTS one: the first declared
-`string`-based field is flagged once, at the boundary, and the mint
-persists — later field additions never shift it; an explicit flag is the
-authored deviation and always wins. A SYSTEM type with no flag and no
-string field is a compile error (the data is ours to fix); an ORG type
-in the same state stays compiled and served with `identifier: null` —
-its records display the unnamed placeholder, the visible authoring
-prompt — because a display-law gap must never eject a type from the view
-and cascade "unknown type" through every process bound to it. Two or
-more of either flag is a compile error naming the fields; a system type
-without a name is a compile error naming the type id.
+A missing `name` is a compile error reported through the standard channel
+(the write gate and designer diagnostics); the view stays served — reads
+never refuse. Field descriptors carry the naming facet alongside their
+type: `label?` (display label), `display?` (a value format kind — text/
+number/code/email/phone/date/area/percent/dimensions/parameterMap/count/
+geometry/entityRef/entityRefList — passed through verbatim, not validated
+here), and `control?` (an edit-widget pin consumed by editor variants).
+Two closed boolean flags mark display roles: `identifier?: true` on
+exactly one field (the record's name source — the unnamed placeholder
+means "the identifier field's value is null" and nothing else) and
+`depiction?: true` on at most one field (its visual thumbnail source).
+Identifier totality: when no field carries the flag, normalization MINTS
+one — the first declared `string`-based field is flagged once, at the
+boundary, and the mint persists; a type with no string field at all gets
+a nullable `name` row minted and flagged (first free of `name`/`title`/
+`label`). Unnameable types are unrepresentable at every scope: explicit
+flags remain the authored deviation and always win, later field additions
+never shift a mint, and two or more of either flag is a compile error
+naming the fields.
 
 There is no `render` facet on types. Identity, grouping, list layout, and
 default sort are not declaration concerns: display grouping derives from
@@ -221,7 +220,8 @@ declarations whose only name carrier was the id adopt `startCase(id)` —
 engineer-authored ids, adopted once at the boundary (the opaque-id law
 forbids startCase(id) as a served default; this is a migration, not a
 default). Org-stored declarations with neither carrier keep `name: null`
-and serve "Unnamed". `render.groups`, `render.listLayout`,
+served (reads never refuse) and carry the compile error until authored.
+`render.groups`, `render.listLayout`,
 `render.sortKey`, and the descriptor `priority`/`surfaces` keys are
 dropped — derivation replaces them.
 
