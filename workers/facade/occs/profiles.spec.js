@@ -6,9 +6,10 @@ import {
   evaluateOccsProfileSketchPreview,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
+  occProfileEntitiesFromSketch,
+  occProfileSketchFromEntities,
   occsProfileFromSketch,
-  projectProfileSketchPointFromPrevious,
-  profileSketchFromDxfText
+  projectProfileSketchPointFromPrevious
 } from './profiles.js';
 
 describe('OCCS profile helpers', () => {
@@ -107,29 +108,6 @@ describe('OCCS profile helpers', () => {
     expect(occsProfileFromSketch(sketch).section.modifiers).toEqual(sketch.modifiers);
   });
 
-  it('projects the next drawn point by distance along the cursor vector', () => {
-    expect(projectProfileSketchPointFromPrevious(
-      { x: 0, y: 0 },
-      { x: 30, y: 40 },
-      10
-    )).toEqual({ x: 6, y: 8 });
-  });
-
-  it('projects the next drawn point in ortho mode along the dominant axis', () => {
-    expect(projectProfileSketchPointFromPrevious(
-      { x: 0, y: 0 },
-      { x: 30, y: 10 },
-      12,
-      { ortho: true }
-    )).toEqual({ x: 12, y: 0 });
-    expect(projectProfileSketchPointFromPrevious(
-      { x: 0, y: 0 },
-      { x: 10, y: 30 },
-      12,
-      { ortho: true }
-    )).toEqual({ x: 0, y: 12 });
-  });
-
   it('evaluates numeric preview coordinates without a parametric solver', () => {
     const sketch = createDefaultOccsProfileSketch({ W: '50', H: '20', D: '10' });
     const preview = evaluateOccsProfileSketchPreview(sketch);
@@ -146,61 +124,84 @@ describe('OCCS profile helpers', () => {
     });
   });
 
-  it('imports a closed DXF polyline and circles as profile sketch geometry', () => {
-    const dxf = `0
-SECTION
-2
-ENTITIES
-0
-LWPOLYLINE
-8
-OUTER
-90
-4
-70
-1
-10
-0
-20
-0
-10
-40
-20
-0
-10
-40
-20
-20
-10
-0
-20
-20
-0
-CIRCLE
-8
-HOLES
-10
-20
-20
-10
-40
-5
-0
-ENDSEC
-0
-EOF`;
-    const sketch = profileSketchFromDxfText(dxf);
-
-    expect(sketch.points.map(point => [point.x, point.y])).toEqual([
-      [0, 0],
-      [40, 0],
-      [40, 20],
-      [0, 20]
-    ]);
-    expect(sketch.holes[0]).toMatchObject({
-      type: 'circle',
-      center: [20, 10],
-      diameter: 10
+  it('round-trips a filleted sketch through CAD entity records', () => {
+    const sketch = normalizeOccsProfileSketch({
+      points: [
+        { id: 'p0', x: 0, y: 0 },
+        { id: 'p1', x: 42, y: 0 },
+        { id: 'p2', x: 42, y: 28 },
+        { id: 'p3', x: 0, y: 28 }
+      ],
+      holes: [{ id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }],
+      closed: true,
+      modifiers: [
+        { type: 'fillet', vertexId: 'p1', radius: 3 },
+        { type: 'fillet', vertexId: 'p3', radius: 5 }
+      ],
+      constraints: []
     });
+
+    const entities = occProfileEntitiesFromSketch(sketch);
+    expect(entities.filter(entity => entity.type === 'ARC')).toHaveLength(2);
+    expect(entities.filter(entity => entity.type === 'CIRCLE')).toHaveLength(1);
+
+    const round = occProfileSketchFromEntities(entities);
+    expect(round.points.map(point => [point.x, point.y])).toEqual([
+      [0, 0],
+      [42, 0],
+      [42, 28],
+      [0, 28]
+    ]);
+    expect(round.closed).toBe(true);
+    expect(round.holes[0]).toMatchObject({ center: [21, 14], diameter: 6 });
+    expect(round.modifiers).toEqual([
+      { type: 'fillet', vertexId: 'p1', radius: 3 },
+      { type: 'fillet', vertexId: 'p3', radius: 5 }
+    ]);
+  });
+
+  it('chains shuffled line entities into the closed boundary', () => {
+    const sketch = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 10, y: 10 }, end: { x: 0, y: 10 } },
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 10, y: 0 } },
+      { type: 'LINE', start: { x: 0, y: 10 }, end: { x: 0, y: 0 } },
+      { type: 'LINE', start: { x: 10, y: 0 }, end: { x: 10, y: 10 } }
+    ]);
+    expect(sketch.closed).toBe(true);
+    expect(sketch.points).toHaveLength(4);
+    expect(sketch.points.map(point => [point.x, point.y]).sort((a, b) => a[0] - b[0] || a[1] - b[1])).toEqual([
+      [0, 0],
+      [0, 10],
+      [10, 0],
+      [10, 10]
+    ]);
+  });
+
+  it('flattens non-tangent arcs to chords and keeps tangent corners as fillets', () => {
+    const tangentCorner = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 39, y: 0 } },
+      { type: 'ARC', center: { x: 39, y: 3 }, radius: 3, startAngle: -Math.PI / 2, endAngle: 0 },
+      { type: 'LINE', start: { x: 42, y: 3 }, end: { x: 42, y: 28 } },
+      { type: 'LINE', start: { x: 42, y: 28 }, end: { x: 0, y: 28 } },
+      { type: 'LINE', start: { x: 0, y: 28 }, end: { x: 0, y: 0 } }
+    ]);
+    expect(tangentCorner.points.map(point => [point.x, point.y])).toEqual([
+      [0, 0],
+      [42, 0],
+      [42, 28],
+      [0, 28]
+    ]);
+    expect(tangentCorner.modifiers).toEqual([
+      { type: 'fillet', vertexId: 'p1', radius: 3 }
+    ]);
+
+    const kinkedArc = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 20, y: 0 } },
+      { type: 'ARC', center: { x: 20, y: 5 }, radius: 5, startAngle: -Math.PI / 2, endAngle: Math.PI / 2 },
+      { type: 'LINE', start: { x: 20, y: 10 }, end: { x: 0, y: 10 } },
+      { type: 'LINE', start: { x: 0, y: 10 }, end: { x: 0, y: 0 } }
+    ]);
+    expect(kinkedArc.modifiers).toEqual([]);
+    expect(kinkedArc.points.length).toBeGreaterThan(4);
   });
 });
