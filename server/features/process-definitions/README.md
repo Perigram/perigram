@@ -31,6 +31,26 @@ OTHER active definitions. The active set is queried from the
 definitions collection (`findActiveSetByOrganization`); `/active`
 returns the most recently activated definition for boot convenience.
 
+**Type lifetime** (cts SPEC §4, owner decision 2026-10-13): an org type
+lives while any stored definition's current graph declares it — active,
+draft, or turned off. Two gates pause on the same disclaimer
+(`data.typeDeath`, one row per dying type with its authored name and
+live instance count; the designer renders `TypeDeathDialog`):
+
+- **Activation**: the apply that orphans types fails with HTTP 409
+  unless the request carries `confirmTypeDeath: true`; the confirmed
+  retry kills each orphan WITH its data (declaration, instances, status
+  history, stored files — the executor is
+  [cts-types lifetime](../cts-types/README.md)) before compiling.
+- **Definition deletion** (`DELETE /api/process-definitions/:id`): types
+  declared only by the deleted definition die the same way — the
+  unconfirmed delete returns the 409 disclaimer, the confirmed retry
+  (`confirmTypeDeath: true`) cascades and then removes the definition.
+
+Turned-off definitions and version-history snapshots retain their data
+and declaration copies; the runtime (hydration, screens, navigation)
+is dictated by the ACTIVE definitions only.
+
 Validation and activation also produce the semantic Apply diff against the
 organization's current active definition. Both sides are recompiled from their
 canonical authored records (never the inspection-only stored `compiled`

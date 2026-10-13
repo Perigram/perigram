@@ -110,6 +110,13 @@ record access, roles, screens, and panel state:
   [server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)
   and the refusal payload contract in
   [server/features/cts-types/README.md](../../server/features/cts-types/README.md)).
+- The type-lifetime disclaimer (`TypeDeathDialog.vue`): an Apply that
+  orphans types (`pendingTypeDeath`) and a definition deletion whose
+  types no other stored definition declares (`pendingDefinitionDeath`,
+  page-owned) both pause on one dialog naming each dying type by its
+  authored name with its live record count; confirming retries with
+  `confirmTypeDeath` — nothing dies without the author's consent (cts
+  SPEC §4, owner decision 2026-10-13).
 - `utils/processDesignerAccess.js` (grant-row normalization),
   `utils/processDesignerPaletteText.js` (localized palette labels),
   `utils/processDesignerCommandPorts.js` (pure command-contract → port-row
