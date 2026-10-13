@@ -1,5 +1,41 @@
 # TODO
 
+## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
+
+Not every xlsx/csv table carries column names; the `rows` projection
+assumes a header and silently consumes the first data row on headerless
+sheets. Beside it, the documents pack declares a positional projection:
+every row is data, keyed by spreadsheet column letters (`A`, `B`, …), so
+`Record field` path `A` is the positional column read. The author picks
+the projection that matches the file — no heuristics. Contracts:
+[packages/documents/README.md](./packages/documents/README.md).
+
+- [x] A. `cells` projection declared on `csv-table` and `xlsx-workbook`
+  (`tableData` tab), one shared payload parse in the pack handler with
+  header-keyed and positional converters, `documents.tableCells` bound in
+  the mount.
+- [ ] WAITING — owner verification on the live stack: a headerless
+  workbook's first row arrives as data with `A`/`B` keys; a headered one
+  still reads through `rows`.
+
+### Agent Notes (2026-10-13, table-cells session)
+
+Session `agent/table-cells-20261013`. `table-rows.js` now exports one
+shared `sheetMatrix` loader plus pure converters (`recordsByHeader`,
+`recordsByPosition`, `columnLetter` — 0→A, 26→AA); `tableCells` returns
+every non-empty row as data with letter keys, `tableRows` unchanged in
+shape. Contradiction found and reconciled while pinning specs: the README
+claimed "numeric-looking cells stay strings", but the parse (measured:
+`XLSX.read` + `sheet_to_json` default) yields numbers — the README now
+documents the honest passthrough (casting/formatting stay value-layer
+authoring). The rows-downstream note also gained the single-cell idiom
+(column-first `recordField` → `itemAt`; `itemAt` on rows returns the row
+record, which `recordField` accepts as a one-item broadcast).
+
+Validation: `packages/documents` + `server/packs` (19), `packages/processes`
++ `packages/cts` (553), `check-arch`, `check-docs` — green. Not run:
+Playwright E2E (needs the live dev stack).
+
 ## Documents content both ways: `content` creation protocol + CSV composition (owner direction 2026-10-13)
 
 The documents pack's content must be usable end to end: text documents and

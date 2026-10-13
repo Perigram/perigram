@@ -6,20 +6,32 @@
 
 const MB = 1024 * 1024;
 
-// The table types' declared projection (SPEC §8 p extract): instance →
-// header-keyed row records. Resolve is the pack-mounted
-// `documents.tableRows` handler (payload parse); column semantics are the
-// reading graph's authoring. The `tableData` group is the pack's palette
-// section: the plugin-tab law — xlsx/csv decomposition, composition, and
+// The table types' declared projections (SPEC §8 p extract): instance →
+// row records. Resolve is the pack-mounted handler pair in
+// `server/packs/documents/table-rows.js` (payload parse; header-keyed or
+// positional conversion); column semantics are the reading graph's
+// authoring. The `tableData` group is the pack's palette section: the
+// plugin-tab law — xlsx/csv table decomposition, composition, and
 // management of TABLE data live in their own tab, like a Grasshopper
 // plugin's component category.
-const rowsProjection = Object.freeze([{
+const rowsProjection = {
   id: 'rows',
   label: 'Table rows',
   group: 'tableData',
   output: { base: 'list', itemType: { base: 'record' } },
   resolve: { handler: 'documents.tableRows' }
-}]);
+};
+// The positional twin for sheets without column names: every row is data,
+// keys are spreadsheet column letters (`A`, `B`, …) — `Record field` path
+// `A` is the positional column read.
+const cellsProjection = {
+  id: 'cells',
+  label: 'Table cells (positional)',
+  group: 'tableData',
+  output: { base: 'list', itemType: { base: 'record' } },
+  resolve: { handler: 'documents.tableCells' }
+};
+const tableProjections = Object.freeze([rowsProjection, cellsProjection]);
 
 function documentType({ id, mime, accept, maxSize, preview, glyph, name, revisions = null, creation = null, projections = null }) {
   return Object.freeze({
@@ -76,7 +88,7 @@ export const documentsTypes = Object.freeze([
     name: 'CSV table',
     revisions: 'content',
     creation: ['editor', 'content'],
-    projections: rowsProjection
+    projections: tableProjections
   }),
   documentType({
     id: 'xlsx-workbook',
@@ -87,7 +99,7 @@ export const documentsTypes = Object.freeze([
     glyph: 'pi pi-file-excel',
     name: 'XLSX workbook',
     creation: ['upload'],
-    projections: rowsProjection
+    projections: tableProjections
   }),
   documentType({
     id: 'docx-document',

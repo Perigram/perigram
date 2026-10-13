@@ -5,7 +5,7 @@
 // value-service command (SPEC §8 s species): rows back into CSV text.
 // Declaration data lives in `packages/documents`; browser-safe.
 import { documentsCommands } from '#packages/documents/src/index.js';
-import { tableRows } from './projections/table-rows.js';
+import { tableRows, tableCells } from './projections/table-rows.js';
 import { csvText } from './value-services/csv-text.js';
 
 export const documentsPack = {
@@ -13,7 +13,8 @@ export const documentsPack = {
   label: 'Documents',
   domain: { id: 'documents', label: 'Documents', commands: documentsCommands },
   projectionHandlers: {
-    'documents.tableRows': tableRows
+    'documents.tableRows': tableRows,
+    'documents.tableCells': tableCells
   },
   commandHandlers: {
     'documents.csvText': async ({ parameters }) => csvText(parameters.rows)

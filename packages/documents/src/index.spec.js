@@ -77,6 +77,18 @@ describe('documents pack declarations', () => {
     }
   });
 
+  it('declares the header-keyed and positional decompositions on both table types', () => {
+    const projections = typeId => (documentsTypes.find(type => type.id === typeId).projections || []);
+    for (const typeId of ['csv-table', 'xlsx-workbook']) {
+      expect(projections(typeId).map(projection => projection.id)).toEqual(['rows', 'cells']);
+      expect(projections(typeId).every(projection => projection.group === 'tableData'
+        && projection.resolve.handler
+        && projection.output.itemType.base === 'record')).toBe(true);
+    }
+    expect(projections('csv-table')[1].resolve.handler).toBe('documents.tableCells');
+    expect(projections('text-document').length).toBe(0);
+  });
+
   it('declares the csvText composition service with its command and tableData group', () => {
     expect(documentsServices).toEqual([{
       id: 'documents.csvText',
