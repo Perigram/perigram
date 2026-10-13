@@ -308,11 +308,43 @@ const sections = computed(() => props.screen.regions
       rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.typeId && shouldRenderHomeSection(section)));
+  .filter(section => section.source.typeId && shouldRenderHomeSection(section))
+  // A sectioned type that contains ITSELF keeps only root rows: children
+  // of loaded instances nest under their parents (entityNode), never
+  // beside them. The compiled-binding walk above already roots such
+  // children out when the graph wired the recursion; declared
+  // self-containment (org children edges) contributes no compiled
+  // binding, so the same cut runs here over the merged containment the
+  // nesting itself reads.
+  .map(section => (selfContainmentKeys(section.source.typeId).length
+    ? { ...section, items: rootSectionItems(section) }
+    : section)));
 
 const sectionItems = computed(() => sections.value.flatMap(section => section.items
   .filter(entity => instanceId(entity))
   .map(entity => workspaceEntityItem(section.source.typeId, entity))));
+
+// Self-containment edges of one type (the merged view the nesting reads).
+function selfContainmentKeys(typeId = '') {
+  const normalized = normalizeHierarchyType(typeId);
+  return [...new Set(effectiveContainment()
+    .filter(relation => relation.parentType === relation.childType
+      && normalizeHierarchyType(relation.childType) === normalized
+      && relation.lineageKey)
+    .map(relation => relation.lineageKey))];
+}
+
+// Root rows of a self-recursive section: an item whose parent ref (through
+// the self edges, both stored ref shapes) points at another loaded item of
+// the same section is a child — it nests under its parent, never lists
+// beside it.
+function rootSectionItems(section) {
+  const keys = selfContainmentKeys(section.source.typeId);
+  const loadedIds = new Set((section.rawItems || section.items || [])
+    .map(entity => instanceId(entity)).filter(Boolean));
+  return (section.items || []).filter(entity => !keys
+    .some(key => loadedIds.has(String(entity?.lineage?.[key]?.id ?? entity?.lineage?.[key] ?? ''))));
+}
 const workspaceEntityItems = computed(() => [...sectionItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
@@ -419,7 +451,8 @@ const childrenByKey = computed(() => {
   const children = new Map();
   for (const item of workspaceEntityItems.value) {
     const parent = containmentParent(item.type, item.entity?.lineage || {}, containment);
-    const parentId = parent && item.entity?.lineage?.[parent.lineageKey];
+    const parentRef = parent && item.entity?.lineage?.[parent.lineageKey];
+    const parentId = parentRef?.id ?? parentRef;
     const parentItem = parentId ? byIdentity.get(`${normalizeHierarchyType(parent.parentType)}:${String(parentId)}`) : null;
     if (!parentItem || parentItem.key === item.key) continue;
     if (sectionRootKeys.value.has(item.key)) continue;

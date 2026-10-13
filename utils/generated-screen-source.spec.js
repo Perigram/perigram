@@ -32,6 +32,44 @@ describe('generated screen root sources', () => {
     )).toEqual([child]);
   });
 
+  // The instance store normalizes every lineage ref to the `{ id }`
+  // object shape (dtoToScreenInstance); a reader that String()s the raw
+  // slot turns the ref into "[object Object]" and never matches a loaded
+  // parent — recursive children then stay in the home section's top-level
+  // rows beside their nested copies.
+  it('filters recursive children whose parent refs ride the { id } object shape', () => {
+    const parent = { _id: 'folder-1', lineage: {} };
+    const child = { _id: 'folder-2', lineage: { folderId: { id: 'folder-1' } } };
+    const grandchild = { _id: 'folder-3', lineage: { folderId: { type: 'folder', id: 'folder-2' } } };
+    expect(filterRootSourceItems(
+      [parent, child, grandchild],
+      { typeId: 'folder', lineageBindings: bindings(['folder', 'folder', 'folderId']) },
+      { folders: { source: { typeId: 'folder', mode: 'list' }, items: [parent, child, grandchild] } }
+    )).toEqual([parent]);
+  });
+
+  it('keeps an object-ref child whose parent is not loaded (root of the loaded view)', () => {
+    const child = { _id: 'folder-9', lineage: { folderId: { id: 'unloaded-folder' } } };
+    expect(filterRootSourceItems(
+      [child],
+      { typeId: 'folder', lineageBindings: bindings(['folder', 'folder', 'folderId']) },
+      { folders: { source: { typeId: 'folder', mode: 'list' }, items: [child] } }
+    )).toEqual([child]);
+  });
+
+  it('filters cross-type children whose parent ref rides the object shape', () => {
+    const project = { _id: 'project-1', lineage: {} };
+    const queue = { _id: 'queue-1', lineage: { projectId: { id: 'project-1' } } };
+    expect(filterRootSourceItems(
+      [queue],
+      { typeId: 'queue', lineageBindings: bindings(['project', 'queue', 'projectId']) },
+      {
+        projects: { source: { typeId: 'project', mode: 'list' }, items: [project] },
+        queues: { source: { typeId: 'queue', mode: 'list' }, items: [queue] }
+      }
+    )).toEqual([]);
+  });
+
   it('derives containment for already-compiled home manifests without root lineage keys', () => {
     const project = { _id: 'project-1', lineage: { organizationId: 'org-1' } };
     const queue = { _id: 'queue-1', lineage: { organizationId: 'org-1', projectId: 'project-1' } };

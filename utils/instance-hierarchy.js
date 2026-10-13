@@ -42,7 +42,10 @@ export function containmentAncestors(entity = {}, typeId = '', containment = [])
   while (childType) {
     const relation = containmentParent(childType, lineage, containment);
     if (!relation) break;
-    const id = lineage[relation.lineageKey]?.toString?.() || lineage[relation.lineageKey];
+    const ref = lineage[relation.lineageKey];
+    // Refs match in both stored shapes (the `{ id }` object and the
+    // normalized id) — the same law every containment matcher reads.
+    const id = ref?.id ?? ref;
     const parentType = normalizeHierarchyType(relation.parentType);
     const key = `${parentType}:${id}`;
     if (!id || visited.has(key)) break;
@@ -51,8 +54,9 @@ export function containmentAncestors(entity = {}, typeId = '', containment = [])
     childType = parentType;
   }
 
-  const organizationId = lineage.organizationId?.toString?.() || lineage.organizationId;
-  if (organizationId && !refs.some(ref => ref.type === 'organization' && ref.id?.toString() === organizationId.toString())) {
+  const organizationRef = lineage.organizationId;
+  const organizationId = organizationRef?.id ?? organizationRef;
+  if (organizationId && !refs.some(ref => ref.type === 'organization' && ref.id?.toString() === String(organizationId))) {
     refs.unshift({ type: 'organization', id: organizationId, lineageKey: 'organizationId' });
   }
   return refs;
