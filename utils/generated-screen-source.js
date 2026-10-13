@@ -85,7 +85,10 @@ function ancestorRefs(entity = {}, typeId = '', lineageBindings = []) {
     const childType = pendingTypes.shift();
     for (const binding of lineageBindings || []) {
       if (normalizeType(binding.childTypeId) !== childType) continue;
-      const parentId = lineage[binding.lineageKey];
+      // Refs match in both stored shapes (the `{ id }` object and the
+      // normalized id) — the same law every containment matcher reads.
+      const ref = lineage[binding.lineageKey];
+      const parentId = ref?.id ?? ref;
       const parentType = normalizeType(binding.parentTypeId);
       if (parentType === 'organization' || parentId === undefined || parentId === null || parentId === '') continue;
       refs.push({ type: parentType, id: String(parentId) });

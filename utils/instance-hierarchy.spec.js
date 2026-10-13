@@ -36,6 +36,23 @@ describe('entity containment hierarchy', () => {
     ]);
   });
 
+  // The instance store normalizes lineage refs to `{ id }` objects; the
+  // ancestor walk must unwrap them or every hop beyond the first turns
+  // into "[object Object]" and the trace chain dies.
+  it('resolves ancestry when lineage refs ride the { id } object shape', () => {
+    const entity = {
+      _id: 'queue-9',
+      lineage: {
+        organizationId: { id: 'org-9' },
+        projectId: { type: 'project', id: 'project-9' }
+      }
+    };
+    expect(containmentAncestors(entity, 'queue', lineageBindings)).toEqual([
+      { type: 'organization', id: 'org-9', lineageKey: 'organizationId' },
+      { type: 'project', id: 'project-9', lineageKey: 'projectId' }
+    ]);
+  });
+
   it('keeps unrelated entity relations out of ancestry and root filtering', () => {
     const project = {
       lineage: { organizationId: 'org-1' },
