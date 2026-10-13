@@ -300,6 +300,11 @@ declared data ports before reading or evaluating it. A sole data output is the
 canonical source when an edge uses the node-level handle. Trigger and effect
 outputs are read only from the token's emitted-value cache; operational nodes
 are never dispatched through the pure data/read evaluator.
+Mutation effects fan out per aligned item (continue-and-collect, one
+invocation each); an invocation whose input carries a missing-field marker
+(an upstream path read matched nothing) fails before the handler with the
+input id and the authored path named — a marker never reaches an effect
+handler.
 For the manually started operational node, an explicit run input is authoritative
 for its matching port and the connected data edge is only the fallback. This is
 how an embedded relation creator consumes the entity selected in its generated

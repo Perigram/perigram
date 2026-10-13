@@ -83,6 +83,24 @@ identically on pristine base `local`, pre-existing), `packages/processes`
 green. Not run: Playwright E2E (needs the live dev stack serving this
 code).
 
+### Agent Notes (2026-10-13, missing-effect-input diagnostics)
+
+Session `agent/missing-input-diag`. Live report: `Creation protocol
+content requires a text body` ×8 on an event-triggered text-document
+construct. Inspected the live graph: `rows` extract → `Record field`
+path `A` → content construct — the sheet HAS headers
+(Category/Budget/Actual/Variance, 8 data rows), so key `A` matched
+nothing and every item arrived as a missing marker, which the handler
+rejected cryptically. The nodes work; the graph addresses a key the
+projection never emits (positional reads need the `cells` projection).
+Fix at the choke point: `executeProcessEffectNode` refuses a
+marker-carrying invocation before the handler, naming the input id and
+the authored path (`cts.construct input 'content' received a missing
+value (nothing at path 'A')`) — one guard for all mutation kinds, good
+items still complete. Contract homed in the processes README (durable
+orchestration). Validation: `packages/processes` (473), `check-arch`,
+`check-docs` — green.
+
 ## Editor creates defer to the first save (owner decision 2026-10-12, live-stack report)
 
 Report: creating a cassette "gets created immediately, not after save",
