@@ -411,11 +411,13 @@ from the compiled manifest.
 - Entity navigation is a raw default `PanelMenu` — no item slot, default
   rows, `multiple` panels open — one panel per top-level type from the
   same TYPE hierarchy the render contracts declare: registry containment
-  (declared children edges) nests types under their parents,
-  manifest-backed types plus their ancestors render as panels (procedural
+  (declared children edges) nests types under their parents, but only
+  the active process's stationed types render as panels (procedural
   labels only — the generated type key with a locale override over the
   authored render label; class names carry NO icon, so a type panel never
-  reads as one of its own rows — the glyph is the instance signal), and a
+  reads as one of its own rows — the glyph is the instance signal) — a
+  registry declaration no active definition stations renders nothing
+  (stale types from old applies stay invisible). A
   type's home-section
   instances hang beneath it as plain default rows carrying the type’s
   registry icon and the one title resolver label (`instanceLabelOf`).

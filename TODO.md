@@ -354,6 +354,20 @@ Note: the recursion interface itself was verified generated and served
 `tJgczn6n27lId`, contextual create, nav entries, SSR render) — the
 "missing interface" experience was the wedged apply.
 
+### Agent Notes (2026-10-13, phantom sections — stale registry declarations rendered)
+
+Owner verdict after hitting "Facade order" appearing whenever cassette
+design entered the definition: declarations posted by OLD applies live in
+the org registry forever, and the explorer rendered them as "structural"
+type nodes — UI for things no active definition stations. The explorer
+and the mobile tabs now render EXACTLY the active process's stationed
+types: registry containment still nests types under their parents, but
+only between stationed types; a type without a station in the active
+manifest neither renders nor roots anything (stale declarations are
+UI-inert). The registry itself is untouched — instances of unstaged
+types keep resolving (they must), and the org Types page still shows
+every stored declaration.
+
 ### Agent Notes (2026-10-13, the vanishing section — self-pair rooting)
 
 The real client symptom behind "recursion doesn't create interface": the
