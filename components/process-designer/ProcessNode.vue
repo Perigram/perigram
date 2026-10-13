@@ -162,7 +162,7 @@ import { useI18n } from 'vue-i18n';
 import {
   EFFECT_SPECIES_KINDS,
   MAPPED_MUTATION_SPECIES_KINDS, formatProcessType } from '~/packages/processes/src/index.js';
-import { nodeSpecSummary, socketSpecLine } from '~/composables/useNodeSpec.js';
+import { socketSpecLine } from '~/composables/useNodeSpec.js';
 import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
 import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
 import TypedValueControl from './TypedValueControl.vue';
@@ -194,14 +194,14 @@ const socketRows = computed(() => alignSockets(dataInputs.value, dataOutputs.val
 // sockets expect and output — the node-spec summary the removed `?`
 // affordance used to surface (SPEC §8/§20 vocabulary, presentation only).
 const nodeSpecTooltip = computed(() => {
-  const sections = [nodeSpecSummary(record.value, formatProcessType)];
+  const sections = [];
   if (dataInputs.value.length) {
     sections.push(`Expects: ${dataInputs.value.map(input => socketSpecLine(input, formatProcessType)).join(' • ')}`);
   }
   if (dataOutputs.value.length) {
     sections.push(`Outputs: ${dataOutputs.value.map(output => socketSpecLine(output, formatProcessType)).join(' • ')}`);
   }
-  return { value: sections.filter(Boolean).join(' — ') };
+  return { value: sections.join(' — ') };
 });
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));

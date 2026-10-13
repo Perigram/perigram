@@ -92,13 +92,13 @@ describe('palette placement flow', () => {
     expect(record.kind).toBe('class');
   });
 
-  it('node spec summary tolerates every species record', async () => {
-    const { nodeSpecSummary } = await import('~/composables/useNodeSpec.js');
+  it('socket spec lines tolerate every species record', async () => {
+    const { socketSpecLine } = await import('~/composables/useNodeSpec.js');
     const { formatProcessType } = await import('~/packages/processes/src/index.js');
     draft.value = { data: { processNodes: {}, producerOutputs: {} } };
     for (const item of Object.values(presets)) {
       const { record } = placeNode(item, `spec_${item.kind}`);
-      expect(() => nodeSpecSummary(record, formatProcessType)).not.toThrow();
+      expect(() => socketSpecLine({ label: record.kind, type: record.type, access: record.access }, formatProcessType)).not.toThrow();
     }
   });
 });

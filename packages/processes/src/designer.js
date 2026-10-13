@@ -844,24 +844,31 @@ export function servicesPaletteGroups(serviceContracts = {}) {
 
 // Pack-owned palette sections — the plugin-tab law (SPEC §8 palette law):
 // a pack's declared data operations surface as the pack's own tab, like a
-// Grasshopper plugin's component category. The documents pack's
-// `tableData` tab carries xlsx/csv table decomposition (and, when
-// declared, composition and management); the facade pack's `facade` tab
-// carries cassette geometry extraction beside the solver. Ungrouped
-// projections stay unlisted (the generic extract preset covers them).
+// Grasshopper plugin's component category. One item per OPERATION, never
+// per-type copies: the extract preset binds the projection, the type
+// binds at configure time (Type pin / inspector), and the inspector's
+// projection switch is the single mode selector. The documents pack's
+// `tableData` tab carries table decomposition (rows, cells, text); the
+// facade pack's `facade` tab carries cassette geometry extraction beside
+// the solver. Ungrouped projections stay unlisted (the generic extract
+// preset covers them).
 export function packPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
   const sections = new Map();
   const section = id => {
     if (!sections.has(id)) sections.set(id, { id, items: [] });
     return sections.get(id);
   };
+  const seenProjections = new Set();
   for (const projection of Object.values(projectionContracts || {})) {
-    if (!projection?.group || !projection.typeId || !projection.id) continue;
-    section(projection.group).items.push(paletteItem(`extract:${projection.typeId}:${projection.id}`, 'cts.read', {
-      label: `${projection.label} · ${projection.typeId}`,
-      description: `${projection.label} · ${projection.typeId}`,
+    if (!projection?.group || !projection.id) continue;
+    const key = `${projection.group}:${projection.id}`;
+    if (seenProjections.has(key)) continue;
+    seenProjections.add(key);
+    section(projection.group).items.push(paletteItem(`extract:${projection.id}`, 'cts.read', {
+      label: projection.label,
+      description: projection.label,
       icon: 'pi pi-table',
-      preset: { select: 'extract', typeId: projection.typeId, projection: projection.id }
+      preset: { select: 'extract', projection: projection.id }
     }));
   }
   for (const service of Object.values(serviceContracts || {})) {
