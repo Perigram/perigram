@@ -41,6 +41,13 @@ listener remains the authoritative HTTP failure boundary. Vue's exact dev-mode
 hydration summary is also ignored so smoke workflows are not blocked by shell
 noise.
 
+Seeded species processes declare their org types in-tree
+(`seedSpeciesProcess` mirrors the posted registry declarations through the
+declaration gestures, with `declares` for construct-less types): under the
+type-lifetime law (cts SPEC §4) activation 409s on any org type no stored
+definition declares, and suite teardown consents to the gate so seeded
+definitions and their types die together.
+
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.

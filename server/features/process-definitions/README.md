@@ -217,7 +217,10 @@ one directly from the JSON response.
 Activation validates every effect node's entity service binding against the
 registered capability record. `effect.createEntity` and `effect.runProducer`
 require `create`, `effect.updateEntity` requires `processUpdate`, and
-`effect.changeStatus` requires a domain status workflow. A node whose selected
+`effect.changeStatus` requires a status workflow: the domain machine when
+one is served, else the draft's own seeded state vocabulary (SPEC §7 —
+machines are graph-derived, so the draft's state nodes satisfy the gate
+exactly like the machine `compileWorkflows` builds from them). A node whose selected
 entity lacks the required capability is rejected as a deterministic
 `validation.errors` entry (HTTP 400 at activation) instead of failing later at
 runtime. The enforcement pass consumes the per-entity `processCapabilities`
