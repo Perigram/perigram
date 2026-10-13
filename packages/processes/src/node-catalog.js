@@ -448,7 +448,11 @@ function nativeFieldPorts(record = {}, context = {}) {
   const entityIn = typeId
     ? processType('entityRef', { typeId })
     : processType('entity');
-  const fieldPath = String(authoredSocketDefault(record.inputDefaults?.field) || '');
+  // The authored field rides either channel — the record's `path` (the
+  // inspector/authoring spelling) or the `field` socket default (the
+  // inline fallback's packet) — and both unwrap to the same typed output;
+  // the validator and evaluator read the same pair.
+  const fieldPath = String(authoredSocketDefault(record.inputDefaults?.field) || record.path || '');
   const field = fieldPath
     ? ((context.fieldSchemas || []).find(candidate => candidate.path === fieldPath) || null)
     : null;
