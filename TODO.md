@@ -1603,6 +1603,52 @@ consistency law closes that: host externals + the SDK primitive pack +
 the UX laws + the `perigram-plugin test` host-shell harness, all folded
 into M5.
 
+- [ ] WAITING — CAD profile sketch editor (owner decision 2026-10-13):
+  the cassette designer's profile sketch is drawn on the vendored
+  MLightCAD CAD engine (DXF drawing/import; DWG stays out — GPL or
+  commercial parsers only). Entity records and the OCCS profile sketch
+  normalize through occs/profiles.js's one path. Check: the profile
+  dialog draws, imports DXF, round-trips fillets/holes, and saves;
+  `perigram-plugin surfaces` stays green over the vendored bundle.
+
+### Agent Notes (2026-10-13, CAD profile sketch editor shipped)
+
+Session `agent/cad-profile-editor-20261013`. Explored both candidates:
+mlightcad/cad-viewer won (TypeScript, browser-native, MIT DXF path,
+framework-agnostic core `@mlightcad/cad-simple-viewer` with real
+LINE/PLINE/CIRCLE/ARC/RECTANG commands, osnaps, dynamic input, undo);
+storytold/cadcraft rejected (Rust/egui desktop app whose web build is a
+standalone WASM site — no embedding API for a data-only surface mount).
+
+The vendored runtime is one self-contained esbuild bundle
+(assets/vendor/cad-viewer/cad-viewer.mjs, ~4.5 MB, engine + three +
+peers; `--keep-names` because the engine reflects on constructor names).
+Two of its error-message strings were reworded in place — the surfaces
+check's specifier scan false-positived on prose like `from '${url}'`
+inside string literals. DWG is deliberately absent: the open path is GPL
+LibreDWG, the clean path is commercial; DXF stays the exchange format.
+
+The old bespoke sketch editor (SVG polyline widget), its now-dead
+DXF-text import path (`profileSketchFromDxfText`), the point-projection
+helpers, and the vendored dxf-parser copy are deleted — one entity-record
+normalization (LINE/ARC/CIRCLE/polyline ↔ sketch) in occs/profiles.js
+serves the canvas, DXF import through the engine's own parser, and the
+specs. Tangent corner arcs map to fillet modifiers (polygon keeps the
+theoretical corner); other arcs flatten within 0.05 mm; circles become
+holes. A `data-keyboard-scope` attribute keeps the designer's tree-level
+undo from firing through the CAD canvas (the engine owns ctrl+z/delete
+inside it); engine batch events flush at command end, with a pointer/key
+safety net re-extracting.
+
+Validation: profiles spec 8/8 (round-trip, shuffled chaining, tangent vs
+kinked arcs), surfaces check + listing validate + check-arch + check-docs
+green, 147/147 focused suite, and a real-browser harness
+(/tmp/opencode/cad-harness — Playwright + the worktree executor) proving
+mount, seeded round-trip with fillet+hole, clear, LINE drawing with the
+Close keyword, and extraction — zero page errors, screenshot artifact
+proof.png. Not run: the full platform e2e against the dev stack (the
+running stack serves the primary checkout; re-check after merge).
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);

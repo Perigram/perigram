@@ -1,18 +1,25 @@
-// The profile sketch editor as a plugin surface component: pointer
-// sketching (polyline/circle tools, snapping, fillets, DXF import) over
-// the OCCS profile sketch model. Created by the designer module with the
-// host-injected context.
+// The profile sketch editor as a plugin surface component: a CAD canvas
+// (the vendored MLightCAD runtime, loaded lazily from the executor's
+// static tree) over the OCCS profile sketch model. Drawing, snapping,
+// grips, and undo/redo run in the engine; entity records and the sketch
+// model normalize through occs/profiles.js.
 import {
-  evaluateOccsProfileSketchPreview,
   normalizeOccsProfileSketch,
-  occsProfileFromSketch,
-  projectProfileSketchPointFromPrevious,
-  profileSketchFromDxfText
+  occProfileEntitiesFromSketch,
+  occProfileSketchFromEntities,
+  occsProfileFromSketch
 } from '../../../occs/profiles.js';
 
+const EXTRACT_DEBOUNCE_MS = 40;
+
 export default function createSketchEditor({ vue, components, locale }) {
-  const { h, ref, computed, watch, defineComponent } = vue;
+  const { h, ref, shallowRef, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
+  const { Button, Message } = components;
+
+  // The engine singleton is destroyed and re-created per mount; a pending
+  // destroy must finish first or its teardown would clobber the new instance.
+  let engineChain = Promise.resolve();
 
   return defineComponent({
     name: 'ProfileSketchEditor',
@@ -21,682 +28,342 @@ export default function createSketchEditor({ vue, components, locale }) {
     },
     emits: ['update:modelValue', 'profile'],
     setup(props, { emit }) {
-      const localSketch = ref(normalizeOccsProfileSketch(props.modelValue || {}));
-      const selectedPointId = ref(localSketch.value.points[0]?.id || '');
-      const selectedHoleId = ref('');
-      const draggingPointId = ref('');
-      const dragPoint = ref(null);
-      const activeTool = ref('select');
-      const pointerPoint = ref(null);
+      const containerRef = ref(null);
       const fileInputRef = ref(null);
+      const runtime = shallowRef(null);
+      const engineError = ref('');
       const importError = ref('');
-      const drawDistance = ref(null);
-      const orthoMode = ref(false);
+      const activeTool = ref('select');
+      const importedFileName = ref('');
 
-      const toolModes = [
-        { value: 'select', labelKey: 'cassette.v2.profileEditor.tools.select', icon: 'pi pi-arrow-up-left' },
-        { value: 'polyline', labelKey: 'cassette.v2.profileEditor.tools.polyline', icon: 'pi pi-share-alt' },
-        { value: 'circle', labelKey: 'cassette.v2.profileEditor.tools.circle', icon: 'pi pi-circle' }
+      let manager = null;
+      let dbListeners = [];
+      let extractTimer = null;
+      let lastEmitted = '';
+      let disposed = false;
+
+      const TOOL_GROUPS = [
+        [
+          { command: 'select', icon: 'pi pi-arrow-up-left', labelKey: 'cassette.v2.profileEditor.tools.select' },
+          { command: 'line', icon: 'pi pi-minus', labelKey: 'cassette.v2.profileEditor.tools.line' },
+          { command: 'pline', icon: 'pi pi-share-alt', labelKey: 'cassette.v2.profileEditor.tools.polyline' },
+          { command: 'circle', icon: 'pi pi-circle', labelKey: 'cassette.v2.profileEditor.tools.circle' },
+          { command: 'arc', icon: 'pi pi-wave-pulse', labelKey: 'cassette.v2.profileEditor.tools.arc' },
+          { command: 'rectang', icon: 'pi pi-square', labelKey: 'cassette.v2.profileEditor.tools.rectangle' }
+        ],
+        [
+          { command: 'erase', icon: 'pi pi-trash', labelKey: 'cassette.v2.profileEditor.actions.erase' },
+          { command: 'undo', icon: 'pi pi-undo', labelKey: 'cassette.v2.profileEditor.actions.undo' },
+          { command: 'redo', icon: 'pi pi-replay', labelKey: 'cassette.v2.profileEditor.actions.redo' }
+        ],
+        [
+          { icon: 'pi pi-expand', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => manager?.curView?.zoomToFitDrawing?.() },
+          { icon: 'pi pi-upload', labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
+          { icon: 'pi pi-times-circle', labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
+        ]
       ];
 
-      const sketchPoints = sketch => (Array.isArray(sketch?.points) ? sketch.points : []);
-      const sketchHoles = sketch => (Array.isArray(sketch?.holes) ? sketch.holes : []);
+      const parametersOf = (sketch) => {
+        const normalized = normalizeOccsProfileSketch(sketch || {});
+        return { parameters: normalized.parameters, units: normalized.units };
+      };
 
-      const displaySketch = computed(() => {
-        if (!draggingPointId.value || !dragPoint.value) return localSketch.value;
-        return {
-          ...localSketch.value,
-          points: sketchPoints(localSketch.value).map(point => (
-            point.id === draggingPointId.value
-              ? { ...point, x: dragPoint.value[0], y: dragPoint.value[1] }
-              : point
-          ))
-        };
-      });
-      const preview = computed(() => evaluateOccsProfileSketchPreview(displaySketch.value));
-      const selectedPoint = computed(() => sketchPoints(localSketch.value).find(point => point.id === selectedPointId.value) || null);
-      const selectedHole = computed(() => sketchHoles(localSketch.value).find(hole => hole.id === selectedHoleId.value) || null);
-      const selectedFilletRadius = computed(() => filletRadiusForVertex(selectedPointId.value));
-      const snapPoint = computed(() => {
-        if (!pointerPoint.value || draggingPointId.value) return null;
-        const snap = nearestSnapPoint(pointerPoint.value);
-        return snap?.distance <= snapThreshold.value ? [snap.point.xValue, snap.point.yValue] : null;
-      });
-      const snapThreshold = computed(() => {
-        const [, , width, height] = viewBox.value.split(' ').map(Number);
-        return Math.max(width, height) / 60 || 5;
-      });
-      const sectionPath = computed(() => {
-        const points = preview.value.points;
-        if (!points.length) return '';
-        if (points.length === 1) return '';
-        if (points.length === 2) return `M ${points[0].xValue} ${points[0].yValue} L ${points[1].xValue} ${points[1].yValue}`;
-        const closeCommand = preview.value.closed ? ' Z' : '';
-        if (preview.value.closed && points.some(point => filletRadiusForVertex(point.id) > 0)) {
-          return roundedClosedPolylinePath(points, point => filletRadiusForVertex(point.id));
+      const modelSpaceEntities = () => {
+        const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
+        if (!modelSpace?.newIterator) return [];
+        const entities = [];
+        for (const entity of modelSpace.newIterator()) entities.push(entity);
+        return entities;
+      };
+
+      const entityRecords = () => {
+        const records = [];
+        for (const entity of modelSpaceEntities()) {
+          const type = entity?.dxfTypeName;
+          if (type === 'LINE') {
+            records.push({
+              type: 'LINE',
+              start: { x: entity.startPoint.x, y: entity.startPoint.y },
+              end: { x: entity.endPoint.x, y: entity.endPoint.y }
+            });
+          } else if (type === 'CIRCLE') {
+            records.push({ type: 'CIRCLE', center: { x: entity.center.x, y: entity.center.y }, radius: entity.radius });
+          } else if (type === 'ARC') {
+            records.push({
+              type: 'ARC',
+              center: { x: entity.center.x, y: entity.center.y },
+              radius: entity.radius,
+              startAngle: entity.startAngle,
+              endAngle: entity.endAngle
+            });
+          } else if (type === 'LWPOLYLINE' || type === 'POLYLINE') {
+            const vertices = [];
+            const count = Number(entity.numberOfVertices) || 0;
+            for (let index = 0; index < count; index += 1) {
+              const point = entity.getPoint2dAt(index);
+              vertices.push({ x: point.x, y: point.y });
+            }
+            if (vertices.length >= 2) records.push({ type: 'POLYLINE', vertices, closed: Boolean(entity.closed) });
+          }
         }
-        const [first, ...rest] = points;
-        return [
-          `M ${first.xValue} ${first.yValue}`,
-          ...rest.map(point => `L ${point.xValue} ${point.yValue}`)
-        ].join(' ') + closeCommand;
-      });
-      const viewBox = computed(() => {
-        const stablePreview = evaluateOccsProfileSketchPreview(localSketch.value);
-        const points = stablePreview.points;
-        const holes = stablePreview.holes || [];
-        const xs = points.flatMap(point => [point.xValue]).concat(holes.flatMap(hole => [
-          hole.centerValue[0] - hole.diameterValue / 2,
-          hole.centerValue[0] + hole.diameterValue / 2
-        ]));
-        const ys = points.flatMap(point => [point.yValue]).concat(holes.flatMap(hole => [
-          hole.centerValue[1] - hole.diameterValue / 2,
-          hole.centerValue[1] + hole.diameterValue / 2
-        ]));
-        const minX = Math.min(...xs, 0);
-        const maxX = Math.max(...xs, 100);
-        const minY = Math.min(...ys, 0);
-        const maxY = Math.max(...ys, 100);
-        const padding = Math.max(10, (maxX - minX + maxY - minY) / 12);
-        return `${xOrZero(minX - padding)} ${xOrZero(minY - padding)} ${Math.max(1, maxX - minX + padding * 2)} ${Math.max(1, maxY - minY + padding * 2)}`;
-      });
-      const lastDrawPoint = computed(() => preview.value.points[preview.value.points.length - 1] || null);
-      const pendingDrawPoint = computed(() => {
-        if (activeTool.value !== 'polyline' || !pointerPoint.value || !lastDrawPoint.value) return null;
-        const projected = projectProfileSketchPointFromPrevious(
-          lastDrawPoint.value,
-          { x: pointerPoint.value[0], y: pointerPoint.value[1] },
-          drawDistance.value,
-          { ortho: orthoMode.value }
-        );
-        const snapped = snappedCoords([projected.x, projected.y], [lastDrawPoint.value.id]);
-        return { x: snapped[0], y: snapped[1] };
-      });
-      const previewSegment = computed(() => {
-        if (!pendingDrawPoint.value || !lastDrawPoint.value) return null;
-        return {
-          from: [lastDrawPoint.value.xValue, lastDrawPoint.value.yValue],
-          to: [pendingDrawPoint.value.x, pendingDrawPoint.value.y]
-        };
-      });
-      const currentSegmentLength = computed(() => {
-        if (!previewSegment.value) return '0';
-        const [x1, y1] = previewSegment.value.from;
-        const [x2, y2] = previewSegment.value.to;
-        return round(Math.hypot(x2 - x1, y2 - y1)).toString();
-      });
-
-      watch(() => props.modelValue, (value) => {
-        const normalized = normalizeOccsProfileSketch(value || {});
-        if (JSON.stringify(normalized) === JSON.stringify(normalizeOccsProfileSketch(localSketch.value))) return;
-        localSketch.value = normalized;
-        if (selectedPointId.value && !sketchPoints(localSketch.value).some(point => point.id === selectedPointId.value)) {
-          selectedPointId.value = sketchPoints(localSketch.value)[0]?.id || '';
-        }
-        if (selectedHoleId.value && !sketchHoles(localSketch.value).some(hole => hole.id === selectedHoleId.value)) {
-          selectedHoleId.value = '';
-        }
-      }, { deep: true });
-
-      watch(localSketch, () => {
-        const normalized = normalizeOccsProfileSketch(localSketch.value);
-        emit('update:modelValue', normalized);
-        emit('profile', occsProfileFromSketch(normalized));
-      }, { deep: true });
-
-      const xOrZero = value => (Number.isFinite(value) ? value : 0);
-      const round = value => Math.round(Number(value || 0) * 1000) / 1000;
-      const pointAtDistance = (from, to, distance) => {
-        const length = Math.hypot(to.xValue - from.xValue, to.yValue - from.yValue);
-        if (!length) return [from.xValue, from.yValue];
-        const ratio = Math.min(distance, length / 2) / length;
-        return [
-          from.xValue + (to.xValue - from.xValue) * ratio,
-          from.yValue + (to.yValue - from.yValue) * ratio
-        ];
+        return records;
       };
 
-      const roundedClosedPolylinePath = (points, radiusForPoint) => {
-        const corners = points.map((point, index) => {
-          const radius = Math.max(0, Number(radiusForPoint(point) || 0));
-          const previous = points[(index - 1 + points.length) % points.length];
-          const next = points[(index + 1) % points.length];
-          const start = pointAtDistance(point, previous, radius);
-          const end = pointAtDistance(point, next, radius);
-          return { point, start, end };
-        });
-        const [first, ...rest] = corners;
-        return [
-          `M ${first.end[0]} ${first.end[1]}`,
-          ...rest.flatMap(corner => [
-            `L ${corner.start[0]} ${corner.start[1]}`,
-            `Q ${corner.point.xValue} ${corner.point.yValue} ${corner.end[0]} ${corner.end[1]}`
-          ]),
-          `L ${first.start[0]} ${first.start[1]}`,
-          `Q ${first.point.xValue} ${first.point.yValue} ${first.end[0]} ${first.end[1]}`,
-          'Z'
-        ].join(' ');
+      const emitSketch = () => {
+        if (!manager || disposed) return;
+        const context = parametersOf(props.modelValue);
+        const sketch = occProfileSketchFromEntities(entityRecords(), context);
+        const fingerprint = JSON.stringify(sketch);
+        if (fingerprint === lastEmitted) return;
+        lastEmitted = fingerprint;
+        emit('update:modelValue', sketch);
+        emit('profile', occsProfileFromSketch(sketch, context));
       };
 
-      const updateLocalSketch = (updater) => {
-        const next = normalizeOccsProfileSketch(localSketch.value);
-        updater(next);
-        localSketch.value = normalizeOccsProfileSketch(next);
+      const scheduleExtraction = () => {
+        if (extractTimer || disposed) return;
+        extractTimer = setTimeout(() => {
+          extractTimer = null;
+          emitSketch();
+        }, EXTRACT_DEBOUNCE_MS);
       };
 
-      const rebuildPolylineEdges = (points = [], closed = false) => {
-        const edgeCount = closed ? points.length : Math.max(0, points.length - 1);
-        return points.slice(0, edgeCount).map((point, index) => ({
-          id: `e${index}`,
-          type: 'line',
-          from: point.id,
-          to: points[(index + 1) % points.length]?.id || point.id
-        })).filter(edge => edge.from !== edge.to);
-      };
-
-      const nextPointId = (points = []) => {
-        const used = new Set(points.map(point => point.id));
-        let index = points.length;
-        while (used.has(`p${index}`)) index++;
-        return `p${index}`;
-      };
-
-      const defaultPointTarget = () => {
-        const points = sketchPoints(localSketch.value);
-        const last = points[points.length - 1];
-        return last ? [Number(last.x || 0) + 10, Number(last.y || 0)] : [0, 0];
-      };
-
-      const filletRadiusForVertex = vertexId => (
-        localSketch.value.modifiers?.find(modifier => modifier.type === 'fillet' && modifier.vertexId === vertexId)?.radius || 0
-      );
-      const gripSize = pointId => (pointId === selectedPointId.value ? 3.2 : 2.4);
-
-      const addPoint = (coords = null) => {
-        const target = coords || defaultPointTarget();
-        updateLocalSketch((next) => {
-          const id = nextPointId(next.points);
-          next.points.push({ id, x: round(target[0]), y: round(target[1]) });
-          next.closed = false;
-          next.edges = rebuildPolylineEdges(next.points, false);
-          selectedPointId.value = id;
-          selectedHoleId.value = '';
-        });
-      };
-
-      const closePolylineIfFirstPoint = (coords) => {
-        const points = preview.value.points;
-        if (points.length < 3) return false;
-        const first = points[0];
-        const distance = Math.hypot(first.xValue - coords[0], first.yValue - coords[1]);
-        if (distance > snapThreshold.value) return false;
-        closeActivePolyline();
-        selectedPointId.value = first.id;
-        return true;
-      };
-
-      const startNewPolyline = () => {
-        localSketch.value = normalizeOccsProfileSketch({
-          version: localSketch.value.version,
-          units: localSketch.value.units,
-          parameters: localSketch.value.parameters,
-          points: [],
-          edges: [],
-          holes: sketchHoles(localSketch.value),
-          closed: false,
-          modifiers: [],
-          constraints: localSketch.value.constraints
-        });
-        selectedPointId.value = '';
-        selectedHoleId.value = '';
-        activeTool.value = 'polyline';
-        pointerPoint.value = null;
-        drawDistance.value = null;
-      };
-
-      const closeActivePolyline = () => {
-        updateLocalSketch((next) => {
-          if (sketchPoints(next).length < 3) return;
-          next.closed = true;
-          next.edges = rebuildPolylineEdges(sketchPoints(next), true);
-        });
-        finishDrawingCommand();
-      };
-
-      const undoLastPoint = () => {
-        updateLocalSketch((next) => {
-          const points = sketchPoints(next);
-          const removed = points.pop();
-          if (!removed) return;
-          next.modifiers = (next.modifiers || []).filter(modifier => modifier.vertexId !== removed.id);
-          next.closed = false;
-          next.edges = rebuildPolylineEdges(points, false);
-          selectedPointId.value = points[points.length - 1]?.id || '';
-          selectedHoleId.value = '';
-        });
-      };
-
-      const finishDrawingCommand = () => {
-        activeTool.value = 'select';
-        pointerPoint.value = null;
-        drawDistance.value = null;
-      };
-
-      const addHole = (coords = null) => {
-        const target = coords || [0, 0];
-        updateLocalSketch((next) => {
-          next.holes = sketchHoles(next);
-          const id = `h${next.holes.length}`;
-          next.holes.push({
-            id,
-            type: 'circle',
-            center: [round(target[0]), round(target[1])],
-            diameter: 6
-          });
-          selectedHoleId.value = id;
-          selectedPointId.value = '';
-        });
-      };
-
-      const updatePoint = (id, patch) => {
-        updateLocalSketch((next) => {
-          const point = sketchPoints(next).find(item => item.id === id);
-          if (point) Object.assign(point, {
-            ...patch,
-            ...(patch.x !== undefined ? { x: round(patch.x) } : {}),
-            ...(patch.y !== undefined ? { y: round(patch.y) } : {})
-          });
-        });
-      };
-
-      const updateHole = (id, patch) => {
-        updateLocalSketch((next) => {
-          const hole = sketchHoles(next).find(item => item.id === id);
-          if (!hole) return;
-          if (patch.center) patch.center = patch.center.map(round);
-          if (patch.diameter !== undefined) patch.diameter = Math.max(0, round(patch.diameter));
-          Object.assign(hole, patch);
-        });
-      };
-
-      const updatePointFilletRadius = (vertexId, radius) => {
-        updateLocalSketch((next) => {
-          const value = Math.max(0, round(radius));
-          next.modifiers = (next.modifiers || []).filter(modifier => !(modifier.type === 'fillet' && modifier.vertexId === vertexId));
-          if (value > 0) next.modifiers.push({ type: 'fillet', vertexId, radius: value });
-        });
-      };
-
-      const svgPointFromEvent = (event) => {
-        const svg = event.currentTarget.closest('svg') || event.currentTarget;
-        const point = svg.createSVGPoint();
-        point.x = event.clientX;
-        point.y = event.clientY;
-        const transformed = point.matrixTransform(svg.getScreenCTM().inverse());
-        return [round(transformed.x), round(transformed.y)];
-      };
-
-      const nearestSnapPoint = (coords, excludedIds = []) => {
-        const excluded = new Set(excludedIds);
-        const points = preview.value.points.filter(point => !excluded.has(point.id));
-        if (!points.length) return null;
-        return points
-          .map(point => ({
-            point,
-            distance: Math.hypot(point.xValue - coords[0], point.yValue - coords[1])
-          }))
-          .sort((left, right) => left.distance - right.distance)[0] || null;
-      };
-
-      const snappedCoords = (coords, excludedIds = []) => {
-        const snap = nearestSnapPoint(coords, excludedIds);
-        return snap?.distance <= snapThreshold.value
-          ? [snap.point.xValue, snap.point.yValue]
-          : coords;
-      };
-
-      const projectedDrawCoords = (coords) => {
-        if (!lastDrawPoint.value) return coords;
-        const projected = projectProfileSketchPointFromPrevious(
-          lastDrawPoint.value,
-          { x: coords[0], y: coords[1] },
-          drawDistance.value,
-          { ortho: orthoMode.value }
-        );
-        return snappedCoords([projected.x, projected.y], [lastDrawPoint.value.id]);
-      };
-
-      const selectHole = (holeId) => {
-        selectedHoleId.value = holeId;
-        selectedPointId.value = '';
-      };
-
-      const startDrag = (event, point) => {
-        event.stopPropagation();
-        event.preventDefault();
-        if (activeTool.value === 'polyline') {
-          closePolylineIfFirstPoint([point.xValue, point.yValue]);
-          return;
-        }
-        if (activeTool.value !== 'select') return;
-        selectedPointId.value = point.id;
-        selectedHoleId.value = '';
-        draggingPointId.value = point.id;
-        dragPoint.value = [point.xValue, point.yValue];
-      };
-
-      const handleCanvasPointerDown = (event) => {
-        if (event.target?.tagName?.toLowerCase?.() !== 'svg') return;
-        const rawCoords = svgPointFromEvent(event);
-        pointerPoint.value = rawCoords;
-        if (activeTool.value === 'polyline') {
-          const coords = projectedDrawCoords(rawCoords);
-          if (closePolylineIfFirstPoint(coords)) return;
-          addPoint(coords);
-          return;
-        }
-        const coords = snappedCoords(rawCoords);
-        if (activeTool.value === 'circle') {
-          addHole(coords);
+      // The manager's blank documents start with an empty database (no
+      // layer '0'); every entity defaults to that layer, so the default
+      // tables must exist before anything draws. Parsed DXF documents
+      // carry their own tables and are left untouched.
+      const ensureDefaultTables = () => {
+        const database = manager?.curDocument?.database;
+        if (!database?.createDefaultData) return;
+        try {
+          if (!database.tables?.layerTable?.getAt?.('0')) database.createDefaultData();
+        } catch {
+          // A document that cannot take default data reports on draw; the
+          // boot document always accepts it.
         }
       };
 
-      const handlePointerMove = (event) => {
-        const coords = svgPointFromEvent(event);
-        pointerPoint.value = coords;
-        if (!draggingPointId.value) return;
-        dragPoint.value = snappedCoords(coords);
-      };
-
-      const stopDrag = () => {
-        if (draggingPointId.value && dragPoint.value) {
-          updatePoint(draggingPointId.value, {
-            x: dragPoint.value[0],
-            y: dragPoint.value[1]
-          });
+      const bindDatabase = () => {
+        unbindDatabase();
+        ensureDefaultTables();
+        const database = manager?.curDocument?.database;
+        if (!database?.events) return;
+        const handler = () => scheduleExtraction();
+        for (const name of ['entityAppended', 'entityModified', 'entityErased']) {
+          const event = database.events[name];
+          if (!event?.addEventListener) continue;
+          event.addEventListener(handler);
+          dbListeners.push({ event, handler });
         }
-        draggingPointId.value = '';
-        dragPoint.value = null;
+        scheduleExtraction();
       };
 
-      const commitDrawPointFromKeyboard = () => {
-        if (activeTool.value !== 'polyline' || !pointerPoint.value) return;
-        const coords = projectedDrawCoords(pointerPoint.value);
-        if (closePolylineIfFirstPoint(coords)) return;
-        addPoint(coords);
+      const unbindDatabase = () => {
+        for (const { event, handler } of dbListeners) {
+          event.removeEventListener?.(handler);
+        }
+        dbListeners = [];
       };
 
-      const cancelPendingDraw = () => {
-        if (activeTool.value !== 'polyline') return;
-        finishDrawingCommand();
+      const seedEntities = ({ entities }) => {
+        const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
+        if (!modelSpace || !entities.length) return;
+        const { AcDbArc, AcDbCircle, AcDbLine } = runtime.value;
+        const created = [];
+        for (const record of entities) {
+          if (record.type === 'LINE') {
+            created.push(new AcDbLine(
+              { x: record.start.x, y: record.start.y, z: 0 },
+              { x: record.end.x, y: record.end.y, z: 0 }
+            ));
+          } else if (record.type === 'ARC') {
+            created.push(new AcDbArc(
+              { x: record.center.x, y: record.center.y, z: 0 },
+              record.radius,
+              record.startAngle,
+              record.endAngle
+            ));
+          } else if (record.type === 'CIRCLE') {
+            created.push(new AcDbCircle(
+              { x: record.center.x, y: record.center.y, z: 0 },
+              record.radius
+            ));
+          }
+        }
+        for (const entity of created) modelSpace.appendEntity(entity);
+        manager.curView?.addEntity?.(created);
+      };
+
+      const clearDrawingEntities = () => {
+        for (const entity of modelSpaceEntities()) {
+          manager.curView?.removeEntity?.(entity);
+          const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
+          modelSpace?.removeEntity?.(entity.objectId);
+        }
+      };
+
+      const clearDrawing = async () => {
+        if (!manager) return;
+        clearDrawingEntities();
+        importedFileName.value = '';
+        scheduleExtraction();
+      };
+
+      const reseedFromModel = () => {
+        if (!manager || disposed) return;
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        if (JSON.stringify(normalized) === lastEmitted) return;
+        const entities = normalized.points.length
+          ? occProfileEntitiesFromSketch(normalized)
+          : [];
+        clearDrawingEntities();
+        importedFileName.value = '';
+        if (entities.length) {
+          seedEntities({ entities });
+          manager.curView?.zoomToFitDrawing?.();
+        }
+      };
+
+      const runCommand = (tool) => {
+        if (tool.command) {
+          activeTool.value = tool.command;
+          manager?.sendStringToExecute?.(tool.command);
+        }
+        tool.onActivate?.();
       };
 
       const handleDxfUpload = async (event) => {
         const [file] = Array.from(event.target.files || []);
         event.target.value = '';
-        if (!file) return;
+        if (!file || !manager) return;
         importError.value = '';
         try {
-          const text = await file.text();
-          localSketch.value = profileSketchFromDxfText(text);
-          selectedPointId.value = localSketch.value.points[0]?.id || '';
-          selectedHoleId.value = '';
+          const opened = await manager.openDocument(file.name, await file.arrayBuffer());
+          if (!opened) throw new Error(t('cassette.v2.profileEditor.importFailed'));
+          importedFileName.value = file.name;
+          manager.curView?.zoomToFitDrawing?.();
+          emitSketch();
+          const emitted = JSON.parse(lastEmitted || '{"points":[]}');
+          if ((emitted.points || []).length < 3) {
+            importError.value = t('cassette.v2.profileEditor.importFailed');
+          }
         } catch (error) {
           importError.value = error?.message || t('cassette.v2.profileEditor.importFailed');
         }
       };
 
-      const InputNumber = components.InputNumber;
+      const handleKeydown = (event) => {
+        if (!manager) return;
+        const key = event.key?.toLowerCase();
+        const isUndo = (event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey;
+        const isRedo = (event.ctrlKey || event.metaKey) && (key === 'y' || (key === 'z' && event.shiftKey));
+        if (isUndo || isRedo) {
+          event.preventDefault();
+          event.stopPropagation();
+          manager.sendStringToExecute?.(isUndo ? 'undo' : 'redo');
+          return;
+        }
+        if (key === 'delete' || key === 'backspace') {
+          event.preventDefault();
+          event.stopPropagation();
+          manager.sendStringToExecute?.('erase');
+        }
+      };
+
+      const mountEngine = async () => {
+        if (typeof window === 'undefined' || runtime.value) return;
+        engineError.value = '';
+        try {
+          const loaded = await import('../../../assets/vendor/cad-viewer/cad-viewer.mjs');
+          if (disposed) return;
+          runtime.value = loaded;
+          await engineChain;
+          if (disposed) return;
+          manager = loaded.AcApDocManager.createInstance({
+            container: containerRef.value,
+            autoResize: true,
+            useMainThreadDraw: true,
+            builtinOpenFileDialog: false,
+            notificationCenter: false,
+            disableExport: true
+          });
+          manager.events.documentActivated.addEventListener(bindDatabase);
+          manager.events.documentCreated.addEventListener(bindDatabase);
+          containerRef.value?.addEventListener('keydown', handleKeydown, true);
+          bindDatabase();
+          lastEmitted = '';
+          reseedFromModel();
+          emitSketch();
+        } catch (error) {
+          engineError.value = error?.message || String(error);
+        }
+      };
+
+      onMounted(async () => {
+        await nextTick();
+        mountEngine();
+      });
+
+      watch(() => props.modelValue, () => {
+        if (manager) reseedFromModel();
+      }, { deep: true });
+
+      onBeforeUnmount(() => {
+        disposed = true;
+        if (extractTimer) clearTimeout(extractTimer);
+        extractTimer = null;
+        containerRef.value?.removeEventListener?.('keydown', handleKeydown, true);
+        unbindDatabase();
+        const dying = manager;
+        manager = null;
+        engineChain = engineChain.then(async () => {
+          await dying?.destroy?.();
+        });
+      });
 
       return () => h('div', {
-        class: 'flex min-h-0 flex-col gap-3',
-        tabindex: 0,
-        onKeydown: event => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            commitDrawPointFromKeyboard();
-          } else if (event.key === 'Escape') {
-            event.preventDefault();
-            cancelPendingDraw();
-          }
-        }
+        class: 'flex min-h-0 flex-col gap-2',
+        'data-keyboard-scope': 'cad'
       }, [
-        h('div', { class: 'grid gap-3 lg:grid-cols-[minmax(0,1fr)_18rem]' }, [
-          h('div', { class: 'min-h-0 rounded-ui border border-content-border bg-subtle p-2' }, [
-            h('div', { class: 'mb-2 flex flex-wrap items-center gap-1' }, [
-              ...toolModes.map(mode => h(components.Button, {
-                key: mode.value,
-                label: t(mode.labelKey),
-                icon: mode.icon,
-                severity: activeTool.value === mode.value ? 'primary' : 'secondary',
-                size: 'small',
-                onClick: () => { activeTool.value = mode.value; }
-              })),
-              h(components.Button, {
-                icon: 'pi pi-upload',
-                label: t('cassette.v2.profileEditor.importDxf'),
-                severity: 'secondary',
-                size: 'small',
-                onClick: () => fileInputRef.value?.click()
-              }),
-              h(components.Button, {
-                icon: 'pi pi-file',
-                label: t('cassette.v2.profileEditor.newPolyline'),
-                severity: 'secondary',
-                size: 'small',
-                onClick: startNewPolyline
-              }),
-              h('input', {
-                ref: fileInputRef,
-                type: 'file',
-                accept: '.dxf',
-                class: 'hidden',
-                onChange: handleDxfUpload
-              })
-            ]),
-            h('svg', {
-              class: 'h-[28rem] w-full rounded-ui',
-              viewBox: viewBox.value,
-              role: 'img',
-              'aria-label': t('cassette.v2.profileEditor.preview'),
-              onPointerdown: handleCanvasPointerDown,
-              onPointermove: handlePointerMove,
-              onPointerup: stopDrag,
-              onPointerleave: stopDrag
-            }, [
-              sectionPath.value
-                ? h('path', {
-                    d: sectionPath.value,
-                    fill: 'none',
-                    stroke: 'currentColor',
-                    'stroke-linejoin': 'round',
-                    'stroke-width': 0.7
-                  })
-                : null,
-              previewSegment.value
-                ? h('line', {
-                    x1: previewSegment.value.from[0],
-                    y1: previewSegment.value.from[1],
-                    x2: previewSegment.value.to[0],
-                    y2: previewSegment.value.to[1],
-                    stroke: 'var(--p-primary-color)',
-                    'stroke-dasharray': '4 3',
-                    'stroke-width': 0.6
-                  })
-                : null,
-              ...preview.value.holes.map(hole => h('circle', {
-                key: hole.id,
-                cx: hole.centerValue[0],
-                cy: hole.centerValue[1],
-                r: hole.diameterValue / 2,
-                fill: 'none',
-                stroke: 'currentColor',
-                'stroke-dasharray': '3 2',
-                'stroke-width': 0.7,
-                onPointerdown: event => {
-                  event.stopPropagation();
-                  selectHole(hole.id);
-                }
-              })),
-              ...preview.value.points.map(point => h('rect', {
-                key: point.id,
-                x: point.xValue - gripSize(point.id) / 2,
-                y: point.yValue - gripSize(point.id) / 2,
-                width: gripSize(point.id),
-                height: gripSize(point.id),
-                class: 'cursor-move',
-                fill: point.id === selectedPointId.value ? 'var(--p-primary-color)' : 'currentColor',
-                stroke: 'var(--p-content-background)',
-                'stroke-width': 0.45,
-                onPointerdown: event => startDrag(event, point)
-              })),
-              snapPoint.value
-                ? h('circle', {
-                    cx: snapPoint.value[0],
-                    cy: snapPoint.value[1],
-                    r: 2.5,
-                    fill: 'none',
-                    stroke: 'var(--p-primary-color)',
-                    'stroke-width': 0.7
-                  })
-                : null
-            ])
+        h('div', { class: 'flex flex-wrap items-center gap-1' }, [
+          ...TOOL_GROUPS.flatMap((group, groupIndex) => [
+            ...(groupIndex > 0 ? [h('span', { class: 'mx-1 h-4 w-px shrink-0 bg-content-border' })] : []),
+            ...group.map(tool => h(Button, {
+              key: tool.labelKey,
+              icon: tool.icon,
+              severity: tool.command && activeTool.value === tool.command ? 'primary' : 'secondary',
+              size: 'small',
+              rounded: true,
+              'aria-label': t(tool.labelKey),
+              title: t(tool.labelKey),
+              onClick: () => runCommand(tool)
+            }))
           ]),
-          h('div', { class: 'flex min-h-0 flex-col gap-3' }, [
-            h('div', { class: 'flex flex-col gap-2 rounded-ui border border-content-border p-2' }, [
-              h('strong', null, t('cassette.v2.profileEditor.selection')),
-              selectedPoint.value
-                ? [
-                    h('small', { class: 'text-muted' }, selectedPoint.value.id),
-                    h('div', { class: 'grid grid-cols-2 gap-2' }, [
-                      h(InputNumber, {
-                        modelValue: selectedPoint.value.x,
-                        inputClass: 'w-full',
-                        minFractionDigits: 0,
-                        maxFractionDigits: 3,
-                        'onUpdate:modelValue': value => updatePoint(selectedPoint.value.id, { x: value })
-                      }),
-                      h(InputNumber, {
-                        modelValue: selectedPoint.value.y,
-                        inputClass: 'w-full',
-                        minFractionDigits: 0,
-                        maxFractionDigits: 3,
-                        'onUpdate:modelValue': value => updatePoint(selectedPoint.value.id, { y: value })
-                      }),
-                      h(InputNumber, {
-                        modelValue: selectedFilletRadius.value,
-                        inputClass: 'w-full',
-                        min: 0,
-                        minFractionDigits: 0,
-                        maxFractionDigits: 3,
-                        placeholder: t('cassette.v2.profileEditor.cornerFillet'),
-                        'onUpdate:modelValue': value => updatePointFilletRadius(selectedPoint.value.id, value)
-                      })
-                    ])
-                  ]
-                : selectedHole.value
-                  ? [
-                      h('small', { class: 'text-muted' }, selectedHole.value.id),
-                      h('div', { class: 'grid grid-cols-2 gap-2' }, [
-                        h(InputNumber, {
-                          modelValue: selectedHole.value.center[0],
-                          inputClass: 'w-full',
-                          minFractionDigits: 0,
-                          maxFractionDigits: 3,
-                          'onUpdate:modelValue': value => updateHole(selectedHole.value.id, { center: [value, selectedHole.value.center[1]] })
-                        }),
-                        h(InputNumber, {
-                          modelValue: selectedHole.value.center[1],
-                          inputClass: 'w-full',
-                          minFractionDigits: 0,
-                          maxFractionDigits: 3,
-                          'onUpdate:modelValue': value => updateHole(selectedHole.value.id, { center: [selectedHole.value.center[0], value] })
-                        }),
-                        h(InputNumber, {
-                          modelValue: selectedHole.value.diameter,
-                          inputClass: 'w-full',
-                          min: 0,
-                          minFractionDigits: 0,
-                          maxFractionDigits: 3,
-                          'onUpdate:modelValue': value => updateHole(selectedHole.value.id, { diameter: value })
-                        })
-                      ])
-                    ]
-                  : h('small', { class: 'text-muted' }, t('cassette.v2.profileEditor.noSelection'))
-            ]),
-            h('div', { class: 'flex flex-col gap-2 rounded-ui border border-content-border p-2' }, [
-              h('strong', null, t('cassette.v2.profileEditor.polyline')),
-              h('div', { class: 'grid grid-cols-2 gap-2' }, [
-                h(InputNumber, {
-                  modelValue: drawDistance.value,
-                  inputClass: 'w-full',
-                  min: 0,
-                  minFractionDigits: 0,
-                  maxFractionDigits: 3,
-                  placeholder: t('cassette.v2.profileEditor.distance'),
-                  'onUpdate:modelValue': value => { drawDistance.value = value; }
-                }),
-                h('div', { class: 'flex items-center gap-2' }, [
-                  h(components.Checkbox, {
-                    modelValue: orthoMode.value,
-                    binary: true,
-                    'onUpdate:modelValue': value => { orthoMode.value = value; }
-                  }),
-                  h('label', { class: 'text-muted text-label' }, t('cassette.v2.profileEditor.ortho'))
-                ])
-              ]),
-              h('small', { class: 'text-muted' }, `${t('cassette.v2.profileEditor.segmentLength')}: ${currentSegmentLength.value}`),
-              h('div', { class: 'flex items-center gap-2' }, [
-                h('label', { class: 'min-w-28 text-muted text-label' }, t('cassette.v2.profileEditor.cornerFillet')),
-                h(InputNumber, {
-                  modelValue: selectedPoint.value ? selectedFilletRadius.value : 0,
-                  inputClass: 'w-full',
-                  disabled: !selectedPoint.value,
-                  min: 0,
-                  minFractionDigits: 0,
-                  maxFractionDigits: 3,
-                  'onUpdate:modelValue': value => selectedPoint.value && updatePointFilletRadius(selectedPoint.value.id, value)
-                })
-              ]),
-              h('div', { class: 'flex flex-wrap gap-1' }, [
-                h(components.Button, {
-                  icon: 'pi pi-undo',
-                  label: t('cassette.v2.profileEditor.undoPoint'),
-                  severity: 'secondary',
-                  size: 'small',
-                  disabled: !preview.value.points.length,
-                  onClick: undoLastPoint
-                }),
-                h(components.Button, {
-                  icon: 'pi pi-link',
-                  label: t('cassette.v2.profileEditor.closePolyline'),
-                  severity: 'secondary',
-                  size: 'small',
-                  disabled: preview.value.points.length < 3,
-                  onClick: closeActivePolyline
-                }),
-                h(components.Button, {
-                  icon: 'pi pi-check',
-                  label: t('cassette.v2.profileEditor.finishPolyline'),
-                  severity: 'secondary',
-                  size: 'small',
-                  disabled: activeTool.value !== 'polyline',
-                  onClick: finishDrawingCommand
-                }),
-                h(components.Button, {
-                  icon: 'pi pi-circle',
-                  label: t('cassette.v2.profileEditor.addCircle'),
-                  severity: 'secondary',
-                  size: 'small',
-                  onClick: () => addHole()
-                })
+          h('input', {
+            ref: fileInputRef,
+            type: 'file',
+            accept: '.dxf',
+            class: 'hidden',
+            onChange: handleDxfUpload
+          })
+        ]),
+        h('div', {
+          ref: containerRef,
+          class: 'relative h-[28rem] w-full overflow-hidden rounded-ui border border-content-border bg-subtle',
+          role: 'application',
+          'aria-label': t('cassette.v2.profileEditor.preview'),
+          onPointerup: scheduleExtraction,
+          onKeyup: scheduleExtraction
+        }, [
+          engineError.value
+            ? h('div', { class: 'flex h-full items-center justify-center p-4' }, [
+                h(Message, { severity: 'error', closable: false }, () => t('cassette.v2.profileEditor.loadFailed'))
               ])
-            ]),
-            importError.value
-              ? h(components.Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
-              : null
-          ])
-        ])
+            : null
+        ]),
+        importError.value
+          ? h(Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
+          : null
       ]);
     }
   });

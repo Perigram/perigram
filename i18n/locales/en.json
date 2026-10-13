@@ -497,28 +497,27 @@
         "name": "Profile name",
         "defaultName": "Hanger profile",
         "loadTemplate": "Load profile template",
-        "preview": "Profile sketch preview",
-        "polyline": "Polyline",
-        "selection": "Selection",
-        "noSelection": "Select a point or circle.",
-        "cornerFillet": "Corner fillet",
-        "distance": "Distance",
-        "ortho": "Ortho",
-        "segmentLength": "Segment",
-        "addCircle": "Add circle",
-        "newPolyline": "New polyline",
-        "undoPoint": "Undo point",
-        "closePolyline": "Close",
-        "finishPolyline": "Finish",
+        "preview": "Profile CAD canvas",
         "importDxf": "Import DXF",
         "importFailed": "DXF import failed.",
+        "loadFailed": "The CAD engine failed to load.",
         "saved": "Profile template saved",
         "saveFailed": "Failed to save profile template",
         "invalidSketch": "Close a profile polyline with at least three points before saving.",
         "tools": {
           "select": "Select",
+          "line": "Line",
           "polyline": "Polyline",
-          "circle": "Circle"
+          "circle": "Circle",
+          "arc": "Arc",
+          "rectangle": "Rectangle"
+        },
+        "actions": {
+          "erase": "Erase",
+          "undo": "Undo",
+          "redo": "Redo",
+          "zoomFit": "Fit to view",
+          "clear": "Clear canvas"
         }
       },
       "placementModes": {

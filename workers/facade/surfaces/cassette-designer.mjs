@@ -651,6 +651,13 @@ export default function createSurface({ vue, components, locale, queries, record
         return Boolean(target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName));
       };
 
+      // A nested keyboard scope (the CAD canvas in the profile editor)
+      // owns its own undo/redo/delete paths; tree shortcuts must not fire
+      // through it.
+      const isScopedKeyboardTarget = (target) => Boolean(
+        typeof target?.closest === 'function' && target.closest('[data-keyboard-scope]')
+      );
+
       const clearDesignerSelection = () => {
         closeInlineEditor();
         selectedNodeId.value = '';
@@ -667,6 +674,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const handleDesignerKeydown = (event) => {
+        if (isScopedKeyboardTarget(event.target)) return;
         if (event.key === 'Escape') {
           handleDesignerEscape(event);
           return;
