@@ -100,7 +100,7 @@ describe('field control resolution', () => {
       component: 'Tag', props: { density: 'row' }
     });
     expect(resolveFieldControl({ base: 'ref', accepts: ['part'] }, { variant: 'inline' })).toMatchObject({
-      component: 'InstanceChip', props: { density: 'inline' }
+      component: 'InstanceInlineRef', props: { density: 'inline' }
     });
   });
 

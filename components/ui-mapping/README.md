@@ -19,7 +19,7 @@ Composition flow
 (`composeScreen` — pure, in `shared/ui-mapping/screen.js`) into a region
 tree and materializes it with
 `RegionBlock` → `SurfaceBody` →
-`FieldControl` / `InstanceChip` / `PreviewBox` / `ActionButton`. A routed
+`FieldControl` / `InstanceInlineRef` / `PreviewBox` / `ActionButton`. A routed
 detail surface's record header (`SurfaceHeader`) carries the composed
 instance-chat entry — the same `utils/instance-chat.js` seam every
 instance surface uses — instead of any embedded comments section; the
@@ -56,9 +56,14 @@ loading/ready/empty/denied/error from the data layer) that
 
 Instance navigation and quick actions follow the same
 callback-not-routing rule as `onRun`: an `onOpen(instance)` prop turns
-collection identities (cards, table rows, tree rows, timeline entries)
-into link buttons that emit the instance — the app decides where they
-go — and without it identities stay plain text. `onRun` receives a
+collection identities (cards, table rows, list rows, tree rows,
+timeline entries, breadcrumb ancestors) into link buttons that emit the
+instance — the app decides where they go — and without it identities
+stay plain text. Inline instance references (relation chips, `ref`
+field values) are the one exception: they render through the shared
+`InstanceInlineRef`, which owns its inspect-and-open behavior itself
+(the app's reference convention, not the generator's).
+`onRun` receives a
 third `context` argument: `{ instance }` when an instance-scoped quick
 action (the per-card ellipsis menu) launched the run, so executors
 target that entity instead of the screen scope.
@@ -239,6 +244,9 @@ surface concerns:
   PrimeVue Carousel of clipped preview cards.
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
   identities walked from the instance's lineage through the pool.
+  Ancestors are navigation: each crumb opens its instance through the
+  screen's identity-open channel; the opened record is the trailing
+  plain crumb, never a self-link.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity (a link button when the screen has an `onOpen` handler),
   status, budgeted scalar descriptor columns, and the first
@@ -307,6 +315,8 @@ surface concerns:
   and the instance pool's lineage, shown on group surfaces. The tree
   re-derives from the reactive pool, so reconciliation (a new child, a
   moved parent) re-nests it in place instead of waiting for a remount.
+  Nodes are navigation: selecting one opens its instance through the
+  screen's identity-open channel.
 - `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
   (when nested), a contextual `navigation` channel (the `#navigation`
   slot for direct template hosts plus the `navigation` prop —
@@ -355,7 +365,8 @@ surface concerns:
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card (same-role nesting
   flattens to a Divider), `row` / `inline` → dense flex row with budgeted
-  fields and relation chips.
+  fields and relation chips; the row identity is a link button under the
+  screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`), structural fields as an Accordion,
   budgeted relation chips with show-more toggles for relations not already
@@ -433,14 +444,19 @@ surface concerns:
   enums as Rating, enum lists edit through OrderList, and spec-row values
   are click-to-edit through Inplace with visible affordance — hover
   highlights the value row and reveals a pencil icon.
-- `InstanceChip.vue`, `PreviewBox.vue`, `ActionButton.vue`, `ParentRef.vue` — reference chips,
-  payload previews keyed on the declared preview mode, action-button
+- `PreviewBox.vue`, `ActionButton.vue`, `ParentRef.vue` — payload previews
+  keyed on the declared preview mode, action-button
   presentation from the compiled action record, and the containment
   cross-cut's parent context token (a muted parent-type icon + the
   parent's resolved label through `incomingChildrenEdges`/`parentRefOf`;
-  a parent missing from the pool still names its type). Reference chips render as
-  `subtle` pills — one step above the canvas, below instance cards: an
-  inline reference is not an instance surface. Action and field labels
+  a parent missing from the pool still names its type; non-interactive
+  by contract — context, not navigation). Instance references (relation
+  chips, table relation columns, `ref` field values) render through the
+  shared [InstanceInlineRef](../shared/README.md) — the app's one
+  interactive reference surface, everywhere: inspect popover on click,
+  keyboard activation, and open through the workspace-open seam or the
+  compiled detail route, exactly like relation refs on every other
+  instance surface. Action and field labels
   resolve through the stable generated keys first
   (`actionLabelKey`/`fieldLabelKey`/`typeLabelKey` + `localizedLabel`),
   falling back to the resolver-derived label, so locale files may

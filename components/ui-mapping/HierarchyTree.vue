@@ -1,9 +1,16 @@
 <template>
-  <Tree :value="nodes" :expanded-keys="expandedKeys" class="w-full" />
+  <Tree
+    :value="nodes"
+    :expanded-keys="expandedKeys"
+    selection-mode="single"
+    :selection-keys="selectionKeys"
+    class="w-full"
+    @node-select="onNodeSelect"
+  />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import { titleFor, iconFor, childrenOfParent } from '#shared/ui-mapping/index.js';
@@ -13,6 +20,8 @@ const props = defineProps({
   bundle: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) }
 });
+
+const emit = defineEmits(['open']);
 
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 
@@ -36,15 +45,23 @@ const buildNodes = (instance, seen = new Set()) => {
     key: instance.id,
     label: `${type?.name || instance.type}: ${instanceLabel(instance, type)}`,
     icon: iconFor(type),
-    children
+    children,
+    instance
   };
 };
 
 // The tree re-derives from the pool: reconciliation upserts and
 // invalidations flow through the reactive instance pool, so an open detail
-// surface nests new children without a remount.
+// surface nests new children without a remount. Nodes are navigation:
+// selecting one opens its instance through the screen's identity-open
+// channel; the selection clears so the same node opens again.
 const tree = computed(() => buildNodes(props.root));
 const nodes = computed(() => (tree.value ? [tree.value] : []));
 const collectKeys = node => [node.key, ...(node.children || []).flatMap(collectKeys)];
 const expandedKeys = computed(() => Object.fromEntries((tree.value ? collectKeys(tree.value) : []).map(key => [key, true])));
+const selectionKeys = ref({});
+function onNodeSelect(node) {
+  selectionKeys.value = {};
+  if (node?.instance) emit('open', node.instance);
+}
 </script>

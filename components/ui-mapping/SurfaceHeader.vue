@@ -1,6 +1,6 @@
 <template>
   <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', LAYOUT.headerBar, 'surface-header']">
-    <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" />
+    <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" @open="target => emit('open-instance', target)" />
     <div :class="LAYOUT.headerRow" class="header-row">
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
@@ -155,7 +155,7 @@ const props = defineProps({
   navigation: { type: Object, default: null }
 });
 
-const emit = defineEmits(['run', 'transition', 'toggle-edit', 'refresh']);
+const emit = defineEmits(['run', 'transition', 'toggle-edit', 'refresh', 'open-instance']);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 // The subtitle names the class through the single label seam — instance
 // ids are private display vocabulary and never render (SPEC §UI).

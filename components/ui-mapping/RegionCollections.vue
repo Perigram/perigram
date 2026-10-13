@@ -88,8 +88,10 @@
       :type="node.type"
       variant="row"
       parent-role="card"
+      :openable="openable"
       :pool="effectivePool"
       :bundle="bundle"
+      @open="instance => emit('open', instance)"
     />
   </div>
 </template>
