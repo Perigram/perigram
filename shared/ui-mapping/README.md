@@ -9,7 +9,7 @@ It is the seam between the semantic layers (the CTS client bundle from
 
 This module is pure data and pure functions: no Vue, no Nuxt, no PrimeVue
 imports, no CNC names. Resolver output names registered component keys
-(`'InputNumber'`, `'InstanceChip'`, …); the app-side fixed registry maps keys to
+(`'InputNumber'`, `'InstanceInlineRef'`, …); the app-side fixed registry maps keys to
 components. Persisted/process data never selects a component directly.
 
 Parent: [shared/README.md](../README.md).
@@ -167,8 +167,9 @@ Edit variants resolve editor controls, refined by derived qualifiers:
 `list` of strings → InputChips, `list` of refs → InstanceMultiPicker, long
 strings → Textarea, payload blobs → FileUpload, and `record`/`variant`/
 heterogeneous `list` → recursive structural editors. Display variants resolve
-read-only presentations (`enum` → Tag, `ref` → InstanceChip, `quantity` →
-QuantityText, `blob` → FileChip). Spans are `'full' | 'half'`; the layout is
+read-only presentations (`enum` → Tag, `ref` → InstanceInlineRef — the
+app's interactive reference surface; the shared layer names the key,
+`quantity` → QuantityText, `blob` → FileChip). Spans are `'full' | 'half'`; the layout is
 a dumb responsive grid that consumes spans (the container-relative
 `.ck-form-grid`; see Chrome below). Dense rows bound their field
 count through the same budget mechanism (`ROW_FIELD_BUDGET`).
