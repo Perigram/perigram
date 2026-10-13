@@ -53,10 +53,11 @@ substitutes a global entity list for that scoped contract.
 ## Action Visibility
 
 Generated surfaces resolve action visibility against the instance's primary
-state through `actionAppliesToEntity` (`action-visibility.js`). The value
-read is the flat wire `state` string (SPEC §7), falling back to the older
-`states.main` axis map and, for legacy docs, the `status` block; it is
-only the state *value*. The state's icon/severity/label resolve from the
+state through `actionAppliesToEntity` (`utils/action-visibility.js` — the
+one home for action-kind questions, pure so stores consume it too). The
+value read is the flat wire `state` string (SPEC §7), falling back to the
+older `states.main` axis map and, for legacy docs, the `status` block; it
+is only the state *value*. The state's icon/severity/label resolve from the
 compiled producer workflow's state definitions (`statePolicyByType` →
 `stateDisplayFor`, [shared/ui-mapping](../../shared/ui-mapping/README.md));
 lifecycle evidence (actors, attachments, snapshots, notes) lives on
@@ -140,13 +141,11 @@ other create opens
 its compiled detail tab, and a type with no detail screen opens its editor
 page instead; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
-fallback is a success toast with the created name). Every create host
-first lands the created entity in the shared instances pool
-(`landCreatedInstanceInPool`) before opening the destination: the opened
-tab's single source, its label, and the type's list sections all read the
-pool, and the store's cached list observations refetch only after the
-upsert marks them stale — without the landing the opened record renders
-missing behind a stale pool. Unscoped editor
+fallback is a success toast with the created name). The pool landing is
+the store's, not the hosts': `instances.runAction` receives the manifest
+action and lands the created entity itself
+([stores](../../stores/README.md)), so a create host only decides where
+the record opens — no host can forget the landing. Unscoped editor
 creates never reach this path — the create button opens the blank editor
 page and the first save creates the record (`openBlankFileEditor`,
 SPEC §UI). The created entity resolves as the run's created item **of the
