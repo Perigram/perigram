@@ -2,16 +2,19 @@
   <div class="flex h-full min-h-0 flex-1 flex-col p-4">
     <template v-if="isCsv">
       <div class="flex min-w-0 flex-wrap items-center gap-2 border-b border-chrome-border py-1">
-        <InputText
-          v-model="nameDraft"
-          size="small"
-          class="min-w-40 max-w-72 flex-1"
-          :placeholder="$t('common.unnamed')"
-          :aria-label="$t('common.rename')"
-          @focus="editingName = true"
-          @keydown.enter.stop.prevent="commitName"
-          @blur="commitName"
-        />
+        <div class="flex min-w-40 max-w-72 flex-1 items-center gap-1">
+          <InputText
+            v-model="nameDraft"
+            size="small"
+            class="w-full min-w-0"
+            :placeholder="$t('common.unnamed')"
+            :aria-label="$t('common.rename')"
+            @focus="editingName = true"
+            @keydown.enter.stop.prevent="commitName"
+            @blur="commitName"
+          />
+          <Button v-if="nameDirty" icon="pi pi-check" severity="secondary" text rounded size="small" :aria-label="$t('common.apply')" @click="commitName" />
+        </div>
         <Button :label="$t('common.save')" icon="pi pi-save" size="small" class="ml-auto" :loading="saving" :disabled="!dirty" @click="save" />
       </div>
       <DataTable :value="rows" edit-mode="cell" scrollable scroll-height="flex" size="small" class="mt-2 min-h-80 flex-1">
@@ -24,10 +27,11 @@
          (Quill): the payload is markdown by default — the editor content
          converts HTML → markdown on save and markdown → HTML on load.
          The document chrome is one toolbar: the name edits in place
-         (committed on blur/enter, rename rides the persistence seam),
-         save sits beside it, and the format controls follow in the
-         editor's own toolbar slot — not a header row plus a second
-         control strip. The csv surface shares the same name/save row.
+         (committed through enter, the apply control beside the field, or
+         blur — rename rides the persistence seam), save sits beside it,
+         and the format controls follow in the editor's own toolbar slot
+         — not a header row plus a second control strip. The csv surface
+         shares the same name/save row.
          The editing surface reads and writes in the app's serif document
          voice (the `editor` typography role) and carries the pane
          padding — it is a document surface, not a flush canvas
@@ -36,16 +40,19 @@
       <Editor v-model="html" :formats="editorFormats" :pt="editorPt">
         <template #toolbar>
           <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <InputText
-              v-model="nameDraft"
-              size="small"
-              class="min-w-40 max-w-72 flex-1"
-              :placeholder="$t('common.unnamed')"
-              :aria-label="$t('common.rename')"
-              @focus="editingName = true"
-              @keydown.enter.stop.prevent="commitName"
-              @blur="commitName"
-            />
+            <div class="flex min-w-40 max-w-72 flex-1 items-center gap-1">
+              <InputText
+                v-model="nameDraft"
+                size="small"
+                class="w-full min-w-0"
+                :placeholder="$t('common.unnamed')"
+                :aria-label="$t('common.rename')"
+                @focus="editingName = true"
+                @keydown.enter.stop.prevent="commitName"
+                @blur="commitName"
+              />
+              <Button v-if="nameDirty" icon="pi pi-check" severity="secondary" text rounded size="small" :aria-label="$t('common.apply')" @click="commitName" />
+            </div>
             <span class="ql-formats flex items-center">
               <select class="ql-header">
                 <option value="1">Heading</option>
@@ -104,10 +111,14 @@ const localTitle = ref('');
 const displayName = computed(() => localTitle.value || props.persistence.title || '');
 const nameDraft = ref('');
 const editingName = ref(false);
+// The apply control rides the name field while its draft differs from
+// the applied name — the pending-rename state is visible, not silent.
+const nameDirty = computed(() => Boolean(nameDraft.value.trim()) && nameDraft.value.trim() !== displayName.value);
 
-// The toolbar name field commits on blur/enter: the draft becomes the
-// document name (so the save filename follows immediately) and the
-// rename rides the persistence seam when the host provides it.
+// The toolbar name field commits on enter, the apply control, or blur:
+// the draft becomes the document name (so the save filename follows
+// immediately) and the rename rides the persistence seam when the host
+// provides it.
 async function commitName() {
   editingName.value = false;
   const name = nameDraft.value.trim();
