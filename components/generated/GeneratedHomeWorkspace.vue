@@ -224,7 +224,7 @@ import { useCallsStore } from '~/stores/calls';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js';
 import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
-import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
+import { shouldRenderHomeSection, typeParentOf } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { containmentParent, normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
@@ -442,9 +442,11 @@ const screenfulTypes = computed(() => new Set((authStore.screenManifest || [])
   .map(screen => screen.typeId)));
 
 // Types worth rendering: every screen-backed type plus its containment
-// ancestors (structural nodes keep the hierarchy real).
+// ancestors (structural nodes keep the hierarchy real). A type's parent
+// never includes itself — recursive containment nests instances under
+// instances, not the type node under itself (typeParentOf).
 const visibleTypes = computed(() => {
-  const parentOf = new Map(effectiveContainment().map(triple => [triple.childType, triple.parentType]));
+  const parentOf = typeParentOf(effectiveContainment());
   const visible = new Set();
   for (const typeId of screenfulTypes.value) {
     let cursor = typeId;
@@ -676,6 +678,10 @@ const activeOrganizationLabel = computed(() => {
 const explorerNodes = computed(() => {
   const childTypes = new Map();
   for (const triple of effectiveContainment()) {
+    // Self-containment is instance-level nesting (entityNode children),
+    // never a type node under itself — otherwise the recursive type roots
+    // itself out of the explorer.
+    if (triple.childType === triple.parentType) continue;
     if (!visibleTypes.value.has(triple.childType) || !visibleTypes.value.has(triple.parentType)) continue;
     const list = childTypes.get(triple.parentType) || [];
     if (!list.includes(triple.childType)) list.push(triple.childType);

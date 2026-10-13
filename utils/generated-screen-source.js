@@ -4,6 +4,23 @@ export function filterRootSourceItems(items = [], source = {}, sourceStates = {}
     .some(ref => accessibleIdsByType.get(ref.type)?.has(ref.id)));
 }
 
+// The type-level parent map for client tree builders (explorer, mobile
+// tabs): containment names a type's parent — except itself. Recursive
+// containment nests INSTANCES under instances (the entity-level
+// childrenByKey walk) and never roots the type node under itself, the
+// same law the compiler's home suppression applies to self-pairs. A
+// self-pair here made the recursive type its own child, so no root node
+// was emitted and its section vanished from the explorer entirely.
+export function typeParentOf(containment = []) {
+  const parentOf = new Map();
+  for (const triple of containment || []) {
+    if (!triple?.childType || !triple?.parentType) continue;
+    if (triple.childType === triple.parentType) continue;
+    if (!parentOf.has(triple.childType)) parentOf.set(triple.childType, triple.parentType);
+  }
+  return parentOf;
+}
+
 export function shouldRenderHomeSection({ items = [], rawItems = [], source = {} } = {}) {
   const parentLineageKeys = (source.lineageBindings || [])
     .filter(binding => normalizeType(binding.childTypeId) === normalizeType(source.typeId))

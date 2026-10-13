@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entityMatchesFilters, filterRootSourceItems, shouldRenderHomeSection } from './generated-screen-source.js';
+import { entityMatchesFilters, filterRootSourceItems, shouldRenderHomeSection, typeParentOf } from './generated-screen-source.js';
 
 describe('generated screen root sources', () => {
   const bindings = (...rows) => rows.map(([parentTypeId, childTypeId, lineageKey]) => ({
@@ -150,5 +150,20 @@ describe('entityMatchesFilters (wire reconciliation of source filters)', () => {
       { primaryStates: 'available,installed', binId: 'bin-1' }
     )).toBe(false);
     expect(entityMatchesFilters({ state: 'available' }, { primaryState: 'available' })).toBe(true);
+  });
+});
+
+describe('typeParentOf — recursive containment never roots the type node', () => {
+  it('a self-pair maps no parent, so the recursive type stays a root', () => {
+    const parentOf = typeParentOf([
+      { childType: 'assembly', parentType: 'assembly', lineageKey: 'assemblyId' },
+      { childType: 'sheet', parentType: 'assembly', lineageKey: 'sheetId' }
+    ]);
+    expect(parentOf.get('assembly')).toBeUndefined();
+    expect(parentOf.get('sheet')).toBe('assembly');
+    // The explorer rooting this feeds: only foreign children root.
+    const rooted = new Set([...parentOf.entries()].filter(([, parent]) => parent).map(([child]) => child));
+    expect(rooted.has('assembly')).toBe(false);
+    expect(rooted.has('sheet')).toBe(true);
   });
 });
