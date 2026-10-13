@@ -51,7 +51,7 @@
                 @keydown.enter.stop.prevent="commitName"
                 @blur="commitName"
               />
-              <Button v-if="nameDirty" icon="pi pi-check" severity="secondary" text rounded size="small" :aria-label="$t('common.apply')" @click="commitName" />
+              <Button v-if="nameDirty" icon="pi pi-check" severity="secondary" text rounded size="small" :pt="toolbarButtonPt" :aria-label="$t('common.apply')" @click="commitName" />
             </div>
             <span class="ql-formats flex items-center">
               <select class="ql-header">
@@ -72,7 +72,7 @@
               <button class="ql-link" type="button" />
               <button class="ql-code-block" type="button" />
             </span>
-            <Button :label="$t('common.save')" icon="pi pi-save" size="small" class="ml-auto" :loading="saving" :disabled="!dirty" @click="save" />
+            <Button :label="$t('common.save')" icon="pi pi-save" size="small" text class="ml-auto" :pt="toolbarButtonPt" :loading="saving" :disabled="!dirty" @click="save" />
           </div>
         </template>
       </Editor>
@@ -159,6 +159,16 @@ const editorPt = {
   root: { style: { display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', border: 'none', background: 'transparent' } },
   toolbar: { style: { fontFamily: 'var(--ck-font-ui)', padding: '0.375rem 0', background: 'transparent', borderWidth: '0 0 1px', borderStyle: 'solid', borderColor: 'var(--ck-chrome-border)' } },
   content: { style: { flex: '1 1 0', minHeight: '0', overflowY: 'auto', paddingTop: '0.5rem', border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' } }
+};
+// Snow's embedded stylesheet styles EVERY button inside its toolbar
+// (28×24, background none, inline-block) and its selector outranks
+// `.p-button` inside the same theme layer — app buttons placed in the
+// toolbar slot render as invisible 28×24 shells. The pt styles re-assert
+// the control box above the layer; save/apply ride the text recipe so
+// the stripped fill is the intended look (their snow hover color is
+// re-homed in the main.css quill block).
+const toolbarButtonPt = {
+  root: { style: { width: 'auto', height: 'auto', display: 'inline-flex', padding: '0.25rem 0.5rem' } }
 };
 
 onMounted(async () => {

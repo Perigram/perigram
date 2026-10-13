@@ -330,6 +330,15 @@ body {
     color: var(--p-primary-color);
 }
 
+/* Snow also styles every non-quill button inside its toolbar (the
+   28×24 backgroundless icon-box rule) — app controls there re-assert
+   their box through component pt, and their hover/focus keeps the app
+   ink instead of snow's #06c. */
+.ql-toolbar button:not([class*='ql-']):hover,
+.ql-toolbar button:not([class*='ql-']):focus {
+    color: var(--p-text-color);
+}
+
 /* Minimal layout helpers only */
 @layer utilities {
     .grid-hub {
