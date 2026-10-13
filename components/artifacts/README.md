@@ -30,23 +30,32 @@ the domain attachment kind instead of accepting component names.
 - `ArtifactTextEditor.vue` owns the editable text and CSV save path. Text
   documents are markdown by default: the editing surface is the PrimeVue
   `Editor` (Quill) rich text control whose HTML converts to markdown on
-  save (`turndown`) and from markdown on load (`marked`). Quill's bundled
-  themes hardcode a Helvetica 13px document voice, so the host applies
-  the app's `editor` typography role (serif, one size above prose) and
-  re-imposes it on the editor internals through inline pt styles (the
-  repo's cascade discipline: no scoped typography CSS); the toolbar
-  keeps the UI font. The editor
-  toolbar is restricted to formats markdown can round-trip. The
-  persistence adapter carries the file `extension` (`.md` for instance
-  documents, `.txt` or `.md` following the stored file for artifacts) and
-  the save mime. Text artifacts upload as `.txt` or `.md`
-  (`text/plain` or `text/markdown`); markdown keeps its kind on save.
-  The editor is a document surface, not an edge-to-edge canvas: it owns
-  its own pane padding, and its document chrome is one `ActionToolbar`
-  row — display name, rename (through the persistence `rename` seam),
-  save — matching the shared designer document contract. Its workspace
+  save (`turndown`) and from markdown on load (`marked`). The document
+  chrome is one toolbar: the name edits in place in the toolbar itself
+  (committed on blur/enter through the persistence `rename` seam — no
+  separate rename affordance), save sits beside it, and the format
+  controls follow in the editor's own toolbar slot, restricted to
+  formats markdown can round-trip. The csv surface shares the same
+  name/save row. Quill never loads its own stylesheet beside the
+  component: the PrimeVue editor theme already embeds the snow base with
+  token-driven overrides inside the `primevue` cascade layer, and an
+  unlayered `quill.snow.css` import stacks hardcoded values (#ccc
+  borders) over that layer, which can never win — that import is the
+  white-borders defect, do not reintroduce it. The component re-imposes
+  the app's document voice and zero-canvas chrome through inline pt
+  styles (serif `editor` role inherited into the content, transparent
+  surfaces, no box borders, one chrome hairline under the toolbar — the
+  pane Panel hairline is the box); child internals pt cannot reach (the
+  editable's line-height and inset, blockquote/code marks, the link
+  tooltip) are re-homed in the unlayered quill block in
+  `assets/css/main.css`. The persistence adapter carries the file
+  `extension` (`.md` for instance documents, `.txt` or `.md` following
+  the stored file for artifacts) and the save mime. Text artifacts
+  upload as `.txt` or `.md` (`text/plain` or `text/markdown`); markdown
+  keeps its kind on save. The editor is a document surface, not an
+  edge-to-edge canvas: it owns its own pane padding, and its workspace
   pages register as `flush`, so the pane host renders them without its
-  own padded scroll area: the editor root grows into the pane and long
+  own padded scroll area — the editor root grows into the pane and long
   documents scroll inside the editor content, never the page.
 - `SketchEditor.vue` owns the SKETCH editing surface: perfect-freehand pen
   plus line/rect/ellipse/eraser tools, undo/redo and the standard zoom

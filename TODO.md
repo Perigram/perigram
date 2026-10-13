@@ -22,6 +22,25 @@ the stored kind. Contracts:
   fills its pane with one scroll, and a `.md` file uploads and
   round-trips through the editor.
 
+### Agent Notes (2026-10-13, editor-toolbar-chrome session)
+
+Session `agent/editor-toolbar-chrome-20261013-155458`. White borders
+root-caused: the component imported `quill/dist/quill.snow.css`
+unlayered beside the PrimeVue editor theme, which already embeds the
+snow base with token-driven overrides inside the `primevue` cascade
+layer — an unlayered import outranks the whole layer, so hardcoded #ccc
+borders/#444 icons painted over the theme. Import deleted. Chrome
+rebuilt as ONE toolbar (name edits in place committed on blur/enter,
+format controls, save) in the Editor's own toolbar slot — the
+ActionToolbar header row and the popover pencil rename are gone; the
+csv surface gets the same name/save row. Zero-canvas chrome via pt
+inline (transparent surfaces, no box borders, one chrome hairline under
+the toolbar); `.ql-editor` internals/marks/tooltip re-homed in an
+unlayered main.css block. Validation: design-system + framework suites,
+file-surfaces specs, docs guard — green; audit matrix regenerated
+(inline finding dropped with the `editor-style` prop). Not run:
+Playwright E2E (needs live stack).
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection
