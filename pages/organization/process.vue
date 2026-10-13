@@ -630,6 +630,16 @@
       @cancel="cancelTypeMigration"
     />
 
+    <TypeDeathDialog
+      :visible="Boolean(pendingTypeDeath || pendingDefinitionDeath)"
+      :type-death="(pendingTypeDeath || pendingDefinitionDeath)?.typeDeath || []"
+      :deleting-definition="Boolean(pendingDefinitionDeath)"
+      :loading="applyingProcess || Boolean(definitionBusyId)"
+      @update:visible="value => { if (!value) { cancelTypeDeath(); pendingDefinitionDeath = null; } }"
+      @confirm="pendingDefinitionDeath ? confirmDefinitionDeath() : confirmTypeDeath()"
+      @cancel="() => { cancelTypeDeath(); pendingDefinitionDeath = null; }"
+    />
+
 
   </StandardPage>
 </template>
@@ -665,6 +675,7 @@ import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
+import TypeDeathDialog from '~/components/process-designer/TypeDeathDialog.vue';
 import OperationPalette from '~/components/process-designer/OperationPalette.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
@@ -986,13 +997,16 @@ const {
   applyingProcess,
   pendingMigration,
   pendingTypeMigration,
+  pendingTypeDeath,
   saveDraft,
   saveDraftFromDock,
   applyProcess,
   confirmApplyMigration,
   cancelApplyMigration,
   confirmTypeMigration,
-  cancelTypeMigration
+  cancelTypeMigration,
+  confirmTypeDeath,
+  cancelTypeDeath
 } = useProcessDesignerApply({
   persistence,
   t,
@@ -2104,24 +2118,59 @@ async function toggleDefinitionActive(process, active) {
   }
 }
 
+const pendingDefinitionDeath = ref(null);
+
 async function removeDefinition(process) {
   const id = String(process._id);
   if (definitionBusyId.value) return;
   definitionBusyId.value = id;
   try {
     await persistence.request(`/api/process-definitions/${id}`, { method: 'DELETE' });
-    processDefinitions.value = processDefinitions.value
-      .filter(item => String(item._id) !== id)
-      .sort(compareProcessDefinitions);
-    if (String(draft.value?._id) === id) {
-      const fallback = processDefinitions.value[0];
-      if (fallback) await selectProcessDefinition(fallback._id);
-      else setDraft(null);
-    }
+    dropRemovedDefinition(id);
   } catch (error) {
+    // Type lifetime (cts SPEC §4): deleting a definition takes its
+    // exclusively-owned types with it — pause on the death disclaimer.
+    if (error?.data?.typeDeath?.length) {
+      pendingDefinitionDeath.value = { definitionId: id, typeDeath: error.data.typeDeath };
+      return;
+    }
     toast.add({ severity: 'error', summary: t('common.delete'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {
     definitionBusyId.value = null;
+  }
+}
+
+async function confirmDefinitionDeath() {
+  const pending = pendingDefinitionDeath.value;
+  if (!pending || definitionBusyId.value) return;
+  definitionBusyId.value = pending.definitionId;
+  try {
+    await persistence.request(`/api/process-definitions/${pending.definitionId}`, {
+      method: 'DELETE',
+      body: { confirmTypeDeath: true }
+    });
+    pendingDefinitionDeath.value = null;
+    dropRemovedDefinition(pending.definitionId);
+  } catch (error) {
+    if (error?.data?.typeDeath?.length) {
+      pendingDefinitionDeath.value = { ...pending, typeDeath: error.data.typeDeath };
+      return;
+    }
+    pendingDefinitionDeath.value = null;
+    toast.add({ severity: 'error', summary: t('common.delete'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  } finally {
+    definitionBusyId.value = null;
+  }
+}
+
+function dropRemovedDefinition(id) {
+  processDefinitions.value = processDefinitions.value
+    .filter(item => String(item._id) !== id)
+    .sort(compareProcessDefinitions);
+  if (String(draft.value?._id) === id) {
+    const fallback = processDefinitions.value[0];
+    if (fallback) void selectProcessDefinition(fallback._id);
+    else setDraft(null);
   }
 }
 

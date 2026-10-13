@@ -283,6 +283,39 @@ Pinned by spec, including the exact live-error shape healing clean.
 Naming on such drafts now follows SPEC §4: the identifier row, else the
 rename channel, else the unnamed placeholder.
 
+## Types die with their definitions (owner decision 2026-10-13)
+
+Owner verdict on "Facade order" leaking from old applies: an org type
+lives while any STORED definition's current graph declares it (active,
+draft, or turned off); the apply that orphans a type and the deletion of
+its last declaring definition kill it WITH all its data, behind an
+explicit disclaimer naming each dying type and its record count.
+Version-history snapshots keep their declaration copies for restore.
+The runtime is dictated by ACTIVE definitions only (the explorer fix
+landed the same day; this section is the lifetime law itself).
+Declared in [packages/cts/SPEC.md](./packages/cts/SPEC.md) §4.
+
+- [ ] WAITING — owner verification: apply any definition; the disclaimer
+  must list the org's orphaned types (the stale "Facade order" among
+  them) with record counts; confirm deletes them and their data; the
+  org Types page and the app reflect the death everywhere.
+
+### Agent Notes (2026-10-13, the lifetime law)
+
+Session `agent/type-lifetime-20261013`. Server:
+`cts-types/lifetime.js` (candidates from stored definitions' ctsTypes,
+manifest with live counts via the instance probe, `killTypesWithData`),
+`instances/purge.js` (per-class instance bulk delete, `status_events`
+by `targetType`, GridFS files by metadata type — both buckets), gates in
+process-definitions `activate` (409 + `data.typeDeath` unless
+`confirmTypeDeath`) and `remove` (same, ignoring the dying definition's
+own declarations). Client: `TypeDeathDialog.vue` shared by the apply
+pause (`pendingTypeDeath` in useProcessDesignerApply) and the
+definition-delete pause (page-owned `pendingDefinitionDeath`); both
+confirm flows retry with the flag. Existing orphaned declarations are
+caught by the first apply that runs after this lands — no separate
+sweep.
+
 ## Recursive containment: a type may name itself as its own child (owner decision 2026-10-11)
 
 Declared in [packages/cts/SPEC.md](./packages/cts/SPEC.md) §6: lineage

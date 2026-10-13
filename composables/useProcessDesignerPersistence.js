@@ -31,11 +31,14 @@ export function useProcessDesignerPersistence({ request = $fetch } = {}) {
     return request(`/api/process-definitions/${id}/validate`, { method: 'POST' });
   }
 
-  // Activation carries no payload: the Apply migration decision is a
-  // declaration on the definition (data.migrations.statuses), persisted by
-  // the draft save that precedes activation.
-  function activateDraft(id) {
-    return request(`/api/process-definitions/${id}/activate`, { method: 'POST' });
+  // Activation carries one payload key: the confirmed consent to the
+  // type-lifetime gate (cts SPEC §4) — the disclaimer the designer renders
+  // before retrying. The Apply migration decision stays a declaration.
+  function activateDraft(id, { confirmTypeDeath = false } = {}) {
+    return request(`/api/process-definitions/${id}/activate`, {
+      method: 'POST',
+      body: { confirmTypeDeath }
+    });
   }
 
   function previewDraft(definition, nodeId) {

@@ -16,7 +16,11 @@ import { writeTypeMigrationSteps } from '~/utils/processDesignerTypeMigrations.j
 // the structured plan failures open the declarative-step dialog
 // (`TypeMigrationStepsDialog`), confirming writes the steps onto the class
 // nodes' `data.migrate` and retries the apply — the dialog is the author's
-// consent; nothing auto-declares.
+// consent; nothing auto-declares. The type-lifetime gate (cts SPEC §4,
+// owner decision 2026-10-13) pauses with `pendingTypeDeath` when the
+// apply orphans types: the disclaimer (`TypeDeathDialog`) names each
+// dying type and its instance count, and confirming retries activation
+// with explicit consent.
 function declaredMappingsCover(plan, statuses = []) {
   return (plan?.statuses || []).every(row =>
     row.removed.every(({ state }) =>
@@ -48,6 +52,7 @@ export function useProcessDesignerApply({
   const applyingProcess = ref(false);
   const pendingMigration = ref(null);
   const pendingTypeMigration = ref(null);
+  const pendingTypeDeath = ref(null);
 
   async function saveDraft() {
     savingDraft.value = true;
@@ -150,7 +155,36 @@ export function useProcessDesignerApply({
       pendingMigration.value = result.migrationPlan;
       return null;
     }
-    return completeActivation(await persistence.activateDraft(draft.value._id));
+    try {
+      return completeActivation(await persistence.activateDraft(draft.value._id));
+    } catch (error) {
+      // Type lifetime (cts SPEC §4): the apply that orphans types pauses
+      // with the death disclaimer; confirming retries with consent.
+      if (error?.data?.typeDeath?.length) {
+        pendingTypeDeath.value = { typeDeath: error.data.typeDeath, onConfirm: confirmTypeDeath };
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async function confirmTypeDeath() {
+    if (!draft.value?._id || applyingProcess.value) return;
+    applyingProcess.value = true;
+    try {
+      const activated = await persistence.activateDraft(draft.value._id, { confirmTypeDeath: true });
+      pendingTypeDeath.value = null;
+      return completeActivation(activated);
+    } catch (error) {
+      if (error?.data?.typeDeath?.length) {
+        // Live counts drifted since the pause: refresh the disclaimer.
+        pendingTypeDeath.value = { typeDeath: error.data.typeDeath, onConfirm: confirmTypeDeath };
+        return null;
+      }
+      reportApplyError(error);
+    } finally {
+      applyingProcess.value = false;
+    }
   }
 
   async function confirmApplyMigration(mappings) {
@@ -239,11 +273,16 @@ export function useProcessDesignerApply({
     }
   }
 
+  function cancelTypeDeath() {
+    pendingTypeDeath.value = null;
+  }
+
   return {
     savingDraft,
     applyingProcess,
     pendingMigration,
     pendingTypeMigration,
+    pendingTypeDeath,
     saveDraft,
     saveDraftFromDock,
     activateDraft,
@@ -251,6 +290,8 @@ export function useProcessDesignerApply({
     confirmApplyMigration,
     cancelApplyMigration,
     confirmTypeMigration,
-    cancelTypeMigration
+    cancelTypeMigration,
+    confirmTypeDeath,
+    cancelTypeDeath
   };
 }

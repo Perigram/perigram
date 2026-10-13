@@ -51,6 +51,12 @@ hand-written services.
   in-place `$unset`, no version stamp (their type did not change);
   the declaring type's own documents (self-containment) ride the normal
   stamped pass.
+- Type-lifetime purge (`purge.js`): the confirmed death of an orphaned
+  type (cts SPEC §4; candidates and the disclaimer live in
+  [cts-types](../cts-types/README.md)) removes every instance of the
+  type from its per-class collection, its `status_events` history
+  (keyed by `targetType`), and every stored file whose GridFS metadata
+  names the type (both buckets) — one home for the bulk data death.
 - Payload (SPEC §3/§4): create accepts a `payload` reference shaped
   `{ fileId, mime?, size?, name? }`. The reference is validated against
   the type's declared payload traits at construct (fileId required;

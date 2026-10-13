@@ -8,6 +8,18 @@ strangler layer 0 of the designer rebuild (see
 
 - `repository.js` persists org-authored declarations in `cts_types`
   (never system types — those compile from the domain packs at runtime).
+- `lifetime.js` owns the type-lifetime law (cts SPEC §4, owner decision
+  2026-10-13): an org type lives while any stored process definition's
+  current graph declares it (active, draft, or turned off — history
+  snapshots retain copies for restore but keep nothing alive).
+  `findTypeDeathCandidates` derives the orphans, `typeDeathManifest`
+  builds the disclaimer payload (authored name + live instance count),
+  and `killTypesWithData` executes the confirmed death — declaration,
+  instances, status history, and stored files leave together (the purge
+  itself lives in
+  [instances](../instances/README.md)). The gates that pause on the
+  disclaimer live in
+  [process-definitions](../process-definitions/README.md).
 - `service.js` builds one registry per organization view: strangler-converted
   system types first, the org's stored declarations overlaying (shadowing a
   system id is refused). `defineType` validates the declaration through the
