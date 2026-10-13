@@ -42,11 +42,13 @@ the domain attachment kind instead of accepting component names.
   token-driven overrides inside the `primevue` cascade layer, and an
   unlayered `quill.snow.css` import stacks hardcoded values (#ccc
   borders) over that layer, which can never win — that import is the
-  white-borders defect, do not reintroduce it. The component re-imposes
-  the app's document voice and zero-canvas chrome through inline pt
-  styles (serif `editor` role inherited into the content, transparent
-  surfaces, no box borders, one chrome hairline under the toolbar — the
-  pane Panel hairline is the box); child internals pt cannot reach (the
+  white-borders defect, do not reintroduce it. The editor rides the
+  zero canvas: surfaces are transparent through the `editor` tokens in
+  `assets/tokens/index.js` (no form-field fill on the toolbar or the
+  editable — the pane Panel hairline is the box), and the component's
+  inline pt styles carry the app's document voice and layout (serif
+  `editor` role inherited into the content, no box borders, one chrome
+  hairline under the toolbar); child internals pt cannot reach (the
   editable's line-height and inset, blockquote/code marks, the link
   tooltip) are re-homed in the unlayered quill block in
   `assets/css/main.css`. App buttons placed in the toolbar slot carry a

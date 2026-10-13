@@ -110,6 +110,17 @@ above the layer (auto size, inline-flex, small padding); save/apply use
 the text recipe so the stripped fill is intended; their snow `#06c`
 hover is re-homed to app ink in the main.css quill block.
 
+### Agent Notes (2026-10-13, editor-surface session)
+
+Session `agent/editor-surface-20261013-165901`, owner direction: "no
+artificial background needed in editor." The remaining fill was
+PrimeVue's `editor.content.background` form-field token painting the
+`.ql-editor` (white in light mode) — pt cannot reach that child. Fixed
+at the canonical lever: `editor` tokens (toolbar/content background
+transparent) in `assets/tokens/index.js`, pinned by the design-system
+spec; the component pt drops its redundant background keys and carries
+layout/voice only.
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection
