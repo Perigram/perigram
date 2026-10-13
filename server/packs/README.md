@@ -41,8 +41,8 @@ declaration, and `value-services/` modules importing the instance or
 files features are rejected at the mount (see
 [scripts/README.md](../../scripts/README.md)).
 
-- `documents/` — the pack mount binding the `rows` projection handler
-  (`documents.tableRows`, see
+- `documents/` — the pack mount binding the `rows`/`cells` projection
+  handlers (`documents.tableRows`/`documents.tableCells`, see
   [@perigram/documents](../../packages/documents/README.md)) and the
   `documents.csvText` value-service command (rows → CSV text); the types
   ride the generic instance machinery, whose `content` creation protocol

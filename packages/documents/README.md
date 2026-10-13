@@ -34,38 +34,51 @@ fills the payload; `content` (SPEC §4, owner decision 2026-10-13) adds a
 construct, so graphs create documents from composed values and generated
 dialogs prompt a textarea.
 
-## The rows projection
+## Table decomposition: the `rows` and `cells` projections
 
-`csv-table` and `xlsx-workbook` declare the `rows` projection (SPEC §8
-`p extract`, §16): a table instance → its first sheet as a list of
-header-keyed row records. The first non-empty row is the header; every
-following non-empty row becomes one record mapping each header (trimmed,
-stringified) to its raw cell (numeric-looking cells stay strings — typing
-is value-layer authoring downstream). Column semantics live entirely in
-the graph that reads the rows (`value.recordField` paths are the authored
-column selection); the projection carries none. The declaration carries
-the `tableData` palette group: the pack's plugin tab in the process
-designer, where table decomposition (and, when declared, composition and
-management) drop pre-bound — the tab is the vocabulary home for
-spreadsheet data operations, and nothing table-specific may land in the
-core value groups.
+`csv-table` and `xlsx-workbook` declare two extract projections (SPEC §8
+`p extract`, §16) — the author picks the one that matches the file:
 
-The declaration resolves through the pack-mounted handler
-(`server/packs/documents/table-rows.js` binds
-`documents.tableRows`): it loads the payload once and runs the same
-SheetJS read for both payload kinds. The workbook preview renders from
-the same parse shape; the projection is the one data seam.
+- **`rows`** — a table instance → its first sheet as a list of
+  header-keyed row records. The first non-empty row is the header; every
+  following non-empty row becomes one record mapping each header (trimmed,
+  stringified) to its raw cell as SheetJS parsed it (numeric-looking cells
+  arrive as numbers — casting and formatting are value-layer authoring
+  downstream: `value.cast`, `value.format`).
+- **`cells`** — the positional twin for sheets without column names: every
+  non-empty row is data (the first row included), and keys are spreadsheet
+  column letters (`A`, `B`, … `AA`), so `value.recordField` path `A` is the
+  positional column read.
+
+Both carry the output type `list<record>`; column semantics live entirely
+in the graph that reads them (`value.recordField` paths are the authored
+column selection); the projections carry none. The `tableData` palette
+group surfaces both per type: the pack's plugin tab in the process
+designer, where table decomposition and composition drop pre-bound — the
+tab is the vocabulary home for spreadsheet data operations, and nothing
+table-specific may land in the core value groups.
+
+Both resolve through pack-mounted handlers in
+`server/packs/documents/table-rows.js` (`documents.tableRows` /
+`documents.tableCells`): one payload load and the same SheetJS read for
+both payload kinds, then the header-keyed or positional conversion. The
+workbook preview renders from the same parse shape; the projections are
+the one data seam.
 
 Rows downstream: the projection's output type is `list<record>` — plain
-header-keyed row records, every cell a string — and at runtime that value
-travels the packet tree like any list (branches/items; every palette node
-is list-aware through it). The reading graph works the rows with the core
-vocabulary: `value.recordField` picks columns, `collection.joinByKey`
-joins row streams, the list/tree algebra filters/reshapes,
-`control.forEach` runs per-row effects, and `record.construct` +
-`cts.construct` create instances from row data (the composed order
-process in [e2e/order-process.spec.js](../../e2e/order-process.spec.js)
-is the live proof). Nothing table-specific lives in the core groups.
+header-keyed row records, every cell the value SheetJS parsed — and at
+runtime that value travels the packet tree like any list (branches/items;
+every palette node is list-aware through it). The reading graph works the
+rows with the core vocabulary: `value.recordField` picks columns,
+`collection.joinByKey` joins row streams, the list/tree algebra
+filters/reshapes, `control.forEach` runs per-row effects, and
+`record.construct` + `cts.construct` create instances from row data (the
+composed order process in [e2e/order-process.spec.js](../../e2e/order-process.spec.js)
+is the live proof). One cell reads column-first — `value.recordField`
+over the rows, then `collection.itemAt` on the column list — because
+`itemAt` on the rows returns the row record itself, which a `recordField`
+accepts as a one-item broadcast. Nothing table-specific lives in the core
+groups.
 
 ## The csvText service
 

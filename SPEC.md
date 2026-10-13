@@ -76,7 +76,11 @@ creation protocol beside upload/editor whose wired or prompted text becomes
 the payload at construct — and table data composes back through a pack
 service that serializes rows (header-keyed records) into CSV text in the
 pack's designer tab. Workbooks stay read-only: binary write-back is out of
-scope until a plugin executor owns it.
+scope until a plugin executor owns it. Headerless sheets are first-class:
+not every spreadsheet carries column names, so beside the header-keyed
+`rows` decomposition the pack declares a positional one — every row is
+data, keyed by spreadsheet column letters (`A`, `B`, …) — and the author
+picks the projection that matches the file.
 
 Generated creates enforce their construction contract (owner decision
 2026-10-12): the form prompts the compiled inputs in the flat-wire
