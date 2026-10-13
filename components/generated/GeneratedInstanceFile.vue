@@ -106,7 +106,7 @@ import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue'
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
-import { actionAppliesToEntity, isFieldEditAction, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isFieldEditAction, isGeneratedSurfaceAction } from '~/utils/action-visibility.js';
 import { generatedInstanceDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
 import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';

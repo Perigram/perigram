@@ -28,7 +28,7 @@ import {
   isDeleteAction,
   isRelationLinkAction,
   isUpdateAction
-} from '~/components/generated/action-visibility.js';
+} from '~/utils/action-visibility.js';
 
 const props = defineProps({
   actionId: { type: String, required: true },

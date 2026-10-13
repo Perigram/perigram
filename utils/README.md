@@ -68,6 +68,18 @@ Shared frontend utility modules used by Vue pages/components.
   server re-validates every send — this is only the early check the
   [support feature](../server/features/support/README.md) contract
   describes.
+- `action-visibility.js`: The one home for action-kind questions over the
+  projected manifest vocabulary (`createInstance`/`updateInstance`/
+  `deleteInstance`/`link`/`unlink`/`runCommand`): kind predicates,
+  entity-state applicability, and surface-action resolution. Pure (no Vue,
+  no stores) — components, utils, and stores consume it alike, and nothing
+  branches on raw `actionKind` strings itself.
+- `instance-run-results.js`: The one extractor for the created entity a
+  process-action run carries (chained constructs filtered to the action's
+  own target type). Consumed by the instances store — a create run lands
+  its created entity in the pool ([stores](../stores/README.md)) — and by
+  the created-open contract
+  ([components/generated](../components/generated/README.md)).
 
 ## Utility Protocol
 

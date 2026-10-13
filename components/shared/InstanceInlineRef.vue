@@ -11,7 +11,7 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
-import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
+import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/utils/action-visibility.js';
 import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { openInstanceChat } from '~/utils/instance-chat.js';

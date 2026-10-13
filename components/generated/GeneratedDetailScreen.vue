@@ -32,8 +32,8 @@ import { computed, ref, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
-import { isCreateAction } from '~/components/generated/action-visibility.js';
-import { isEditorProtocolCreate, resolveCreatedInstanceOpen, landCreatedInstanceInPool } from '~/components/generated/created-instance-open.js';
+import { isCreateAction } from '~/utils/action-visibility.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useAuthStore } from '~/stores/auth';
@@ -185,9 +185,8 @@ async function runAction(action, data = {}, context = {}) {
   // context-bound create keeps the construct with its binding in `data`.
   if (isEditorProtocolCreate(action) && !Object.keys(data || {}).length && openBlankFileEditor(action.typeId)) return;
   try {
-    const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });
+    const result = await instances.runAction({ action, actionId: action.id, instanceId, entities: {}, data, parameters: {} });
     if (isCreateAction(action)) {
-      landCreatedInstanceInPool(instances, action, result);
       const target = resolveCreatedInstanceOpen({
         action,
         result,

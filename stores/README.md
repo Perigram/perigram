@@ -21,8 +21,13 @@ Three cells; every surface derives from them, nothing else caches:
   an id chip (see
   [the directory feature](../server/features/directory/README.md)).
   Mutations go through it too: `runAction` posts process actions to the
-  active-process action endpoint via the offline outbox (idempotent replay),
-  and `mutateDirect` serves the framework/party/editor feature endpoints the
+  active-process action endpoint via the offline outbox (idempotent replay)
+  and lands a create run's created entity in the pool eagerly — the local
+  half of run-action reconciliation, so create-open destinations read the
+  record immediately while the server-published event remains the
+  cross-session backstop (the upsert marks the type's cached list
+  observations stale so surfaces refetch) — and `mutateDirect` serves the
+  framework/party/editor feature endpoints the
   same way. Endpoint resolution is owned here: framework party/service types
   keep their feature routes (mirrors the server's framework service set),
   remaining pack feature modules keep theirs (pinned by spec to the mounted

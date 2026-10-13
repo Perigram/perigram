@@ -5,7 +5,7 @@ import {
   parentBoundCreateAppliesToTypeId,
   resolveGeneratedEntityActions,
   resolveScopedGeneratedActions
-} from './action-visibility.js';
+} from '~/utils/action-visibility.js';
 
 describe('generated action visibility', () => {
   it('accepts the projected manifest vocabulary beside the legacy kinds', () => {

@@ -178,7 +178,7 @@ import { titleFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
-import { actionAppliesToEntity, isFieldEditAction, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isFieldEditAction, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/utils/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useRegistryStore } from '~/stores/registry';

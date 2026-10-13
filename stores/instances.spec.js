@@ -137,6 +137,27 @@ describe('instances store cache', () => {
     }));
   });
 
+  it('lands a create run\'s created entity in the pool, keyed by its own type', async () => {
+    // The local half of run-action reconciliation (stores README): a
+    // create-open destination reads the pool immediately, and the upsert
+    // marks the type's cached list observations stale. Non-create runs
+    // never land — a delete or transition result must not resurrect or
+    // shadow records through this channel.
+    const { useOutboxStore } = await import('./outbox');
+    const store = useOutboxStore();
+    const created = { _id: 'f-1', type: 'e2e-folder', name: 'Probe', fields: {} };
+    vi.spyOn(store, 'mutate').mockResolvedValue({ created });
+    const instances = useInstancesStore();
+
+    await instances.runAction({ action: { id: 'act-create', actionKind: 'createInstance', typeId: 'e2e-folder' }, actionId: 'act-create', data: {} });
+    expect(instances.dtoFor('e2e-folder', 'f-1')).toMatchObject({ name: 'Probe' });
+
+    const updated = { _id: 'f-2', type: 'e2e-folder', name: 'Touched' };
+    vi.spyOn(store, 'mutate').mockResolvedValue(updated);
+    await instances.runAction({ action: { id: 'act-update', actionKind: 'updateInstance', typeId: 'e2e-folder' }, actionId: 'act-update', instanceId: 'f-2', data: {} });
+    expect(instances.dtoFor('e2e-folder', 'f-2')).toBeNull();
+  });
+
   it('routes direct feature mutations through the outbox', async () => {
     const { useOutboxStore } = await import('./outbox');
     const store = useOutboxStore();

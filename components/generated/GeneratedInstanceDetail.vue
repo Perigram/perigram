@@ -90,7 +90,7 @@ import {
   isFieldEditAction,
   resolveGeneratedEntityActions,
   resolveScopedGeneratedActions
-} from '~/components/generated/action-visibility.js';
+} from '~/utils/action-visibility.js';
 import {
   generatedInstanceDetailConsumesAction
 } from '~/components/generated/detail-action-ownership.js';

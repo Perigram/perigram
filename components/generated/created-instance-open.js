@@ -1,4 +1,5 @@
 import { detailRouteForInstance, instanceIdentifier } from '~/components/generated/instance-detail-routing.js';
+import { createdEntity } from '~/utils/instance-run-results.js';
 
 // Where a successfully created entity opens (SPEC §4 editor protocol):
 // 1. the home workspace pane tab — the "everything lives inside home"
@@ -41,54 +42,6 @@ export function resolveCreatedInstanceOpen({ action = {}, result = null, screenK
     return { kind: 'workspace', typeId, instanceId: identifier, name: displayName(entity), editor: true };
   }
   return { kind: 'toast', typeId, instanceId: identifier, name: displayName(entity) };
-}
-
-// Every create host lands its created entity in the shared instances pool
-// before opening the destination (the created-open contract's pool step,
-// see the component README): the opened tab's single source, its label,
-// and the type's list sections all read the pool, and the store's cached
-// list observations refetch only after an upsert marks them stale.
-export function landCreatedInstanceInPool(store = null, action = {}, result = null) {
-  if (!store?.upsertRecord || typeof store.canonicalTypeKey !== 'function') return null;
-  const entity = createdEntity(action, result);
-  const id = entity?._id ?? entity?.id;
-  const typeId = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId || '';
-  if (!id || !typeId) return null;
-  const typeKey = store.canonicalTypeKey(entity?.type || typeId);
-  return typeKey ? store.upsertRecord(typeKey, entity) : null;
-}
-
-// The one create-result entity extractor (shared by the created-open
-// contract and the editor surface mount's blank-create callback). A run
-// may chain further constructs after the action's own — the result's
-// created items are filtered to the action's target type first, so the
-// chain's last step never binds a foreign record to the action's
-// destination; a single item of another shape keeps the legacy behavior.
-export function createdEntity(action = {}, result = null) {
-  const preferredType = [].concat(action.relationMutation?.targetTypes || [])[0] || action.typeId || '';
-  const entityOf = item => item?.entity || item;
-  const ofActionType = items => {
-    if (!preferredType) return null;
-    const matching = items.filter(item => entityOf(item)?.type === preferredType);
-    return matching.length ? entityOf(matching[0]) : null;
-  };
-  if (!result || typeof result !== 'object') return null;
-  const tree = Array.isArray(result?.branches) ? result : result?.result;
-  if (Array.isArray(tree?.branches)) {
-    const items = tree.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error);
-    if (items.length === 1) return entityOf(items[0]);
-    return ofActionType(items) || null;
-  }
-  const createdTree = Array.isArray(result?.created?.branches)
-    ? result.created.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error)
-    : null;
-  if (createdTree) {
-    if (createdTree.length === 1) return entityOf(createdTree[0]);
-    return ofActionType(createdTree) || null;
-  }
-  if (result.created) return result.created;
-  if (!result.owner) return result.entity || result;
-  return null;
 }
 
 function displayName(entity = {}) {

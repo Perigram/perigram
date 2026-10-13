@@ -293,7 +293,6 @@ import ToggleSwitch from 'primevue/toggleswitch';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
-import { useOutboxStore } from '~/stores/outbox';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
@@ -309,8 +308,8 @@ import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { usePayloadUpload } from '~/composables/usePayloadUpload.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
-import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/components/generated/action-visibility.js';
-import { isEditorProtocolCreate, resolveCreatedInstanceOpen, landCreatedInstanceInPool } from '~/components/generated/created-instance-open.js';
+import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/utils/action-visibility.js';
+import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
@@ -540,16 +539,13 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   const actionId = action?.id || action?.id;
   if (!actionId) return;
   try {
-    const result = await actionOffline({
-      url: `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`,
-      typeId: action.typeId,
+    const result = await instances.runAction({
+      action,
+      actionId,
       instanceId: entity?._id || entity?.id || null,
-      body: {
-        instanceId: entity?._id || entity?.id || null,
-        entities: { ...actionEntities(action, entity, context), ...(data?.entities || {}) },
-        data,
-        parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
-      }
+      entities: { ...actionEntities(action, entity, context), ...(data?.entities || {}) },
+      data,
+      parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
     });
     if (isDeleteAction(action)) await load();
     else applyActionResult(action, result);
@@ -562,19 +558,6 @@ async function postAction(action, entity = null, data = {}, context = {}) {
     }
     showActionError(err);
   }
-}
-
-async function actionOffline({ url, typeId, instanceId, body }) {
-  if (typeof window === 'undefined') {
-    return $fetch(url, { method: 'POST', body });
-  }
-  const outbox = useOutboxStore();
-  return outbox.mutate({
-    url,
-    method: 'POST',
-    body,
-    meta: { kind: 'action', typeId, instanceId, reason: 'process-action' }
-  });
 }
 
 function applyActionResult(action = {}, result = null) {
@@ -613,7 +596,6 @@ function mappedMutationItems(result) {
 
 async function openCreatedEntity(action = {}, result = null) {
   if (!isCreateAction(action)) return;
-  landCreatedInstanceInPool(instances, action, result);
   const target = resolveCreatedInstanceOpen({
     action,
     result,

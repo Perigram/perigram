@@ -11,7 +11,7 @@ import { useRegistryStore } from './registry';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { containmentAncestors, instanceHierarchyId, normalizeHierarchyType, rootContainmentFilter, siblingContainmentScope } from '~/utils/instance-hierarchy.js';
 import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js';
-import { isDetailScreenTemplate } from '~/components/generated/action-visibility.js';
+import { isDetailScreenTemplate } from '~/utils/action-visibility.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
