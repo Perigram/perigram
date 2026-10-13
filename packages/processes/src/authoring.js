@@ -17,6 +17,7 @@ import {
 } from './designer.js';
 import { constructionInputsForContract, EFFECT_SPECIES_KINDS, resolveCatalogNodePorts } from './node-catalog.js';
 import { mintProcessSocketHandle, parseProcessSocketHandleId, PROCESS_DATAFLOW_VERSION } from './ports.js';
+import { authoredSocketDefault } from './data-tree.js';
 import { processSocketsCompatible, processType } from './types.js';
 
 // Designer access-row normalization: explicit { roleId, level } grant rows
@@ -124,7 +125,10 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       ? contract.fieldsForEntity(bound)
       : [];
     return {
-      fieldSchema: fields.find(field => field.path === (node.inputDefaults?.field || node.path)) || null,
+      // The authored field arrives as the record's `path` or as the field
+      // socket's default (a packet from the inline fallback) — unwrap both,
+      // exactly the pair the catalog's field ports read.
+      fieldSchema: fields.find(field => field.path === (authoredSocketDefault(node.inputDefaults?.field) || node.path)) || null,
       fieldSchemas: fields,
       command: domain.commands?.[node.commandId] || null,
       domain

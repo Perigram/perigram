@@ -188,6 +188,23 @@ describe('native CTS process execution contract', () => {
     expect(field.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entityRef', typeId: 'panel' } });
   });
 
+  it('types the Get field output for every authored field spelling', () => {
+    const domain = nativeDomain();
+    // The inspector/authoring spelling: the record's own `path`.
+    const viaPath = portsFor({ kind: 'cts.field', typeId: 'panel', path: 'fields.name' }, domain);
+    expect(viaPath.outputs[0]).toMatchObject({ id: 'value', type: { base: 'string' } });
+    // The inline-fallback spelling: the field socket's authored default,
+    // stored as one broadcast item.
+    const viaDefault = portsFor({
+      kind: 'cts.field', typeId: 'panel',
+      inputDefaults: { field: { branches: [{ path: [], items: ['fields.name'] }] } }
+    }, domain);
+    expect(viaDefault.outputs[0]).toMatchObject({ id: 'value', type: { base: 'string' } });
+    // A party row stays typed through the same pair.
+    const partyRow = portsFor({ kind: 'cts.field', typeId: 'user', path: 'fields.email' }, domain);
+    expect(partyRow.outputs[0]).toMatchObject({ id: 'value', type: { base: 'string' } });
+  });
+
   it('derives native construct and consumer actions without replacing the process-node record', () => {
     const domain = nativeDomain();
     const construct = {
