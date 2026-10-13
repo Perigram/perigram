@@ -479,6 +479,17 @@ export const primeComponentTokens = {
             shadow: 'none'
         }
     },
+    // The document editor rides the zero canvas like every workspace
+    // surface: no form-field fill on the toolbar or the editable — the
+    // pane Panel hairline is the box (owner direction 2026-10-13).
+    editor: {
+        toolbar: {
+            background: 'transparent'
+        },
+        content: {
+            background: 'transparent'
+        }
+    },
     datatable: {
         root: {
             background: 'transparent'

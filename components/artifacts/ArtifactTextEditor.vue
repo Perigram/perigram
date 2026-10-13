@@ -148,17 +148,19 @@ const editorFormats = ['bold', 'italic', 'underline', 'strike', 'code', 'blockqu
 // `primevue` cascade layer, and importing `quill/dist/quill.snow.css`
 // again stacks an unlayered hardcoded copy (#ccc borders, #444 icons)
 // on top of that layer — the layered tokens can never win (the
-// white-borders defect). The pt inline styles ride above the layer: the
-// editor sits on the zero canvas (transparent surfaces, no box borders
-// — the pane Panel hairline is the box), the toolbar keeps the UI font
-// under one chrome hairline with its controls flush to the name field,
-// and the content grows into the host and scrolls inside it. Child
-// internals the pt surface cannot reach (editable voice, blockquote,
-// code, link tooltip) are re-homed in the main.css quill block.
+// white-borders defect). The editor rides the zero canvas: surfaces are
+// transparent through the editor tokens in assets/tokens/index.js (no
+// form-field fill on the toolbar or the editable — the pane Panel
+// hairline is the box), and these pt inline styles carry only layout
+// and the document voice — the toolbar keeps the UI font under one
+// chrome hairline, the content grows into the host and scrolls inside
+// it. Child internals the pt surface cannot reach (editable voice,
+// blockquote, code, link tooltip) are re-homed in the main.css quill
+// block.
 const editorPt = {
-  root: { style: { display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', border: 'none', background: 'transparent' } },
-  toolbar: { style: { fontFamily: 'var(--ck-font-ui)', padding: '0.375rem 0', background: 'transparent', borderWidth: '0 0 1px', borderStyle: 'solid', borderColor: 'var(--ck-chrome-border)' } },
-  content: { style: { flex: '1 1 0', minHeight: '0', overflowY: 'auto', paddingTop: '0.5rem', border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' } }
+  root: { style: { display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', border: 'none' } },
+  toolbar: { style: { fontFamily: 'var(--ck-font-ui)', padding: '0.375rem 0', borderWidth: '0 0 1px', borderStyle: 'solid', borderColor: 'var(--ck-chrome-border)' } },
+  content: { style: { flex: '1 1 0', minHeight: '0', overflowY: 'auto', paddingTop: '0.5rem', border: 'none', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' } }
 };
 // Snow's embedded stylesheet styles EVERY button inside its toolbar
 // (28×24, background none, inline-block) and its selector outranks

@@ -199,6 +199,10 @@ describe('Design system manifest', () => {
       listbox: { root: { borderColor: 'transparent' } },
       splitter: { gutter: { background: 'transparent' } },
       card: { root: { shadow: 'none' } },
+      editor: {
+        toolbar: { background: 'transparent' },
+        content: { background: 'transparent' }
+      },
       datatable: {
         root: { background: 'transparent' },
         header: {
