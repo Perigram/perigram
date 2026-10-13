@@ -167,6 +167,16 @@ transparent) in `assets/tokens/index.js`, pinned by the design-system
 spec; the component pt drops its redundant background keys and carries
 layout/voice only.
 
+### Agent Notes (2026-10-13, editor-namefield session)
+
+Session `agent/editor-namefield-20261013-175207`, owner feedback: "you
+just added it to header also." With the editor tokens making toolbar and
+editable transparent, the last painted surface in the toolbar was the
+outlined name InputText (form-field fill — a lone white box on the
+canvas). `nameFieldPt` strips its background and border: the name reads
+as quiet document text, the focus ring keeps the edit affordance, the
+apply control marks the pending rename.
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection

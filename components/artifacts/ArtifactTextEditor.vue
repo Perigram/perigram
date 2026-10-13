@@ -7,6 +7,7 @@
             v-model="nameDraft"
             size="small"
             class="w-full min-w-0"
+            :pt="nameFieldPt"
             :placeholder="$t('common.unnamed')"
             :aria-label="$t('common.rename')"
             @focus="editingName = true"
@@ -45,6 +46,7 @@
                 v-model="nameDraft"
                 size="small"
                 class="w-full min-w-0"
+                :pt="nameFieldPt"
                 :placeholder="$t('common.unnamed')"
                 :aria-label="$t('common.rename')"
                 @focus="editingName = true"
@@ -114,6 +116,15 @@ const editingName = ref(false);
 // The apply control rides the name field while its draft differs from
 // the applied name — the pending-rename state is visible, not silent.
 const nameDirty = computed(() => Boolean(nameDraft.value.trim()) && nameDraft.value.trim() !== displayName.value);
+
+// The name field is quiet document text, not a form box: the outlined
+// InputText carries the form-field fill (a white box on the canvas once
+// everything around it went transparent), so the pt styles strip the
+// background and border — the focus ring keeps the edit affordance and
+// the apply control marks the pending rename.
+const nameFieldPt = {
+  root: { style: { background: 'transparent', borderColor: 'transparent' } }
+};
 
 // The toolbar name field commits on enter, the apply control, or blur:
 // the draft becomes the document name (so the save filename follows
