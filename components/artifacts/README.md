@@ -49,7 +49,11 @@ the domain attachment kind instead of accepting component names.
   pane Panel hairline is the box); child internals pt cannot reach (the
   editable's line-height and inset, blockquote/code marks, the link
   tooltip) are re-homed in the unlayered quill block in
-  `assets/css/main.css`. The persistence adapter carries the file
+  `assets/css/main.css`. App buttons placed in the toolbar slot carry a
+  pt re-assertion (`toolbarButtonPt`): snow's embedded `button` rule
+  (28×24, backgroundless) outranks `.p-button` inside the theme layer
+  and would render them as invisible shells, so save/apply ride the
+  text recipe with an explicit control box. The persistence adapter carries the file
   `extension` (`.md` for instance documents, `.txt` or `.md` following
   the stored file for artifacts) and the save mime. Text artifacts
   upload as `.txt` or `.md` (`text/plain` or `text/markdown`); markdown

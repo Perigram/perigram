@@ -96,6 +96,20 @@ draft differs from the applied name; enter/apply/blur all commit
 (idempotent). Save keeps its label+icon and stays content-gated — a
 name change alone never creates a content revision.
 
+### Agent Notes (2026-10-13, editor-toolbar-buttons session)
+
+Session `agent/editor-toolbar-buttons-20261013-164353`, owner feedback:
+"I don't see save button." Root cause: snow's embedded stylesheet has a
+blanket rule for every `button` inside its toolbar (`28×24`,
+`background: none`, `inline-block`) whose selector outranks `.p-button`
+inside the same theme layer — the toolbar-slot save/apply buttons
+rendered as invisible 28×24 shells (the name input is an `<input>` and
+the format icons want exactly that sizing, which is why only the PrimeVue
+buttons vanished). Fix: `toolbarButtonPt` re-asserts the control box
+above the layer (auto size, inline-flex, small padding); save/apply use
+the text recipe so the stripped fill is intended; their snow `#06c`
+hover is re-homed to app ink in the main.css quill block.
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection
