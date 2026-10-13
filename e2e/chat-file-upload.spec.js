@@ -39,7 +39,7 @@ test.describe('chat file uploads', () => {
       edges: { children: { photos: { types: [PHOTO_TYPE], onRemove: 'restrict' } } },
       fields: { name: { base: 'string' } }
     });
-    await app.seedSpeciesProcess({ types: [BOX_TYPE] });
+    await app.seedSpeciesProcess({ types: [BOX_TYPE], declares: [PHOTO_TYPE] });
     const box = await app.createInstance(BOX_TYPE, { name: app.uniqueName('Chat upload box') });
     expect(box._id, 'Expected the box instance').toBeTruthy();
 

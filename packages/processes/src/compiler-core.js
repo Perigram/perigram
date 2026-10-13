@@ -4247,13 +4247,40 @@ function inferConnectedActionTypeId(actionId, process = {}) {
   return '';
 }
 
+// SPEC §7: machines are graph-derived — the draft's state nodes seed the
+// vocabulary for every producer of their type (the same source
+// compileWorkflows reads). The domain channel alone never carries an
+// org-type machine (the projection emits none), so the capability gate
+// reads both: a domain machine or a draft-seeded vocabulary satisfies it.
+function processDeclaresStateVocabulary(process = {}, typeId = '') {
+  if (!typeId) return false;
+  const records = Object.values(process.ctsTypes || {});
+  if (records.some(record => record?.kind === 'state' && record.value && record.typeId === typeId)) return true;
+  // Unscoped tokens bind through their entry wires into this type's nodes
+  // (the designer's connection rule compileWorkflows applies).
+  const ctsByNode = new Map((process.graph?.nodes || []).map(node => [
+    String(node.id),
+    (process.ctsTypes || {})[String(node.data?.refId || node.id)]
+  ]));
+  const procByNode = new Map((process.graph?.nodes || []).map(node => [
+    String(node.id),
+    (process.processNodes || {})[String(node.data?.refId || node.id)]
+  ]));
+  return (process.graph?.edges || []).some(edge => {
+    const state = ctsByNode.get(String(edge.source));
+    if (!state || state.kind !== 'state' || !state.value || state.typeId) return false;
+    const target = procByNode.get(String(edge.target));
+    return (target?.typeId || target?.targetTypeId || '') === typeId;
+  });
+}
+
 function validateEffectCapabilities(process = {}, domain = {}, capabilities = {}, errors = []) {
   for (const [nodeId, node] of Object.entries(process.processNodes || {})) {
     if (!node.typeId) continue;
     const capability = requiredEffectCapability(node.kind, node);
     if (!capability) continue;
     if (capability === 'statusMutation') {
-      if (!domain.workflows?.[node.typeId]) {
+      if (!domain.workflows?.[node.typeId] && !processDeclaresStateVocabulary(process, node.typeId)) {
         errors.push(`Process node ${nodeId} cannot change ${node.typeId}: entity has no status workflow`);
       }
       continue;

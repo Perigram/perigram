@@ -121,6 +121,14 @@ async function seedStatefulProcess(app) {
   // the activation round-trip regenerates records from the canvas and
   // refuses any key the canvas cannot reproduce.
   const stateRecords = {
+    // Type lifetime (cts SPEC §4): the definition declares the org type
+    // in-tree beside its state records — the class record plus its field
+    // record and declares edge, mirroring what declareClass/declareField
+    // author — so activation never sees the type as an orphan. The field
+    // mirror keeps the draft-overlay construction identical to the
+    // registry compile.
+    cls_widget: { id: 'cls_widget', kind: 'class', typeId: TYPE, name: 'E2E State Widget', class: 'item', glyph: null, payload: null, operators: [] },
+    fld_widget_name: { id: 'fld_widget_name', kind: 'field', typeId: TYPE, name: 'name', descriptor: { base: 'string' } },
     st_draft: { id: 'st_draft', kind: 'state', typeId: TYPE, value: 'draft', severity: 'info', terminal: false },
     st_done: { id: 'st_done', kind: 'state', typeId: TYPE, value: 'done', severity: 'success', terminal: true }
   };
@@ -159,6 +167,8 @@ async function seedStatefulProcess(app) {
     }
   };
   const canvas = [
+    { id: 'cls_widget', type: 'ctsClass', data: { refId: 'cls_widget', typeId: TYPE, name: 'E2E State Widget', class: 'item' } },
+    { id: 'fld_widget_name', type: 'ctsField', data: { refId: 'fld_widget_name', typeId: TYPE, name: 'name', descriptor: { base: 'string' } } },
     { id: 'st_draft', type: 'ctsState', data: { refId: 'st_draft', typeId: TYPE, value: 'draft', terminal: false } },
     { id: 'st_done', type: 'ctsState', data: { refId: 'st_done', typeId: TYPE, value: 'done', terminal: true } },
     { id: 'create', type: 'processNode', data: { refId: 'create' } },
@@ -173,7 +183,12 @@ async function seedStatefulProcess(app) {
         ctsTypes: stateRecords,
         processNodes,
         producerOutputs,
-        graph: { nodes: canvas, edges: [] }
+        graph: {
+          nodes: canvas,
+          edges: [
+            { id: 'declares:fld_widget_name-cls_widget', source: 'fld_widget_name', target: 'cls_widget', sourceHandle: null, targetHandle: null, type: 'default', role: 'type', label: 'declares' }
+          ]
+        }
       }
     }
   });

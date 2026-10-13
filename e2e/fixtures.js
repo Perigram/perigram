@@ -122,13 +122,24 @@ export const test = base.extend({
         expect(response.ok(), await response.text()).toBeTruthy();
         return await response.json();
       },
+      // The registry declarations the suite posted, keyed by type id —
+      // the single source `seedSpeciesProcess` mirrors in-tree.
+      async readOrgTypeDeclarations() {
+        const response = await request.get('/api/admin/cts/types');
+        expect(response.ok(), await response.text()).toBeTruthy();
+        return new Map(((await response.json()).types || []).map(type => [type.id, type]));
+      },
       // Seeds the org with a species process authored through the headless
       // authoring seam — the same palette drops and construction modes the
       // designer produces: one manual construct per requested type, granted
       // to a fresh role, activated beside whatever the org already runs.
       // `domainTypes` joins the authoring registry beside the mounted packs
-      // (a fixture plugin's installed types).
-      async seedSpeciesProcess({ types = ['cassette', 'image'], via = {}, label = null, domainTypes = [] } = {}) {
+      // (a fixture plugin's installed types). `declares` names additional
+      // org types the definition declares without constructing (a seeded
+      // child's file type): every org type the suite posted must be
+      // declared by some stored definition, or activation 409s on the
+      // type-lifetime gate (cts SPEC §4).
+      async seedSpeciesProcess({ types = ['cassette', 'image'], via = {}, label = null, domainTypes = [], declares = [] } = {}) {
         const me = await (await request.get('/api/auth/me')).json();
         const organizationId = me.organizationId;
         const roleResponse = await request.post(`/api/organizations/${organizationId}/roles`, {
@@ -144,9 +155,49 @@ export const test = base.extend({
 
         const authoring = createDefinitionAuthoring(mountedDomain(organizationId, domainTypes));
         types.forEach((typeId, index) => {
+          authoring.drop('construct', { id: `e2e-${index}` });
+        });
+        // Type lifetime (cts SPEC §4): the seeded definition declares its
+        // org types in-tree — the declaration gestures behind the
+        // designer's palette drops — so activation never sees them as
+        // orphans. Shapes mirror the registry declarations read back live
+        // (the single source of truth), keeping the draft-overlay compile
+        // identical to the registry compile; pack/plugin/system types need
+        // no declaration.
+        const declaredById = await helper.readOrgTypeDeclarations();
+        const declaredIds = [...types, ...declares];
+        declaredIds.forEach((typeId, index) => {
+          const declaration = declaredById.get(typeId);
+          if (!declaration || declaration.scope !== 'org') return;
+          const classId = `e2e-class-${index}`;
+          authoring.declareClass({
+            id: classId,
+            typeId,
+            class: declaration.class,
+            name: declaration.name || typeId,
+            ...(declaration.payload ? { payload: declaration.payload } : {})
+          });
+          for (const [name, descriptor] of Object.entries(declaration.fields || {})) {
+            authoring.declareField({ id: `e2e-field-${index}-${name}`, ownerClassId: classId, name, descriptor });
+          }
+        });
+        declaredIds.forEach((typeId, index) => {
+          const declaration = declaredById.get(typeId);
+          if (!declaration || declaration.scope !== 'org') return;
+          for (const [mapKey, edge] of Object.entries(declaration.edges?.children || {})) {
+            for (const childType of edge.types || []) {
+              const childIndex = declaredIds.indexOf(childType);
+              if (childIndex < 0) continue;
+              authoring.wireDeclaration(`e2e-class-${index}`, `e2e-class-${childIndex}`, 'children', { key: mapKey });
+            }
+          }
+        });
+        types.forEach((typeId, index) => {
           const id = `e2e-${index}`;
           const mode = via[typeId] || DEFAULT_VIA[typeId] || 'genericCreate';
-          authoring.drop('construct', { id });
+          if (declaredById.get(typeId)?.scope === 'org') {
+            authoring.wireDeclaration(`e2e-class-${declaredIds.indexOf(typeId)}`, id, 'binds');
+          }
           authoring.configure(id, {
             typeId,
             construction: { mode },
@@ -164,7 +215,10 @@ export const test = base.extend({
         const draft = await draftResponse.json();
         helper.trackCleanup(async () => {
           await request.post(`/api/process-definitions/${draft._id}/deactivate`, { failOnStatusCode: false });
-          await request.delete(`/api/process-definitions/${draft._id}`, { failOnStatusCode: false });
+          // The suite owns these types outright: teardown consents to the
+          // type-lifetime gate so the definition and its declared types die
+          // together instead of piling up as orphans.
+          await request.delete(`/api/process-definitions/${draft._id}`, { data: { confirmTypeDeath: true }, failOnStatusCode: false });
         });
         const activate = async () => request.post(`/api/process-definitions/${draft._id}/activate`, {}, { failOnStatusCode: false });
         let activated = await activate();

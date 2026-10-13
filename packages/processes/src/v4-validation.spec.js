@@ -128,6 +128,43 @@ describe('process v4 validation', () => {
     expect(result.errors).toContain('Process node node cannot change project: entity has no status workflow');
   });
 
+  it('accepts transitions when the draft seeds the vocabulary (SPEC §7: machines are graph-derived)', () => {
+    // The domain channel alone never carries an org-type machine (the
+    // projection emits none): the draft's own state nodes satisfy the
+    // gate, typed or wire-bound.
+    const capabilities = { project: { create: true, processUpdate: true, delete: true, archive: false } };
+    const typed = validateProcessDefinition(definition({
+      kind: 'cts.transition',
+      typeId: 'project',
+      trigger: { mode: 'manual' },
+      inputDefaults: { state: 'READY' }
+    }, {
+      ctsTypes: {
+        st_ready: { id: 'st_ready', kind: 'state', typeId: 'project', value: 'ready' }
+      }
+    }), domain, { capabilities });
+    expect(typed.errors).not.toContain('Process node node cannot change project: entity has no status workflow');
+
+    const wired = validateProcessDefinition(definition({
+      kind: 'cts.transition',
+      typeId: 'project',
+      trigger: { mode: 'manual' },
+      inputDefaults: { state: 'READY' }
+    }, {
+      ctsTypes: {
+        st_ready: { id: 'st_ready', kind: 'state', value: 'ready' }
+      },
+      graph: {
+        nodes: [
+          { id: 'node', type: 'processNode', data: { refId: 'node' } },
+          { id: 'st_ready', type: 'ctsState', data: { refId: 'st_ready' } }
+        ],
+        edges: [{ id: 'entry', source: 'st_ready', target: 'node' }]
+      }
+    }), domain, { capabilities });
+    expect(wired.errors).not.toContain('Process node node cannot change project: entity has no status workflow');
+  });
+
   it.each([
     ['archive', 'archive'],
     ['delete', 'delete']
