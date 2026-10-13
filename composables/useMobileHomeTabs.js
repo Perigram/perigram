@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { useRegistryStore } from '~/stores/registry';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
+import { typeParentOf } from '~/utils/generated-screen-source.js';
 import { typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 
 // The mobile home tab contract: the sidebar tree's top level as one
@@ -26,7 +27,7 @@ export function useMobileHomeTabs() {
   const { te, t } = useI18n();
 
   const tabs = computed(() => {
-    const parentOf = new Map(effectiveContainment().map(triple => [triple.childType, triple.parentType]));
+    const parentOf = typeParentOf(effectiveContainment());
     const visible = new Set();
     for (const typeId of screenfulTypes.value) {
       let cursor = typeId;
