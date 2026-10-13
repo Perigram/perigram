@@ -228,6 +228,37 @@ describe('screen composition', () => {
       .toEqual(['child1', 'child2', 'root1']);
   });
 
+  it('keeps a self-recursive class list flat while the cross-cut resolves child parents (owner direction)', () => {
+    // A class's list surface is always flat — containment navigation is
+    // the workspace explorer's — so a self-recursive type lists parents
+    // AND children. The cross-cut keeps that pile readable: each child's
+    // parent ref resolves through the type's own self-edge, in both
+    // stored ref shapes.
+    const recursiveBundle = {
+      types: [{
+        ...bundle.types[0],
+        edges: { children: { subtrees: { types: ['widget'], lineageKey: 'parentId' } } }
+      }]
+    };
+    const recursivePool = buildInstancePool({
+      widgets: [
+        { id: 'root1', type: 'widget', fields: { name: 'Root' }, relations: {}, lineage: {} },
+        { id: 'child1', type: 'widget', fields: { name: 'Child' }, relations: {}, lineage: { parentId: { type: 'widget', id: 'root1' } } },
+        { id: 'child2', type: 'widget', fields: { name: 'RawChild' }, relations: {}, lineage: { parentId: 'root1' } }
+      ]
+    });
+    const screen = { screenKey: 'recursive', template: 'typeList', label: 'Folders',
+      sources: [{ id: 'widget', typeId: 'widget', mode: 'list' }],
+      regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'list' }] };
+    const composed = composeScreen(screen, contract, recursiveBundle, recursivePool);
+    expect(composed.regions[0].instances.map(instance => instance.id)).toEqual(['root1', 'child1', 'child2']);
+    const edges = incomingChildrenEdges(recursiveBundle, 'widget');
+    expect(edges).toEqual([{ parentTypeId: 'widget', key: 'parentId' }]);
+    expect(parentRefOf(recursivePool.widget.child1, edges)).toEqual({ parentTypeId: 'widget', parentId: 'root1' });
+    expect(parentRefOf(recursivePool.widget.child2, edges)).toEqual({ parentTypeId: 'widget', parentId: 'root1' });
+    expect(parentRefOf(recursivePool.widget.root1, edges)).toBeNull();
+  });
+
   it('carries tree-owned chrome per region (container role by depth)', () => {
     const composed = composeScreen(
       { screenKey: 'c1', template: 'instanceDetail', label: 'C1',
