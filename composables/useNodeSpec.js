@@ -2,7 +2,6 @@
 // what the node does (by operation kind / species, SPEC §8/§20), rendered
 // beside the socket contract (name — type, access) the card already
 // computes. Presentation only — never process data.
-import { operationKindOf } from '~/packages/cts/src/index.js';
 
 const SPEC_BY_KIND = {
   'cts.construct': 'Creates a new instance of the bound type. Inputs are the type\'s constructor: named fields (typed), payload upload for file types, and the initial state. Outputs the created instance.',
@@ -33,6 +32,8 @@ const SPEC_BY_KIND = {
   'collection.concat': 'Concatenates two lists.',
   'collection.join': 'Joins two value lists by authored key paths (strict: every left key must match one right entry); output pairs carry {left, right}.',
   'source.currentTime': 'The current moment, evaluated lazily when the consuming effect runs.',
+  'source.currentUser': 'The acting user (a read-only party principal): resolves from the run context when consumed — the stamp for who executed.',
+  'source.currentOrganization': 'The active organization (a read-only party principal): resolves from the run context when consumed.',
   'value.cast': 'Converts a value to another base type.',
   'value.coalesce': 'Falls back to a replacement when the value is empty or missing.',
   'value.format': 'Formats a number with a locale or a {value} template.',
@@ -58,9 +59,8 @@ const SPEC_BY_KIND = {
 };
 
 export function nodeSpecSummary(record = {}, formatType = () => 'value') {
-  const kind = operationKindOf(record);
   const spec = SPEC_BY_KIND[record.kind]
-    || (kind.startsWith('collection.') || kind.startsWith('tree.') ? 'List/tree algebra over values: selects, orders, reshapes.' : '');
+    || (record.kind.startsWith('collection.') || record.kind.startsWith('tree.') ? 'List/tree algebra over values: selects, orders, reshapes.' : '');
   const parts = [];
   if (spec) parts.push(spec);
   return parts.join('\n');

@@ -110,6 +110,44 @@ describe('process entity capability projection', () => {
     expect(capabilities.material.writableFields).toEqual([]);
   });
 
+  it('projects party entities as read-only whatever the raw bindings advertise', () => {
+    const capabilities = projectEntityProcessCapabilities(
+      {
+        entities: [{ type: 'user', party: true, meta: true, blocks: ['fields'] }, ...domain.entities],
+        construction: domain.construction,
+        fieldSchemas: {
+          user: [
+            { path: 'name', block: 'identity', writable: false, constructible: false },
+            { path: 'fields.email', block: 'fields', writable: false, constructible: false }
+          ],
+          ...domain.fieldSchemas
+        },
+        relations: domain.relations,
+        workflows: domain.workflows
+      },
+      {
+        // The registered framework party services advertise update/delete
+        // for their own feature surfaces — the process plane reads only.
+        user: { list: true, getById: true, processUpdate: true, delete: true, archive: false },
+        ...bindings
+      }
+    );
+
+    expect(capabilities.user).toMatchObject({
+      list: true,
+      getById: true,
+      create: false,
+      createModes: [],
+      processUpdate: false,
+      delete: false,
+      archive: false,
+      statusMutation: false
+    });
+    expect(capabilities.user.writableFields).toEqual([]);
+    expect(capabilities.user.constructibleFields).toEqual([]);
+    expect(capabilities.user.relationMutations).toEqual([]);
+  });
+
   it('treats missing bindings and missing construction as absent capabilities', () => {
     const capabilities = projectEntityProcessCapabilities(
       { entities: [{ type: 'ghost', blocks: ['identity'] }] },

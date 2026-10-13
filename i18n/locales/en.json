@@ -823,7 +823,8 @@
     "usageStatisticsComingSoon": "Project usage statistics are not yet implemented.",
     "themeNotImplemented": "Theme selection is not yet implemented.",
     "theme": "Theme",
-    "termsAndConditions": "Terms and Conditions"
+    "termsAndConditions": "Terms and Conditions",
+    "roles": "Roles"
   },
   "terms": {
     "title": "Terms and Conditions",
@@ -2565,6 +2566,8 @@
       "class": "Class",
       "contextEntity": "Entity from context",
       "allEntities": "All entities",
+      "currentUser": "Current user",
+      "currentOrganization": "Current organization",
       "switchPaths": "Switch paths",
       "finish": "Finish",
       "fail": "Fail",

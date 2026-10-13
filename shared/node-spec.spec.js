@@ -6,19 +6,18 @@ import { formatProcessType } from '../packages/processes/src/index.js';
 
 describe('node spec tooltip', () => {
   it('describes every v5 species operation', () => {
-    for (const kind of ['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.service', 'cts.read', 'cts.field', 'cts.compose', 'cts.decompose', 'cts.join']) {
+    for (const kind of ['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.service', 'cts.read', 'cts.field', 'cts.compose', 'cts.decompose', 'source.currentUser', 'source.currentOrganization']) {
       const summary = nodeSpecSummary({ kind }, formatProcessType);
       expect(summary, kind).toMatch(/[a-z]/);
       expect(summary.length, kind).toBeGreaterThan(20);
     }
   });
 
-  it('v4 records resolve to species descriptions through the operation-kind seam', () => {
-    expect(nodeSpecSummary({ kind: 'effect.changeStatus', typeId: 'queue' }, formatProcessType)).toMatch(/state machine/i);
-    expect(nodeSpecSummary({ kind: 'record.getField' }, formatProcessType)).toMatch(/pure value/);
-    // v4 read spellings never render: every load migrates them to
-    // `cts.read` + select (reads never reverse), so no species spec
-    // resolves for a retired read kind.
+  it('v4 records resolve to nothing: authored definitions speak the current species vocabulary only', () => {
+    // The v4 twin table is retired with the kinds — a v4 record carries no
+    // species spec, exactly like the retired read spellings below.
+    expect(nodeSpecSummary({ kind: 'effect.changeStatus', typeId: 'queue' }, formatProcessType)).toBe('');
+    expect(nodeSpecSummary({ kind: 'record.getField' }, formatProcessType)).toBe('');
     expect(nodeSpecSummary({ kind: 'read.currentEntity' }, formatProcessType)).toBe('');
   });
 

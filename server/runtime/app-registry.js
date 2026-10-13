@@ -14,6 +14,7 @@ import * as usersService from '~/server/features/users/service.js';
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
 import { convertArtifact } from '~/server/features/artifact-conversions/operations.js';
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
+import { partyProcessBindings } from '~/server/runtime/party-wire.js';
 
 import { documentsPack } from '~/server/packs/documents/index.js';
 import { frameworkCommandDefinitions } from '~/server/core/commands/definitions.js';
@@ -52,17 +53,19 @@ const frameworkInstanceServices = {
 const frameworkProcessLists = {
   artifact: (filters, auth) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
   entity_revision: (filters, auth) => instanceRevisionsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
-  organization: (filters, auth) => organizationsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  // Party reads speak the §3 wire shape with their own read gates
+  // (party-wire.js) — the process plane never sees the feature DTO.
+  organization: partyProcessBindings.organization.list,
   process_definition: (_filters, auth) => processDefinitionsService.list(auth),
-  user: (_filters, auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
+  user: partyProcessBindings.user.list
 };
 
 const frameworkProcessReads = {
   artifact: (id, auth) => artifactsService.getById(id, auth.userId, auth.organizationId, auth.role, auth),
   entity_revision: (id, auth) => instanceRevisionsService.getById(id, auth.userId, auth.role, auth),
-  organization: id => organizationsService.getById(id),
+  organization: partyProcessBindings.organization.read,
   process_definition: (id, auth) => processDefinitionsService.getById(id, auth),
-  user: id => usersService.getById(id)
+  user: partyProcessBindings.user.read
 };
 
 const frameworkProcessCapabilities = {

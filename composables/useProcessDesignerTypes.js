@@ -61,12 +61,14 @@ export function useProcessDesignerTypes({
   // types synthesize one) — derived products (sheet designs, nesting runs)
   // enter graphs as operator outputs, not constructs; framework/meta types
   // (revisions, process definitions, machines) are configuration, never
-  // authorable instances. `via` carries the type's actual default
+  // authorable instances. Party types join as flagged read-only entries:
+  // legal relation targets and instance-source bindings, never constructs.
+  // `via` carries the type's actual default
   // constructor, not a blanket generic.
   function ctsTypeView() {
     const domain = ctsProjectedDomain();
     return ctsRegistry().listTypes(activeOrganizationId())
-      .filter(type => type.class !== 'party')
+      .filter(type => !type.framework)
       .map(type => {
         const policy = renderPolicyFor(type);
         // Synthesized entities and construction are keyed by the type id —
@@ -90,7 +92,8 @@ export function useProcessDesignerTypes({
           // Every declared construct mode: the type catalog lists one
           // variant per mode (creation protocols for payload types).
           modes: [...(construction?.modes || [])],
-          constructOperators
+          constructOperators,
+          ...(type.class === 'party' ? { party: true } : {})
         };
       });
   }

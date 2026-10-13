@@ -35,6 +35,12 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
     }
     case 'eq': return deepEqual(evaluate(ast.args[0], scope, budget), evaluate(ast.args[1], scope, budget));
     case 'ne': return !deepEqual(evaluate(ast.args[0], scope, budget), evaluate(ast.args[1], scope, budget));
+    case 'in': {
+      // CEL membership: scalar in list (deep-equal items).
+      const [member, list] = [evaluate(ast.args[0], scope, budget), evaluate(ast.args[1], scope, budget)];
+      if (!Array.isArray(list)) throw new Error('in requires a list');
+      return list.some(item => deepEqual(item, member));
+    }
     case 'lt': case 'lte': case 'gt': case 'gte': {
       const [a, b] = [evaluate(ast.args[0], scope, budget), evaluate(ast.args[1], scope, budget)];
       if (isQuantity(a) || isQuantity(b)) {
@@ -87,6 +93,55 @@ export function checkMatch(ast, variantDescriptor) {
   const arms = Object.keys(ast.arms || {});
   const missing = (variantDescriptor?.tags || []).filter(tag => !arms.includes(tag));
   return missing.map(tag => `match missing arm for ${tag}`);
+}
+
+// The boolean-subset checker (SPEC §7 guards, SPEC §6 relation target
+// domains): comparisons, membership, and/or/not, field paths rooted at
+// `value`, literals. Row-checking is best-effort — callers without a
+// declared row skip the path check. One home for every boolean authoring
+// surface; error lines carry the caller's path prefix.
+const BOOLEAN_COMPARISON_OPS = new Set(['eq', 'ne', 'lt', 'lte', 'gt', 'gte', 'in']);
+
+export function checkBooleanExpression(ast, rowNames = null, path = 'expression') {
+  const errors = [];
+  visit(ast, 0);
+  return errors;
+
+  function visit(node, depth) {
+    if (!node || typeof node !== 'object' || typeof node.op !== 'string') {
+      errors.push(`${path}: expression nodes must carry an op`);
+      return;
+    }
+    if (depth > 32) {
+      errors.push(`${path}: expression nesting exceeds 32 levels`);
+      return;
+    }
+    const { op } = node;
+    if (op === 'lit') return;
+    if (op === 'field') {
+      const fieldPath = node.path;
+      if (!Array.isArray(fieldPath) || fieldPath[0] !== 'value' || fieldPath.length < 2) {
+        errors.push(`${path}: field path must start at 'value'`);
+      } else if (rowNames && !rowNames.has(String(fieldPath[1]))) {
+        errors.push(`${path}: field ${fieldPath.slice(1).join('.')} outside the row`);
+      }
+      return;
+    }
+    if (op === 'not') {
+      visit(node.arg, depth + 1);
+      return;
+    }
+    if (!BOOLEAN_COMPARISON_OPS.has(op) && op !== 'and' && op !== 'or') {
+      errors.push(`${path}: op ${op} is not boolean vocabulary`);
+      return;
+    }
+    const args = Array.isArray(node.args) ? node.args : [];
+    if (args.length !== 2) {
+      errors.push(`${path}: ${op} requires two arguments`);
+      return;
+    }
+    for (const arg of args) visit(arg, depth + 1);
+  }
 }
 
 function spend(budget, ast) {

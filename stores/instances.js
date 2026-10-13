@@ -10,29 +10,50 @@ import { useOutboxStore } from './outbox';
 // The single instance cache and transport boundary. Records are keyed by type key, then id; each entry
 // carries the raw wire DTO plus, when the registry knows the type, the
 // derived CTS instance shape. List results are cached observations; single
-// reads and mutations coalesce per type:id. Endpoint resolution mirrors the
-// server: framework party/service types keep feature routes, the remaining
-// mounted pack feature modules keep theirs, and every other type resolves
-// to the generic instance transport. One `onInstanceChanged` subscriber
+// reads and mutations coalesce per type:id. Reads resolve through the
+// generic §3 instance transport for every type the server resolver
+// serves — party types included (their process bindings speak the §3
+// wire shape with their own read gates). Party mutations stay on the
+// feature routes: party creation/assignment is feature-owned, never a
+// process-graph concern. One `onInstanceChanged` subscriber
 // reconciles every open surface.
 
-// Framework types with explicit feature services (mirror of the server
-// instance resolver's framework set) — feature routes, not the transport.
-const FRAMEWORK_ROUTES = {
+// Types whose mutations still own feature routes (party administration,
+// editor feature endpoints); every other type mutates through the generic
+// instance transport (POST/PATCH/DELETE /api/instances/:type(/:id)).
+const MUTATION_ROUTES = {
   organization: '/api/organizations',
   user: '/api/users',
   artifact: '/api/artifacts',
   process_definition: '/api/process-definitions',
-  entity_revision: '/api/instance-revisions'
-};
-
-// Pack feature modules that still own mounted REST routes; every other
-// type (declared or legacy) resolves through `/api/instances/:type`.
-const FEATURE_ROUTES = {
+  entity_revision: '/api/instance-revisions',
   artifact_template: '/api/artifact-templates'
 };
 
-const ROUTE_BY_TYPE = { ...FRAMEWORK_ROUTES, ...FEATURE_ROUTES };
+// Reads that keep a feature route (their process bindings do not speak
+// the §3 wire shape); everything else reads through the transport.
+const READ_ROUTES = {
+  artifact: '/api/artifacts',
+  process_definition: '/api/process-definitions',
+  entity_revision: '/api/instance-revisions',
+  artifact_template: '/api/artifact-templates'
+};
+
+function endpointsFor(typeKey = '') {
+  const mutationBase = MUTATION_ROUTES[typeKey] || null;
+  const readBase = READ_ROUTES[typeKey] || null;
+  if (!readBase && !mutationBase) {
+    // The generic instance transport speaks the CTS id (kebab).
+    const typeId = String(typeKey).replace(/_/g, '-');
+    return { single: id => `/api/instances/${typeId}/${id}`, list: () => `/api/instances/${typeId}` };
+  }
+  const single = id => (readBase ? `${readBase}/${id}` : `/api/instances/${typeKey}/${id}`);
+  const list = () => readBase || `/api/instances/${typeKey}`;
+  if (mutationBase && mutationBase !== readBase) {
+    return { single, list, mutationSingle: id => `${mutationBase}/${id}`, mutationList: () => mutationBase };
+  }
+  return { single, list };
+}
 
 function surfaceToSnake(key = '') {
   return String(key).replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
@@ -84,14 +105,6 @@ export const useInstancesStore = defineStore('instances', () => {
   }
 
   // -- endpoints ----------------------------------------------------------
-
-  function endpointsFor(typeKey = '') {
-    const base = ROUTE_BY_TYPE[typeKey];
-    if (base) return { single: id => `${base}/${id}`, list: () => base };
-    // The generic instance transport speaks the CTS id (kebab).
-    const typeId = String(typeKey).replace(/_/g, '-');
-    return { single: id => `/api/instances/${typeId}/${id}`, list: () => `/api/instances/${typeId}` };
-  }
 
   function listUrlFor(typeKey = '', filters = {}) {
     const base = endpointsFor(typeKey).list();
@@ -290,12 +303,16 @@ export const useInstancesStore = defineStore('instances', () => {
 
   // Framework/party types, editor feature endpoints, and the generic
   // instance update transport (PATCH /api/instances/:type/:id) that
-  // persists generated detail-surface edits.
+  // persists generated detail-surface edits. Party reads ride the §3
+  // transport while their mutations keep the feature route, so the
+  // mutation endpoints win wherever they are split.
   async function mutateDirect(typeKey = '', method = 'PATCH', { id = null, body = null, meta = {} } = {}) {
     const outbox = useOutboxStore();
     const endpoints = endpointsFor(typeKey);
+    const mutationSingle = endpoints.mutationSingle || endpoints.single;
+    const mutationList = endpoints.mutationList || endpoints.list;
     return outbox.mutate({
-      url: id ? endpoints.single(id) : endpoints.list(),
+      url: id ? mutationSingle(id) : mutationList(),
       method,
       ...(body !== null ? { body } : {}),
       meta

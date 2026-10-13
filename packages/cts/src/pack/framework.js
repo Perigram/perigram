@@ -25,7 +25,13 @@ export const frameworkTypes = [
       // never render the email at all (SPEC §Chat thread / the
       // no-technical-ids rule).
       email: { base: 'string', label: 'profile.email', display: 'email' },
-      name: { base: 'string', identifier: true }
+      name: { base: 'string', identifier: true },
+      // The roles the user holds in the ACTIVE organization — derived at
+      // the party read boundary from the organization's authoritative
+      // roleAssignments (the org stays the single assignment home); the
+      // row makes role-scoped relation domains and filters expressible
+      // over user data without copying assignment onto the user record.
+      roles: { base: 'list', itemType: { base: 'string' }, label: 'profile.roles' }
     }
   },
   // Framework machinery types: file storage, revisions, process definitions.

@@ -128,6 +128,8 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('contextEntity', 'cts.read', { preset: { select: 'current' } }),
       paletteItem('allEntities', 'cts.read', { preset: { select: 'all' } }),
+      paletteItem('currentUser', 'source.currentUser'),
+      paletteItem('currentOrganization', 'source.currentOrganization'),
       paletteItem('extractProjection', 'cts.read', { preset: { select: 'extract' } }),
       paletteItem('parentEntity', 'cts.read', { preset: { select: 'parent' } }),
       paletteItem('childEntities', 'cts.read', { preset: { select: 'children' } }),

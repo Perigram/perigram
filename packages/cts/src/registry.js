@@ -5,6 +5,7 @@ import { normalizeEdges, checkLineageAcyclic } from './edges.js';
 import { checkClassObligations } from './classes.js';
 import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
 import { requireCompatible, normalizeMigrateSteps } from './diff.js';
+import { checkBooleanExpression } from './expressions.js';
 
 // Payload traits (SPEC §4): the payload declaration carries the accepted
 // MIME list, byte limit, preview mode, and creation protocols. Canonical
@@ -295,6 +296,7 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
       errors.push(...checkDisplayFacet(type));
       errors.push(...checkRefTargets(type, view));
       errors.push(...checkChildrenDeclared(type, view));
+      errors.push(...checkRelationDomains(type, view));
     }
     errors.push(...checkLineageAcyclic(view));
     return Object.freeze({
@@ -358,6 +360,37 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
     for (const [key, declaration] of Object.entries(type.edges.children || {})) {
       for (const childType of declaration.types) {
         if (!view.has(childType)) errors.push(`type ${type.id}: children.${key} references unknown type ${childType}`);
+        // Party types are auth principals (SPEC §5): membership and
+        // assignment live on the party side, so no declared containment
+        // may target them.
+        else if (view.get(childType)?.class === 'party') {
+          errors.push(`type ${type.id}: children.${key} may not target party type ${childType} — parties are never lineage children`);
+        }
+      }
+    }
+    return errors;
+  }
+
+  // Relation target domains (SPEC §6): a relation entry (explicit edge or
+  // ref field) may constrain its targets with a boolean expression over
+  // the target instance. The expression must row-check against EVERY
+  // declared target — a multi-target edge exposes one domain.
+  function checkRelationDomains(type, view) {
+    const errors = [];
+    const entries = [
+      ...Object.entries(type.edges?.relations || {}).map(([key, declaration]) => ({ key, declaration, label: `relations.${key}` })),
+      ...Object.entries(type.fields || {})
+        .filter(([, descriptor]) => descriptor?.base === 'ref')
+        .map(([name, descriptor]) => ({ key: name, declaration: descriptor, label: `fields.${name}` }))
+    ];
+    for (const { key, declaration, label } of entries) {
+      if (!declaration.where) continue;
+      for (const target of declaration.accepts || declaration.types || []) {
+        const targetType = view.get(target);
+        if (!targetType) continue; // unknown targets report at their own check
+        const rowNames = new Set(Object.keys(targetType.fields || {}));
+        errors.push(...checkBooleanExpression(
+          declaration.where, rowNames, `type ${type.id}: ${label} where (target ${target})`));
       }
     }
     return errors;

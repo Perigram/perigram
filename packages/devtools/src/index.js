@@ -314,7 +314,9 @@ export function validateDefinitionSet(definitions = []) {
     if (!definition.type) errors.push('Entity definition missing type');
     if (seen.has(definition.type)) errors.push(`Duplicate entity definition: ${definition.type}`);
     seen.add(definition.type);
-    if (!definition.collection) errors.push(`Entity ${definition.type} missing collection`);
+    // Party entities are readable principals: their feature services own
+    // storage, so no class collection projects for them.
+    if (!definition.collection && !definition.party) errors.push(`Entity ${definition.type} missing collection`);
   }
   return { ok: errors.length === 0, errors };
 }

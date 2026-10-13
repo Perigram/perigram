@@ -147,7 +147,10 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
     projected.relation = {
       key: action.relationMutation.key,
       targetTypes: action.relationMutation.targetTypes || [],
-      cardinality: action.relationMutation.cardinality || 'scalar'
+      cardinality: action.relationMutation.cardinality || 'scalar',
+      // The target domain (SPEC §6): pickers filter options through the
+      // same expression the write boundary enforces.
+      ...(action.relationMutation.where ? { where: action.relationMutation.where } : {})
     };
   }
   if (action.inputPolicy?.fields?.length) {

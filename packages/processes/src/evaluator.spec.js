@@ -152,6 +152,20 @@ describe('process v4 data execution', () => {
     expect(result.branches[0].items).toEqual(['2026-08-04T12:34:56.000Z']);
   });
 
+  it('resolves the run-context principal sources through the data environment', async () => {
+    const actor = { _id: 'user-1', type: 'user', name: 'Ada', fields: { name: 'Ada', email: 'ada@perigram.dev' } };
+    const org = { _id: 'org-1', type: 'organization', name: 'Perigram', fields: { name: 'Perigram', email: null } };
+    const who = await executeProcessDataNode(
+      { kind: 'source.currentUser' }, {},
+      { currentUser: async () => actor, currentOrganization: async () => org });
+    const which = await executeProcessDataNode(
+      { kind: 'source.currentOrganization' }, {},
+      { currentUser: async () => actor, currentOrganization: async () => org });
+
+    expect(who.branches[0].items).toEqual([actor]);
+    expect(which.branches[0].items).toEqual([org]);
+  });
+
   it('broadcasts an item over aligned list values', async () => {
     const result = await executeProcessDataNode(
       { kind: 'value.math', operation: 'multiply' },

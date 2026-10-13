@@ -44,6 +44,7 @@ import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView, rewriteRetiredWirePaths } from '~/packages/cts/src/index.js';
+import { withinRelationDomain } from '#shared/relation-domain.js';
 import { composePackDomains } from '~/server/packs/declarations.js';
 import { packDomainsForOrganization } from '~/server/features/plugins/service.js';
 import { packServicesForOrganization } from '~/server/features/plugins/service.js';
@@ -1491,6 +1492,13 @@ async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
     action: 'view',
     auth
   });
+  // The declared target domain (SPEC §6): the same boolean expression the
+  // pickers project — evaluated over the target's stored row exactly like
+  // a transition guard, so a value outside the domain is refused at the
+  // write boundary whatever offered it.
+  if (relation.where && !withinRelationDomain(entity, relation.where)) {
+    throw createError({ statusCode: 400, message: `${relation.targetType} ${ref.id} is outside the ${relation.key} domain` });
+  }
   if (!ref.revisionId) return;
   const revision = await instanceRevisionsService.getById(ref.revisionId, auth.userId, auth.role, auth);
   const source = revision?.data?.source;
@@ -1568,6 +1576,11 @@ function processDataEnvironment(auth, run, domain = getDomain()) {
       const candidate = run.context?.inputs?.entities?.[typeId] || run.context?.inputs?.entity;
       return candidate ? resolveProcessGraphEntity(typeId, candidate, { auth }) : null;
     },
+    // Run-context principals (source.currentUser / source.currentOrganization):
+    // the acting user and the active organization resolve through the
+    // party read adapters like any other party read.
+    currentUser: () => resolveEntity('user', auth.userId),
+    currentOrganization: () => (auth.organizationId ? resolveEntity('organization', auth.organizationId) : null),
     entityById: (typeId, id) => resolveProcessGraphEntity(typeId, id, { auth }),
     resolveEntityRef: ref => resolveProcessGraphEntity(ref.type, ref, { auth }),
     parentEntity: (entity, typeId) => processParentEntity(domain.containment, resolveEntity, entity, typeId),

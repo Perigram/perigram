@@ -159,7 +159,7 @@ describe('declaration-check phase', () => {
     expect(errors).not.toContainEqual(expect.stringMatching(/comprehension guard: field/));
     expect(errors).toContainEqual(expect.stringMatching(/offRow guard: field ghost outside the row/));
     expect(errors).toContainEqual(expect.stringMatching(/unrooted guard: field path must start at 'value'/));
-    expect(errors).toContainEqual(expect.stringMatching(/comprehension guard: op map is not guard vocabulary/));
+    expect(errors).toContainEqual(expect.stringMatching(/comprehension guard: op map is not boolean vocabulary/));
   });
 
   it('checks state deadlines: parseable duration, declared target, guard contract', () => {
@@ -177,7 +177,7 @@ describe('declaration-check phase', () => {
     expect(errors).toContainEqual(expect.stringMatching(/badAfter deadline: after must be an ISO-8601 duration/));
     expect(errors).toContainEqual(expect.stringMatching(/badTo deadline: to FLYING is not declared for widget/));
     expect(errors).toContainEqual(expect.stringMatching(/selfTo deadline: to must name another declared state/));
-    expect(errors).toContainEqual(expect.stringMatching(/badGuard deadline guard: op map is not guard vocabulary/));
+    expect(errors).toContainEqual(expect.stringMatching(/badGuard deadline guard: op map is not boolean vocabulary/));
   });
 
   it('org overlay is the view: other orgs see system types only', () => {

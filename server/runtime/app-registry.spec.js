@@ -80,11 +80,11 @@ function createEffectDefinition(typeId, mode) {
     dataflowVersion: 4,
     roles: { admin: { id: 'admin', label: 'Admin' } },
     producerOutputs: {
-      'create:entity': {
-        id: 'create:entity',
-        producerOutputId: 'create:entity',
+      'create:result': {
+        id: 'create:result',
+        producerOutputId: 'create:result',
         nodeId: 'create',
-        outputSocketId: 'entity',
+        outputSocketId: 'result',
         typeId,
         lifecycle: { mode: 'defaultCreated' },
         fields: { read: [], write: [], private: [] }
@@ -93,16 +93,13 @@ function createEffectDefinition(typeId, mode) {
     processNodes: {
       create: {
         id: 'create',
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         typeId,
-        producerOutputId: 'create:entity',
+        producerOutputId: 'create:result',
         construction: { mode },
-        state: { to: 'CREATED' },
+        state: { to: 'available' },
         trigger: { mode: 'manual' },
-        access: { level: 'write', grants: [{ roleId: 'admin', level: 'write' }] },
-        blocks: [],
-        inputs: [],
-        outputs: []
+        access: { level: 'write', grants: [{ roleId: 'admin', level: 'write' }] }
       }
     },
     graph: {
@@ -189,18 +186,18 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       effectivePermissions: {}
     };
 
+    // The facade view's payload types construct through their declared
+    // creation protocols — cassette's `editor` mode is the blank create.
     const result = await performDurableEffect({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       record: {
         id: 'n1',
+        kind: 'cts.construct',
         typeId: 'cassette',
-        construction: { mode: 'genericCreate' },
-        blocks: [],
-        inputs: [],
-        outputs: []
+        construction: { mode: 'editor' }
       },
       inputs: {}
-    }, auth, {});
+    }, auth, {}, projectedDomain());
 
     expect(result._id).toBeTypeOf('string');
     expect(result.type).toBe('cassette');
@@ -242,7 +239,6 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
 
     // panel declares states (available initial): a create needs its target
     const definition = createEffectDefinition('panel', 'genericCreate');
-    definition.processNodes.create.status = { to: 'available' };
     const ok = validateProcessDefinition(
       definition,
       domain,
@@ -252,7 +248,6 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     expect(ok.ok).toBe(true);
 
     const unsupportedDefinition = createEffectDefinition('panel', 'unsupportedCreate');
-    unsupportedDefinition.processNodes.create.status = { to: 'available' };
     const unsupported = validateProcessDefinition(
       unsupportedDefinition,
       domain,
