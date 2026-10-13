@@ -107,10 +107,13 @@ from data with no new machinery.
 
 The text editor fills its container: it opens as a flush workspace page
 and owns its document shell — one toolbar carrying the document name
-editing in place, the format controls, and save, with the editing
-surface growing into the pane and scrolling inside it — and markdown
-files (`.md`, `text/markdown`) upload and edit beside plain text, the
-save keeping the stored kind.
+editing in place, the preview toggle, and save, with the editing
+surface growing into the pane and scrolling inside it. Markdown
+documents edit their source directly (owner direction 2026-10-13: the
+payload IS the text — no rich-text proxy converting through HTML) with
+a rendered preview toggle, `text-document` instances are creatable by
+uploading an existing `.md` file, and text artifacts keep their stored
+kind (`.txt` or `.md`) across saves.
 
 Generated creates enforce their construction contract (owner decision
 2026-10-12): the form prompts the compiled inputs in the flat-wire

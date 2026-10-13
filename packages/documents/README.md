@@ -21,7 +21,7 @@ preview contract in
 |---|---|---|---|
 | `image` | `image/jpeg`, `image/png` (25 MB) | `image` | creation protocols `upload` + `capture` (mobile camera) |
 | `pdf-document` | `application/pdf` (25 MB) | `pdf` | |
-| `text-document` | `text/markdown` (10 MB) | `text` | markdown — the rich text editor converts HTML ↔ markdown on save/load; `revisions: 'content'`; creation protocols `editor` + `content` |
+| `text-document` | `text/markdown` (10 MB) | `text` | markdown — the editor edits the source directly with a rendered preview; `revisions: 'content'`; creation protocols `editor` + `content` + `upload` (bring an existing `.md` in) |
 | `csv-table` | `text/csv` (10 MB) | `table` | `revisions: 'content'`; creation protocols `editor` + `content` |
 | `xlsx-workbook` | spreadsheet xlsx (25 MB) | `workbook` | creation protocol `upload`; no bespoke editor — the workbook's authoring act is being read by graphs (`rows` projection) |
 | `docx-document` | wordprocessing docx (25 MB) | `download` | no bounded preview — the payload downloads |
@@ -108,7 +108,8 @@ read-only.
 ## Editor bindings
 
 The pack binds the text and csv editors (`edit` mode) to their types; the
-text editor is the PrimeVue `Editor`-based markdown surface, the csv
+text editor is the markdown source surface (textarea in the technical
+voice plus a sanitized rendered preview), the csv
 editor the shared cell table — both through `ArtifactTextEditor` with an
 instance-backed persistence contract (saves through the revisioned
 instance payload transport). Originating artifact kinds (`TEXT_FILE`,
