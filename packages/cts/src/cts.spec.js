@@ -361,12 +361,12 @@ describe('evolution (R7, refuse-on-diff)', () => {
     // migrate away from.
     const registry = createTypeRegistry({ id: 'spec-repair', hasInstances: () => 7 });
     registry.defineType({
-      id: 'yu', class: 'file', scope: 'org', organizationId: 'org-1',
+      id: 'yu', class: 'file', name: 'Yu', scope: 'org', organizationId: 'org-1',
       fields: { note: { base: 'string' } },
       edges: { children: { parts: { types: ['missing-child'] } } }
     });
     const repaired = registry.defineType({
-      id: 'yu', class: 'file', scope: 'org', organizationId: 'org-1',
+      id: 'yu', class: 'file', name: 'Yu', scope: 'org', organizationId: 'org-1',
       fields: { note: { base: 'string' } }
     });
     expect(repaired.version).toBe(2);
@@ -375,7 +375,7 @@ describe('evolution (R7, refuse-on-diff)', () => {
 
     // Healthy stored declarations with live instances still refuse.
     expect(() => registry.defineType({
-      id: 'yu', class: 'file', scope: 'org', organizationId: 'org-1',
+      id: 'yu', class: 'file', name: 'Yu', scope: 'org', organizationId: 'org-1',
       fields: {}
     })).toThrow(/breaking change/);
   });
@@ -518,7 +518,7 @@ describe('display policy (SPEC §4/§7)', () => {
     expect(record.depiction.thumb).toBeNull();
   });
 
-  it('serves name: null as "Unnamed" for org declarations without a carrier', () => {
+  it('serves a nameless org declaration with its identifier minted, reporting the name law', () => {
     const registry = createTypeRegistry({ id: 'render-spec-bare' });
     registry.defineType({
       id: 'bare', class: 'item', scope: 'org', organizationId: 'org-1',
@@ -527,9 +527,10 @@ describe('display policy (SPEC §4/§7)', () => {
     const record = compileClientBundle(registry, 'org-1').types[0];
     expect(record.name).toBeNull();
     // The unnamed placeholder means "identifier value is null" and nothing
-    // else — the identifier itself was adopted (first string field).
+    // else — the identifier itself was adopted (first string field) — but
+    // the missing type name is a compile error, served not silent.
     expect(record.identifier).toBe('serial');
-    expect(registry.compile('org-1').errors).toEqual([]);
+    expect(registry.compile('org-1').errors).toEqual(['type bare: name is required']);
   });
 
   it('adopts legacy render keys at the boundary and deletes them', () => {
@@ -579,29 +580,83 @@ describe('display policy (SPEC §4/§7)', () => {
     expect(registry2.compile().errors).toContainEqual(
       'type two-pics: depiction flag on multiple fields (front, back) — at most one'
     );
-    // No string field to adopt and no explicit flag: SYSTEM types get the
-    // compile error (the data is ours to fix).
+    // No string field to adopt and no explicit flag: the boundary mints
+    // a nullable `name` row and flags it — unnameable types are
+    // unrepresentable, at every scope.
     const registry3 = createTypeRegistry({ id: 'render-flag-spec-3' });
     registry3.defineType({
       id: 'no-name-field', class: 'item', name: 'No name field',
       fields: { area: { base: 'quantity', unit: 'm2' } }
     });
-    expect(registry3.compile().errors).toContainEqual(
-      'type no-name-field: mark the field that names its records (identifier flag on exactly one field)'
-    );
-    // ORG types with nothing to mint from stay compiled and served — the
-    // missing identifier is an authoring prompt (records render the
-    // unnamed placeholder), never a view-fatal error that would eject the
-    // type and cascade "unknown type" through every bound process node.
+    expect(registry3.compile().errors).toEqual([]);
+    const minted = compileClientBundle(registry3).types.find(record => record.id === 'no-name-field');
+    expect(minted.identifier).toBe('name');
+    expect(minted.fields.name).toMatchObject({ base: 'string', nullable: true, identifier: true });
+    // The mint takes the first free row name and never collides.
+    const registry3b = createTypeRegistry({ id: 'render-flag-spec-3b' });
+    registry3b.defineType({
+      id: 'collider', class: 'item', name: 'Collider',
+      fields: {
+        name: { base: 'quantity', unit: 'm2' },
+        title: { base: 'boolean' },
+        label: { base: 'instant' }
+      }
+    });
+    const collided = compileClientBundle(registry3b).types.find(record => record.id === 'collider');
+    expect(collided.identifier).toBe('name1');
+    // ORG types with nothing to mint from stay compiled and served — and
+    // the missing identifier is gone with the mint, so only the name law
+    // can still report.
     const registry4 = createTypeRegistry({ id: 'render-flag-spec-4' });
     registry4.defineType({
-      id: 'org-instant-only', class: 'item', scope: 'org', organizationId: 'org-1',
+      id: 'org-instant-only', class: 'item', name: 'Instant Only', scope: 'org', organizationId: 'org-1',
       fields: { anythin: { base: 'instant', label: 'Anythin' } }
     });
     const orgView = registry4.compile('org-1');
     expect(orgView.errors).toEqual([]);
     const served = compileClientBundle(registry4, 'org-1').types
       .find(record => record.id === 'org-instant-only');
-    expect(served.identifier).toBeNull();
+    expect(served.identifier).toBe('name');
+  });
+
+  it('requires a name on every type at compile', () => {
+    const registry = createTypeRegistry({ id: 'name-law-spec' });
+    registry.defineType({
+      id: 'nameless', class: 'item', scope: 'org', organizationId: 'org-1',
+      fields: { serial: { base: 'string' } }
+    });
+    // Served, not ejected — but the missing name reports through the
+    // standard compile channel (write gate + designer diagnostics).
+    expect(registry.compile('org-1').errors).toEqual(['type nameless: name is required']);
+    const named = registry.defineType({
+      id: 'nameless', class: 'item', name: 'Nameless', scope: 'org', organizationId: 'org-1',
+      fields: { serial: { base: 'string' } }
+    });
+    expect(named.name).toBe('Nameless');
+    expect(registry.compile('org-1').errors).toEqual([]);
+  });
+
+  it('keeps the minted row stable across redefinitions that carry it', () => {
+    // The minted row is a real row: like a minted flag, it persists in
+    // stored docs and round-trips through registry reads — carrying it
+    // while adding a nullable field is minor (SPEC §11), so legacy edits
+    // never 400 on the totality they predate. Dropping it is a breaking
+    // remove-field like any other row.
+    const registry = createTypeRegistry({ id: 'mint-redefine-spec', hasInstances: () => 5 });
+    registry.defineType({
+      id: 'gauge', class: 'item', name: 'Gauge', scope: 'org', organizationId: 'org-1',
+      fields: { pressure: { base: 'quantity', unit: 'm2' } }
+    });
+    const redefined = registry.defineType({
+      id: 'gauge', class: 'item', name: 'Gauge', scope: 'org', organizationId: 'org-1',
+      fields: {
+        pressure: { base: 'quantity', unit: 'm2' },
+        name: { base: 'string', nullable: true },
+        note: { base: 'string', nullable: true }
+      }
+    });
+    expect(redefined.version).toBe(2);
+    expect(redefined.fields.name).toMatchObject({ identifier: true });
+    expect(registry.compile('org-1').errors).toEqual([]);
   });
 });

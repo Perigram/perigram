@@ -94,12 +94,14 @@ module layout and how the code maps to the spec's build-order tiers.
   (SPEC §4 migration): `render.label`→`name`, `render.icon`→`glyph`,
   `render.identityField`→the field's `identifier` flag,
   `render.states`→the axis `render` home; system types without a carrier
-  adopt `startCase(id)`, org-stored ones keep `name: null` ("Unnamed").
-  Compile also enforces the display-flag laws: exactly one `identifier`
-  field (when none is flagged, normalization mints the first declared
-  string field — once, frozen; explicit flags deviate; no string field at
-  all is the compile error "mark the field that names its records"), at
-  most one `depiction` field, and a name on every system type.
+  adopt `startCase(id)`, org-stored ones keep `name: null` served with a
+  compile error until authored. Compile also enforces the display-flag
+  laws: exactly one `identifier` field — total by boundary mint (no flag
+  mints the first declared string field; no string field at all mints a
+  nullable `name`/`title`/`label` row and flags it, so unnameable types
+  are unrepresentable at every scope; once minted, frozen; explicit flags
+  deviate), at most one `depiction` field, and a name on every type
+  (write-gated through the introduced-errors channel; views stay served).
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator, synthesis-only: every type in the view (framework, pack,
   org) synthesizes its entities entry (per-class collection, §13),
@@ -113,8 +115,8 @@ module layout and how the code maps to the spec's build-order tiers.
   `construction` (`genericCreate` + declared construct operators as `via`
   modes with signature-derived `modeInputs`; construction inputs are
   `fields.*` rows and addressable edges only — there is no hardcoded Name
-  input, a type without an identifier row creates unnamed records and the
-  placeholder is the authoring prompt), `relations` (declared edges), and
+  input; the identifier row is total by boundary mint, so every generic
+  create prompts the record's name source), `relations` (declared edges), and
   `attachmentKinds` (payload traits). Nothing passes through from the
   base domain: legacy entity/workflow/construction/field-schema/access/
   relation/containment/attachment-kind content supplied on `baseDomain`
@@ -126,9 +128,10 @@ module layout and how the code maps to the spec's build-order tiers.
   the single frontend/designer consumption contract (this is where
   hand-mirrored status tables die). Naming is authored vocabulary
   (`name`, `glyph`, field `label`s — SPEC §4); everything else derives.
-  The bundle type record carries `name` (null → consumers render
-  "Unnamed"), `glyph` (declaration override || class default),
-  `identifier` (the resolved flag field id, or null), `depiction:
+  The bundle type record carries `name` (null serves with the compile
+  error — legacy docs only, the write gate enforces authored names),
+  `glyph` (declaration override || class default),
+  `identifier` (the resolved flag field id — total by the boundary mint), `depiction:
   { glyph, thumb }` (thumb = the depiction flag field id or null),
   `fields` (descriptors including the normalized naming facet),
   `previewSource` (`{ path, display, fallbackPaths? }` adopted from the
