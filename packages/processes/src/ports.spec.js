@@ -107,6 +107,45 @@ describe('process programming node ports', () => {
     expect(validateProcessEdges(process)).toEqual([]);
   });
 
+  it('anchors incompatible edges so the designer can focus them', () => {
+    const process = {
+      processNodes: {
+        rows: {
+          id: 'rows',
+          kind: 'value.recordField',
+          outputs: [{ id: 'value', type: { base: 'json', nullable: true }, role: 'data', access: 'list' }]
+        },
+        flatten: {
+          id: 'flatten',
+          kind: 'tree.flatten',
+          type: { base: 'string', nullable: true },
+          inputs: [{ id: 'value', type: { base: 'string', nullable: true }, role: 'data', required: true, access: 'tree' }]
+        }
+      },
+      graph: {
+        nodes: [
+          { id: 'rows', type: 'processNode', data: { refId: 'rows' } },
+          { id: 'flatten', type: 'processNode', data: { refId: 'flatten' } }
+        ],
+        edges: [{
+          id: 'rows-flatten',
+          source: 'rows',
+          sourceHandle: 'data:value',
+          target: 'flatten',
+          targetHandle: 'data:value'
+        }]
+      }
+    };
+
+    const [diagnostic] = validateProcessEdges(process);
+    expect(diagnostic).toMatchObject({
+      edgeId: 'rows-flatten',
+      nodeId: 'flatten',
+      socketId: 'value'
+    });
+    expect(diagnostic.message).toMatch('connects incompatible ports');
+  });
+
   it('infers relation entries from typed operational-node outputs', () => {
     const process = {
       processNodes: {

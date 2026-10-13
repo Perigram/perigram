@@ -763,7 +763,9 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (!nodeIds.has(edge.source)) errors.push(`Edge ${edge.id} references missing source node ${edge.source}`);
     if (!nodeIds.has(edge.target)) errors.push(`Edge ${edge.id} references missing target node ${edge.target}`);
   }
-  errors.push(...validateProcessEdges(process));
+  const edgeDiagnostics = validateProcessEdges(process);
+  errors.push(...edgeDiagnostics.map(diagnostic => diagnostic.message));
+  diagnostics.push(...edgeDiagnostics);
   if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION) {
     const edgeDiagnostics = validateDataflowEdges(process, domain);
     diagnostics.push(...edgeDiagnostics);

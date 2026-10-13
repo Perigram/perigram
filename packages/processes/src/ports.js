@@ -137,7 +137,7 @@ export function portSpecsCompatible(source = {}, target = {}) {
 }
 
 export function validateProcessEdges(process = {}) {
-  const errors = [];
+  const diagnostics = [];
   const nodesById = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
   for (const edge of process.graph?.edges || []) {
     const sourceNode = nodesById.get(String(edge.source));
@@ -148,10 +148,17 @@ export function validateProcessEdges(process = {}) {
     if (!source || !target) continue;
     const result = portSpecsCompatible(source, target);
     if (!result.ok) {
-      errors.push(`Edge ${edge.id || `${edge.source}-${edge.target}`} connects incompatible ports ${portLabel(source)} -> ${portLabel(target)}`);
+      // Anchored like every other graph diagnostic (SPEC §20): the
+      // designer focuses the responsible edge from these ids.
+      diagnostics.push({
+        message: `Edge ${edge.id || `${edge.source}-${edge.target}`} connects incompatible ports ${portLabel(source)} -> ${portLabel(target)}`,
+        edgeId: edge.id || `${edge.source}-${edge.target}`,
+        nodeId: String(edge.target),
+        socketId: parseProcessSocketHandleId(edge.targetHandle)
+      });
     }
   }
-  return errors;
+  return diagnostics;
 }
 
 export function inferProcessDataflowContracts(process = {}) {
