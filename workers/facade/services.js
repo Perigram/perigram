@@ -148,13 +148,16 @@ export async function importCassette({ artifact = {}, name, layerMapping = {} } 
 }
 
 // The sheet-design DXF export: the stored geometry preview and layer data
-// as a layered DXF. Input: { data: { geometry }, specs? }. Output: { dxf }.
-export async function generateSheetDxf({ data = {} } = {}) {
-  const dxf = generateLayeredDxf({
-    layers: data.geometry?.preview?.layers || [],
-    layerData: data.geometry?.data?.layerData || [],
-    polygonParts: data.geometry?.data?.polygonParts || []
-  });
+// as a layered DXF. Two channels reach this handler: the export binding
+// sends the instance envelope ({ data: { geometry }, specs? }), the value
+// service sends the wired record ({ geometry }). Output: { dxf }.
+export async function generateSheetDxf({ geometry = null, data = {} } = {}) {
+  const stored = geometry || data.geometry || null;
+  const dxf = stored ? generateLayeredDxf({
+    layers: stored.preview?.layers || [],
+    layerData: stored.data?.layerData || [],
+    polygonParts: stored.data?.polygonParts || []
+  }) : null;
   if (!dxf) {
     const error = new Error('Sheet design has no exportable geometry');
     error.status = 404;

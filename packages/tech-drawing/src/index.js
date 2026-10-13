@@ -57,8 +57,8 @@ const dxfSource = Object.freeze({
   name: 'DXF source',
   glyph: 'pi pi-objects-column',
   payload: {
-    mime: ['application/dxf'],
-    accept: ['.dxf', 'application/dxf'],
+    mime: ['application/dxf', 'image/vnd.dxf'],
+    accept: ['.dxf', 'application/dxf', 'image/vnd.dxf'],
     maxSize: 50 * 1024 * 1024,
     preview: 'dxf'
   },

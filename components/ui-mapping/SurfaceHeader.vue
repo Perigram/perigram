@@ -64,7 +64,6 @@
           v-for="action in inlineActions"
           :key="action.id"
           :action="action"
-          :render="type?.render"
           :state-policy="statePolicy"
           @run="$emit('run', action)"
         />
@@ -76,7 +75,6 @@
           v-for="action in transitionActions"
           :key="action.id || action.state?.to"
           :action="action"
-          :render="type?.render"
           :state-policy="statePolicy"
           @run="$emit('transition', { to: action.state.to, intent: action.intent || null, region: action.region || null })"
         />

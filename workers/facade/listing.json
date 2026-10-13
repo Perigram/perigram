@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
-  "version": "3",
+  "version": "4",
   "requires": [
     "tech-drawing",
     "documents"
@@ -118,11 +118,13 @@
         "version": 1,
         "payload": {
           "mime": [
-            "application/dxf"
+            "application/dxf",
+            "image/vnd.dxf"
           ],
           "accept": [
             ".dxf",
-            "application/dxf"
+            "application/dxf",
+            "image/vnd.dxf"
           ],
           "maxSize": 26214400,
           "preview": "dxf",
@@ -433,11 +435,20 @@
         "mode": "endpoint",
         "signature": {
           "input": {
-            "base": "json"
+            "base": "record",
+            "fields": {
+              "geometry": {
+                "base": "json"
+              }
+            }
           },
           "output": {
             "base": "json"
           }
+        },
+        "render": {
+          "label": "Generate sheet-design DXF",
+          "icon": "pi pi-file-export"
         }
       }
     ],

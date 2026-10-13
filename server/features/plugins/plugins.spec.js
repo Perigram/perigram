@@ -384,17 +384,32 @@ describe('connector services', () => {
       .rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('composes installed services as plugin-qualified species records', async () => {
+  it('composes wireable (record-input) services as plugin-qualified species records — json-input executors stay off the palette', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      ...coatingInstall,
+      services: [
+        ...coatingListing.declarations.services,
+        {
+          id: 'mix',
+          label: 'Color mix',
+          signature: {
+            input: { base: 'record', fields: { base: { base: 'string' }, tint: { base: 'string', nullable: true } } },
+            output: { base: 'json' }
+          }
+        }
+      ]
+    }]);
     const services = await servicesForOrganization(ORG);
     expect(services).toHaveLength(1);
     expect(services[0]).toMatchObject({
-      id: 'plugin.coatings.match',
+      id: 'plugin.coatings.mix',
       species: 'service',
-      command: 'plugin.coatings.match',
+      command: 'plugin.coatings.mix',
       group: 'Coatings'
     });
     const merged = await packServicesForOrganization(ORG);
-    expect(merged.some(service => service.id === 'plugin.coatings.match')).toBe(true);
+    expect(merged.some(service => service.id === 'plugin.coatings.mix')).toBe(true);
+    expect(merged.some(service => service.id === 'plugin.coatings.match')).toBe(false);
   });
 
   it('resolves the command definition only for the installing organization', async () => {
@@ -802,10 +817,23 @@ describe('mounted-pack enablement', () => {
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
   });
 
-  it('composes installed plugin services beside the (empty) pack service list', async () => {
-    repository.listInstallsByOrganization.mockResolvedValue([coatingInstall]);
+  it('composes installed plugin services beside the mounted packs\' own services', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      ...coatingInstall,
+      services: [
+        {
+          id: 'mix',
+          label: 'Color mix',
+          signature: {
+            input: { base: 'record', fields: { base: { base: 'string' } } },
+            output: { base: 'json' }
+          }
+        },
+        ...coatingListing.declarations.services
+      ]
+    }]);
     const services = await packServicesForOrganization(ORG);
-    expect(services.map(service => service.id)).toEqual(['plugin.coatings.match']);
+    expect(services.map(service => service.id)).toEqual(['documents.csvText', 'plugin.coatings.mix']);
     repository.listInstallsByOrganization.mockResolvedValue([]);
   });
 });

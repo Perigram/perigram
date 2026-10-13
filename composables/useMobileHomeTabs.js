@@ -40,12 +40,12 @@ export function useMobileHomeTabs() {
       .map(typeId => {
         const screen = screenOf.get(typeId);
         // Procedural label contract only: the generated type key (locale
-        // override) over the authored render label — no entity contracts.
+        // override) over the authored display name — no entity contracts.
         const record = registryStore.typeRecord(typeId);
         return {
           key: `screen:${screen.screenKey || screen.id}`,
           label: record
-            ? localizedLabel({ te, t }, typeLabelKey(typeId), record.render?.label || typeId)
+            ? localizedLabel({ te, t }, typeLabelKey(typeId), record.name || typeId)
             : typeId,
           icon: registryStore.iconFor(typeId),
           screen
