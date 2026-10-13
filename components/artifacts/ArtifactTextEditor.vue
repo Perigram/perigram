@@ -1,42 +1,74 @@
 <template>
-  <div class="flex h-full min-h-0 flex-1 flex-col gap-2 p-4">
-    <ActionToolbar :title="displayName" :level="2">
-      <template #actions>
-        <Button icon="pi pi-pencil" severity="secondary" text rounded size="small" :aria-label="$t('common.rename')" @click="openRename" />
-        <Button :label="$t('common.save')" icon="pi pi-save" size="small" :loading="saving" :disabled="!dirty" @click="save" />
-      </template>
-    </ActionToolbar>
-    <Popover ref="renameMenu">
-      <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
+  <div class="flex h-full min-h-0 flex-1 flex-col p-4">
+    <template v-if="isCsv">
+      <div class="flex min-w-0 flex-wrap items-center gap-2 border-b border-chrome-border py-1">
         <InputText
-          v-model="renameDraft"
-          :placeholder="$t('common.rename')"
-          class="w-full"
+          v-model="nameDraft"
+          size="small"
+          class="min-w-40 max-w-72 flex-1"
+          :placeholder="$t('common.unnamed')"
           :aria-label="$t('common.rename')"
-          @keydown.enter.stop.prevent="applyRename"
+          @focus="editingName = true"
+          @keydown.enter.stop.prevent="commitName"
+          @blur="commitName"
         />
-        <Button icon="pi pi-check" :label="$t('common.save')" size="small" :disabled="!renameDraft.trim()" @click="applyRename" />
+        <Button :label="$t('common.save')" icon="pi pi-save" size="small" class="ml-auto" :loading="saving" :disabled="!dirty" @click="save" />
       </div>
-    </Popover>
-    <DataTable v-if="isCsv" :value="rows" edit-mode="cell" scrollable scroll-height="flex" size="small" class="min-h-80 flex-1">
-      <Column v-for="column in columns" :key="column" :field="column" :header="column">
-        <template #editor="{ data, field }"><InputText v-model="data[field]" size="small" /></template>
-      </Column>
-    </DataTable>
+      <DataTable :value="rows" edit-mode="cell" scrollable scroll-height="flex" size="small" class="mt-2 min-h-80 flex-1">
+        <Column v-for="column in columns" :key="column" :field="column" :header="column">
+          <template #editor="{ data, field }"><InputText v-model="data[field]" size="small" /></template>
+        </Column>
+      </DataTable>
+    </template>
     <!-- Markdown documents edit through the PrimeVue rich text editor
          (Quill): the payload is markdown by default — the editor content
          converts HTML → markdown on save and markdown → HTML on load.
+         The document chrome is one toolbar: the name edits in place
+         (committed on blur/enter, rename rides the persistence seam),
+         save sits beside it, and the format controls follow in the
+         editor's own toolbar slot — not a header row plus a second
+         control strip. The csv surface shares the same name/save row.
          The editing surface reads and writes in the app's serif document
-         voice (the `editor` typography role, one step above prose) and
-         carries its own pane padding — it is a document surface, not a
-         flush canvas editor. -->
-    <div v-else class="text-editor flex min-h-0 flex-1 flex-col">
-      <Editor
-        v-model="html"
-        :formats="editorFormats"
-        :pt="editorPt"
-        editor-style="flex: 1 1 0; min-height: 12rem"
-      />
+         voice (the `editor` typography role) and carries the pane
+         padding — it is a document surface, not a flush canvas
+         editor. -->
+    <div v-else class="text-editor flex h-full min-h-0 flex-col">
+      <Editor v-model="html" :formats="editorFormats" :pt="editorPt">
+        <template #toolbar>
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <InputText
+              v-model="nameDraft"
+              size="small"
+              class="min-w-40 max-w-72 flex-1"
+              :placeholder="$t('common.unnamed')"
+              :aria-label="$t('common.rename')"
+              @focus="editingName = true"
+              @keydown.enter.stop.prevent="commitName"
+              @blur="commitName"
+            />
+            <span class="ql-formats flex items-center">
+              <select class="ql-header">
+                <option value="1">Heading</option>
+                <option value="2">Subheading</option>
+                <option value="0">Normal</option>
+              </select>
+              <button class="ql-bold" type="button" />
+              <button class="ql-italic" type="button" />
+              <button class="ql-underline" type="button" />
+              <button class="ql-strike" type="button" />
+              <button class="ql-code" type="button" />
+              <button class="ql-blockquote" type="button" />
+              <button class="ql-list" value="ordered" type="button" />
+              <button class="ql-list" value="bullet" type="button" />
+              <button class="ql-indent" value="-1" type="button" />
+              <button class="ql-indent" value="+1" type="button" />
+              <button class="ql-link" type="button" />
+              <button class="ql-code-block" type="button" />
+            </span>
+            <Button :label="$t('common.save')" icon="pi pi-save" size="small" class="ml-auto" :loading="saving" :disabled="!dirty" @click="save" />
+          </div>
+        </template>
+      </Editor>
     </div>
   </div>
 </template>
@@ -51,9 +83,6 @@ import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import Editor from 'primevue/editor';
 import InputText from 'primevue/inputtext';
-import Popover from 'primevue/popover';
-import ActionToolbar from '~/components/shared/ActionToolbar.vue';
-import 'quill/dist/quill.snow.css';
 
 // Persistence contract, host-supplied: `title`, `loadText()` returning
 // the raw text, `saveText(text, filename)`, and an optional
@@ -73,44 +102,52 @@ const dirty = ref(false);
 const isCsv = computed(() => props.format === 'csv');
 const localTitle = ref('');
 const displayName = computed(() => localTitle.value || props.persistence.title || '');
-const renameMenu = ref(null);
-const renameDraft = ref('');
+const nameDraft = ref('');
+const editingName = ref(false);
 
-function openRename() {
-  renameDraft.value = displayName.value;
-  renameMenu.value?.show?.();
-}
-
-async function applyRename() {
-  const name = renameDraft.value.trim();
-  renameMenu.value?.hide?.();
-  if (!name || name === displayName.value || typeof props.persistence.rename !== 'function') return;
+// The toolbar name field commits on blur/enter: the draft becomes the
+// document name (so the save filename follows immediately) and the
+// rename rides the persistence seam when the host provides it.
+async function commitName() {
+  editingName.value = false;
+  const name = nameDraft.value.trim();
+  if (!name || name === displayName.value) {
+    nameDraft.value = displayName.value;
+    return;
+  }
+  localTitle.value = name;
   try {
-    await props.persistence.rename(name);
-    localTitle.value = name;
-    emit('refresh');
+    if (typeof props.persistence.rename === 'function') {
+      await props.persistence.rename(name);
+      emit('refresh');
+    }
   } catch (error) {
+    localTitle.value = props.persistence.title || '';
+    nameDraft.value = displayName.value;
     console.error('Failed to rename document:', error);
   }
 }
+
 const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
-// Quill's document model covers the markdown subset; the formats list
-// keeps the toolbar and the round-trip honest (no colors/aligns that
-// markdown cannot carry).
+// Quill's document model covers the markdown subset; the authored toolbar
+// carries exactly these controls (nothing markdown cannot round-trip).
 const editorFormats = ['bold', 'italic', 'underline', 'strike', 'code', 'blockquote', 'header', 'list', 'indent', 'link', 'code-block'];
-// Quill's bundled themes hardcode a Helvetica 13px document voice on the
-// editor container and toolbar. The app's document voice lives on the
-// host (the `editor` typography role) and is carried into the editor
-// internals through inline pt styles — they sit above every theme class
-// in the cascade without scoped CSS, and the root flex layout is applied
-// the same way because PrimeVue injects `.p-editor { display: block }`
-// after Tailwind. The root grows into its host (the workspace page host
-// is flush for this editor, so the editor owns the shell) and the content
-// scrolls inside it — long documents never push the page.
+// Quill never loads its own stylesheet here: the PrimeVue editor theme
+// embeds the complete snow base with token-driven overrides inside the
+// `primevue` cascade layer, and importing `quill/dist/quill.snow.css`
+// again stacks an unlayered hardcoded copy (#ccc borders, #444 icons)
+// on top of that layer — the layered tokens can never win (the
+// white-borders defect). The pt inline styles ride above the layer: the
+// editor sits on the zero canvas (transparent surfaces, no box borders
+// — the pane Panel hairline is the box), the toolbar keeps the UI font
+// under one chrome hairline with its controls flush to the name field,
+// and the content grows into the host and scrolls inside it. Child
+// internals the pt surface cannot reach (editable voice, blockquote,
+// code, link tooltip) are re-homed in the main.css quill block.
 const editorPt = {
-  root: { style: { display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', height: '100%' } },
-  toolbar: { style: { fontFamily: 'var(--ck-font-ui)' } },
-  content: { style: { flex: '1 1 0', minHeight: '0', overflowY: 'auto', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' } }
+  root: { style: { display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', border: 'none', background: 'transparent' } },
+  toolbar: { style: { fontFamily: 'var(--ck-font-ui)', padding: '0.375rem 0', background: 'transparent', borderWidth: '0 0 1px', borderStyle: 'solid', borderColor: 'var(--ck-chrome-border)' } },
+  content: { style: { flex: '1 1 0', minHeight: '0', overflowY: 'auto', paddingTop: '0.5rem', border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' } }
 };
 
 onMounted(async () => {
@@ -125,6 +162,9 @@ onMounted(async () => {
   html.value = text ? marked.parse(text) : '';
 });
 
+watch(displayName, value => {
+  if (!editingName.value) nameDraft.value = value;
+}, { immediate: true });
 watch([html, rows], () => { dirty.value = true; }, { deep: true });
 
 async function save() {
