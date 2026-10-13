@@ -917,6 +917,18 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       rows.push({ id, label: fieldLabel('name'), descriptor: { base: 'string' }, span: 'half', required: policy?.required === true });
       continue;
     }
+    // A string protocol input (the `content` creation protocol's text
+    // body): a scalar prompt row, its control pin riding the descriptor.
+    if (policy?.type === 'string' && typeof inputId === 'object') {
+      rows.push({
+        id,
+        label: policy.label || fieldLabel(id),
+        descriptor: { base: 'string', ...(policy.control ? { control: policy.control } : {}) },
+        span: 'full',
+        required: policy.required === true
+      });
+      continue;
+    }
     if (id.startsWith('lineage.')) {
       const key = id.slice('lineage.'.length);
       const accepts = parentTypesForChildrenKey(bundle, type?.id, key);

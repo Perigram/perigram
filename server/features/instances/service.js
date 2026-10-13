@@ -525,7 +525,39 @@ function instanceService(typeId) {
       ),
       editor: (draft, context = {}) => instanceService(typeId).create(
         draft, context.userId, context.organizationId
-      )
+      ),
+      // The content protocol (SPEC §4, owner decision 2026-10-13): the
+      // wired or prompted text is the payload — stored as a blob and
+      // validated through the same trait checks every payload reference
+      // takes at construct.
+      content: async (draft = {}, context = {}) => {
+        const declaration = await requireDeclaration(typeId, context.organizationId || draft?.organizationId);
+        if (!declaration.payload) {
+          throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload; creation protocol content does not apply` });
+        }
+        const text = draft.content;
+        if (typeof text !== 'string' || !text.trim()) {
+          throw createError({ statusCode: 400, message: `Creation protocol content requires a text body` });
+        }
+        const buffer = Buffer.from(text, 'utf8');
+        const [mime] = [].concat(declaration.payload.mime || []);
+        const extension = [].concat(declaration.payload.accept || []).find(entry => String(entry).startsWith('.')) || '';
+        const filename = `${draft.name || 'document'}${extension}`;
+        const stored = await filesService.uploadFile(buffer, filename, {
+          userId: context.userId,
+          organizationId: context.organizationId,
+          type: typeId
+        }, PAYLOAD_BUCKET);
+        try {
+          return await createValidated({
+            ...draft,
+            payload: { fileId: stored.id, ...(mime ? { mime } : {}), size: buffer.length, name: filename }
+          }, declaration, context.userId, context.organizationId);
+        } catch (error) {
+          await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
+          throw error;
+        }
+      }
     })
   };
 }
