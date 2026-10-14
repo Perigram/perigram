@@ -2,6 +2,7 @@
 // framework's own features (attachments, artifact conversions). Handlers
 // are registered by the app registry beside this table. Plugin commands
 // derive from installed-plugin services (plugin.<pluginId>.<serviceId>).
+import { commandCreatedKinds } from '#shared/attachment-kinds.js';
 
 // The framework's event declarations: the events its own commands emit or
 // consume. Plugin commands emit none (value services carry no event
@@ -33,6 +34,10 @@ export const frameworkEventDefinitions = {
   }
 };
 
+// The kind options derive from the attachment-kind vocabulary (the kinds
+// declaring command creation) — never a frozen list. The source socket
+// carries no accepts: exportable source types are the org's export
+// bindings, resolved at run time against the actual source instance.
 export const frameworkCommandDefinitions = {
   generateAttachment: {
     id: 'generateAttachment',
@@ -45,23 +50,19 @@ export const frameworkCommandDefinitions = {
           name: 'source',
           label: 'Attachment source',
           capability: 'attachments.generate',
-          accepts: ['sheet_design', 'solve_run'],
           required: true
         }
       ],
       entities: [
-        { name: 'sheetDesign', type: 'sheet_design' },
-        { name: 'nestingRun', type: 'solve_run' },
         { name: 'template', label: 'Artifact template', type: 'artifact_template', required: false }
       ],
       parameters: [
-        { name: 'kind', label: 'Attachment kind', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },
+        { name: 'kind', label: 'Attachment kind', type: 'enum', options: commandCreatedKinds('generateAttachment'), required: true },
         { name: 'values', label: 'Template values', type: 'object', default: {}, editor: 'artifactTemplateValues', templateFieldId: 'template' }
       ]
     },
     triggers: [{ event: 'attachment.generationRequested' }],
     output: {
-      attachments: ['LAYOUT_DXF', 'PDF_PASSPORT'],
       events: ['attachment.generationQueued', 'attachment.generationCompleted', 'attachment.generationFailed']
     },
     access: {

@@ -170,6 +170,10 @@ const props = defineProps({
   // The app fetches per opened instance and owns dispatch; the generator
   // only renders them as header transition buttons.
   runtimeTransitions: { type: Object, default: null },
+  // Derived export actions by type (SPEC §Exports are declarations):
+  // `{ [typeId]: [{ __command, commandId, kind, actionKind: 'runCommand', ... }] }`
+  // — one manual command action per the org's export bindings.
+  exportActions: { type: Object, default: null },
   // Machine-authority transition resolver for board drags:
   // `async (instance) => [{ to, intent, region }]` over the host's state
   // service — the same machine the transition buttons dispatch through.
@@ -210,7 +214,8 @@ const openable = computed(() => typeof props.onOpen === 'function');
 const instanceActionsByType = computed(() => Object.fromEntries((props.bundle.types || [])
   .map(type => [type.id, [
     ...resolveInstanceActions(props.contract?.actions || {}, type.id),
-    ...((props.runtimeTransitions || {})[type.id] || [])
+    ...((props.runtimeTransitions || {})[type.id] || []),
+    ...((props.exportActions || {})[type.id] || [])
   ]])));
 // Runtime state transitions dispatch through the page's executor
 // (`onTransition`); without one they are display-only.

@@ -13,6 +13,7 @@
     :on-patch="runGeneratedPatch"
     :on-open="openInstance"
     :navigation="navigation"
+    :export-actions="exportActionsByType"
     @instance-mounted="loadRuntimeTransitions"
   />
 </template>
@@ -39,6 +40,7 @@ import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
+import { useOutboxStore } from '~/stores/outbox';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
@@ -56,12 +58,36 @@ const props = defineProps({
 const emit = defineEmits(['open-instance', 'refresh']);
 
 const toast = useToast();
-const { t } = useI18n();
+const { te, t } = useI18n();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
 
 const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const processActions = computed(() => authStore.processPayload?.actions || {});
+// Derived export affordances (SPEC §Exports are declarations): the org's
+// export bindings — served with the hydration payload — become one manual
+// command action per bound (type, kind); no authored action node exists
+// or is needed. Execution rides the generic command run path.
+const exportActionsByType = computed(() => {
+  const byType = {};
+  for (const binding of authStore.processPayload?.exports || []) {
+    if (!binding?.typeId || !binding.kind) continue;
+    const label = te(`uiMapping.exportKinds.${binding.kind}`)
+      ? t(`uiMapping.exportKinds.${binding.kind}`)
+      : binding.kind;
+    (byType[binding.typeId] ||= []).push({
+      id: `export:${binding.typeId}:${binding.kind}`,
+      __command: true,
+      commandId: 'generateAttachment',
+      typeId: binding.typeId,
+      kind: binding.kind,
+      actionKind: 'runCommand',
+      trigger: { mode: 'manual' },
+      label
+    });
+  }
+  return byType;
+});
 const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
 const stateTransitions = computed(() => stateTransitionsByType(authStore.processPayload?.producerOutputs || {}));
 
@@ -186,6 +212,9 @@ async function runGeneratedAction(action, data = {}, context = {}) {
   // page opens and the first save creates the record. A context-bound
   // create arrives with its binding in `data` and keeps the construct.
   if (isEditorProtocolCreate(action) && !Object.keys(data || {}).length && openBlankFileEditor(action.typeId)) return;
+  // Derived command actions (export bindings) execute through the
+  // generic command run path — they are not process-contract actions.
+  if (action.__command) return runDerivedCommand(action, context.instance);
   try {
     // The store's runAction lands the created entity in the pool itself
     // (create hosts only decide where the record opens).
@@ -219,6 +248,34 @@ async function runGeneratedAction(action, data = {}, context = {}) {
       return;
     }
     toast.add({ severity: 'error', summary: action.label || action.id, detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
+
+// A derived command action runs its command with the opened instance as
+// the bound source — same mutation boundary (outbox, idempotency key) as
+// process actions, and the command runtime enforces its own access law.
+async function runDerivedCommand(action = {}, instance = null) {
+  if (!instance?._id && !instance?.id) return;
+  const outbox = useOutboxStore();
+  try {
+    await outbox.mutate({
+      url: `/api/admin/commands/${encodeURIComponent(action.commandId)}/run`,
+      method: 'POST',
+      body: {
+        entities: { source: { type: instance.type, id: String(instance._id || instance.id) } },
+        parameters: { kind: action.kind }
+      },
+      meta: { kind: 'action', instanceId: String(instance._id || instance.id), change: 'updated', reason: 'derived-command' }
+    });
+    toast.add({ severity: 'success', summary: action.label || action.commandId, detail: t('generatedScreen.actionCompleted'), life: 2000 });
+    await reload();
+    emit('refresh');
+  } catch (error) {
+    if (isOfflineQueuedError(error)) {
+      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      return;
+    }
+    toast.add({ severity: 'error', summary: action.label || action.commandId, detail: error?.data?.message || error?.message || '', life: 5000 });
   }
 }
 

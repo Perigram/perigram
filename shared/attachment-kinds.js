@@ -39,7 +39,6 @@ export const frameworkAttachmentKinds = {
     bucket: 'nestSvg',
     mimeType: 'image/svg+xml',
     preview: { mode: 'svg' },
-    creation: { mode: 'command', commandId: 'generateAttachment' },
     editor: { mode: 'none' }
   },
   PDF_PASSPORT: {kind: 'PDF_PASSPORT',
@@ -110,3 +109,11 @@ export const frameworkAttachmentKinds = {
     file: { extensions: ['.json'], mimeTypes: ['application/json'], maxBytes: 25 * 1024 * 1024 }
   }
 };
+
+// The kinds a command creates, derived from the vocabulary — the single
+// derivation command definitions and prompts read (never a frozen list).
+export function commandCreatedKinds(commandId = '') {
+  return Object.values(frameworkAttachmentKinds)
+    .filter(kind => kind.creation?.mode === 'command' && kind.creation?.commandId === commandId)
+    .map(kind => kind.kind);
+}

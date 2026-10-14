@@ -1813,6 +1813,10 @@
       "svg-file": "SVG file",
       "text-document": "Text document",
       "xlsx-workbook": "XLSX workbook"
+    },
+    "exportKinds": {
+      "LAYOUT_DXF": "DXF layout",
+      "PDF_PASSPORT": "PDF passport"
     }
   },
   "uiConstructor": {
