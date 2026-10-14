@@ -77,25 +77,29 @@ export default function createSketchEditor({ vue, components, locale }) {
           : mask & ~OSNAP_TANGENT_MASK;
       };
 
+      // Text labels until proper tool icons exist: the engine bundle ships
+      // no extractable command-icon set (its SVGs are baked-in cursor and
+      // marker closures), and ambiguous primeicons (minus=Line,
+      // share-alt=Polyline, square=both Rectangle and Ortho) were worse
+      // than words.
       const TOOL_GROUPS = [
         [
-          { command: 'select', icon: 'pi pi-arrow-up-left', labelKey: 'cassette.v2.profileEditor.tools.select' },
-          { command: 'line', icon: 'pi pi-minus', labelKey: 'cassette.v2.profileEditor.tools.line' },
-          { command: 'pline', icon: 'pi pi-share-alt', labelKey: 'cassette.v2.profileEditor.tools.polyline' },
-          { command: 'circle', icon: 'pi pi-circle', labelKey: 'cassette.v2.profileEditor.tools.circle' },
-          { command: 'arc', icon: 'pi pi-wave-pulse', labelKey: 'cassette.v2.profileEditor.tools.arc' },
-          { command: 'rectang', icon: 'pi pi-square', labelKey: 'cassette.v2.profileEditor.tools.rectangle' }
+          { command: 'select', labelKey: 'cassette.v2.profileEditor.tools.select' },
+          { command: 'line', labelKey: 'cassette.v2.profileEditor.tools.line' },
+          { command: 'pline', labelKey: 'cassette.v2.profileEditor.tools.polyline' },
+          { command: 'circle', labelKey: 'cassette.v2.profileEditor.tools.circle' },
+          { command: 'arc', labelKey: 'cassette.v2.profileEditor.tools.arc' },
+          { command: 'rectang', labelKey: 'cassette.v2.profileEditor.tools.rectangle' }
         ],
         [
-          { command: 'erase', icon: 'pi pi-trash', labelKey: 'cassette.v2.profileEditor.actions.erase' },
-          { command: 'undo', icon: 'pi pi-undo', labelKey: 'cassette.v2.profileEditor.actions.undo' },
-          { command: 'redo', icon: 'pi pi-replay', labelKey: 'cassette.v2.profileEditor.actions.redo' }
+          { command: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' },
+          { command: 'undo', labelKey: 'cassette.v2.profileEditor.actions.undo' },
+          { command: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo' }
         ],
         [
-          { icon: 'pi pi-square', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
-          { icon: 'pi pi-compass', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
+          { labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
+          { labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
           {
-            icon: 'pi pi-stop-circle',
             labelKey: () => (normalizeOccsProfileSketch(props.modelValue || {}).closed
               ? 'cassette.v2.profileEditor.closedShape'
               : 'cassette.v2.profileEditor.openShape'),
@@ -104,9 +108,9 @@ export default function createSketchEditor({ vue, components, locale }) {
           }
         ],
         [
-          { icon: 'pi pi-expand', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => manager?.curView?.zoomToFitDrawing?.() },
-          { icon: 'pi pi-upload', labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
-          { icon: 'pi pi-times-circle', labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
+          { labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => manager?.curView?.zoomToFitDrawing?.() },
+          { labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
+          { labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
         ]
       ];
 
@@ -642,16 +646,17 @@ export default function createSketchEditor({ vue, components, locale }) {
         h('div', { class: 'flex flex-wrap items-center gap-1' }, [
           ...TOOL_GROUPS.flatMap((group, groupIndex) => [
             ...(groupIndex > 0 ? [h('span', { class: 'mx-1 h-4 w-px shrink-0 bg-content-border' })] : []),
-            ...group.map(tool => h(Button, {
-              key: typeof tool.labelKey === 'function' ? tool.icon : tool.labelKey,
-              icon: tool.icon,
-              severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
-              size: 'small',
-              rounded: true,
-              'aria-label': t(typeof tool.labelKey === 'function' ? tool.labelKey() : tool.labelKey),
-              title: t(typeof tool.labelKey === 'function' ? tool.labelKey() : tool.labelKey),
-              onClick: () => runCommand(tool)
-            }))
+            ...group.map(tool => {
+              const labelKey = typeof tool.labelKey === 'function' ? tool.labelKey() : tool.labelKey;
+              return h(Button, {
+                key: labelKey,
+                label: t(labelKey),
+                severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
+                size: 'small',
+                'aria-label': t(labelKey),
+                onClick: () => runCommand(tool)
+              });
+            })
           ]),
           h('input', {
             ref: fileInputRef,
