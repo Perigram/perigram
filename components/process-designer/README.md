@@ -268,9 +268,11 @@ state machine; class/type-reference nodes target a ref field's accepted
 targets; class/reference nodes bind an origin species Type pin; state→state
 wires declare one parent relationship (`nested` — there is no transition
 declaration node). Class→class children wires run parent (source) → child
-(target) and retain their typed key and `onRemove` policy. File-class parent
-containment is refused at the connect gate — when the target could be the
-parent instead, the refusal teaches the wire direction. Declaration edges
+(target) and retain their typed key and `onRemove` policy; a type-reference
+card is never the parent (its declaration lives outside this tree) — the
+refusal redirects the wire to the class card. File-class parent containment
+is refused at the connect gate — when the target could be the parent
+instead, the refusal teaches the wire direction. Declaration edges
 persist as `role: 'type'` records and round-trip
 without being treated as dataflow. `compileTreeDeclarations` is the one
 declaration compiler; diagnostics name the authored class before its opaque
