@@ -25,25 +25,30 @@ the domain attachment kind instead of accepting component names.
   inside it (meet), and cassette dimension text renders big there while
   the pane viewer keeps the pixel-matched base size.
 - Text previews render in the app's serif prose voice. Markdown documents
-  (`text/markdown` mime or a `.md` filename) render as sanitized HTML
-  through `marked` + `DOMPurify`; plain text keeps its line breaks.
+  (the `isMarkdownDocument` rule in
+  [shared/markdown.js](../../shared/markdown.js): `text/markdown` mime or
+  a `.md` filename) render through its `renderMarkdown` pipeline
+  (`marked` + `DOMPurify`); plain text keeps its line breaks.
 - `ArtifactTextEditor.vue` owns the editable text and CSV save path. Text
   documents are markdown, and the editor edits the markdown source
   directly — the payload IS the text, so nothing converts on load or
-  save (no HTML proxy losing whatever a rich-text model cannot carry).
-  The source surface is a PrimeVue `Textarea` in the technical mono
+  save. The source surface is a PrimeVue `Textarea` in the technical mono
   voice (`text-technical`, form chrome stripped through pt — it is the
-  document, not a form control); the preview toggle renders the same
-  `marked` + `DOMPurify` pipeline the read-side viewer uses, in the
-  prose voice. The document chrome is one toolbar row shared with the
+  document, not a form control); the preview toggle renders the shared
+  `renderMarkdown` pipeline in the prose voice. The csv surface edits
+  rows in a cell table and serializes them back to CSV text on save; a
+  pristine open never enables save (load populates, edits dirty). The
+  document chrome is one toolbar row shared with the
   csv surface: the name edits in place as quiet document text (pt-stripped
   InputText, focus ring as the edit affordance), committed through
   enter, the apply control that appears while the draft differs, or
   blur — all through the persistence `rename` seam — beside the preview
-  toggle and save. Quill is gone from the app entirely: the PrimeVue
-  `Editor` component, the `quill.snow.css` import, the editor component
-  tokens, and the main.css quill block were all deleted with the
-  rich-text surface. The persistence adapter carries the file
+  toggle and save. The save filename strips a trailing extension before
+  the persistence extension lands (`notes.md` stays `notes.md`). Quill is
+  gone from the app entirely: the PrimeVue `Editor` component, the
+  `quill.snow.css` import, the editor component tokens, the main.css quill
+  block, the `turndown` HTML→markdown dependency, and the orphaned `quill`
+  package were all deleted with the rich-text surface. The persistence adapter carries the file
   `extension` (`.md` for instance documents, `.txt` or `.md` following
   the stored file for artifacts) and the save mime. Text artifacts
   upload as `.txt` or `.md` (`text/plain` or `text/markdown`); markdown

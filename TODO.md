@@ -181,9 +181,45 @@ the stored kind. Contracts:
 - [x] B. Markdown artifacts: `TEXT_FILE`/`TEXT_DOCUMENT` accept `.md` and
   `text/markdown`; the artifact text persistence keeps the stored
   extension and mime on save.
+- [x] C. Markdown deslop + editor repair (2026-10-14): the source-editor
+  session silently broke CSV save (it stored the never-populated markdown
+  ref — an empty file — instead of serializing rows); csv saves serialize
+  the table again, pristine opens no longer enable save, save filenames
+  keep one extension, markdown detection/render is single-homed in
+  `shared/markdown.js`, and the orphaned `quill`/`turndown` deps are gone.
 - [ ] WAITING — owner verification on the live stack: a text document
-  fills its pane with one scroll, and a `.md` file uploads and
-  round-trips through the editor.
+  fills its pane with one scroll, a `.md` file uploads and
+  round-trips through the editor, a CSV round-trips with content intact,
+  and save stays disabled until edited.
+
+### Agent Notes (2026-10-14, md-deslop session)
+
+Session `agent/md-deslop-20261014-112020`, owner report: "md support
+doesn't work". Reading the md-source-editor diff found one load-bearing
+regression and three slop defects behind it: (1) CSV save stored an empty
+file — the session replaced `save()` with `saveText(markdown.value, …)`
+and deleted the rows→CSV serialization, but `markdown` is never populated
+in csv mode; restored through
+`XLSX.utils.sheet_to_csv(json_to_sheet(rows, { header: columns }))`.
+(2) Save enabled on pristine open — the dirty watch fired on the initial
+populate; a load guard suspends it until the load settles. (3) A
+`notes.md` name saved as `notes.md.md` — the save filename is now stem +
+persistence extension with a trailing known extension stripped first.
+(4) Markdown detection and the marked+DOMPurify render lived in triplicate
+(viewer, editor, artifact detail) — single-homed in `shared/markdown.js`
+(`isMarkdownDocument`, `renderMarkdown`; import-safe in Node, empty
+server-side), pinned by `shared/markdown.spec.js`. (5) `quill` and
+`turndown` had zero source imports after the rich-text deletion —
+removed from dependencies (lock regenerated; it also dropped
+pre-existing orphaned `three`/`clipper2-wasm` entries nothing imports).
+(6) Stale contracts repaired: `file-surfaces.js` ("converts on
+load/save"), `documents/index.spec.js` ("rich text converts HTML↔
+markdown"), `components/generated/README.md` (PrimeVue `Editor`
+surface) now name the source editor. Validation: markdown,
+design-system, framework-packages, documents, and file-surfaces suites
+green; docs + arch guards green; SSR smoke + framework validation
+green. Live-stack round-trip (md edit/preview/save, .md upload, csv
+round-trip) runs as a browser probe after the merge to `local`.
 
 ### Agent Notes (2026-10-13, editor-toolbar-chrome session)
 
