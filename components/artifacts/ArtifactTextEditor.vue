@@ -18,7 +18,15 @@
         </div>
         <Button :label="$t('common.save')" icon="pi pi-save" size="small" text class="ml-auto" :loading="saving" :disabled="!dirty" @click="save" />
       </div>
-      <DataTable :value="rows" edit-mode="cell" scrollable scroll-height="flex" size="small" class="mt-2 min-h-80 flex-1">
+      <DataTable
+        :value="rows"
+        edit-mode="cell"
+        scrollable
+        scroll-height="flex"
+        size="small"
+        class="mt-2 min-h-80 flex-1"
+        @cell-edit-complete="applyCellEdit"
+      >
         <Column v-for="column in columns" :key="column" :field="column" :header="column">
           <template #editor="{ data, field }"><InputText v-model="data[field]" size="small" /></template>
         </Column>
@@ -143,6 +151,15 @@ async function commitName() {
 // enabling save on a pristine open.
 let loading = true;
 watch([markdown, rows], () => { if (!loading) dirty.value = true; }, { deep: true });
+
+// PrimeVue's cell editor binds a working copy and delivers the edit
+// through `cell-edit-complete` ({ data = the table's row object,
+// newValue, field }): applying it here is what makes the edit land in
+// `rows` — unhandled, the table re-renders the original value.
+function applyCellEdit({ data, field, newValue }) {
+  if (!data) return;
+  data[field] = newValue;
+}
 
 onMounted(async () => {
   try {

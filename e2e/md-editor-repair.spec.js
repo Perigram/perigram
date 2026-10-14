@@ -1,0 +1,147 @@
+import { test, expect } from './fixtures.js';
+
+// Markdown editor repair evidence (TODO §Text editor fills its pane,
+// item C): the blank editor opens pristine (save disabled), markdown
+// round-trips through source + preview + save, a `.md` file enters
+// through the upload protocol, and csv edits serialize rows on save
+// (the empty-file regression).
+
+const MD_SOURCE = '# Probe doc\n\nHello **markdown**.\n';
+const CSV_SOURCE = 'a,b\n1,2\n';
+
+async function payloadText(app, typeId) {
+  const list = await app.request.get(`/api/instances/${typeId}`);
+  expect(list.ok(), await list.text()).toBeTruthy();
+  const rows = await list.json();
+  const items = Array.isArray(rows) ? rows : [];
+  expect(items.length).toBeGreaterThan(0);
+  const fileId = items[0]?.payload?.fileId || items[0]?.attachments?.primary?.fileId;
+  expect(fileId, 'saved instance carries a payload file').toBeTruthy();
+  const file = await app.request.get(`/api/files/download/${encodeURIComponent(String(fileId))}?bucket=files`);
+  expect(file.ok(), await file.text()).toBeTruthy();
+  return await file.text();
+}
+
+test.describe('markdown editor repair', () => {
+  test('blank markdown editor opens pristine and round-trips source', async ({ app }) => {
+    test.setTimeout(180_000);
+    await app.seedSpeciesProcess({ types: ['text-document'] });
+
+    await app.page.goto('/screens/auto_text-document');
+    const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
+    await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
+    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
+    const source = app.page.getByLabel('Text Editor');
+    for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
+      await newButton.click();
+      await expect(source).toBeVisible({ timeout: 5000 }).catch(() => {});
+    }
+    await expect(source).toBeVisible({ timeout: 10000 });
+
+    // Pristine open: the load populates, nothing is edited, save waits.
+    const save = app.page.getByRole('button', { name: 'Save', exact: true });
+    await expect(save).toBeDisabled();
+
+    await source.fill(MD_SOURCE);
+    await expect(save).toBeEnabled();
+
+    await app.page.getByRole('button', { name: 'Preview', exact: true }).click();
+    await expect(app.page.getByRole('heading', { name: 'Probe doc' })).toBeVisible();
+    await expect(app.page.getByText('markdown').first()).toBeVisible();
+    await app.page.screenshot({ path: '.playwright/md-editor-preview.png' });
+    await app.page.getByRole('button', { name: 'Edit', exact: true }).click();
+
+    await save.click();
+    await expect(save).toBeDisabled();
+    expect(await payloadText(app, 'text-document')).toBe(MD_SOURCE);
+
+    await app.expectCleanRuntime();
+  });
+
+  test('uploaded .md opens in the editor with its content', async ({ app }) => {
+    test.setTimeout(180_000);
+    await app.seedSpeciesProcess({ types: ['text-document'], via: { 'text-document': 'upload' } });
+
+    await app.page.goto('/screens/auto_text-document');
+    const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
+    await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
+    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
+    const dialog = app.page.locator('.p-dialog');
+    for (let attempt = 0; attempt < 4 && !(await dialog.isVisible()); attempt += 1) {
+      await newButton.click();
+      await expect(dialog).toBeVisible({ timeout: 5000 }).catch(() => {});
+    }
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+
+    // The upload protocol offers the markdown accept straight from the
+    // type's payload traits.
+    const accept = await dialog.locator('input[type="file"]').getAttribute('accept');
+    expect(accept || '').toContain('.md');
+
+    await dialog.locator('input[type="file"]').setInputFiles({
+      name: 'probe-notes.md',
+      mimeType: 'text/markdown',
+      buffer: Buffer.from(MD_SOURCE, 'utf8')
+    });
+    await expect(dialog.getByText('probe-notes.md').first()).toBeVisible({ timeout: 20000 });
+    await dialog.getByRole('button', { name: 'Create', exact: true }).click();
+
+    expect(await payloadText(app, 'text-document')).toBe(MD_SOURCE);
+    await app.expectCleanRuntime();
+  });
+
+  test('csv edits serialize rows on save', async ({ app }) => {
+    test.setTimeout(180_000);
+    await app.seedSpeciesProcess({ types: ['csv-table'], via: { 'csv-table': 'content' } });
+
+    await app.page.goto('/screens/auto_csv-table');
+    const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
+    await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
+    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
+    const dialog = app.page.locator('.p-dialog');
+    for (let attempt = 0; attempt < 4 && !(await dialog.isVisible()); attempt += 1) {
+      await newButton.click();
+      await expect(dialog).toBeVisible({ timeout: 5000 }).catch(() => {});
+    }
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+    // The content protocol prompts only its text body (no row fields).
+    await dialog.locator('textarea').first().fill(CSV_SOURCE);
+    await dialog.getByRole('button', { name: 'Create', exact: true }).click();
+
+    // The created record opens in the home workspace; return to its
+    // detail and open the bound csv editor through its editor action.
+    let id = '';
+    for (let attempt = 0; attempt < 10 && !id; attempt += 1) {
+      const list = await app.request.get('/api/instances/csv-table');
+      const items = await list.json();
+      const first = (Array.isArray(items) ? items : [])[0];
+      id = first?._id || first?.id || '';
+      if (!id) await app.page.waitForTimeout(1000);
+    }
+    expect(id, 'content construct created the csv instance').toBeTruthy();
+    await app.page.goto(`/screens/auto_csv-table_detail?instanceId=${id}`);
+    await expect(app.page.locator('main').getByRole('columnheader', { name: 'a' })).toBeVisible({ timeout: 20000 });
+    await app.page.locator('main').getByRole('button', { name: 'CSV Editor' }).click();
+    const grid = app.page.getByRole('table').first();
+    await expect(grid).toBeVisible({ timeout: 20000 });
+
+    const cell = grid.getByText('1', { exact: true });
+    await cell.click();
+    const cellInput = grid.locator('input');
+    await cellInput.fill('7');
+    await cellInput.press('Tab');
+    await expect(grid.getByText('7', { exact: true })).toBeVisible({ timeout: 10000 });
+    await app.page.screenshot({ path: '.playwright/md-editor-csv.png' });
+    const save = app.page.getByRole('button', { name: 'Save', exact: true });
+    await expect(save).toBeEnabled();
+    await save.click();
+    await expect(save).toBeDisabled();
+
+    const saved = await payloadText(app, 'csv-table');
+    expect(saved).toContain('a,b');
+    expect(saved).toContain('7,2');
+    expect(saved).not.toContain('1,2');
+
+    await app.expectCleanRuntime();
+  });
+});
