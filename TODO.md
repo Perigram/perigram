@@ -1649,6 +1649,18 @@ Close keyword, and extraction — zero page errors, screenshot artifact
 proof.png. Not run: the full platform e2e against the dev stack (the
 running stack serves the primary checkout; re-check after merge).
 
+### Agent Notes (2026-10-14, engine chrome off — the dialog owns it)
+
+Owner review of the interface caught standalone-viewer chrome leaking
+into the profile dialog: the engine's command line (bottom bar with
+close/history buttons, its own font stack) and its top-right undo/erase
+shortcut toolbar — a second toolbar over the host one, both visible even
+idle. The vendored bundle now also exports `AcApSettingManager` +
+`acedApplyUiTheme`; the mount turns `isShowCommandLine` and
+`isShowShortCutToolbar` off and themes the remaining canvas UI dark.
+Prompts and keywords still work through the cursor dynamic input
+(re-proven in the browser: LINE + `c`/Enter closes and extracts).
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);
