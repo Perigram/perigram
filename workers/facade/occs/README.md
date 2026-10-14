@@ -50,8 +50,8 @@ modules — no platform imports.
   `profile.section` polygon/polyline data plus a linear `profile.sweep`.
   The parameter table starts empty — parameters are added when a sketch
   needs them, nothing is pre-seeded. Every authoring field (point
-  coordinates, hole centers and diameters, fillet radii, parameter values,
-  anchor distances) carries a number or an expression string evaluated
+  coordinates, hole centers and diameters, fillet radii, parameter
+  values) carries a number or an expression string evaluated
   against the parameter table through `expressions.js` — the same
   evaluator the cassette tree uses. `evaluateOccsProfileSketch` resolves
   the whole sketch (parameters may reference each other; cycles and
@@ -59,11 +59,16 @@ modules — no platform imports.
   buttons turn those throws into authoring feedback, never silent zeros.
   Points that an extracted arc flattened to chords carry a `chord` flag —
   real geometry, but not authored corners; the editor collapses their
-  runs into single read-only chips. Anchors tie a profile to its host: a
-  closed profile carries one anchor vertex (it lands on the attachment
-  snap+offset point when inserted), an open profile carries start/end
-  distances (margins from the host edge's two ends — the profile runs
-  from the first and the contour breaks at both). The same module
+  runs into single read-only chips. Anchors are the placement basis of a
+  closed profile: one chosen vertex (a visible per-vertex pick in the
+  editor) that lands on the attachment snap+offset point when inserted,
+  with cut geometry taken anchor-relative. Open shapes carry no anchor —
+  their references are the sketch origin (zero, displayed as such) and
+  the chain's end point; insertion places by the origin and breaks the
+  host contour at the endpoints. The editor draws evaluated dimension
+  annotations for the authored shape — the corner outline with a linear
+  dimension per edge (offset line, ticks, measured length) in a compact
+  fit band. The same module
   normalizes CAD entity records (LINE/ARC/CIRCLE/polyline) into the
   sketch model (`occProfileSketchFromEntities`) and back
   (`occProfileEntitiesFromSketch`): the browser sketch canvas — the
@@ -77,13 +82,11 @@ modules — no platform imports.
   chains with two or more save open). An open profile saves as a
   `polyline` section whose first and last vertices are its break points:
   the designer's section layer marks them and splits the host face's
-  contour at their projections (or at the anchor distances, when set)
-  where the profile lands, and the evaluated layerData carries the two
+  contour at their projections where the profile lands, and the evaluated layerData carries the two
   contour chains into production redraw on `contour.cassette_face`. The
   sketch editor's authoring rows edit the parameter table, vertex
   coordinates, fillet radii, and hole geometry directly on the sketch
-  model, with a read-only evaluated dimension row (edge lengths and
-  total) beneath; the extraction pass re-derives points, holes, and
+  model, beneath a dimension annotation band; the extraction pass re-derives points, holes, and
   modifiers from drawn geometry, so a later draw or import overwrites
   authored expressions and radii. Parametric instantiation: a profile
   workpiece's parameter table overrides the profile's authored table and

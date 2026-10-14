@@ -442,12 +442,14 @@ Owner additions (2026-10-15): the profile parameter table starts empty —
 parameters are added when a sketch needs them, nothing is pre-seeded; on
 a cassette, instance parameter values may be cassette expressions over
 the cassette's global parameters (the globals join the evaluation scope
-but never bake into the profile's stored table). Profiles carry anchors:
-a closed profile has one anchor vertex that lands on the attachment
-point; an open profile has start/end distances — margins from the host
-edge's ends where the profile runs and the contour breaks. Arc-flattened
-chord points are geometry, not authored corners (the editor collapses
-their runs); the editor shows evaluated edge-length dimensions.
+but never bake into the profile's stored table). A closed profile
+carries one basis anchor — a visibly picked vertex that is the profile's
+placement origin when inserted into a cassette. Open shapes carry no
+anchor construct: their references are the sketch origin (zero,
+displayed) and the chain's end point. Arc-flattened chord points are
+geometry, not authored corners (the editor collapses their runs); the
+editor draws real dimension annotations — a linear dimension per
+authored edge with extension ticks and the measured length.
 
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components

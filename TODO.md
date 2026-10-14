@@ -2100,6 +2100,25 @@ profile's own, scope joins evaluation only (A=500→700 moves the section
 new empty-table, chord-tag, and anchor laws. No browser run per the
 owner's testing rule; validation is model specs + node proofs.
 
+### Agent Notes (2026-10-15, basis revision — owner round two)
+
+Owner: anchors were invisible, they should be a basis, open shapes
+should just display zero and end, and "dimensions" means annotations,
+not a number row. Rework: closed shapes pick the basis with a visible
+⌖ button on every corner chip (primary when active) — the basis vertex
+is the placement origin (lands on the attachment snap+offset, cuts
+anchor-relative). Open shapes carry NO anchor construct anymore — the
+distances fields and their placement/contour-walk code are deleted; the
+editor displays the sketch origin (`⌖ 0,0` chip, the placement basis)
+and labels the chain's start/end, insertion places by origin and breaks
+at the endpoints as before. The numeric readout row is replaced by a
+dimension annotation band: the evaluated corner outline with a linear
+dimension per edge (outward offset line, extension ticks, measured
+length label) in a compact fit-view SVG. Locale: anchor → "Basis"/"База",
+distance keys removed. Specs: facade suites 88/88 (anchors case rewritten
+to the closed-only law); node proof: snapshot keeps `{vertexId}`,
+section.anchor evaluates, open anchors null with breaks intact.
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);
