@@ -10,7 +10,7 @@ const penTemplate = Object.freeze({
   class: 'file',
   scope: 'system',
   name: 'Pen template',
-  glyph: 'pi pi-pencil',
+  glyph: 'ck-file-type-icon ck-file-type-icon-pen-template',
   fields: {
     name: { base: 'string', identifier: true },
     stroke: {
@@ -40,7 +40,7 @@ const color = Object.freeze({
   class: 'file',
   scope: 'system',
   name: 'Color',
-  glyph: 'pi pi-palette',
+  glyph: 'ck-file-type-icon ck-file-type-icon-color',
   fields: {
     code: { base: 'string', identifier: true, label: 'common.code', display: 'code' },
     name: { base: 'string' },
@@ -55,7 +55,7 @@ const dxfSource = Object.freeze({
   class: 'file',
   scope: 'system',
   name: 'DXF source',
-  glyph: 'pi pi-objects-column',
+  glyph: 'ck-file-type-icon ck-file-type-icon-dxf-source',
   payload: {
     mime: ['application/dxf', 'image/vnd.dxf'],
     accept: ['.dxf', 'application/dxf', 'image/vnd.dxf'],
@@ -72,7 +72,7 @@ const svgFile = Object.freeze({
   class: 'file',
   scope: 'system',
   name: 'SVG file',
-  glyph: 'pi pi-code',
+  glyph: 'ck-file-type-icon ck-file-type-icon-svg-file',
   payload: {
     mime: ['image/svg+xml'],
     accept: ['.svg', 'image/svg+xml'],
@@ -87,7 +87,7 @@ const layerStandard = Object.freeze({
   class: 'file',
   scope: 'system',
   name: 'Layer standard',
-  glyph: 'pi pi-list',
+  glyph: 'ck-file-type-icon ck-file-type-icon-layer-standard',
   fields: {
     code: { base: 'string', identifier: true, label: 'common.code', display: 'code' },
     name: { base: 'string' },
@@ -122,7 +122,7 @@ const sketch = Object.freeze({
   class: 'file',
   scope: 'system',
   name: 'Sketch',
-  glyph: 'pi pi-pencil',
+  glyph: 'ck-file-type-icon ck-file-type-icon-sketch',
   payload: {
     mime: ['application/json'],
     accept: ['.json', 'application/json'],

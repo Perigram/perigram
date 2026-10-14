@@ -63,7 +63,7 @@ export const documentsTypes = Object.freeze([
     accept: ['.jpg', '.jpeg', '.png', 'image/jpeg', 'image/png'],
     maxSize: 25 * MB,
     preview: 'image',
-    glyph: 'pi pi-image',
+    glyph: 'ck-file-type-icon ck-file-type-icon-image',
     name: 'Image',
     creation: ['upload', 'capture']
   }),
@@ -73,7 +73,7 @@ export const documentsTypes = Object.freeze([
     accept: ['.pdf', 'application/pdf'],
     maxSize: 25 * MB,
     preview: 'pdf',
-    glyph: 'pi pi-file-pdf',
+    glyph: 'ck-file-type-icon ck-file-type-icon-pdf-document',
     name: 'PDF document'
   }),
   documentType({
@@ -82,7 +82,7 @@ export const documentsTypes = Object.freeze([
     accept: ['.md', 'text/markdown'],
     maxSize: 10 * MB,
     preview: 'text',
-    glyph: 'pi pi-file-edit',
+    glyph: 'ck-file-type-icon ck-file-type-icon-text-document',
     name: 'Text document',
     revisions: 'content',
     creation: ['editor', 'content', 'upload'],
@@ -94,7 +94,7 @@ export const documentsTypes = Object.freeze([
     accept: ['.csv', 'text/csv'],
     maxSize: 10 * MB,
     preview: 'table',
-    glyph: 'pi pi-table',
+    glyph: 'ck-file-type-icon ck-file-type-icon-csv-table',
     name: 'CSV table',
     revisions: 'content',
     creation: ['editor', 'content'],
@@ -106,7 +106,7 @@ export const documentsTypes = Object.freeze([
     accept: ['.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
     maxSize: 25 * MB,
     preview: 'workbook',
-    glyph: 'pi pi-file-excel',
+    glyph: 'ck-file-type-icon ck-file-type-icon-xlsx-workbook',
     name: 'XLSX workbook',
     creation: ['upload'],
     projections: tableProjections
@@ -120,7 +120,7 @@ export const documentsTypes = Object.freeze([
     // needs a paginated document surface, not a preview box. The payload
     // downloads instead.
     preview: 'download',
-    glyph: 'pi pi-file-word',
+    glyph: 'ck-file-type-icon ck-file-type-icon-docx-document',
     name: 'DOCX document'
   })
 ]);

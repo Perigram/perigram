@@ -31,7 +31,7 @@
     "framework:validate": "node scripts/framework-inspect.js validate",
     "agent:scope-check": "node scripts/check-agent-scope.js",
     "design:scope-check": "node scripts/check-agent-scope.js --allow .agents/design-layer.allowlist",
-    "icons:build": "node scripts/build-entity-icons.js",
+    "icons:build": "node scripts/build-icon-fonts.js",
     "test:durable": "node --test server/features/process-definitions/run-repository.spec.js",
     "docs:validate": "node scripts/check-docs.js"
   },
