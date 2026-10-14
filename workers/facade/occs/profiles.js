@@ -1,3 +1,5 @@
+import { resolveOccsExpression } from './expressions.js';
+
 export const OCCS_PROFILE_KINDS = Object.freeze([
   'hanger',
   'extruded_profile',
@@ -82,10 +84,23 @@ const numericValue = (value, fallback = 0) => {
   return Number.isFinite(next) ? next : fallback;
 };
 
+// Authoring fields carry numbers or expression strings ("W/2", "H-2*R").
+// Numeric strings collapse to numbers; anything else stays a string for
+// the evaluator. Resolution failures surface at evaluation, never here —
+// normalize must accept half-authored sketches.
+const sketchValue = (value, fallback = 0) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const asNumber = Number(value);
+    return Number.isFinite(asNumber) ? asNumber : value.trim();
+  }
+  return fallback;
+};
+
 const normalizePoint = (point = {}, index = 0) => ({
   id: point.id || `p${index}`,
-  x: numericValue(point.x),
-  y: numericValue(point.y)
+  x: sketchValue(point.x),
+  y: sketchValue(point.y)
 });
 
 const normalizeLineEdge = (edge = {}, index = 0) => ({
@@ -99,7 +114,7 @@ const normalizeFilletModifiers = (modifiers = [], pointIds = new Set()) => {
   const filletsByVertex = new Map();
   for (const modifier of modifiers) {
     if (modifier?.type !== 'fillet') continue;
-    const radius = Math.max(0, numericValue(modifier.radius));
+    const radius = sketchValue(modifier.radius, 0);
     const vertices = modifier.vertexId
       ? [modifier.vertexId]
       : Array.isArray(modifier.vertices)
@@ -115,11 +130,14 @@ const normalizeFilletModifiers = (modifiers = [], pointIds = new Set()) => {
 
 export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
   const fallback = createDefaultOccsProfileSketch(fallbackParameters);
-  const parameters = {
+  const rawParameters = {
     ...DEFAULT_OCCS_PROFILE_PARAMETERS,
     ...(fallbackParameters || {}),
     ...(sketch.parameters || {})
   };
+  const parameters = Object.fromEntries(
+    Object.entries(rawParameters).map(([key, value]) => [key, sketchValue(value, 0)])
+  );
   const points = Array.isArray(sketch.points)
     ? sketch.points.map(normalizePoint)
     : fallback.points;
@@ -135,11 +153,11 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
     .map((hole, index) => ({
       id: hole.id || `h${index}`,
       type: 'circle',
-      center: Array.isArray(hole.center) ? [
-        numericValue(hole.center[0]),
-        numericValue(hole.center[1])
-      ] : [0, 0],
-      diameter: numericValue(hole.diameter)
+      center: [
+        sketchValue(Array.isArray(hole.center) ? hole.center[0] : 0, 0),
+        sketchValue(Array.isArray(hole.center) ? hole.center[1] : 0, 0)
+      ],
+      diameter: sketchValue(hole.diameter, 0)
     }));
   const modifiers = normalizeFilletModifiers(
     Array.isArray(sketch.modifiers) ? sketch.modifiers : fallback.modifiers,
@@ -163,13 +181,63 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
 };
 
 export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => {
-  const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
-  return normalized.points.length >= 3;
+  try {
+    const evaluated = evaluateOccsProfileSketch(sketch, fallbackParameters);
+    return evaluated.closed
+      ? evaluated.points.length >= 3
+      : evaluated.points.length >= 2;
+  } catch {
+    return false;
+  }
 };
 
+// Resolves every authored expression against the parameter table
+// (parameters may reference each other; the engine rejects cycles and
+// unknown identifiers). Throws on any unresolvable value — the savable
+// check and the editors' save gates turn that into authoring feedback,
+// never silent zeros.
+export const evaluateOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
+  const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
+  // Identifier scope is the full raw table (parameters may reference each
+  // other in any order); each value resolves through it, so the engine's
+  // cycle detection sees complete chains.
+  const parameters = {};
+  for (const [key, value] of Object.entries(normalized.parameters)) {
+    parameters[key] = resolveOccsExpression(value, normalized.parameters);
+  }
+  const resolveField = (value, what) => {
+    const resolved = resolveOccsExpression(value, parameters);
+    if (!Number.isFinite(resolved)) throw new Error(`Invalid OCCS profile ${what}`);
+    return Math.round((resolved + Number.EPSILON) * 1000) / 1000;
+  };
+  return {
+    ...normalized,
+    parameters,
+    points: normalized.points.map(point => ({
+      ...point,
+      x: resolveField(point.x, `point ${point.id} x`),
+      y: resolveField(point.y, `point ${point.id} y`)
+    })),
+    holes: normalized.holes.map(hole => ({
+      ...hole,
+      center: [
+        resolveField(hole.center[0], `hole ${hole.id} x`),
+        resolveField(hole.center[1], `hole ${hole.id} y`)
+      ],
+      diameter: resolveField(hole.diameter, `hole ${hole.id} diameter`)
+    })),
+    modifiers: normalized.modifiers.map(modifier => ({
+      ...modifier,
+      radius: resolveField(modifier.radius, `fillet ${modifier.vertexId}`)
+    }))
+  };
+};
+
+// Closed sketches close their boundary on save; open sketches keep their
+// chain open — their first and last vertices are the break points.
 export const closeOccsProfileSketchBoundary = (sketch = {}, fallbackParameters = {}) => {
   const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
-  if (normalized.points.length < 3) return normalized;
+  if (!normalized.closed || normalized.points.length < 3) return normalized;
   const existingEdges = normalized.edges.filter(edge => edge.type === 'line');
   const edges = normalized.points.map((point, index) => {
     const to = normalized.points[(index + 1) % normalized.points.length]?.id || point.id;
@@ -189,7 +257,7 @@ export const closeOccsProfileSketchBoundary = (sketch = {}, fallbackParameters =
 };
 
 export const occsProfileFromSketch = (sketch = {}, options = {}) => {
-  const normalized = normalizeOccsProfileSketch(sketch, options.parameters);
+  const normalized = evaluateOccsProfileSketch(sketch, options.parameters);
   const vertices = [];
   const vertexIds = [];
 
@@ -199,50 +267,58 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
     vertices.push([String(point.x), String(point.y)]);
   }
 
+  const closed = normalized.closed && vertices.length >= 3;
+  const edgeCount = closed ? vertices.length : Math.max(0, vertices.length - 1);
+  const section = {
+    type: closed ? 'polygon' : 'polyline',
+    open: !closed,
+    vertices,
+    edges: Array.from({ length: edgeCount }, () => ({ type: 'line' })),
+    holes: normalized.holes.map(hole => ({
+      type: 'circle',
+      center: hole.center.map(value => String(value)),
+      diameter: String(hole.diameter)
+    })),
+    modifiers: normalized.modifiers.map(modifier => ({ ...modifier }))
+  };
+  if (!closed) {
+    // Break points: where an inserted open profile splits the host face.
+    section.breakPoints = [
+      vertices[0],
+      vertices[vertices.length - 1]
+    ];
+  }
+
   return {
-    section: {
-      type: 'polygon',
-      vertices,
-      edges: vertices.map(() => ({ type: 'line' })),
-      holes: normalized.holes.map(hole => ({
-        type: 'circle',
-        center: hole.center.map(value => String(value)),
-        diameter: String(hole.diameter)
-      })),
-      modifiers: normalized.modifiers.map(modifier => ({ ...modifier }))
-    },
+    section,
     sweep: {
       type: 'linear',
-      length: String(options.length || normalized.parameters.L || 120)
+      length: String(resolveOccsExpression(options.length ?? normalized.parameters.L ?? 120, normalized.parameters))
     },
     sketch: normalized
   };
 };
 
-export const evaluateOccsProfileSketchPreview = (sketch = {}, parameters = {}) => {
-  const normalized = normalizeOccsProfileSketch(sketch, parameters);
-  const points = normalized.points.map(point => ({
-    ...point,
-    xValue: numericValue(point.x),
-    yValue: numericValue(point.y)
-  }));
-  const pointById = new Map(points.map(point => [point.id, point]));
-  const holes = normalized.holes.map(hole => ({
-    ...hole,
-    centerValue: [
-      numericValue(hole.center[0]),
-      numericValue(hole.center[1])
-    ],
-    diameterValue: Math.max(0, numericValue(hole.diameter))
-  }));
-
-  return {
-    ...normalized,
-    points,
-    pointById,
-    holes
-  };
+// Rebuilds the edge chain for a chosen closure: consecutive pairs for an
+// open sketch, closed ring for a closed one. Point coordinates and
+// modifiers pass through untouched (expressions included).
+export const setOccsProfileSketchClosed = (sketch = {}, closed, fallbackParameters = {}) => {
+  const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
+  if (closed) {
+    return closeOccsProfileSketchBoundary({ ...normalized, closed: true }, fallbackParameters);
+  }
+  const edges = [];
+  for (let index = 0; index + 1 < normalized.points.length; index += 1) {
+    edges.push({
+      id: `e${index}`,
+      type: 'line',
+      from: normalized.points[index].id,
+      to: normalized.points[index + 1].id
+    });
+  }
+  return { ...normalized, closed: false, edges };
 };
+
 
 const pointFromDxf = (point = {}) => ({
   x: numericValue(point.x ?? point[0]),
@@ -563,7 +639,8 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     });
     return { type: 'fillet', vertexId: pointIds[nearest], radius: fillet.radius };
   });
-  const edgeCount = points.length >= 3 ? points.length : Math.max(0, points.length - 1);
+  const sketchClosed = source.closed && points.length >= 3;
+  const edgeCount = sketchClosed ? points.length : Math.max(0, points.length - 1);
   const edges = [];
   for (let index = 0; index < edgeCount; index += 1) {
     const from = pointIds[index];
@@ -583,7 +660,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
       center: [circle.center.x, circle.center.y],
       diameter: circle.diameter
     })),
-    closed: points.length >= 3,
+    closed: sketchClosed,
     modifiers,
     constraints: []
   }, parameters);
@@ -593,13 +670,15 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
 // the exact geometry: the boundary becomes discrete line segments with a
 // tangent arc at every fillet corner, holes become circles. This is the
 // deterministic inverse of `occProfileSketchFromEntities`' fillet path.
+// Expression-bound fields evaluate against the parameter table first —
+// an unresolvable expression throws (callers gate on savable).
 export const occProfileEntitiesFromSketch = (sketch = {}, options = {}) => {
-  const normalized = normalizeOccsProfileSketch(sketch, options.parameters);
+  const normalized = evaluateOccsProfileSketch(sketch, options.parameters);
   const entities = [];
   const filletByVertexId = new Map(
-    normalized.modifiers.map(modifier => [modifier.vertexId, Math.max(0, numericValue(modifier.radius))])
+    normalized.modifiers.map(modifier => [modifier.vertexId, Math.max(0, modifier.radius)])
   );
-  const vertices = normalized.points.map(point => ({ x: numericValue(point.x), y: numericValue(point.y) }));
+  const vertices = normalized.points.map(point => ({ x: point.x, y: point.y }));
   const corners = [];
   const closed = normalized.closed && vertices.length >= 3;
 

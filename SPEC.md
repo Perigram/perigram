@@ -417,12 +417,18 @@ parser is GPL LibreDWG and the alternative is commercial, so DWG stays
 out of the plugin and DXF remains the pipeline's exchange format.
 
 Owner decision (2026-10-14): profile sketches go parametric through the
-OCCS expression layer, not an embedded constraint solver. Sketch
-geometry (vertex coordinates, hole centers and diameters, fillet radii,
-sweep) binds to the profile's parameter table through the same
-expression evaluator the cassette tree already uses; instantiating a
-profile with different parameter values evaluates one deterministic
-geometry — parametric blocks by dimension table. External solver
+OCCS expression layer, not an embedded constraint solver (owner pick
+2026-10-15: expressions). Sketch geometry (vertex coordinates, hole
+centers and diameters, fillet radii, parameter values, sweep) binds to
+the profile's parameter table through the same expression evaluator the
+cassette tree already uses; instantiating a profile with different
+parameter values evaluates one deterministic geometry — parametric
+blocks by dimension table. A profile is authored closed or open; an open
+profile's first and last vertices are its break points: the editor marks
+them as helpers, the OCCS section carries them (type `polyline`), and
+the host face's contour splits at their projections where the profile
+lands (designer sections today; the production cut pass consuming the
+break points is the tracked follow-up). External solver
 runtimes (SolveSpace to WASM and kin) stay out: GPL or commercial
 licensing (the LibreDWG precedent), megabyte-scale browser payloads for
 a dimension-table domain, and no constraint-authoring UX this platform

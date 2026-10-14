@@ -47,7 +47,14 @@ modules — no platform imports.
   Cassette Designer v2. It keeps profile sketches declarative but direct:
   editable snap points, point-by-point polylines with explicit open/closed
   state, circle holes, and per-corner fillet modifiers are normalized into
-  `profile.section` polygon/circle data plus a linear `profile.sweep`.
+  `profile.section` polygon/polyline data plus a linear `profile.sweep`.
+  Every authoring field (point coordinates, hole centers and diameters,
+  fillet radii, parameter values) carries a number or an expression string
+  evaluated against the parameter table through `expressions.js` — the
+  same evaluator the cassette tree uses. `evaluateOccsProfileSketch`
+  resolves the whole sketch (parameters may reference each other; cycles
+  and unknown identifiers throw); the savable gate and the editors' save
+  buttons turn those throws into authoring feedback, never silent zeros.
   The same module normalizes CAD entity records (LINE/ARC/CIRCLE/polyline)
   into the sketch model (`occProfileSketchFromEntities`) and back
   (`occProfileEntitiesFromSketch`): the browser sketch canvas — the
@@ -55,13 +62,18 @@ modules — no platform imports.
   through this one path. A tangent corner arc between two line segments
   maps to the corner's fillet modifier (the polygon keeps the theoretical
   sharp corner); any other arc flattens to chords within a 0.05 mm sagitta
-  tolerance; circles become holes. Save workflows accept any drawn
-  boundary with at least three points and close it into a profile section
-  snapshot so users do not need to run a separate close command before
-  persisting. The sketch editor's vertex row authors fillet radii
-  directly on the modifiers (the canvas reseeds with the tangent arcs);
-  the extraction pass re-derives modifiers from drawn geometry, so a
-  later draw or import overwrites manual radii. Profiles live on the tree: the designer's profile dialog
+  tolerance; circles become holes. A sketch is authored closed or open
+  (the editor's toggle; drawn chains keep their extracted closure — closed
+  boundaries with three or more points save closed, open chains with two
+  or more save open). An open profile saves as a `polyline` section whose
+  first and last vertices are its break points: the designer's section
+  layer marks them and splits the host face's contour at their projections
+  where the profile lands — the production cut pass consuming them is
+  tracked follow-up work. The sketch editor's authoring rows edit the
+  parameter table, vertex coordinates, fillet radii, and hole geometry
+  directly on the sketch model; the extraction pass re-derives points,
+  holes, and modifiers from drawn geometry, so a later draw or import
+  overwrites authored expressions and radii. Profiles live on the tree: the designer's profile dialog
   writes profile workpieces (their `profileSnapshot` is the renderer's
   geometry source) that ride the cassette template's own document — there
   are no standalone profile records of any other type. The current

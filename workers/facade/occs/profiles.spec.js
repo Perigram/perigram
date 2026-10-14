@@ -3,13 +3,14 @@ import {
   createDefaultOccsProfileSketch,
   createEmptyOccsProfileSketch,
   closeOccsProfileSketchBoundary,
-  evaluateOccsProfileSketchPreview,
+  evaluateOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
   occProfileSketchFromEntities,
   occsProfileFromSketch,
-  projectProfileSketchPointFromPrevious
+  projectProfileSketchPointFromPrevious,
+  setOccsProfileSketchClosed
 } from './profiles.js';
 
 describe('OCCS profile helpers', () => {
@@ -30,7 +31,7 @@ describe('OCCS profile helpers', () => {
     });
   });
 
-  it('prepares a drawn boundary for profile save once it has at least three points', () => {
+  it('saves closed sketches closed and open sketches open with their break points', () => {
     expect(isOccsProfileSketchSavable(createEmptyOccsProfileSketch())).toBe(false);
     const openSketch = {
       points: [
@@ -44,14 +45,28 @@ describe('OCCS profile helpers', () => {
       ],
       closed: false
     };
+    // An open chain with at least two points is a saveable open profile.
     expect(isOccsProfileSketchSavable(openSketch)).toBe(true);
-    expect(closeOccsProfileSketchBoundary(openSketch)).toMatchObject({
+    expect(setOccsProfileSketchClosed(openSketch, true)).toMatchObject({
       closed: true,
       edges: [
         { from: 'a', to: 'b' },
         { from: 'b', to: 'c' },
         { from: 'c', to: 'a' }
       ]
+    });
+    // Choosing open rebuilds the chain without the closing edge and keeps
+    // the first and last vertices as the section's break points.
+    const reopened = setOccsProfileSketchClosed(setOccsProfileSketchClosed(openSketch, true), false);
+    expect(reopened).toMatchObject({ closed: false, edges: [
+      { from: 'a', to: 'b' },
+      { from: 'b', to: 'c' }
+    ] });
+    const openProfile = occsProfileFromSketch(reopened);
+    expect(openProfile.section).toMatchObject({
+      type: 'polyline',
+      open: true,
+      breakPoints: [['0', '0'], ['10', '10']]
     });
     expect(isOccsProfileSketchSavable(createDefaultOccsProfileSketch())).toBe(true);
     expect(isOccsProfileSketchSavable({
@@ -108,20 +123,47 @@ describe('OCCS profile helpers', () => {
     expect(occsProfileFromSketch(sketch).section.modifiers).toEqual(sketch.modifiers);
   });
 
-  it('evaluates numeric preview coordinates without a parametric solver', () => {
-    const sketch = createDefaultOccsProfileSketch({ W: '50', H: '20', D: '10' });
-    const preview = evaluateOccsProfileSketchPreview(sketch);
+  it('evaluates expression-bound geometry against the parameter table', () => {
+    const sketch = {
+      ...createDefaultOccsProfileSketch(),
+      parameters: { W: 60, H: 'W/2', R: 3, D: 6, L: 'W*1.5' },
+      points: [
+        { id: 'p0', x: 0, y: 0 },
+        { id: 'p1', x: 'W', y: 0 },
+        { id: 'p2', x: 'W', y: 'H' },
+        { id: 'p3', x: 0, y: 'H' }
+      ],
+      holes: [{ id: 'h0', type: 'circle', center: ['W/2', 'H/2'], diameter: 'D' }]
+    };
+    const evaluated = evaluateOccsProfileSketch(sketch);
+    expect(evaluated.points.find(point => point.id === 'p2')).toMatchObject({ x: 60, y: 30 });
+    expect(evaluated.holes[0]).toMatchObject({ center: [30, 15], diameter: 6 });
 
-    expect(preview.points.find(point => point.id === 'p2')).toMatchObject({
-      x: 42,
-      y: 28,
-      xValue: 42,
-      yValue: 28
-    });
-    expect(preview.holes[0]).toMatchObject({
-      centerValue: [21, 14],
-      diameterValue: 6
-    });
+    const profile = occsProfileFromSketch(sketch);
+    expect(profile.section.vertices).toEqual([['0', '0'], ['60', '0'], ['60', '30'], ['0', '30']]);
+    expect(profile.sweep).toMatchObject({ length: '90' });
+  });
+
+  it('rejects unresolvable and cyclic expressions at the savable gate', () => {
+    const square = createDefaultOccsProfileSketch();
+    expect(isOccsProfileSketchSavable({
+      ...square,
+      points: square.points.map(point => ({ ...point, x: 'NOPE' }))
+    })).toBe(false);
+    expect(() => evaluateOccsProfileSketch({
+      ...square,
+      parameters: { ...square.parameters, W: 'H', H: 'W' }
+    })).toThrow(/[Cc]yclic/);
+    expect(isOccsProfileSketchSavable(square)).toBe(true);
+  });
+
+  it('round-trips an open chain through seeding and extraction without closing it', () => {
+    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const entities = occProfileEntitiesFromSketch(open);
+    expect(entities.some(entity => entity.type === 'ARC')).toBe(true);
+    const extracted = occProfileSketchFromEntities(entities, open.parameters);
+    expect(extracted).toMatchObject({ closed: false });
+    expect(extracted.edges).toHaveLength(open.points.length - 1);
   });
 
   it('round-trips a filleted sketch through CAD entity records', () => {

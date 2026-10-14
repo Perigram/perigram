@@ -519,7 +519,12 @@
           "ortho": "Орто",
           "tangentSnap": "Касательная привязка"
         },
-        "filletRadius": "Радиус скругления"
+        "filletRadius": "Радиус скругления",
+        "addParameter": "Добавить параметр",
+        "closedShape": "Замкнутый контур",
+        "openShape": "Разомкнутый контур",
+        "start": "начало",
+        "end": "конец"
       },
       "placementModes": {
         "point": "Точка",

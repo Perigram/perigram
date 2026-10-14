@@ -7,8 +7,10 @@ import {
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
   occProfileSketchFromEntities,
-  occsProfileFromSketch
+  occsProfileFromSketch,
+  setOccsProfileSketchClosed
 } from '../../../occs/profiles.js';
+import { resolveOccsExpression } from '../../../occs/expressions.js';
 
 const EXTRACT_DEBOUNCE_MS = 40;
 
@@ -20,7 +22,7 @@ const BLANK_DXF = '0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1027\n0\nENDSEC\n0\n
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
-  const { Button, InputNumber, Message } = components;
+  const { Button, InputText, Message } = components;
 
   // The engine singleton is destroyed and re-created per mount; a pending
   // destroy must finish first or its teardown would clobber the new instance.
@@ -91,7 +93,15 @@ export default function createSketchEditor({ vue, components, locale }) {
         ],
         [
           { icon: 'pi pi-square', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
-          { icon: 'pi pi-compass', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap }
+          { icon: 'pi pi-compass', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
+          {
+            icon: 'pi pi-stop-circle',
+            labelKey: () => (normalizeOccsProfileSketch(props.modelValue || {}).closed
+              ? 'cassette.v2.profileEditor.closedShape'
+              : 'cassette.v2.profileEditor.openShape'),
+            isOn: () => normalizeOccsProfileSketch(props.modelValue || {}).closed,
+            onActivate: () => { toggleClosed(); }
+          }
         ],
         [
           { icon: 'pi pi-expand', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => manager?.curView?.zoomToFitDrawing?.() },
@@ -198,7 +208,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
-      const bindDatabase = () => {
+      const bindDatabase = ({ schedule = true } = {}) => {
         unbindDatabase();
         ensureDefaultTables();
         const database = manager?.curDocument?.database;
@@ -210,7 +220,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           event.addEventListener(handler);
           dbListeners.push({ event, handler });
         }
-        scheduleExtraction();
+        if (schedule) scheduleExtraction();
       };
 
       const unbindDatabase = () => {
@@ -291,56 +301,217 @@ export default function createSketchEditor({ vue, components, locale }) {
         (sketch.modifiers || []).find(modifier => modifier.type === 'fillet' && modifier.vertexId === vertexId)?.radius ?? null
       );
 
-      // One chip per sketch vertex: the id names it, the numeric input is
-      // that vertex's fillet radius (empty = sharp corner). Open-chain end
-      // vertices have no corner to round, so their inputs disable.
-      const renderFilletRow = () => {
-        const sketch = normalizeOccsProfileSketch(props.modelValue || {});
-        if (sketch.points.length < 2) return null;
-        const last = sketch.points.length - 1;
-        return h('div', { class: 'flex flex-wrap items-center gap-1' },
-          sketch.points.map((point, index) => h('div', {
-            key: point.id,
-            class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5',
-            title: `${point.x}, ${point.y}`
-          }, [
-            h('span', { class: 'font-mono text-xs text-muted-color' }, point.id),
-            h(InputNumber, {
-              modelValue: filletRadiusOf(sketch, point.id),
-              'onUpdate:modelValue': value => { applyFilletRadius(point.id, value); },
-              size: 'small',
-              min: 0,
-              step: 0.5,
-              maxFractionDigits: 2,
-              disabled: !sketch.closed && (index === 0 || index === last),
-              'aria-label': `${t('cassette.v2.profileEditor.filletRadius')} ${point.id}`,
-              inputClass: 'w-16'
-            })
-          ]))
-        );
+      // Edits author the sketch model directly (expressions stay strings);
+      // the canvas reseeds from evaluated geometry — unresolvable
+      // expressions seed nothing and the chips keep the raw values for
+      // editing. The extraction pass still re-derives points, holes, and
+      // modifiers from drawn geometry, so a later draw/import overwrites
+      // authored expressions and radii.
+      const commitSketch = (next) => {
+        if (!manager || disposed) return;
+        const normalized = normalizeOccsProfileSketch(next);
+        const fingerprint = JSON.stringify(normalized);
+        if (fingerprint === lastEmitted) return;
+        lastEmitted = fingerprint;
+        emit('update:modelValue', normalized);
+        let profile = null;
+        try {
+          profile = occsProfileFromSketch(normalized, { parameters: normalized.parameters });
+        } catch {
+          // Save gates on the savable check; nothing to emit while invalid.
+        }
+        emit('profile', profile);
+        // The reseed writes to the database; extraction would immediately
+        // re-emit numeric geometry and clobber the authored expressions, so
+        // the listeners rebind without scheduling.
+        unbindDatabase();
+        clearDrawingEntities();
+        try {
+          seedEntities({ entities: occProfileEntitiesFromSketch(normalized) });
+        } catch {
+          // Unresolvable expressions: no drawable geometry this pass.
+        }
+        bindDatabase({ schedule: false });
       };
 
-      // Radius edits author fillet modifiers directly on the sketch model;
-      // the canvas reseeds from the sketch so the tangent arcs follow. The
-      // extraction pass still re-derives modifiers from drawn geometry, so
-      // a later draw/import overwrites manual radii.
       const applyFilletRadius = (vertexId, value) => {
-        if (!manager || disposed) return;
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         const radius = Math.max(0, Number(value) || 0);
         const modifiers = normalized.modifiers.filter(modifier => !(
           modifier.type === 'fillet' && modifier.vertexId === vertexId
         ));
         if (radius > 0) modifiers.push({ type: 'fillet', vertexId, radius });
-        const next = { ...normalized, modifiers };
-        const fingerprint = JSON.stringify(next);
-        if (fingerprint === lastEmitted) return;
-        lastEmitted = fingerprint;
-        emit('update:modelValue', next);
-        emit('profile', occsProfileFromSketch(next, { parameters: next.parameters }));
-        clearDrawingEntities();
-        seedEntities({ entities: occProfileEntitiesFromSketch(next) });
+        commitSketch({ ...normalized, modifiers });
       };
+
+      const applyVertexField = (vertexId, field, value) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        commitSketch({
+          ...normalized,
+          points: normalized.points.map(point => (
+            point.id === vertexId ? { ...point, [field]: value } : point
+          ))
+        });
+      };
+
+      const applyHoleField = (holeId, index, value) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        commitSketch({
+          ...normalized,
+          holes: normalized.holes.map(hole => (
+            hole.id === holeId
+              ? { ...hole, center: hole.center.map((entry, at) => (at === index ? value : entry)) }
+              : hole
+          ))
+        });
+      };
+
+      const applyHoleDiameter = (holeId, value) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        commitSketch({
+          ...normalized,
+          holes: normalized.holes.map(hole => (
+            hole.id === holeId ? { ...hole, diameter: value } : hole
+          ))
+        });
+      };
+
+      const applyParameterValue = (key, value) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        commitSketch({
+          ...normalized,
+          parameters: { ...normalized.parameters, [key]: value }
+        });
+      };
+
+      const addParameter = () => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const used = new Set(Object.keys(normalized.parameters));
+        let key = 'A';
+        while (used.has(key)) {
+          key = String.fromCharCode(key.charCodeAt(0) + 1);
+          if (key > 'Z') key = `P${used.size + 1}`;
+        }
+        commitSketch({
+          ...normalized,
+          parameters: { ...normalized.parameters, [key]: 0 }
+        });
+      };
+
+      const removeParameter = (key) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const parameters = { ...normalized.parameters };
+        delete parameters[key];
+        commitSketch({ ...normalized, parameters });
+      };
+
+      const toggleClosed = () => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        commitSketch(setOccsProfileSketchClosed(normalized, !normalized.closed));
+      };
+
+      const resolvedHint = (sketch, value) => {
+        if (typeof value !== 'string') return '';
+        try {
+          return ` = ${resolveOccsExpression(value, sketch.parameters)}`;
+        } catch {
+          return ' = ?';
+        }
+      };
+
+      const expressionField = (value, hint, onInput, ariaLabel) => h(InputText, {
+        modelValue: value === null || value === undefined ? '' : String(value),
+        'onUpdate:modelValue': onInput,
+        size: 'small',
+        class: 'w-16 font-mono text-xs',
+        title: hint,
+        'aria-label': ariaLabel
+      });
+
+      // Authoring rows: parameters, per-vertex coordinates + fillet radius,
+      // per-hole center + diameter. Values are numbers or expressions; the
+      // tooltip shows the resolved value. An open sketch's first and last
+      // vertices are its break points (marked with a dot).
+      const renderSketchRows = () => {
+        const sketch = normalizeOccsProfileSketch(props.modelValue || {});
+        const rows = [];
+        rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, [
+          h('span', { class: 'font-mono text-xs text-muted-color' }, 'fx'),
+          ...Object.entries(sketch.parameters).map(([key, value]) => h('div', {
+            key,
+            class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
+          }, [
+            h('span', { class: 'font-mono text-xs text-muted-color' }, key),
+            expressionField(value, `${key}${resolvedHint(sketch, value)}`, next => { applyParameterValue(key, next); }, key),
+            h(Button, {
+              icon: 'pi pi-times',
+              severity: 'secondary',
+              text: true,
+              rounded: true,
+              size: 'small',
+              'aria-label': `${t('common.delete')} ${key}`,
+              onClick: () => { removeParameter(key); }
+            })
+          ])),
+          h(Button, {
+            icon: 'pi pi-plus',
+            severity: 'secondary',
+            text: true,
+            rounded: true,
+            size: 'small',
+            'aria-label': t('cassette.v2.profileEditor.addParameter'),
+            title: t('cassette.v2.profileEditor.addParameter'),
+            onClick: addParameter
+          })
+        ]));
+        if (sketch.points.length >= 2) {
+          const last = sketch.points.length - 1;
+          rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' },
+            sketch.points.map((point, index) => {
+              const openEnd = !sketch.closed && (index === 0 || index === last);
+              return h('div', {
+                key: point.id,
+                class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5',
+                title: `${point.x}, ${point.y}${openEnd ? ` — ${t(openEnd && index === 0 ? 'cassette.v2.profileEditor.start' : 'cassette.v2.profileEditor.end')}` : ''}`
+              }, [
+                openEnd
+                  ? h('span', { class: 'h-1.5 w-1.5 rounded-full bg-primary', 'aria-hidden': 'true' })
+                  : null,
+                h('span', { class: 'font-mono text-xs text-muted-color' }, point.id),
+                expressionField(point.x, `x${resolvedHint(sketch, point.x)}`, next => { applyVertexField(point.id, 'x', next); }, `x ${point.id}`),
+                expressionField(point.y, `y${resolvedHint(sketch, point.y)}`, next => { applyVertexField(point.id, 'y', next); }, `y ${point.id}`),
+                h(InputText, {
+                  modelValue: filletRadiusOf(sketch, point.id) === null ? '' : String(filletRadiusOf(sketch, point.id)),
+                  'onUpdate:modelValue': next => {
+                    const numeric = Number(next);
+                    applyFilletRadius(point.id, next === '' ? 0 : (Number.isFinite(numeric) ? numeric : next));
+                  },
+                  size: 'small',
+                  class: 'w-14 font-mono text-xs',
+                  disabled: openEnd,
+                  title: `r${resolvedHint(sketch, filletRadiusOf(sketch, point.id))}`,
+                  'aria-label': `${t('cassette.v2.profileEditor.filletRadius')} ${point.id}`
+                })
+              ]);
+            })
+          ));
+        }
+        if (sketch.holes.length) {
+          rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' },
+            sketch.holes.map(hole => h('div', {
+              key: hole.id,
+              class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
+            }, [
+              h('span', { class: 'font-mono text-xs text-muted-color' }, hole.id),
+              expressionField(hole.center[0], `x${resolvedHint(sketch, hole.center[0])}`, next => { applyHoleField(hole.id, 0, next); }, `x ${hole.id}`),
+              expressionField(hole.center[1], `y${resolvedHint(sketch, hole.center[1])}`, next => { applyHoleField(hole.id, 1, next); }, `y ${hole.id}`),
+              expressionField(hole.diameter, `d${resolvedHint(sketch, hole.diameter)}`, next => { applyHoleDiameter(hole.id, next); }, `d ${hole.id}`)
+            ]))
+          ));
+        }
+        return h('div', { class: 'flex flex-col gap-1' }, rows);
+      };
+
 
       const handleDxfUpload = async (event) => {
         const [file] = Array.from(event.target.files || []);
@@ -472,13 +643,13 @@ export default function createSketchEditor({ vue, components, locale }) {
           ...TOOL_GROUPS.flatMap((group, groupIndex) => [
             ...(groupIndex > 0 ? [h('span', { class: 'mx-1 h-4 w-px shrink-0 bg-content-border' })] : []),
             ...group.map(tool => h(Button, {
-              key: tool.labelKey,
+              key: typeof tool.labelKey === 'function' ? tool.icon : tool.labelKey,
               icon: tool.icon,
               severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
               size: 'small',
               rounded: true,
-              'aria-label': t(tool.labelKey),
-              title: t(tool.labelKey),
+              'aria-label': t(typeof tool.labelKey === 'function' ? tool.labelKey() : tool.labelKey),
+              title: t(typeof tool.labelKey === 'function' ? tool.labelKey() : tool.labelKey),
               onClick: () => runCommand(tool)
             }))
           ]),
@@ -507,7 +678,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         importError.value
           ? h(Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
           : null,
-        renderFilletRow()
+        renderSketchRows()
       ]);
     }
   });
