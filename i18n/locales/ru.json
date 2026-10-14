@@ -2108,7 +2108,16 @@
   },
   "editors": {
     "text": "Редактор текста",
-    "csv": "Редактор CSV"
+    "csv": "Редактор CSV",
+    "bold": "Жирный",
+    "italic": "Курсив",
+    "inlineCode": "Код",
+    "heading1": "Заголовок 1",
+    "heading2": "Заголовок 2",
+    "paragraph": "Абзац",
+    "bulletList": "Маркированный список",
+    "numberedList": "Нумерованный список",
+    "quote": "Цитата"
   },
   "sketch": {
     "editorTitle": "Скетч",

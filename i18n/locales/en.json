@@ -2108,7 +2108,16 @@
   },
   "editors": {
     "text": "Text Editor",
-    "csv": "CSV Editor"
+    "csv": "CSV Editor",
+    "bold": "Bold",
+    "italic": "Italic",
+    "inlineCode": "Inline code",
+    "heading1": "Heading 1",
+    "heading2": "Heading 2",
+    "paragraph": "Paragraph",
+    "bulletList": "Bullet list",
+    "numberedList": "Numbered list",
+    "quote": "Quote"
   },
   "sketch": {
     "editorTitle": "Sketch",
