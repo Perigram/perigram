@@ -1,5 +1,49 @@
 # TODO
 
+## Live client sync and CRDT co-editing (owner direction 2026-10-14)
+
+Two owner decisions: client state syncs optimistically with realtime
+cross-session invalidation, and document editors converge on Yjs CRDT
+co-editing (both in SPEC UI). The sync foundation ships now; the CRDT
+subsystem ships in stages.
+
+- [x] A. Optimistic mutations: the instances store previews
+      update/delete wire patches immediately (leaf-set merge into the
+      cached DTO) and rolls back to the server-known DTO on any failure
+      — an offline queueing reverts the preview, the outbox replay
+      re-lands it; creates keep the server round-trip (server-assigned
+      identity).
+- [x] B. Rapid events: entity-change invalidations bridge live from the
+      connections org topic into the browser-local event contract — the
+      cursor advances past realtime deliveries (the poll never
+      re-delivers), self-published invalidations are skipped in both
+      paths, hidden tabs hold events for the poll catch-up.
+- [ ] C. Yjs room service: Nitro websocket route (y-protocols sync +
+      awareness), one room per open file instance, upgrade-authenticated
+      and access-gated through the instance services, room state
+      persisted to Mongo with compaction, TTL room lifecycle.
+- [ ] D. Editor binding: @milkdown/plugin-collab (y-prosemirror) in the
+      documents pack markdown editor; awareness carries cursors and
+      presence; checkpoint saves serialize the CRDT state through the
+      revisioned payload transport (payload stays the persisted truth).
+- [ ] E. Docs and guards follow C/D.
+
+#### Agent Notes (2026-10-14)
+
+A and B implemented on `agent/sync-collab-20261014`. A: `applyWirePatch`
+in the instances store mirrors the instance service's `processUpdate`
+leaf-set semantics (`name` + `fields`/`lineage`/`relations` leaves,
+blocks merge, never replaced); rollback restores the previous DTO and
+re-emits the local event. B: the instanceEvents store consumes
+`entityChanged` org-topic payloads beside `contractChanged`; the POST
+`/api/instance-events` echo (the published event with `eventId`) is
+recorded per tab (`markSelfPublished` in `utils/instance-events.js`)
+and skipped on delivery in both the SSE path and the poll; the cursor is
+monotonic across both paths. C/D not started: dependency additions
+(yjs, y-prosemirror, @milkdown/plugin-collab) and the websocket room
+service are their own session — staging recorded above. socket.io and
+WebDAV were evaluated and rejected by owner decision (SPEC UI).
+
 ## Record surfaces: no edit mode, inline pencils, attributed field changes (owner direction 2026-10-14)
 
 Generated record surfaces lose the record-level edit mode entirely: the

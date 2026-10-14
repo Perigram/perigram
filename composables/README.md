@@ -127,8 +127,7 @@ generated screen page and the workspace detail pane both mount it; the legacy
 
 ## useStateController
 
-Direct bridge to the State Machine Engine. Used internally by `useEntity.changeStatus()`.
-All standard workflow transitions go through `POST /api/state/transition`.
+Direct bridge to the State Machine Engine. All standard workflow transitions go through `POST /api/state/transition`.
 Interactive status controls load server-authorized actions from
 `GET /api/state/actions`, so frontend components do not duplicate transition
 permission checks.
@@ -155,17 +154,21 @@ await transition(type, id, newState, { region: 'qa' });
 
 ## Offline Mutations & Outbox
 
-On the client, `useEntity` CRUD, `useStateController.transition`, and
-generated screen actions post through the outbox store (`stores/outbox.js`,
+On the client, the instances store's CRUD verbs
+(`createInstance`/`updateInstance`/`removeInstance`),
+`useStateController.transition`, and generated screen actions post
+through the outbox store (`stores/outbox.js`,
 backed by the IndexedDB queue and typed `OfflineQueuedError` in
 `utils/outbox.js`). Online calls pass through unchanged but carry an
 `Idempotency-Key` header (see
 [server/core/idempotency](../server/core/idempotency/README.md)). When the
 browser is offline — or the network fails mid-flight — the operation is
-queued in IndexedDB and the caller receives `OfflineQueuedError`: entity
-composables surface its message through their `error` ref without faking
-local state, and generated action dialogs treat it as accepted (info toast,
-no result application). When connectivity returns, the store replays
+queued in IndexedDB and the caller receives `OfflineQueuedError`: the
+optimistic preview is rolled back to the server-known state (the
+instances store owns that contract — see
+[stores/README.md](../stores/README.md)), the error surfaces through the
+caller's `error` ref, and generated action dialogs treat it as accepted
+(info toast, no result application). When connectivity returns, the store replays
 operations sequentially through the same endpoints and emits the shared
 entity-event contract with `source: 'outbox'`, so open screens apply snapshots
 or schedule debounced reloads exactly like local mutations. Replayed 4xx

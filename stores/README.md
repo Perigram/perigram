@@ -28,7 +28,18 @@ Three cells; every surface derives from them, nothing else caches:
   cross-session backstop (the upsert marks the type's cached list
   observations stale so surfaces refetch) — and `mutateDirect` serves the
   framework/party/editor feature endpoints the
-  same way. Endpoint resolution is owned here, split by plane: READS
+  same way. The CRUD verbs on top are optimistic: `updateInstance` and
+  `removeInstance` preview the mutation into the pool before the request
+  resolves — the wire patch merges with the instance service's leaf-set
+  semantics (`name` plus `fields`/`lineage`/`relations` leaves, blocks
+  merge, never replaced) — and roll back to the server-known DTO on any
+  failure; an offline queueing reverts the preview rather than faking
+  local state (the outbox replay re-lands the mutation later), and the
+  server response lands as the reconciled truth. Creates keep the server
+  round-trip: identity is server-assigned, and generated create dialogs
+  apply the run result synchronously. A successful publication records
+  the echoed event id so the publishing tab skips its own invalidation
+  deliveries (see `instanceEvents.js` below). Endpoint resolution is owned here, split by plane: READS
   resolve through the generic instance transport `/api/instances/:typeId`
   for every type the server resolver serves — party types included (their
   process bindings speak the same §3 wire); mutations keep the feature
@@ -141,7 +152,15 @@ process vocabulary; none may gain new consumers.
   topic) re-hydrates auth once, debounced, when the server publishes a
   registry/process `contractChanged` marker. The app layout connects the
   store for a signed-in user and disconnects on sign-out, beside the calls
-  and support-chat connections. Browser-local
+  and support-chat connections. The same org-topic subscription carries
+  rapid events: `entityChanged` payloads are emitted the moment they
+  arrive instead of waiting for the poll — visible tabs only, with hidden
+  tabs holding them for the poll catch-up. The cursor advances past every
+  realtime delivery (monotonically, across both paths) so the poll never
+  re-delivers, and invalidations this tab published itself are skipped in
+  both paths — the mutation already applied the fresher snapshot, and the
+  same user's other tabs still reconcile because their publications carry
+  different event ids. Browser-local
   instance mutation snapshots publish through the same store. Successful
   mutations publish a complete instance snapshot to the browser-local
   `utils/instance-events.js` contract used by shared stores and generated screens.

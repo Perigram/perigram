@@ -55,6 +55,19 @@ pencil — and nothing else toggles them. Every field change drops into
 the state record (`status_events`) attributed: who changed which field,
 from what value to what value, beside the transition history.
 
+Client state feels synchronous (owner direction 2026-10-14): record
+updates and deletes apply optimistically the moment they are made — the
+open surface previews the wire patch immediately — and reconcile to the
+server's answer, rolling back to the server-known state on any failure;
+an offline queueing reverts the preview, and the outbox replay re-lands
+the mutation when connectivity returns. Creates keep the server
+round-trip: identity is server-assigned. Cross-session convergence
+rides the realtime connections stream: the same entity-change
+invalidation the cursor poll delivers is consumed live from the org
+topic, the poll remaining the catch-up path, and a tab never
+re-processes the invalidations it published itself — its mutations
+already applied the fresher snapshot.
+
 Process designer palette: a searchable grid of chips, no icons. Operation
 categories (palette chips and canvas nodes alike) are told apart by shared
 signal styling, not icons or headers — the palette entry looks like the
@@ -131,6 +144,16 @@ initial process stations the pack-declared starter constructs — a
 manually triggered, editor-mode text-document construct — at creation;
 organizations created before the starter set are repaired by
 `server/scripts/station-documents-types.js`.
+
+Documents co-edit collaboratively (owner direction 2026-10-14): file
+editors converge on a CRDT (Yjs) — simultaneous editing of the same
+document with cursor and presence awareness. The Yjs sync channel is a
+dedicated per-document collaboration transport, not a second general
+event bus: realtime publish/subscribe stays owned by the connections
+SSE layer, and no WebDAV or socket.io layer enters the platform. The
+revisioned payload trail remains the persisted truth — the CRDT state
+is the editing substrate, and checkpoint saves serialize it back
+through the payload transport.
 
 Generated creates enforce their construction contract (owner decision
 2026-10-12): the form prompts the compiled inputs in the flat-wire
