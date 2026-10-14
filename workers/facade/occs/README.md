@@ -44,7 +44,7 @@ modules — no platform imports.
   profile mirror controls on the attachment relation; hanger width/height is
   not duplicated in the workpiece row when a saved profile supplies geometry.
 - `profiles.js` declares the reusable OCCS profile sketch helper used by
-  Cassette Designer v2. It keeps profile templates declarative but direct:
+  Cassette Designer v2. It keeps profile sketches declarative but direct:
   editable snap points, point-by-point polylines with explicit open/closed
   state, circle holes, and per-corner fillet modifiers are normalized into
   `profile.section` polygon/circle data plus a linear `profile.sweep`.
@@ -58,10 +58,10 @@ modules — no platform imports.
   tolerance; circles become holes. Save workflows accept any drawn
   boundary with at least three points and close it into a profile section
   snapshot so users do not need to run a separate close command before
-  persisting. Cassette Designer v2 uses saved profile templates from
-  hanger feature selectors; selecting one stores the template id plus a
-  snapshot on that feature, and renderer cut-in-parent output uses the
-  snapshot geometry instead of the default hanger polygon. The current
+  persisting. Profiles live on the tree: the designer's profile dialog
+  writes profile workpieces (their `profileSnapshot` is the renderer's
+  geometry source) that ride the cassette template's own document — there
+  are no standalone profile records of any other type. The current
   editor does not run a parametric constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.

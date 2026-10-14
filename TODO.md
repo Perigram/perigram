@@ -1895,6 +1895,28 @@ the harness: fresh LINE draws and renders, a seeded rect+hole renders
 and zoom-fits. `perigram-plugin surfaces`, listing validate, and the
 profiles spec (8/8) stay green.
 
+### Agent Notes (2026-10-14, profile templates were dead transport — 404 slop)
+
+Owner report: "Page not found: /api/instances/profile-template". The
+designer still addressed a `profileTemplate` instance type that no
+declaration provides — the pack-era profile-templates feature was deleted,
+the plugin listing declares cassette/cassette-design/sheet-design only,
+so `queries.list('profileTemplate')` and `records.create/update`
+('profileTemplate') all 404'd; the dialog's template Select and the
+hanger row's profile Select were permanently empty, and profile Save
+could never persist anything. Profiles now persist as tree workpieces:
+the dialog's Save writes `updateCassetteV2Workpiece` (edit) or
+`addCassetteV2ProfileWorkpiece` (add — attaches the joint the section
+renderer needs) and rides the cassette template's own save. Removed:
+the whole profileTemplate records plumbing, both dead selects,
+`cassetteTemplateId` in the draft payload, the unused `records` ctx
+demand, and the now-dead locale keys. `records` stays a contract-2 host
+capability (documented in PLUGIN_AUTHORING §1a) with its stale example
+comment dropped. Node proof driving both save paths through the pure
+tree API: add → attached profile workpiece (4-vertex section, 1 joint),
+edit → in-place rewrite, tree renders and serializes into the OCCS
+document.
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);
