@@ -267,9 +267,11 @@ partners: field/state/operator nodes declare on a class or its
 state machine; class/type-reference nodes target a ref field's accepted
 targets; class/reference nodes bind an origin species Type pin; state→state
 wires declare one parent relationship (`nested` — there is no transition
-declaration node). Class→class children wires retain their typed key and
-`onRemove` policy. File-class parent containment is refused at the connect
-gate. Declaration edges persist as `role: 'type'` records and round-trip
+declaration node). Class→class children wires run parent (source) → child
+(target) and retain their typed key and `onRemove` policy. File-class parent
+containment is refused at the connect gate — when the target could be the
+parent instead, the refusal teaches the wire direction. Declaration edges
+persist as `role: 'type'` records and round-trip
 without being treated as dataflow. `compileTreeDeclarations` is the one
 declaration compiler; diagnostics name the authored class before its opaque
 id. SAVE keeps declaration records in the draft; APPLY posts the same
