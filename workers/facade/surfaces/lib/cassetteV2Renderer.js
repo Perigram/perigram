@@ -234,45 +234,53 @@ const normalizeCassetteV2Hardware = (workpiece = {}) => {
 
 const isCassetteV2ProfileWorkpiece = (workpiece = {}) => workpiece.type === 'profile' || Boolean(workpiece.profile);
 
-export const normalizeCassetteV2Profile = (workpiece = {}) => {
+export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   const source = workpiece.profileSnapshot || workpiece.profile || workpiece.data?.occsProfile || {};
   // The authored sketch wins over any evaluated copy riding a cached
   // profile (`occsProfile.sketch` is evaluated numbers; the authored one
   // keeps the expressions parametric instantiation re-evaluates).
   const rawSketch = workpiece.sketch || source.sketch || null;
-  // Parametric instantiation: the workpiece's parameter table overrides
-  // the profile's authored table; the sketch (expressions included) is
+  // The profile's own table is the authored sketch's table with the
+  // workpiece's instance values overriding it — that override is
+  // parametric instantiation, and the sketch (expressions included) is
   // the derivation source, the stored section only the last good cache.
+  // The cassette's global parameters join ONLY the evaluation scope:
+  // instance values may be cassette expressions, but globals never bake
+  // into the stored table (they would go stale when the cassette's own
+  // parameters change).
   const sketchTable = rawSketch ? normalizeOccsProfileSketch(rawSketch).parameters : {};
-  const instanceParameters = { ...sketchTable, ...(workpiece.parameters || {}) };
+  const table = { ...sketchTable, ...(workpiece.parameters || {}) };
+  const evaluationScope = { ...table, ...scope };
   const data = createDefaultOccsProfileTemplateData({
     kind: workpiece.profileKind || workpiece.kind || source.kind,
     process: workpiece.process || workpiece.manufacturing?.process || source.process,
-    parameters: instanceParameters,
-    ...(rawSketch ? { sketch: { ...rawSketch, parameters: instanceParameters } } : {})
+    parameters: table,
+    ...(rawSketch ? { sketch: { ...rawSketch, parameters: table } } : {})
   });
-  const sketch = normalizeOccsProfileSketch(rawSketch ? { ...rawSketch, parameters: instanceParameters } : data.sketch, data.parameters);
+  const sketch = normalizeOccsProfileSketch(rawSketch ? { ...rawSketch, parameters: table } : data.sketch, data.parameters);
   const deriveFromSketch = rawSketch && sketch.points.length > 0;
   let occsProfile = null;
   if (source.section && source.sweep && !deriveFromSketch) {
     occsProfile = { section: source.section, sweep: source.sweep, sketch };
   } else {
     try {
-      occsProfile = occsProfileFromSketch(sketch, { parameters: data.parameters });
+      occsProfile = occsProfileFromSketch(sketch, { parameters: evaluationScope });
     } catch {
       // A transient invalid instance parameter keeps the last good
       // section; there is nothing to fall back to for sketch-less
       // snapshots, so the default template geometry stands in.
       occsProfile = source.section && source.sweep
         ? { section: source.section, sweep: source.sweep, sketch }
-        : occsProfileFromSketch(normalizeOccsProfileSketch({}, data.parameters), { parameters: data.parameters });
+        : occsProfileFromSketch(normalizeOccsProfileSketch({}, evaluationScope), { parameters: evaluationScope });
     }
   }
 
   return {
     kind: data.kind,
     process: data.process,
-    parameters: { ...data.parameters },
+    parameters: { ...table },
+    // The stored sketch keeps the clean table — never the scope-merged
+    // evaluation copy.
     sketch,
     section: occsProfile.section,
     sweep: occsProfile.sweep
@@ -855,7 +863,7 @@ export const addCassetteV2ProfileWorkpiece = (tree, reference = {}) => {
     parameters: templateData.parameters,
     profile: templateData.occsProfile || templateData.profile,
     sketch: templateData.sketch
-  });
+  }, treeParameters(nextTree));
   const sourceWorkpiece = {
     id,
     name: reference.name || reference.template?.identity?.name || reference.profileTemplate?.identity?.name || `Profile ${index + 1}`,
@@ -913,7 +921,7 @@ export const updateCassetteV2Workpiece = (tree, workpieceId, patch = {}) => {
         ...(current.parameters || {}),
         ...(patch.parameters || {})
       }
-    });
+    }, treeParameters(nextTree));
     nextTree.nodes = nextTree.nodes.filter(node => node.workpieceId !== current.id);
     nextTree.joints.forEach((joint) => {
       if (joint.source?.occurrence === occurrenceIdForWorkpiece(current)) {
@@ -1431,7 +1439,7 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
         const workpieceNodes = nodesByWorkpieceId.get(workpiece.id) || [];
         const workpieceIndex = sourceTree.workpieces.findIndex(item => item.id === workpiece.id);
         if (isCassetteV2ProfileWorkpiece(workpiece)) {
-          const profile = normalizeCassetteV2Profile(workpiece);
+          const profile = normalizeCassetteV2Profile(workpiece, treeParameters(sourceTree));
           return {
             id: workpiece.definitionId || `${workpiece.id}_def`,
             type: 'profile',
@@ -2257,26 +2265,86 @@ const hardwareSchematicLayer = (curves = [], tree = createCassetteV2GraphTree(),
   };
 };
 
-const profileSectionPointsForRelation = (profile = {}, targetCurve = {}, relation = {}, parameters = {}) => {
-  const vertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
-  if (vertices.length < 2) return [];
+// Walks a closed contour from its first vertex by arc length.
+const pointAlongContour = (vertices = [], distance = 0) => {
+  const ring = withoutClosingVertex(vertices);
+  if (!ring.length) return null;
+  let remaining = Math.max(0, numeric(distance, 0));
+  for (let index = 0; index < ring.length; index += 1) {
+    const a = ring[index];
+    const b = ring[(index + 1) % ring.length];
+    const dx = numeric(b?.[0], 0) - numeric(a?.[0], 0);
+    const dy = numeric(b?.[1], 0) - numeric(a?.[1], 0);
+    const length = Math.hypot(dx, dy);
+    if (length > 1e-9 && remaining <= length) {
+      const t = remaining / length;
+      return [numeric(a[0], 0) + dx * t, numeric(a[1], 0) + dy * t, 0];
+    }
+    remaining -= length;
+  }
+  return [numeric(ring[0][0], 0), numeric(ring[0][1], 0), 0];
+};
+
+const contourPerimeter = (vertices = []) => (
+  withoutClosingVertex(vertices).reduce((total, vertex, index, ring) => {
+    const next = ring[(index + 1) % ring.length];
+    return total + Math.hypot(
+      numeric(next?.[0], 0) - numeric(vertex?.[0], 0),
+      numeric(next?.[1], 0) - numeric(vertex?.[1], 0)
+    );
+  }, 0)
+);
+
+// Positions a profile section against its host face. Closed profiles with
+// an anchor vertex map that vertex onto the snap+offset point; open
+// profiles with anchor distances run from the contour point at
+// startDistance to the one endDistance short of the perimeter, and those
+// two contour points are the break points. Without anchors the section's
+// own origin lands on snap+offset and its endpoints project as before.
+const profileSectionPlacement = (profile = {}, targetCurve = {}, relation = {}, parameters = {}) => {
+  const rawVertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
+  if (rawVertices.length < 2) return { points: [], breakPoints: null };
+  const vertices = rawVertices.map(vertex => [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)]);
   const targetVertices = targetCurve?.boundaryVertices || targetCurve?.vertices || [];
+  const contour = targetCurve?.originalBoundaryVertices
+    || targetCurve?.referenceVertices
+    || targetVertices;
   const snap = faceSnapPoint(targetVertices, relation.targetSnap);
   const offset = [
     resolveCassetteV2Expression(relation.offsetX, parameters, 0),
     resolveCassetteV2Expression(relation.offsetY, parameters, 0)
   ];
   const rotation = resolveCassetteV2AngleExpression(relation.rotation, parameters, 0);
-  const origin = [
-    numeric(snap?.[0], 0) + offset[0],
-    numeric(snap?.[1], 0) + offset[1]
-  ];
+  const transformed = (vertex) => rotate2d(mirroredProfileVertex(vertex, relation), rotation);
+  const open = profile.section?.open || profile.section?.type === 'polyline';
+  const anchorDistances = profile.section?.anchorDistances;
+  const anchor = profile.section?.anchor;
 
-  return vertices.map((vertex) => {
-    const mirrored = mirroredProfileVertex(vertex, relation);
-    const rotated = rotate2d(mirrored, rotation);
-    return [origin[0] + rotated[0], origin[1] + rotated[1], 0];
-  });
+  let origin;
+  let breakPoints = null;
+  if (open && anchorDistances && contour.length >= 2) {
+    const start = pointAlongContour(contour, resolveCassetteV2Expression(anchorDistances.start, parameters, 0));
+    const end = pointAlongContour(
+      contour,
+      contourPerimeter(contour) - resolveCassetteV2Expression(anchorDistances.end, parameters, 0)
+    );
+    origin = [start[0] + offset[0], start[1] + offset[1]];
+    breakPoints = [start, end];
+  } else if (!open && anchor) {
+    const anchorTransformed = transformed([numeric(anchor[0], 0), numeric(anchor[1], 0)]);
+    const target = [numeric(snap?.[0], 0) + offset[0], numeric(snap?.[1], 0) + offset[1]];
+    origin = [target[0] - anchorTransformed[0], target[1] - anchorTransformed[1]];
+  } else {
+    origin = [numeric(snap?.[0], 0) + offset[0], numeric(snap?.[1], 0) + offset[1]];
+  }
+
+  return {
+    points: vertices.map(vertex => {
+      const placed = transformed(vertex);
+      return [origin[0] + placed[0], origin[1] + placed[1], 0];
+    }),
+    breakPoints
+  };
 };
 
 // Projects a point onto a closed polygon's nearest edge: returns the
@@ -2349,22 +2417,24 @@ export const profileBreaksForTree = (curves = [], tree = createCassetteV2GraphTr
     if (!workpiece) continue;
     const targetCurve = curveById.get(relation.targetFaceId);
     if (!targetCurve) continue;
-    const profile = normalizeCassetteV2Profile(workpiece);
+    const profile = normalizeCassetteV2Profile(workpiece, parameters);
     const open = profile.section?.open || profile.section?.type === 'polyline';
     if (!open) continue;
-    const points = profileSectionPointsForRelation(profile, targetCurve, relation, parameters);
-    if (points.length < 2) continue;
+    const placement = profileSectionPlacement(profile, targetCurve, relation, parameters);
+    if (placement.points.length < 2) continue;
     const contour = targetCurve.originalBoundaryVertices
       || targetCurve.referenceVertices
       || targetCurve.boundaryVertices
       || targetCurve.vertices;
+    const breakPoints = placement.breakPoints
+      || [placement.points[0], placement.points[placement.points.length - 1]];
     breaks.push({
       relationId: relation.id,
       profileWorkpieceId: relation.sourceWorkpieceId,
       targetWorkpieceId: relation.targetWorkpieceId,
       targetFaceId: relation.targetFaceId,
-      breakPoints: [points[0], points[points.length - 1]],
-      splitChains: splitContourAtBreaks(contour, points[0], points[points.length - 1]) || []
+      breakPoints,
+      splitChains: splitContourAtBreaks(contour, breakPoints[0], breakPoints[1]) || []
     });
   }
   return breaks;
@@ -2385,9 +2455,10 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
     }
     const targetCurve = curveById.get(relation.targetFaceId);
     if (!targetCurve) continue;
-    const profile = normalizeCassetteV2Profile(workpiece);
-    const points = profileSectionPointsForRelation(profile, targetCurve, relation, parameters);
-    if (points.length < 2) continue;
+    const profile = normalizeCassetteV2Profile(workpiece, parameters);
+    const placement = profileSectionPlacement(profile, targetCurve, relation, parameters);
+    if (placement.points.length < 2) continue;
+    const points = placement.points;
     const svgPoints = points.map(toSvgPoint);
     const open = profile.section?.open || profile.section?.type === 'polyline';
     paths.push({
@@ -2485,13 +2556,19 @@ const mirroredProfileVertex = (vertex = [], relation = {}) => [
   numeric(vertex?.[1], 0) * (relation.mirrorY ? -1 : 1)
 ];
 
-const profileCutPolygon = (workpiece = {}, point = [0, 0, 0], relation = {}) => {
+const profileCutPolygon = (workpiece = {}, point = [0, 0, 0], relation = {}, scope = {}) => {
   if (!workpiece.profileSnapshot && !workpiece.profile) return null;
-  const profile = normalizeCassetteV2Profile(workpiece);
+  const profile = normalizeCassetteV2Profile(workpiece, scope);
   const vertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
   if (vertices.length < 3) return null;
+  // An anchored profile cuts anchor-relative: the anchor vertex lands on
+  // the placement point.
+  const anchor = profile.section?.anchor;
   return vertices.map((vertex) => {
-    const mirrored = mirroredProfileVertex(vertex, relation);
+    const local = anchor
+      ? [numeric(vertex?.[0], 0) - numeric(anchor[0], 0), numeric(vertex?.[1], 0) - numeric(anchor[1], 0)]
+      : [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)];
+    const mirrored = mirroredProfileVertex(local, relation);
     return [
       numeric(point?.[0], 0) + mirrored[0],
       numeric(point?.[1], 0) + mirrored[1],
@@ -2522,7 +2599,7 @@ const hardwareProductionEntitiesForTree = (curves = [], tree = createCassetteV2G
           relationId: relation.id,
           geometry: {
             type: 'polygon',
-            vertices: profileCutPolygon(workpiece, point, relation) || hangerClipCutPolygon(hardware.parameters, point)
+            vertices: profileCutPolygon(workpiece, point, relation, parameters) || hangerClipCutPolygon(hardware.parameters, point)
           }
         })).map((entity) => ({
           ...entity,

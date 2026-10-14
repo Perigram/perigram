@@ -525,7 +525,11 @@
         "openShape": "Open shape",
         "start": "start",
         "end": "end",
-        "parameters": "Parameters"
+        "parameters": "Parameters",
+        "anchor": "Anchor",
+        "startDistance": "Start distance",
+        "endDistance": "End distance",
+        "dimensions": "Dimensions"
       },
       "placementModes": {
         "point": "Point",

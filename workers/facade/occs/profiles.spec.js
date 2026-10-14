@@ -166,6 +166,64 @@ describe('OCCS profile helpers', () => {
     expect(extracted.edges).toHaveLength(open.points.length - 1);
   });
 
+  it('starts sketches with an empty parameter table — nothing is pre-seeded', () => {
+    expect(createEmptyOccsProfileSketch().parameters).toEqual({});
+    expect(normalizeOccsProfileSketch({ points: [], edges: [] }).parameters).toEqual({});
+    const authored = normalizeOccsProfileSketch({
+      points: [{ id: 'a', x: 0, y: 0 }, { id: 'b', x: 'W', y: 0 }],
+      edges: [{ from: 'a', to: 'b' }],
+      parameters: { W: 10 }
+    });
+    expect(authored.parameters).toEqual({ W: 10 });
+  });
+
+  it('tags flattened arc interiors as chord points and keeps corners authored', () => {
+    // line — half-circle — line, endpoint to endpoint: the arc's interior
+    // flattens to chord points, its endpoints stay authored junctions.
+    const sketch = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 20, y: 0 } },
+      { type: 'ARC', center: { x: 30, y: 0 }, radius: 10, startAngle: Math.PI, endAngle: Math.PI * 2 },
+      { type: 'LINE', start: { x: 40, y: 0 }, end: { x: 60, y: 0 } }
+    ], {});
+    const chords = sketch.points.filter(point => point.chord);
+    const corners = sketch.points.filter(point => !point.chord);
+    expect(chords.length).toBeGreaterThan(3);
+    // Authored corners: the chain ends plus the two line-arc junctions.
+    expect(corners.map(point => point.id)).toEqual([
+      'p0', 'p1', `p${sketch.points.length - 2}`, `p${sketch.points.length - 1}`
+    ]);
+    expect(normalizeOccsProfileSketch(sketch).points.filter(point => point.chord)).toHaveLength(chords.length);
+  });
+
+  it('carries anchors: one attachment vertex for closed, start/end distances for open', () => {
+    const base = createDefaultOccsProfileSketch({ W: 40, H: 20 });
+    const square = {
+      ...base,
+      points: [
+        { id: 'p0', x: 0, y: 0 }, { id: 'p1', x: 'W', y: 0 },
+        { id: 'p2', x: 'W', y: 'H' }, { id: 'p3', x: 0, y: 'H' }
+      ]
+    };
+    const anchored = normalizeOccsProfileSketch({ ...square, anchors: { vertexId: 'p2' } });
+    expect(anchored.anchors).toEqual({ vertexId: 'p2' });
+    expect(normalizeOccsProfileSketch({ ...square, anchors: { vertexId: 'nope' } }).anchors).toBeNull();
+    expect(occsProfileFromSketch(anchored).section.anchor).toEqual(['40', '20']);
+
+    const open = setOccsProfileSketchClosed({ ...square, anchors: { vertexId: 'p2' } }, false);
+    expect(open.anchors).toBeNull();
+    const withDistances = normalizeOccsProfileSketch({
+      ...open,
+      anchors: { startDistance: 'W/4', endDistance: 5 }
+    });
+    const evaluated = evaluateOccsProfileSketch(withDistances);
+    expect(evaluated.anchors).toEqual({ startDistance: 10, endDistance: 5 });
+    const section = occsProfileFromSketch(withDistances).section;
+    // The section is evaluated output: distances resolve against the table
+    // (the raw expressions live on the sketch's anchors).
+    expect(section.anchorDistances).toEqual({ start: '10', end: '5' });
+    expect(section.breakPoints).toHaveLength(2);
+  });
+
   it('round-trips a filleted sketch through CAD entity records', () => {
     const sketch = normalizeOccsProfileSketch({
       points: [

@@ -525,7 +525,11 @@
         "openShape": "Разомкнутый контур",
         "start": "начало",
         "end": "конец",
-        "parameters": "Параметры"
+        "parameters": "Параметры",
+        "anchor": "Якорь",
+        "startDistance": "Отступ начала",
+        "endDistance": "Отступ конца",
+        "dimensions": "Размеры"
       },
       "placementModes": {
         "point": "Точка",
