@@ -992,8 +992,11 @@ does not carry reads as the missing-field marker. `cts.field` remains the
 single-field projection (the same path vocabulary). Its bound type follows
 the wired entity input; a fresh node defaults to the first declared row
 field rather than an identity slot, an authored path survives rebinds, and
-the pre-fix machine default (`_id`, untyped json) heals to the row-field
-default on sync — raw storage ids are not an author-facing projection.
+the pre-fix authoring artifacts heal on sync — the machine `_id` path
+default re-defaults to the row field, and a `field` socket default that
+names no declared readable path (junk older writers persisted) drops,
+leaving the record path the single choice. Raw storage ids are not an
+author-facing projection.
 Compilation rejects any other selected block with the same
 `uses block <block> outside <typeId>` diagnostic used by the legacy block
 kinds, and the evaluator enforces the identical check whenever the domain
