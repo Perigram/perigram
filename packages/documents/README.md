@@ -112,11 +112,15 @@ and the editor surfaces are the pack's own components
 (`src/editors/TextDocumentEditor.vue` and `src/editors/CsvTableEditor.vue`):
 editor surfaces belong to the pack that owns the type, the app-side
 file-surface registry is only the mount table. The text editor is a
-single-surface live markdown editor (milkdown crepe, owner direction
+single-surface live markdown editor (milkdown, owner direction
 2026-10-15: the Obsidian model — the document renders in place while
 writing, the focused block shows its markdown source; the editor's
 model IS markdown, serialization is the framework's own, no rich-text
-proxy). The
+proxy). The engine ships with its chrome disabled: formatting rides
+PrimeVue controls in the editor toolbar (marks, headings, lists,
+quote — markdown input rules and keyboard shortcuts keep working), and
+the surface is themed from the app's tokens
+(`src/editors/text-document-editor.css`). The
 csv editor edits rows in a cell table and serializes CSV text on save
 (PrimeVue's cell editor commits through `cell-edit-complete`). Both take
 the instance-backed persistence contract (loads through the payload
