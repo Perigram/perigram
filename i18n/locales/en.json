@@ -519,7 +519,12 @@
           "ortho": "Ortho",
           "tangentSnap": "Tangent snap"
         },
-        "filletRadius": "Fillet radius"
+        "filletRadius": "Fillet radius",
+        "addParameter": "Add parameter",
+        "closedShape": "Closed shape",
+        "openShape": "Open shape",
+        "start": "start",
+        "end": "end"
       },
       "placementModes": {
         "point": "Point",

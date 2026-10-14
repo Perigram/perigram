@@ -30,6 +30,11 @@ import {
   updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
 } from './cassetteV2Renderer.js';
+import {
+  createDefaultOccsProfileSketch,
+  occsProfileFromSketch,
+  setOccsProfileSketchClosed
+} from '../../occs/profiles.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 
 const graph = {
@@ -277,6 +282,35 @@ describe('cassette v2 trapezoid renderer', () => {
         sectionKind: 'profile'
       })
     ]));
+  });
+
+  it('renders an open profile as a broken section: open path, endpoint marks, split host contour', async () => {
+    const initialTree = createCassetteV2GraphTree();
+    const square = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const result = addCassetteV2ProfileWorkpiece(initialTree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Open strip',
+      kind: 'hanger',
+      process: 'extruded',
+      parameters: square.parameters,
+      occsProfile: occsProfileFromSketch(square),
+      sketch: square
+    });
+    const workpiece = getCassetteV2Workpieces(result.tree).find(item => item.id === result.workpieceId);
+    expect(workpiece.profileSnapshot.section).toMatchObject({ type: 'polyline', open: true });
+
+    const drawing = await renderCassetteV2TreeToDrawing(result.tree, { mode: 'assembly' });
+    const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
+    const profilePath = sectionLayer.paths.find(path => path.sectionKind === 'profile' && path.workpieceId === result.workpieceId);
+    expect(profilePath.d.endsWith('Z')).toBe(false);
+    const breakPaths = sectionLayer.paths.filter(path => path.sectionKind === 'profile-break');
+    expect(breakPaths.filter(path => path.breakEnd === 'start')).toHaveLength(1);
+    expect(breakPaths.filter(path => path.breakEnd === 'end')).toHaveLength(1);
+    // The host face's contour splits into the two chains between the break points.
+    const splitChains = breakPaths.filter(path => !path.breakEnd && path.dasharray === '4 3');
+    expect(splitChains).toHaveLength(2);
+    expect(splitChains.every(chain => chain.d.startsWith('M') && !chain.d.endsWith('Z'))).toBe(true);
   });
 
   it('builds one face graph by feeding evaluated parent vertices through a Nodi polyline input', () => {

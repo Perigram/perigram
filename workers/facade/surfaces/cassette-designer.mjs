@@ -268,9 +268,12 @@ export default function createSurface({ vue, components, locale, queries, notify
       const profileDraftReady = computed(() => isOccsProfileSketchSavable(
         profileDraftSketch.value, profileDraft.value.parameters || {}
       ));
-      const preparedProfileDraftSketch = computed(() => closeOccsProfileSketchBoundary(
-        profileDraftSketch.value, profileDraft.value.parameters || {}
-      ));
+      const preparedProfileDraftSketch = computed(() => {
+        const sketch = profileDraftSketch.value;
+        return sketch.closed
+          ? closeOccsProfileSketchBoundary(sketch, profileDraft.value.parameters || {})
+          : sketch;
+      });
 
       const selectedTemplateId = computed(() => persistedTemplateIdOverride.value || props.record?._id || '');
       const autosaveStorageKey = computed(() => `perigram:cassette-designer-v2:draft:${selectedTemplateId.value || 'draft'}`);

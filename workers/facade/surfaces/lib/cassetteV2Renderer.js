@@ -2260,6 +2260,62 @@ const profileSectionPointsForRelation = (profile = {}, targetCurve = {}, relatio
   });
 };
 
+// Projects a point onto a closed polygon's nearest edge: returns the
+// inserted vertex and the edge index it splits. Null when degenerate.
+const projectOnContour = (vertices = [], point = [0, 0]) => {
+  const count = vertices.length;
+  if (count < 2) return null;
+  let best = null;
+  for (let index = 0; index < count; index += 1) {
+    const a = vertices[index];
+    const b = vertices[(index + 1) % count];
+    const ax = numeric(a?.[0], 0);
+    const ay = numeric(a?.[1], 0);
+    const bx = numeric(b?.[0], 0);
+    const by = numeric(b?.[1], 0);
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lengthSquared = dx * dx + dy * dy;
+    const t = lengthSquared > 0
+      ? Math.max(0, Math.min(1, ((point[0] - ax) * dx + (point[1] - ay) * dy) / lengthSquared))
+      : 0;
+    const projected = [ax + dx * t, ay + dy * t, 0];
+    const distance = Math.hypot(projected[0] - point[0], projected[1] - point[1]);
+    if (!best || distance < best.distance) {
+      best = { distance, projected, insertAt: (index + 1) % (count + 1) };
+    }
+  }
+  return best ? { point: best.projected, insertAt: best.insertAt } : null;
+};
+
+// Splits a closed contour at two break points into the two open chains
+// between them (A→B and B→A along the contour). Null when the projection
+// is degenerate.
+const splitContourAtBreaks = (vertices = [], first = [0, 0], second = [0, 0]) => {
+  const ring = withoutClosingVertex(vertices).map(vertex => (
+    [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0), 0]
+  ));
+  if (ring.length < 3) return null;
+  const a = projectOnContour(ring, first);
+  const b = projectOnContour(ring, second);
+  if (!a || !b) return null;
+  let split = [...ring];
+  for (const cut of [a, b].sort((left, right) => right.insertAt - left.insertAt)) {
+    if (cut.insertAt >= split.length) split.push(cut.point);
+    else split.splice(cut.insertAt, 0, cut.point);
+  }
+  const indexA = split.findIndex(vertex => vertex === a.point);
+  const indexB = split.findIndex(vertex => vertex === b.point);
+  if (indexA < 0 || indexB < 0 || indexA === indexB) return null;
+  const forward = indexA < indexB
+    ? split.slice(indexA, indexB + 1)
+    : [...split.slice(indexA), ...split.slice(0, indexB + 1)];
+  const backward = indexA < indexB
+    ? [...split.slice(indexB), ...split.slice(0, indexA + 1)]
+    : split.slice(indexB, indexA + 1);
+  return [forward, backward];
+};
+
 const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
@@ -2279,8 +2335,9 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
     const points = profileSectionPointsForRelation(profile, targetCurve, relation, parameters);
     if (points.length < 2) continue;
     const svgPoints = points.map(toSvgPoint);
+    const open = profile.section?.open || profile.section?.type === 'polyline';
     paths.push({
-      d: `${sectionPath(svgPoints)} Z`,
+      d: open ? sectionPath(svgPoints) : `${sectionPath(svgPoints)} Z`,
       fill: 'none',
       stroke: 'layer',
       workpieceId: relation.sourceWorkpieceId,
@@ -2289,6 +2346,44 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
       active: !options.selectedRelationId || options.selectedRelationId === relation.id
     });
     viewBoxCurves.push({ vertices: points });
+    if (!open) continue;
+    // An open profile's first and last vertices are its break points:
+    // marked on the section layer, and the host face's contour splits at
+    // them into the two chains between the projections.
+    const contour = targetCurve.originalBoundaryVertices
+      || targetCurve.referenceVertices
+      || targetCurve.boundaryVertices
+      || targetCurve.vertices;
+    for (const [index, point] of [points[0], points[points.length - 1]].entries()) {
+      paths.push({
+        d: circlePathAt(point, 4),
+        fill: 'none',
+        stroke: 'layer',
+        workpieceId: relation.sourceWorkpieceId,
+        relationId: relation.id,
+        sectionKind: 'profile-break',
+        breakEnd: index === 0 ? 'start' : 'end',
+        active: !options.selectedRelationId || options.selectedRelationId === relation.id
+      });
+    }
+    const split = splitContourAtBreaks(contour, points[0], points[points.length - 1]);
+    if (split) {
+      for (const chain of split) {
+        const chainPoints = chain.map(vertex => toSvgPoint(vertex));
+        if (chainPoints.length < 2) continue;
+        paths.push({
+          d: sectionPath(chainPoints),
+          fill: 'none',
+          stroke: 'layer',
+          dasharray: '4 3',
+          workpieceId: relation.targetWorkpieceId,
+          relationId: relation.id,
+          sectionKind: 'profile-break',
+          active: !options.selectedRelationId || options.selectedRelationId === relation.id
+        });
+        viewBoxCurves.push({ vertices: chain });
+      }
+    }
   }
 
   return { paths, viewBoxCurves };
