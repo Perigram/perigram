@@ -340,11 +340,16 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const applyFilletRadius = (vertexId, value) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
-        const radius = Math.max(0, Number(value) || 0);
+        const numeric = Number(value);
+        // Numbers clamp to non-negative; expression strings pass through
+        // untouched like every other authoring field.
+        const radius = value === '' || value === null || value === undefined
+          ? 0
+          : Number.isFinite(numeric) ? Math.max(0, numeric) : String(value).trim();
         const modifiers = normalized.modifiers.filter(modifier => !(
           modifier.type === 'fillet' && modifier.vertexId === vertexId
         ));
-        if (radius > 0) modifiers.push({ type: 'fillet', vertexId, radius });
+        if (radius !== 0) modifiers.push({ type: 'fillet', vertexId, radius });
         commitSketch({ ...normalized, modifiers });
       };
 
