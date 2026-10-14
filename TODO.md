@@ -1823,6 +1823,24 @@ with an authoring pointer in PLUGIN_AUTHORING. Lesson recorded: a
 synthetic harness must import the host's real stylesheet, not
 reimplement it.
 
+### Agent Notes (2026-10-14, blank document never runs the open pipeline)
+
+Third "nothing changed" round, root-caused in a real-stylesheet browser
+harness (Playwright + the live `main.css`, zero page errors). The engine
+boots on its construction document, which never runs the open pipeline,
+so the scene never draws committed geometry: LINE commits land in the
+database and extract into the sketch, but the canvas stays black — only
+the cursor overlays (dynamic input, jig helpers) show. A naive
+`openDocument` does not save it: it defaults to Read mode and the
+mode-gated draw commands silently refuse. `newDocument` fixes both but
+fetches its template from a CDN. The fix (`sketchEditor.mjs`) opens an
+embedded header-only blank DXF in Write mode before binding (the mode is
+read off the fresh document — the bundle exports no mode enum — and
+reused for DXF imports, which had the same Read-mode trap). Proven in
+the harness: fresh LINE draws and renders, a seeded rect+hole renders
+and zoom-fits. `perigram-plugin surfaces`, listing validate, and the
+profiles spec (8/8) stay green.
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);
