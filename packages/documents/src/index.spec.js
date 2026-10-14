@@ -41,8 +41,9 @@ describe('documents pack declarations', () => {
   });
 
   it('restricts payload traits to the declared document kinds', () => {
-    // Text documents are markdown by default: the rich text editor
-    // surface converts HTML <-> markdown on save/load.
+    // Text documents are markdown: the editor edits the source
+    // directly (no rich-text proxy), preview renders the shared
+    // pipeline.
     const text = documentsTypes.find(type => type.id === 'text-document');
     expect(text.payload).toMatchObject({ mime: ['text/markdown'], maxSize: 10 * 1024 * 1024 });
     const image = documentsTypes.find(type => type.id === 'image');

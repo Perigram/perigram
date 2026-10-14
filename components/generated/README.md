@@ -295,8 +295,8 @@ with an instance-backed persistence contract (payload download URL for
 loads, `PUT /api/instances/:type/:id/payload` for saves, which records
 an immutable content revision per save, and `rename(name)` through the
 revisioned instance identity patch; the helper is generic over the
-type id). Text documents edit as markdown through the PrimeVue `Editor`
-rich text surface (see
+type id). Text documents edit their markdown source directly through the shared
+source surface (see
 [components/artifacts/README.md](../artifacts/README.md)); the csv
 surface keeps the cell-table editor. Both editors take only that
 persistence contract —

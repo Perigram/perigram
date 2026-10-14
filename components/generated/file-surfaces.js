@@ -162,8 +162,8 @@ export function sketchInstancePersistence(entity = {}, typeId = 'sketch') {
 
 /**
  * Text/csv-scoped projection of the instance persistence. Text documents
- * are markdown by default: the editor surface converts on load/save and
- * saves with the markdown extension and mime.
+ * are markdown: the editor edits the source directly and saves with the
+ * markdown extension and mime.
  */
 export function textInstancePersistence(entity = {}, typeId = '', format = 'text') {
   const markdown = format === 'text';

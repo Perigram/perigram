@@ -24,14 +24,9 @@
         </Column>
       </DataTable>
     </template>
-    <!-- Markdown documents edit their source, honestly: the payload IS
-         markdown, so the text surface edits it directly in the technical
-         mono voice and renders a sanitized preview in the prose voice —
-         no rich-text proxy converting HTML↔markdown and losing whatever
-         its model cannot carry. The document chrome is one toolbar row
-         shared with the csv surface: the name edits in place (enter,
-         apply control, or blur — rename rides the persistence seam),
-         the preview toggle, and save. -->
+    <!-- Markdown source surface (contract: components/artifacts/README.md):
+         one toolbar row (in-place name, preview toggle, save), the
+         technical-mono source growing into the pane, preview in prose. -->
     <template v-else>
       <div class="flex min-w-0 flex-wrap items-center gap-2 border-b border-chrome-border py-1">
         <div class="flex min-w-40 max-w-72 flex-1 items-center gap-1">
@@ -75,14 +70,13 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import DOMPurify from 'dompurify';
 import * as XLSX from 'xlsx';
-import { marked } from 'marked';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
+import { renderMarkdown } from '#shared/markdown.js';
 
 // Persistence contract, host-supplied: `title`, `loadText()` returning
 // the raw text, `saveText(text, filename)`, and an optional
@@ -108,10 +102,7 @@ const editingName = ref(false);
 // The apply control rides the name field while its draft differs from
 // the applied name — the pending-rename state is visible, not silent.
 const nameDirty = computed(() => Boolean(nameDraft.value.trim()) && nameDraft.value.trim() !== displayName.value);
-const previewHtml = computed(() => {
-  if (!markdown.value || typeof window === 'undefined') return '';
-  return DOMPurify.sanitize(marked.parse(markdown.value));
-});
+const previewHtml = computed(() => renderMarkdown(markdown.value));
 
 // The name field is quiet document text, not a form box: the pt styles
 // strip the outlined fill and border — the focus ring keeps the edit
@@ -148,28 +139,46 @@ async function commitName() {
   }
 }
 
+// Loading is not editing: the guard keeps the initial populate from
+// enabling save on a pristine open.
+let loading = true;
+watch([markdown, rows], () => { if (!loading) dirty.value = true; }, { deep: true });
+
 onMounted(async () => {
-  const text = await props.persistence.loadText();
-  if (isCsv.value) {
-    const sheet = XLSX.read(text, { type: 'string' }).Sheets.Sheet1;
-    const values = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-    columns.value = (values.shift() || []).map((value, index) => String(value || `${index + 1}`));
-    rows.value = values.map(row => Object.fromEntries(columns.value.map((column, index) => [column, row[index] ?? ''])));
-    return;
+  try {
+    const text = await props.persistence.loadText();
+    if (isCsv.value) {
+      const sheet = XLSX.read(text, { type: 'string' }).Sheets.Sheet1;
+      const values = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      columns.value = (values.shift() || []).map((value, index) => String(value || `${index + 1}`));
+      rows.value = values.map(row => Object.fromEntries(columns.value.map((column, index) => [column, row[index] ?? ''])));
+      return;
+    }
+    markdown.value = text || '';
+  } finally {
+    // The load populates the refs above — that is not an edit, so the
+    // dirty watch stays suspended until the load settles.
+    loading = false;
   }
-  markdown.value = text || '';
 });
 
 watch(displayName, value => {
   if (!editingName.value) nameDraft.value = value;
 }, { immediate: true });
-watch([markdown, rows], () => { dirty.value = true; }, { deep: true });
 
 async function save() {
   saving.value = true;
   try {
     const extension = props.persistence.extension || (isCsv.value ? '.csv' : '.md');
-    emit('saved', await props.persistence.saveText(markdown.value, `${displayName.value || 'document'}${extension}`));
+    // The csv surface edits rows, not source: serialize the table back
+    // to text on save. The name carries no extension of its own — strip
+    // a trailing one before the persistence extension lands, so a
+    // `notes.md` name saves as `notes.md`, never `notes.md.md`.
+    const content = isCsv.value
+      ? XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rows.value, { header: columns.value }))
+      : markdown.value;
+    const stem = String(displayName.value || 'document').replace(/\.(md|txt|csv)$/i, '');
+    emit('saved', await props.persistence.saveText(content, `${stem}${extension}`));
     dirty.value = false;
   } finally { saving.value = false; }
 }

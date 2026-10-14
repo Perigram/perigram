@@ -53,6 +53,11 @@ imported through server modules that Nitro externalizes.
   sources emit is its projection. Pure data and functions; the canonical
   contract lives in
   [instance-filters/README.md](./instance-filters/README.md).
+- `markdown.js`: The markdown document contract — `isMarkdownDocument`
+  (mime-or-filename detection) and `renderMarkdown` (source to sanitized
+  HTML, empty server-side) shared by the source editor and the read
+  viewer. Import-safe in Node; the render dependencies only run behind
+  the window guard.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
 Import-alias rules are defined in [scripts/README.md](../scripts/README.md).
