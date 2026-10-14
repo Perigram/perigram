@@ -238,6 +238,19 @@
       <label>{{ $t('processDesigner.joinRightKey') }}</label>
       <InputText v-model="record.rightKey" class="w-full" @change="$emit('sync')" />
     </div>
+    <div v-if="record.kind === 'cts.field'" class="flex flex-col gap-1">
+      <label>{{ $t('processDesigner.fieldToRead') }}</label>
+      <Select
+        :model-value="fieldProjectionValue"
+        :options="fieldProjectionOptions"
+        option-label="label"
+        option-value="value"
+        filter
+        class="w-full"
+        :placeholder="$t('processDesigner.bindTypeFirst')"
+        @update:model-value="setFieldProjection"
+      />
+    </div>
     <div v-if="record.kind === 'value.recordField'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.recordFieldPath') }}</label>
       <InputText v-model="record.path" class="w-full" @change="$emit('sync')" />
@@ -328,10 +341,36 @@ const emit = defineEmits([
   'remove-command-service'
 ]);
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const op = computed(() => operationKindOf(props.record || {}));
 const isEffect = computed(() => EFFECT_SPECIES_KINDS.has(op.value));
 const typeId = computed(() => typeIdOf(props.record || {}));
+
+// Get field's pick list: the bound type's readable field paths (the
+// projection owns the list — party rows included). Labels localize when
+// they carry an i18n key (the framework party rows do), else pass through.
+const fieldProjectionOptions = computed(() => (
+  typeId.value
+    ? (props.designer.fieldsForEntity?.(typeId.value) || []).map(field => ({
+      label: te(field.label) ? t(field.label) : (field.label || field.value),
+      value: field.value
+    }))
+    : []
+));
+// The field wire authors the socket default; the inspector pick authors
+// the record path — one explicit pick takes the channel.
+const fieldProjectionValue = computed(() => {
+  const wired = props.record.inputDefaults?.field;
+  const authored = wired && typeof wired === 'object' && wired.branches
+    ? wired.branches[0]?.items?.[0]
+    : wired;
+  return authored || props.record.path || '';
+});
+function setFieldProjection(value) {
+  props.record.path = value || '';
+  if (props.record.inputDefaults) delete props.record.inputDefaults.field;
+  emit('sync');
+}
 
 // Record-value authoring surfaces: the record elimination form's key and
 // output type, the join's key paths, and the record composer's field list.

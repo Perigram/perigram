@@ -3210,7 +3210,9 @@
     "roleActions": "Role actions",
     "deleteRole": "Delete role",
     "deleteRoleConfirm": "Delete role {name}?",
-    "roleInUseBy": "In use by {count} definition(s): {names}"
+    "roleInUseBy": "In use by {count} definition(s): {names}",
+    "fieldToRead": "Field",
+    "bindTypeFirst": "Bind a type first"
   },
   "generatedScreen": {
     "home": "Home",

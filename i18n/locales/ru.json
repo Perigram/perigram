@@ -3210,7 +3210,9 @@
     "roleActions": "Действия с ролью",
     "deleteRole": "Удалить роль",
     "deleteRoleConfirm": "Удалить роль {name}?",
-    "roleInUseBy": "Используется в {count} определениях: {names}"
+    "roleInUseBy": "Используется в {count} определениях: {names}",
+    "fieldToRead": "Поле",
+    "bindTypeFirst": "Сначала привяжите тип"
   },
   "generatedScreen": {
     "home": "Главная",
