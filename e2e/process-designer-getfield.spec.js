@@ -59,7 +59,10 @@ test('wiring Current user into Get field types the output as the row field', asy
   await page.mouse.up();
   await page.waitForTimeout(1500);
 
-  await expect(page.locator('.vue-flow__edge').first()).toBeVisible();
+  // SVG edge groups report hidden to Playwright's visibility heuristic;
+  // assert existence by count instead.
+  const wireCount = await page.locator('.vue-flow__edge[data-id]').count();
+  expect(wireCount, 'the currentUser->getField wire must exist').toBeGreaterThan(0);
   await page.screenshot({ path: 'test-results/getfield-fresh-wire.png', fullPage: true });
   const aria = await fieldValueHandleAria(page);
   console.log('GETFIELD OUTPUT AFTER FRESH WIRE:', aria);
