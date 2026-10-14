@@ -239,7 +239,10 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       // destroy intent authored before the wire exists. Validation
       // owns the report when the path is genuinely undeclared.
       if (!available.length) return;
-      if (available.some(field => field.value === node.path)) return;
+      // `path === '_id'` is the pre-fix machine default (the old sync
+      // picked the first projected entry, always `_id`) — derived, never
+      // authored, so it re-defaults like an unset path.
+      if (node.path && node.path !== '_id' && available.some(field => field.value === node.path)) return;
       node.path = preferredFieldDefault(available);
     } else {
       // `value.recordField` owns an authored key path (plain records have
