@@ -65,8 +65,11 @@ process-definitions collection ([process-definitions](../process-definitions/REA
   those checks use the compiled effective permissions.
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
   first organization for a newly registered user, seeds the organization's
-  `role_admin` identity and creator assignment, creates and activates an
-  explicitly empty process, and writes the user's initial owner
+  `role_admin` identity and creator assignment, creates and activates the
+  organization's starter process (the mounted packs' starter constructs —
+  see
+  [process definitions](../process-definitions/README.md)), and writes the
+  user's initial owner
   membership/lineage. The creator
   membership stores explicit `organizations:admin` and `users:admin` grants so
   tenant management remains reachable even if the active process graph later

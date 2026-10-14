@@ -1,15 +1,26 @@
 # COMPONENT: Artifact Viewers
 
-`ArtifactViewer.vue` is the fixed format registry for artifact files. It reads
-the domain attachment kind instead of accepting component names.
+`ArtifactViewer.vue` is the shared file viewer. It has two mounts:
 
-- DXF and SVG use `DrawingCanvas`; SVG is rendered as an image reference rather
-  than injected markup. Image-reference rendering requires the payload
-  download endpoint to serve the stored file's real content type
-  (`image/svg+xml`) — browsers refuse SVG images on sniffed or
+- CTS file instances (the primary mount): generated screens and panes
+  resolve the type's preview policy and pass it as an explicit `source`
+  `{ mode, fileUrl, attachment }` — the payload preview contract lives in
+  [components/generated/README.md](../generated/README.md).
+- Legacy artifact-entity rows: `ArtifactDetail` passes the artifact DTO
+  and revision; the read surface is download/preview only. The artifact
+  entity's editing paths are retired — file editors belong to the packs
+  that own the types (`packages/<pack>/src/editors/`), and no artifact
+  kind resolves an editor.
+
+Viewer modes read the preview contract, not component names:
+
+- DXF and SVG use `DrawingCanvas`; SVG is rendered as an image reference
+  rather than injected markup. Image-reference rendering requires
+  the payload download endpoint to serve the stored file's real content
+  type (`image/svg+xml`) — browsers refuse SVG images on sniffed or
   octet-stream responses (see the payload preview contract in
   [components/generated/README.md](../generated/README.md)).
-- SKETCH drawings use `DrawingCanvas` with the `sketch` source type, which
+- SKETCH scenes use `DrawingCanvas` with the `sketch` source type, which
   normalizes the scene JSON (background image + strokes) through
   `utils/sketch.js` into the shared layer contract — there is no separate
   sketch renderer.
@@ -29,50 +40,14 @@ the domain attachment kind instead of accepting component names.
   [shared/markdown.js](../../shared/markdown.js): `text/markdown` mime or
   a `.md` filename) render through its `renderMarkdown` pipeline
   (`marked` + `DOMPurify`); plain text keeps its line breaks.
-- `ArtifactTextEditor.vue` owns the editable text and CSV save path. Text
-  documents are markdown, and the editor edits the markdown source
-  directly — the payload IS the text, so nothing converts on load or
-  save. The source surface is a PrimeVue `Textarea` in the technical mono
-  voice (`text-technical`, form chrome stripped through pt — it is the
-  document, not a form control); the preview toggle renders the shared
-  `renderMarkdown` pipeline in the prose voice. The csv surface edits
-  rows in a cell table and serializes them back to CSV text on save; a
-  pristine open never enables save (load populates, edits dirty). The
-  document chrome is one toolbar row shared with the
-  csv surface: the name edits in place as quiet document text (pt-stripped
-  InputText, focus ring as the edit affordance), committed through
-  enter, the apply control that appears while the draft differs, or
-  blur — all through the persistence `rename` seam — beside the preview
-  toggle and save. The save filename strips a trailing extension before
-  the persistence extension lands (`notes.md` stays `notes.md`). Quill is
-  gone from the app entirely: the PrimeVue `Editor` component, the
-  `quill.snow.css` import, the editor component tokens, the main.css quill
-  block, the `turndown` HTML→markdown dependency, and the orphaned `quill`
-  package were all deleted with the rich-text surface. The persistence adapter carries the file
-  `extension` (`.md` for instance documents, `.txt` or `.md` following
-  the stored file for artifacts) and the save mime. Text artifacts
-  upload as `.txt` or `.md` (`text/plain` or `text/markdown`); markdown
-  keeps its kind on save, and `text-document` instances accept `.md`
-  uploads through the type's `upload` creation protocol
-  ([documents pack](../../../packages/documents/README.md)). The editor
-  is a document surface, not an edge-to-edge canvas: it owns its own
-  pane padding, and its workspace pages register as `flush`, so the
-  pane host renders them without its own padded scroll area — the
-  source/preview grows into the pane and scrolls inside it, never the
-  page.
-- `SketchEditor.vue` owns the SKETCH editing surface: perfect-freehand pen
-  plus line/rect/ellipse/eraser tools, undo/redo and the standard zoom
-  cluster (both through `composables/useSnapshotHistory.js` and a
-  center-zooming viewBox), rename through the persistence seam, an
-  optional background
-  image (uploaded to the `sketches` bucket, referenced from the scene JSON),
-  and an optional origin entity reference persisted to
-  `data.metadata.origin` through `PUT /api/artifacts/:id`. Scene data is
-  plain JSON saved through the same file-replacement endpoint as the text
-  editor, so revisions and access checks are identical.
 - `ArtifactDetail` supplies artifact DTOs and revision DTOs; the viewer never
   receives unauthorised file URLs.
 
-The CSV editor renders an editable cell table and persists a replacement file,
-therefore creating a new immutable artifact file revision. XLSX is intentionally
-read-only.
+The artifact kind registry (`shared/attachment-kinds.js`) is trimmed to
+the contracts the live artifact flows still speak — the facade plugin's
+DXF source uploads, its `generateAttachment` outputs (PDF passport,
+nesting layouts), its artifact templates, and camera-capture uploads.
+Everything else is a CTS file type with payload traits; legacy rows of
+retired kinds resolve no kind and degrade to a download preview. The
+full artifact-entity retirement (facade plugin included) is the tracked
+payload-trait flip.

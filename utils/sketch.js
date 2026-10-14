@@ -1,9 +1,9 @@
 import { getStroke } from 'perfect-freehand'
 
 /**
- * Sketch scene contract (SKETCH attachment kind).
+ * Sketch scene contract (the tech-drawing pack's `sketch` type).
  *
- * A scene is plain JSON persisted as the artifact file:
+ * A scene is plain JSON persisted as the instance payload:
  * `{ version: 1, background: { fileId, url } | null, strokes: Stroke[] }`
  * where `Stroke` is `{ id, tool: 'pen'|'line'|'rect'|'ellipse', points,
  * color, size }` and `points` are viewBox-space `[x, y]` pairs (two points

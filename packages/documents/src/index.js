@@ -125,14 +125,24 @@ export const documentsTypes = Object.freeze([
   })
 ]);
 
-// Editor bindings (SPEC §21): the shared text/csv editor saves through
-// the revisioned instance payload transport; `revisions: 'content'` on
+// Editor bindings (SPEC §21): the shared text/csv editors are the
+// pack's own source surfaces (src/editors) — `revisions: 'content'` on
 // the types is what makes them editor-replaceable. A workbook has no
 // bespoke editor: its authoring act is being read by process graphs
 // through the declared `rows` projection (SPEC §8 p extract).
 export const documentsEditors = Object.freeze([
   { type: 'text-document', surface: 'text-editor', modes: ['edit'] },
   { type: 'csv-table', surface: 'csv-editor', modes: ['edit'] }
+]);
+
+// Starter constructs (SPEC §UI visible-by-default): what the pack
+// stations into every organization's initial process — a manually
+// triggered create in the type's authored construction mode, granted to
+// the org's admin role. Markdown support is visible by default: the
+// text-document editor create rides the org's starter process, not a
+// per-org repair.
+export const documentsStarterConstructs = Object.freeze([
+  { typeId: 'text-document', construction: 'editor' }
 ]);
 
 // The pack's one value service (SPEC §8 s species): the composition twin
@@ -170,6 +180,7 @@ export const documentsPack = Object.freeze({
   requires: [],
   types: documentsTypes,
   editors: documentsEditors,
+  starterConstructs: documentsStarterConstructs,
   services: documentsServices,
   domain: Object.freeze({ commands: documentsCommands })
 });

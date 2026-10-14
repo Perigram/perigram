@@ -6,20 +6,24 @@ import { techDrawingPack } from '../../packages/tech-drawing/src/index.js';
 import { createDefinitionAuthoring } from '../../packages/processes/src/authoring.js';
 
 /**
- * Stations the documents pack's editable types (markdown first) into
+ * Stations the mounted packs' starter constructs (the documents pack's
+ * markdown-first set, packages/documents/src/index.js) into
  * organizations' processes as an additive ACTIVE definition — the same
- * headless authoring seam the designer and the e2e fixtures use
- * (createDefinitionAuthoring), posted through the real definition API so
- * validation, compilation, and activation run exactly as in the browser.
- * Existing definitions are never touched: activation is additive (the
- * union of every ACTIVE definition's compiled actions).
+ * headless authoring seam the designer, the e2e fixtures, and the
+ * org-creation starter use (createDefinitionAuthoring), posted through
+ * the real definition API so validation, compilation, and activation
+ * run exactly as in the browser. Existing definitions are never
+ * touched: activation is additive (the union of every ACTIVE
+ * definition's compiled actions). New organizations carry the starters
+ * from creation; this script repairs organizations created before that.
  *
  * Usage:
  *   node server/scripts/station-documents-types.js [--dry-run] [--org <id> ...]
  * Without --org, every org holding an ACTIVE definition is processed.
  */
 
-const TYPES = ['text-document'];
+const TYPES = documentsPack.starterConstructs;
+const STARTER_LABELS = TYPES.map(construct => `${construct.typeId}:${construct.construction}`);
 const dryRun = process.argv.includes('--dry-run');
 const orgArgs = [];
 for (let i = 0; i < process.argv.length; i++) {
@@ -39,23 +43,18 @@ function definitionData(organizationId) {
     packServices: [...(documentsPack.services || []), ...(techDrawingPack.services || [])]
   });
   const authoring = createDefinitionAuthoring(domain);
-  TYPES.forEach((typeId, index) => {
+  TYPES.forEach((construct, index) => {
     const id = `documents-${index}`;
     authoring.drop('construct', { id });
     authoring.configure(id, {
-      typeId,
-      construction: { mode: 'editor' },
+      typeId: construct.typeId,
+      construction: { mode: construct.construction },
       access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] }
     });
   });
   return authoring.definition();
 }
 
-function stationsType(definition, typeId) {
-  return Object.values(definition.data?.processNodes || {}).some(node => node.kind === 'cts.construct' && node.typeId === typeId);
-}
-
-const orgFilter = orgArgs.length ? { _id: { $in: orgArgs } } : {};
 const activeDefs = await db.collection('process_definitions').find({
   ...(orgArgs.length ? { 'lineage.organizationId': { $in: orgArgs } } : {}),
   'states.main': 'ACTIVE'
@@ -85,7 +84,7 @@ for (const [orgId, defs] of byOrg) {
     continue;
   }
   if (dryRun) {
-    results.push(`${orgId}: would station ${TYPES.join(', ')} as user ${ownerUserId}`);
+    results.push(`${orgId}: would station ${STARTER_LABELS.join(', ')} as user ${ownerUserId}`);
     continue;
   }
   const sessionId = randomBytes(24).toString('hex');
@@ -107,7 +106,7 @@ for (const [orgId, defs] of byOrg) {
     const created = await draft.json();
     const activate = await fetch(`${APP}/api/process-definitions/${created._id}/activate`, { method: 'POST', headers });
     if (!activate.ok) throw new Error(`activate ${activate.status}: ${(await activate.text()).slice(0, 200)}`);
-    results.push(`${orgId}: STATIONED ${TYPES.join(', ')} (definition ${created._id}, user ${ownerUserId})`);
+    results.push(`${orgId}: STATIONED ${STARTER_LABELS.join(', ')} (definition ${created._id}, user ${ownerUserId})`);
   } catch (error) {
     results.push(`${orgId}: FAILED (${error.message})`);
   }

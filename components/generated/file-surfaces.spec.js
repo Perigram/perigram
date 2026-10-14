@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('~/components/artifacts/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
-vi.mock('~/components/artifacts/ArtifactTextEditor.vue', () => ({ default: { name: 'ArtifactTextEditor' } }));
+vi.mock('~/packages/tech-drawing/src/editors/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
+vi.mock('~/packages/documents/src/editors/TextDocumentEditor.vue', () => ({ default: { name: 'TextDocumentEditor' } }));
+vi.mock('~/packages/documents/src/editors/CsvTableEditor.vue', () => ({ default: { name: 'CsvTableEditor' } }));
 
 import {
   fileEditorActions,
@@ -120,10 +121,10 @@ describe('file surface registry', () => {
   it('passes the bound type id into page props adapters', () => {
     const row = fileWorkspacePages().find(page => page.typeId === 'text-document');
     const props = row.props({ entity: { _id: 't-1' } });
-    expect(props.format).toBe('text');
     expect(props.persistence.title).toBe('');
     expect(props.persistence.loadText).toBeInstanceOf(Function);
     expect(props.persistence.saveText).toBeInstanceOf(Function);
+    expect(props.persistence.extension).toBe('.md');
   });
 
   it('binds the sketch editor with an instance-backed persistence contract', () => {

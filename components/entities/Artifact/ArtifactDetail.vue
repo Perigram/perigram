@@ -12,8 +12,6 @@
         <Select v-if="revisions.length" v-model="selectedRevisionId" :options="revisionOptions" option-label="label" option-value="value" size="small" class="min-w-48" />
       </div>
       <template v-if="canEdit && layoutDraft && editor.mode === 'layout'"><ArtifactLayoutEditor v-model="layoutDraft" /></template>
-      <ArtifactTextEditor v-else-if="canEdit && ['text', 'csv'].includes(editor.mode)" :persistence="textPersistence" :format="editor.mode" @saved="$emit('saved', $event)" />
-      <SketchEditor v-else-if="canEdit && editor.mode === 'sketch'" :persistence="sketchPersistence" @saved="$emit('saved', $event)" />
       <ArtifactViewer v-else :artifact="artifact" :revision="revision" />
     </div>
   </InstancePage>
@@ -25,13 +23,10 @@ import Button from 'primevue/button';
 import Select from '~/components/shared/InstanceSelect.vue';
 import InstancePage from '~/components/shared/InstancePage.vue';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
-import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
-import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useAuthStore } from '~/stores/auth';
 
 import { hasPermissionGrant } from '#shared/access-control.js';
-import { isMarkdownDocument } from '#shared/markdown.js';
 import { artifactRevisionOptions, resolveArtifactEditingContract } from '~/utils/artifact-detail.js';
 
 const props = defineProps({ artifact: { type: Object, required: true } });
@@ -42,49 +37,6 @@ const selectedRevisionId = ref('');
 const layoutDraft = ref(null);
 const replacementInput = ref(null);
 const canEdit = computed(() => hasPermissionGrant({ permissions: authStore.activePermissions, feature: 'artifacts', level: 'write', entity: props.artifact, typeId: 'artifact' }));
-// Artifact-backed persistence for the shared sketch editor: scene bytes
-// through the artifact file-revision transport, origin through metadata.
-const sketchPersistence = computed(() => ({
-  title: props.artifact.identity?.name || '',
-  loadScene: () => fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`).then(response => response.text()),
-  saveScene: async (sceneText, filename, { origin } = {}) => {
-    const form = new FormData();
-    form.append('file', new File([sceneText], filename, { type: 'application/json' }));
-    const savedArtifact = await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form });
-    if (origin !== undefined && (origin || props.artifact.data?.metadata?.origin)) {
-      const metadata = {
-        ...(props.artifact.data?.metadata || {}),
-        origin: origin || null
-      };
-      return await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`, { method: 'PUT', body: { metadata } });
-    }
-    return savedArtifact;
-  },
-  origin: { value: props.artifact.data?.metadata?.origin || null }
-}));
-// Artifact-backed persistence for the shared text/csv editor: bytes
-// through the artifact file-revision transport, mime preserved. The
-// markdown default belongs to the instance-backed editor contract
-// (components/generated/file-surfaces.js).
-const isMarkdownArtifact = computed(() => {
-  const primary = props.artifact.attachments?.primary || {};
-  return isMarkdownDocument({
-    mimeType: primary.metadata?.mimeType,
-    name: primary.name || primary.metadata?.originalFilename || props.artifact.identity?.name || ''
-  });
-});
-const textPersistence = computed(() => ({
-  title: props.artifact.identity?.name || '',
-  extension: editor.value.mode === 'csv' ? '.csv' : (isMarkdownArtifact.value ? '.md' : '.txt'),
-  loadText: () => fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`).then(response => response.text()),
-  saveText: async (text, filename) => {
-    const mimeType = props.artifact.attachments?.primary?.metadata?.mimeType
-      || (editor.value.mode === 'csv' ? 'text/csv' : (isMarkdownArtifact.value ? 'text/markdown' : 'text/plain'));
-    const form = new FormData();
-    form.append('file', new File([text], filename, { type: mimeType }));
-    return await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form });
-  }
-}));
 const editing = computed(() => resolveArtifactEditingContract({ artifact: props.artifact, canEdit: canEdit.value }));
 const creation = computed(() => editing.value.creation);
 const editor = computed(() => editing.value.editor);

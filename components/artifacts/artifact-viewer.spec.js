@@ -3,14 +3,14 @@ import { resolveArtifactViewer } from '~/utils/artifact-viewer.js';
 
 describe('ArtifactViewer behavior', () => {
   it('does not resolve a download request when no primary file exists', () => {
-    expect(resolveArtifactViewer({ artifact: { _id: 'artifact-1', data: { type: 'PDF_DOCUMENT' } } }))
+    expect(resolveArtifactViewer({ artifact: { _id: 'artifact-1', data: { type: 'PDF_PASSPORT' } } }))
       .toEqual(expect.objectContaining({ hasFile: false, fileUrl: '', mode: 'pdf' }));
   });
 
   it.each([
     ['DXF_SOURCE', 'dxf'],
-    ['PDF_DOCUMENT', 'pdf'],
-    ['CSV_TABLE', 'table']
+    ['PDF_PASSPORT', 'pdf'],
+    ['LAYOUT_SVG', 'svg']
   ])('selects the declared %s preview', (type, mode) => {
     const viewer = resolveArtifactViewer({
       artifact: { _id: 'artifact-1', data: { type }, attachments: { primary: { fileId: 'file-1' } } }

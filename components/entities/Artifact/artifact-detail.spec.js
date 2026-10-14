@@ -9,8 +9,11 @@ describe('artifact detail editing contract', () => {
     expect(resolveArtifactEditingContract({ artifact: { data: { type: 'PDF_PASSPORT' } }, canEdit: true }).canReplaceFile).toBe(false);
   });
 
-  it('selects the declared editor mode and produces stable revision choices', () => {
-    expect(resolveArtifactEditingContract({ artifact: { data: { type: 'CSV_TABLE' } }, canEdit: true }).editor.mode).toBe('csv');
+  it('resolves no editor for legacy rows and produces stable revision choices', () => {
+    // The artifact entity's editing paths are retired: kinds resolve no
+    // editor, legacy rows render read-only through the viewer.
+    expect(resolveArtifactEditingContract({ artifact: { data: { type: 'DXF_SOURCE' } }, canEdit: true }).editor.mode).toBe('none');
+    expect(resolveArtifactEditingContract({ artifact: { data: { type: 'TEXT_FILE' } }, canEdit: true }).editor.mode).toBe('none');
     expect(artifactRevisionOptions([{ _id: 'r2', data: { number: 2 } }, { _id: 'r1', data: { number: 1 } }]))
       .toEqual([{ label: 'v2', value: 'r2' }, { label: 'v1', value: 'r1' }]);
   });

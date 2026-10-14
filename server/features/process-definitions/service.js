@@ -26,6 +26,7 @@ import {
   validateRoundTrip,
   authoredSocketDefault
 } from '~/packages/processes/src/index.js';
+import { createDefinitionAuthoring } from '~/packages/processes/src/authoring.js';
 import {
   getBlockFieldSchema,
   getBlockFieldSchemas,
@@ -45,7 +46,7 @@ import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView, rewriteRetiredWirePaths } from '~/packages/cts/src/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
-import { composePackDomains } from '~/server/packs/declarations.js';
+import { composePackDomains, composeStarterConstructs } from '~/server/packs/declarations.js';
 import { packDomainsForOrganization } from '~/server/features/plugins/service.js';
 import { packServicesForOrganization } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
@@ -436,6 +437,20 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization id is required' });
 
   const organizationIdValue = toFlexibleId(organizationId);
+  // The starter definition carries the mounted packs' starter constructs
+  // (SPEC §UI visible-by-default) — authored through the same headless
+  // seam the designer and the stationing script use, so validation,
+  // compilation, and activation run identically.
+  const authoring = createDefinitionAuthoring(await getProjectedDomain(organizationIdValue));
+  for (const [index, construct] of composeStarterConstructs().entries()) {
+    const id = `starter-${index}`;
+    authoring.drop('construct', { id });
+    authoring.configure(id, {
+      typeId: construct.typeId,
+      construction: { mode: construct.construction },
+      access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] }
+    });
+  }
   const process = new ProcessDefinition({
     identity: {
       uid: `process-${organizationIdValue}`,
@@ -443,21 +458,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
       slug: 'process'
     },
     lineage: { organizationId: organizationIdValue },
-    data: {
-      schemaVersion: 1,
-      dataflowVersion: PROCESS_DATAFLOW_VERSION,
-      graph: { nodes: [], edges: [] },
-      roleGrants: { role_admin: [] },
-      producerOutputs: {},
-      actions: {},
-      services: {},
-      sockets: {},
-      screens: {},
-      stateDefinitions: {},
-      valueInputs: {},
-      processNodes: {},
-      compiled: null
-    }
+    data: authoring.definition()
   });
   assertCurrentProcessDefinition(process.data);
 
