@@ -41,6 +41,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       let extractTimer = null;
       let lastEmitted = '';
       let disposed = false;
+      let zoomObserver = null;
 
       const TOOL_GROUPS = [
         [
@@ -303,6 +304,18 @@ export default function createSketchEditor({ vue, components, locale }) {
           lastEmitted = '';
           reseedFromModel();
           emitSketch();
+          // A dialog mount can race the container's real size (open
+          // animation, late flex layout); the first time the canvas
+          // reaches working size, re-fit the view so the seed is framed.
+          if (containerRef.value && (containerRef.value.clientHeight < 120)) {
+            zoomObserver = new ResizeObserver(() => {
+              if (!manager || containerRef.value?.clientHeight < 120) return;
+              zoomObserver.disconnect();
+              zoomObserver = null;
+              manager.curView?.zoomToFitDrawing?.();
+            });
+            zoomObserver.observe(containerRef.value);
+          }
         } catch (error) {
           engineError.value = error?.message || String(error);
         }
@@ -321,6 +334,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         disposed = true;
         if (extractTimer) clearTimeout(extractTimer);
         extractTimer = null;
+        zoomObserver?.disconnect?.();
+        zoomObserver = null;
         containerRef.value?.removeEventListener?.('keydown', handleKeydown, true);
         unbindDatabase();
         const dying = manager;
@@ -331,7 +346,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       });
 
       return () => h('div', {
-        class: 'flex min-h-0 flex-col gap-2',
+        class: 'flex min-h-0 flex-1 flex-col gap-2',
         'data-keyboard-scope': 'cad'
       }, [
         h('div', { class: 'flex flex-wrap items-center gap-1' }, [
@@ -358,7 +373,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         ]),
         h('div', {
           ref: containerRef,
-          class: 'relative h-[28rem] w-full overflow-hidden rounded-ui border border-content-border bg-subtle',
+          class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',
           role: 'application',
           'aria-label': t('cassette.v2.profileEditor.preview'),
           onPointerup: scheduleExtraction,

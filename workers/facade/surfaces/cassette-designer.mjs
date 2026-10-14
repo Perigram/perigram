@@ -2306,10 +2306,11 @@ export default function createSurface({ vue, components, locale, queries, record
           visible: profileDialogVisible.value,
           'onUpdate:visible': value => { profileDialogVisible.value = value; },
           header: t('cassette.v2.profileEditor.title'),
-          size: 'lg'
+          size: 'xl',
+          fill: true
         }, {
-          default: () => h('div', { class: 'flex min-h-0 flex-col gap-3' }, [
-            h('div', { class: 'grid gap-2 md:grid-cols-[minmax(0,1fr)_12rem_12rem]' }, [
+          default: () => h('div', { class: 'flex min-h-0 flex-1 flex-col gap-3' }, [
+            h('div', { class: 'grid gap-2 md:grid-cols-[minmax(0,1fr)_10rem_10rem_13rem]' }, [
               h(InputText, {
                 modelValue: profileDraft.value.name,
                 'onUpdate:modelValue': value => { profileDraft.value.name = value; },
@@ -2333,21 +2334,21 @@ export default function createSurface({ vue, components, locale, queries, record
                 appendTo: 'self',
                 class: 'w-full',
                 'onUpdate:modelValue': value => { profileDraft.value.process = value; }
+              }),
+              h(Select, {
+                modelValue: selectedProfileTemplateId.value,
+                options: profileTemplateOptions.value,
+                optionLabel: 'label',
+                optionValue: 'value',
+                typeId: 'profileTemplate',
+                placeholder: t('cassette.v2.profileEditor.loadTemplate'),
+                appendTo: 'self',
+                class: 'w-full',
+                onFocus: ensureProfileTemplatesLoaded,
+                onShow: ensureProfileTemplatesLoaded,
+                'onUpdate:modelValue': loadProfileTemplateDraft
               })
             ]),
-            h(Select, {
-              modelValue: selectedProfileTemplateId.value,
-              options: profileTemplateOptions.value,
-              optionLabel: 'label',
-              optionValue: 'value',
-              typeId: 'profileTemplate',
-              placeholder: t('cassette.v2.profileEditor.loadTemplate'),
-              appendTo: 'self',
-              class: 'w-full',
-              onFocus: ensureProfileTemplatesLoaded,
-              onShow: ensureProfileTemplatesLoaded,
-              'onUpdate:modelValue': loadProfileTemplateDraft
-            }),
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
               'onUpdate:modelValue': value => { profileDraft.value.sketch = value; },
