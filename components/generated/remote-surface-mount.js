@@ -86,9 +86,8 @@ export function editorSurfaceQueries() {
 }
 
 // Cross-type record writes over the generic transport (contract 2): an
-// editor that composes OTHER types' records (the cassette designer's
-// profile templates) creates and updates them through the same instance
-// transports — never a bespoke route.
+// editor that composes OTHER types' records creates and updates them
+// through the same instance transports — never a bespoke route.
 export function editorSurfaceRecords() {
   const instances = useInstancesStore();
   return Object.freeze({

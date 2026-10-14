@@ -496,13 +496,11 @@
         "title": "Profile sketch",
         "name": "Profile name",
         "defaultName": "Hanger profile",
-        "loadTemplate": "Load profile template",
         "preview": "Profile CAD canvas",
         "importDxf": "Import DXF",
         "importFailed": "DXF import failed.",
         "loadFailed": "The CAD engine failed to load.",
         "saved": "Profile template saved",
-        "saveFailed": "Failed to save profile template",
         "invalidSketch": "Close a profile polyline with at least three points before saving.",
         "tools": {
           "select": "Select",

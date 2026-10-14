@@ -7,6 +7,7 @@
 import {
   addCassetteV2GraphChild,
   addCassetteV2HardwareWorkpiece,
+  addCassetteV2ProfileWorkpiece,
   addCassetteV2WorkpieceAttachment,
   addCassetteV2Workpiece,
   CASSETTE_V2_HANGER_PRODUCTION_MODES,
@@ -110,11 +111,11 @@ function snapshotHistory({ snapshot, apply, limit = 50 } = {}) {
   };
 }
 
-export default function createSurface({ vue, components, locale, queries, records, notify, access }) {
+export default function createSurface({ vue, components, locale, queries, notify, access }) {
   const { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
   const t = locale.t;
 
-  if (!queries || !records || !notify || !access) {
+  if (!queries || !notify || !access) {
     throw new Error('cassette-designer requires the contract-2 mount context');
   }
 
@@ -159,13 +160,6 @@ export default function createSurface({ vue, components, locale, queries, record
           queries.list('pen-template').then(rows => { pens.value = rows || []; }).catch(() => {})
         ]);
         await layerStoresPromise;
-      };
-
-      const profileTemplateItems = ref([]);
-      const refreshProfileTemplates = async () => {
-        profileTemplateItems.value = await queries
-          .list('profileTemplate', profileTemplateListFilters())
-          .catch(() => profileTemplateItems.value) || [];
       };
 
       function openDockPopover(panel, event) {
@@ -259,8 +253,6 @@ export default function createSurface({ vue, components, locale, queries, record
       const onboardingDismissed = ref(false);
       const inlineEditorDrag = ref(null);
       const profileDialogVisible = ref(false);
-      const profileSaving = ref(false);
-      const selectedProfileTemplateId = ref('');
       const editingProfileWorkpieceId = ref('');
       const profileDraft = ref({
         name: '',
@@ -356,7 +348,6 @@ export default function createSurface({ vue, components, locale, queries, record
         type: workpiece.type || 'sheet',
         family: workpiece.family || workpiece.hardware?.family || '',
         productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
-        profileTemplateId: workpiece.profileTemplateId || workpiece.hardware?.profileTemplateId || '',
         parameters: workpiece.parameters || workpiece.hardware?.parameters || {},
         isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
         isProfile: workpiece.type === 'profile' || Boolean(workpiece.profileSnapshot || workpiece.profile),
@@ -412,30 +403,6 @@ export default function createSurface({ vue, components, locale, queries, record
         label: t(`cassette.v2.profileProcesses.${process}`),
         value: process
       })));
-      const profileTemplateOptions = computed(() => profileTemplateItems.value.map(profile => ({
-        label: entitySelectLabel(profile, t('cassette.v2.profileEditor.defaultName')),
-        value: entitySelectValue(profile),
-        entity: profile
-      })).filter(option => option.value));
-      const profileTemplateListFilters = () => ({
-        ...(selectedTemplateId.value ? { cassetteTemplateId: selectedTemplateId.value } : {})
-      });
-      const editableProfileTemplateId = (profile = null) => (
-        profile?.lineage?.userId || profile?.lineage?.organizationId ? profile._id : ''
-      );
-      const ensureProfileTemplatesLoaded = async () => {
-        if (!profileTemplateItems.value.length) {
-          await refreshProfileTemplates();
-        }
-      };
-      const upsertProfileTemplateItem = (profile = null) => {
-        if (!profile?._id) return;
-        const nextItems = [...profileTemplateItems.value];
-        const index = nextItems.findIndex(item => String(item?._id || '') === String(profile._id));
-        if (index >= 0) nextItems[index] = profile;
-        else nextItems.unshift(profile);
-        profileTemplateItems.value = nextItems;
-      };
       const placementModeOptions = computed(() => ['point', 'edgeArray'].map(mode => ({
         label: t(`cassette.v2.placementModes.${mode}`),
         value: mode
@@ -1290,38 +1257,17 @@ export default function createSurface({ vue, components, locale, queries, record
         };
         return {
           name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName'),
-          cassetteTemplateId: selectedTemplateId.value || '',
           ...data
         };
       };
 
-      const loadProfileTemplateDraft = (profileId) => {
-        const profile = profileTemplateItems.value.find(item => String(item._id || '') === String(profileId || ''));
-        if (!profile) return;
-        profileDraft.value = {
-          _id: editableProfileTemplateId(profile),
-          name: profile.name || '',
-          kind: profile.fields?.kind || 'hanger',
-          process: profile.fields?.process || 'extruded',
-          parameters: profile.fields?.parameters || {},
-          sketch: profile.fields?.sketch || createDefaultOccsProfileTemplateData().sketch,
-          occsProfile: profile.fields?.occsProfile || null
-        };
-      };
-
-      const openProfileDialog = async (workpieceId = '') => {
+      const openProfileDialog = (workpieceId = '') => {
         closeInlineEditor();
         editingProfileWorkpieceId.value = workpieceId;
-        if (!profileTemplateItems.value.length) {
-          await refreshProfileTemplates();
-        }
         const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
         if (workpiece) {
           const profile = workpiece.profileSnapshot || workpiece.profile || createDefaultOccsProfileTemplateData();
-          const sourceTemplate = profileTemplateItems.value.find(item => String(item._id || '') === String(workpiece.profileTemplateId || ''));
-          selectedProfileTemplateId.value = workpiece.profileTemplateId || '';
           profileDraft.value = {
-            _id: editableProfileTemplateId(sourceTemplate),
             name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
             kind: workpiece.role || profile.kind || 'hanger',
             process: workpiece.process || profile.process || 'extruded',
@@ -1330,7 +1276,6 @@ export default function createSurface({ vue, components, locale, queries, record
             occsProfile: profile.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile.occsProfile || null
           };
         } else {
-          selectedProfileTemplateId.value = '';
           profileDraft.value = {
             name: t('cassette.v2.profileEditor.defaultName'),
             ...createDefaultOccsProfileTemplateData({ sketch: createEmptyOccsProfileSketch() })
@@ -1339,44 +1284,51 @@ export default function createSurface({ vue, components, locale, queries, record
         profileDialogVisible.value = true;
       };
 
-      const saveProfileDraft = async () => {
+      // Profiles persist as tree workpieces (the workpiece's
+      // profileSnapshot is the renderer's geometry source) and ride the
+      // cassette template's own save — no records of any other type.
+      const saveProfileDraft = () => {
         if (!profileDraftReady.value) {
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
-          return null;
+          return;
         }
-        profileSaving.value = true;
-        try {
-          const payload = profileDraftPayload();
-          const saved = profileDraft.value._id
-            ? await records.update('profileTemplate', profileDraft.value._id, payload)
-            : await records.create('profileTemplate', payload);
-          selectedProfileTemplateId.value = saved?._id || selectedProfileTemplateId.value;
-          profileDraft.value._id = saved?._id || profileDraft.value._id;
-          upsertProfileTemplateItem(saved);
-          await refreshProfileTemplates();
-          upsertProfileTemplateItem(saved);
-          notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.saved'), life: 2500 });
-          return saved;
-        } catch (error) {
-          const detail = error?.data?.message || error?.message || t('cassette.v2.profileEditor.saveFailed');
-          notify({ severity: 'error', summary: t('common.error'), detail, life: 5000 });
-          return null;
-        } finally {
-          profileSaving.value = false;
+        const payload = profileDraftPayload();
+        const workpieceId = editingProfileWorkpieceId.value;
+        if (workpieceId && workpieces.value.some(item => item.id === workpieceId)) {
+          cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, workpieceId, {
+            name: payload.name,
+            role: payload.kind,
+            process: payload.process,
+            parameters: payload.parameters,
+            profileSnapshot: {
+              kind: payload.kind,
+              process: payload.process,
+              parameters: payload.parameters,
+              sketch: payload.sketch,
+              section: payload.occsProfile.section,
+              sweep: payload.occsProfile.sweep
+            }
+          });
+        } else {
+          const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
+            referenceWorkpieceId: selectedWorkpieceId.value,
+            name: payload.name,
+            kind: payload.kind,
+            process: payload.process,
+            parameters: payload.parameters,
+            occsProfile: payload.occsProfile,
+            sketch: payload.sketch
+          });
+          cassetteTree.value = added.tree;
+          selectWorkpiece(added.workpieceId);
         }
+        profileDialogVisible.value = false;
+        notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.saved'), life: 2500 });
       };
 
       const updateSelectedHardware = (patch) => {
         if (!selectedWorkpiece.value) return;
         cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, selectedWorkpiece.value.id, patch);
-      };
-
-      const updateSelectedHardwareProfile = (profileId) => {
-        const profile = profileTemplateItems.value.find(item => String(item._id || '') === String(profileId || ''));
-        updateSelectedHardware({
-          profileTemplateId: profile?._id || '',
-          profileSnapshot: profile?.data || null
-        });
       };
 
       const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '') => {
@@ -2087,22 +2039,6 @@ export default function createSurface({ vue, components, locale, queries, record
                             'aria-label': t('cassette.v2.hardwareFields.productionMode'),
                             'onUpdate:modelValue': value => updateSelectedHardware({ productionMode: value })
                           })
-                        : null,
-                      row.family === 'hanger_clip'
-                        ? h(Select, {
-                            modelValue: row.profileTemplateId || '',
-                            options: profileTemplateOptions.value,
-                            optionLabel: 'label',
-                            optionValue: 'value',
-                            size: 'small',
-                            class: 'w-full',
-                            placeholder: t('cassette.v2.profileEditor.loadTemplate'),
-                            'aria-label': t('cassette.v2.profileEditor.loadTemplate'),
-                            onClick: ensureProfileTemplatesLoaded,
-                            onFocus: ensureProfileTemplatesLoaded,
-                            onShow: ensureProfileTemplatesLoaded,
-                            'onUpdate:modelValue': value => updateSelectedHardwareProfile(value)
-                          })
                         : null
                     ])
                   : null,
@@ -2310,7 +2246,7 @@ export default function createSurface({ vue, components, locale, queries, record
           fill: true
         }, {
           default: () => h('div', { class: 'flex min-h-0 flex-1 flex-col gap-3' }, [
-            h('div', { class: 'grid gap-2 md:grid-cols-[minmax(0,1fr)_10rem_10rem_13rem]' }, [
+            h('div', { class: 'grid gap-2 md:grid-cols-[minmax(0,1fr)_10rem_10rem]' }, [
               h(InputText, {
                 modelValue: profileDraft.value.name,
                 'onUpdate:modelValue': value => { profileDraft.value.name = value; },
@@ -2334,19 +2270,6 @@ export default function createSurface({ vue, components, locale, queries, record
                 appendTo: 'self',
                 class: 'w-full',
                 'onUpdate:modelValue': value => { profileDraft.value.process = value; }
-              }),
-              h(Select, {
-                modelValue: selectedProfileTemplateId.value,
-                options: profileTemplateOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                typeId: 'profileTemplate',
-                placeholder: t('cassette.v2.profileEditor.loadTemplate'),
-                appendTo: 'self',
-                class: 'w-full',
-                onFocus: ensureProfileTemplatesLoaded,
-                onShow: ensureProfileTemplatesLoaded,
-                'onUpdate:modelValue': loadProfileTemplateDraft
               })
             ]),
             h(ProfileSketchEditor, {
@@ -2360,8 +2283,7 @@ export default function createSurface({ vue, components, locale, queries, record
               label: t('common.save'),
               icon: 'pi pi-save',
               size: 'small',
-              loading: profileSaving.value,
-              disabled: profileSaving.value,
+              disabled: !profileDraftReady.value,
               onClick: saveProfileDraft
             }),
             h(Button, {
