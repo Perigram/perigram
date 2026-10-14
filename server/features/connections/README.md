@@ -40,8 +40,10 @@ through this module when a write should reach connected clients.
   runs outside the delivery path and can never break fanout.
 - Entity change events are bridged onto `org:<organizationId>` topics as
   `entityChanged` payloads by the instance-events feature, so connected tabs
-  learn about status transitions in realtime; cursor-based polling remains
-  the authoritative catch-up path.
+  reconcile entity changes in realtime (the instance-events store consumes
+  them beside its cursor poll — see
+  [instance-events](../instance-events/README.md)); cursor-based polling
+  remains the authoritative catch-up path.
 
 ## Client Contract
 

@@ -50,14 +50,30 @@ contract.
 - Active process actions publish events when generated screens create, update,
   or change status on entities through the process runtime.
 
+`POST /api/instance-events` echoes the published event (including its
+`eventId`): the publishing tab records that id and skips the event's
+realtime/poll delivery, since its mutation already applied the fresher
+snapshot. Other tabs and sessions of the same user reconcile normally —
+their publications carry different event ids.
+
 ## Consumers
 
-The app shell polls `GET /api/instance-events` once the auth store is hydrated.
-The initial request establishes the current cursor without replaying stale
-history; subsequent requests pass `after=<cursor>` and return immediately with
-new visible events. Short completed requests are used deliberately because they
-work consistently through Nuxt's development worker proxy and production reverse
-proxies. Incoming events are re-emitted through `utils/instance-events.js`, which
+The app shell consumes events over two paths that never double-deliver:
+
+- Realtime: the connections org topic receives every `entityChanged`
+  publish as it happens; the client events store
+  ([stores/README.md](../../../stores/README.md)) emits it into the
+  browser-local event bus immediately and advances its cursor past it.
+  Hidden tabs hold realtime events for the poll instead of dropping
+  them.
+- Catch-up: authenticated clients poll `GET /api/instance-events` by
+  cursor (`after=<cursor>`; short completed requests deliberately, so
+  they behave through dev-worker and production reverse proxies). The
+  initial request establishes the cursor without replaying stale
+  history. The poll remains the authoritative catch-up path for hidden
+  tabs and dropped streams.
+
+Incoming events are re-emitted through `utils/instance-events.js`, which
 is the browser-local contract consumed by shared stores and components.
 
 ## Related

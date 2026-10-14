@@ -63,6 +63,24 @@ export function onInstanceChanged(handler) {
   return () => window.removeEventListener(INSTANCE_CHANGED_EVENT, listener);
 }
 
+// Self-publication registry: event ids this tab published through
+// POST /api/instance-events after applying the mutation's own snapshot.
+// The realtime bridge and the cursor poll skip exactly these ids — the
+// publishing tab already holds fresher state than the invalidation —
+// while other tabs and sessions of the same user reconcile normally.
+const SELF_PUBLISHED_WINDOW = 256;
+const selfPublishedEventIds = [];
+
+export function markSelfPublished(eventId) {
+  if (eventId === null || eventId === undefined) return;
+  selfPublishedEventIds.unshift(eventId);
+  if (selfPublishedEventIds.length > SELF_PUBLISHED_WINDOW) selfPublishedEventIds.length = SELF_PUBLISHED_WINDOW;
+}
+
+export function isSelfPublished(eventId) {
+  return eventId !== null && eventId !== undefined && selfPublishedEventIds.includes(eventId);
+}
+
 function normalizeInstanceChangeDetail(detail = {}) {
   const snapshot = detail.instance || null;
   const normalizedId = detail.id?.toString?.() || detail.id || snapshot?._id?.toString?.() || snapshot?._id || null;

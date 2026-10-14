@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { emitInstanceChanged } from '~/utils/instance-events.js';
+import { emitInstanceChanged, isSelfPublished } from '~/utils/instance-events.js';
 import { useConnections } from '~/composables/useConnections.js';
 import { useAuthStore } from './auth';
 
@@ -44,8 +44,29 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
         unsubscribeContract = topic
             ? useConnections().subscribe(topic, payload => {
                 if (payload?.type === 'contractChanged') handleContractChanged();
+                if (payload?.type === 'entityChanged') handleEntityChanged(payload?.data);
             })
             : null;
+    }
+
+    // Rapid events: entity changes the server bridges onto the org topic
+    // ride the realtime stream instead of waiting for the poll. The event
+    // is the same invalidation signal the poll delivers — the poll stays
+    // the catch-up path for hidden tabs and dropped streams. The cursor
+    // advances past every realtime-delivered event so the poll never
+    // re-delivers it; events this tab published itself (its mutation
+    // already applied the fresher snapshot) are skipped in both paths.
+    function handleEntityChanged(data = {}) {
+        if (!isDocumentVisible()) return;
+        advanceCursor(data.eventId);
+        if (isSelfPublished(data.eventId)) return;
+        emitInstanceChanged({ ...data, source: 'server' });
+    }
+
+    function advanceCursor(eventId) {
+        const id = Number(eventId);
+        if (!Number.isFinite(id)) return;
+        cursor = Math.max(cursor || 0, id);
     }
 
     async function poll(activeRunId) {
@@ -57,10 +78,11 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
             });
             if (activeRunId !== runId) return;
 
-            cursor = response.cursor;
+            cursor = Math.max(cursor || 0, response.cursor);
             connected.value = true;
             error.value = null;
             for (const event of response.events || []) {
+                if (isSelfPublished(event.eventId)) continue;
                 emitInstanceChanged({ ...event, source: 'server' });
             }
             timer = setTimeout(() => poll(activeRunId), POLL_INTERVAL_MS);
