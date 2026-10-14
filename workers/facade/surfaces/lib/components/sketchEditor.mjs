@@ -20,7 +20,7 @@ const BLANK_DXF = '0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1027\n0\nENDSEC\n0\n
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
-  const { Button, Message } = components;
+  const { Button, InputNumber, Message } = components;
 
   // The engine singleton is destroyed and re-created per mount; a pending
   // destroy must finish first or its teardown would clobber the new instance.
@@ -40,6 +40,8 @@ export default function createSketchEditor({ vue, components, locale }) {
       const importError = ref('');
       const activeTool = ref('select');
       const importedFileName = ref('');
+      const orthoMode = ref(false);
+      const tangentSnap = ref(false);
 
       let manager = null;
       let dbListeners = [];
@@ -52,6 +54,26 @@ export default function createSketchEditor({ vue, components, locale }) {
       // refuse the mode-gated draw commands. The bundle exports no mode
       // enum, so the value is read off the fresh document, never hardcoded.
       let writeMode;
+      // DXF osnap bit for Tangent (mode 9 → bit 1<<8): the engine's
+      // settings-manager mask uses the standard OSMODE encoding.
+      const OSNAP_TANGENT_MASK = 1 << 8;
+
+      const toggleOrtho = () => {
+        const database = manager?.curDocument?.database;
+        if (!database) return;
+        orthoMode.value = !orthoMode.value;
+        database.orthomode = orthoMode.value ? 1 : 0;
+      };
+
+      const toggleTangentSnap = () => {
+        const settings = runtime.value?.AcApSettingManager?.instance;
+        if (!settings) return;
+        const mask = Number(settings.osnapModes) || 0;
+        tangentSnap.value = !tangentSnap.value;
+        settings.osnapModes = tangentSnap.value
+          ? mask | OSNAP_TANGENT_MASK
+          : mask & ~OSNAP_TANGENT_MASK;
+      };
 
       const TOOL_GROUPS = [
         [
@@ -66,6 +88,10 @@ export default function createSketchEditor({ vue, components, locale }) {
           { command: 'erase', icon: 'pi pi-trash', labelKey: 'cassette.v2.profileEditor.actions.erase' },
           { command: 'undo', icon: 'pi pi-undo', labelKey: 'cassette.v2.profileEditor.actions.undo' },
           { command: 'redo', icon: 'pi pi-replay', labelKey: 'cassette.v2.profileEditor.actions.redo' }
+        ],
+        [
+          { icon: 'pi pi-square', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
+          { icon: 'pi pi-compass', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap }
         ],
         [
           { icon: 'pi pi-expand', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => manager?.curView?.zoomToFitDrawing?.() },
@@ -261,6 +287,61 @@ export default function createSketchEditor({ vue, components, locale }) {
         tool.onActivate?.();
       };
 
+      const filletRadiusOf = (sketch, vertexId) => (
+        (sketch.modifiers || []).find(modifier => modifier.type === 'fillet' && modifier.vertexId === vertexId)?.radius ?? null
+      );
+
+      // One chip per sketch vertex: the id names it, the numeric input is
+      // that vertex's fillet radius (empty = sharp corner). Open-chain end
+      // vertices have no corner to round, so their inputs disable.
+      const renderFilletRow = () => {
+        const sketch = normalizeOccsProfileSketch(props.modelValue || {});
+        if (sketch.points.length < 2) return null;
+        const last = sketch.points.length - 1;
+        return h('div', { class: 'flex flex-wrap items-center gap-1' },
+          sketch.points.map((point, index) => h('div', {
+            key: point.id,
+            class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5',
+            title: `${point.x}, ${point.y}`
+          }, [
+            h('span', { class: 'font-mono text-xs text-muted-color' }, point.id),
+            h(InputNumber, {
+              modelValue: filletRadiusOf(sketch, point.id),
+              'onUpdate:modelValue': value => { applyFilletRadius(point.id, value); },
+              size: 'small',
+              min: 0,
+              step: 0.5,
+              maxFractionDigits: 2,
+              disabled: !sketch.closed && (index === 0 || index === last),
+              'aria-label': `${t('cassette.v2.profileEditor.filletRadius')} ${point.id}`,
+              inputClass: 'w-16'
+            })
+          ]))
+        );
+      };
+
+      // Radius edits author fillet modifiers directly on the sketch model;
+      // the canvas reseeds from the sketch so the tangent arcs follow. The
+      // extraction pass still re-derives modifiers from drawn geometry, so
+      // a later draw/import overwrites manual radii.
+      const applyFilletRadius = (vertexId, value) => {
+        if (!manager || disposed) return;
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const radius = Math.max(0, Number(value) || 0);
+        const modifiers = normalized.modifiers.filter(modifier => !(
+          modifier.type === 'fillet' && modifier.vertexId === vertexId
+        ));
+        if (radius > 0) modifiers.push({ type: 'fillet', vertexId, radius });
+        const next = { ...normalized, modifiers };
+        const fingerprint = JSON.stringify(next);
+        if (fingerprint === lastEmitted) return;
+        lastEmitted = fingerprint;
+        emit('update:modelValue', next);
+        emit('profile', occsProfileFromSketch(next, { parameters: next.parameters }));
+        clearDrawingEntities();
+        seedEntities({ entities: occProfileEntitiesFromSketch(next) });
+      };
+
       const handleDxfUpload = async (event) => {
         const [file] = Array.from(event.target.files || []);
         event.target.value = '';
@@ -336,6 +417,9 @@ export default function createSketchEditor({ vue, components, locale }) {
           manager.events.documentCreated.addEventListener(bindDatabase);
           containerRef.value?.addEventListener('keydown', handleKeydown, true);
           bindDatabase();
+          orthoMode.value = Number(manager.curDocument?.database?.orthomode) === 1;
+          const osnapMask = Number(loaded.AcApSettingManager.instance.osnapModes) || 0;
+          tangentSnap.value = (osnapMask & OSNAP_TANGENT_MASK) !== 0;
           lastEmitted = '';
           reseedFromModel();
           emitSketch();
@@ -390,7 +474,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             ...group.map(tool => h(Button, {
               key: tool.labelKey,
               icon: tool.icon,
-              severity: tool.command && activeTool.value === tool.command ? 'primary' : 'secondary',
+              severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
               size: 'small',
               rounded: true,
               'aria-label': t(tool.labelKey),
@@ -422,7 +506,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         ]),
         importError.value
           ? h(Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
-          : null
+          : null,
+        renderFilletRow()
       ]);
     }
   });
