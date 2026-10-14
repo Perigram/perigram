@@ -1,5 +1,12 @@
 <template>
-  <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', LAYOUT.headerBar, 'surface-header']">
+  <!-- The record header paints nothing: no surface, no border — the
+       record page's stack rhythm separates it from the body, and pane
+       boxes / route shells own the frames around it. One identity line:
+       contextual back, avatar, title with the one state surface (tag +
+       history affordance) riding it, the localized type label muted
+       below; actions cluster to the right (the identity's flex-1 is the
+       push) and wraps below on narrow containers. -->
+  <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', 'surface-header']">
     <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" @open="target => emit('open-instance', target)" />
     <div :class="LAYOUT.headerRow" class="header-row">
       <!-- Contextual navigation slot: a host that opened this record
@@ -22,13 +29,36 @@
       />
       <slot name="navigation" />
       <div :class="LAYOUT.headerIdentity" class="header-identity">
-        <Avatar :icon="glyph" shape="circle" size="large" />
+        <Avatar :icon="glyph" shape="circle" size="large" class="shrink-0" />
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
+          <div class="flex min-w-0 items-center gap-2">
+            <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
+            <!-- One state surface per header: an instance carrying a flat
+                 state renders the segmented current-state tag with its
+                 history popover (the status_events audit trail) riding
+                 the title line; instances without a state render nothing
+                 — no state is itself information (SPEC §7: nothing
+                 synthesizes one). -->
+            <StateTag v-if="currentState" :value="currentState" :policy="statePolicy" class="shrink-0" />
+            <Button
+              v-if="currentState"
+              icon="pi pi-clock"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              class="shrink-0"
+              :aria-label="$t('uiMapping.stateHistory')"
+              @click="event => historyPopover?.toggle(event)"
+            />
+            <Popover v-if="currentState" ref="historyPopover">
+              <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
+            </Popover>
+          </div>
           <span v-if="typeLabel" class="text-supporting text-muted truncate">{{ typeLabel }}</span>
         </div>
       </div>
-      <div :class="LAYOUT.row">
+      <div :class="LAYOUT.row" class="header-actions">
         <!-- The composed instance-chat entry, the same route every instance
              surface uses (InstanceCard popovers, pane strips): the record
              header owns the conversation affordance instead of an embedded
@@ -89,26 +119,6 @@
         />
         <Menu ref="overflowMenu" :model="overflowMenuItems" popup />
       </div>
-    </div>
-    <!-- One status surface per header: an instance carrying a flat state
-         renders the segmented current-state tag with its history popover
-         (the status_events audit trail); instances without a state render
-         nothing — no state is itself information (SPEC §7: nothing
-         synthesizes one). -->
-    <div v-if="currentState" :class="[LAYOUT.row, 'mt-1']">
-      <StateTag :value="currentState" :policy="statePolicy" />
-      <Button
-        icon="pi pi-clock"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('uiMapping.stateHistory')"
-        @click="event => historyPopover?.toggle(event)"
-      />
-      <Popover ref="historyPopover">
-        <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
-      </Popover>
     </div>
   </div>
 </template>
@@ -238,11 +248,11 @@ const currentState = computed(() => props.instance?.state || null);
 <style scoped>
 /* Container-relative record header (the ResponsiveGrid pattern — the
    tailwindcss build has no container-queries plugin, so this lives in
-   real CSS, not Tailwind variants). The header bar is its own layout
-   container; wide headers lay identity and actions on one wrapping row
-   with a readable 16rem title floor (long names still truncate through
-   the min-w-0 chain), while narrow headers — panels, detail side
-   columns — stack the action cluster below the full-width title. */
+   real CSS, not Tailwind variants). The header is its own layout
+   container; the identity's flex-1 pushes the action cluster right, so
+   wide headers carry one identity line (back, avatar, title + state,
+   type label, actions) while narrow headers — panels, detail side
+   columns — stack the action cluster below the full-width identity. */
 .surface-header {
   container-type: inline-size;
 }
@@ -252,7 +262,6 @@ const currentState = computed(() => props.instance?.state || null);
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
   }
 
   .header-identity {

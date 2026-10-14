@@ -537,8 +537,9 @@ describe('value formatting and layout vocabulary', () => {
     // container-queries plugin, so any @container/@[w]: class compiles to
     // nothing. The responsive switch lives in SurfaceHeader scoped CSS;
     // tokens carry only the static stacked layout and the shrink contract
-    // (min-w-0 keeps long names truncating instead of overflowing).
-    expect(LAYOUT.headerBar).not.toContain('@');
+    // (min-w-0 keeps long names truncating instead of overflowing). The
+    // header paints no box — retired with the boxed headerBar token.
+    expect(LAYOUT.headerBar).toBeUndefined();
     expect(LAYOUT.headerRow).toBe('flex flex-col items-start gap-3');
     expect(LAYOUT.headerIdentity).toBe('min-w-0 flex-1');
     expect(HEADER_ACTIONS_INLINE).toBe(2);
