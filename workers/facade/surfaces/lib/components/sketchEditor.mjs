@@ -4,7 +4,6 @@
 // grips, and undo/redo run in the engine; entity records and the sketch
 // model normalize through occs/profiles.js.
 import {
-  evaluateOccsProfileSketch,
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
   occProfileSketchFromEntities,
@@ -90,7 +89,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           { command: 'pline', labelKey: 'cassette.v2.profileEditor.tools.polyline' },
           { command: 'circle', labelKey: 'cassette.v2.profileEditor.tools.circle' },
           { command: 'arc', labelKey: 'cassette.v2.profileEditor.tools.arc' },
-          { command: 'rectang', labelKey: 'cassette.v2.profileEditor.tools.rectangle' }
+          { command: 'rectang', labelKey: 'cassette.v2.profileEditor.tools.rectangle' },
+          { command: 'dimlinear', labelKey: 'cassette.v2.profileEditor.tools.dimension' }
         ],
         [
           { command: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' },
@@ -264,8 +264,14 @@ export default function createSketchEditor({ vue, components, locale }) {
         manager.curView?.addEntity?.(created);
       };
 
+      // The reseed clears exactly what extraction consumes (the geometry
+      // the sketch owns); placed dimensions and other annotations survive
+      // parametric edits.
+      const RESEED_OWNED_TYPES = new Set(['LINE', 'CIRCLE', 'ARC', 'LWPOLYLINE', 'POLYLINE']);
+
       const clearDrawingEntities = () => {
         for (const entity of modelSpaceEntities()) {
+          if (!RESEED_OWNED_TYPES.has(entity.dxfTypeName)) continue;
           manager.curView?.removeEntity?.(entity);
           const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
           modelSpace?.removeEntity?.(entity.objectId);
@@ -445,97 +451,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         'aria-label': ariaLabel
       });
 
-      // Dimension annotations for the authored shape: the corner outline
-      // with a linear dimension per edge (offset line, ticks, measured
-      // length) — drawn in a compact fit-view band, chord runs excluded.
-      const renderDimensionBand = (sketch) => {
-        let evaluated = null;
-        try {
-          evaluated = evaluateOccsProfileSketch(sketch);
-        } catch {
-          return null;
-        }
-        const corners = evaluated.points.filter(point => !point.chord);
-        if (corners.length < 2) return null;
-        const closed = evaluated.closed && corners.length >= 3;
-
-        const width = 640;
-        const height = 104;
-        const margin = 30;
-        const xs = corners.map(point => point.x);
-        const ys = corners.map(point => point.y);
-        const bounds = { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
-        const spanX = Math.max(bounds.maxX - bounds.minX, 1);
-        const spanY = Math.max(bounds.maxY - bounds.minY, 1);
-        const scale = Math.min((width - margin * 2) / spanX, (height - margin * 2) / spanY);
-        const offsetX = (width - spanX * scale) / 2 - bounds.minX * scale;
-        const offsetY = (height - spanY * scale) / 2 - bounds.minY * scale;
-        const px = (point) => [point.x * scale + offsetX, height - (point.y * scale + offsetY)];
-
-        const edges = [];
-        const edgeCount = closed ? corners.length : corners.length - 1;
-        for (let index = 0; index < edgeCount; index += 1) {
-          const a = corners[index];
-          const b = corners[(index + 1) % corners.length];
-          const length = Math.hypot(b.x - a.x, b.y - a.y);
-          if (length < 1e-6) continue;
-          edges.push({ a, b, length });
-        }
-        const centroid = corners.reduce((sum, point) => [sum[0] + point.x, sum[1] + point.y], [0, 0])
-          .map(value => value / corners.length);
-
-        const outline = corners.map(point => px(point).map(value => value.toFixed(1)).join(',')).join(' ');
-        return h('svg', {
-          viewBox: `0 0 ${width} ${height}`,
-          class: 'w-full max-h-26 text-muted-color',
-          role: 'img',
-          'aria-label': t('cassette.v2.profileEditor.dimensions')
-        }, [
-          h(closed ? 'polygon' : 'polyline', {
-            points: outline,
-            fill: 'none',
-            stroke: 'currentColor',
-            'stroke-width': 1,
-            'stroke-opacity': 0.5
-          }),
-          ...edges.map((edge, index) => {
-            // Dimension line offset outward from the shape's centroid.
-            const dx = edge.b.x - edge.a.x;
-            const dy = edge.b.y - edge.a.y;
-            const normal = [dy, -dx];
-            const normalLength = Math.hypot(normal[0], normal[1]);
-            const outward = [
-              (centroid[0] - (edge.a.x + edge.b.x) / 2) * normal[0],
-              (centroid[1] - (edge.a.y + edge.b.y) / 2) * normal[1]
-            ].reduce((sum, value) => sum + value, 0) < 0 ? normal : [-normal[0], -normal[1]];
-            const unit = [outward[0] / normalLength, outward[1] / normalLength];
-            const offset = 12 / scale;
-            const a1 = px({ x: edge.a.x + unit[0] * offset, y: edge.a.y + unit[1] * offset });
-            const b1 = px({ x: edge.b.x + unit[0] * offset, y: edge.b.y + unit[1] * offset });
-            const tickA = px({ x: edge.a.x + unit[0] * (offset - 2 / scale), y: edge.a.y + unit[1] * (offset - 2 / scale) });
-            const tickA2 = px({ x: edge.a.x + unit[0] * (offset + 2 / scale), y: edge.a.y + unit[1] * (offset + 2 / scale) });
-            const tickB = px({ x: edge.b.x + unit[0] * (offset - 2 / scale), y: edge.b.y + unit[1] * (offset - 2 / scale) });
-            const tickB2 = px({ x: edge.b.x + unit[0] * (offset + 2 / scale), y: edge.b.y + unit[1] * (offset + 2 / scale) });
-            const label = px({
-              x: (edge.a.x + edge.b.x) / 2 + unit[0] * (offset + 6 / scale),
-              y: (edge.a.y + edge.b.y) / 2 + unit[1] * (offset + 6 / scale)
-            });
-            return h('g', { key: index }, [
-              h('line', { x1: a1[0], y1: a1[1], x2: b1[0], y2: b1[1], stroke: 'currentColor', 'stroke-width': 1 }),
-              h('line', { x1: tickA[0], y1: tickA[1], x2: tickA2[0], y2: tickA2[1], stroke: 'currentColor', 'stroke-width': 1 }),
-              h('line', { x1: tickB[0], y1: tickB[1], x2: tickB2[0], y2: tickB2[1], stroke: 'currentColor', 'stroke-width': 1 }),
-              h('text', {
-                x: label[0], y: label[1],
-                'font-size': 10,
-                'text-anchor': 'middle',
-                'dominant-baseline': 'middle',
-                fill: 'currentColor'
-              }, edge.length.toFixed(1))
-            ]);
-          })
-        ]);
-      };
-
       // Authoring rows: parameters, per-vertex coordinates + fillet radius,
       // per-hole center + diameter. Values are numbers or expressions; the
       // tooltip shows the resolved value. An open sketch's first and last
@@ -636,9 +551,6 @@ export default function createSketchEditor({ vue, components, locale }) {
             }, '⌖ 0,0'));
           }
           rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, vertexChips));
-        }
-        if (sketch.points.length >= 2) {
-          rows.push(renderDimensionBand(sketch));
         }
         if (sketch.holes.length) {
           rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' },

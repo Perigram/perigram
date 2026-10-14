@@ -508,7 +508,8 @@
           "polyline": "Polyline",
           "circle": "Circle",
           "arc": "Arc",
-          "rectangle": "Rectangle"
+          "rectangle": "Rectangle",
+          "dimension": "Dimension"
         },
         "actions": {
           "erase": "Erase",

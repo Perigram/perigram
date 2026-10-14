@@ -508,7 +508,8 @@
           "polyline": "Полилиния",
           "circle": "Окружность",
           "arc": "Дуга",
-          "rectangle": "Прямоугольник"
+          "rectangle": "Прямоугольник",
+          "dimension": "Размер"
         },
         "actions": {
           "erase": "Удалить",
