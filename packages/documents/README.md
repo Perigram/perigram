@@ -111,14 +111,12 @@ The pack binds the text and csv editors (`edit` mode) to their types —
 and the editor surfaces are the pack's own components
 (`src/editors/TextDocumentEditor.vue` and `src/editors/CsvTableEditor.vue`):
 editor surfaces belong to the pack that owns the type, the app-side
-file-surface registry is only the mount table. The text editor edits the
-markdown source with LIVE split rendering (source left in the technical
-mono voice, the sanitized rendered document beside it through
-[shared/markdown.js](../../shared/markdown.js) — what you type is what
-you read; source-only and preview-only states serve focused work). The
-pack editors compose with the host's utility classes; the Tailwind
-content scan covers `packages/*/src/editors` (pinned by the
-design-system spec). The
+file-surface registry is only the mount table. The text editor is a
+single-surface live markdown editor (milkdown crepe, owner direction
+2026-10-15: the Obsidian model — the document renders in place while
+writing, the focused block shows its markdown source; the editor's
+model IS markdown, serialization is the framework's own, no rich-text
+proxy). The
 csv editor edits rows in a cell table and serializes CSV text on save
 (PrimeVue's cell editor commits through `cell-edit-complete`). Both take
 the instance-backed persistence contract (loads through the payload
