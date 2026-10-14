@@ -192,6 +192,11 @@ the stored kind. Contracts:
   dropped string ids carrying string policies — `content` creates opened
   no dialog and posted an empty draft (400). The resolver prompts them
   exactly like the object form.
+- [x] E. CSV cell commits (2026-10-14): PrimeVue's cell editor binds a
+  working copy and delivers the edit through `cell-edit-complete`; the
+  editor never applied it, so cell edits re-rendered the original and
+  saves serialized the untouched rows — committed through the event
+  handler. Keeper E2E: `e2e/md-editor-repair.spec.js`.
 - [ ] WAITING — owner verification on the live stack: a text document
   fills its pane with one scroll, a `.md` file uploads and
   round-trips through the editor, a CSV round-trips with content intact,
@@ -223,6 +228,23 @@ Correction to the md-deslop note above: the live csv failure observed
 there was this dialog shortcut, not the save path — the save
 serialization fix stands on code reading (csv mode never populated the
 saved ref) and is covered by the same keeper E2E end to end.
+
+### Agent Notes (2026-10-14, md-csv-commit session)
+
+Session `agent/md-csv-commit-20261014-155854`. With the dialog opening,
+the keeper E2E walked further and exposed a second latent csv defect:
+cell edits never committed. PrimeVue 4's `editMode="cell"` binds the
+`#editor` slot to a working copy (`editingMeta` row) and delivers the
+edit through `cell-edit-complete` (`{ data, field, newValue }`); the
+component's `v-model="data[field]"` only wrote the copy, so the table
+re-rendered the original value and saves serialized untouched rows —
+csv editing never worked through this surface. Fix: apply the event's
+`newValue` onto the row object in `rows` (reactive: display, dirty,
+and save all follow). The keeper E2E
+(`e2e/md-editor-repair.spec.js`) pins the three legs live: blank
+markdown editor opens pristine and round-trips source through
+preview/save; a `.md` uploads through the content/upload protocol
+dialog with the type's accept; csv edits commit and serialize.
 
 ### Agent Notes (2026-10-14, md-deslop session)
 
