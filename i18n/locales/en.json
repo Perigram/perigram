@@ -502,6 +502,7 @@
         "loadFailed": "The CAD engine failed to load.",
         "saved": "Profile template saved",
         "invalidSketch": "Close a profile polyline with at least three points before saving.",
+  "unchained": "Unconnected geometry: {count} piece(s) outside the chain — connect or erase before saving.",
         "tools": {
           "select": "Select",
           "line": "Line",

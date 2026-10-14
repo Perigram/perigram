@@ -51,8 +51,12 @@ toolbar): ortho toggles through the document's `orthomode` property
 `AcApSettingManager.osnapModes` as the standard DXF OSMODE bit mask
 (shipped default set: endpoint, midpoint, center, quadrant,
 intersection, nearest — the surface ORs in the Tangent bit for fillet
-workflows). POLARMODE/POLARANG are non-db sysvars held in the engine's
-internal sysvar manager, which the bundle does not export — wiring
-polar tracking needs a re-vendor that re-exports it. This build has no
-grid or snap-to-grid at all (grid data only round-trips through DXF
-viewport table records).
+workflows). The settings manager persists `osnapModes` to localStorage
+per origin and a stored value permanently overrides the engine defaults,
+so the editor asserts the default six-mode mask (± the Tangent toggle)
+on every mount — a stale stored mask from an older build can never
+disable snapping. POLARMODE/POLARANG are non-db sysvars held in the
+engine's internal sysvar manager, which the bundle does not export —
+wiring polar tracking needs a re-vendor that re-exports it. This build
+has no grid or snap-to-grid at all (grid data only round-trips through
+DXF viewport table records).

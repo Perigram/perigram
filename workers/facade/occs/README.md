@@ -64,10 +64,17 @@ modules — no platform imports.
   toggle arms a modal pick; dashed targets highlight every corner) and
   shown as a datum mark — that lands on the attachment snap+offset point
   when inserted, with cut geometry taken anchor-relative. Open shapes
-  carry no anchor — the canvas overlay marks the sketch origin and the
-  chain's end point; insertion places by the origin and breaks the host
-  contour at the endpoints. Anchors are model state, not geometry:
-  extraction preserves them instead of re-deriving. Dimensions are
+  carry two anchors — their first and last vertices, the same vertices
+  that break the host contour — shown as datum marks beside the sketch
+  origin, which the canvas always marks (0,0), empty sketch included;
+  insertion places by the origin and breaks the host contour at the
+  endpoints. Anchors are model state, not geometry: extraction preserves
+  them instead of re-deriving (open-shape anchors are derived from the
+  chain ends, never stored). One connected chain is the law: when drawn
+  or imported entities hold pieces no chain joins, extraction keeps the
+  longest chain but records the leftovers as the sketch's `unchained`
+  count, the savable gate refuses while it is non-zero, and the editor
+  surfaces it — never a silent drop, never an auto-connect with lines. Dimensions are
   automatic annotations over the canvas: a derived overlay (a computed
   keyed on the view's render frame) draws one linear dimension per
   authored edge — extension lines, ticks, the measured length —
@@ -88,11 +95,13 @@ modules — no platform imports.
   the designer's section layer marks them and splits the host face's
   contour at their projections where the profile lands, and the evaluated layerData carries the two
   contour chains into production redraw on `contour.cassette_face`. The
-  sketch editor's authoring rows edit the parameter table, vertex
-  coordinates, fillet radii, and hole geometry directly on the sketch
-  model, beneath a dimension annotation band; the extraction pass re-derives points, holes, and
-  modifiers from drawn geometry, so a later draw or import overwrites
-  authored expressions and radii. Parametric instantiation: a profile
+  sketch editor's authoring rows edit the parameter table and hole
+  geometry directly on the sketch model, beneath a dimension annotation
+  band; vertex coordinates and fillet radii edit through a canvas popup
+  that opens on the selected corner (Select-tool click near an authored
+  vertex; Escape or clicking away closes it). The extraction pass
+  re-derives points, holes, and modifiers from drawn geometry, so a
+  later draw or import overwrites authored expressions and radii. Parametric instantiation: a profile
   workpiece's parameter table overrides the profile's authored table and
   its snapshot re-derives from the authored sketch (the stored section is
   a last-good cache — a transient invalid parameter holds it); the
