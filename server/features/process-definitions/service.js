@@ -440,8 +440,11 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
   // The starter definition carries the mounted packs' starter constructs
   // (SPEC §UI visible-by-default) — authored through the same headless
   // seam the designer and the stationing script use, so validation,
-  // compilation, and activation run identically.
-  const authoring = createDefinitionAuthoring(await getProjectedDomain(organizationIdValue));
+  // compilation, and activation run identically. The projected domain
+  // (not the pack domain slices) is the validation surface — it carries
+  // the entities the authored nodes address.
+  const domain = await getProjectedDomain(organizationIdValue);
+  const authoring = createDefinitionAuthoring(domain);
   for (const [index, construct] of composeStarterConstructs().entries()) {
     const id = `starter-${index}`;
     authoring.drop('construct', { id });
@@ -463,7 +466,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
   assertCurrentProcessDefinition(process.data);
 
   const roles = await loadOrganizationRoles(organizationId);
-  const validation = validateActivatableProcess(process.data, getDomain(), roles);
+  const validation = validateActivatableProcess(process.data, domain, roles);
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
   }
