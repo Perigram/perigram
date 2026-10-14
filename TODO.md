@@ -1768,6 +1768,25 @@ size (dialog open animation races the mount). Browser-verified in a
 fill-managed dialog harness: canvas 80% of the dialog content, delayed
 show recovers, LINE + Close draws and extracts, no page errors.
 
+### Agent Notes (2026-10-14, module cache + the real root cause — dead classes)
+
+Two rounds of "nothing changed" from the owner. First wrong diagnosis:
+browser cache (prohibited by the operating protocol without certainty;
+the app's catch-all stale-while-revalidate rule did apply to module
+responses and was fixed to `no-store` — real, but not the visible bug).
+The actual root cause: the app's tailwind content scan never included
+the plugin surfaces tree, so every structural utility class in surface
+markup (`md:grid-cols-[…]`, `h-[28rem]`, `flex-1`, `min-h-[18rem]`)
+was never compiled — the dialog rendered from the incidental subset
+(stacked selects, collapsed canvas) and each "fix" wrote more dead
+classes. The browser harness missed it because its page hand-defined
+CSS stand-ins for exactly those classes — a lying harness. Fixed by
+scanning `workers/facade/surfaces/**` (vendored runtimes excluded);
+the surface-styles contract is homed in the plugins feature README
+with an authoring pointer in PLUGIN_AUTHORING. Lesson recorded: a
+synthetic harness must import the host's real stylesheet, not
+reimplement it.
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);

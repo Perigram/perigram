@@ -133,6 +133,14 @@ executors through the worker protocol.
   same-origin URLs
   ([cts-types](../cts-types/README.md)); connection settings never reach
   the browser.
+- **Surface styles**: a surface module composes with the host's utility
+  classes, and those classes are compiled by the app's style build —
+  which only sees sources in its tailwind content scan. In-repo surface
+  modules (the demo's facade plugin) are scan members
+  (tailwind.config.js `content` includes the surfaces tree; vendored
+  runtimes are excluded); a surface shipped from outside the repo must
+  limit itself to classes the host already compiles, or the host must
+  add its sources to the scan.
 - **Upgrades**: pins move only through an explicit diff-plus-migration
   apply (`GET`/`POST /api/organizations/:id/plugins/:pluginId/upgrade`).
   The preview runs the SPEC §11 planner over every changed type

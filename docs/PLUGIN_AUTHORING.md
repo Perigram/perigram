@@ -92,6 +92,11 @@ persistence callbacks, never stores, routing, or auth:
   The bound type must declare a revision scope (`revisions`, e.g.
   `"document"`): payload replacement requires one, and a type without it
   refuses saves.
+- Utility classes in surface markup are host-compiled: the app's tailwind
+  content scan must include the surface's sources (the plugins feature
+  README's surface-styles contract). Classes the host does not compile
+  are silently dead — a surface that needs one the host lacks must get
+  its sources into the scan, not assume it exists.
 - Editor-grade mounts (`surfaceContract: 2`) receive three more ctx
   members beside the base: `queries` (`list(typeId, params)` /
   `get(typeId, id)` — cross-type instance reads over the generic

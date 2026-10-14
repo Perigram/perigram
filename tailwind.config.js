@@ -18,6 +18,11 @@ export default {
     './assets/css/**/*.css',
     './shared/ui-mapping/*.js',
     './utils/*.js',
+    // In-repo plugin surface modules compose with the host's utility
+    // classes; without this scan those classes never compile and the
+    // surfaces render unstyled. Vendored runtimes are excluded — they
+    // never carry host classes and would only bloat the extraction.
+    './workers/facade/surfaces/**/*.{js,mjs}',
   ],
   darkMode: ['selector', '.dark-mode'],
   theme: {
