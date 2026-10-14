@@ -3176,6 +3176,17 @@ function connectionCompatibility(connection = {}) {
           ? { ok: true }
           : { ok: false, reason: t('processDesigner.connectReasons.nameClassBeforeRefTarget') };
       }
+      // A type-reference card names a registry type; it cannot be the
+      // parent of anything (containment is authored on the type's own
+      // declaration, which this tree does not own). The class-first
+      // gesture is legal in the reversed direction — teach it.
+      if (source.type === 'ctsType' && target.type === 'ctsClass') {
+        const targetName = String(target.data?.name || target.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass');
+        return {
+          ok: false,
+          reason: t('processDesigner.connectReasons.typeRefNotParent', { target: targetName })
+        };
+      }
       return {
         ok: false,
         reason: (source.type === 'ctsClass' || source.type === 'ctsType') && targetRecord
