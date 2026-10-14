@@ -60,6 +60,7 @@ export {
   operationKindOf,
   createProcessDesignerContract,
   declarationWireLegality,
+  orientChildrenWire,
   servicesPaletteGroups,
   packPaletteGroups,
   syncProcessNodeProducerOutputs

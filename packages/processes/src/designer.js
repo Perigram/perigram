@@ -216,8 +216,7 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
   // an org type's containment may name pack and other registry types
   // (SPEC §6 — the child edge's type list is not restricted to in-tree
   // declarations), the same freedom ref-field targets already have.
-  if (sourceType === 'ctsClass' && (targetType === 'ctsClass' || targetType === 'ctsType')) return 'children';
-  // A state wired into a state input becomes that state's child: the wire's
+  if (sourceType === 'ctsClass' && (targetType === 'ctsClass' || targetType === 'ctsType')) return 'children';  // A state wired into a state input becomes that state's child: the wire's
   // source is the parent, the target (receiving state) the child (SPEC §7).
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'nested';
   // A state wires into a status-bearing operation's state socket: the
@@ -248,6 +247,20 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
     && targetType === 'processNode'
     && carriesTypePin(targetRecord || { kind: targetRecordKind })) return 'binds';
   return null;
+}
+
+// Children-wire orientation: the parent must be an in-tree class that may
+// declare children (SPEC §5 — type-reference cards and file/party classes
+// never parent). When exactly one end can parent, the wire orients itself
+// there — the drag direction is ceremony, not meaning; when both ends
+// could parent, the drag direction is the author's choice (source =
+// parent). `ok: false` means no orientation is legal.
+export function orientChildrenWire({ source = {}, target = {} } = {}) {
+  const sourceCanParent = source.type === 'ctsClass' && classMayDeclareChildren(source.class);
+  const targetCanParent = target.type === 'ctsClass' && classMayDeclareChildren(target.class);
+  if (targetCanParent && !sourceCanParent) return { ok: true, parent: 'target' };
+  if (sourceCanParent) return { ok: true, parent: 'source' };
+  return { ok: false };
 }
 
 // Tree declarations compile from the canvas vocabulary (SPEC §20/§21 one
