@@ -207,7 +207,6 @@ export const LAYOUT = Object.freeze({
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
   bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
-  headerBar: 'bg-content border-content-border rounded-ui border p-4',
   sectionTitle: 'text-label text-muted uppercase',
   // The record-header row is container-relative, never viewport-relative —
   // but through scoped CSS in SurfaceHeader (the ResponsiveGrid pattern),
