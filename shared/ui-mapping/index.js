@@ -908,8 +908,11 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       continue;
     }
     // A string protocol input (the `content` creation protocol's text
-    // body): a scalar prompt row, its control pin riding the descriptor.
-    if (policy?.type === 'string' && typeof inputId === 'object') {
+    // body): a scalar prompt row, its control pin riding the descriptor —
+    // whether the construction input arrives as the full object or as
+    // its bare id with the policy on the input policy (the served
+    // contract summarizes inputs to ids).
+    if (policy?.type === 'string') {
       rows.push({
         id,
         label: policy.label || fieldLabel(id),

@@ -951,6 +951,28 @@ describe('create dialog input resolution', () => {
     }]);
   });
 
+  it('prompts a string protocol input arriving as a bare id', () => {
+    // The served contract summarizes construction inputs to ids — the
+    // same content body with its policy on the input policy resolves
+    // the identical row instead of disappearing (a missing row takes
+    // the no-rows shortcut and posts an empty draft).
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: ['content'] },
+        inputPolicy: { fields: [{ id: 'content', path: 'content', type: 'string', required: true, label: 'Content', control: 'Textarea' }] }
+      },
+      type,
+      bundle
+    );
+    expect(rows).toEqual([{
+      id: 'content',
+      label: 'Content',
+      descriptor: { base: 'string', control: 'Textarea' },
+      span: 'full',
+      required: true
+    }]);
+  });
+
   it('matches reverse containment by the declared lineageKey, not the edge map key', () => {
     // Designer-authored children edges are keyed by authoring identity
     // (`t-part-1s`) and declare their storage key (`tBin1Id`) — the
