@@ -10,6 +10,10 @@ fabrication domain (laser, vinyl, plotter) can require it without CNC.
 
 ## Types
 
+Every type's `glyph` is its `ck-file-type-icon ck-file-type-icon-<id>`
+class from the material-outline file-type icon font
+([scripts/README.md](../../scripts/README.md) owns the build).
+
 - `pen-template` (file class): `name` plus the `stroke` record —
   `color` (hex string; the color-picker is render policy, not a value
   base), `weight: Quantity(mm)`, `pattern: Enum(solid|dashed|dotted)`.

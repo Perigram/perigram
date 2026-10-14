@@ -11,21 +11,39 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 
 ## Core Files
 
-- `build-entity-icons.js`: Builds the `ck-entity-icons` font from the
-  hand-drawn CNC domain SVGs in `public/icons/data-model/cnc-domain/`
-  (24-grid sources; the seven-glyph set is the owner's original icon
-  family — treat them as authored assets, never as orphaned files)
-  via fantasticon, writes
-  `public/fonts/cnc-domain/ck-entity-icons.{woff2,ttf}`, and rewrites
-  the marked `ck-entity-icons` block in `assets/css/main.css` so icon
-  codepoints never drift from the class definitions. The consumers are
-  type `glyph` declarations: the facade plugin's listing
-  (`workers/facade/listing.json`) carries the class strings
-  (`ck-entity-icon ck-entity-icon-<name>`, consumed exactly like a
-  `pi pi-*` PrimeIcon string). Run as `npm run icons:build` after adding
-  or editing source SVGs — nothing outside the marked CSS block is
-  hand-editable (hand-written rules parked inside the markers are
-  deleted on rebuild).
+- `build-icon-fonts.js`: Builds the app's icon fonts and syncs each
+  generated CSS block into `assets/css/main.css`. Two families, one font,
+  one marker block each:
+  - `ck-entity-icons` from the hand-drawn CNC domain SVGs in
+    `public/icons/data-model/cnc-domain/` (24-grid sources; the
+    seven-glyph set is the owner's original icon family — treat them as
+    authored assets, never as orphaned files), fonts in
+    `public/fonts/cnc-domain/`;
+  - `ck-file-type-icons` from `public/icons/file-types/`, fonts in
+    `public/fonts/file-types/` — one source per mounted-pack CTS file
+    type, named by type id. Sources are Google Material Symbols Outlined
+    SVGs (Apache-2.0), the "Material Outline" style whose icons8 CDN
+    serving is PNG-with-attribution only (SVG is paid), so the upstream
+    Google sources are vendored instead. Type → icon: image→image,
+    pdf-document→picture_as_pdf, text-document→description,
+    csv-table→table, xlsx-workbook→table_chart, docx-document→article,
+    pen-template→edit, color→palette, dxf-source→architecture,
+    svg-file→polyline, layer-standard→layers, sketch→draw. New sources
+    must land on the plain 24 grid (`viewBox="0 0 24 24"`, absolute
+    leading `M`): the stock Material Symbols 960-unit shifted viewBox
+    with a leading relative `m` corrupts the build.
+  Both build via fantasticon and rewrite their `/* <font>:start */` block
+  in `assets/css/main.css`, so icon codepoints never drift from the class
+  definitions. The consumers are type `glyph` declarations: the packs'
+  file types carry `ck-file-type-icon ck-file-type-icon-<typeId>`, and
+  the facade plugin's listing (`workers/facade/listing.json`) carries
+  `ck-entity-icon ck-entity-icon-<name>` — both consumed exactly like a
+  `pi pi-*` PrimeIcon string. `shared/icon-fonts.spec.js` guards the
+  pack-side drift: every `ck-*` glyph class a mounted pack declares must
+  resolve in the generated CSS. Run as `npm run icons:build` after adding
+  or editing source SVGs — nothing outside the marked CSS blocks is
+  hand-editable (hand-written rules parked inside the markers are deleted
+  on rebuild).
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks

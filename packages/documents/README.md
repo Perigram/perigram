@@ -15,7 +15,10 @@ here — they are tech-drawing vocabulary
 All types are `file` class with a `name` row field and payload traits
 whose `preview` modes match the shared viewer modules exactly (see the
 preview contract in
-[components/generated/README.md](../../components/generated/README.md)):
+[components/generated/README.md](../../components/generated/README.md)).
+Each type's `glyph` is its `ck-file-type-icon ck-file-type-icon-<id>`
+class from the material-outline file-type icon font
+([scripts/README.md](../../scripts/README.md) owns the build):
 
 | Type | Payload | Preview | Notes |
 |---|---|---|---|
