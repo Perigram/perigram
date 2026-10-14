@@ -524,7 +524,8 @@
         "closedShape": "Замкнутый контур",
         "openShape": "Разомкнутый контур",
         "start": "начало",
-        "end": "конец"
+        "end": "конец",
+        "parameters": "Параметры"
       },
       "placementModes": {
         "point": "Точка",

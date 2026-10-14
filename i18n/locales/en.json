@@ -524,7 +524,8 @@
         "closedShape": "Closed shape",
         "openShape": "Open shape",
         "start": "start",
-        "end": "end"
+        "end": "end",
+        "parameters": "Parameters"
       },
       "placementModes": {
         "point": "Point",

@@ -2,12 +2,47 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultOccsCassetteTemplateDefinition } from './templates.js';
 import { evaluateOccsCassetteTemplate } from './evaluate.js';
 import {
+  addCassetteV2ProfileWorkpiece,
   addCassetteV2Workpiece,
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument
 } from '../surfaces/lib/cassetteV2Renderer.js';
+import {
+  createDefaultOccsProfileSketch,
+  occsProfileFromSketch,
+  setOccsProfileSketchClosed
+} from './profiles.js';
 
 describe('OCCS cassette evaluation', () => {
+  it('carries open-profile break chains into the evaluated layerData', async () => {
+    const openSketch = setOccsProfileSketchClosed(createDefaultOccsProfileSketch({ W: 30, H: 20 }), false);
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Open strip',
+      kind: 'hanger',
+      process: 'extruded',
+      parameters: openSketch.parameters,
+      occsProfile: occsProfileFromSketch(openSketch),
+      sketch: openSketch
+    });
+    const definition = createCassetteV2OccsDocument(added.tree);
+    const result = await evaluateOccsCassetteTemplate(definition, {});
+
+    const breakChains = result.layerData.filter(item => item.layer === 'contour.cassette_face');
+    expect(breakChains).toHaveLength(2);
+    expect(breakChains.every(chain => chain.relationId && chain.profileWorkpieceId)).toBe(true);
+    for (const chain of breakChains) {
+      expect(chain.coordinates.length).toBeGreaterThanOrEqual(2);
+      const first = chain.coordinates[0];
+      const last = chain.coordinates[chain.coordinates.length - 1];
+      // Open chains: endpoints are the break projections, never a closed ring.
+      expect(Math.hypot(first[0] - last[0], first[1] - last[1])).toBeGreaterThan(0.001);
+    }
+    // Nesting polygons stay whole — a break is an edge feature, not a cut.
+    expect(result.nestingPolygons).toHaveLength(1);
+  });
+
   it('evaluates a graph-tree OCCS template into cut polygons for nesting', async () => {
     const result = await evaluateOccsCassetteTemplate(createDefaultOccsCassetteTemplateDefinition(), {
       A: 700,

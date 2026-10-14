@@ -1,10 +1,11 @@
 import {
   buildCassetteV2CassetteMarkLayerData,
-  buildCassetteV2TrapezoidTreeCurves
+  buildCassetteV2TrapezoidTreeCurves,
+  profileBreaksForTree
 } from '../surfaces/lib/cassetteV2Renderer.js';
 import { buildOccsEvaluatedDimensionEntities } from './dimensions.js';
 import { buildOccsProductionLayout } from './production-layout.js';
-import { OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';
+import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';
 
 const clonePlain = (value) => JSON.parse(JSON.stringify(value || {}));
 
@@ -40,6 +41,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
   const cutLayerData = [];
   const foldLayerData = [];
   const markLayerData = [];
+  const contourLayerData = [];
   const curves = [];
 
   for (const workpiece of sheetWorkpieces) {
@@ -50,6 +52,26 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
     curves.push(...workpieceCurves);
     markLayerData.push(...buildCassetteV2CassetteMarkLayerData(workpieceCurves, tree, context)
       .filter(mark => mark.workpieceId === workpiece.id));
+
+    // Open profiles inserted into this workpiece's faces split the host
+    // contour at their break points; the evaluated layerData carries the
+    // two chains so production redraws the broken contour (the nesting
+    // polygons stay whole — a break is an edge feature, not a cut).
+    for (const profileBreak of profileBreaksForTree(workpieceCurves, tree)) {
+      for (const [index, chain] of profileBreak.splitChains.entries()) {
+        if (chain.length < 2) continue;
+        contourLayerData.push({
+          layer: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
+          coordinates: chain.map(vertex => [vertex[0], vertex[1]]),
+          handles: [`${profileBreak.relationId}:B${index + 1}`],
+          workpieceId: workpiece.id,
+          workpieceDefinitionId: definitionIdForWorkpiece(workpiece),
+          occurrenceId: occurrenceIdForWorkpiece(workpiece),
+          profileWorkpieceId: profileBreak.profileWorkpieceId,
+          relationId: profileBreak.relationId
+        });
+      }
+    }
 
     const layout = await buildOccsProductionLayout(
       workpieceCurves.map(curve => ({
@@ -102,7 +124,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
   return {
     polygons,
     nestingPolygons: polygons,
-    layerData: [...cutLayerData, ...foldLayerData, ...markLayerData, ...dimensionLayerData],
+    layerData: [...cutLayerData, ...foldLayerData, ...markLayerData, ...contourLayerData, ...dimensionLayerData],
     dimensions: tree.parameters,
     dimensionEntities,
     annotations: {

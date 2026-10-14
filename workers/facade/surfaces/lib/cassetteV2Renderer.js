@@ -236,19 +236,38 @@ const isCassetteV2ProfileWorkpiece = (workpiece = {}) => workpiece.type === 'pro
 
 export const normalizeCassetteV2Profile = (workpiece = {}) => {
   const source = workpiece.profileSnapshot || workpiece.profile || workpiece.data?.occsProfile || {};
+  // The authored sketch wins over any evaluated copy riding a cached
+  // profile (`occsProfile.sketch` is evaluated numbers; the authored one
+  // keeps the expressions parametric instantiation re-evaluates).
+  const rawSketch = workpiece.sketch || source.sketch || null;
+  // Parametric instantiation: the workpiece's parameter table overrides
+  // the profile's authored table; the sketch (expressions included) is
+  // the derivation source, the stored section only the last good cache.
+  const sketchTable = rawSketch ? normalizeOccsProfileSketch(rawSketch).parameters : {};
+  const instanceParameters = { ...sketchTable, ...(workpiece.parameters || {}) };
   const data = createDefaultOccsProfileTemplateData({
     kind: workpiece.profileKind || workpiece.kind || source.kind,
     process: workpiece.process || workpiece.manufacturing?.process || source.process,
-    parameters: {
-      ...(workpiece.parameters || {}),
-      ...(source.parameters || {})
-    },
-    sketch: source.sketch || workpiece.sketch
+    parameters: instanceParameters,
+    ...(rawSketch ? { sketch: { ...rawSketch, parameters: instanceParameters } } : {})
   });
-  const sketch = normalizeOccsProfileSketch(source.sketch || workpiece.sketch || data.sketch, data.parameters);
-  const occsProfile = source.section && source.sweep
-    ? { section: source.section, sweep: source.sweep, sketch }
-    : occsProfileFromSketch(sketch, { parameters: data.parameters });
+  const sketch = normalizeOccsProfileSketch(rawSketch ? { ...rawSketch, parameters: instanceParameters } : data.sketch, data.parameters);
+  const deriveFromSketch = rawSketch && sketch.points.length > 0;
+  let occsProfile = null;
+  if (source.section && source.sweep && !deriveFromSketch) {
+    occsProfile = { section: source.section, sweep: source.sweep, sketch };
+  } else {
+    try {
+      occsProfile = occsProfileFromSketch(sketch, { parameters: data.parameters });
+    } catch {
+      // A transient invalid instance parameter keeps the last good
+      // section; there is nothing to fall back to for sketch-less
+      // snapshots, so the default template geometry stands in.
+      occsProfile = source.section && source.sweep
+        ? { section: source.section, sweep: source.sweep, sketch }
+        : occsProfileFromSketch(normalizeOccsProfileSketch({}, data.parameters), { parameters: data.parameters });
+    }
+  }
 
   return {
     kind: data.kind,
@@ -2316,6 +2335,41 @@ const splitContourAtBreaks = (vertices = [], first = [0, 0], second = [0, 0]) =>
   return [forward, backward];
 };
 
+// The single break computation: for every open profile attached through a
+// relation, the positioned section endpoints and the host contour split
+// into the two chains between them. The designer section layer draws it;
+// the evaluated layerData carries the same chains into production.
+export const profileBreaksForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const parameters = treeParameters(sourceTree);
+  const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
+  const breaks = [];
+  for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
+    const workpiece = relationProfileWorkpiece(sourceTree, relation);
+    if (!workpiece) continue;
+    const targetCurve = curveById.get(relation.targetFaceId);
+    if (!targetCurve) continue;
+    const profile = normalizeCassetteV2Profile(workpiece);
+    const open = profile.section?.open || profile.section?.type === 'polyline';
+    if (!open) continue;
+    const points = profileSectionPointsForRelation(profile, targetCurve, relation, parameters);
+    if (points.length < 2) continue;
+    const contour = targetCurve.originalBoundaryVertices
+      || targetCurve.referenceVertices
+      || targetCurve.boundaryVertices
+      || targetCurve.vertices;
+    breaks.push({
+      relationId: relation.id,
+      profileWorkpieceId: relation.sourceWorkpieceId,
+      targetWorkpieceId: relation.targetWorkpieceId,
+      targetFaceId: relation.targetFaceId,
+      breakPoints: [points[0], points[points.length - 1]],
+      splitChains: splitContourAtBreaks(contour, points[0], points[points.length - 1]) || []
+    });
+  }
+  return breaks;
+};
+
 const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
@@ -2346,43 +2400,42 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
       active: !options.selectedRelationId || options.selectedRelationId === relation.id
     });
     viewBoxCurves.push({ vertices: points });
-    if (!open) continue;
-    // An open profile's first and last vertices are its break points:
-    // marked on the section layer, and the host face's contour splits at
-    // them into the two chains between the projections.
-    const contour = targetCurve.originalBoundaryVertices
-      || targetCurve.referenceVertices
-      || targetCurve.boundaryVertices
-      || targetCurve.vertices;
-    for (const [index, point] of [points[0], points[points.length - 1]].entries()) {
+  }
+
+  for (const profileBreak of profileBreaksForTree(curves, sourceTree)) {
+    if (options.contextWorkpieceId && ![profileBreak.profileWorkpieceId, profileBreak.targetWorkpieceId].includes(options.contextWorkpieceId)) {
+      continue;
+    }
+    const active = !options.selectedRelationId || options.selectedRelationId === profileBreak.relationId;
+    // An open profile's break points: marked on the section layer, and the
+    // host face's contour splits at them into the two chains between the
+    // projections.
+    for (const [index, point] of profileBreak.breakPoints.entries()) {
       paths.push({
         d: circlePathAt(point, 4),
         fill: 'none',
         stroke: 'layer',
-        workpieceId: relation.sourceWorkpieceId,
-        relationId: relation.id,
+        workpieceId: profileBreak.profileWorkpieceId,
+        relationId: profileBreak.relationId,
         sectionKind: 'profile-break',
         breakEnd: index === 0 ? 'start' : 'end',
-        active: !options.selectedRelationId || options.selectedRelationId === relation.id
+        active
       });
     }
-    const split = splitContourAtBreaks(contour, points[0], points[points.length - 1]);
-    if (split) {
-      for (const chain of split) {
-        const chainPoints = chain.map(vertex => toSvgPoint(vertex));
-        if (chainPoints.length < 2) continue;
-        paths.push({
-          d: sectionPath(chainPoints),
-          fill: 'none',
-          stroke: 'layer',
-          dasharray: '4 3',
-          workpieceId: relation.targetWorkpieceId,
-          relationId: relation.id,
-          sectionKind: 'profile-break',
-          active: !options.selectedRelationId || options.selectedRelationId === relation.id
-        });
-        viewBoxCurves.push({ vertices: chain });
-      }
+    for (const chain of profileBreak.splitChains) {
+      const chainPoints = chain.map(vertex => toSvgPoint(vertex));
+      if (chainPoints.length < 2) continue;
+      paths.push({
+        d: sectionPath(chainPoints),
+        fill: 'none',
+        stroke: 'layer',
+        dasharray: '4 3',
+        workpieceId: profileBreak.profileWorkpieceId,
+        relationId: profileBreak.relationId,
+        sectionKind: 'profile-break',
+        active
+      });
+      viewBoxCurves.push({ vertices: chain });
     }
   }
 
