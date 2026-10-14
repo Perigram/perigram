@@ -12,6 +12,11 @@ import {
 
 const EXTRACT_DEBOUNCE_MS = 40;
 
+// Header-only blank DXF: the open pipeline fills the layer, layout,
+// and model-space defaults itself, so no template file (vendored or
+// CDN) is needed to boot a drawable document.
+const BLANK_DXF = '0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1027\n0\nENDSEC\n0\nEOF\n';
+
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
@@ -42,6 +47,11 @@ export default function createSketchEditor({ vue, components, locale }) {
       let lastEmitted = '';
       let disposed = false;
       let zoomObserver = null;
+      // The construction document opens in Write mode; the blank and any
+      // imported document must keep it — Read-mode documents silently
+      // refuse the mode-gated draw commands. The bundle exports no mode
+      // enum, so the value is read off the fresh document, never hardcoded.
+      let writeMode;
 
       const TOOL_GROUPS = [
         [
@@ -144,6 +154,24 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      // The construction document never runs the open pipeline, so its
+      // scene never draws committed geometry (only cursor overlays show).
+      // Opening the minimal blank first builds the scene; on failure the
+      // default-tables fallback below keeps the previous behavior.
+      const openBlankDocument = async () => {
+        if (!manager || disposed) return;
+        try {
+          const opened = await manager.openDocument(
+            'blank.dxf',
+            new TextEncoder().encode(BLANK_DXF).buffer,
+            { mode: writeMode }
+          );
+          if (!opened) ensureDefaultTables();
+        } catch {
+          ensureDefaultTables();
+        }
+      };
+
       const bindDatabase = () => {
         unbindDatabase();
         ensureDefaultTables();
@@ -239,7 +267,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!file || !manager) return;
         importError.value = '';
         try {
-          const opened = await manager.openDocument(file.name, await file.arrayBuffer());
+          const opened = await manager.openDocument(
+            file.name,
+            await file.arrayBuffer(),
+            { mode: writeMode }
+          );
           if (!opened) throw new Error(t('cassette.v2.profileEditor.importFailed'));
           importedFileName.value = file.name;
           manager.curView?.zoomToFitDrawing?.();
@@ -297,6 +329,9 @@ export default function createSketchEditor({ vue, components, locale }) {
             notificationCenter: false,
             disableExport: true
           });
+          writeMode = manager.curDocument?.openMode;
+          await openBlankDocument();
+          if (disposed) return;
           manager.events.documentActivated.addEventListener(bindDatabase);
           manager.events.documentCreated.addEventListener(bindDatabase);
           containerRef.value?.addEventListener('keydown', handleKeydown, true);
