@@ -2996,6 +2996,7 @@
       "typeNodeNoType": "The type node has no selected type",
       "typePinOnly": "Type bindings wire into the Type pin",
       "childrenContainment": "{name} is a {kind} class — {kind} classes may not declare lineage children (containment belongs to item, group, or process classes)",
+      "childrenContainmentDirection": "Containment wires run from the parent: {source} ({kind} class) cannot contain children — start the wire on {target}",
       "childrenNeedTypeIds": "Both classes need a type id before declaring children",
       "stateNestSelf": "A state cannot nest inside itself",
       "stateParentCycle": "A state has one parent state; parent cycles are invalid",

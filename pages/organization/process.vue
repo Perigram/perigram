@@ -3094,11 +3094,24 @@ function connectionCompatibility(connection = {}) {
         };
       }
       if (legality === 'children') {
-        // SPEC §5 containment at the gate: file classes never declare
-        // lineage children. The reason names the authored class so the
-        // rejection is traceable on the canvas.
+        // SPEC §5 containment at the gate: the wire's source is the
+        // parent, and file/party classes never declare lineage children.
+        // When the target could be the parent, the gesture was probably
+        // inverted — the refusal teaches the direction instead of
+        // naming a container the author never meant.
         if (!classMayDeclareChildren(source.data?.class)) {
           const className = String(source.data?.name || source.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass');
+          if (classMayDeclareChildren(target.data?.class)) {
+            const targetName = String(target.data?.name || target.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass');
+            return {
+              ok: false,
+              reason: t('processDesigner.connectReasons.childrenContainmentDirection', {
+                source: className,
+                kind: source.data.class,
+                target: targetName
+              })
+            };
+          }
           return {
             ok: false,
             reason: t('processDesigner.connectReasons.childrenContainment', { name: className, kind: source.data.class })
