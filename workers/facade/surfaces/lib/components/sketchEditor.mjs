@@ -4,6 +4,7 @@
 // grips, and undo/redo run in the engine; entity records and the sketch
 // model normalize through occs/profiles.js.
 import {
+  evaluateOccsProfileSketch,
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
   occProfileSketchFromEntities,
@@ -419,6 +420,26 @@ export default function createSketchEditor({ vue, components, locale }) {
         commitSketch(setOccsProfileSketchClosed(normalized, !normalized.closed));
       };
 
+      const setProfileAnchor = (vertexId) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const anchors = normalized.anchors?.vertexId === vertexId || !normalized.closed
+          ? null
+          : { vertexId };
+        commitSketch({ ...normalized, anchors });
+      };
+
+      const setAnchorDistance = (which, value) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const current = normalized.anchors || {};
+        commitSketch({
+          ...normalized,
+          anchors: {
+            startDistance: which === 'start' ? value : (current.startDistance ?? 0),
+            endDistance: which === 'end' ? value : (current.endDistance ?? 0)
+          }
+        });
+      };
+
       const resolvedHint = (sketch, value) => {
         if (typeof value !== 'string') return '';
         try {
@@ -436,6 +457,34 @@ export default function createSketchEditor({ vue, components, locale }) {
         title: hint,
         'aria-label': ariaLabel
       });
+
+      // Evaluated edge lengths and the total — read-only dimensions for the
+      // authored shape (expressions resolve against the parameter table).
+      const renderDimensionRow = (sketch) => {
+        let lengths = null;
+        try {
+          const evaluated = evaluateOccsProfileSketch(sketch);
+          const count = evaluated.closed ? evaluated.points.length : evaluated.points.length - 1;
+          lengths = [];
+          for (let index = 0; index < count; index += 1) {
+            const a = evaluated.points[index];
+            const b = evaluated.points[(index + 1) % evaluated.points.length];
+            lengths.push(Math.hypot(b.x - a.x, b.y - a.y));
+          }
+        } catch {
+          lengths = null;
+        }
+        if (!lengths) return null;
+        const total = lengths.reduce((sum, value) => sum + value, 0);
+        return h('div', { class: 'flex flex-wrap items-center gap-1' }, [
+          ...lengths.map((value, index) => h('span', {
+            key: index,
+            class: 'font-mono text-xs text-muted-color',
+            'aria-label': `${t('cassette.v2.profileEditor.dimensions')} ${index + 1}`
+          }, `${value.toFixed(1)}`)),
+          h('span', { class: 'font-mono text-xs text-muted-color font-semibold' }, `Σ ${total.toFixed(1)}`)
+        ]);
+      };
 
       // Authoring rows: parameters, per-vertex coordinates + fillet radius,
       // per-hole center + diameter. Values are numbers or expressions; the
@@ -475,8 +524,22 @@ export default function createSketchEditor({ vue, components, locale }) {
         ]));
         if (sketch.points.length >= 2) {
           const last = sketch.points.length - 1;
+          const anchored = sketch.anchors?.vertexId || null;
           rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' },
             sketch.points.map((point, index) => {
+              // Chord runs (an extracted arc's flattened interior) collapse
+              // into one read-only chip — real geometry, not authored
+              // corners.
+              if (point.chord) {
+                if (index > 0 && sketch.points[index - 1].chord) return null;
+                let run = 1;
+                while (index + run < sketch.points.length && sketch.points[index + run].chord) run += 1;
+                return h('div', {
+                  key: point.id,
+                  class: 'flex items-center gap-1 rounded-ui border border-dashed border-content-border px-1.5 py-0.5 text-xs text-muted-color',
+                  title: sketch.points.slice(index, index + run).map(p => `${p.x}, ${p.y}`).join('\n')
+                }, `⌒ ${run}`);
+              }
               const openEnd = !sketch.closed && (index === 0 || index === last);
               return h('div', {
                 key: point.id,
@@ -486,7 +549,18 @@ export default function createSketchEditor({ vue, components, locale }) {
                 openEnd
                   ? h('span', { class: 'h-1.5 w-1.5 rounded-full bg-primary', 'aria-hidden': 'true' })
                   : null,
-                h('span', { class: 'font-mono text-xs text-muted-color' }, point.id),
+                sketch.closed
+                  ? h(Button, {
+                      label: point.id,
+                      severity: anchored === point.id ? 'primary' : 'secondary',
+                      text: true,
+                      size: 'small',
+                      class: 'font-mono text-xs',
+                      'aria-label': `${t('cassette.v2.profileEditor.anchor')} ${point.id}`,
+                      title: t('cassette.v2.profileEditor.anchor'),
+                      onClick: () => { setProfileAnchor(point.id); }
+                    })
+                  : h('span', { class: 'font-mono text-xs text-muted-color' }, point.id),
                 expressionField(point.x, `x${resolvedHint(sketch, point.x)}`, next => { applyVertexField(point.id, 'x', next); }, `x ${point.id}`),
                 expressionField(point.y, `y${resolvedHint(sketch, point.y)}`, next => { applyVertexField(point.id, 'y', next); }, `y ${point.id}`),
                 h(InputText, {
@@ -502,8 +576,19 @@ export default function createSketchEditor({ vue, components, locale }) {
                   'aria-label': `${t('cassette.v2.profileEditor.filletRadius')} ${point.id}`
                 })
               ]);
-            })
+            }).filter(Boolean)
           ));
+        }
+        if (!sketch.closed && sketch.points.length >= 2) {
+          const anchors = sketch.anchors || {};
+          rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, [
+            h('span', { class: 'h-1.5 w-1.5 rounded-full bg-primary', 'aria-hidden': 'true' }),
+            expressionField(anchors.startDistance ?? 0, `d₁${resolvedHint(sketch, anchors.startDistance ?? 0)}`, next => { setAnchorDistance('start', next); }, `${t('cassette.v2.profileEditor.startDistance')} ${t('cassette.v2.profileEditor.start')}`),
+            expressionField(anchors.endDistance ?? 0, `d₂${resolvedHint(sketch, anchors.endDistance ?? 0)}`, next => { setAnchorDistance('end', next); }, `${t('cassette.v2.profileEditor.endDistance')} ${t('cassette.v2.profileEditor.end')}`)
+          ]));
+        }
+        if (sketch.points.length >= 2) {
+          rows.push(renderDimensionRow(sketch));
         }
         if (sketch.holes.length) {
           rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' },

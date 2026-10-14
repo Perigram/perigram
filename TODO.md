@@ -2075,6 +2075,31 @@ profiles 10/10 (expressions, cycles, savable gate, open round-trip),
 renderer 30/30 (open section: no Z, two break marks, two split chains).
 Not run: the full platform e2e (no fresh stack guarantee mid-session).
 
+### Agent Notes (2026-10-15, profile UX: empty tables, anchors, chords, dimensions)
+
+Owner feedback round: the pre-seeded W/H/R/D/L table was demo residue
+(every sketch started with it) and arc-flattened chord vertices flooded
+the vertex chips. The parameter table now starts empty (normalize no
+longer merges any defaults; the demo template carries its own values).
+Extracted arc interiors are tagged `chord: true` — real geometry, not
+authored corners — and the vertex row collapses each run into one
+read-only chip; line-arc junctions stay editable. Anchors: a closed
+profile carries one anchor vertex (click the vertex id in its chip; the
+anchor lands on the attachment snap+offset when inserted, and cuts
+anchor-relative); an open profile carries start/end distance fields
+(expression-capable) — margins from the host edge's ends where the
+profile runs and the contour breaks (replacing endpoint projection when
+set). A read-only dimension row shows evaluated edge lengths and the
+total. Instance values may now be cassette expressions: the cassette's
+global parameters join the evaluation scope (`normalizeCassetteV2Profile`
+second argument, threaded from every tree-aware call site) — a
+node-proof caught the first cut BAKING globals into the stored table
+(stale after cassette parameter changes); the stored table now stays the
+profile's own, scope joins evaluation only (A=500→700 moves the section
+50→70 with stored table `{W:'A/10'}`). Specs: facade suites 88/88 incl.
+new empty-table, chord-tag, and anchor laws. No browser run per the
+owner's testing rule; validation is model specs + node proofs.
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);

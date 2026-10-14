@@ -56,10 +56,7 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
 export const createEmptyOccsProfileSketch = (parameters = {}) => ({
   version: '0.1',
   units: 'mm',
-  parameters: {
-    ...DEFAULT_OCCS_PROFILE_PARAMETERS,
-    ...parameters
-  },
+  parameters: { ...parameters },
   points: [],
   edges: [],
   holes: [],
@@ -68,13 +65,12 @@ export const createEmptyOccsProfileSketch = (parameters = {}) => ({
   constraints: []
 });
 
+// The parameter table starts empty — parameters are added when a sketch
+// needs them; nothing is pre-seeded.
 export const createDefaultOccsProfileTemplateData = (overrides = {}) => ({
   kind: overrides.kind || 'hanger',
   process: overrides.process || 'extruded',
-  parameters: {
-    ...DEFAULT_OCCS_PROFILE_PARAMETERS,
-    ...(overrides.parameters || {})
-  },
+  parameters: { ...(overrides.parameters || {}) },
   sketch: overrides.sketch || createDefaultOccsProfileSketch(overrides.parameters),
   occsProfile: null
 });
@@ -100,7 +96,10 @@ const sketchValue = (value, fallback = 0) => {
 const normalizePoint = (point = {}, index = 0) => ({
   id: point.id || `p${index}`,
   x: sketchValue(point.x),
-  y: sketchValue(point.y)
+  y: sketchValue(point.y),
+  // Chord points are the flattened interior of an extracted arc — real
+  // geometry, but not authored corners; the editor collapses their runs.
+  ...(point.chord ? { chord: true } : {})
 });
 
 const normalizeLineEdge = (edge = {}, index = 0) => ({
@@ -131,7 +130,6 @@ const normalizeFilletModifiers = (modifiers = [], pointIds = new Set()) => {
 export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
   const fallback = createDefaultOccsProfileSketch(fallbackParameters);
   const rawParameters = {
-    ...DEFAULT_OCCS_PROFILE_PARAMETERS,
     ...(fallbackParameters || {}),
     ...(sketch.parameters || {})
   };
@@ -166,6 +164,7 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
   const closed = typeof sketch.closed === 'boolean'
     ? sketch.closed
     : points.length >= 3 && edges.some(edge => edge.to === points[0]?.id);
+  const anchors = normalizeOccsProfileSketchAnchors(sketch.anchors, pointIds, closed);
 
   return {
     version: sketch.version || '0.1',
@@ -175,8 +174,24 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
     edges,
     holes,
     closed,
+    anchors,
     modifiers,
     constraints: Array.isArray(sketch.constraints) ? sketch.constraints : fallback.constraints
+  };
+};
+
+// Anchors tie a profile to its host: a closed profile carries one anchor
+// vertex (the vertex that lands on the attachment point); an open profile
+// carries start/end distances — margins from the host edge's two ends
+// where the profile begins and the contour breaks.
+const normalizeOccsProfileSketchAnchors = (anchors = null, pointIds = new Set(), closed = false) => {
+  if (!anchors || typeof anchors !== 'object') return null;
+  if (closed) {
+    return pointIds.has(anchors.vertexId) ? { vertexId: anchors.vertexId } : null;
+  }
+  return {
+    startDistance: sketchValue(anchors.startDistance, 0),
+    endDistance: sketchValue(anchors.endDistance, 0)
   };
 };
 
@@ -229,7 +244,13 @@ export const evaluateOccsProfileSketch = (sketch = {}, fallbackParameters = {}) 
     modifiers: normalized.modifiers.map(modifier => ({
       ...modifier,
       radius: resolveField(modifier.radius, `fillet ${modifier.vertexId}`)
-    }))
+    })),
+    anchors: normalized.anchors && !normalized.anchors.vertexId
+      ? {
+          startDistance: resolveField(normalized.anchors.startDistance, 'anchor start distance'),
+          endDistance: resolveField(normalized.anchors.endDistance, 'anchor end distance')
+        }
+      : normalized.anchors
   };
 };
 
@@ -281,12 +302,26 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
     })),
     modifiers: normalized.modifiers.map(modifier => ({ ...modifier }))
   };
-  if (!closed && vertices.length >= 2) {
-    // Break points: where an inserted open profile splits the host face.
-    section.breakPoints = [
-      vertices[0],
-      vertices[vertices.length - 1]
-    ];
+  const anchorPoint = normalized.anchors?.vertexId
+    ? normalized.points.find(point => point.id === normalized.anchors.vertexId) || null
+    : null;
+  if (closed && anchorPoint) {
+    section.anchor = [String(anchorPoint.x), String(anchorPoint.y)];
+  }
+  if (!closed) {
+    if (vertices.length >= 2) {
+      // Break points: where an inserted open profile splits the host face.
+      section.breakPoints = [
+        vertices[0],
+        vertices[vertices.length - 1]
+      ];
+    }
+    if (normalized.anchors && normalized.anchors.startDistance !== undefined) {
+      section.anchorDistances = {
+        start: String(normalized.anchors.startDistance),
+        end: String(normalized.anchors.endDistance)
+      };
+    }
   }
 
   return {
@@ -301,11 +336,15 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
 
 // Rebuilds the edge chain for a chosen closure: consecutive pairs for an
 // open sketch, closed ring for a closed one. Point coordinates and
-// modifiers pass through untouched (expressions included).
+// modifiers pass through untouched (expressions included); anchors reset —
+// the closure change redefines which anchor shape applies.
 export const setOccsProfileSketchClosed = (sketch = {}, closed, fallbackParameters = {}) => {
   const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
   if (closed) {
-    return closeOccsProfileSketchBoundary({ ...normalized, closed: true }, fallbackParameters);
+    return {
+      ...closeOccsProfileSketchBoundary({ ...normalized, closed: true }, fallbackParameters),
+      anchors: null
+    };
   }
   const edges = [];
   for (let index = 0; index + 1 < normalized.points.length; index += 1) {
@@ -316,7 +355,7 @@ export const setOccsProfileSketchClosed = (sketch = {}, closed, fallbackParamete
       to: normalized.points[index + 1].id
     });
   }
-  return { ...normalized, closed: false, edges };
+  return { ...normalized, closed: false, edges, anchors: null };
 };
 
 
@@ -528,9 +567,9 @@ const chainToSketchGeometry = (chain, closed, chordTolerance) => {
   const points = [];
   const modifiers = [];
 
-  const emitPoint = (point) => {
+  const emitPoint = (point, chord = false) => {
     if (!points.length || !samePoint(points[points.length - 1], point)) {
-      points.push(point);
+      points.push(chord ? { ...point, chord: true } : point);
     }
   };
 
@@ -565,7 +604,7 @@ const chainToSketchGeometry = (chain, closed, chordTolerance) => {
       // Interior chord points only: both endpoints are junction points
       // emitted (or skipped) by the junction rules below.
       const flattened = flattenArcToPoints(segment.arc, chordTolerance).map(roundPoint);
-      flattened.slice(0, -1).forEach(emitPoint);
+      flattened.slice(0, -1).forEach(point => emitPoint(point, true));
     }
     const isLastSegment = !closed && index === total - 1;
     if (isLastSegment || !filletAt[(index + 1) % total]) {
@@ -652,7 +691,12 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     version: '0.1',
     units: 'mm',
     parameters,
-    points: points.map((point, index) => ({ id: pointIds[index], x: point.x, y: point.y })),
+    points: points.map((point, index) => ({
+      id: pointIds[index],
+      x: point.x,
+      y: point.y,
+      ...(point.chord ? { chord: true } : {})
+    })),
     edges,
     holes: circles.map((circle, index) => ({
       id: `h${index}`,

@@ -438,6 +438,17 @@ purpose-built geometric pass if one is ever accepted; heavy solve
 compute, if ever truly needed, belongs behind the executor's service
 seam, never in the browser bundle.
 
+Owner additions (2026-10-15): the profile parameter table starts empty —
+parameters are added when a sketch needs them, nothing is pre-seeded; on
+a cassette, instance parameter values may be cassette expressions over
+the cassette's global parameters (the globals join the evaluation scope
+but never bake into the profile's stored table). Profiles carry anchors:
+a closed profile has one anchor vertex that lands on the attachment
+point; an open profile has start/end distances — margins from the host
+edge's ends where the profile runs and the contour breaks. Arc-flattened
+chord points are geometry, not authored corners (the editor collapses
+their runs); the editor shows evaluated edge-length dimensions.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,

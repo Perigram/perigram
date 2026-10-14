@@ -48,40 +48,53 @@ modules — no platform imports.
   editable snap points, point-by-point polylines with explicit open/closed
   state, circle holes, and per-corner fillet modifiers are normalized into
   `profile.section` polygon/polyline data plus a linear `profile.sweep`.
-  Every authoring field (point coordinates, hole centers and diameters,
-  fillet radii, parameter values) carries a number or an expression string
-  evaluated against the parameter table through `expressions.js` — the
-  same evaluator the cassette tree uses. `evaluateOccsProfileSketch`
-  resolves the whole sketch (parameters may reference each other; cycles
-  and unknown identifiers throw); the savable gate and the editors' save
+  The parameter table starts empty — parameters are added when a sketch
+  needs them, nothing is pre-seeded. Every authoring field (point
+  coordinates, hole centers and diameters, fillet radii, parameter values,
+  anchor distances) carries a number or an expression string evaluated
+  against the parameter table through `expressions.js` — the same
+  evaluator the cassette tree uses. `evaluateOccsProfileSketch` resolves
+  the whole sketch (parameters may reference each other; cycles and
+  unknown identifiers throw); the savable gate and the editors' save
   buttons turn those throws into authoring feedback, never silent zeros.
-  The same module normalizes CAD entity records (LINE/ARC/CIRCLE/polyline)
-  into the sketch model (`occProfileSketchFromEntities`) and back
+  Points that an extracted arc flattened to chords carry a `chord` flag —
+  real geometry, but not authored corners; the editor collapses their
+  runs into single read-only chips. Anchors tie a profile to its host: a
+  closed profile carries one anchor vertex (it lands on the attachment
+  snap+offset point when inserted), an open profile carries start/end
+  distances (margins from the host edge's two ends — the profile runs
+  from the first and the contour breaks at both). The same module
+  normalizes CAD entity records (LINE/ARC/CIRCLE/polyline) into the
+  sketch model (`occProfileSketchFromEntities`) and back
   (`occProfileEntitiesFromSketch`): the browser sketch canvas — the
-  vendored MLightCAD CAD engine — seeds from the sketch and is re-extracted
-  through this one path. A tangent corner arc between two line segments
-  maps to the corner's fillet modifier (the polygon keeps the theoretical
-  sharp corner); any other arc flattens to chords within a 0.05 mm sagitta
-  tolerance; circles become holes. A sketch is authored closed or open
-  (the editor's toggle; drawn chains keep their extracted closure — closed
-  boundaries with three or more points save closed, open chains with two
-  or more save open). An open profile saves as a `polyline` section whose
-  first and last vertices are its break points: the designer's section
-  layer marks them and splits the host face's contour at their projections
+  vendored MLightCAD CAD engine — seeds from the sketch and is
+  re-extracted through this one path. A tangent corner arc between two
+  line segments maps to the corner's fillet modifier (the polygon keeps
+  the theoretical sharp corner); any other arc flattens to chords within
+  a 0.05 mm sagitta tolerance; circles become holes. A sketch is authored
+  closed or open (the editor's toggle; drawn chains keep their extracted
+  closure — closed boundaries with three or more points save closed, open
+  chains with two or more save open). An open profile saves as a
+  `polyline` section whose first and last vertices are its break points:
+  the designer's section layer marks them and splits the host face's
+  contour at their projections (or at the anchor distances, when set)
   where the profile lands, and the evaluated layerData carries the two
   contour chains into production redraw on `contour.cassette_face`. The
-  sketch editor's authoring rows edit the
-  parameter table, vertex coordinates, fillet radii, and hole geometry
-  directly on the sketch model; the extraction pass re-derives points,
-  holes, and modifiers from drawn geometry, so a later draw or import
-  overwrites authored expressions and radii. Parametric instantiation: a
-  profile workpiece's parameter table overrides the profile's authored
-  table and its snapshot re-derives from the authored sketch (the stored
-  section is a last-good cache — a transient invalid parameter holds it);
-  the workpiece rows edit instance parameters in place. Profiles live on
-  the tree: the designer's profile dialog writes profile workpieces (their
-  `profileSnapshot` is the renderer's geometry source) that ride the
-  cassette template's own document — there are no standalone profile
+  sketch editor's authoring rows edit the parameter table, vertex
+  coordinates, fillet radii, and hole geometry directly on the sketch
+  model, with a read-only evaluated dimension row (edge lengths and
+  total) beneath; the extraction pass re-derives points, holes, and
+  modifiers from drawn geometry, so a later draw or import overwrites
+  authored expressions and radii. Parametric instantiation: a profile
+  workpiece's parameter table overrides the profile's authored table and
+  its snapshot re-derives from the authored sketch (the stored section is
+  a last-good cache — a transient invalid parameter holds it); the
+  workpiece rows edit instance parameters in place, instance values may
+  be cassette expressions — the cassette's global parameters join the
+  evaluation scope but never bake into the stored table. Profiles live on
+  the tree: the designer's profile dialog writes profile workpieces
+  (their `profileSnapshot` is the renderer's geometry source) that ride
+  the cassette template's own document — there are no standalone profile
   records of any other type. The current editor does not run a parametric
   constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
