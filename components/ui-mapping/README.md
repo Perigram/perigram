@@ -317,45 +317,44 @@ surface concerns:
   moved parent) re-nests it in place instead of waiting for a remount.
   Nodes are navigation: selecting one opens its instance through the
   screen's identity-open channel.
-- `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
-  (when nested), a contextual `navigation` channel (the `#navigation`
-  slot for direct template hosts plus the `navigation` prop —
-  `{ icon, label, command }` threaded through GeneratedMappingScreen →
-  RegionBlock to the depth-0 header for hosts that mount the screen as
-  a component; a host that opened the record inside another surface —
-  a workspace tab reached from another page, a popup with a back stack —
-  injects its back affordance ahead of the identity block), Avatar identity with title and the
-  localized type label as muted subtitle (resolved through the
-  `type-labels.js` seam — instance ids are private display vocabulary
-  and never render), placed actions, the Edit toggle (rendered only on patchable
-  surfaces; see `onPatch` above — while editing it reads as Save and
-  submits the draft), and exactly one state
-  surface. A state axis is a tree, never a line, so stateful records
-  carry no lifecycle strip: an instance with a flat `state` renders the
-  segmented current-state tag (`StateTag`, resolved against the region's
-  `statePolicy` — the header shows the data's state even when the
-  served vocabulary has none for it) with a clock affordance opening
-  the shared `StateHistory` popover (the `status_events` audit trail
-  over `/api/state/history`, a vertical stepper), and every available
-  runtime transition renders
-  as a dedicated transition button after the inline action budget,
-  dispatching through the `transition` channel (never the generic run
-  menu) — machine transitions arrive as `{ __runtime, state: { to },
-  intent, region }` from the page's state-service fetch and their
-  labels/severity/icons resolve from the same policy map. Instances
-  without a state render no state surface (no state is information —
-  nothing synthesizes one). The bar is its own layout container: the
-  identity/actions row engages from the header container width through
-  the scoped CSS block (never the viewport — headers render inside panels
-  and detail side columns): the identity block stays one
-  avatar-title row (`LAYOUT.row` plus `LAYOUT.headerIdentity`) that
-  still truncates long names through the `min-w-0` chain, wide headers
-  floor the title at 16rem so
-  a large action cluster wraps below the title instead of crunching it,
-  and at most `HEADER_ACTIONS_INLINE` generated buttons render inline —
-  a third and every further action join one popup ellipsis menu (no
-  reserved layout space) with the
-  same localized labels.
+- `SurfaceHeader.vue` — the record header. It paints nothing: no
+  surface, no border — the record page's stack rhythm separates it from
+  the body, and pane boxes / route shells own the frames around it.
+  Lineage Breadcrumb (when nested), a contextual `navigation` channel
+  (the `#navigation` slot for direct template hosts plus the
+  `navigation` prop — `{ icon, label, command }` threaded through
+  GeneratedMappingScreen → RegionBlock to the depth-0 header; a host
+  that opened the record inside another surface injects its back
+  affordance ahead of the identity block), then one identity line:
+  Avatar, the title (resolved through the `type-labels.js` seam —
+  instance ids are private display vocabulary and never render) with
+  the localized type label muted below, and exactly one state surface
+  riding the title line. A state axis is a tree, never a line, so
+  stateful records carry no lifecycle strip: an instance with a flat
+  `state` renders the segmented current-state tag (`StateTag`,
+  resolved against the region's `statePolicy` — the header shows the
+  data's state even when the served vocabulary has none for it) with a
+  clock affordance opening the shared `StateHistory` popover (the
+  `status_events` audit trail over `/api/state/history`, a vertical
+  stepper); instances without a state render nothing (no state is
+  information — nothing synthesizes one). The action cluster sits
+  right (the identity's flex-1 is the push): the composed instance-chat
+  entry, the Edit toggle (rendered only on patchable surfaces — see
+  `onPatch` above; while editing it reads as Save and submits the
+  draft), at most `HEADER_ACTIONS_INLINE` generated buttons inline — a
+  third and every further action join one popup ellipsis menu (no
+  reserved layout space) with the same localized labels — and every
+  available runtime transition renders as a dedicated transition button
+  after the inline budget, dispatching through the `transition` channel
+  (never the generic run menu) — machine transitions arrive as
+  `{ __runtime, state: { to }, intent, region }` from the page's
+  state-service fetch and their labels/severity/icons resolve from the
+  same policy map. The header is its own layout container: the
+  identity/action row engages from the header container width through
+  the scoped CSS block (never the viewport — headers render inside
+  panels and detail side columns); long names truncate through the
+  `min-w-0` chain and wide headers floor the title at 16rem so a large
+  action cluster wraps below the identity instead of crunching it.
 - `StateTag.vue` — the segmented state tag: one materialization of the
   mapping contract's `stateDisplayFor`. Flat values render as a single
   Tag styled by the authored severity/icon; dotted values render as a
