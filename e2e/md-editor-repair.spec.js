@@ -31,7 +31,7 @@ test.describe('markdown editor repair', () => {
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
-    const source = app.page.getByLabel('Text Editor');
+    const source = app.page.locator('main textarea');
     for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
       await newButton.click();
       await expect(source).toBeVisible({ timeout: 5000 }).catch(() => {});

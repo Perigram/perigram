@@ -115,7 +115,10 @@ file-surface registry is only the mount table. The text editor edits the
 markdown source with LIVE split rendering (source left in the technical
 mono voice, the sanitized rendered document beside it through
 [shared/markdown.js](../../shared/markdown.js) — what you type is what
-you read; source-only and preview-only states serve narrow panes); the
+you read; source-only and preview-only states serve focused work). The
+pack editors compose with the host's utility classes; the Tailwind
+content scan covers `packages/*/src/editors` (pinned by the
+design-system spec). The
 csv editor edits rows in a cell table and serializes CSV text on save
 (PrimeVue's cell editor commits through `cell-edit-complete`). Both take
 the instance-backed persistence contract (loads through the payload

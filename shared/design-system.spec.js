@@ -193,6 +193,13 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.maxWidth.app).toBe('var(--ck-page-max-width)');
     expect(tailwindThemeExtension.height['support-chat']).toBe('var(--ck-support-chat-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
+    // Pack editor surfaces and plugin surface modules compose with the
+    // host's utility classes — the Tailwind content scan must cover both
+    // trees or their classes compile to nothing (the split editor's
+    // panes and the moved SketchEditor once rendered unstyled/hidden).
+    const tailwindConfig = fs.readFileSync(path.join(REPO_ROOT, 'tailwind.config.js'), 'utf8');
+    expect(tailwindConfig).toContain("'./packages/*/src/editors/**/*.{vue,js}'");
+    expect(tailwindConfig).toContain("'./workers/facade/surfaces/**/*.{js,mjs}'");
     expect(primeComponentTokens).toEqual({
       panel: { root: { background: 'transparent', borderColor: 'transparent' } },
       panelmenu: { panel: { background: 'transparent' } },
