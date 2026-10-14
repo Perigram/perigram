@@ -18,6 +18,12 @@ it statically, and `occs/layerStandards.js` ships the cassette layer
 standards with their pens (the pre-extraction system seeds) that every
 renderer, editor, and preview bakes through `applyOccsLayerPens`.
 
+The types' glyphs are the hand-drawn `ck-entity-icons` font classes
+(`ck-entity-icon ck-entity-icon-cassette-template` &c. — consumed like
+any `pi pi-*` string); the font builds from the owner-authored SVG
+sources in `public/icons/data-model/cnc-domain/`
+([build contract](../../scripts/README.md)).
+
 ## Editor surfaces
 
 The plugin's editor modules live in `surfaces/` and are served by this
