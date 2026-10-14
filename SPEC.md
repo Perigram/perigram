@@ -115,11 +115,12 @@ from data with no new machinery.
 
 The text editor fills its container: it opens as a flush workspace page
 and owns its document shell — one toolbar carrying the document name
-editing in place, the preview toggle, and save, with the editing
-surface growing into the pane and scrolling inside it. Markdown
-documents edit their source directly (owner direction 2026-10-13: the
-payload IS the text — no rich-text proxy converting through HTML) with
-a rendered preview toggle, `text-document` instances are creatable by
+editing in place, the view switch, and save, with the editing surface
+growing into the pane and scrolling inside it. Markdown
+documents edit their source with live WYSIWYG-grade rendering (owner
+direction 2026-10-14: source and rendered document side by side, what
+you type is what you read — the payload IS the text, no rich-text proxy
+converting through HTML), `text-document` instances are creatable by
 uploading an existing `.md` file. Editor components belong to the packs
 that own their types (owner direction 2026-10-14): the documents pack
 ships the markdown and csv editors, tech-drawing ships the sketch
