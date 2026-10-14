@@ -284,13 +284,19 @@ they do not infer visibility from status names or entity types.
 
 `createActiveEmptyProcess()` is the organization-bootstrap path used by signup
 and organization creation. The organization service stores the organization's
-own `role_admin` identity and the creator assignment, then this feature creates
-an explicitly empty v4 definition (no grants, no producer outputs, no screens),
-compiles and activates it as the organization's first active definition. There
-are no
-starter templates: a new organization starts with zero authored access, and the
-creator's owner membership still carries `organizations:admin`/`users:admin`
-for tenant management.
+own `role_admin` identity and the creator assignment, then this feature
+authors the organization's first definition through the same headless
+authoring seam the designer uses (`createDefinitionAuthoring`): it starts
+empty and stations the mounted packs' starter constructs
+(`composeStarterConstructs`, declared by the packs — the documents pack's
+markdown-first set carries the visible-by-default law, SPEC §UI), each as a
+manual construct granted to `role_admin`, then compiles and activates it.
+There are no starter templates: a new organization starts with zero authored
+access beyond the pack-declared starter constructs, and the creator's owner
+membership still carries `organizations:admin`/`users:admin` for tenant
+management. Organizations created before the starter set exist are repaired
+by `server/scripts/station-documents-types.js` (the additive stationing
+operator).
 
 Process definitions never store role identities or user assignments. Their
 `data.roleGrants` record maps stable organization role ids to process-owned base

@@ -289,20 +289,18 @@ gate (`resolveTypeFeature`: field-policy feature, else the class
 collection) and checks it through the shared evaluator with the entity
 and type id; the server stays fail-closed behind it.
 
-The `sketch-editor` surface mounts `SketchEditor` and the
-`text-editor`/`csv-editor` surfaces mount `ArtifactTextEditor` — each
-with an instance-backed persistence contract (payload download URL for
+The `sketch-editor` surface mounts the tech-drawing pack's
+`SketchEditor` and the `text-editor`/`csv-editor` surfaces mount the
+documents pack's `TextDocumentEditor`/`CsvTableEditor` — editor
+components live in the pack that owns the type
+(`packages/<pack>/src/editors/`); this registry is only the app-side
+mount table. Each editor takes an
+instance-backed persistence contract (payload download URL for
 loads, `PUT /api/instances/:type/:id/payload` for saves, which records
 an immutable content revision per save, and `rename(name)` through the
 revisioned instance identity patch; the helper is generic over the
-type id). Text documents edit their markdown source directly through the shared
-source surface (see
-[components/artifacts/README.md](../artifacts/README.md)); the csv
-surface keeps the cell-table editor. Both editors take only that
-persistence contract —
-`ArtifactDetail` supplies the artifact-backed adapters for
-`SKETCH`/`TEXT`/`CSV`-kind artifacts, so one editor serves both hosts
-without duplicate editing logic. The text/csv editor pages register as
+type id). Both editors take only that
+persistence contract. The text/csv editor pages register as
 `flush` workspace pages: the pane host renders them without its padded
 scroll area because the editor owns its document shell — one scroll,
 inside the editor.
