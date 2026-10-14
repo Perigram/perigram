@@ -1,0 +1,40 @@
+/* The markdown editor's theme: crepe's structural theme plus this
+   bridge from the app's design tokens — the editor is a Perigram prose
+   surface in both modes, never a foreign crepe skin. Variable names are
+   crepe's (the component contract); values are the app's tokens, which
+   themselves flip under .dark-mode. */
+.milkdown {
+  --crepe-color-background: var(--ck-page-background);
+  --crepe-color-on-background: var(--ck-chrome-foreground);
+  --crepe-color-surface: var(--ck-chrome-background);
+  --crepe-color-surface-low: var(--ck-chrome-subtle);
+  --crepe-color-on-surface: var(--ck-chrome-foreground);
+  --crepe-color-on-surface-variant: var(--ck-chrome-muted);
+  --crepe-color-outline: var(--ck-chrome-border);
+  --crepe-color-primary: var(--ck-accent-500, var(--ck-primary-300));
+  --crepe-color-secondary: var(--ck-chrome-subtle);
+  --crepe-color-on-secondary: var(--ck-chrome-foreground);
+  --crepe-color-inverse: var(--ck-chrome-foreground);
+  --crepe-color-on-inverse: var(--ck-chrome-background);
+  --crepe-color-inline-code: var(--ck-status-danger, #b00020);
+  --crepe-color-error: var(--ck-status-danger, #b00020);
+  --crepe-color-hover: var(--ck-chrome-subtle);
+  --crepe-color-selected: var(--ck-selection-background);
+  --crepe-color-inline-area: var(--ck-chrome-subtle);
+
+  --crepe-base-font-size: 1rem;
+  --crepe-font-title: var(--ck-font-serif);
+  --crepe-font-default: var(--ck-font-serif);
+  --crepe-font-code: var(--ck-font-mono);
+
+  --crepe-shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.12);
+  --crepe-shadow-2: 0 2px 6px 2px rgb(0 0 0 / 0.12);
+}
+
+/* The editor is the document: it reads in the prose voice with room to
+   write — one bounded scroll inside the pane, breathing room at the
+   end so the last line escapes the toolbar overlap. */
+.milkdown .editor {
+  padding: 0.75rem 0.25rem 30vh;
+  outline: none;
+}

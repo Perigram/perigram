@@ -26,6 +26,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { useDocumentName } from './useDocumentName.js';
+import './text-document-editor.css';
 
 // The documents pack's markdown editor: a single-surface live editor
 // (milkdown crepe) — the document renders in place while writing, the
@@ -92,14 +93,3 @@ async function save() {
   } finally { saving.value = false; }
 }
 </script>
-
-<style scoped>
-/* The editor is the document: the host inherits the prose voice and the
-   app's surface; crepe's structural theme rides along unlayered. */
-.crepe-host :deep(.milkdown) {
-  outline: none;
-}
-.crepe-host :deep(.milkdown .editor) {
-  padding-bottom: 40vh;
-}
-</style>
