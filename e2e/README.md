@@ -51,6 +51,11 @@ definitions and their types die together.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
+- `md-editor-repair.spec.js`: the markdown editor repair legs live —
+  the blank text-document editor opens pristine (save disabled until
+  edited) and round-trips source through preview/save, a `.md` uploads
+  through the protocol create dialog with the type's accept, and csv
+  cell edits commit and serialize on save.
 - `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
   fixture plugin publishes through the real catalog API, installs through
   the real gate, its editor surface module URL resolves against the
