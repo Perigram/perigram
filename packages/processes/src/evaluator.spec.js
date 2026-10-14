@@ -397,7 +397,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const names = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'name' } },
+      { kind: 'cts.field', path: 'name' },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(
@@ -423,7 +423,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const fieldMask = async (path, operation, target) => executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: path } },
+      { kind: 'cts.field', path: path },
       { entity: selected }
     ).then(values => executeProcessDataNode({ kind: 'value.compare', operation }, { left: values, right: createDataPacket(target) }));
     const nameMask = await fieldMask('name', 'eq', 'Alpha');
@@ -451,7 +451,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const statuses = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'states.main' } },
+      { kind: 'cts.field', path: 'states.main' },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(
@@ -476,7 +476,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const refs = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'relations.library' } },
+      { kind: 'cts.field', path: 'relations.library' },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(
@@ -498,7 +498,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const names = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'name' } },
+      { kind: 'cts.field', path: 'name' },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(
@@ -525,7 +525,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => authorized }
     );
     const names = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'name' } },
+      { kind: 'cts.field', path: 'name' },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(
@@ -631,7 +631,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const dates = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'fields.updatedAt' } },
+      { kind: 'cts.field', path: 'fields.updatedAt' },
       { entity: selected }
     );
     const sorted = await executeProcessDataNode(
@@ -661,7 +661,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const refs = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'relations.library' } },
+      { kind: 'cts.field', path: 'relations.library' },
       { entity: selected }
     );
     const unique = await executeProcessDataNode(
@@ -694,7 +694,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const statuses = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'states.main' } },
+      { kind: 'cts.field', path: 'states.main' },
       { entity: selected }
     );
     const grouped = await executeProcessDataNode(
@@ -773,7 +773,7 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const statuses = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'states.main' } },
+      { kind: 'cts.field', path: 'states.main' },
       { entity: selected }
     );
     const mask = await executeProcessDataNode(

@@ -83,7 +83,7 @@ describe('unreachable node diagnostics', () => {
   it('reports a branch that dead-ends while its sibling reaches the effect', () => {
     const result = validateProcessDefinition(definition({
       literal: { id: 'literal', kind: 'source.literalItem', type: { base: 'string' }, value: 'Name' },
-      orphan: { id: 'orphan', kind: 'cts.field', typeId: 'project', inputDefaults: { field: 'identity.name' } },
+      orphan: { id: 'orphan', kind: 'cts.field', typeId: 'project', path: 'identity.name' },
       update: {
         id: 'update',
         kind: 'cts.mutate',

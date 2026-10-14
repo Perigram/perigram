@@ -190,4 +190,27 @@ describe('headless definition authoring', () => {
     expect(() => context.connect('who', 'value', 'split', 'separator'))
       .toThrow(/Expected string, received entityRef<user>/);
   });
+
+  it('the record path is the single home of the Get Field selection — retired channel defaults unwrap once', () => {
+    const context = authoring();
+    context.drop('currentUser', { id: 'who' });
+    context.drop('getField', { id: 'gf' });
+    context.connect('who', 'value', 'gf', 'entity');
+
+    // Every spelling older drafts carried on the `field` socket default —
+    // a packet, a plain string, machine junk — unwraps into `path` and
+    // the channel key disappears.
+    for (const legacy of [
+      { branches: [{ path: [], items: ['fields.name'] }] },
+      'fields.roles',
+      '[object Object]'
+    ]) {
+      const record = context.record('gf');
+      record.inputDefaults = { field: legacy };
+      context.sync('gf');
+      expect(record.inputDefaults.field).toBeUndefined();
+      expect(['fields.name', 'fields.roles', 'fields.email']).toContain(record.path);
+      expect(record.outputs.find(port => port.id === 'value')?.type?.base).not.toBe('json');
+    }
+  });
 });

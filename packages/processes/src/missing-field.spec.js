@@ -19,7 +19,7 @@ describe('missing-field marker', () => {
 
   it('is not produced for a present null value', async () => {
     const result = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'name' } },
+      { kind: 'cts.field', path: 'name' },
       { entity: createDataPacket({ name: null }) }
     );
     expect(result.branches[0].items).toEqual([null]);
@@ -49,7 +49,7 @@ describe('missing-field marker', () => {
 describe('missing vs present-nullable field in the evaluator', () => {
   const entity = { name: null };
   const readField = path => executeProcessDataNode(
-    { kind: 'cts.field', inputDefaults: { field: path } },
+    { kind: 'cts.field', path: path },
     { entity: createDataPacket(entity) }
   );
 
@@ -67,7 +67,7 @@ describe('missing vs present-nullable field in the evaluator', () => {
 
   it('does not wrap a missing lineage read into a typed entity reference', async () => {
     const result = await executeProcessDataNode(
-      { kind: 'cts.field', inputDefaults: { field: 'lineage.queueId' } },
+      { kind: 'cts.field', path: 'lineage.queueId' },
       { entity: createDataPacket({}) }
     );
     const value = result.branches[0].items[0];

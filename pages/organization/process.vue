@@ -1860,6 +1860,10 @@ function applyGraphInterpretation(mutations) {
       setNodeTypeId(record, mutation.value);
       continue;
     }
+    if (mutation.key === 'path') {
+      record.path = mutation.value;
+      continue;
+    }
     if (mutation.key.startsWith('inputDefaults.')) {
       const inputId = mutation.key.slice('inputDefaults.'.length);
       record.inputDefaults = { ...(record.inputDefaults || {}), [inputId]: mutation.value };

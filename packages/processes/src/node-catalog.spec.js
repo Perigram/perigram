@@ -457,7 +457,7 @@ describe('process v4 node catalog', () => {
     expect(resolveCatalogNodePorts({
       kind: 'cts.field',
       typeId: 'project',
-      inputDefaults: { field: 'name' }
+      path: 'name'
     }, context)).toMatchObject({
       inputs: [
         { id: 'entity', access: 'item', type: { base: 'entityRef', typeId: 'project' } },

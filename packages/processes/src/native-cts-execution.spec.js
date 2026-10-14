@@ -108,7 +108,7 @@ describe('native CTS process execution contract', () => {
 
     const readable = validateProcessDefinition(graph([
       { id: 'users', kind: 'cts.read', select: 'all', typeId: 'user' },
-      { id: 'email', kind: 'cts.field', typeId: 'user', path: 'fields.email', inputDefaults: { field: 'fields.email' } }
+      { id: 'email', kind: 'cts.field', typeId: 'user', path: 'fields.email', path: 'fields.email' }
     ], [{
       id: 'users-email',
       source: 'users',
@@ -188,19 +188,11 @@ describe('native CTS process execution contract', () => {
     expect(field.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entityRef', typeId: 'panel' } });
   });
 
-  it('types the Get field output for every authored field spelling', () => {
+  it('types the Get field output from the record path', () => {
     const domain = nativeDomain();
-    // The inspector/authoring spelling: the record's own `path`.
     const viaPath = portsFor({ kind: 'cts.field', typeId: 'panel', path: 'fields.name' }, domain);
     expect(viaPath.outputs[0]).toMatchObject({ id: 'value', type: { base: 'string' } });
-    // The inline-fallback spelling: the field socket's authored default,
-    // stored as one broadcast item.
-    const viaDefault = portsFor({
-      kind: 'cts.field', typeId: 'panel',
-      inputDefaults: { field: { branches: [{ path: [], items: ['fields.name'] }] } }
-    }, domain);
-    expect(viaDefault.outputs[0]).toMatchObject({ id: 'value', type: { base: 'string' } });
-    // A party row stays typed through the same pair.
+    // A party row stays typed through the same home.
     const partyRow = portsFor({ kind: 'cts.field', typeId: 'user', path: 'fields.email' }, domain);
     expect(partyRow.outputs[0]).toMatchObject({ id: 'value', type: { base: 'string' } });
   });
@@ -492,13 +484,13 @@ describe('native CTS process execution contract', () => {
 
   it('keeps native reads and field projections executable as data nodes', async () => {
     const result = await executeProcessDataNode(
-      { id: 'field', kind: 'cts.field', typeId: 'panel', inputDefaults: { field: 'fields.name' } },
+      { id: 'field', kind: 'cts.field', typeId: 'panel', path: 'fields.name' },
       { entity: createDataPacket({ type: 'panel', _id: 'p1', fields: { name: 'Panel' } }) }
     );
     expect(result.branches[0].items).toEqual(['Panel']);
     // The field socket is the channel: a wired path wins over the default.
     const wired = await executeProcessDataNode(
-      { id: 'field', kind: 'cts.field', typeId: 'panel', inputDefaults: { field: 'fields.name' } },
+      { id: 'field', kind: 'cts.field', typeId: 'panel', path: 'fields.name' },
       {
         entity: createDataPacket({ type: 'panel', _id: 'p1', fields: { name: 'Panel' } }),
         field: createDataPacket('fields.name')

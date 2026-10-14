@@ -44,7 +44,7 @@ describe('process v4 validation', () => {
     const result = validateProcessDefinition(definition({
       kind: 'cts.field',
       typeId: 'project',
-      inputDefaults: { field: 'data.guessed' }
+      path: 'data.guessed'
     }), domain);
     expect(result.errors).toContain('Process node node uses undeclared field data.guessed');
   });

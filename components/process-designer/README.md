@@ -612,8 +612,10 @@ Types are structured `{ base, nullable, ...qualifiers }` element contracts.
 The process graph preserves exact type and collection contracts through resolution and execution. Parent, child, and relation reads select a declared edge and expose its target type. `cts.field` reads the declared field from the incoming instance. All<T> is an unfiltered typed source; filtering remains ordinary field → logic → filter dataflow. Packet topology and transport adapters are not author-facing node settings.
 
 Get field (`cts.field`) reads the declared field from the incoming instance;
-its path choices are the bound type's readable fields, and an unbound node
-offers only its entity input. Record Field (`value.recordField`) reads one
+its path choices are the bound type's readable fields, the record's `path` is
+the single persisted home of the selection (the field wire and the inspector
+pick both write it), and an unbound node offers only its entity input. Record
+Field (`value.recordField`) reads one
 authored key off each record value of its List input (service rows,
 composed parameter records) with an authored output type — plain record
 values have no declared row, so the key is authored, not selected.

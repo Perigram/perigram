@@ -311,6 +311,9 @@ function showInlineFallback(input) {
 }
 
 function supportsInlineValue(input) {
+  // The Get Field path authors through the inspector pick or the field
+  // wire — the socket takes a wire, not typed text.
+  if (opKind.value === 'cts.field' && input.id === 'field') return false;
   return ['string', 'id', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'status', 'entityRef'].includes(input.base)
     && (input.access === 'item'
       // Mapped mutation sockets declare List consumption; an inline scalar

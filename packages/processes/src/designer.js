@@ -668,15 +668,15 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   // The wire is the field (SPEC §20): a field node wired into a getField's
   // field socket authors that node's field path — the slot-qualified row
   // path the projection derives (slot from the declaring class, id from
-  // the authored name).
+  // the authored name). `path` is the single persisted home.
   for (const [fieldNode, targetNode] of fieldEntryEdges) {
     const record = records[targetNode.data?.refId];
     if (record?.kind !== 'cts.field') continue;
     const name = String(fieldNode.data?.name || '').trim();
     if (!name) continue;
     const path = `fields.${camelCaseId(name)}`;
-    if (record.inputDefaults?.field !== path) {
-      mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'inputDefaults.field', value: path });
+    if (record.path !== path) {
+      mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'path', value: path });
     }
   }
 
