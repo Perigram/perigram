@@ -69,13 +69,19 @@ action (the per-card ellipsis menu) launched the run, so executors
 target that entity instead of the screen scope.
 
 Detail editing follows the same rule: an `onPatch({ instance, patch })`
-prop enables the record-page edit affordances — the header Edit toggle
-(submit diffs the draft against the instance fields) and the per-field
-inline pencil (confirm patches that one field). RegionBlock maps
+prop enables the per-field inline pencils — there is no record-level
+edit mode (SPEC UI): scalar facts click-to-edit through `InlineField`
+(confirm patches that one field), structural panels carry their own
+pencil and confirm/discard over a local draft. RegionBlock maps
 changed field names onto the flat §3 wire patch (the identifier `name`
 row writes the wire name slot, everything else `fields.<name>` — the
-same shape `processUpdate` writes) and re-emits both affordances as one
-`patch` event; without `onPatch` neither affordance renders.
+same shape `processUpdate` writes) and re-emits every inline change as
+one `patch` event; without `onPatch` no pencil renders. Every applied
+field change lands in the state record: the instance patch transport
+appends an attributed `field_change` event to `status_events`
+(actor, field, from → to — see
+[server/core/machines](../../server/core/machines/README.md)), rendered
+beside the transition history in `StateHistory`.
 
 Region data states and the region header's in-place controls are shared
 surface concerns:
@@ -339,9 +345,7 @@ surface concerns:
   stepper); instances without a state render nothing (no state is
   information — nothing synthesizes one). The action cluster sits
   right (the identity's flex-1 is the push): the composed instance-chat
-  entry, the Edit toggle (rendered only on patchable surfaces — see
-  `onPatch` above; while editing it reads as Save and submits the
-  draft), at most `HEADER_ACTIONS_INLINE` generated buttons inline — a
+  entry, at most `HEADER_ACTIONS_INLINE` generated buttons inline — a
   third and every further action join one popup ellipsis menu (no
   reserved layout space) with the same localized labels — and every
   available runtime transition renders as a dedicated transition button
@@ -370,15 +374,16 @@ surface concerns:
   scalar facts strip (`DETAIL_FACT_BUDGET`), structural fields as an Accordion,
   budgeted relation chips with show-more toggles for relations not already
   covered by a child region, and the hierarchy tree for groups. Every
-  field renders through `InlineField.vue`, the one detail value cell
-  (plain display; the click-to-edit Inplace with pencil on patchable
-  surfaces; the record's edit-mode draft while editing) — hosts own the
+  scalar and simple structural field renders through `InlineField.vue`,
+  the one detail value cell (plain display; the click-to-edit Inplace
+  with pencil on patchable surfaces) — hosts own the
   label placement, so facts, simple structural rows, and quantity maps
-  share the same affordance. Unfilled fields follow the scalar law
-  everywhere: display mode renders only fields that carry values (empty
-  panels are junk), edit mode exposes every declared field. Rich
-  structural values keep their panel chrome (Fieldset/Accordion) and
-  edit through the record's Edit toggle.
+  share the same affordance. Rich
+  structural values keep their panel chrome (Fieldset/Accordion) with
+  their own pencil: one panel edits at a time over a local draft with
+  confirm/discard. Unfilled fields follow the scalar law
+  everywhere: display renders only fields that carry values (empty
+  panels are junk).
 - `PreviewBox.vue` — preview materialization keyed on the declared payload,
   in one fixed-height band (`h-28`) for every content kind. An instance
   payload reference with a renderable declared

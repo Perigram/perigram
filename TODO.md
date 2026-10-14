@@ -1,5 +1,38 @@
 # TODO
 
+## Record surfaces: no edit mode, inline pencils, attributed field changes (owner direction 2026-10-14)
+
+Generated record surfaces lose the record-level edit mode entirely: the
+header Edit/Save toggle and the whole-record draft die. Every editable
+field edits through its own pencil — scalar facts click-to-edit in place,
+structural panels carry their own pencil. Every field change lands in the
+state record (`status_events`) attributed: actor, field, from → to, beside
+the transition history (SPEC UI).
+
+- [x] A. Remove the header edit toggle and the record draft machinery
+      (SurfaceHeader, RegionBlock, SurfaceBody, SurfaceDetailBody,
+      InlineField); structural panels get per-field pencils.
+- [x] B. Server: the instance patch transport appends `field_change`
+      events to `status_events` (machines service owns the writer);
+      StateHistory renders them with actor and from → to.
+
+#### Agent Notes (2026-10-14)
+
+Done: SurfaceHeader/RegionBlock/SurfaceBody/InlineField carry no
+edit-mode state anymore — no toggle, no draft, no diff-on-save;
+`editable` (patchable) survives as the per-field pencil gate only.
+SurfaceDetailBody's Fieldset/Accordion panels own a pencil each (one
+panel edits at a time over a local draft, confirm/discard). Server:
+`appendFieldChangeEvent` in the machines service (status_events home)
+writes `operation: { kind: 'field_change', changes: [{field, from, to}] }`
+with the acting principal; the instances patch transport computes the
+diff against the pre-update DTO (name + `fields.*` leaves — lineage and
+relations stay on their link/unlink surfaces). StateHistory renders the
+pencil-marked steps with the from → to list. Consequence of the scalar
+law now that no mode exists: an unfilled optional field renders no row,
+so it cannot be filled inline from the detail surface (creation prompts
+and typed editors remain the fill path).
+
 ## Template documents from graph data: `text` projection + named-slot format (owner direction 2026-10-13)
 
 A text document with placeholders is a template; the graph fills it from

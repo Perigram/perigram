@@ -67,7 +67,12 @@ graph-derived (SPEC §7) — this module never defines machines itself.
   projects it into the machine view internally); a legacy status-block
   document keeps its block. Evidence, lifecycle facts, and display metadata
   are event-sourced — `status_events` carries the full snapshot, the flat
-  instance carries the state.
+  instance carries the state. Field edits ride the same trail (SPEC UI):
+  the instance patch transport calls `appendFieldChangeEvent`, whose records
+  keep the current state on both ends and carry
+  `operation: { kind: 'field_change', changes: [{ field, from, to }] }`
+  with the acting principal — the history surface renders them beside
+  transitions as who changed what.
 
 The reusable workflow API is being extracted to
 [`@perigram/workflows`](../../../packages/workflows/README.md). The current

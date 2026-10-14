@@ -20,6 +20,7 @@ import { listQueryFilter } from './filters.js';
 import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { hasInstanceAccess } from '../../core/access/service.js';
+import { appendFieldChangeEvent } from '../../core/machines/service.js';
 import { serviceAwareConstructionHandlers, applyConstructionService } from './construction-services.js';
 
 // The composed system view (framework + mounted packs in dependency
@@ -36,6 +37,23 @@ const declarationCache = new Map();
 // cache and invalidate with it on registry writes.
 let staticLineageKeys = null;
 const lineageKeysCache = new Map();
+
+// The attributed change list for the field-change audit event: which
+// patched leaves actually differ from the current DTO. Values compare by
+// JSON identity — patch leaves are plain wire data.
+function fieldChangesFromPatch(patch = {}, current = {}) {
+  const sameValue = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  const changes = [];
+  if (patch.name !== undefined && !sameValue(patch.name, current.name)) {
+    changes.push({ field: 'name', from: current.name ?? null, to: patch.name });
+  }
+  for (const [key, value] of Object.entries(patch.fields || {})) {
+    if (value === undefined) continue;
+    const before = current.fields?.[key] ?? null;
+    if (!sameValue(value, before)) changes.push({ field: key, from: before, to: value });
+  }
+  return changes;
+}
 
 function declaredLineageKeysOf(declarations = []) {
   const keysByType = new Map();
@@ -393,7 +411,18 @@ function instanceService(typeId) {
       if (!hasInstanceAccess({ entity: current, typeId, feature, level: 'write', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      return await this.processUpdate(id, patch, organizationId);
+      const updated = await this.processUpdate(id, patch, organizationId);
+      // Field edits drop into the state record (SPEC UI): the audit trail
+      // carries who changed which field, from what to what, beside the
+      // transition history. Only name and data/specs leaves ride — lineage
+      // and relations belong to their own link/unlink surfaces.
+      await appendFieldChangeEvent(typeId, id, {
+        changes: fieldChangesFromPatch(patch, current),
+        actorId: auth?.userId || null,
+        auth: auth || {},
+        state: typeof current.state === 'string' && current.state ? current.state : null
+      });
+      return updated;
     },
 
     async remove(id) {

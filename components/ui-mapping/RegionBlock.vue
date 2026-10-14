@@ -108,15 +108,12 @@
           :instance="node.instances[0]"
           :actions="headerActions"
           :level="node.level"
-          :editable="patchable"
-          :editing="editing"
           :pool="pool"
           :bundle="bundle"
           :state-policy="node.statePolicy"
           :navigation="depth === 0 ? navigation : null"
           @run="emitRun"
           @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
-          @toggle-edit="toggleEditing"
           @refresh="emit('refresh')"
           @open-instance="emitOpen"
         />
@@ -128,8 +125,6 @@
           :chrome="node.chrome"
           :covered-relations="coveredRelationKeys"
           :editable="patchable"
-          :editing="editing"
-          :draft="draft"
           :pool="pool"
           :bundle="bundle"
           :state-policy="node.statePolicy"
@@ -184,7 +179,7 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, reactive, ref, watch } from 'vue';
+import { computed, inject, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import ProgressBar from 'primevue/progressbar';
@@ -284,8 +279,6 @@ async function ensureParentTypes() {
 onMounted(ensureParentTypes);
 watch(() => [props.node.typeId, props.loadType], ensureParentTypes);
 
-const editing = ref(false);
-const draft = reactive({});
 // Field-name changes map onto the flat §3 wire patch: the identifier row
 // `name` writes the wire name slot, every other field lands under
 // `fields.<name>` — the same shape the instance update transport
@@ -305,22 +298,6 @@ const emitPatch = changes => {
   const instance = props.node.instances[0];
   const patch = wirePatchFor(changes);
   if (instance && patch) emit('patch', { instance, patch });
-};
-const toggleEditing = () => {
-  const instance = props.node.instances[0];
-  if (!editing.value) {
-    Object.keys(draft).forEach(key => delete draft[key]);
-    Object.assign(draft, JSON.parse(JSON.stringify(instance?.fields || {})));
-    editing.value = true;
-    return;
-  }
-  editing.value = false;
-  if (!instance) return;
-  const changes = {};
-  for (const [name, value] of Object.entries(draft)) {
-    if (JSON.stringify(value ?? null) !== JSON.stringify(instance.fields?.[name] ?? null)) changes[name] = value;
-  }
-  emitPatch(changes);
 };
 const inlineChange = ({ name, value } = {}) => emitPatch({ [name]: value });
 const emitRun = (action, context) => emit('run', action, context);

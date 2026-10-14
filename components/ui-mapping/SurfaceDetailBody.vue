@@ -11,8 +11,6 @@
             <InlineField
               :field="field"
               :editable="editable"
-              :editing="editing"
-              :draft="draft"
               :pool="pool"
               :bundle="bundle"
               @inline-change="change => emit('inline-change', change)"
@@ -31,9 +29,26 @@
         class="w-full"
       >
         <div :class="LAYOUT.panelBody">
+          <div class="flex items-center justify-end gap-1">
+            <template v-if="editingField === structuralOf(group)[0].name">
+              <Button icon="pi pi-check" size="small" :aria-label="$t('uiMapping.save')" :title="$t('uiMapping.save')" @click="confirmStructuralEdit" />
+              <Button icon="pi pi-times" size="small" severity="danger" text :aria-label="$t('uiMapping.discard')" :title="$t('uiMapping.discard')" @click="cancelStructuralEdit" />
+            </template>
+            <Button
+              v-else-if="editable"
+              icon="pi pi-pencil"
+              size="small"
+              severity="secondary"
+              text
+              rounded
+              :aria-label="$t('uiMapping.edit')"
+              :title="$t('uiMapping.edit')"
+              @click="beginStructuralEdit(structuralOf(group)[0])"
+            />
+          </div>
           <FieldControl
-            v-if="editing"
-            v-model="draft[structuralOf(group)[0].name]"
+            v-if="editingField === structuralOf(group)[0].name"
+            v-model="structuralDraft"
             :descriptor="structuralOf(group)[0].descriptor"
             variant="detail"
             :pool="pool"
@@ -54,8 +69,6 @@
         <InlineField
           :field="structuralOf(group)[0]"
           :editable="editable"
-          :editing="editing"
-          :draft="draft"
           :pool="pool"
           :bundle="bundle"
           @inline-change="change => emit('inline-change', change)"
@@ -70,8 +83,6 @@
         <InlineField
           :field="field"
           :editable="editable"
-          :editing="editing"
-          :draft="draft"
           :pool="pool"
           :bundle="bundle"
           @inline-change="change => emit('inline-change', change)"
@@ -85,9 +96,26 @@
           :header="field.label"
         >
           <div :class="LAYOUT.panelBody">
+            <div class="flex items-center justify-end gap-1">
+              <template v-if="editingField === field.name">
+                <Button icon="pi pi-check" size="small" :aria-label="$t('uiMapping.save')" :title="$t('uiMapping.save')" @click="confirmStructuralEdit" />
+                <Button icon="pi pi-times" size="small" severity="danger" text :aria-label="$t('uiMapping.discard')" :title="$t('uiMapping.discard')" @click="cancelStructuralEdit" />
+              </template>
+              <Button
+                v-else-if="editable"
+                icon="pi pi-pencil"
+                size="small"
+                severity="secondary"
+                text
+                rounded
+                :aria-label="$t('uiMapping.edit')"
+                :title="$t('uiMapping.edit')"
+                @click="beginStructuralEdit(field)"
+              />
+            </div>
             <FieldControl
-              v-if="editing"
-              v-model="draft[field.name]"
+              v-if="editingField === field.name"
+              v-model="structuralDraft"
               :descriptor="field.descriptor"
               variant="detail"
               :pool="pool"
@@ -135,7 +163,7 @@
 </template>
 
 <script setup>
-import { computed, inject } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
@@ -158,13 +186,29 @@ const props = defineProps({
   bundle: { type: Object, default: null },
   expanded: { type: Object, default: () => ({}) },
   coveredRelations: { type: Array, default: () => [] },
-  editable: { type: Boolean, default: false },
-  editing: { type: Boolean, default: false },
-  draft: { type: Object, default: null }
+  editable: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
 const d = inject('uiMappingSpacing');
+
+// Structural panels edit through their own pencil (SPEC UI: no record
+// edit mode): one panel edits at a time over a local draft, confirm
+// re-emits the field change through the shared inline channel.
+const editingField = ref(null);
+const structuralDraft = ref(null);
+function beginStructuralEdit(field) {
+  editingField.value = field.name;
+  structuralDraft.value = JSON.parse(JSON.stringify(field.value ?? null));
+}
+function confirmStructuralEdit() {
+  if (!editingField.value) return;
+  emit('inline-change', { name: editingField.value, value: structuralDraft.value });
+  editingField.value = null;
+}
+function cancelStructuralEdit() {
+  editingField.value = null;
+}
 
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
@@ -189,9 +233,8 @@ const groups = computed(() => resolveFieldGroups(props.type)
 const isQuantityMap = field => field.descriptor.base === 'map'
   && field.descriptor.itemType?.base === 'quantity';
 // Structural fields follow the scalar law: an unfilled field renders
-// nothing in display mode (empty panels are junk) and joins the surface
-// only while editing, where every declared field exposes its editor.
-const editableNow = field => props.editing || hasValue(field);
+// nothing (empty panels are junk).
+const editableNow = field => hasValue(field);
 const inlineMapsOf = group => group.fields.filter(field => isQuantityMap(field) && editableNow(field));
 const isRichStructure = field => {
   const value = field.value;
@@ -203,7 +246,7 @@ const isRichStructure = field => {
 const hasValue = field => field.value !== null
   && field.value !== undefined
   && field.value !== '';
-const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && (props.editing || hasValue(field)));
+const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && hasValue(field));
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
   const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);

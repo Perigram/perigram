@@ -81,6 +81,18 @@ const policyByValue = policyFor(() => props.typeId);
 
 const eventNote = (event) => event.status?.metadata?.note || event.metadata?.note || '';
 
+// Field-change events (SPEC UI): the audit trail's "who changed what" —
+// each step lists the changed leaves with from → to values.
+const isFieldChange = (event) => event.operation?.kind === 'field_change';
+const fieldChangesOf = (event) => (isFieldChange(event) ? event.operation.changes || [] : []);
+const formatChangeValue = (value) => {
+  const text = value === null || value === undefined || value === ''
+    ? '—'
+    : typeof value === 'object' ? JSON.stringify(value) : String(value);
+  return text.length > 48 ? `${text.slice(0, 48)}…` : text;
+};
+const fieldChangeLabel = (name) => String(name).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+
 const eventAttachments = (event) => Object.entries(event.status?.lifecycle?.attachments || {})
   .flatMap(([slot, value]) => (Array.isArray(value) ? value : [value]).filter(Boolean).map(item => ({
     slot,
@@ -187,6 +199,7 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
       <StepItem v-for="(event, index) in orderedEvents" :key="stepKey(event, index)" :value="stepKey(event, index)">
         <Step :pt="stepPt">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1 text-left">
+            <i v-if="isFieldChange(event)" class="pi pi-pencil text-muted text-supporting" aria-hidden="true"></i>
             <StateTag :value="eventState(event)" :policy="policyByValue" />
             <span v-if="actorUserId(event) && actorStartsRun(index)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
               <InstanceInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
@@ -212,7 +225,19 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
           </div>
         </Step>
         <StepPanel :value="stepKey(event, index)" v-slot="{ activateCallback }">
-          <div v-if="eventNote(event) || eventAttachments(event).length || eventSnapshots(event).length" class="min-w-0 pb-3 pl-1">
+          <div v-if="eventNote(event) || eventAttachments(event).length || eventSnapshots(event).length || fieldChangesOf(event).length" class="min-w-0 pb-3 pl-1">
+            <div v-if="fieldChangesOf(event).length" class="flex min-w-0 flex-col gap-1">
+              <small
+                v-for="change in fieldChangesOf(event)"
+                :key="`${stepKey(event, index)}-${change.field}`"
+                class="inline-flex min-w-0 flex-wrap items-baseline gap-1 text-muted"
+              >
+                <span class="text-body">{{ fieldChangeLabel(change.field) }}</span>
+                <span class="text-muted">{{ formatChangeValue(change.from) }}</span>
+                <i class="pi pi-arrow-right text-[0.6rem]" aria-hidden="true"></i>
+                <span class="text-body">{{ formatChangeValue(change.to) }}</span>
+              </small>
+            </div>
             <p v-if="eventNote(event)" class="m-0 min-w-0 break-words italic text-body">
               {{ eventNote(event) }}
             </p>

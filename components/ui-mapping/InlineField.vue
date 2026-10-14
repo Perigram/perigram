@@ -1,13 +1,5 @@
 <template>
-  <FieldControl
-    v-if="editing"
-    v-model="draft[field.name]"
-    :descriptor="field.descriptor"
-    variant="detail"
-    :pool="pool"
-    :bundle="bundle"
-  />
-  <Inplace v-else-if="editable" closable>
+  <Inplace v-if="editable" closable>
     <template #display>
       <div class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5 transition-colors hover:bg-subtle">
         <FieldControl
@@ -65,15 +57,13 @@ import Button from 'primevue/button';
 import Inplace from 'primevue/inplace';
 import FieldControl from './FieldControl.vue';
 
-// One detail-field value cell: the record's full-edit draft when editing,
-// the click-to-edit Inplace (display + pencil, editor + confirm/discard)
-// on patchable surfaces, the plain display otherwise. Hosts own the label
-// placement — this component is only the value half of a fact row.
+// One detail-field value cell: the click-to-edit Inplace (display +
+// pencil, editor + confirm/discard) on patchable surfaces, the plain
+// display otherwise. Hosts own the label placement — this component is
+// only the value half of a fact row.
 const props = defineProps({
   field: { type: Object, required: true },
   editable: { type: Boolean, default: false },
-  editing: { type: Boolean, default: false },
-  draft: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });

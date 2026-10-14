@@ -79,17 +79,6 @@
           :type-id="type?.id"
           @refresh="$emit('refresh')"
         />
-        <Button
-          v-if="editable && !editorActionAvailable"
-          :icon="editing ? 'pi pi-check' : 'pi pi-pencil'"
-          :aria-label="editing ? $t('uiMapping.save') : $t('uiMapping.edit')"
-          :title="editing ? $t('uiMapping.save') : $t('uiMapping.edit')"
-          size="small"
-          :severity="editing ? undefined : 'secondary'"
-          text
-          rounded
-          @click="$emit('toggle-edit')"
-        />
         <ActionButton
           v-for="action in inlineActions"
           :key="action.id"
@@ -151,8 +140,6 @@ const props = defineProps({
   instance: { type: Object, required: true },
   actions: { type: Array, default: () => [] },
   level: { type: Number, default: 0 },
-  editable: { type: Boolean, default: false },
-  editing: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // The region's per-type state policy map (contract.statePolicy[typeId]).
@@ -163,7 +150,7 @@ const props = defineProps({
   navigation: { type: Object, default: null }
 });
 
-const emit = defineEmits(['run', 'transition', 'toggle-edit', 'refresh', 'open-instance']);
+const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance']);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 // The subtitle names the class through the single label seam — instance
 // ids are private display vocabulary and never render (SPEC §UI).
