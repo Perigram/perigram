@@ -2006,14 +2006,36 @@ an ARC and emitted {fillet, p1, 6} — zero page errors.
   holes/radii/parameters with `evaluateOccsProfileSketch` + the savable
   gate; the sketch editor's parameter/vertex/hole authoring rows; the
   open/closed toggle with `polyline` sections carrying break points; the
-  designer section layer's break markers and contour split. Remaining
-  follow-up: the production cut pass consuming the break points (the
-  evaluated layerData splits the host contour), and instantiating one
-  profile at multiple parameter sets from the workpiece row. Check:
+  designer section layer's break markers and contour split; the evaluated
+  layerData carrying the broken contour chains on `contour.cassette_face`;
+  and parametric instantiation — a profile workpiece's parameters override
+  the authored table and re-evaluate the snapshot from its sketch, edited
+  in place from the workpiece rows. Check:
   author a profile with expression-bound W/H/R, open one end, attach it
-  to a face — the contour splits at the break marks; instantiate at two
-  parameter sets and both the preview and the OCCS document evaluate
-  deterministically.
+  to a face — the contour splits at the break marks and the evaluated
+  layerData carries the broken chains; instantiate at two parameter sets
+  from the workpiece row and both the preview and the OCCS document
+  evaluate deterministically.
+
+### Agent Notes (2026-10-15, both follow-ups shipped)
+
+Session `agent/profile-instantiate-20261015`. Production breaks: the
+break computation (positioned endpoints + host-contour split) moved to
+one canonical `profileBreaksForTree` export; the designer section layer
+and `evaluateOccsCassetteTemplate` both consume it — the evaluated
+layerData now carries the two contour chains between the break
+projections on `contour.cassette_face`, while nesting polygons stay
+whole (a break is an edge feature, not a cut). Instantiation:
+`normalizeCassetteV2Profile` flips to the authored sketch as the
+derivation source (a cached `occsProfile.sketch` is evaluated numbers
+and was shadowing it at add time — caught by the spec) with the
+workpiece's parameter table overriding the authored table; a transient
+invalid parameter holds the last good section instead of throwing
+through the tree update. The workpieces inspector renders parameter
+chips on the selected profile workpiece row. Specs: renderer 31/31
+(expression-bound fixture re-evaluates W:84, invalid transient holds),
+evaluate 12/12 (two open chains on contour.cassette_face, nesting
+polygon count unchanged), profiles 10/10. Not run: full platform e2e.
 
 ### Agent Notes (2026-10-15, expressions + open profiles shipped)
 

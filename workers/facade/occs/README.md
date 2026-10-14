@@ -68,16 +68,22 @@ modules — no platform imports.
   or more save open). An open profile saves as a `polyline` section whose
   first and last vertices are its break points: the designer's section
   layer marks them and splits the host face's contour at their projections
-  where the profile lands — the production cut pass consuming them is
-  tracked follow-up work. The sketch editor's authoring rows edit the
+  where the profile lands, and the evaluated layerData carries the two
+  contour chains into production redraw on `contour.cassette_face`. The
+  sketch editor's authoring rows edit the
   parameter table, vertex coordinates, fillet radii, and hole geometry
   directly on the sketch model; the extraction pass re-derives points,
   holes, and modifiers from drawn geometry, so a later draw or import
-  overwrites authored expressions and radii. Profiles live on the tree: the designer's profile dialog
-  writes profile workpieces (their `profileSnapshot` is the renderer's
-  geometry source) that ride the cassette template's own document — there
-  are no standalone profile records of any other type. The current
-  editor does not run a parametric constraint solver.
+  overwrites authored expressions and radii. Parametric instantiation: a
+  profile workpiece's parameter table overrides the profile's authored
+  table and its snapshot re-derives from the authored sketch (the stored
+  section is a last-good cache — a transient invalid parameter holds it);
+  the workpiece rows edit instance parameters in place. Profiles live on
+  the tree: the designer's profile dialog writes profile workpieces (their
+  `profileSnapshot` is the renderer's geometry source) that ride the
+  cassette template's own document — there are no standalone profile
+  records of any other type. The current editor does not run a parametric
+  constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.
 - `evaluate.js` resolves OCCS graph-tree templates into production data. It
@@ -87,7 +93,10 @@ modules — no platform imports.
   occurrence id metadata. The same evaluated `layerData` is carried through the
   nesting request as source layers so generated sheet designs can redraw placed
   cut, fold, dimension, and annotation layers after the worker returns
-  placements.
+  placements. Open profiles inserted into a face contribute their break to
+  that layerData: the host contour's two chains between the break
+  projections ride `contour.cassette_face` (nesting polygons stay whole —
+  a break is an edge feature, not a cut).
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
   codes, including generated dimension annotation layers and caller-provided
