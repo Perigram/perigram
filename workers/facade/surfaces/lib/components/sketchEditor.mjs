@@ -4,6 +4,7 @@
 // grips, and undo/redo run in the engine; entity records and the sketch
 // model normalize through occs/profiles.js.
 import {
+  evaluateOccsProfileSketch,
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
   occProfileSketchFromEntities,
@@ -20,7 +21,7 @@ const EXTRACT_DEBOUNCE_MS = 40;
 const BLANK_DXF = '0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1027\n0\nENDSEC\n0\nEOF\n';
 
 export default function createSketchEditor({ vue, components, locale }) {
-  const { h, ref, shallowRef, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
+  const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
   const { Button, InputText, Message } = components;
 
@@ -44,6 +45,8 @@ export default function createSketchEditor({ vue, components, locale }) {
       const importedFileName = ref('');
       const orthoMode = ref(false);
       const tangentSnap = ref(false);
+      const basisPick = ref(false);
+      const overlayRef = ref(null);
 
       let manager = null;
       let dbListeners = [];
@@ -77,6 +80,143 @@ export default function createSketchEditor({ vue, components, locale }) {
           : mask & ~OSNAP_TANGENT_MASK;
       };
 
+      const toggleBasisPick = () => {
+        basisPick.value = !basisPick.value;
+      };
+
+      // Canvas annotations: automatic per-edge dimensions for the
+      // evaluated corners, the basis datum, and open-shape origin/end
+      // marks — a derived overlay (never stored, never extracted). The
+      // pure descriptor builder runs through a computed keyed on a tick
+      // bumped from the view's render frame, so pan/zoom redraw it like
+      // any other reactive render.
+      const viewTick = ref(0);
+      const bumpViewTick = () => { viewTick.value += 1; };
+
+      const buildCanvasAnnotations = (evaluated, view) => {
+        const corners = evaluated.points.filter(point => !point.chord);
+        if (corners.length < 2) return null;
+        const closed = evaluated.closed && corners.length >= 3;
+        const toScreen = (x, y) => {
+          const point = view.worldToScreen({ x, y });
+          return [point.x, point.y];
+        };
+        const centroid = corners
+          .reduce((sum, point) => [sum[0] + point.x, sum[1] + point.y], [0, 0])
+          .map(value => value / corners.length);
+
+        const dimensions = [];
+        const edgeCount = closed ? corners.length : corners.length - 1;
+        for (let index = 0; index < edgeCount; index += 1) {
+          const a = corners[index];
+          const b = corners[(index + 1) % corners.length];
+          const worldLength = Math.hypot(b.x - a.x, b.y - a.y);
+          if (worldLength < 1e-6) continue;
+          const [ax, ay] = toScreen(a.x, a.y);
+          const [bx, by] = toScreen(b.x, b.y);
+          if (Math.hypot(bx - ax, by - ay) < 28) continue;
+          const nx = b.y - a.y;
+          const ny = a.x - b.x;
+          const outward = (centroid[0] - (a.x + b.x) / 2) * nx + (centroid[1] - (a.y + b.y) / 2) * ny > 0
+            ? [nx, ny]
+            : [-nx, -ny];
+          const nl = Math.hypot(outward[0], outward[1]) || 1;
+          const [dx, dy] = toScreen(a.x + outward[0] / nl, a.y + outward[1] / nl);
+          let ux = dx - ax;
+          let uy = dy - ay;
+          const ul = Math.hypot(ux, uy) || 1;
+          ux /= ul;
+          uy /= ul;
+          const off = 16;
+          const a1 = [ax + ux * off, ay + uy * off];
+          const b1 = [bx + ux * off, by + uy * off];
+          dimensions.push({
+            key: `${a.id}-${b.id}`,
+            extensionA: [ax + ux * 2, ay + uy * 2, a1[0] + ux * 3, a1[1] + uy * 3],
+            extensionB: [bx + ux * 2, by + uy * 2, b1[0] + ux * 3, b1[1] + uy * 3],
+            line: [...a1, ...b1],
+            labelAt: [(a1[0] + b1[0]) / 2 + ux * 9, (a1[1] + b1[1]) / 2 + uy * 9],
+            text: worldLength.toFixed(1)
+          });
+        }
+
+        const anchor = corners.find(point => point.id === evaluated.anchors?.vertexId) || null;
+        return {
+          dimensions,
+          closed,
+          datum: toScreen(...(closed && anchor ? [anchor.x, anchor.y] : [0, 0])),
+          end: closed ? null : toScreen(corners[corners.length - 1].x, corners[corners.length - 1].y),
+          picks: closed && basisPick.value
+            ? corners.map(point => toScreen(point.x, point.y))
+            : []
+        };
+      };
+
+      const canvasAnnotations = computed(() => {
+        viewTick.value;
+        const view = manager?.curView;
+        if (!view) return null;
+        let evaluated = null;
+        try {
+          evaluated = evaluateOccsProfileSketch(props.modelValue || {});
+        } catch {
+          return null;
+        }
+        return buildCanvasAnnotations(evaluated, view);
+      });
+
+      // Basis pick is modal: while active it intercepts canvas clicks
+      // before the engine sees them; the nearest authored corner within
+      // pick radius becomes the basis.
+      const handleBasisPickPointerDown = (event) => {
+        if (!basisPick.value) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const view = manager?.curView;
+        if (!view) return;
+        let evaluated = null;
+        try {
+          evaluated = evaluateOccsProfileSketch(props.modelValue || {});
+        } catch {
+          basisPick.value = false;
+          return;
+        }
+        if (!evaluated.closed) {
+          basisPick.value = false;
+          return;
+        }
+        const rect = overlayRef.value?.getBoundingClientRect();
+        if (!rect) return;
+        let best = null;
+        for (const point of evaluated.points.filter(item => !item.chord)) {
+          const screen = view.worldToScreen({ x: point.x, y: point.y });
+          const distance = Math.hypot(rect.x + screen.x - event.clientX, rect.y + screen.y - event.clientY);
+          if (distance <= 14 && (!best || distance < best.distance)) {
+            best = { point, distance };
+          }
+        }
+        if (best) {
+          const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+          commitSketch({ ...normalized, anchors: { vertexId: best.point.id } });
+        }
+        basisPick.value = false;
+      };
+
+      // The engine's Escape handling is scoped to its canvas container;
+      // after any toolbar click focus sits outside it and selections could
+      // never be escaped. A window-level listener clears them.
+      const handleWindowKeydown = (event) => {
+        if (event.key !== 'Escape') return;
+        if (event.target?.closest?.('input, textarea, select, [contenteditable]')) return;
+        const view = manager?.curView;
+        if (!view) return;
+        if (view.selectionSet?.ids?.size) {
+          view.selectionSet.clear();
+          view.htmlTransientManager?.deselectAll?.();
+          view.isHtmlDirty = true;
+        }
+      };
+
       // Text labels until proper tool icons exist: the engine bundle ships
       // no extractable command-icon set (its SVGs are baked-in cursor and
       // marker closures), and ambiguous primeicons (minus=Line,
@@ -89,8 +229,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { command: 'pline', labelKey: 'cassette.v2.profileEditor.tools.polyline' },
           { command: 'circle', labelKey: 'cassette.v2.profileEditor.tools.circle' },
           { command: 'arc', labelKey: 'cassette.v2.profileEditor.tools.arc' },
-          { command: 'rectang', labelKey: 'cassette.v2.profileEditor.tools.rectangle' },
-          { command: 'dimlinear', labelKey: 'cassette.v2.profileEditor.tools.dimension' }
+          { command: 'rectang', labelKey: 'cassette.v2.profileEditor.tools.rectangle' }
         ],
         [
           { command: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' },
@@ -98,6 +237,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { command: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo' }
         ],
         [
+          { labelKey: 'cassette.v2.profileEditor.actions.basis', isOn: () => basisPick.value, onActivate: toggleBasisPick },
           { labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
           { labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
           {
@@ -164,7 +304,13 @@ export default function createSketchEditor({ vue, components, locale }) {
       const emitSketch = () => {
         if (!manager || disposed) return;
         const context = parametersOf(props.modelValue);
-        const sketch = occProfileSketchFromEntities(entityRecords(), context);
+        const extracted = occProfileSketchFromEntities(entityRecords(), context);
+        // Anchors are model state, not derivable from geometry — extraction
+        // preserves them (normalize drops the anchor when its vertex died).
+        const sketch = normalizeOccsProfileSketch({
+          ...extracted,
+          anchors: props.modelValue?.anchors ?? null
+        }, context.parameters);
         const fingerprint = JSON.stringify(sketch);
         if (fingerprint === lastEmitted) return;
         lastEmitted = fingerprint;
@@ -264,14 +410,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         manager.curView?.addEntity?.(created);
       };
 
-      // The reseed clears exactly what extraction consumes (the geometry
-      // the sketch owns); placed dimensions and other annotations survive
-      // parametric edits.
-      const RESEED_OWNED_TYPES = new Set(['LINE', 'CIRCLE', 'ARC', 'LWPOLYLINE', 'POLYLINE']);
-
       const clearDrawingEntities = () => {
         for (const entity of modelSpaceEntities()) {
-          if (!RESEED_OWNED_TYPES.has(entity.dxfTypeName)) continue;
           manager.curView?.removeEntity?.(entity);
           const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
           modelSpace?.removeEntity?.(entity.objectId);
@@ -426,13 +566,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         commitSketch(setOccsProfileSketchClosed(normalized, !normalized.closed));
       };
 
-      const setProfileAnchor = (vertexId) => {
-        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
-        if (!normalized.closed) return;
-        const anchors = normalized.anchors?.vertexId === vertexId ? null : { vertexId };
-        commitSketch({ ...normalized, anchors });
-      };
-
       const resolvedHint = (sketch, value) => {
         if (typeof value !== 'string') return '';
         try {
@@ -510,16 +643,8 @@ export default function createSketchEditor({ vue, components, locale }) {
               class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5',
               title: `${point.x}, ${point.y}`
             }, [
-              sketch.closed
-                ? h(Button, {
-                    label: '⌖',
-                    severity: anchored === point.id ? 'primary' : 'secondary',
-                    text: true,
-                    size: 'small',
-                    'aria-label': `${t('cassette.v2.profileEditor.anchor')} ${point.id}`,
-                    title: `${t('cassette.v2.profileEditor.anchor')} ${point.id}`,
-                    onClick: () => { setProfileAnchor(point.id); }
-                  })
+              anchored === point.id
+                ? h('span', { class: 'text-xs text-primary', title: t('cassette.v2.profileEditor.anchor') }, '⌖')
                 : null,
               h('span', { class: 'font-mono text-xs text-muted-color' }, point.id),
               expressionField(point.x, `x${resolvedHint(sketch, point.x)}`, next => { applyVertexField(point.id, 'x', next); }, `x ${point.id}`),
@@ -541,15 +666,6 @@ export default function createSketchEditor({ vue, components, locale }) {
                 : null
             ]);
           }).filter(Boolean);
-          // An open shape's references are the sketch origin (zero — the
-          // placement basis) and the chain's end point; both displayed.
-          if (!sketch.closed) {
-            vertexChips.unshift(h('div', {
-              key: 'origin',
-              class: 'flex items-center gap-1 rounded-ui border border-dashed border-primary px-1.5 py-0.5 text-xs text-primary',
-              title: t('cassette.v2.profileEditor.anchor')
-            }, '⌖ 0,0'));
-          }
           rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, vertexChips));
         }
         if (sketch.holes.length) {
@@ -568,6 +684,49 @@ export default function createSketchEditor({ vue, components, locale }) {
         return h('div', { class: 'flex flex-col gap-1' }, rows);
       };
 
+
+      const DIM_STROKE = 'var(--p-text-muted-color)';
+      const DIM_HALO = 'var(--p-content-background)';
+      const PRIMARY = 'var(--p-primary-color)';
+
+      const renderCanvasAnnotations = () => {
+        const annotations = canvasAnnotations.value;
+        if (!annotations) return null;
+        const line = (key, coords, stroke = DIM_STROKE, width = 1, extra = {}) => h('line', {
+          key,
+          x1: coords[0], y1: coords[1], x2: coords[2], y2: coords[3],
+          stroke, 'stroke-width': width, 'stroke-opacity': 0.9, ...extra
+        });
+        return [
+          ...annotations.dimensions.flatMap(dimension => [
+            line(`${dimension.key}-ea`, dimension.extensionA),
+            line(`${dimension.key}-eb`, dimension.extensionB),
+            line(`${dimension.key}-d`, dimension.line),
+            h('text', {
+              key: `${dimension.key}-t`,
+              x: dimension.labelAt[0], y: dimension.labelAt[1],
+              'font-size': 10,
+              'text-anchor': 'middle',
+              'dominant-baseline': 'middle',
+              fill: DIM_STROKE,
+              stroke: DIM_HALO,
+              'stroke-width': 3,
+              'paint-order': 'stroke'
+            }, dimension.text)
+          ]),
+          h('circle', { key: 'datum', cx: annotations.datum[0], cy: annotations.datum[1], r: 6, fill: 'none', stroke: PRIMARY, 'stroke-width': 1.5 }),
+          h('line', { key: 'datum-h', x1: annotations.datum[0] - 8, y1: annotations.datum[1], x2: annotations.datum[0] + 8, y2: annotations.datum[1], stroke: PRIMARY, 'stroke-width': 1 }),
+          h('line', { key: 'datum-v', x1: annotations.datum[0], y1: annotations.datum[1] - 8, x2: annotations.datum[0], y2: annotations.datum[1] + 8, stroke: PRIMARY, 'stroke-width': 1 }),
+          annotations.end
+            ? h('circle', { key: 'end', cx: annotations.end[0], cy: annotations.end[1], r: 4, fill: PRIMARY })
+            : null,
+          ...annotations.picks.map((pick, index) => h('circle', {
+            key: `pick-${index}`,
+            cx: pick[0], cy: pick[1], r: 4, fill: 'none',
+            stroke: PRIMARY, 'stroke-width': 1, 'stroke-dasharray': '2 2'
+          }))
+        ];
+      };
 
       const handleDxfUpload = async (event) => {
         const [file] = Array.from(event.target.files || []);
@@ -643,6 +802,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           manager.events.documentActivated.addEventListener(bindDatabase);
           manager.events.documentCreated.addEventListener(bindDatabase);
           containerRef.value?.addEventListener('keydown', handleKeydown, true);
+          window.addEventListener('keydown', handleWindowKeydown, true);
+          manager.curView?.events?.renderFrame?.addEventListener?.(bumpViewTick);
           bindDatabase();
           orthoMode.value = Number(manager.curDocument?.database?.orthomode) === 1;
           const osnapMask = Number(loaded.AcApSettingManager.instance.osnapModes) || 0;
@@ -682,6 +843,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         extractTimer = null;
         zoomObserver?.disconnect?.();
         zoomObserver = null;
+        window.removeEventListener('keydown', handleWindowKeydown, true);
+        manager?.curView?.events?.renderFrame?.removeEventListener?.(bumpViewTick);
         containerRef.value?.removeEventListener?.('keydown', handleKeydown, true);
         unbindDatabase();
         const dying = manager;
@@ -723,9 +886,15 @@ export default function createSketchEditor({ vue, components, locale }) {
           class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',
           role: 'application',
           'aria-label': t('cassette.v2.profileEditor.preview'),
+          onPointerdownCapture: handleBasisPickPointerDown,
           onPointerup: scheduleExtraction,
           onKeyup: scheduleExtraction
         }, [
+          h('svg', {
+            ref: overlayRef,
+            class: 'pointer-events-none absolute inset-0 z-10 h-full w-full',
+            'aria-hidden': 'true'
+          }, renderCanvasAnnotations()),
           engineError.value
             ? h('div', { class: 'flex h-full items-center justify-center p-4' }, [
                 h(Message, { severity: 'error', closable: false }, () => t('cassette.v2.profileEditor.loadFailed'))

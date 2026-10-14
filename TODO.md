@@ -2134,6 +2134,30 @@ marker (mask 567, defaults intact) — realtime vertex snapping works in
 the current build; if it is not visible live, the context matters (empty
 canvas has nothing to snap to; ortho pins the cursor to H/V).
 
+### Agent Notes (2026-10-15, canvas annotations rework — owner round three)
+
+Owner: the imperative annotation blob was right to call out ("WHAT IS
+THIS"), dimensions must be automatic on the canvas, basis must be picked
+on the drawing, selections must be escapable. The overlay is now
+declarative: a pure descriptor builder + a computed keyed on a tick
+bumped from the view's render frame — rendered through h() like the rest
+of the module, no imperative DOM. Automatic dimensions: one linear
+dimension per authored edge (extension lines, ticks, measured length)
+tracking pan/zoom, display-only, never stored (the manual dimlinear
+tool and its reseed skip are reverted). Basis: the Basis toolbar toggle
+arms a modal canvas pick (dashed targets on every corner, click
+intercepts before the engine), the chosen vertex shows a datum mark; the
+per-chip ⌖ buttons are gone. The pick initially "failed" because
+extraction on pointer-up rebuilt the sketch from geometry and dropped
+the anchor — anchors are model state, extraction now preserves them
+(normalize drops the anchor when its vertex dies). Escape: the engine
+scopes its handler to the canvas container, so any toolbar click (focus
+outside) made selection inescapable — a window-level listener now
+clears the selection set. Proven headless (the necessary visual run):
+4 dimension labels tracking pan, pick sets `{vertexId:'p1'}`, Escape
+1→0 with focus outside the canvas. Snapping re-verified earlier this
+session; reports of it missing need a live repro.
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);

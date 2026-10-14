@@ -60,16 +60,19 @@ modules — no platform imports.
   Points that an extracted arc flattened to chords carry a `chord` flag —
   real geometry, but not authored corners; the editor collapses their
   runs into single read-only chips. Anchors are the placement basis of a
-  closed profile: one chosen vertex (a visible per-vertex pick in the
-  editor) that lands on the attachment snap+offset point when inserted,
-  with cut geometry taken anchor-relative. Open shapes carry no anchor —
-  their references are the sketch origin (zero, displayed as such) and
-  the chain's end point; insertion places by the origin and breaks the
-  host contour at the endpoints. Dimensions are the engine's own: the
-  toolbar's Dimension tool runs the engine's `dimlinear`, placing real
-  dimension entities on the canvas; the sketch reseed clears only the
-  geometry extraction consumes, so placed dimensions survive parametric
-  edits, and extraction ignores them. The same module
+  closed profile: one chosen vertex — picked ON the canvas (the Basis
+  toggle arms a modal pick; dashed targets highlight every corner) and
+  shown as a datum mark — that lands on the attachment snap+offset point
+  when inserted, with cut geometry taken anchor-relative. Open shapes
+  carry no anchor — the canvas overlay marks the sketch origin and the
+  chain's end point; insertion places by the origin and breaks the host
+  contour at the endpoints. Anchors are model state, not geometry:
+  extraction preserves them instead of re-deriving. Dimensions are
+  automatic annotations over the canvas: a derived overlay (a computed
+  keyed on the view's render frame) draws one linear dimension per
+  authored edge — extension lines, ticks, the measured length —
+  tracking pan and zoom; display-only, never written to the drawing
+  database, the sketch model, or saved documents. The same module
   normalizes CAD entity records (LINE/ARC/CIRCLE/polyline) into the
   sketch model (`occProfileSketchFromEntities`) and back
   (`occProfileEntitiesFromSketch`): the browser sketch canvas — the
