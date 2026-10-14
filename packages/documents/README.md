@@ -112,9 +112,11 @@ and the editor surfaces are the pack's own components
 (`src/editors/TextDocumentEditor.vue` and `src/editors/CsvTableEditor.vue`):
 editor surfaces belong to the pack that owns the type, the app-side
 file-surface registry is only the mount table. The text editor edits the
-markdown source directly (technical-mono textarea plus a sanitized
-preview through [shared/markdown.js](../../shared/markdown.js)); the csv
-editor edits rows in a cell table and serializes CSV text on save
+markdown source with LIVE split rendering (source left in the technical
+mono voice, the sanitized rendered document beside it through
+[shared/markdown.js](../../shared/markdown.js) — what you type is what
+you read; source-only and preview-only states serve narrow panes); the
+csv editor edits rows in a cell table and serializes CSV text on save
 (PrimeVue's cell editor commits through `cell-edit-complete`). Both take
 the instance-backed persistence contract (loads through the payload
 download URL, saves through the revisioned instance payload transport —
