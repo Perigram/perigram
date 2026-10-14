@@ -990,13 +990,15 @@ provenance, `_id` — is its own typed output socket, derived from the
 projection with no hardcoded block filtering. A facet the runtime value
 does not carry reads as the missing-field marker. `cts.field` remains the
 single-field projection (the same path vocabulary). Its bound type follows
-the wired entity input; a fresh node defaults to the first declared row
-field rather than an identity slot, an authored path survives rebinds, and
-the pre-fix authoring artifacts heal on sync — the machine `_id` path
-default re-defaults to the row field, and a `field` socket default that
-names no declared readable path (junk older writers persisted) drops,
-leaving the record path the single choice. Raw storage ids are not an
-author-facing projection.
+the wired entity input, and the record's `path` is the single persisted
+home of the field selection — the declaration wire, the inspector pick,
+and every reader (catalog ports, evaluator, compiler validation) speak that
+one key. A fresh node defaults to the first declared row field rather than
+an identity slot, an authored path survives rebinds, and pre-fix authoring
+artifacts heal on sync: the machine `_id` path default re-defaults to the
+row field, and `field` socket defaults older drafts carry (packet, string,
+or junk) unwrap into the path once and the channel key retires. Raw
+storage ids are not an author-facing projection.
 Compilation rejects any other selected block with the same
 `uses block <block> outside <typeId>` diagnostic used by the legacy block
 kinds, and the evaluator enforces the identical check whenever the domain
