@@ -87,6 +87,94 @@ describe('entity events store', () => {
     });
 });
 
+describe('rapid entity events over the connections stream', () => {
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        vi.useFakeTimers();
+        vi.stubGlobal('window', new EventTarget());
+        vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }));
+        orgTopicHandlers.clear();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+
+    async function connectWithUser() {
+        const { useAuthStore } = await import('./auth.js');
+        useAuthStore().user = { userId: 'u-1', organizationId: 'org-1' };
+        const store = useEntityEventsStore();
+        store.connect();
+        await vi.advanceTimersByTimeAsync(0);
+        return store;
+    }
+
+    it('emits realtime entityChanged payloads and advances the cursor past them', async () => {
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce({ cursor: 4, events: [] })
+            .mockResolvedValue({ cursor: 12, events: [] });
+        vi.stubGlobal('$fetch', fetchMock);
+        const received = [];
+        window.addEventListener('perigram:instance-changed', event => received.push(event.detail));
+
+        await connectWithUser();
+        for (const handler of orgTopicHandlers.get('org:org-1')) {
+            handler({ type: 'entityChanged', data: { eventId: 12, type: 'queue', id: 'queue-1', change: 'updated' } });
+        }
+
+        expect(received).toEqual([
+            expect.objectContaining({ type: 'queue', id: 'queue-1', change: 'updated', source: 'server' })
+        ]);
+        await vi.advanceTimersByTimeAsync(15_000);
+        // The cursor already passed the realtime event: the poll never
+        // re-delivers it.
+        expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/instance-events', { query: { after: 12 } });
+        expect(received).toHaveLength(1);
+    });
+
+    it('skips self-published events but still advances the cursor', async () => {
+        const { markSelfPublished } = await import('~/utils/instance-events.js');
+        const fetchMock = vi.fn().mockResolvedValue({ cursor: 4, events: [] });
+        vi.stubGlobal('$fetch', fetchMock);
+        const received = [];
+        window.addEventListener('perigram:instance-changed', event => received.push(event.detail));
+
+        await connectWithUser();
+        markSelfPublished(5);
+        for (const handler of orgTopicHandlers.get('org:org-1')) {
+            handler({ type: 'entityChanged', data: { eventId: 5, type: 'queue', id: 'queue-1', change: 'updated' } });
+        }
+
+        expect(received).toHaveLength(0);
+        await vi.advanceTimersByTimeAsync(15_000);
+        expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/instance-events', { query: { after: 5 } });
+    });
+
+    it('holds hidden-tab events for the poll catch-up instead of dropping them', async () => {
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce({ cursor: 4, events: [] })
+            .mockResolvedValueOnce({ cursor: 6, events: [{ eventId: 6, type: 'queue', id: 'queue-1', change: 'updated' }] });
+        vi.stubGlobal('$fetch', fetchMock);
+        const received = [];
+        window.addEventListener('perigram:instance-changed', event => received.push(event.detail));
+
+        await connectWithUser();
+        document.visibilityState = 'hidden';
+        for (const handler of orgTopicHandlers.get('org:org-1')) {
+            handler({ type: 'entityChanged', data: { eventId: 6, type: 'queue', id: 'queue-1', change: 'updated' } });
+        }
+        expect(received).toHaveLength(0);
+
+        document.visibilityState = 'visible';
+        document.dispatchEvent(new Event('visibilitychange'));
+        await vi.advanceTimersByTimeAsync(0);
+        expect(received).toEqual([
+            expect.objectContaining({ type: 'queue', id: 'queue-1', source: 'server' })
+        ]);
+    });
+});
+
 describe('contract refresh hint', () => {
     beforeEach(() => {
         setActivePinia(createPinia());

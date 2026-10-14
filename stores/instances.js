@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, reactive, ref } from 'vue';
-import { emitInstanceCreated, emitInstanceDeleted, emitInstanceUpdated, onInstanceChanged } from '~/utils/instance-events.js';
+import { emitInstanceCreated, emitInstanceDeleted, emitInstanceUpdated, markSelfPublished, onInstanceChanged } from '~/utils/instance-events.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { createdEntity } from '~/utils/instance-run-results.js';
 import { isCreateAction } from '~/utils/action-visibility.js';
@@ -71,6 +71,27 @@ function dtoIds(dto = {}) {
   return [dto._id, dto.id]
     .map(value => value?.toString?.() || value)
     .filter(Boolean);
+}
+
+// Mirrors the instance service's wire-patch leaf-set semantics
+// (processUpdate): `name` plus per-key leaf sets into `fields`,
+// `lineage`, and `relations` — blocks merge, they are never replaced
+// wholesale, and undefined leaves are skipped. Keys outside the patch
+// vocabulary are ignored: the server DTO that lands on success is the
+// authority, the optimistic merge only needs to be a safe preview.
+function applyWirePatch(dto = {}, patch = {}) {
+  const next = { ...dto };
+  if (patch.name !== undefined) next.name = patch.name;
+  for (const block of ['fields', 'lineage', 'relations']) {
+    const leaves = patch[block];
+    if (!leaves || typeof leaves !== 'object') continue;
+    const merged = { ...(dto[block] || {}) };
+    for (const [key, value] of Object.entries(leaves)) {
+      if (value !== undefined) merged[key] = value;
+    }
+    next[block] = merged;
+  }
+  return next;
 }
 
 export const useInstancesStore = defineStore('instances', () => {
@@ -321,11 +342,16 @@ export const useInstancesStore = defineStore('instances', () => {
 
   // The delegated CRUD emission contract (previously useEntity's): direct
   // feature mutations emit the shared browser-local instance event and
-  // publish the typed invalidation for other sessions. Process actions
-  // (runAction) reconcile through the server-published events instead.
+  // publish the typed invalidation for other sessions. The published
+  // event id is remembered so this tab's own realtime/poll delivery of
+  // the same event is skipped — the mutation already applied its own
+  // snapshot here. Process actions (runAction) reconcile through the
+  // server-published events instead.
   function publishMutation(detail = {}) {
     if (import.meta.server || !detail.type || !detail.id) return;
-    $fetch('/api/instance-events', { method: 'POST', body: detail }).catch(() => null);
+    $fetch('/api/instance-events', { method: 'POST', body: detail })
+      .then(event => markSelfPublished(event?.eventId))
+      .catch(() => null);
   }
 
   async function createInstance(typeKey = '', body = {}, { typeId = typeKey } = {}) {
@@ -338,24 +364,56 @@ export const useInstancesStore = defineStore('instances', () => {
     return data;
   }
 
+  // Optimistic updates (stores README): a cached record previews the wire
+  // patch immediately and rolls back to the server-known DTO on any
+  // failure — an offline queueing (OfflineQueuedError) reverts the
+  // preview instead of faking local state, and the replay re-lands the
+  // mutation when connectivity returns. Uncached ids skip the preview.
+  // Creates stay server-round-trip: the server assigns identity.
   async function updateInstance(typeKey = '', id = '', body = {}, { typeId = typeKey } = {}) {
-    const data = await mutateDirect(typeKey, 'PATCH', {
-      id,
-      body,
-      meta: { kind: 'instance', typeId, instanceId: id, change: 'updated', reason: 'update' }
-    });
-    emitInstanceUpdated({ type: typeId, id: data?._id || id, instance: data });
-    publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason: 'update' });
-    return data;
+    const cacheKey = canonicalTypeKey(typeKey);
+    const previous = recordFor(cacheKey, id)?.dto || null;
+    if (previous) {
+      const optimistic = applyWirePatch(previous, body);
+      upsertRecord(cacheKey, optimistic);
+      emitInstanceUpdated({ type: typeId, id, instance: optimistic, reason: 'update' });
+    }
+    try {
+      const data = await mutateDirect(typeKey, 'PATCH', {
+        id,
+        body,
+        meta: { kind: 'instance', typeId, instanceId: id, change: 'updated', reason: 'update' }
+      });
+      emitInstanceUpdated({ type: typeId, id: data?._id || id, instance: data });
+      publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason: 'update' });
+      return data;
+    } catch (err) {
+      if (previous) {
+        upsertRecord(cacheKey, previous);
+        emitInstanceUpdated({ type: typeId, id, instance: previous, reason: 'update-rollback' });
+      }
+      throw err;
+    }
   }
 
   async function removeInstance(typeKey = '', id = '', { typeId = typeKey, instance = null } = {}) {
-    await mutateDirect(typeKey, 'DELETE', {
-      id,
-      meta: { kind: 'instance', typeId, instanceId: id, change: 'deleted', reason: 'delete' }
-    });
-    emitInstanceDeleted({ type: typeId, id, instance });
-    publishMutation({ type: typeId, id, change: 'deleted', reason: 'delete' });
+    const cacheKey = canonicalTypeKey(typeKey);
+    const previous = recordFor(cacheKey, id)?.dto || null;
+    removeRecord(cacheKey, id);
+    emitInstanceDeleted({ type: typeId, id, instance: instance || previous });
+    try {
+      await mutateDirect(typeKey, 'DELETE', {
+        id,
+        meta: { kind: 'instance', typeId, instanceId: id, change: 'deleted', reason: 'delete' }
+      });
+      publishMutation({ type: typeId, id, change: 'deleted', reason: 'delete' });
+    } catch (err) {
+      if (previous) {
+        upsertRecord(cacheKey, previous);
+        emitInstanceUpdated({ type: typeId, id, instance: previous, reason: 'delete-rollback' });
+      }
+      throw err;
+    }
   }
 
   // -- reconciliation ------------------------------------------------------

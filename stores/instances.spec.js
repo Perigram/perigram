@@ -177,3 +177,75 @@ describe('instances store cache', () => {
     }));
   });
 });
+
+describe('instances store optimistic mutations', () => {
+  let deferredMutate;
+
+  beforeEach(async () => {
+    setActivePinia(createPinia());
+    seedBundle();
+    vi.stubGlobal('window', new EventTarget());
+    vi.stubGlobal('$fetch', vi.fn().mockResolvedValue({ eventId: 7 }));
+    const { useOutboxStore } = await import('./outbox');
+    const store = useOutboxStore();
+    // A deferred mutation promise holds the server round-trip open so
+    // the optimistic preview is asserted before resolution.
+    deferredMutate = vi.spyOn(store, 'mutate').mockImplementation(() => new Promise((resolve, reject) => {
+      deferredMutate.resolve = resolve;
+      deferredMutate.reject = reject;
+    }));
+  });
+
+  it('previews a wire patch immediately, merging leaves block-by-block', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: { a: 1, b: 2 }, lineage: { project: 'p-1' } });
+
+    const pending = instances.updateInstance('queue', 'q-1', { name: 'Two', fields: { b: 3 }, lineage: { project: 'p-2' } });
+    // Before the server responds: the preview merged the leaves (the
+    // untouched `fields.a` survives) exactly like the server's leaf-set
+    // patch semantics.
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'Two', fields: { a: 1, b: 3 }, lineage: { project: 'p-2' } });
+
+    deferredMutate.resolve({ _id: 'q-1', name: 'Two', fields: { a: 1, b: 3 }, state: 'draft' });
+    await pending;
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'Two', state: 'draft' });
+  });
+
+  it('rolls an update back to the server-known DTO when the mutation fails', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: { a: 1 } });
+
+    const pending = instances.updateInstance('queue', 'q-1', { name: 'Two' });
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'Two' });
+
+    deferredMutate.reject(new Error('denied'));
+    await expect(pending).rejects.toThrow('denied');
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'One' });
+  });
+
+  it('previews a delete and restores the record when the mutation fails', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: {} });
+
+    const pending = instances.removeInstance('queue', 'q-1');
+    expect(instances.dtoFor('queue', 'q-1')).toBeNull();
+
+    deferredMutate.reject(new Error('denied'));
+    await expect(pending).rejects.toThrow('denied');
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'One' });
+  });
+
+  it('records the published invalidation id so its own delivery is skipped', async () => {
+    const { isSelfPublished } = await import('~/utils/instance-events.js');
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: {} });
+
+    const pending = instances.updateInstance('queue', 'q-1', { name: 'Two' });
+    deferredMutate.resolve({ _id: 'q-1', name: 'Two', fields: {} });
+    await pending;
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(isSelfPublished(7)).toBe(true);
+  });
+});
