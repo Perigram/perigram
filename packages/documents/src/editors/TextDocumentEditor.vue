@@ -35,7 +35,6 @@
         v-if="view !== 'preview'"
         v-model="source"
         class="text-technical min-h-0 flex-1 resize-none"
-        :class="view === 'split' ? 'hidden sm:flex' : 'flex'"
         :pt="sourceFieldPt"
         :aria-label="$t('editors.text')"
       />
@@ -43,7 +42,6 @@
       <div
         v-if="view !== 'source'"
         class="text-prose min-h-0 flex-1 overflow-y-auto"
-        :class="view === 'split' ? 'hidden sm:block' : 'block'"
         v-html="previewHtml"
       />
     </div>

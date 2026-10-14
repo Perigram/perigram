@@ -23,6 +23,11 @@ export default {
     // surfaces render unstyled. Vendored runtimes are excluded — they
     // never carry host classes and would only bloat the extraction.
     './workers/facade/surfaces/**/*.{js,mjs}',
+    // Pack editor surfaces (packages/<pack>/src/editors) compose with
+    // the host's utility classes exactly like plugin surface modules —
+    // without this scan their classes never compile and the surfaces
+    // render broken (the split editor's responsive panes stayed hidden).
+    './packages/*/src/editors/**/*.{vue,js}',
   ],
   darkMode: ['selector', '.dark-mode'],
   theme: {
