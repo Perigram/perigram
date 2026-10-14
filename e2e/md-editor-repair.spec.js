@@ -45,11 +45,11 @@ test.describe('markdown editor repair', () => {
     await source.fill(MD_SOURCE);
     await expect(save).toBeEnabled();
 
-    await app.page.getByRole('button', { name: 'Preview', exact: true }).click();
+    // Split view is the default: the rendered document is live beside
+    // the source while typing — no toggle needed.
     await expect(app.page.getByRole('heading', { name: 'Probe doc' })).toBeVisible();
     await expect(app.page.getByText('markdown').first()).toBeVisible();
     await app.page.screenshot({ path: '.playwright/md-editor-preview.png' });
-    await app.page.getByRole('button', { name: 'Edit', exact: true }).click();
 
     await save.click();
     await expect(save).toBeDisabled();

@@ -15,27 +15,38 @@
         />
         <Button v-if="nameDirty" icon="pi pi-check" severity="secondary" text rounded size="small" :aria-label="$t('common.apply')" @click="commitName" />
       </div>
-      <Button
-        :icon="previewing ? 'pi pi-pencil' : 'pi pi-eye'"
-        severity="secondary"
-        text
-        rounded
-        size="small"
-        class="ml-auto"
-        :aria-label="previewing ? $t('common.edit') : $t('common.preview')"
-        @click="previewing = !previewing"
-      />
+      <div class="ml-auto flex items-center gap-1">
+        <Button
+          v-for="option in viewOptions"
+          :key="option.value"
+          :icon="option.icon"
+          size="small"
+          :text="view !== option.value"
+          :outlined="view === option.value"
+          rounded
+          :aria-label="$t(option.labelKey)"
+          @click="view = option.value"
+        />
+      </div>
       <Button :label="$t('common.save')" icon="pi pi-save" size="small" text :loading="saving" :disabled="!dirty" @click="save" />
     </div>
-    <!-- eslint-disable-next-line vue/no-v-html -- sanitized by shared/markdown.js -->
-    <div v-if="previewing" class="text-prose min-h-0 flex-1 overflow-y-auto pt-3" v-html="previewHtml" />
-    <Textarea
-      v-else
-      v-model="source"
-      class="text-technical min-h-0 flex-1 resize-none"
-      :pt="sourceFieldPt"
-      :aria-label="$t('editors.text')"
-    />
+    <div class="flex min-h-0 flex-1 gap-4 pt-3">
+      <Textarea
+        v-if="view !== 'preview'"
+        v-model="source"
+        class="text-technical min-h-0 flex-1 resize-none"
+        :class="view === 'split' ? 'hidden sm:flex' : 'flex'"
+        :pt="sourceFieldPt"
+        :aria-label="$t('editors.text')"
+      />
+      <!-- eslint-disable-next-line vue/no-v-html -- sanitized by shared/markdown.js -->
+      <div
+        v-if="view !== 'source'"
+        class="text-prose min-h-0 flex-1 overflow-y-auto"
+        :class="view === 'split' ? 'hidden sm:block' : 'block'"
+        v-html="previewHtml"
+      />
+    </div>
   </div>
 </template>
 
@@ -48,20 +59,26 @@ import { renderMarkdown } from '#shared/markdown.js';
 import { useDocumentName } from './useDocumentName.js';
 
 // The documents pack's markdown editor: the payload IS the text, so the
-// surface edits the source directly (technical mono voice) and previews
-// through the shared sanitized pipeline (prose voice). Persistence
-// contract, host-supplied: `title`, `loadText()`, `saveText(text,
-// filename)`, `extension`, optional `rename(name)`.
+// surface edits the source directly and renders it LIVE beside the
+// source (split view — what you type is what you read), with source-only
+// and preview-only states for narrow panes. Persistence contract,
+// host-supplied: `title`, `loadText()`, `saveText(text, filename)`,
+// `extension`, optional `rename(name)`.
 const props = defineProps({
   persistence: { type: Object, required: true }
 });
 const emit = defineEmits(['saved', 'refresh']);
 
 const source = ref('');
-const previewing = ref(false);
 const saving = ref(false);
 const dirty = ref(false);
+const view = ref('split');
 const previewHtml = computed(() => renderMarkdown(source.value));
+const viewOptions = [
+  { value: 'split', icon: 'pi pi-window-maximize', labelKey: 'editors.viewSplit' },
+  { value: 'source', icon: 'pi pi-pencil', labelKey: 'common.edit' },
+  { value: 'preview', icon: 'pi pi-eye', labelKey: 'common.preview' }
+];
 const { displayName, nameDraft, editingName, nameDirty, commitName } = useDocumentName(props.persistence, () => emit('refresh'));
 
 // Quiet document text, not form chrome: the pt styles strip the
