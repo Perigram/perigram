@@ -2037,6 +2037,15 @@ chips on the selected profile workpiece row. Specs: renderer 31/31
 evaluate 12/12 (two open chains on contour.cassette_face, nesting
 polygon count unchanged), profiles 10/10. Not run: full platform e2e.
 
+### Agent Notes (2026-10-15, toolbar went text until real icons)
+
+Owner ask: the primeicons were ambiguous (minus=Line, share-alt=Polyline,
+square=Rectangle AND Ortho) and the engine ships no extractable command
+icon set (its 45 inline SVGs are minified cursor/marker closures, not a
+registry). The sketch toolbar buttons now render their localized names
+as text; the chips' plus/minus icon buttons stay (unambiguous).
+Proven in the harness: all 15 buttons render labels, zero page errors.
+
 ### Agent Notes (2026-10-15, expressions + open profiles shipped)
 
 Session `agent/parametric-profiles-20261014`. Model: every authoring
