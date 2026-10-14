@@ -31,7 +31,7 @@ test.describe('markdown editor repair', () => {
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
-    const source = app.page.locator('main textarea');
+    const source = app.page.locator('.ProseMirror');
     for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
       await newButton.click();
       await expect(source).toBeVisible({ timeout: 5000 }).catch(() => {});
@@ -42,7 +42,8 @@ test.describe('markdown editor repair', () => {
     const save = app.page.getByRole('button', { name: 'Save', exact: true });
     await expect(save).toBeDisabled();
 
-    await source.fill(MD_SOURCE);
+    await source.click();
+    await app.page.keyboard.type(MD_SOURCE);
     await expect(save).toBeEnabled();
 
     // Split view is the default: the rendered document is live beside

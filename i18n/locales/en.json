@@ -2109,8 +2109,7 @@
   },
   "editors": {
     "text": "Text Editor",
-    "csv": "CSV Editor",
-    "viewSplit": "Split"
+    "csv": "CSV Editor"
   },
   "sketch": {
     "editorTitle": "Sketch",
