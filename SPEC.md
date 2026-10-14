@@ -47,6 +47,14 @@ All UI is written in raw, unmodified PrimeVue plus the repo's registered
 shared primitives. No hand-rolled div/button chrome, no custom controls.
 Raw IDs and other technical identifiers are never shown in user-facing UI.
 
+Generated record surfaces have no record-level edit mode: no header
+Edit/Save toggle, no draft mode that switches the whole record into
+editors. Every editable field edits inline through its own pencil —
+scalar facts click-to-edit in place, structural panels carry their own
+pencil — and nothing else toggles them. Every field change drops into
+the state record (`status_events`) attributed: who changed which field,
+from what value to what value, beside the transition history.
+
 Process designer palette: a searchable grid of chips, no icons. Operation
 categories (palette chips and canvas nodes alike) are told apart by shared
 signal styling, not icons or headers — the palette entry looks like the
