@@ -60,9 +60,10 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
   it('derives the served display policy (no render facet, sections by base)', () => {
     const cassette = typeRecordFor(bundle, 'cassette');
     expect('render' in cassette).toBe(false);
-    // Legacy render.label/icon adopt to name/glyph at the boundary.
+    // Authored name/glyph on the declaration (the facade types carry the
+    // hand-drawn ck-entity-icons font classes as their glyphs).
     expect(cassette.name).toBe('Cassette');
-    expect(cassette.glyph).toBe('pi pi-box');
+    expect(cassette.glyph).toBe('ck-entity-icon ck-entity-icon-cassette-template');
     // The declared identifier flag wins at the boundary.
     expect(cassette.identifier).toBe('name');
     expect(cassette.sections).toEqual([
