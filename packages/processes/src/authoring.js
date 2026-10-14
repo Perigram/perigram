@@ -239,6 +239,14 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       // destroy intent authored before the wire exists. Validation
       // owns the report when the path is genuinely undeclared.
       if (!available.length) return;
+      // The `field` default channel is valid only while it names a
+      // declared readable path; junk older writers persisted (a
+      // stringified object, stale block-era paths) drops here and the
+      // record path owns the choice.
+      const wiredField = authoredSocketDefault(node.inputDefaults?.field);
+      if (wiredField && !available.some(field => field.value === wiredField) && node.inputDefaults) {
+        delete node.inputDefaults.field;
+      }
       // `path === '_id'` is the pre-fix machine default (the old sync
       // picked the first projected entry, always `_id`) — derived, never
       // authored, so it re-defaults like an unset path.

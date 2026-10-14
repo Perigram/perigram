@@ -98,12 +98,32 @@ test('a persisted draft with the machine `_id` default heals to the row field', 
             { id: 'email', type: 'processNode', data: { refId: 'email' } }
           ],
           edges: [
-            { id: 'e1', source: 'who', sourceHandle: 'data:value', target: 'email', targetHandle: 'data:entity', role: 'data' }
+            { id: 'e1', source: 'who', sourceHandle: 'data:value', target: 'email', targetHandle: 'data:entity', role: 'data' },
+            { id: 'e2', source: 'who', sourceHandle: 'data:value', target: 'staleId', targetHandle: 'data:entity', role: 'data' }
           ]
         },
         processNodes: {
           who: { id: 'who', kind: 'source.currentUser' },
-          email: { id: 'email', kind: 'cts.field', typeId: 'user', path: '_id' }
+          // The pre-fix authoring artifacts this draft class heals: a
+          // junk `field` default older writers persisted as a
+          // stringified object, the machine `_id` path default, and the
+          // stale json outputs snapshot — all on one record shaped like
+          // the real reported draft.
+          email: {
+            id: 'email',
+            kind: 'cts.field',
+            typeId: 'user',
+            path: 'fields.email',
+            inputDefaults: { field: '[object Object]' },
+            label: 'cts.field',
+            outputs: [{ id: 'value', type: { base: 'json', nullable: true } }]
+          },
+          staleId: {
+            id: 'staleId',
+            kind: 'cts.field',
+            typeId: 'user',
+            path: '_id'
+          }
         }
       }
     }
@@ -125,6 +145,14 @@ test('a persisted draft with the machine `_id` default heals to the row field', 
 
   const aria = await fieldValueHandleAria(page);
   console.log('GETFIELD OUTPUT AFTER POISONED LOAD:', aria);
-  expect(aria || '', 'healed get field output type').not.toContain('json');
+  expect(aria || '', 'healed get field output type').toContain('string');
+
+  // second poisoned node (machine `_id` default): every Get Field card
+  // on the canvas heals, not just the first
+  const cards = page.locator('.vue-flow__node', { hasText: 'Get field' });
+  await expect(cards.nth(1)).toBeVisible({ timeout: 10000 });
+  const secondAria = await cards.nth(1).locator('.vue-flow__handle[data-handleid="data:value"]').first().getAttribute('aria-label');
+  console.log('SECOND GETFIELD OUTPUT:', secondAria);
+  expect(secondAria || '', 'second healed get field output type').not.toContain('json');
   await app.expectCleanRuntime();
 });
