@@ -1334,6 +1334,16 @@ export default function createSurface({ vue, components, locale, queries, notify
         cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, selectedWorkpiece.value.id, patch);
       };
 
+      // Instance parameters re-evaluate the profile snapshot from its
+      // sketch — this is parametric instantiation on the workpiece row.
+      const updateProfileWorkpieceParameter = (workpieceId, key, value) => {
+        const workpiece = workpieces.value.find(item => item.id === workpieceId);
+        if (!workpiece) return;
+        cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, workpieceId, {
+          parameters: { ...(workpiece.parameters || {}), [key]: value }
+        });
+      };
+
       const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '') => {
         closeInlineEditor();
         const targetWorkpiece = workpieces.value.find(workpiece => (
@@ -2019,6 +2029,22 @@ export default function createSurface({ vue, components, locale, queries, notify
                       })
                     : null
                 ]),
+                row.id === selectedWorkpieceId.value && row.isProfile
+                  ? h('div', { class: 'mt-2 flex flex-wrap items-center gap-1 pl-4' },
+                    Object.entries(row.parameters || {}).map(([key, value]) => h('div', {
+                      key: `${row.id}-${key}`,
+                      class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
+                    }, [
+                      h('span', { class: 'font-mono text-xs text-muted-color' }, key),
+                      h(InputText, {
+                        modelValue: value === null || value === undefined ? '' : String(value),
+                        'onUpdate:modelValue': next => { updateProfileWorkpieceParameter(row.id, key, next); },
+                        size: 'small',
+                        class: 'w-16 font-mono text-xs',
+                        'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`
+                      })
+                    ])))
+                  : null,
                 row.id === selectedWorkpieceId.value && row.isHardware
                   ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' }, [
                       h(Select, {

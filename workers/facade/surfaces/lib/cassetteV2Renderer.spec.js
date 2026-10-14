@@ -313,6 +313,45 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(splitChains.every(chain => chain.d.startsWith('M') && !chain.d.endsWith('Z'))).toBe(true);
   });
 
+  it('re-evaluates a profile workpiece from its sketch when instance parameters change', async () => {
+    const initialTree = createCassetteV2GraphTree();
+    const sketch = {
+      ...createDefaultOccsProfileSketch({ W: 42, H: 28 }),
+      points: [
+        { id: 'p0', x: 0, y: 0 },
+        { id: 'p1', x: 'W', y: 0 },
+        { id: 'p2', x: 'W', y: 'H' },
+        { id: 'p3', x: 0, y: 'H' }
+      ]
+    };
+    const added = addCassetteV2ProfileWorkpiece(initialTree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Parametric hanger',
+      kind: 'hanger',
+      process: 'extruded',
+      parameters: sketch.parameters,
+      occsProfile: occsProfileFromSketch(sketch),
+      sketch
+    });
+    const before = getCassetteV2Workpieces(added.tree).find(item => item.id === added.workpieceId);
+    expect(before.profileSnapshot.section.vertices).toEqual([['0', '0'], ['42', '0'], ['42', '28'], ['0', '28']]);
+
+    const instantiated = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
+      parameters: { ...sketch.parameters, W: 84, H: 'W/3' }
+    });
+    const instance = getCassetteV2Workpieces(instantiated).find(item => item.id === added.workpieceId);
+    expect(instance.profileSnapshot.section.vertices).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
+    expect(instance.profileSnapshot.parameters).toMatchObject({ W: 84, H: 'W/3' });
+
+    // A transient invalid parameter keeps the last good section.
+    const broken = updateCassetteV2Workpiece(instantiated, added.workpieceId, {
+      parameters: { ...sketch.parameters, W: 84, H: 'W/' }
+    });
+    const held = getCassetteV2Workpieces(broken).find(item => item.id === added.workpieceId);
+    expect(held.profileSnapshot.section.vertices).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
+  });
+
   it('builds one face graph by feeding evaluated parent vertices through a Nodi polyline input', () => {
     const initialTree = createCassetteV2GraphTree();
     const { tree } = addCassetteV2GraphChild(initialTree, 'face_1', 2);

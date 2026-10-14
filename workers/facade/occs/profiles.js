@@ -281,7 +281,7 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
     })),
     modifiers: normalized.modifiers.map(modifier => ({ ...modifier }))
   };
-  if (!closed) {
+  if (!closed && vertices.length >= 2) {
     // Break points: where an inserted open profile splits the host face.
     section.breakPoints = [
       vertices[0],
