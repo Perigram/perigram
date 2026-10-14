@@ -165,6 +165,13 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
     ? sketch.closed
     : points.length >= 3 && edges.some(edge => edge.to === points[0]?.id);
   const anchors = normalizeOccsProfileSketchAnchors(sketch.anchors, pointIds, closed);
+  // One connected chain is the law: extraction records how many drawn or
+  // imported pieces no chain joined; the savable gate refuses while any
+  // remain. Authored edits reset it (they rebuild the canvas from the
+  // model, which drops the strays).
+  const unchained = Number.isInteger(sketch.unchained) && sketch.unchained > 0
+    ? sketch.unchained
+    : 0;
 
   return {
     version: sketch.version || '0.1',
@@ -175,6 +182,7 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
     holes,
     closed,
     anchors,
+    unchained,
     modifiers,
     constraints: Array.isArray(sketch.constraints) ? sketch.constraints : fallback.constraints
   };
@@ -191,6 +199,7 @@ const normalizeOccsProfileSketchAnchors = (anchors = null, pointIds = new Set(),
 
 export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => {
   try {
+    if (normalizeOccsProfileSketch(sketch, fallbackParameters).unchained > 0) return false;
     const evaluated = evaluateOccsProfileSketch(sketch, fallbackParameters);
     return evaluated.closed
       ? evaluated.points.length >= 3
@@ -622,23 +631,42 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
   }
 
   let source = null;
+  // Entities the chosen source consumed; every other chainable piece
+  // (line/arc segment or polyline) is unchained and blocks the save gate.
+  let consumed = 0;
+  const chainableCount = freeSegments.length + polylines.length;
   const closedPolyline = polylines
     .filter(record => record.closed && record.vertices.length >= 3)
     .sort((left, right) => right.vertices.length - left.vertices.length)[0];
   if (closedPolyline) {
     source = { segments: polylineRecordSegments(closedPolyline), closed: true };
+    consumed = 1;
   } else if (freeSegments.length) {
     const chained = chainSegments(freeSegments);
     if (chained.chain.length >= 2 || (chained.chain.length === 1 && chained.chain[0].type === 'line')) {
       source = { segments: chained.chain, closed: chained.closed };
+      consumed = chained.chain.length;
     }
   } else if (polylines.length) {
     const fallbackPolyline = polylines.sort((left, right) => right.vertices.length - left.vertices.length)[0];
     source = { segments: polylineRecordSegments(fallbackPolyline), closed: false };
+    consumed = 1;
   }
+  const unchained = Math.max(0, chainableCount - consumed);
 
   if (!source) {
-    return normalizeOccsProfileSketch(createEmptyOccsProfileSketch(parameters), parameters);
+    // No chainable geometry: circles still become holes; line pieces
+    // that could not start a chain count as unchained.
+    return normalizeOccsProfileSketch({
+      ...createEmptyOccsProfileSketch(parameters),
+      holes: circles.map((circle, index) => ({
+        id: `h${index}`,
+        type: 'circle',
+        center: [circle.center.x, circle.center.y],
+        diameter: circle.diameter
+      })),
+      unchained
+    }, parameters);
   }
 
   const geometry = chainToSketchGeometry(source.segments, source.closed, chordTolerance);
@@ -686,6 +714,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
       diameter: circle.diameter
     })),
     closed: sketchClosed,
+    unchained,
     modifiers,
     constraints: []
   }, parameters);

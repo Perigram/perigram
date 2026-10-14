@@ -162,8 +162,40 @@ describe('OCCS profile helpers', () => {
     const entities = occProfileEntitiesFromSketch(open);
     expect(entities.some(entity => entity.type === 'ARC')).toBe(true);
     const extracted = occProfileSketchFromEntities(entities, open.parameters);
-    expect(extracted).toMatchObject({ closed: false });
+    expect(extracted).toMatchObject({ closed: false, unchained: 0 });
     expect(extracted.edges).toHaveLength(open.points.length - 1);
+  });
+
+  it('records unconnected pieces as unchained and refuses them at the save gate', () => {
+    const connected = [
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 10, y: 0 } },
+      { type: 'LINE', start: { x: 10, y: 0 }, end: { x: 10, y: 10 } }
+    ];
+    expect(occProfileSketchFromEntities(connected, {}).unchained).toBe(0);
+
+    // A stray segment no chain joins stays visible as model state, and
+    // the gate refuses until the user connects or erases it.
+    const strays = connected.concat([
+      { type: 'LINE', start: { x: 50, y: 50 }, end: { x: 60, y: 50 } }
+    ]);
+    const sketch = occProfileSketchFromEntities(strays, {});
+    expect(sketch.unchained).toBe(1);
+    expect(sketch.points).toHaveLength(3); // the longest chain seeds the model
+    expect(isOccsProfileSketchSavable(sketch)).toBe(false);
+    expect(isOccsProfileSketchSavable({ ...sketch, unchained: 0 })).toBe(true);
+
+    // A lone arc cannot start a chain either.
+    expect(occProfileSketchFromEntities([
+      { type: 'ARC', center: { x: 0, y: 0 }, radius: 5, startAngle: 0, endAngle: Math.PI }
+    ], {}).unchained).toBe(1);
+
+    // Circles are holes, not chain pieces: a circles-only import keeps
+    // them with an empty chain.
+    const holesOnly = occProfileSketchFromEntities([
+      { type: 'CIRCLE', center: { x: 5, y: 5 }, radius: 2 }
+    ], {});
+    expect(holesOnly.unchained).toBe(0);
+    expect(holesOnly.holes).toHaveLength(1);
   });
 
   it('starts sketches with an empty parameter table — nothing is pre-seeded', () => {
@@ -210,8 +242,8 @@ describe('OCCS profile helpers', () => {
     expect(occsProfileFromSketch(anchored).section.anchor).toEqual(['40', '20']);
     expect(occsProfileFromSketch(square).section.anchor).toBeUndefined();
 
-    // Open shapes carry no anchor — their references are the sketch origin
-    // and the chain's end point.
+    // Open shapes store no anchor — their two anchors derive from the
+    // chain's first and last vertices (the break points).
     const open = setOccsProfileSketchClosed({ ...square, anchors: { vertexId: 'p2' } }, false);
     expect(open.anchors).toBeNull();
     expect(normalizeOccsProfileSketch({ ...open, anchors: { startDistance: 5, endDistance: 5 } }).anchors).toBeNull();
