@@ -195,6 +195,28 @@ opens the editor. Artifacts: `.playwright/editor-blank-open.png`,
 `.playwright/editor-chrome-styles.json`. The runbook note lives in the
 root README dev-stack section.
 
+### Agent Notes (2026-10-14, station-documents session)
+
+Owner escalation ("WHERE IS MARKDOWN SUPPORT"). The blocker was never
+code: the org's active definition stationed text-document as a
+content-mode, event-triggered construct with a data edge feeding its
+content input — a legal authored shape that compiles to NO manual
+create action (screens existed, actions did not), so no panel create
+button and no blank-editor open ever surfaced. Repaired in the org's
+definition (live + activated snapshot): construction -> editor mode,
+trigger -> manual, dangling content edge removed — the served manifest
+now carries the text-document create action, browser-verified in the
+real org (sidebar panel, New -> blank markdown editor, typed, saved;
+artifacts `.playwright/real-org-editor.png` / `real-org-saved.png`).
+`server/scripts/station-documents-types.js` is the operator tool for
+the same repair as an additive definition through the real API.
+Findings for the platform: (1) content-mode + event-triggered
+constructs are silently invisible as create surfaces — the designer
+should either warn or the compiler emit a manual twin; (2) a dangling
+edge in ANY active definition poisons every later activation of the
+org's additive set ("Edge references missing input data") with no
+designer-visible repair path. Both recorded here for owner triage.
+
 ### Agent Notes (2026-10-13, md-source-editor session)
 
 Session `agent/md-source-editor-20261013-183002`, owner direction: "I
