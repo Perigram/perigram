@@ -28,12 +28,17 @@ node_modules/.bin/esbuild entry.mjs --bundle --format=esm --minify \
   --outfile=cad-viewer.mjs
 ```
 
-where `entry.mjs` re-exports `AcApDocManager` from
-`@mlightcad/cad-simple-viewer` and `AcDbArc`, `AcDbCircle`, `AcDbLine`,
-`AcDbPolyline` from `@mlightcad/data-model`. `--keep-names` is required:
+where `entry.mjs` re-exports `AcApDocManager`, `AcApSettingManager`,
+and `acedApplyUiTheme` from `@mlightcad/cad-simple-viewer` and
+`AcDbArc`, `AcDbCircle`, `AcDbLine`, `AcDbPolyline` from
+`@mlightcad/data-model`. `--keep-names` is required:
 the engine reflects on constructor names. `three` is bundled inline (the
 stack is built against the npm r172 build); if `assets/vendor/three` is
 ever re-vendored from the same build, the two copies can be deduplicated.
+The surface turns the engine's standalone-viewer widgets off through the
+settings manager (`isShowCommandLine`, `isShowShortCutToolbar` — the
+dialog owns the chrome; prompts ride the cursor dynamic input) and themes
+the remaining canvas UI with `acedApplyUiTheme('dark', …)`.
 
 Patched in place after bundling: two error-message templates reworded
 (`from '${url}'` → `at ${url}` / `of "${url}"`) so the SDK surfaces

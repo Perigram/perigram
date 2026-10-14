@@ -279,6 +279,15 @@ export default function createSketchEditor({ vue, components, locale }) {
           runtime.value = loaded;
           await engineChain;
           if (disposed) return;
+          // The dialog owns the chrome: the engine's standalone-viewer
+          // widgets (command line, top-right undo/erase shortcut bar) stay
+          // off — prompts and keywords ride the cursor dynamic input, and
+          // undo/erase ride the host toolbar. The dark UI theme matches
+          // the engine's model-space canvas.
+          const settings = loaded.AcApSettingManager.instance;
+          settings.isShowCommandLine = false;
+          settings.isShowShortCutToolbar = false;
+          loaded.acedApplyUiTheme?.('dark', containerRef.value);
           manager = loaded.AcApDocManager.createInstance({
             container: containerRef.value,
             autoResize: true,
