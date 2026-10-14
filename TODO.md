@@ -187,10 +187,42 @@ the stored kind. Contracts:
   the table again, pristine opens no longer enable save, save filenames
   keep one extension, markdown detection/render is single-homed in
   `shared/markdown.js`, and the orphaned `quill`/`turndown` deps are gone.
+- [x] D. Content-protocol create dialog (2026-10-14): the served contract
+  summarizes construction inputs to bare ids, and the dialog resolver
+  dropped string ids carrying string policies — `content` creates opened
+  no dialog and posted an empty draft (400). The resolver prompts them
+  exactly like the object form.
 - [ ] WAITING — owner verification on the live stack: a text document
   fills its pane with one scroll, a `.md` file uploads and
   round-trips through the editor, a CSV round-trips with content intact,
   and save stays disabled until edited.
+
+### Agent Notes (2026-10-14, md-content-dialog session)
+
+Session `agent/md-content-dialog-20261014-121640`. The keeper E2E
+(`e2e/md-editor-repair.spec.js`) exposed it: clicking New on a
+content-mode csv create opened no dialog and the execute endpoint
+refused the empty draft (400). Root cause in
+`resolveCreateDialogInputs` (`shared/ui-mapping/index.js`): the served
+contract summarizes construction inputs to bare ids (`inputs:
+["content"]` with the policy on the input policy), but the string
+protocol-input branch demanded the object form — the `content` row
+resolved to nothing, `openAction` took the no-rows shortcut and posted
+`{}`. The policy lookup already covers bare ids, so the branch now
+prompts any string-typed policy input; unknown ids still stay hidden
+per the ui-mapping README contract. Pinned by a bare-id spec beside
+the existing object-form pin. Detour worth recording: the auto list
+screens render through `GeneratedScreenHost` (not `GeneratedScreen`),
+so trace patches on the legacy component never fire — and clicks during
+a source remount are swallowed (the matrix spec's retry loop exists
+for exactly this). Validation: ui-mapping suite green (83), shared +
+generated + ui-mapping trees green except one pre-existing
+`detail-action-ownership` failure that fails on the clean tree too
+(concurrent-merge fallout, untouched); docs + arch guards green.
+Correction to the md-deslop note above: the live csv failure observed
+there was this dialog shortcut, not the save path — the save
+serialization fix stands on code reading (csv mode never populated the
+saved ref) and is covered by the same keeper E2E end to end.
 
 ### Agent Notes (2026-10-14, md-deslop session)
 
