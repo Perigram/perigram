@@ -11,12 +11,21 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 
 ## Core Files
 
-- `build-entity-icons.js`: Builds the `ck-entity-icons` font from the CNC
-  domain SVGs in `public/icons/data-model/cnc-domain/` via fantasticon,
-  writes `public/fonts/cnc-domain/ck-entity-icons.{woff2,ttf}`, and rewrites
+- `build-entity-icons.js`: Builds the `ck-entity-icons` font from the
+  hand-drawn CNC domain SVGs in `public/icons/data-model/cnc-domain/`
+  (24-grid sources; the seven-glyph set is the owner's original icon
+  family — treat them as authored assets, never as orphaned files)
+  via fantasticon, writes
+  `public/fonts/cnc-domain/ck-entity-icons.{woff2,ttf}`, and rewrites
   the marked `ck-entity-icons` block in `assets/css/main.css` so icon
-  codepoints never drift from the class definitions. Run as
-  `npm run icons:build` after adding or editing source SVGs.
+  codepoints never drift from the class definitions. The consumers are
+  type `glyph` declarations: the facade plugin's listing
+  (`workers/facade/listing.json`) carries the class strings
+  (`ck-entity-icon ck-entity-icon-<name>`, consumed exactly like a
+  `pi pi-*` PrimeIcon string). Run as `npm run icons:build` after adding
+  or editing source SVGs — nothing outside the marked CSS block is
+  hand-editable (hand-written rules parked inside the markers are
+  deleted on rebuild).
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks
