@@ -1996,15 +1996,53 @@ the law). Browser-proven in the real-stylesheet harness: ortho line
 committed dy=0.000, tangent mask toggled 256↔0, radius 6 on p1 seeded
 an ARC and emitted {fillet, p1, 6} — zero page errors.
 
-- [ ] WAITING — Parametric profile sketches (owner decision 2026-10-14):
-  sketch geometry binds to the profile's parameter table through the
-  OCCS expression evaluator (SPEC §Plugin marketplace, 2026-10-14 — the
-  SolveSpace/WASM direction was rejected there). The profile dialog
-  grows the parameter table plus expression editing for vertex
-  coordinates, holes, fillet radii, and sweep; instantiating a profile
-  evaluates geometry per workpiece parameters. Check: author a profile
-  with expression-bound W/H/R, instantiate at two parameter sets, and
-  both the preview and the OCCS document evaluate deterministically.
+- [ ] WAITING — Parametric profile sketches (owner decision 2026-10-14,
+  open profiles added 2026-10-15): sketch geometry binds to the profile's
+  parameter table through the OCCS expression evaluator (SPEC §Plugin
+  marketplace, 2026-10-14 — the SolveSpace/WASM direction was rejected
+  there), and a profile is authored closed or open, an open profile's
+  first and last vertices acting as break points that split the host
+  face's contour where it lands. Shipped: expression-valued coordinates/
+  holes/radii/parameters with `evaluateOccsProfileSketch` + the savable
+  gate; the sketch editor's parameter/vertex/hole authoring rows; the
+  open/closed toggle with `polyline` sections carrying break points; the
+  designer section layer's break markers and contour split. Remaining
+  follow-up: the production cut pass consuming the break points (the
+  evaluated layerData splits the host contour), and instantiating one
+  profile at multiple parameter sets from the workpiece row. Check:
+  author a profile with expression-bound W/H/R, open one end, attach it
+  to a face — the contour splits at the break marks; instantiate at two
+  parameter sets and both the preview and the OCCS document evaluate
+  deterministically.
+
+### Agent Notes (2026-10-15, expressions + open profiles shipped)
+
+Session `agent/parametric-profiles-20261014`. Model: every authoring
+field in occs/profiles.js carries number-or-expression through
+normalize; `evaluateOccsProfileSketch` resolves parameters (chained
+references through the full raw table so the engine's cycle detection
+sees complete chains) then geometry, throwing on anything unresolvable;
+the savable gate and save buttons turn throws into disabled states.
+`occProfileEntitiesFromSketch` seeds from evaluated geometry only.
+Extraction no longer force-closes ≥3-point chains — drawn open chains
+stay open; `setOccsProfileSketchClosed` rebuilds the edge chain for the
+chosen closure; open sections are `polyline` with `breakPoints`
+(first/last vertices). Renderer: open sections draw without Z, carry
+start/end break markers, and split the host face contour at the
+projected break points into two dashed chains (designer.section).
+Editor: authoring rows (parameters fx row, vertex x/y/R chips with
+resolved-value tooltips, hole x/y/D chips), open/closed toolbar toggle,
+start/end chips dot-marked. One real bug found by the harness: the
+commitSketch reseed's own DB writes fired extraction and clobbered the
+just-authored expression — the reseed now rebinds the database
+listeners with scheduling suppressed. Proven headless-Chromium with the
+live stylesheet, zero page errors: p1.x='W' stores the string while the
+profile vertex evaluates 42, W→84 re-evaluates to 84, 'NOPE' clears the
+canvas and nulls the profile (gated), the open toggle emits closed:false
+with 3 edges, polyline section, break points [0,0]→[0,28]. Specs:
+profiles 10/10 (expressions, cycles, savable gate, open round-trip),
+renderer 30/30 (open section: no Z, two break marks, two split chains).
+Not run: the full platform e2e (no fresh stack guarantee mid-session).
 
 ## Business process authoring maturity (2026-10-07)
 
