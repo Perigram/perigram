@@ -44,3 +44,15 @@ Patched in place after bundling: two error-message templates reworded
 (`from '${url}'` → `at ${url}` / `of "${url}"`) so the SDK surfaces
 check's import-specifier scan does not false-positive on prose inside
 string literals.
+
+Surface-reachable drafting assists (the profile sketch editor's
+toolbar): ortho toggles through the document's `orthomode` property
+(point input reads the ORTHOMODE sysvar live), and object snaps live on
+`AcApSettingManager.osnapModes` as the standard DXF OSMODE bit mask
+(shipped default set: endpoint, midpoint, center, quadrant,
+intersection, nearest — the surface ORs in the Tangent bit for fillet
+workflows). POLARMODE/POLARANG are non-db sysvars held in the engine's
+internal sysvar manager, which the bundle does not export — wiring
+polar tracking needs a re-vendor that re-exports it. This build has no
+grid or snap-to-grid at all (grid data only round-trips through DXF
+viewport table records).

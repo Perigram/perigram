@@ -58,7 +58,10 @@ modules — no platform imports.
   tolerance; circles become holes. Save workflows accept any drawn
   boundary with at least three points and close it into a profile section
   snapshot so users do not need to run a separate close command before
-  persisting. Profiles live on the tree: the designer's profile dialog
+  persisting. The sketch editor's vertex row authors fillet radii
+  directly on the modifiers (the canvas reseeds with the tangent arcs);
+  the extraction pass re-derives modifiers from drawn geometry, so a
+  later draw or import overwrites manual radii. Profiles live on the tree: the designer's profile dialog
   writes profile workpieces (their `profileSnapshot` is the renderer's
   geometry source) that ride the cassette template's own document — there
   are no standalone profile records of any other type. The current

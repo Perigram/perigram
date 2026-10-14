@@ -1917,6 +1917,34 @@ tree API: add → attached profile workpiece (4-vertex section, 1 joint),
 edit → in-place rewrite, tree renders and serializes into the OCCS
 document.
 
+### Agent Notes (2026-10-14, drafting assists + vertex fillet radii)
+
+Owner accepted both follow-ups. The sketch toolbar gained ortho
+(`database.orthomode` — point input reads the sysvar live) and
+tangent-snap toggles (`AcApSettingManager.osnapModes`, the standard
+OSMODE bit mask; Tangent bit 256 OR-ed in; shipped default set is
+endpoint/midpoint/center/quadrant/intersection/nearest). Polar tracking
+is NOT wired: POLARMODE/POLARANG are non-db sysvars behind the engine's
+un-exported sysvar manager — enabling it needs a vendor re-export
+(recorded in the vendor README). No grid/snap-to-grid exists in this
+engine build at all. Below the canvas, a vertex row authors fillet
+radii directly on the sketch modifiers; the canvas reseeds with the
+tangent arcs, and extraction still re-derives modifiers from drawn
+geometry (a later draw overwrites manual radii — the OCCS README states
+the law). Browser-proven in the real-stylesheet harness: ortho line
+committed dy=0.000, tangent mask toggled 256↔0, radius 6 on p1 seeded
+an ARC and emitted {fillet, p1, 6} — zero page errors.
+
+- [ ] WAITING — Parametric profile sketches (owner decision 2026-10-14):
+  sketch geometry binds to the profile's parameter table through the
+  OCCS expression evaluator (SPEC §Plugin marketplace, 2026-10-14 — the
+  SolveSpace/WASM direction was rejected there). The profile dialog
+  grows the parameter table plus expression editing for vertex
+  coordinates, holes, fillet radii, and sweep; instantiating a profile
+  evaluates geometry per workpiece parameters. Check: author a profile
+  with expression-bound W/H/R, instantiate at two parameter sets, and
+  both the preview and the OCCS document evaluate deterministically.
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);

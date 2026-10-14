@@ -414,6 +414,21 @@ arcs flatten, circles become holes). DXF only: the open-source DWG
 parser is GPL LibreDWG and the alternative is commercial, so DWG stays
 out of the plugin and DXF remains the pipeline's exchange format.
 
+Owner decision (2026-10-14): profile sketches go parametric through the
+OCCS expression layer, not an embedded constraint solver. Sketch
+geometry (vertex coordinates, hole centers and diameters, fillet radii,
+sweep) binds to the profile's parameter table through the same
+expression evaluator the cassette tree already uses; instantiating a
+profile with different parameter values evaluates one deterministic
+geometry — parametric blocks by dimension table. External solver
+runtimes (SolveSpace to WASM and kin) stay out: GPL or commercial
+licensing (the LibreDWG precedent), megabyte-scale browser payloads for
+a dimension-table domain, and no constraint-authoring UX this platform
+owns. The sketch model's reserved `constraints` field homes a future
+purpose-built geometric pass if one is ever accepted; heavy solve
+compute, if ever truly needed, belongs behind the executor's service
+seam, never in the browser bundle.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,
