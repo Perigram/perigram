@@ -55,12 +55,12 @@ let loaded = false;
 
 onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
-  const [{ default: Crepe }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/crepe/theme/common/style.css')
   ]);
   if (!editorHost.value) return;
-  crepe = new Crepe({ root: editorHost.value, defaultValue: initial });
+  crepe = new CrepeEditor({ root: editorHost.value, defaultValue: initial });
   crepe.on(api => api.markdownUpdated((_context, markdown) => {
     // The framework reports every doc change; only post-load changes
     // are edits.
@@ -83,9 +83,11 @@ async function save() {
   try {
     // The name carries no extension of its own — strip a trailing one
     // before the persistence extension lands (`notes.md` stays
-    // `notes.md`, never `notes.md.md`).
+    // `notes.md`, never `notes.md.md`). The serializer renders an empty
+    // trailing block as `<br />`; that is its artifact, not content.
     const stem = String(displayName.value || 'document').replace(/\.(md|txt)$/i, '');
-    emit('saved', await props.persistence.saveText(crepe.getMarkdown(), `${stem}${props.persistence.extension || '.md'}`));
+    const markdown = crepe.getMarkdown().replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
+    emit('saved', await props.persistence.saveText(markdown, `${stem}${props.persistence.extension || '.md'}`));
     dirty.value = false;
   } finally { saving.value = false; }
 }
