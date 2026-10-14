@@ -355,7 +355,7 @@ describe('Design system manifest', () => {
     const dataBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/DataBlock.vue'), 'utf8');
     const actionToolbar = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/ActionToolbar.vue'), 'utf8');
     const artifactViewer = fs.readFileSync(path.join(REPO_ROOT, 'components/artifacts/ArtifactViewer.vue'), 'utf8');
-    const artifactTextEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/artifacts/ArtifactTextEditor.vue'), 'utf8');
+    const textDocumentEditor = fs.readFileSync(path.join(REPO_ROOT, 'packages/documents/src/editors/TextDocumentEditor.vue'), 'utf8');
     const supportMessageContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/SupportMessageContent.vue'), 'utf8');
 
     expect(fontsCss).toContain(':where(input, button, select, textarea)');
@@ -368,8 +368,8 @@ describe('Design system manifest', () => {
     // technical voice and previews in the prose voice.
     expect(artifactViewer).toContain('text-prose');
     expect(artifactViewer).not.toContain('text-technical');
-    expect(artifactTextEditor).toContain('text-technical');
-    expect(artifactTextEditor).toContain('text-prose');
+    expect(textDocumentEditor).toContain('text-technical');
+    expect(textDocumentEditor).toContain('text-prose');
     expect(supportMessageContent).not.toContain('text-prose');
   });
 

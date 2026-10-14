@@ -107,11 +107,27 @@ read-only.
 
 ## Editor bindings
 
-The pack binds the text and csv editors (`edit` mode) to their types; the
-text editor is the markdown source surface (textarea in the technical
-voice plus a sanitized rendered preview), the csv
-editor the shared cell table — both through `ArtifactTextEditor` with an
-instance-backed persistence contract (saves through the revisioned
-instance payload transport). Originating artifact kinds (`TEXT_FILE`,
-`CSV_FILE`, `TEXT_DOCUMENT`, `CSV_TABLE`) keep their artifact editors
-through the artifact-backed adapter until the artifact entity is retired.
+The pack binds the text and csv editors (`edit` mode) to their types —
+and the editor surfaces are the pack's own components
+(`src/editors/TextDocumentEditor.vue` and `src/editors/CsvTableEditor.vue`):
+editor surfaces belong to the pack that owns the type, the app-side
+file-surface registry is only the mount table. The text editor edits the
+markdown source directly (technical-mono textarea plus a sanitized
+preview through [shared/markdown.js](../../shared/markdown.js)); the csv
+editor edits rows in a cell table and serializes CSV text on save
+(PrimeVue's cell editor commits through `cell-edit-complete`). Both take
+the instance-backed persistence contract (loads through the payload
+download URL, saves through the revisioned instance payload transport —
+the contract home is
+[components/generated/README.md](../../components/generated/README.md)).
+
+## Starter constructs
+
+`starterConstructs` declares what the pack stations into every
+organization's initial process (SPEC §UI visible-by-default): the
+text-document editor construct, manually triggered and granted to the
+org's admin role, so markdown creation is visible for every new
+organization. The composition home is `composeStarterConstructs`
+([server/packs/README.md](../../server/packs/README.md)); existing
+organizations are repaired by
+`server/scripts/station-documents-types.js`.

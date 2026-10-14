@@ -53,9 +53,10 @@ fabrication domain (laser, vinyl, plotter) can require it without CNC.
   `PUT /api/instances/sketch/:id/payload`, each save
   recording an immutable scene revision. The editor starts a blank scene
   on payload-less instances, so creation without an upload creator is
-  simply first-save. The legacy artifact-bound `SketchEditor` component
-  keeps serving `SKETCH`-kind artifacts through the same scene contract
-  with an artifact-backed persistence adapter.
+  simply first-save. The editor surface is the pack's own component
+  (`src/editors/SketchEditor.vue` — editor surfaces belong to the pack
+  that owns the type; the file-surface registry is only the app-side
+  mount table).
 
 ## Management surfaces
 

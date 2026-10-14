@@ -1,6 +1,7 @@
 import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue';
-import SketchEditor from '~/components/artifacts/SketchEditor.vue';
-import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
+import TextDocumentEditor from '~/packages/documents/src/editors/TextDocumentEditor.vue';
+import CsvTableEditor from '~/packages/documents/src/editors/CsvTableEditor.vue';
+import SketchEditor from '~/packages/tech-drawing/src/editors/SketchEditor.vue';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
@@ -56,10 +57,9 @@ export const fileSurfaceRegistry = {
     workspacePage: {
       labelKey: 'editors.text',
       icon: 'pi pi-file-edit',
-      component: ArtifactTextEditor,
+      component: TextDocumentEditor,
       props: (page, typeId) => ({
-        persistence: textInstancePersistence(page.entity, typeId, 'text'),
-        format: 'text'
+        persistence: textInstancePersistence(page.entity, typeId, 'text')
       })
     }
   },
@@ -70,10 +70,9 @@ export const fileSurfaceRegistry = {
     workspacePage: {
       labelKey: 'editors.csv',
       icon: 'pi pi-file-edit',
-      component: ArtifactTextEditor,
+      component: CsvTableEditor,
       props: (page, typeId) => ({
-        persistence: textInstancePersistence(page.entity, typeId, 'csv'),
-        format: 'csv'
+        persistence: textInstancePersistence(page.entity, typeId, 'csv')
       })
     }
   }

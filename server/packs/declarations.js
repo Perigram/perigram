@@ -109,6 +109,33 @@ export function composePackEditors(packs = orderedMountedPacks()) {
   return editors;
 }
 
+// Starter constructs (SPEC §UI visible-by-default): constructs mounted
+// packs station into every organization's initial process. A construct
+// declared by two packs is a mount error, and the bound type must be a
+// mounted pack's file type — the same law editor bindings follow.
+export function composeStarterConstructs(packs = orderedMountedPacks()) {
+  const declarations = new Map(packs.flatMap(pack => (pack.types || []).map(declaration => [declaration.id, declaration])));
+  const constructs = [];
+  const seen = new Set();
+  for (const pack of packs) {
+    for (const construct of pack.starterConstructs || []) {
+      if (!construct?.typeId || !construct?.construction) {
+        throw new Error(`pack ${pack.id} declares a malformed starter construct: ${JSON.stringify(construct)}`);
+      }
+      if (seen.has(construct.typeId)) {
+        throw new Error(`duplicate starter construct for type ${construct.typeId} across packs (last: ${pack.id})`);
+      }
+      const declaration = declarations.get(construct.typeId);
+      if (!declaration || declaration.class !== 'file') {
+        throw new Error(`pack ${pack.id} stations a starter construct for ${construct.typeId}, which no mounted pack declares as a file type`);
+      }
+      seen.add(construct.typeId);
+      constructs.push(Object.freeze({ typeId: construct.typeId, construction: construct.construction }));
+    }
+  }
+  return constructs;
+}
+
 // Attachment kinds (SPEC §21 payload upload contracts) composed from the
 // mounted packs: the type view serves this composition, never a pack
 // symbol. A kind id claimed by two packs is a mount error.

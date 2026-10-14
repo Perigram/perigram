@@ -15,6 +15,8 @@ describe('organization system screens', () => {
     expect(result.screens.map(screen => screen.screenKey)).toEqual([
       'organization_overview',
       'organization_billing',
+      'organization_partners',
+      'organization_plugins',
       'organization_team',
       'organization_process'
     ]);
@@ -27,6 +29,8 @@ describe('organization system screens', () => {
     });
     expect(result.screens[0].systemScreens.map(screen => screen.screenKey)).toEqual([
       'organization_billing',
+      'organization_partners',
+      'organization_plugins',
       'organization_team',
       'organization_process'
     ]);
@@ -51,6 +55,8 @@ describe('organization system screens', () => {
     expect(result.navigation.map(item => item.id)).toEqual([
       'organization_overview',
       'organization_billing',
+      'organization_partners',
+      'organization_plugins',
       'organization_team',
       'organization_process'
     ]);
@@ -83,7 +89,9 @@ describe('organization system screens', () => {
 
     expect(result.screens.map(screen => screen.screenKey)).toEqual([
       'organization_overview',
-      'organization_billing'
+      'organization_billing',
+      'organization_partners',
+      'organization_plugins'
     ]);
     expect(result.screens.find(screen => screen.screenKey === 'organization_billing').systemActions).toEqual([]);
   });

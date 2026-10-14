@@ -54,12 +54,15 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   by moving the contract into its owning README (leaving the comment as a
   pointer) or consciously keeping it as tracked debt. Run as
   `npm run docs:validate`.
-- `station-documents-types.js`: Operator tool that stations the
-  documents pack's editable types (`text-document`) into organizations'
+- `station-documents-types.js`: Operator tool that stations the mounted
+  packs' starter constructs (the documents pack's markdown-first set,
+  `packages/documents/src/index.js`) into existing organizations'
   processes as an additive ACTIVE definition through the real
   definition API (validation + compilation + activation exactly as the
   designer runs them; existing definitions are never mutated —
-  activation is additive). Mints a short-lived session for each org's
+  activation is additive). New organizations carry the starters from
+  creation (`createActiveEmptyProcess`); this script repairs orgs
+  created before that. Mints a short-lived session for each org's
   process owner to post the draft. Usage:
   `node server/scripts/station-documents-types.js [--dry-run] [--org <id> ...]`
   (no `--org` = every org holding an ACTIVE definition).

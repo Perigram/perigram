@@ -43,7 +43,7 @@ describe('tech-drawing pack declarations', () => {
     const registry = createTypeRegistry({ id: 'spec-tech-drawing-formats' });
     for (const declaration of techDrawingTypes) registry.defineType(declaration);
     expect(registry.getType('dxf-source').payload).toMatchObject({
-      mime: ['application/dxf'],
+      mime: ['application/dxf', 'image/vnd.dxf'],
       maxSize: 50 * 1024 * 1024,
       preview: 'dxf'
     });

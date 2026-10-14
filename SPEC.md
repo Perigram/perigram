@@ -120,12 +120,14 @@ surface growing into the pane and scrolling inside it. Markdown
 documents edit their source directly (owner direction 2026-10-13: the
 payload IS the text — no rich-text proxy converting through HTML) with
 a rendered preview toggle, `text-document` instances are creatable by
-uploading an existing `.md` file, and text artifacts keep their stored
-kind (`.txt` or `.md`) across saves. Markdown support is visible by
-default (owner direction 2026-10-14): every organization's process
-carries a stationed, manually triggered, editor-mode text-document
-construct — authored shapes that hide it (content-mode or
-event-triggered constructs produce no create action) are repaired by
+uploading an existing `.md` file. Editor components belong to the packs
+that own their types (owner direction 2026-10-14): the documents pack
+ships the markdown and csv editors, tech-drawing ships the sketch
+editor, and the artifact entity carries no editors. Markdown support is
+visible by default (owner direction 2026-10-14): every organization's
+initial process stations the pack-declared starter constructs — a
+manually triggered, editor-mode text-document construct — at creation;
+organizations created before the starter set are repaired by
 `server/scripts/station-documents-types.js`.
 
 Generated creates enforce their construction contract (owner decision

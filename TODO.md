@@ -395,6 +395,67 @@ payload traits). Quill is deleted from the app: the PrimeVue `Editor`
 import, `quill.snow.css`, the editor component tokens, and the
 main.css quill block are gone. common.preview i18n key added (en/ru).
 
+## Editors are pack-owned; artifact editing retired; markdown visible by default (owner direction 2026-10-14)
+
+The md editor lived in `components/artifacts/ArtifactTextEditor.vue` —
+one shared component serving markdown and csv for both instance and
+artifact hosts — while no organization could see markdown creation at
+all (zero active definitions carried a text-document construct; the
+stationing script had never run and fresh orgs start from the empty
+starter process). Owner direction: file editors are parts of their
+packs, artifacts carry no editors, markdown creation is visible for
+every organization. Contracts:
+[packages/documents/README.md](./packages/documents/README.md),
+[packages/tech-drawing/README.md](./packages/tech-drawing/README.md),
+[components/generated/README.md](./components/generated/README.md),
+[components/artifacts/README.md](./components/artifacts/README.md).
+
+- [x] A. Pack editors: `TextDocumentEditor`/`CsvTableEditor` in
+  `packages/documents/src/editors/`, `SketchEditor` in
+  `packages/tech-drawing/src/editors/`; the file-surface registry is
+  only the mount table; `ArtifactTextEditor` deleted.
+- [x] B. Artifact editing retired: `ArtifactDetail` keeps read-only
+  viewing (plus the facade layout editor); the attachment-kind registry
+  trims to the live facade flows (DXF source, capture photo,
+  generateAttachment outputs, artifact templates) — every other kind is
+  dead data with no producer.
+- [x] C. Visible by default: packs declare `starterConstructs`
+  (documents: text-document editor construct), `composeStarterConstructs`
+  composes them with mount guards, `createActiveEmptyProcess` authors
+  them into every new org's initial process, and the stationing script
+  composes the same declaration to repair existing orgs.
+- [ ] WAITING — owner verification on the live stack: every org's
+  sidebar shows the text-document panel with a working New → blank
+  markdown editor; an org created before the repair shows it after the
+  script run; artifact rows open read-only.
+
+### Agent Notes (2026-10-14, pack-editors session)
+
+Session `agent/pack-editors-20261014-164057`, owner escalation:
+"FILE EDITORS ARE PARTS OF THEIR PLUGINS! FUCK ARTIFACTS THEY DONT
+EXIST! AND I STILL DONT SEE ANY OF MD FILE CREATION OR USAGE!" — all
+three true. Measured before this session: ZERO active definitions in
+the database carried a text-document construct (the previous session's
+live-org repair was archived by later activations), fresh orgs start
+from the explicitly empty starter process, and the stationing script
+had never been a product path. Findings while migrating: the artifact
+upload path's mime sniff only ever produces CAPTURE_PHOTO, DXF_SOURCE,
+or bare UPLOAD — the generic kinds (TEXT_FILE, IMAGE_FILE, PDF_DOCUMENT,
+DOCX, XLSX, SKETCH, SVG_FILE, CSV_*) had no producer at all; the
+load-bearing artifact contracts are the facade plugin's (DXF_SOURCE,
+generateAttachment outputs, ARTIFACT_TEMPLATE_SOURCE) and camera
+capture. The artifact entity's full retirement is the facade-plugin
+migration (tracked as the payload-trait flip), out of this task's
+scope. In passing repaired stale spec pins from concurrent merges:
+tech-drawing dxf mime list, organization system screens list,
+file-surfaces props adapter. Validation: 986/987 across shared/
+components/packages/server suites (the 1 = the known pre-existing
+`detail-action-ownership` failure, fails on clean HEAD); docs + arch
+guards, SSR smoke, framework validate green; manifest regenerated.
+Live verification: stationing run for all existing orgs + fresh-org
+signup probe + the md-editor-repair E2E suite — artifacts under
+`.playwright/`.
+
 ## Table decomposition for headerless sheets: the `cells` projection (owner direction 2026-10-13)
 
 Not every xlsx/csv table carries column names; the `rows` projection
