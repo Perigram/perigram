@@ -17,7 +17,7 @@ import {
 import { CONSUMER_SPECIES_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
-import { createDataTree, isDataTree, authoredSocketDefault } from './data-tree.js';
+import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, lineageRelationsForParent, mergedHierarchyBindings } from './hierarchy-utils.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
@@ -4422,7 +4422,7 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors, p
     errors.push(`Process node ${nodeId} must select an entity type`);
   }
   if (node.kind === 'cts.field') {
-    const fieldPath = String(authoredSocketDefault(node.inputDefaults?.field) || '');
+    const fieldPath = String(node.path || '');
     if (!fieldPath) errors.push(`Process node ${nodeId} must select a field`);
     if (fieldPath && node.typeId && !entityFieldSchema(domain, node.typeId, fieldPath)) {
       errors.push(`Process node ${nodeId} uses undeclared field ${fieldPath}`);
@@ -4703,9 +4703,7 @@ function validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget
 }
 
 function catalogContext(domain, record) {
-  const fieldPath = record.kind === 'cts.field'
-    ? (record.inputDefaults?.field || '')
-    : record.path;
+  const fieldPath = record.path || '';
   return {
     // The projected domain rides on the context: the species port
     // projections read construction contracts and service signatures from

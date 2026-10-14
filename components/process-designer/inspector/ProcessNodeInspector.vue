@@ -357,18 +357,11 @@ const fieldProjectionOptions = computed(() => (
     }))
     : []
 ));
-// The field wire authors the socket default; the inspector pick authors
-// the record path — one explicit pick takes the channel.
-const fieldProjectionValue = computed(() => {
-  const wired = props.record.inputDefaults?.field;
-  const authored = wired && typeof wired === 'object' && wired.branches
-    ? wired.branches[0]?.items?.[0]
-    : wired;
-  return authored || props.record.path || '';
-});
+// The pick writes the record's `path` — the single persisted home of the
+// field selection.
+const fieldProjectionValue = computed(() => props.record.path || '');
 function setFieldProjection(value) {
   props.record.path = value || '';
-  if (props.record.inputDefaults) delete props.record.inputDefaults.field;
   emit('sync');
 }
 

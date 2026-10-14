@@ -1,5 +1,5 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
-import { authoredSocketDefault } from './data-tree.js';
+
 import { PROCESS_OPERATION_REGISTRY, processOperation } from './operations.js';
 import { typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 
@@ -439,20 +439,16 @@ function acceptedEntityType(candidates = []) {
 }
 
 // The field projection is socket algebra (SPEC §20): entity in, field in
-// (the path arrives by wire or authored default — one channel, no static
-// record config), value out. Ports never vanish with binding state; the
-// output is typed from the authored default when one exists, dynamic
-// otherwise.
+// (the path arrives by wire or from the record's authored `path` — the
+// single persisted home), value out. Ports never vanish with binding
+// state; the output is typed from the authored default when one exists,
+// dynamic otherwise.
 function nativeFieldPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   const entityIn = typeId
     ? processType('entityRef', { typeId })
     : processType('entity');
-  // The authored field rides either channel — the record's `path` (the
-  // inspector/authoring spelling) or the `field` socket default (the
-  // inline fallback's packet) — and both unwrap to the same typed output;
-  // the validator and evaluator read the same pair.
-  const fieldPath = String(authoredSocketDefault(record.inputDefaults?.field) || record.path || '');
+  const fieldPath = String(record.path || '');
   const field = fieldPath
     ? ((context.fieldSchemas || []).find(candidate => candidate.path === fieldPath) || null)
     : null;

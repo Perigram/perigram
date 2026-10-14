@@ -128,7 +128,7 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       // The authored field arrives as the record's `path` or as the field
       // socket's default (a packet from the inline fallback) — unwrap both,
       // exactly the pair the catalog's field ports read.
-      fieldSchema: fields.find(field => field.path === (authoredSocketDefault(node.inputDefaults?.field) || node.path)) || null,
+      fieldSchema: fields.find(field => field.path === node.path) || null,
       fieldSchemas: fields,
       command: domain.commands?.[node.commandId] || null,
       domain
@@ -230,6 +230,14 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       if (!node.typeId && node.type?.typeId) node.typeId = node.type.typeId;
       delete node.fieldSchemas;
       delete node.fieldSchema;
+      // `path` is the single persisted home of the field selection. A
+      // `field` socket default older drafts carry (string or packet)
+      // unwraps into the path once; the channel itself retires.
+      const wiredField = authoredSocketDefault(node.inputDefaults?.field);
+      if (node.inputDefaults && Object.hasOwn(node.inputDefaults, 'field')) {
+        if (wiredField) node.path = String(wiredField);
+        delete node.inputDefaults.field;
+      }
       const bound = typeIdOf(node);
       const available = bound
         ? contract.fieldsForEntity(bound).filter(field => field.readable !== false)
@@ -239,14 +247,6 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       // destroy intent authored before the wire exists. Validation
       // owns the report when the path is genuinely undeclared.
       if (!available.length) return;
-      // The `field` default channel is valid only while it names a
-      // declared readable path; junk older writers persisted (a
-      // stringified object, stale block-era paths) drops here and the
-      // record path owns the choice.
-      const wiredField = authoredSocketDefault(node.inputDefaults?.field);
-      if (wiredField && !available.some(field => field.value === wiredField) && node.inputDefaults) {
-        delete node.inputDefaults.field;
-      }
       // `path === '_id'` is the pre-fix machine default (the old sync
       // picked the first projected entry, always `_id`) — derived, never
       // authored, so it re-defaults like an unset path.
@@ -552,6 +552,11 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
       if (mutation.key?.startsWith('inputDefaults.')) {
         const inputId = mutation.key.slice('inputDefaults.'.length);
         record.inputDefaults = { ...(record.inputDefaults || {}), [inputId]: mutation.value };
+        continue;
+      }
+      if (mutation.key === 'path') {
+        record.path = mutation.value;
+        if (data.processNodes[mutation.recordId]) syncProcessNode(mutation.recordId);
         continue;
       }
       if (mutation.key?.startsWith('state.')) {

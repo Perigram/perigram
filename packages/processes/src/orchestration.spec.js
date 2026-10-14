@@ -812,8 +812,8 @@ describe('durable process orchestration', () => {
   it('keeps missing fields distinct from present nulls in preview', async () => {
     const definition = process([
       { id: 'entity', kind: 'source.literalItem', value: { name: null } },
-      { id: 'name', kind: 'cts.field', inputDefaults: { field: 'name' } },
-      { id: 'reference', kind: 'cts.field', inputDefaults: { field: 'reference' } }
+      { id: 'name', kind: 'cts.field', path: 'name' },
+      { id: 'reference', kind: 'cts.field', path: 'reference' }
     ], ['entity', 'name', 'reference'], [
       data('entity', 'name', 'entity'),
       data('entity', 'reference', 'entity')
