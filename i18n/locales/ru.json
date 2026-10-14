@@ -526,9 +526,7 @@
         "start": "начало",
         "end": "конец",
         "parameters": "Параметры",
-        "anchor": "Якорь",
-        "startDistance": "Отступ начала",
-        "endDistance": "Отступ конца",
+        "anchor": "База",
         "dimensions": "Размеры"
       },
       "placementModes": {

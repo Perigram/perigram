@@ -180,19 +180,13 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
   };
 };
 
-// Anchors tie a profile to its host: a closed profile carries one anchor
-// vertex (the vertex that lands on the attachment point); an open profile
-// carries start/end distances — margins from the host edge's two ends
-// where the profile begins and the contour breaks.
+// Anchors are the profile's placement basis, a closed-shape construct:
+// the chosen vertex lands on the attachment point (and is the origin the
+// cut geometry is taken relative to). Open shapes carry no anchor — their
+// references are the sketch origin (zero) and the chain's end point.
 const normalizeOccsProfileSketchAnchors = (anchors = null, pointIds = new Set(), closed = false) => {
-  if (!anchors || typeof anchors !== 'object') return null;
-  if (closed) {
-    return pointIds.has(anchors.vertexId) ? { vertexId: anchors.vertexId } : null;
-  }
-  return {
-    startDistance: sketchValue(anchors.startDistance, 0),
-    endDistance: sketchValue(anchors.endDistance, 0)
-  };
+  if (!closed || !anchors || typeof anchors !== 'object') return null;
+  return pointIds.has(anchors.vertexId) ? { vertexId: anchors.vertexId } : null;
 };
 
 export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => {
@@ -245,12 +239,7 @@ export const evaluateOccsProfileSketch = (sketch = {}, fallbackParameters = {}) 
       ...modifier,
       radius: resolveField(modifier.radius, `fillet ${modifier.vertexId}`)
     })),
-    anchors: normalized.anchors && !normalized.anchors.vertexId
-      ? {
-          startDistance: resolveField(normalized.anchors.startDistance, 'anchor start distance'),
-          endDistance: resolveField(normalized.anchors.endDistance, 'anchor end distance')
-        }
-      : normalized.anchors
+    anchors: normalized.anchors
   };
 };
 
@@ -308,20 +297,12 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   if (closed && anchorPoint) {
     section.anchor = [String(anchorPoint.x), String(anchorPoint.y)];
   }
-  if (!closed) {
-    if (vertices.length >= 2) {
-      // Break points: where an inserted open profile splits the host face.
-      section.breakPoints = [
-        vertices[0],
-        vertices[vertices.length - 1]
-      ];
-    }
-    if (normalized.anchors && normalized.anchors.startDistance !== undefined) {
-      section.anchorDistances = {
-        start: String(normalized.anchors.startDistance),
-        end: String(normalized.anchors.endDistance)
-      };
-    }
+  if (!closed && vertices.length >= 2) {
+    // Break points: where an inserted open profile splits the host face.
+    section.breakPoints = [
+      vertices[0],
+      vertices[vertices.length - 1]
+    ];
   }
 
   return {

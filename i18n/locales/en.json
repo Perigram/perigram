@@ -526,9 +526,7 @@
         "start": "start",
         "end": "end",
         "parameters": "Parameters",
-        "anchor": "Anchor",
-        "startDistance": "Start distance",
-        "endDistance": "End distance",
+        "anchor": "Basis",
         "dimensions": "Dimensions"
       },
       "placementModes": {

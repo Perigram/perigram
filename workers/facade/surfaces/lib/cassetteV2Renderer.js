@@ -2265,50 +2265,16 @@ const hardwareSchematicLayer = (curves = [], tree = createCassetteV2GraphTree(),
   };
 };
 
-// Walks a closed contour from its first vertex by arc length.
-const pointAlongContour = (vertices = [], distance = 0) => {
-  const ring = withoutClosingVertex(vertices);
-  if (!ring.length) return null;
-  let remaining = Math.max(0, numeric(distance, 0));
-  for (let index = 0; index < ring.length; index += 1) {
-    const a = ring[index];
-    const b = ring[(index + 1) % ring.length];
-    const dx = numeric(b?.[0], 0) - numeric(a?.[0], 0);
-    const dy = numeric(b?.[1], 0) - numeric(a?.[1], 0);
-    const length = Math.hypot(dx, dy);
-    if (length > 1e-9 && remaining <= length) {
-      const t = remaining / length;
-      return [numeric(a[0], 0) + dx * t, numeric(a[1], 0) + dy * t, 0];
-    }
-    remaining -= length;
-  }
-  return [numeric(ring[0][0], 0), numeric(ring[0][1], 0), 0];
-};
-
-const contourPerimeter = (vertices = []) => (
-  withoutClosingVertex(vertices).reduce((total, vertex, index, ring) => {
-    const next = ring[(index + 1) % ring.length];
-    return total + Math.hypot(
-      numeric(next?.[0], 0) - numeric(vertex?.[0], 0),
-      numeric(next?.[1], 0) - numeric(vertex?.[1], 0)
-    );
-  }, 0)
-);
-
-// Positions a profile section against its host face. Closed profiles with
-// an anchor vertex map that vertex onto the snap+offset point; open
-// profiles with anchor distances run from the contour point at
-// startDistance to the one endDistance short of the perimeter, and those
-// two contour points are the break points. Without anchors the section's
-// own origin lands on snap+offset and its endpoints project as before.
+// Positions a profile section against its host face. A closed profile
+// with a basis (anchor) vertex maps that vertex onto the snap+offset
+// point — the anchor is the profile's placement origin; without one the
+// section's own sketch origin lands there. Open profiles place by their
+// sketch origin; their endpoints are the break points.
 const profileSectionPlacement = (profile = {}, targetCurve = {}, relation = {}, parameters = {}) => {
   const rawVertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
-  if (rawVertices.length < 2) return { points: [], breakPoints: null };
+  if (rawVertices.length < 2) return { points: [] };
   const vertices = rawVertices.map(vertex => [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)]);
   const targetVertices = targetCurve?.boundaryVertices || targetCurve?.vertices || [];
-  const contour = targetCurve?.originalBoundaryVertices
-    || targetCurve?.referenceVertices
-    || targetVertices;
   const snap = faceSnapPoint(targetVertices, relation.targetSnap);
   const offset = [
     resolveCassetteV2Expression(relation.offsetX, parameters, 0),
@@ -2317,20 +2283,10 @@ const profileSectionPlacement = (profile = {}, targetCurve = {}, relation = {}, 
   const rotation = resolveCassetteV2AngleExpression(relation.rotation, parameters, 0);
   const transformed = (vertex) => rotate2d(mirroredProfileVertex(vertex, relation), rotation);
   const open = profile.section?.open || profile.section?.type === 'polyline';
-  const anchorDistances = profile.section?.anchorDistances;
   const anchor = profile.section?.anchor;
 
   let origin;
-  let breakPoints = null;
-  if (open && anchorDistances && contour.length >= 2) {
-    const start = pointAlongContour(contour, resolveCassetteV2Expression(anchorDistances.start, parameters, 0));
-    const end = pointAlongContour(
-      contour,
-      contourPerimeter(contour) - resolveCassetteV2Expression(anchorDistances.end, parameters, 0)
-    );
-    origin = [start[0] + offset[0], start[1] + offset[1]];
-    breakPoints = [start, end];
-  } else if (!open && anchor) {
+  if (!open && anchor) {
     const anchorTransformed = transformed([numeric(anchor[0], 0), numeric(anchor[1], 0)]);
     const target = [numeric(snap?.[0], 0) + offset[0], numeric(snap?.[1], 0) + offset[1]];
     origin = [target[0] - anchorTransformed[0], target[1] - anchorTransformed[1]];
@@ -2342,8 +2298,7 @@ const profileSectionPlacement = (profile = {}, targetCurve = {}, relation = {}, 
     points: vertices.map(vertex => {
       const placed = transformed(vertex);
       return [origin[0] + placed[0], origin[1] + placed[1], 0];
-    }),
-    breakPoints
+    })
   };
 };
 
@@ -2426,8 +2381,7 @@ export const profileBreaksForTree = (curves = [], tree = createCassetteV2GraphTr
       || targetCurve.referenceVertices
       || targetCurve.boundaryVertices
       || targetCurve.vertices;
-    const breakPoints = placement.breakPoints
-      || [placement.points[0], placement.points[placement.points.length - 1]];
+    const breakPoints = [placement.points[0], placement.points[placement.points.length - 1]];
     breaks.push({
       relationId: relation.id,
       profileWorkpieceId: relation.sourceWorkpieceId,

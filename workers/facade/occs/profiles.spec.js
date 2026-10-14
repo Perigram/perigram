@@ -195,7 +195,7 @@ describe('OCCS profile helpers', () => {
     expect(normalizeOccsProfileSketch(sketch).points.filter(point => point.chord)).toHaveLength(chords.length);
   });
 
-  it('carries anchors: one attachment vertex for closed, start/end distances for open', () => {
+  it('carries a placement basis anchor on closed shapes only', () => {
     const base = createDefaultOccsProfileSketch({ W: 40, H: 20 });
     const square = {
       ...base,
@@ -208,19 +208,15 @@ describe('OCCS profile helpers', () => {
     expect(anchored.anchors).toEqual({ vertexId: 'p2' });
     expect(normalizeOccsProfileSketch({ ...square, anchors: { vertexId: 'nope' } }).anchors).toBeNull();
     expect(occsProfileFromSketch(anchored).section.anchor).toEqual(['40', '20']);
+    expect(occsProfileFromSketch(square).section.anchor).toBeUndefined();
 
+    // Open shapes carry no anchor — their references are the sketch origin
+    // and the chain's end point.
     const open = setOccsProfileSketchClosed({ ...square, anchors: { vertexId: 'p2' } }, false);
     expect(open.anchors).toBeNull();
-    const withDistances = normalizeOccsProfileSketch({
-      ...open,
-      anchors: { startDistance: 'W/4', endDistance: 5 }
-    });
-    const evaluated = evaluateOccsProfileSketch(withDistances);
-    expect(evaluated.anchors).toEqual({ startDistance: 10, endDistance: 5 });
-    const section = occsProfileFromSketch(withDistances).section;
-    // The section is evaluated output: distances resolve against the table
-    // (the raw expressions live on the sketch's anchors).
-    expect(section.anchorDistances).toEqual({ start: '10', end: '5' });
+    expect(normalizeOccsProfileSketch({ ...open, anchors: { startDistance: 5, endDistance: 5 } }).anchors).toBeNull();
+    const section = occsProfileFromSketch(open).section;
+    expect(section.anchorDistances).toBeUndefined();
     expect(section.breakPoints).toHaveLength(2);
   });
 
