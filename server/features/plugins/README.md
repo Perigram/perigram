@@ -124,7 +124,10 @@ executors through the worker protocol.
   endpoint origin server-side (`fetchSurfaceModule` here; GET only, paths
   resolve strictly under the origin, `..` refused). Access mirrors the
   served type view: any member of an organization holding the install.
-  The served type view composes these same-origin URLs
+  Module responses are `no-store`: they are live executor artifacts, and
+  the app-wide stale-while-revalidate rule must not delay an executor
+  update past the next browser load. The served type view composes these
+  same-origin URLs
   ([cts-types](../cts-types/README.md)); connection settings never reach
   the browser.
 - **Upgrades**: pins move only through an explicit diff-plus-migration
