@@ -75,6 +75,13 @@ const minted = [];
 const results = [];
 for (const [orgId, defs] of byOrg) {
   const ownerUserId = defs.find(def => def.states?.userId)?.states.userId
+    // Activate requires the acting user's ACTIVE organization to be this
+    // org: prefer an active-scoped member; a lineage/membership-only
+    // user is authoritative nowhere here.
+    || (await db.collection('users').findOne({
+      organizationId: orgId,
+      isActive: { $ne: false }
+    }, { sort: { _id: 1 } }))?._id
     || (await db.collection('users').findOne({
       $or: [{ 'lineage.organizationId': orgId }, { 'memberships.organizationId': orgId }],
       isActive: { $ne: false }
