@@ -18,7 +18,7 @@ test('fresh org sees markdown creation and edits in the pack editor', async ({ a
   await expect(app.page.getByText('No records').first()).toBeVisible({ timeout: 20000 });
   await app.page.screenshot({ path: '.playwright/md-fresh-org-panel.png' });
 
-  const source = app.page.locator('main textarea');
+  const source = app.page.locator('.ProseMirror');
   const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
   for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
     await newButton.click();
@@ -29,7 +29,8 @@ test('fresh org sees markdown creation and edits in the pack editor', async ({ a
   const save = app.page.getByRole('button', { name: 'Save', exact: true });
   await expect(save).toBeDisabled();
   const typed = '# Fresh org doc\n\nTyped in the pack editor.\n';
-  await source.fill(typed);
+  await source.click();
+  await app.page.keyboard.type(typed);
   await expect(save).toBeEnabled();
   await app.page.screenshot({ path: '.playwright/md-fresh-org-editor.png' });
   await save.click();

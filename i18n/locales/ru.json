@@ -2107,8 +2107,7 @@
   },
   "editors": {
     "text": "Редактор текста",
-    "csv": "Редактор CSV",
-    "viewSplit": "Сплит"
+    "csv": "Редактор CSV"
   },
   "sketch": {
     "editorTitle": "Скетч",

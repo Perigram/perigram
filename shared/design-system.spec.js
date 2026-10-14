@@ -371,11 +371,12 @@ describe('Design system manifest', () => {
     expect(dataBlock).toContain('text-technical');
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
     // Document previews read in the app's prose voice (serif), not the
-    // technical mono role; the markdown editor edits its source in the
-    // technical voice and previews in the prose voice.
+    // technical mono role; the markdown editor is a single-surface live
+    // editor — the document voice is prose while writing and reading
+    // (the technical mono role stays with data surfaces like the csv
+    // table and DataBlock).
     expect(artifactViewer).toContain('text-prose');
     expect(artifactViewer).not.toContain('text-technical');
-    expect(textDocumentEditor).toContain('text-technical');
     expect(textDocumentEditor).toContain('text-prose');
     expect(supportMessageContent).not.toContain('text-prose');
   });
