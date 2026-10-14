@@ -694,6 +694,7 @@ import {
   definitionToCanvas,
   isProcessDataHandle,
   normalizeDesignerAccess,
+  orientChildrenWire,
   parseProcessSocketHandleId,
   prepareAuthoredDefinition,
   processSocketsCompatible,
