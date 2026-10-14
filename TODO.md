@@ -33,6 +33,45 @@ law now that no mode exists: an unfilled optional field renders no row,
 so it cannot be filled inline from the detail surface (creation prompts
 and typed editors remain the fill path).
 
+## Exports are declarations (owner direction 2026-10-14)
+
+`generateAttachment` carries hardcoded export vocabulary in framework code
+(dead snake-case type ids that match no live instance, a frozen kind-enum
+subset), the artifacts seam survives on an id-spelling rewrite plus a
+kind-only any-type exporter fallback, and export buttons require per-process
+action authoring although the listing already declares the export bindings.
+SPEC §Exports are declarations is the contract. Plan:
+
+- [x] A. Command def: kind options derive from the attachment-kind
+  vocabulary (`commandCreatedKinds`); the dead `accepts` list and named
+  snake-case entity sockets are gone; LAYOUT_SVG stops declaring command
+  creation it has no implementation for.
+- [x] B. Artifacts seam: exporter resolution matches the source's actual
+  type against `binding.typeId` exactly — no spelling rewrites, no
+  any-type fallback; bucket/mime/extension resolve from the kind
+  vocabulary; the lineage key derives from the type id.
+- [x] C. The hydration payload carries `process.exports` (the org's
+  bindings); `GeneratedScreenHost` derives one manual command action per
+  binding and executes through the generic command run path
+  (outbox/idempotent, command-runtime access law).
+- [x] D. READMEs match (artifacts generation notes, plugins exports
+  composition); framework manifest regenerated.
+- [ ] WAITING — owner verification on the live stack: a sheet-design
+  surface shows the derived export action with no authored action node,
+  and it produces the LAYOUT_DXF artifact.
+
+### Agent Notes (2026-10-14, export-declaration session)
+
+Diagnosis: the command def's `accepts: ['sheet_design', 'solve_run']`
+matched no live instance type (instances store kebab ids — the exporter
+match survived only via a kebab→snake rewrite plus a kind-only any-type
+fallback that would feed any instance through the sheet-design
+exporter); the kind enum was a frozen subset of the vocabulary; the
+`entities.nestingRun` path targeted a legacy collection with no live
+completion. Implemented A–D as above; artifacts operations spec updated
+to pin the exact-match law (including a no-any-type-fallback refusal
+case).
+
 ## Template documents from graph data: `text` projection + named-slot format (owner direction 2026-10-13)
 
 A text document with placeholders is a template; the graph fills it from

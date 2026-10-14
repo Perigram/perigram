@@ -71,7 +71,7 @@ describe('artifact operations', () => {
       entities: {
         source: {
           _id: 'sheet-3',
-          type: 'sheet_design',
+          type: 'sheet-design',
           identity: { name: 'Sheet 3' },
           lineage: { organizationId: 'org-1', queueId: 'queue-3' }
         },
@@ -101,8 +101,9 @@ describe('artifact operations', () => {
 
     const result = await generateAttachment({
       entities: {
-        sheetDesign: {
+        source: {
           _id: 'sheet-1',
+          type: 'sheet-design',
           identity: { name: 'Sheet 1' },
           lineage: { queueId: 'queue-1' }
         }
@@ -136,7 +137,7 @@ describe('artifact operations', () => {
     });
   });
 
-  it('accepts an abstract attachment source entity for layout DXF generation', async () => {
+  it('derives the source lineage key from the source type id', async () => {
     createMock.mockResolvedValue({
       _id: 'artifact-2',
       data: { type: 'LAYOUT_DXF' },
@@ -147,7 +148,7 @@ describe('artifact operations', () => {
       entities: {
         source: {
           _id: 'sheet-2',
-          type: 'sheet_design',
+          type: 'sheet-design',
           identity: { name: 'Sheet 2' },
           lineage: { queueId: 'queue-2' }
         }
@@ -165,14 +166,27 @@ describe('artifact operations', () => {
     }), 'user-2', 'org-2', 'member', expect.any(Object));
   });
 
-  it('refuses sheet-design DXF export when no plugin binds the export', async () => {
+  it('refuses export when no plugin binds the (type, kind) pair', async () => {
     exportersForOrganizationMock.mockResolvedValue([]);
     await expect(generateAttachment({
       entities: {
-        sheetDesign: { _id: 'sheet-9', identity: { name: 'Sheet 9' }, lineage: {} }
+        source: { _id: 'sheet-9', type: 'sheet-design', identity: { name: 'Sheet 9' }, lineage: {} }
       },
       parameters: { kind: 'LAYOUT_DXF' },
       auth: { userId: 'user-1', organizationId: 'org-1', role: 'member' }
-    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('installed plugin export binding') });
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('No installed plugin exports LAYOUT_DXF from sheet-design') });
+  });
+
+  it('refuses export when a binding exists only for another type — no any-type fallback', async () => {
+    exportersForOrganizationMock.mockResolvedValue([
+      { typeId: 'other-type', kind: 'LAYOUT_DXF', service: 'plugin.facade.generate-sheet-dxf' }
+    ]);
+    await expect(generateAttachment({
+      entities: {
+        source: { _id: 'sheet-9', type: 'sheet-design', identity: { name: 'Sheet 9' }, lineage: {} }
+      },
+      parameters: { kind: 'LAYOUT_DXF' },
+      auth: { userId: 'user-1', organizationId: 'org-1', role: 'member' }
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('No installed plugin exports LAYOUT_DXF from sheet-design') });
   });
 });

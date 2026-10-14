@@ -7,7 +7,7 @@ import {
   resolveScreens
 } from '~/packages/processes/src/index.js';
 import { packDomainsForOrganization } from '~/server/features/plugins/service.js';
-import { packServicesForOrganization } from '~/server/features/plugins/service.js';
+import { packServicesForOrganization, exportersForOrganization } from '~/server/features/plugins/service.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { compileClientBundle, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { projectManifestAction, projectUiAction, projectUiScreen } from '~/packages/processes/src/ui-contract-projection.js';
@@ -133,7 +133,12 @@ export async function resolveProcessAuth(auth = {}) {
       // The UI generator's inputs ride with the hydration payload: the CTS
       // client bundle and the projected action contract, so the screens
       // renderer never consults the registry or the execution channel.
+      // Export bindings ride beside them (SPEC §Exports are declarations):
+      // the org's installed plugins' `(typeId, kind)` pairs, the sole
+      // source the surfaces derive export affordances from.
       bundle: compiled.bundle || { types: [] },
+      exports: (await exportersForOrganization(organizationId).catch(() => []))
+        .map(({ typeId, kind }) => ({ typeId, kind })),
       actions: Object.fromEntries(Object.values(compiled.actions || {})
         .map(action => [action.id, projectUiAction(action, { typeLabels })])
         .filter(([, projected]) => projected))

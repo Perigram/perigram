@@ -443,3 +443,15 @@ its dependencies) are managed per organization from the Plugins section:
 enabled by default, removable under the same drain law as plugin uninstall,
 re-installable — the management plane the extraction lands in while the pack's
 code moves out from underneath.
+
+## Exports are declarations (owner direction 2026-10-14)
+
+An installed plugin's export bindings (`declarations.exports`: type, kind,
+service) are the whole truth about what a type can export. The framework
+carries no export vocabulary: `generateAttachment`'s kind options derive from
+the declared attachment-kind vocabulary (the kinds that declare command
+creation), its accepted source types are the org's export-bound types, and
+hardcoded kind enums, type-id lists, or id-spelling rewrites in framework
+code or the artifacts seam are defects. Export affordances derive from the
+same composed view editors and previews derive from — a bound type's surfaces
+offer the export action without per-process action authoring.

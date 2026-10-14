@@ -148,10 +148,7 @@
   "commands": [
     {
       "action": "generate",
-      "attachments": [
-        "LAYOUT_DXF",
-        "PDF_PASSPORT"
-      ],
+      "attachments": [],
       "events": [
         "attachment.generationQueued",
         "attachment.generationCompleted",

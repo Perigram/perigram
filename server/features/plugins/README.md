@@ -45,11 +45,14 @@ executors through the worker protocol.
   `constructions` binds the plugin's own types' construction modes to
   plugin services (the instance machinery dispatches them, see
   [instances](../instances/README.md)); `exports` binds attachment
-  exports (`generateAttachment` resolves the sheet-design LAYOUT_DXF
-  executor through it). Installed construction contracts merge into the
+  exports — the `(typeId, kind) → service` pairs are the whole export
+  truth: `generateAttachment` resolves a binding only by exact
+  `(sourceType, kind)` match, and the hydration payload carries the
+  bindings (`process.exports`) so the surfaces derive export affordances
+  with no authored action nodes (SPEC §Exports are declarations).
+  Installed construction contracts merge into the
   projected domain's construction table beside the packs
   (`packDomainsForOrganization`).
-  ownership stays with the plugin for clean upgrades.
 - **Connector services**: a listing may declare `services` —
   `{ id (slug), label, signature: { input, output }, render, mode }` records
   in the SPEC §8 V grammar (`mode`: `endpoint` — the platform calls the
