@@ -168,4 +168,26 @@ describe('headless definition authoring', () => {
     expect(errors, errors.join('; ')).toEqual([]);
     expect(warnings).toEqual([]);
   });
+
+  it('wires are live binding channels: an entity stream adapts an unbound consumer on connect', () => {
+    const context = authoring();
+    context.drop('currentUser', { id: 'who' });
+    context.drop('getField', { id: 'email' });
+    context.connect('who', 'value', 'email', 'entity');
+    context.configure('email', { path: 'fields.email' });
+
+    const definition = context.definition();
+    const node = definition.data?.processNodes?.email || definition.processNodes.email;
+    expect(node.typeId).toBe('user');
+    expect(node.path).toBe('fields.email');
+    expect(node.outputs.find(port => port.id === 'value')?.type?.base).toBe('string');
+
+    // The typed value wires into a string operation; the raw entity
+    // stream still refuses one (a party instance is not a string).
+    context.drop('text', { id: 'split' });
+    context.configure('split', { operation: 'split' });
+    expect(() => context.connect('email', 'value', 'split', 'text')).not.toThrow();
+    expect(() => context.connect('who', 'value', 'split', 'separator'))
+      .toThrow(/Expected string, received entityRef<user>/);
+  });
 });

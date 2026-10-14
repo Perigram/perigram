@@ -481,12 +481,30 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
   // record bindings derive from wires exactly as the designer's live
   // pass derives them — and the persisted records carry the same state.
   function interpretNow() {
+    // The designer's consumer-binding resolver (the page's
+    // incomingEntityContract): the entity wire's source output type, read
+    // from the source record's own resolved ports. The seam supplies it
+    // itself so headless composition binds consumers exactly like the
+    // canvas — an entity stream into an unbound consumer adapts it.
+    const entityInputType = recordId => {
+      const graphNode = data.graph.nodes.find(node => node.type === 'processNode' && node.data?.refId === recordId);
+      const edge = data.graph.edges.find(item => (
+        item.target === graphNode?.id
+        && String(item.targetHandle || '').replace(/^(?:input|data):/, '') === 'entity'
+      ));
+      if (!edge) return '';
+      const source = data.graph.nodes.find(node => node.id === edge.source);
+      const sourceRecord = source?.data?.refId ? data.processNodes[source.data.refId] : null;
+      const ports = sourceRecord ? sync.catalogPorts(sourceRecord).outputs : [];
+      const port = ports.find(candidate => candidate.type?.typeId || candidate.type?.itemType?.typeId);
+      return port?.type?.typeId || port?.type?.itemType?.typeId || '';
+    };
     const { mutations } = interpretDeclarationEdges(
       data.graph.nodes,
       data.graph.edges.filter(edge => edge.role === 'type'),
       data.processNodes,
       {},
-      {}
+      { entityInputType }
     );
     for (const mutation of mutations || []) {
       if (mutation.scope === 'node') {
@@ -642,6 +660,10 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
       targetHandle: mintProcessSocketHandle(targetPort)
     };
     data.graph.edges.push(edge);
+    // Wires are live binding channels here too: the same interpretation
+    // pass the canvas runs on connect (an entity stream into an unbound
+    // consumer adapts it) — one inference home, not a connect-local twin.
+    interpretNow();
     syncProcessNode(targetId);
     return edge;
   }
