@@ -65,10 +65,11 @@ modules — no platform imports.
   with cut geometry taken anchor-relative. Open shapes carry no anchor —
   their references are the sketch origin (zero, displayed as such) and
   the chain's end point; insertion places by the origin and breaks the
-  host contour at the endpoints. The editor draws evaluated dimension
-  annotations for the authored shape — the corner outline with a linear
-  dimension per edge (offset line, ticks, measured length) in a compact
-  fit band. The same module
+  host contour at the endpoints. Dimensions are the engine's own: the
+  toolbar's Dimension tool runs the engine's `dimlinear`, placing real
+  dimension entities on the canvas; the sketch reseed clears only the
+  geometry extraction consumes, so placed dimensions survive parametric
+  edits, and extraction ignores them. The same module
   normalizes CAD entity records (LINE/ARC/CIRCLE/polyline) into the
   sketch model (`occProfileSketchFromEntities`) and back
   (`occProfileEntitiesFromSketch`): the browser sketch canvas — the

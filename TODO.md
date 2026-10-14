@@ -2119,6 +2119,21 @@ distance keys removed. Specs: facade suites 88/88 (anchors case rewritten
 to the closed-only law); node proof: snapshot keeps `{vertexId}`,
 section.anchor evaluates, open anchors null with breaks intact.
 
+### Agent Notes (2026-10-15, dimensions are the engine's — band deleted)
+
+Owner: "doesn't this shit have its real dimensions? are you sure you need
+overlay?" — right on both counts. The separate dimension band (and the
+planned overlay) is deleted; the toolbar gained a Dimension tool that
+runs the engine's own `dimlinear`, placing real dimension entities with
+native rendering. The reseed now clears only the geometry types
+extraction consumes (LINE/CIRCLE/ARC/polyline), so placed dimensions
+survive parametric edits; extraction ignores them as before. Also
+diagnosed the reported snapping loss with one instrumented headless run:
+hovering the exact seeded vertex shows the engine's endpoint osnap
+marker (mask 567, defaults intact) — realtime vertex snapping works in
+the current build; if it is not visible live, the context matters (empty
+canvas has nothing to snap to; ortho pins the cursor to H/V).
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);

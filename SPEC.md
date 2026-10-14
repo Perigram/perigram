@@ -448,9 +448,9 @@ carries one basis anchor — a visibly picked vertex that is the profile's
 placement origin when inserted into a cassette. Open shapes carry no
 anchor construct: their references are the sketch origin (zero,
 displayed) and the chain's end point. Arc-flattened chord points are
-geometry, not authored corners (the editor collapses their runs); the
-editor draws real dimension annotations — a linear dimension per
-authored edge with extension ticks and the measured length.
+geometry, not authored corners (the editor collapses their runs).
+Dimensions are the CAD engine's own entities — placed with the
+editor's Dimension tool, surviving parametric reseeds.
 
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
