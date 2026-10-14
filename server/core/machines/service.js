@@ -686,6 +686,33 @@ function buildStatusEventRecord({ eventId, targetId, targetType, fromState, toSt
   };
 }
 
+// Field-level changes ride the same audit trail as transitions (SPEC UI):
+// who changed which field, from what value to what. The record carries the
+// instance's current state on both ends — a field edit never moves the
+// machine — and the operation's `changes` list feeds the history surface.
+export async function appendFieldChangeEvent(typeId, targetId, { changes = [], actorId = null, auth = {}, state = null } = {}) {
+  const effective = (changes || []).filter(change => change && change.field);
+  if (!effective.length) return null;
+  const flexId = toFlexibleId(targetId);
+  const db = await connectDB();
+  const record = buildStatusEventRecord({
+    eventId: new ObjectId(),
+    targetId: flexId,
+    targetType: normalizeTypeId(typeId),
+    fromState: state,
+    toState: state,
+    fromStatePrimary: state,
+    toStatePrimary: state,
+    region: null,
+    statusData: null,
+    actor: buildEventActor(auth || {}, actorId),
+    operation: { kind: 'field_change', changes: effective },
+    evidence: buildEventEvidence({}, {})
+  });
+  await db.collection('status_events').insertOne(record);
+  return record;
+}
+
 function buildEventActor(auth = {}, actorId) {
   const label = auth?.name || auth?.label || null;
   return {

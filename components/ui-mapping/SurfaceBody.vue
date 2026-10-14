@@ -10,8 +10,6 @@
       :expanded="expanded"
       :covered-relations="coveredRelations"
       :editable="editable"
-      :editing="editing"
-      :draft="draft"
       @toggle="toggleRelation"
       @run="$emit('run', $event)"
       @inline-change="$emit('inline-change', $event)"
@@ -39,8 +37,6 @@
           :expanded="expanded"
           :covered-relations="coveredRelations"
           :editable="editable"
-          :editing="editing"
-          :draft="draft"
           @toggle="toggleRelation"
           @run="$emit('run', $event)"
           @inline-change="$emit('inline-change', $event)"
@@ -69,8 +65,6 @@
         :expanded="expanded"
         :covered-relations="coveredRelations"
         :editable="editable"
-        :editing="editing"
-        :draft="draft"
         @toggle="toggleRelation"
         @run="$emit('run', $event)"
         @inline-change="$emit('inline-change', $event)"
@@ -131,8 +125,6 @@ const props = defineProps({
   chrome: { type: Object, default: null },
   coveredRelations: { type: Array, default: () => [] },
   editable: { type: Boolean, default: false },
-  editing: { type: Boolean, default: false },
-  draft: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Row identities render as links when an instance-open handler exists
