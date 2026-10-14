@@ -508,8 +508,7 @@
           "polyline": "Polyline",
           "circle": "Circle",
           "arc": "Arc",
-          "rectangle": "Rectangle",
-          "dimension": "Dimension"
+          "rectangle": "Rectangle"
         },
         "actions": {
           "erase": "Erase",
@@ -518,7 +517,8 @@
           "zoomFit": "Fit to view",
           "clear": "Clear canvas",
           "ortho": "Ortho",
-          "tangentSnap": "Tangent snap"
+          "tangentSnap": "Tangent snap",
+          "basis": "Basis"
         },
         "filletRadius": "Fillet radius",
         "addParameter": "Add parameter",
