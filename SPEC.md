@@ -454,6 +454,25 @@ runs). Dimensions are automatic derived annotations over the editor
 canvas — one linear dimension per authored edge, display-only, tracking
 pan and zoom, never stored.
 
+Owner additions (2026-10-14, profile editor anchor and drafting review):
+the profile canvas always marks the sketch origin (zero, zero) — an
+empty sketch shows the origin datum, no mark waits for drawn geometry.
+An open profile carries two anchors: its first and last vertices, the
+same vertices that break the host contour; the canvas marks both as
+datums beside the origin. A profile is one connected chain by law:
+when drawn or imported entities hold pieces no chain joins, extraction
+records them on the sketch model as an `unchained` count and the save
+gate refuses until the stray geometry is connected or erased — the
+editor never silently keeps the longest chain and never auto-connects
+with lines. Vertex coordinates and fillet radii are edited only through
+a canvas popup over the selected corner (click near it with the Select
+tool; Escape or clicking away closes it); the always-visible vertex
+chips row is gone, and parameter and hole authoring rows stay. The
+editor owns its drafting assists on the vendored engine: it asserts the
+default object-snap mask (endpoint, midpoint, center, quadrant,
+intersection, nearest) on mount, so per-origin persisted engine settings
+cannot disable snapping; the Tangent toggle rides on top of that mask.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,

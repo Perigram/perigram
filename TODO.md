@@ -1856,6 +1856,34 @@ into M5.
   dialog draws, imports DXF, round-trips fillets/holes, and saves;
   `perigram-plugin surfaces` stays green over the vendored bundle.
 
+- [ ] WAITING — profile editor anchors, origin, osnap, vertex popup
+  (owner review 2026-10-14): the profile canvas always marks the sketch
+  origin (0,0), empty or not; an open profile carries two anchors (its
+  first and last vertices, both marked); disconnected drawn/imported
+  geometry is a validation error (recorded as the sketch's `unchained`
+  count, save refused — no silent longest-chain drops, no auto-connect
+  lines); vertex coordinates and fillet radii edit only through a
+  canvas popup on the selected corner (Select tool click); the editor
+  asserts the engine's default osnap mask on mount so stale per-origin
+  persisted settings cannot kill snapping. Check: origin datum on empty
+  canvas, endpoint/midpoint snap markers while drawing, popup edits
+  commit, stray geometry blocks save, profiles spec green.
+
+### Agent Notes (2026-10-14, anchors/origin/osnap/popup shipped)
+
+Session `agent/profile-anchors-osnap-20261014`. Root causes found by a
+standalone harness (esbuild-bundled surface + vendored engine, real
+Playwright mouse events; artifacts under `/tmp/opencode/osnap-harness/`):
+the origin datum never rendered on an empty sketch because
+`buildCanvasAnnotations` bailed before drawing any marks; realtime osnap
+itself works in the engine (endpoint/midpoint markers verified), but the
+engine's settings manager persists `osnapModes` to localStorage per
+origin and a stored mask permanently overrides the shipped defaults —
+a stale mask on the app origin kills every snap while fresh contexts
+work. Fix: the editor asserts the default mask (six standard modes ± the
+tangent toggle) on mount, matching its existing ortho/tangent ownership.
+
+
 ### Agent Notes (2026-10-13, CAD profile sketch editor shipped)
 
 Session `agent/cad-profile-editor-20261013`. Explored both candidates:
