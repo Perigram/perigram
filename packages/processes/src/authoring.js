@@ -215,6 +215,16 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
     return (domain.relations || []).filter(relation => relation.ownerType === typeId);
   }
 
+  // Get Field default: the first declared row field, else the identity
+  // name, else the first readable entry. Identity slots (`_id`) carry
+  // the untyped json base, so defaulting to them leaves the output as
+  // json until the author picks a real field.
+  function preferredFieldDefault(available = []) {
+    return (available.find(field => String(field.value || '').startsWith('fields.'))
+      || available.find(field => field.value === 'name')
+      || available[0])?.value || '';
+  }
+
   function normalizeBindingDefaults(node = {}) {
     if (node.kind === 'cts.field') {
       if (!node.typeId && node.type?.typeId) node.typeId = node.type.typeId;
@@ -224,7 +234,13 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       const available = bound
         ? contract.fieldsForEntity(bound).filter(field => field.readable !== false)
         : [];
-      if (!available.some(field => field.value === node.path)) node.path = available[0]?.value || '';
+      // Unbound consumers keep their authored path: the entity wire
+      // determines the bound type (SPEC §20), so clearing here would
+      // destroy intent authored before the wire exists. Validation
+      // owns the report when the path is genuinely undeclared.
+      if (!available.length) return;
+      if (available.some(field => field.value === node.path)) return;
+      node.path = preferredFieldDefault(available);
     } else {
       // `value.recordField` owns an authored key path (plain records have
       // no declared row to select from); every other kind carries no path.
@@ -586,11 +602,9 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
   function configure(recordId, updates = {}) {
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
-    const currentTypeId = typeIdOf(record);
-    if (updates.typeId && updates.typeId !== currentTypeId) {
-      record.path = '';
-      record.relationKey = '';
-    }
+    // No explicit path/relation reset on rebind: normalization keeps a
+    // still-valid selection and defaults an invalid one, so a shared
+    // field name survives a type change instead of being wiped.
     const { typeId, ...rest } = updates;
     Object.assign(record, rest);
     if (typeId !== undefined) setTypeBinding(record, typeId);
