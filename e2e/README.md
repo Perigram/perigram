@@ -56,6 +56,10 @@ definitions and their types die together.
   edited) and round-trips source through preview/save, a `.md` uploads
   through the protocol create dialog with the type's accept, and csv
   cell edits commit and serialize on save.
+- `md-fresh-org.spec.js`: visible-by-default probe — a brand-new
+  organization's manifest carries the pack's starter screen and create
+  action, New opens the pack's blank markdown editor, and a typed
+  document saves byte-exact.
 - `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
   fixture plugin publishes through the real catalog API, installs through
   the real gate, its editor surface module URL resolves against the

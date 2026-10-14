@@ -30,7 +30,7 @@ test.describe('markdown editor repair', () => {
     await app.page.goto('/screens/auto_text-document');
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
-    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
+    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
     const source = app.page.getByLabel('Text Editor');
     for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
       await newButton.click();
@@ -65,10 +65,14 @@ test.describe('markdown editor repair', () => {
     await app.page.goto('/screens/auto_text-document');
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
-    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
+    // The org carries the pack's starter editor create beside the seeded
+    // upload create (it composes after the stationer's, so it is the
+    // last New button); the editor create opens a workspace pane, the
+    // upload create opens the dialog.
     const dialog = app.page.locator('.p-dialog');
+    const lastNew = () => app.page.locator('main').getByRole('button', { name: 'New', exact: true }).last();
     for (let attempt = 0; attempt < 4 && !(await dialog.isVisible()); attempt += 1) {
-      await newButton.click();
+      await lastNew().click({ timeout: 5000 }).catch(() => {});
       await expect(dialog).toBeVisible({ timeout: 5000 }).catch(() => {});
     }
     await expect(dialog).toBeVisible({ timeout: 10000 });
@@ -97,7 +101,7 @@ test.describe('markdown editor repair', () => {
     await app.page.goto('/screens/auto_csv-table');
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
-    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true });
+    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
     const dialog = app.page.locator('.p-dialog');
     for (let attempt = 0; attempt < 4 && !(await dialog.isVisible()); attempt += 1) {
       await newButton.click();
