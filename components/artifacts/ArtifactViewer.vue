@@ -26,9 +26,8 @@
         <Column v-for="column in columns" :key="column" :field="column" :header="column" />
       </DataTable>
     </TableFrame>
-    <!-- Text previews render as prose (serif, the app's document voice);
-         markdown documents render sanitized HTML, plain text keeps its
-         line breaks. The preview never scrolls — long content clamps. -->
+    <!-- Text previews read in prose; markdown renders through the
+         shared pipeline (shared/markdown.js), plain text keeps breaks. -->
     <div v-else-if="hasFile && mode === 'text'" class="h-full overflow-hidden p-4 text-prose">
       <!-- eslint-disable-next-line vue/no-v-html -- sanitized below -->
       <div v-if="renderedText" class="line-clamp-[12] break-words" v-html="renderedText" />
@@ -43,14 +42,13 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import * as XLSX from 'xlsx';
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { TABLE_PAGE_ROWS } from '#shared/ui-mapping/index.js';
+import { isMarkdownDocument, renderMarkdown } from '#shared/markdown.js';
 
 import { resolveArtifactViewer } from '~/utils/artifact-viewer.js';
 
@@ -92,13 +90,8 @@ const mimeType = computed(() => props.source?.attachment?.mime
   || props.revision?.attachments?.primary?.metadata?.mimeType
   || props.artifact?.attachments?.primary?.metadata?.mimeType
   || 'application/octet-stream');
-const isMarkdown = computed(() => (
-  mimeType.value === 'text/markdown' || /\.md$/i.test(artifactName.value || '')
-));
-const renderedText = computed(() => {
-  if (!isMarkdown.value || !text.value || typeof window === 'undefined') return '';
-  return DOMPurify.sanitize(marked.parse(text.value));
-});
+const isMarkdown = computed(() => isMarkdownDocument({ mimeType: mimeType.value, name: artifactName.value }));
+const renderedText = computed(() => renderMarkdown(text.value));
 
 function releaseBlob() {
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value);

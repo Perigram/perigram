@@ -31,6 +31,7 @@ import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useAuthStore } from '~/stores/auth';
 
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { isMarkdownDocument } from '#shared/markdown.js';
 import { artifactRevisionOptions, resolveArtifactEditingContract } from '~/utils/artifact-detail.js';
 
 const props = defineProps({ artifact: { type: Object, required: true } });
@@ -62,14 +63,15 @@ const sketchPersistence = computed(() => ({
   origin: { value: props.artifact.data?.metadata?.origin || null }
 }));
 // Artifact-backed persistence for the shared text/csv editor: bytes
-// through the artifact file-revision transport, mime preserved. Text
-// artifacts carry `.txt` or `.md` — markdown stays markdown on save
-// (extension and mime follow the stored file); the markdown default
-// belongs to the instance-backed editor contract.
+// through the artifact file-revision transport, mime preserved. The
+// markdown default belongs to the instance-backed editor contract
+// (components/generated/file-surfaces.js).
 const isMarkdownArtifact = computed(() => {
   const primary = props.artifact.attachments?.primary || {};
-  const name = primary.name || primary.metadata?.originalFilename || props.artifact.identity?.name || '';
-  return primary.metadata?.mimeType === 'text/markdown' || /\.md$/i.test(name);
+  return isMarkdownDocument({
+    mimeType: primary.metadata?.mimeType,
+    name: primary.name || primary.metadata?.originalFilename || props.artifact.identity?.name || ''
+  });
 });
 const textPersistence = computed(() => ({
   title: props.artifact.identity?.name || '',
