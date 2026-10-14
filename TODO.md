@@ -1683,6 +1683,19 @@ idle. The vendored bundle now also exports `AcApSettingManager` +
 Prompts and keywords still work through the cursor dynamic input
 (re-proven in the browser: LINE + `c`/Enter closes and extracts).
 
+### Agent Notes (2026-10-14, dialog layout — the editor owns the space)
+
+Second owner review: the profile dialog rendered as a strip — the
+metadata selects ate half the popup and the canvas collapsed (drawn
+geometry invisible at that size). The dialog is now `xl` + `fill` (the
+content column is height-managed, capped to the viewport), name/kind/
+process/template share one grid row, and the sketch editor stretches
+(`flex-1`) with an 18 rem floor so it can never collapse; a one-shot
+ResizeObserver re-fits the view when the canvas first reaches working
+size (dialog open animation races the mount). Browser-verified in a
+fill-managed dialog harness: canvas 80% of the dialog content, delayed
+show recovers, LINE + Close draws and extracts, no page errors.
+
 ## Business process authoring maturity (2026-10-07)
 
 From the type-system audit (priority order accepted by the owner);
