@@ -27,6 +27,7 @@
           size="small"
           class="format-control"
           :class="[control.class, { 'is-active': isActive(control) }]"
+          :disabled="sourceActive"
           :aria-label="$t(control.labelKey)"
           :aria-pressed="isActive(control)"
           @click="runFormat(control)"
@@ -110,6 +111,9 @@ const formatControls = [
 // The focused block as the toolbar sees it, reported by the live-source
 // plugin on every selection or document change.
 const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, marks: [] });
+// True while a block is being edited as raw markdown — block commands
+// would fight the overlay's uncommitted source.
+const sourceActive = ref(false);
 
 function isActive(control) {
   const state = blockState.value;
@@ -131,13 +135,14 @@ function isActive(control) {
 let commands = null;
 async function loadCommands() {
   if (commands) return commands;
-  const [{ callCommand, replaceAll }, preset, { editorViewCtx }, { lift }] = await Promise.all([
+  const [{ callCommand, replaceAll }, preset, { editorViewCtx }, { lift }, { TextSelection }] = await Promise.all([
     import('@milkdown/utils'),
     import('@milkdown/preset-commonmark'),
     import('@milkdown/core'),
-    import('@milkdown/prose/commands')
+    import('@milkdown/prose/commands'),
+    import('@milkdown/prose/state')
   ]);
-  commands = { callCommand, replaceAll, preset, editorViewCtx, lift };
+  commands = { callCommand, replaceAll, preset, editorViewCtx, lift, TextSelection };
   return commands;
 }
 
@@ -169,10 +174,13 @@ let loaded = false;
 
 onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
-  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose, $view }, { createSourceMarkersPlugin }, { createSourceEditingView }, { parserCtx, serializerCtx }, preset] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/utils'),
     import('./source-markers-plugin.js'),
+    import('./source-editing.js'),
+    import('@milkdown/core'),
+    import('@milkdown/preset-commonmark'),
     import('@milkdown/crepe/theme/common/style.css')
   ]);
   if (!editorHost.value) return;
@@ -186,20 +194,29 @@ onMounted(async () => {
       [CrepeEditor.Feature.LinkTooltip]: false,
       [CrepeEditor.Feature.Latex]: false,
       [CrepeEditor.Feature.AI]: false,
-      // Code-block chrome mounts a Vue app inside the document (a
-      // language-picker dropdown beside every fence); plain pre blocks
-      // carry the code. The virtual cursor overlays an animated caret
-      // beside the native one, and the placeholder coaches.
-      [CrepeEditor.Feature.CodeMirror]: false,
+      // The virtual cursor overlays an animated caret beside the
+      // native one, and the placeholder coaches.
       [CrepeEditor.Feature.Cursor]: false,
       [CrepeEditor.Feature.Placeholder]: false
     }
   });
-  // The live-source seam: the focused block shows its markdown markers
-  // and the toolbar learns the selection state.
+  // The live-source seam: the focused block shows its markdown markers,
+  // the edited block becomes its markdown source through a view-level
+  // overlay (the document keeps its real nodes at all times), and the
+  // toolbar learns the selection state. The serializer/parser slices
+  // resolve lazily — they are not ready at SchemaReady time, but long
+  // before the first edit.
   crepe.editor.use($prose(() => createSourceMarkersPlugin({
     onSelectionState: next => { blockState.value = next; }
   })));
+  for (const schema of [preset.paragraphSchema, preset.headingSchema]) {
+    crepe.editor.use($view(schema, ctx => createSourceEditingView({
+      serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
+      parse: text => ctx.get(parserCtx)(text),
+      onInput: () => { if (loaded) dirty.value = true; },
+      onActive: next => { sourceActive.value = next; }
+    })));
+  }
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes
     // are edits — a programmatic remote reload is reconciliation, not
@@ -220,6 +237,17 @@ async function save() {
   if (!crepe) return;
   saving.value = true;
   try {
+    // Flush an actively edited source block first: moving the selection
+    // to the document end commits the overlay's markdown into the
+    // document (one transaction) before serialization reads it.
+    const { editorViewCtx, TextSelection } = await loadCommands();
+    crepe.editor.action(ctx => {
+      const view = ctx.get(editorViewCtx);
+      view.dispatch(view.state.tr
+        .setSelection(TextSelection.create(view.state.doc, view.state.doc.content.size))
+        .setMeta('sourceEditing', true));
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
     // The name carries no extension of its own — strip a trailing one
     // before the persistence extension lands (`notes.md` stays
     // `notes.md`, never `notes.md.md`). The serializer renders an empty
