@@ -63,6 +63,14 @@ models on the owner's own server, with a selectable provider table
 (Ollama, Anthropic Messages, OpenAI-shaped local servers) — never a
 defaulted cloud endpoint.
 
+Lifecycle wakes: a bot subscribed to a conversation may be woken by status
+transitions — assignment-side wake rules on the subscription (type +
+target state; instance-scoped when the subscription is an instance chat)
+drive the same tool loop with the bot's own grants, and the result lands
+in the subscribed conversation. The state machine stays process
+vocabulary: in-graph agent nodes remain out of contract, bot actors never
+re-wake bots, and creation (initialize) events do not trigger.
+
 ## UI
 
 All UI is written in raw, unmodified PrimeVue plus the repo's registered

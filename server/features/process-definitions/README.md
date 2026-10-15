@@ -138,7 +138,10 @@ declared duration — through the status engine as SYSTEM. Scan input is
 the stored `data.compiled` snapshot only; auth decisions always
 recompile and never read this path. Rescans are self-stabilizing: moved
 instances no longer match the state query, and guard/access refusals
-are counted and retried on the next tick.
+are counted and retried on the next tick. The same snapshot-read law
+serves `listActiveWorkflowStates(auth)` — the active set's emitted types
+with their primary-region state paths, picker data for the
+[agent bot wake rules](../agent-bots/README.md).
 
 Durable effect dispatch classifies once (`operationKindOf`) and keeps the
 record's species kind: `cts.construct`/`cts.mutate`/`cts.remove` run through

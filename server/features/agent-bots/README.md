@@ -37,14 +37,51 @@ Three pieces share one tool catalog:
 | Instance/org chat | Subscription only (instance conversations have no participant list) | Subscription on the instance key or any ancestor key on the message's stored `instancePath` |
 
 Support-channel messages never trigger; bot senders never trigger (no
-bot-to-bot loops); one in-flight reply per bot and conversation.
+bot-to-bot loops); one in-flight reply per bot and conversation (chat
+replies and wakes share the lock space).
+
+## Lifecycle wakes
+
+Subscription rows carry wake rules — `wakeOn: [{ type, state }]` — and the
+wake scanner turns matching status transitions into proactive agent runs:
+
+- **Scanner** (`wake-scanner.js`, wired by the `agent-wake-scanner` nitro
+  plugin; `AGENT_WAKE_SCAN_INTERVAL_MS`, default 30s, disabled at `0`):
+  a scheduled sweep over new `status_events`
+  ([states](../states/README.md) `findStatusEventsAfter`) past a
+  `system_settings` cursor, advanced to the batch end before firing — a
+  crash mid-batch drops the un-fired tail rather than replaying it (wakes
+  are best-effort automation, not delivery guarantees).
+- **Matching**: `transition`/`intent` operations wake (creation
+  initialize events do not); events whose acting principal is a bot never
+  wake (no self-perpetuating loops — SYSTEM actors such as deadline
+  moves do); a same-type instance-chat subscription narrows to its own
+  instance, every other subscription (the organization chat included) is
+  org-wide for the rule's type.
+- **Wake run** (`runBotWake`): the target instance is resolved through
+  the bot's own access-checked registry read — an unreadable target skips
+  the wake, which is the org-isolation boundary — the transition becomes
+  a trigger message beside the room's recent history, and the loop's
+  answer lands in the subscribed conversation. No provider or a failing
+  wake logs and stays silent: nobody is waiting in the room.
+- **Authoring**: wake rules are assignment-side data on the subscription
+  (the chat bot panel's wake editor: bot + type + state), never process
+  vocabulary — the state machine stays authored in the designer, and
+  in-graph agent nodes remain out of contract. `GET
+  /api/agent-bots/wake-options` lists the org's active compiled
+  primary-region states for the pickers (compiled-snapshot reads, the
+  deadline-scanner law: scans and pickers only, auth always recompiles).
 
 ## Bot administration
 
-`GET/POST /api/agent-bots` (list with optional `?conversationKey=`, create
-`{ name, roleIds? }` — creation returns the token exactly once),
-`DELETE /api/agent-bots/:id`, `POST /api/agent-bots/:id/token` (rotation),
-`POST/DELETE /api/agent-bots/subscriptions` (`{ botId, conversationKey }`).
+- `GET/POST /api/agent-bots` (list with optional `?conversationKey=`, create
+  `{ name, roleIds? }` — creation returns the token exactly once),
+  `DELETE /api/agent-bots/:id`, `POST /api/agent-bots/:id/token` (rotation),
+  `POST/DELETE /api/agent-bots/subscriptions` (`{ botId, conversationKey,
+  wakeOn? }` — `wakeOn` is the subscription's lifecycle wake rule list:
+  omitted leaves stored rules, `null`/`[]` clears, a non-empty array
+  replaces), and `GET /api/agent-bots/wake-options` (active compiled
+  primary states for the wake-rule pickers).
 All gated by user-management access in the active organization; bot
 membership carries only the narrow `organizations` recovery grant that
 opens process definition management, and process roles are assigned like

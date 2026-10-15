@@ -97,8 +97,32 @@ export async function list(auth) {
   }));
 }
 
-export async function findRoleReferences(organizationId, roleId) {
-  const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
+/**
+ * Picker data over the active set's compiled machines: one row per
+ * emitted type with its primary-region state paths. Scan-input law
+ * (deadline scanner): this reads activation-written `data.compiled`
+ * snapshots only — auth decisions always recompile and never read this
+ * path. Consumers: agent bot wake-rule pickers.
+ */
+export async function listActiveWorkflowStates(auth) {
+  const organizationId = resolveOrganizationId(auth);
+  await assertOrgAccess(auth, organizationId, 'read');
+  const actives = await repository.findActiveSetByOrganization(organizationId);
+  const byType = new Map();
+  for (const active of actives) {
+    for (const output of Object.values(active.data?.compiled?.producerOutputs || {})) {
+      const workflow = output?.workflow;
+      if (!workflow?.regions || !output.typeId) continue;
+      const region = workflow.regions[workflow.primaryRegion || 'main'];
+      const states = Object.keys(region?.states || {});
+      if (!states.length) continue;
+      byType.set(output.typeId, [...new Set([...(byType.get(output.typeId) || []), ...states])]);
+    }
+  }
+  return [...byType.entries()].map(([typeId, states]) => ({ typeId, states }));
+}
+
+export async function findRoleReferences(organizationId, roleId) {  const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
   return raws
     .filter(raw => raw.states?.main !== 'ARCHIVED')
     .filter(raw => definitionReferencesRole(raw.data || {}, roleId))

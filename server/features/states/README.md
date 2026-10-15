@@ -93,6 +93,11 @@ with what evidence, at which station (see
   `fileId`, bucket, and download URL), and the full normalized lifecycle
   including captured relation snapshots. The legacy `status` block copy remains
   for compatibility; `evidence` is additive.
+- `findStatusEventsAfter(lastId, limit)` is the cursor-based ascending read
+  for lifecycle consumers: events strictly after the `_id` cursor, oldest
+  first, projected to the wake-matching fields. The
+  [agent bot wake scanner](../agent-bots/README.md) sweeps it; it is a read
+  seam, never a write path.
 - `source` is caller-declared at the transition boundary; the process action
   runtime passes `{ kind: 'process-run', actionId }`. Like `producerOutputId`,
   it is lifted onto the event and never persisted into `status.metadata`.

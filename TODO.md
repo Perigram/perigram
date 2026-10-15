@@ -1,5 +1,49 @@
 # TODO
 
+## Agent lifecycle wakes (owner direction 2026-10-15)
+
+Status transitions wake subscribed bots: assignment-side wake rules
+(type + target state) drive the bot's tool loop and post the result into
+the subscribed conversation.
+
+- [x] A. States read seam: cursor-based `status_events` listing
+      (`findStatusEventsAfter`) on the states feature.
+- [x] B. Wake rules on `agent_bot_subscriptions` (`wakeOn: [{type,
+      state}]`): subscribe body carries them, listing returns them,
+      wake-options read (org compiled primary states) through a
+      process-definitions service export.
+- [x] C. Wake scanner: interval sweep over new status events (system
+      settings cursor), matching (transition/intent only, bot actors
+      skipped, instance-scope honored), fire-and-forget wakes.
+- [x] D. Wake runtime: shared agent loop entry, trigger prompt from the
+      event + access-checked instance read, reply posted into the
+      subscription conversation, silent skip without a provider.
+- [x] E. Chat UI: wake rules editor in the bot panel (bot + type + state
+      rows for the current conversation).
+- [x] F. Specs: event filtering, matching/scoping, wake posting, options
+      read.
+- [ ] WAITING — owner verification on the live stack: subscribe a bot to
+      the org chat, add a wake rule (type + state), move an instance of
+      that type through the state, and watch the bot's answer land in the
+      chat; confirm a bot-caused transition does not re-wake it.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/bot-wakes-20261015`. Design: wake rules are
+assignment-side data on the subscription (type + target state; same-type
+instance chats narrow to their own instance, the org chat and cross-type
+instance chats are org-wide for the rule's type), the scanner follows the
+deadline-scanner posture (interval sweep, `system_settings` cursor advanced
+to batch end before firing — crash drops the tail, never replays), and the
+wake run resolves the target through the bot's own access-checked registry
+read (the org-isolation boundary — unreadable targets skip silently).
+Creation (initialize) events and bot-actor events never wake. The specs
+caught two real bugs pre-merge: the org-chat key parsed as a never-matching
+instance scope, and unreadable instances degrading the prompt instead of
+skipping the wake. Picker data (`wake-options`) reads compiled snapshots
+under the deadline-scanner law. New specs: wake-scanner matching (8) and
+runBotWake (5) beside the existing suites.
+
 ## Agent bots and MCP tool access (owner direction 2026-10-15)
 
 Agents manipulate process definitions and instances procedurally: an MCP
