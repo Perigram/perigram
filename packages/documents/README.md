@@ -120,16 +120,23 @@ single-surface live markdown editor (milkdown, owner direction
 writing, the focused block shows its markdown source; the editor's
 model IS markdown, serialization is the framework's own, no rich-text
 proxy). The live-source seam today is `src/editors/source-markers.js`
-(pure state readers: the focused block's markdown prefix — `> `, `### `
-— and the literal markers of inline mark runs the caret touches) plus
+(pure state readers: the quote marker `> ` — the one prefix that sits
+in existing indent and shifts no text) plus
 `source-markers-plugin.js` (the ProseMirror plugin rendering them as
 non-editable, clipboard-inert widgets and reporting the toolbar
-selection state). Editing the source text of the focused block is a
+selection state — the quote's `> ` only; heading and inline-mark
+glyphs reflow the focused line and are deliberately absent, the
+toolbar's pressed state carries those signals). Editing the source
+text of the focused block is a
 view-level concern and ships as its own task (TODO) — a
 representation-swap into the document was tried and reverted: any
 temporary node in the doc lies to every consumer (a save mid-edit
-wrote a fenced block where the heading was). The engine ships with its
-chrome disabled: formatting rides PrimeVue controls in the editor
+wrote a fenced block where the heading was). The engine ships with
+every piece of its chrome disabled — toolbar, block-edit, top bar,
+link tooltip, latex, AI, the CodeMirror feature (it mounts a Vue app
+with a language-picker dropdown inside every fenced block; code
+renders as plain `pre`), the virtual cursor, and the placeholder:
+formatting rides PrimeVue controls in the editor
 toolbar (marks, headings, lists, quote — every control toggles, the
 pressed state showing what the focused block carries, an active block
 control returning it to body text; markdown input rules and keyboard
