@@ -66,18 +66,15 @@
   border-radius: var(--p-border-radius-sm);
 }
 
-/* The slash command menu (slash-menu.js): position and visibility
-   mechanics only — the visual chrome rides the host's semantic
-   utilities on the element itself. */
+/* The slash command menu (slash-menu.js): visibility and stacking
+   mechanics only — the menu mounts on the page root and carries the
+   host's overlay utilities (bg-content, shadow-overlay) on the
+   element itself. */
 .md-slash-menu {
   position: fixed;
   z-index: 90;
-  min-width: 12rem;
-  max-height: 18rem;
-  overflow-y: auto;
   display: none;
   flex-direction: column;
-  padding: 0.25rem;
 }
 
 .md-slash-menu[data-show='true'] {
