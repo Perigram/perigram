@@ -30,6 +30,15 @@ export function createSourceEditingView({ serialize, parse, onInput = null, onAc
     dom.appendChild(overlay);
     let active = false;
 
+    // The overlay is a nested editable inside ProseMirror's editable
+    // root: without this, every keystroke bubbles to PM and lands in
+    // the hidden rendered content IN PARALLEL with the overlay —
+    // doubled characters and commits replacing ranges that already
+    // moved. The overlay owns its editing events entirely.
+    for (const type of ['beforeinput', 'input', 'keydown', 'keyup', 'keypress', 'compositionstart', 'compositionupdate', 'compositionend', 'paste', 'drop', 'copy', 'cut']) {
+      overlay.addEventListener(type, event => event.stopPropagation());
+    }
+
     function tagNameFor(n) {
       return n.type.name === 'heading' ? `h${Number(n.attrs.level) || 1}` : 'p';
     }
