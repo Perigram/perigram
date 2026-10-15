@@ -187,6 +187,16 @@
     "backToChats": "К чатам",
     "messageRead": "Прочитано",
     "newChat": "Новый чат",
+    "bots": {
+        "title": "Боты",
+        "badge": "бот",
+        "namePlaceholder": "Имя бота",
+        "token": "Токен доступа",
+        "toggleInConversation": "В этом чате",
+        "rotateToken": "Новый токен",
+        "empty": "Ботов пока нет",
+        "deleteConfirm": "Удалить бота {name}?"
+    },
     "sendMessage": "Написать",
     "members": "Участники",
     "chatChildren": "Дочерние чаты"

@@ -180,6 +180,49 @@ export async function deleteGroup(auth, groupId = '') {
 }
 
 /**
+ * Membership edits on an existing group, gated like deletion (creator or
+ * admin). Adding follows the creation rule — participants are user-scope,
+ * unknown ids rejected — and both directions notify participant inboxes so
+ * the member list and conversation admission converge live.
+ */
+export async function addGroupParticipant(auth, groupId = '', userId = '') {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const group = await repository.findGroupById(groupId);
+    if (!group) throw createError({ statusCode: 404, message: 'Chat group not found' });
+    assertGroupManager(auth, group);
+    const participantId = String(userId || '').trim();
+    if (!participantId) throw createError({ statusCode: 400, message: 'Participant is required' });
+    const participants = (group.participants || []).map(item => item?.toString?.() || item);
+    if (participants.includes(participantId)) return groupDTO(group);
+    const participant = await usersService.getById(participantId).catch(() => null);
+    if (!participant) throw createError({ statusCode: 400, message: 'Unknown participant' });
+    const next = [...participants, participantId];
+    await repository.updateGroupParticipants(groupId, next);
+    notifyInboxParticipants([participantId], groupConversationKey(group._id));
+    return groupDTO({ ...group, participants: next });
+}
+
+export async function removeGroupParticipant(auth, groupId = '', userId = '') {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const group = await repository.findGroupById(groupId);
+    if (!group) throw createError({ statusCode: 404, message: 'Chat group not found' });
+    assertGroupManager(auth, group);
+    const participantId = String(userId || '').trim();
+    const isCreator = String(group.origin?.userId || '') === participantId;
+    if (isCreator) throw createError({ statusCode: 400, message: 'The group creator cannot be removed' });
+    const participants = (group.participants || []).map(item => item?.toString?.() || item);
+    const next = participants.filter(item => item !== participantId);
+    if (next.length === participants.length) return groupDTO(group);
+    await repository.updateGroupParticipants(groupId, next);
+    return groupDTO({ ...group, participants: next });
+}
+
+function assertGroupManager(auth, group) {
+    const isCreator = String(group.origin?.userId || '') === String(auth.userId);
+    if (!auth.isAdmin && !isCreator) throw createError({ statusCode: 403, message: 'Forbidden' });
+}
+
+/**
  * Read-side group lookup shared with the livekit feature for group-room
  * admission and webhook fanout; returns the group DTO or null.
  */
@@ -838,7 +881,33 @@ async function insertMessage({ context, sender, senderUserId, message, instanceR
         timestamp: new Date()
     }, messageProjection());
     notifyConversationEvent(context, inserted);
+    notifyMessageObservers(context, inserted);
     return inserted;
+}
+
+// Server-side message consumers (the agent bot runtime): registered at boot
+// through registerMessageObserver, invoked after every persisted send that
+// already fanned out through the connections layer. Observers must never
+// break the send path — failures are logged, not propagated.
+const messageObservers = [];
+
+export function registerMessageObserver(observer) {
+    if (typeof observer === 'function') messageObservers.push(observer);
+    return () => {
+        const index = messageObservers.indexOf(observer);
+        if (index >= 0) messageObservers.splice(index, 1);
+    };
+}
+
+function notifyMessageObservers(context, message) {
+    for (const observer of messageObservers) {
+        try {
+            const outcome = observer(context, message);
+            if (outcome?.catch) outcome.catch((error) => console.error('[SUPPORT] message observer failed:', error));
+        } catch (error) {
+            console.error('[SUPPORT] message observer failed:', error);
+        }
+    }
 }
 
 /**

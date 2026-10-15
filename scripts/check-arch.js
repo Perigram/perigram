@@ -49,6 +49,7 @@ function featureToEntityType(feature) {
 }
 const CAPABILITY_FEATURES = [
   'instances',
+  'agent-bots',
   'connections',
   'cts-types',
   'directory',
@@ -58,6 +59,7 @@ const CAPABILITY_FEATURES = [
   'billing',
   'artifact-conversions',
   'invitations',
+  'llm',
   'material-options',
   'meetings',
   'nesting',

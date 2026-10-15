@@ -2,6 +2,7 @@ import * as usersRepository from './repository.js';
 import * as sessionsRepository from '../sessions/repository.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
+import { createHash } from 'node:crypto';
 import { createError } from 'h3';
 import { User } from './model.js';
 import { stateService } from '../../core/machines/service.js';
@@ -66,6 +67,80 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
     if (err.statusCode) throw err;
     throw createError({ statusCode: 500, message: `Registration failed: ${err.message}` });
   }
+}
+
+/**
+ * Bot members are users: no password (no login), an internal placeholder
+ * email, a bot marker with the hashed token, and a membership carrying the
+ * narrow `organizations` recovery grant that opens process definition
+ * management (and nothing else). Process roles ride the organization's role
+ * assignment like any member's.
+ */
+export async function registerBot({ name, organizationId, roleIds = [], bindings = {} } = {}, creatorUserId = 'SYSTEM') {
+  if (!name || !organizationId) {
+    throw createError({ statusCode: 400, message: 'Bot name and organization are required' });
+  }
+  const organization = await organizationsRepository.findById(organizationId);
+  if (!organization) throw createError({ statusCode: 404, message: 'Organization not found' });
+  const uniqueRoleIds = [...new Set(Array.isArray(roleIds) ? roleIds : [])];
+  const missingRoleIds = uniqueRoleIds.filter(roleId => !organization?.data?.roles?.[roleId]);
+  if (missingRoleIds.length) {
+    throw createError({ statusCode: 400, message: `Unknown organization roles: ${missingRoleIds.join(', ')}` });
+  }
+  const uid = `user-${new ObjectId().toString().substring(0, 8)}`;
+  const email = `${uid}@bots.perigram.internal`.toLowerCase();
+  const existing = await usersRepository.findByEmail(email);
+  if (existing) throw createError({ statusCode: 409, message: 'Bot identity collision, retry' });
+  const token = `pb_${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '')}`;
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const user = new User({
+    identity: { uid, name },
+    data: {
+      email,
+      memberships: [{
+        organizationId,
+        permissions: { organizations: 'admin' },
+        status: 'active'
+      }],
+      isActive: true,
+      bot: { tokenHash, createdAt: new Date() }
+    }
+  });
+  user.applyStatus('ACTIVE', creatorUserId, { note: 'Bot member created' });
+  const createdRaw = await usersRepository.create(user);
+  await organizationsRepository.setRoleAssignment(organizationId, createdRaw._id, {
+    userId: String(createdRaw._id), roleIds: uniqueRoleIds, bindings
+  });
+  return { user: new User(createdRaw), token };
+}
+
+export async function rotateBotToken(userId, requesterId = 'SYSTEM') {
+  const user = await getById(userId);
+  if (!user?.data?.bot) throw createError({ statusCode: 404, message: 'Bot not found' });
+  const token = `pb_${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '')}`;
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  await usersRepository.updateBotToken(userId, tokenHash);
+  return token;
+}
+
+/**
+ * The canonical pre-process auth context the auth middleware populates —
+ * exported so server-side actors (the agent bot runtime) build the same
+ * shape the request path does before `resolveProcessAuth` widens it.
+ */
+export function buildAuthContext(user) {
+  const userDto = user.toJSON();
+  return {
+    userId: user.id,
+    name: user.identity?.name || '',
+    email: user.data?.email || '',
+    avatarUrl: userDto.data?.avatarUrl || null,
+    organizationId: user.organizationId?.toString() || null,
+    role: user.role,
+    permissions: user.permissions,
+    memberships: user.memberships || [],
+    restrictedTo: user.restrictedTo
+  };
 }
 
 export async function login(email, password) {

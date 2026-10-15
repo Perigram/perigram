@@ -57,6 +57,17 @@
                         :aria-label="$t('support.newGroup')"
                         @click="openGroupDialog"
                     />
+                    <Button
+                        v-if="agentBots.canManageBots"
+                        icon="pi pi-android"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.bots.title')"
+                        data-testid="chat-bot-panel-trigger"
+                        @click="botPanelVisible = true"
+                    />
                     <!-- The drawer's inbox view needs its own close: the
                          thread header's close vanishes with the thread, and
                          nothing else dismisses the drawer from here. -->
@@ -354,6 +365,13 @@
                                 </Button>
                                 <template v-else>{{ conversationLabel(activeConversation) }}</template>
                             </h2>
+                            <Tag
+                                v-if="isDirectWithBot"
+                                :value="$t('support.bots.badge')"
+                                severity="secondary"
+                                size="small"
+                                class="shrink-0"
+                            />
                             <Button
                                 v-if="activeConversation.conversationKind === 'instance'"
                                 icon="pi pi-sitemap"
@@ -1109,6 +1127,13 @@
                                 class="shrink-0 bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                             />
                             <span class="min-w-0 flex-1 truncate text-label">{{ option.label }}</span>
+                            <Tag
+                                v-if="option.instance?.data?.bot"
+                                :value="$t('support.bots.badge')"
+                                severity="secondary"
+                                size="small"
+                                class="shrink-0"
+                            />
                         </div>
                     </template>
                 </Listbox>
@@ -1293,6 +1318,11 @@
             </div>
         </StandardDialog>
         <Menu ref="messageMenu" :model="messageMenuItems" :popup="true" />
+        <ChatBotPanel
+            v-model:visible="botPanelVisible"
+            :conversation-key="botPanelConversationKey"
+            :subscribable="Boolean(botPanelConversationKey)"
+        />
         <Menu ref="conversationMenu" :model="conversationMenuItems" :popup="true" />
     </div>
 </template>
@@ -1325,9 +1355,11 @@ import ChatAttachments from '~/components/shared/ChatAttachments.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
 import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'
+import ChatBotPanel from '~/components/shared/ChatBotPanel.vue'
 import TraceChain from '~/components/shared/links/TraceChain.vue'
 import Popover from 'primevue/popover'
 import AvatarGroup from 'primevue/avatargroup'
+import Tag from 'primevue/tag'
 import CallPanel from '~/components/calls/CallPanel.vue'
 import { collectActionInputFields, initialPromptValue, promptData, promptedFields } from '~/components/generated/action-inputs.js'
 import { isGeneratedSurfaceAction } from '~/utils/action-visibility.js'
@@ -1358,6 +1390,7 @@ import {
 } from '~/utils/chat-file-targets.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
+import { useAgentBotsStore } from '~/stores/agentBots'
 import { useCallsStore } from '~/stores/calls'
 import { useCallRouting } from '~/composables/useCallRouting.js'
 
@@ -1410,6 +1443,20 @@ const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadF
 )
 const executingCreate = ref(false)
 const activeConversation = ref(null)
+// Agent bots: the panel button lives in the inbox header; when a group or
+// instance thread is open the panel's switches join bots to exactly that
+// conversation.
+const agentBots = useAgentBotsStore()
+const botPanelVisible = ref(false)
+const botPanelConversationKey = computed(() => {
+    const conversation = activeConversation.value
+    if (!conversation || !['group', 'instance'].includes(conversation.conversationKind)) return ''
+    return conversation.conversationKey || ''
+})
+const isDirectWithBot = computed(() => {
+    const conversation = activeConversation.value
+    return conversation?.conversationKind === 'direct' && Boolean(conversation.participant?.data?.bot)
+})
 // Instance thread view: the children toggle beside the title switches
 // between messages linked to the instance itself and the composed subtree
 // view (the server default). The composer link target is the latest child

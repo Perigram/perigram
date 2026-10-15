@@ -187,6 +187,16 @@
     "backToChats": "Back to chats",
     "messageRead": "Read",
     "newChat": "New chat",
+    "bots": {
+        "title": "Bots",
+        "badge": "bot",
+        "namePlaceholder": "Bot name",
+        "token": "Access token",
+        "toggleInConversation": "In this chat",
+        "rotateToken": "New token",
+        "empty": "No bots yet",
+        "deleteConfirm": "Delete bot {name}?"
+    },
     "sendMessage": "Send message",
     "members": "Members",
     "chatChildren": "Child chats"
