@@ -34,6 +34,11 @@ pending partnership. Partner rows link to the organization directory page.
 The route is exposed as a system screen gated by `organizations:read`, while
 every mutation stays gated by `organizations:admin` on the respective side.
 
+`bots.vue` is the agent member administration route — the org settings home
+for bots (list, create with one-time token reveal, rotate, delete), gated
+with the team screen (`users:admin`). Chat surfaces only join bots to
+conversations (see [agent bots](../../server/features/agent-bots/README.md)).
+
 `plugins.vue` is the plugin marketplace surface (see
 [plugins](../../server/features/plugins/README.md)): the installed list
 (marketplace installs plus enabled mounted packs — the facade and its
@@ -64,7 +69,10 @@ desktop and navigate the route on mobile).
 user creation, and process role assignment. The page reads roles from the
 active process definition, and writes assignments through
 `/api/process-definitions/active/assignments`. It is the operational owner for
-assigning actual users to abstract process roles. It does not expose membership
+assigning actual users to abstract process roles. Bot members appear in the
+table badged as bots, and single-seat roles are marked in the pickers (see
+[agent bots](../../server/features/agent-bots/README.md) and
+[organizations](../../server/features/organizations/README.md)). It does not expose membership
 role labels as process roles. Invites, user creation, and assignment editing all
 preserve multiple selected process role ids. The invite dialog covers both
 invitation kinds: the unaddressed link invitation (roles + generated

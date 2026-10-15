@@ -1,5 +1,33 @@
 # TODO
 
+## Bot administration in org settings; single-seat roles (owner direction 2026-10-15)
+
+Creating bots belongs to organization settings, not chats; some roles
+take exactly one member so a lane can be handed to an agent outright.
+
+- [x] A. `/organization/bots` system screen (`users:admin`): bot list,
+      create with one-time token reveal/copy, rotate, delete.
+- [x] B. Chat bot sheet stripped to join/wake management (participant
+      surface); inbox admin trigger removed.
+- [x] C. Single-seat roles: `exclusive` flag on the org role record,
+      enforced at the one assignment write seam (seat moves, displaced
+      holders keep other roles); turn-on refused while multiple members
+      hold the role (holders in the error).
+- [x] D. Designer roles tab: single-seat toggle beside the role detail;
+      team pickers mark single-seat roles.
+- [x] E. Specs: service flag semantics, repository move semantics,
+      system-screens inventory.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/bots-org-roles-20261015`. The exclusive move runs
+inside `repository.setRoleAssignment` — the single write seam every
+assignment path already uses (signup, bots, invitations, org API), so
+there is no second enforcement point to drift. The system-screens spec
+needed its inventory extended for the new bots screen (contract update,
+not drift). Specs: roles-exclusive.spec.js (5), assignment-exclusive.spec.js
+(4).
+
 ## Agent chat surface rework (owner direction 2026-10-15)
 
 Chatting with an agent is starting a new chat, not administering bots:
