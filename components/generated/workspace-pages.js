@@ -13,6 +13,7 @@ const ChatSupport = defineAsyncComponent(() => import('~/components/ChatSupport.
 const CallWorkspacePage = defineAsyncComponent(() => import('~/components/calls/CallWorkspacePage.vue'));
 const DirectoryDetailSurface = defineAsyncComponent(() => import('~/components/directory/DirectoryDetailSurface.vue'));
 const OrganizationTeamPage = defineAsyncComponent(() => import('~/pages/organization/users.vue'));
+const OrganizationBotsPage = defineAsyncComponent(() => import('~/pages/organization/bots.vue'));
 const OrganizationPartnersPage = defineAsyncComponent(() => import('~/pages/organization/partners.vue'));
 const OrganizationBillingPage = defineAsyncComponent(() => import('~/pages/organization/billing.vue'));
 const OrganizationProcessPage = defineAsyncComponent(() => import('~/pages/organization/process.vue'));
@@ -64,6 +65,13 @@ export const fixedWorkspacePages = [
     // The directory's invite action lands here with its target: the
     // one-shot param flows through the page-open seam's params channel.
     props: page => ({ inviteUserId: page.params?.invite || '' })
+  },
+  {
+    id: 'organizationBots',
+    labelKey: 'organization.botsManagement',
+    icon: 'pi pi-sparkles',
+    component: OrganizationBotsPage,
+    route: '/organization/bots'
   },
   {
     id: 'organizationPartners',
