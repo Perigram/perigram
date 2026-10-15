@@ -19,6 +19,11 @@ messages, structured tool calls with object arguments) onto the wire:
 | `anthropic` | `{baseUrl}/v1/messages` | Messages protocol: `system` field, content blocks, `tool_use`/`tool_result`; `anthropic-version` header always, `x-api-key` when a key resolves. |
 | `openai` | `{baseUrl}/chat/completions` | The chat-completions shape for local OpenAI-shaped servers (vLLM, LocalAI); tool arguments stringified on the wire. |
 
+Every provider streams on request — `stream: true` in its own dialect
+(Ollama newline-delimited JSON, the OpenAI-shaped `data:` SSE,
+Messages-protocol SSE events) — and the module reassembles the fragments
+(text deltas, split tool arguments) back onto the same neutral contract.
+
 There is **no default base URL** — no provider ever implies a cloud
 endpoint. `provider: 'none'` (the default) disables the LLM everywhere.
 
@@ -56,6 +61,7 @@ providers). The environment is the unnamed default profile:
 | `LLM_BASE_URL` | — | Server base; **required** — never defaulted. |
 | `LLM_API_KEY` | — | Optional key (many local servers run open). |
 | `LLM_MODEL` | — | Model id; **required** — never defaulted. |
+| `LLM_TIMEOUT_MS` | `120000` | Idle guard on one request: time to first bytes, and between stream chunks. |
 
 Completion paths canonicalize: a base already carrying `/v1` is
 stripped and the prefix re-applied (routers reject the root path with
@@ -96,6 +102,11 @@ throwing.
   descriptors. Throws 503 when unresolved, 502 when the endpoint is
   unreachable, answers non-2xx, or returns no completion. The agent loop
   that owns rounds and tool execution lives with the consumer.
+- `streamChatCompletion({ … })` → the streaming twin: an async generator
+  yielding `{ type: 'text', text }` deltas as the model emits them, then
+  one closing `{ type: 'message', content, toolCalls }` — the fully
+  assembled neutral message. Same 503/502 posture; each chunk re-arms the
+  idle guard.
 
 ## Consumers
 

@@ -13,9 +13,13 @@ rows already live as members.
 - [ ] WAITING — owner verification on the live stack: bot administration
   (create, brain, token rotation, delete) happens on the team surface's
   bot member rows; the dedicated bots screen is gone from navigation.
-- [ ] The bot's final answer streams token-by-token into the chat
-  (provider SSE through the neutral LLM contract, published as stream
-  events on the conversation topic, rendered as a growing bubble).
+- [ ] WAITING — owner verification on the live stack: the bot's answer
+  streams token-by-token into the chat (provider stream through the
+  neutral LLM contract, published as `bot_stream`/`bot_stream_end` on the
+  conversation topic, rendered as a growing bubble the persisted message
+  replaces).
+- [ ] WAITING — owner verification on the live stack: `LLM_TIMEOUT_MS`
+  overrides the request idle guard.
 
 #### Agent Notes (2026-10-15)
 
@@ -27,9 +31,18 @@ with no changes. Bot admin moved onto the team surface's member rows: the
 brain select occupies the (email-less) bot row cell, token rotation and bot
 delete join the row actions, and create sits in the page header; the
 `organization_bots` system screen, its generated page registry entry, and
-`pages/organization/bots.vue` are removed. Token streaming remains open —
-it needs the LLM contract to expose a streaming read and the runtime to
-publish partial text.
+`pages/organization/bots.vue` are removed.
+
+Session `agent/llm-streaming-20261015` added the streaming seam and the
+timeout knob. The LLM module gained `streamChatCompletion` over the same
+neutral contract (per-dialect stream readers — Ollama newline JSON,
+OpenAI SSE, Messages SSE — reassembling text deltas and split tool
+arguments), with the idle guard re-armed per chunk; `REQUEST_TIMEOUT_MS`
+became `LLM_TIMEOUT_MS`-overridable. The runtime streams every round
+through `botStreamSink` (full text so far, so the client just replaces the
+draft), retracting a tool round's text; the chat renders the draft bubble
+and hides the typing line while it is up. New specs: the three stream
+readers and a runtime publish assertion.
 
 ## Agent chat runtime: instance attach + decisive loop (owner direction 2026-10-15)
 
