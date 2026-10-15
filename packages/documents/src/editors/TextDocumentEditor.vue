@@ -21,12 +21,11 @@
           :key="control.id"
           :icon="control.icon"
           :label="control.label"
-          severity="secondary"
+          :severity="isActive(control) ? 'primary' : 'secondary'"
           text
           rounded
           size="small"
-          class="format-control"
-          :class="[control.class, { 'is-active': isActive(control) }]"
+          :class="control.class"
           :disabled="sourceActive"
           :aria-label="$t(control.labelKey)"
           :aria-pressed="isActive(control)"
@@ -35,12 +34,10 @@
       </div>
       <Button
         label="MD"
-        severity="secondary"
+        :severity="sourceView ? 'primary' : 'secondary'"
         text
         rounded
         size="small"
-        class="format-control text-xs"
-        :class="{ 'is-active': sourceView }"
         data-testid="source-toggle"
         :aria-label="$t(sourceView ? 'editors.renderView' : 'editors.sourceView')"
         :aria-pressed="sourceView"
@@ -107,20 +104,22 @@ const { remoteChanged, reloadFromRemote, reloading } = useRemoteDocumentSync(pro
 const nameFieldPt = { root: { style: { background: 'transparent', borderColor: 'transparent' } } };
 
 // The format row speaks markdown's own vocabulary. Marks carry their
-// meaning typographically (B is bold); blocks use the icon set. Every
-// control toggles: an active block control unsets it (heading and list
-// turns return the block to body text, quote lifts the block out), and
-// the pressed state shows what the focused block carries. Markdown
-// input rules (typing `# `, `- `, `> `) keep working beside these.
-// Heading commands take the LEVEL as the raw command payload.
+// meaning typographically (B is bold, I is italic) — every other label
+// is plain content on an unmodified PrimeVue small button, carrying no
+// typography of its own. Every control toggles: an active block control
+// unsets it (heading and list turns return the block to body text,
+// quote lifts the block out), and the pressed state shows what the
+// focused block carries. Markdown input rules (typing `# `, `- `, `> `)
+// keep working beside these. Heading commands take the LEVEL as the
+// raw command payload.
 const formatControls = [
   { id: 'strong', label: 'B', class: 'font-bold', labelKey: 'editors.bold', command: 'toggleStrongCommand' },
   { id: 'emphasis', label: 'I', class: 'italic', labelKey: 'editors.italic', command: 'toggleEmphasisCommand' },
-  { id: 'code', label: '</>', class: 'text-technical text-xs', labelKey: 'editors.inlineCode', command: 'toggleInlineCodeCommand' },
-  { id: 'h1', label: 'H1', class: 'text-xs', labelKey: 'editors.heading1', command: 'wrapInHeadingCommand', payload: 1, off: 'turnIntoTextCommand' },
-  { id: 'h2', label: 'H2', class: 'text-xs', labelKey: 'editors.heading2', command: 'wrapInHeadingCommand', payload: 2, off: 'turnIntoTextCommand' },
-  { id: 'h3', label: 'H3', class: 'text-xs', labelKey: 'editors.heading3', command: 'wrapInHeadingCommand', payload: 3, off: 'turnIntoTextCommand' },
-  { id: 'paragraph', label: '¶', class: 'text-xs', labelKey: 'editors.paragraph', command: 'turnIntoTextCommand' },
+  { id: 'code', label: '</>', labelKey: 'editors.inlineCode', command: 'toggleInlineCodeCommand' },
+  { id: 'h1', label: 'H1', labelKey: 'editors.heading1', command: 'wrapInHeadingCommand', payload: 1, off: 'turnIntoTextCommand' },
+  { id: 'h2', label: 'H2', labelKey: 'editors.heading2', command: 'wrapInHeadingCommand', payload: 2, off: 'turnIntoTextCommand' },
+  { id: 'h3', label: 'H3', labelKey: 'editors.heading3', command: 'wrapInHeadingCommand', payload: 3, off: 'turnIntoTextCommand' },
+  { id: 'paragraph', label: '¶', labelKey: 'editors.paragraph', command: 'turnIntoTextCommand' },
   { id: 'bullet', icon: 'pi pi-list', labelKey: 'editors.bulletList', command: 'wrapInBulletListCommand', off: 'liftListItemCommand' },
   { id: 'ordered', icon: 'pi pi-list-check', labelKey: 'editors.numberedList', command: 'wrapInOrderedListCommand', off: 'liftListItemCommand' },
   { id: 'quote', icon: 'pi pi-comment', labelKey: 'editors.quote', command: 'wrapInBlockquoteCommand', off: 'lift' }
