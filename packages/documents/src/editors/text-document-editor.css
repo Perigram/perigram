@@ -1,8 +1,10 @@
 /* The markdown editor's theme: crepe's structural theme plus this
    bridge from the app's design tokens — the editor is a Perigram prose
-   surface in both modes, never a foreign crepe skin. Variable names are
-   crepe's (the component contract); values are the app's tokens, which
-   themselves flip under .dark-mode. */
+   surface, never a foreign crepe skin. Variable names are crepe's (the
+   component contract); values are the app's tokens, which themselves
+   flip under .dark-mode. Chrome values (radii, shadows) are the
+   semantic PrimeVue tokens — the visual ownership contract lives in
+   docs/UI_COMPONENT_AUDIT.md. */
 .milkdown {
   --crepe-color-background: var(--ck-page-background);
   --crepe-color-on-background: var(--ck-chrome-foreground);
@@ -26,9 +28,6 @@
   --crepe-font-title: var(--ck-font-serif);
   --crepe-font-default: var(--ck-font-serif);
   --crepe-font-code: var(--ck-font-mono);
-
-  --crepe-shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.12);
-  --crepe-shadow-2: 0 2px 6px 2px rgb(0 0 0 / 0.12);
 }
 
 /* The editor is the document: it reads in the prose voice with a
@@ -54,19 +53,18 @@
   font-family: var(--crepe-font-code);
   font-size: 0.875em;
   padding: 0 0.25em;
-  border-radius: 4px;
+  border-radius: var(--p-border-radius-sm);
 }
 
 /* Fenced code blocks render as CodeMirror inside crepe's block
-   component: the app's hairline box and mono voice, no IDE chrome —
-   no line-number gutters inside a document. The block's tools
-   (language picker, copy) live on the block's hover/focus, not as a
-   standing row in every block. */
+   component: the chrome-subtle slab, the semantic radius, no IDE
+   gutters inside a document. The block's tools (language picker, copy)
+   live on the block's hover/focus, not as a standing row. */
 .crepe-host .milkdown .milkdown-code-block {
   position: relative;
   background: var(--ck-chrome-subtle);
   border: 1px solid var(--ck-chrome-border);
-  border-radius: 8px;
+  border-radius: var(--p-border-radius-md);
   margin: 0.75rem 0;
   padding: 0.75rem 1rem;
 }
@@ -81,15 +79,14 @@
 
 .crepe-host .milkdown .milkdown-code-block .tools {
   position: absolute;
-  top: 0.375rem;
-  right: 0.5rem;
+  top: 0.25rem;
+  right: 0.25rem;
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.125rem 0.25rem;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--ck-chrome-background) 88%, transparent);
-  box-shadow: var(--crepe-shadow-1);
+  border-radius: var(--p-border-radius-md);
+  background: var(--ck-chrome-background);
+  box-shadow: var(--p-overlay-popover-shadow);
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms ease;
@@ -116,24 +113,23 @@
   background: transparent;
   color: var(--ck-chrome-muted);
   font-family: var(--ck-font-mono);
-  font-size: 0.75rem;
-  line-height: 1.25rem;
+  font-size: 0.875em;
   padding: 0 0.25rem;
-  border-radius: 4px;
+  border-radius: var(--p-border-radius-sm);
   cursor: pointer;
 }
 
 .crepe-host .milkdown .milkdown-code-block .language-button:hover,
 .crepe-host .milkdown .milkdown-code-block .tools-button-group button:hover {
-  background: var(--ck-chrome-background);
+  background: var(--ck-chrome-subtle);
   color: var(--ck-chrome-foreground);
 }
 
 .crepe-host .milkdown .milkdown-code-block .list-wrapper {
   background: var(--ck-chrome-background);
   border: 1px solid var(--ck-chrome-border);
-  border-radius: 8px;
-  box-shadow: var(--crepe-shadow-2);
+  border-radius: var(--p-border-radius-md);
+  box-shadow: var(--p-overlay-popover-shadow);
   overflow: hidden;
 }
 
@@ -144,7 +140,6 @@
   background: transparent;
   color: var(--ck-chrome-foreground);
   font-family: var(--ck-font-ui);
-  font-size: 0.875rem;
   padding: 0.375rem 0.75rem;
   width: 100%;
 }
@@ -159,11 +154,10 @@
 
 .crepe-host .milkdown .milkdown-code-block .language-list-item {
   font-family: var(--ck-font-mono);
-  font-size: 0.8125rem;
-  line-height: 1.5rem;
+  font-size: 0.875em;
   color: var(--ck-chrome-foreground);
   padding: 0 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--p-border-radius-sm);
   cursor: pointer;
 }
 
@@ -173,7 +167,8 @@
 }
 
 /* The slash command menu (slash-menu.js): the block vocabulary at the
-   caret, positioned fixed by its floating provider. */
+   caret. Position and visibility are mechanical here; the visual
+   chrome rides the host's semantic utilities on the element itself. */
 .md-slash-menu {
   position: fixed;
   z-index: 90;
@@ -183,10 +178,6 @@
   display: none;
   flex-direction: column;
   padding: 0.25rem;
-  background: var(--ck-chrome-background);
-  border: 1px solid var(--ck-chrome-border);
-  border-radius: 8px;
-  box-shadow: var(--crepe-shadow-2);
 }
 
 .md-slash-menu[data-show='true'] {
@@ -196,48 +187,15 @@
 .md-slash-menu .md-slash-item {
   border: none;
   background: transparent;
-  color: var(--ck-chrome-foreground);
-  font-family: var(--ck-font-ui);
-  font-size: 0.875rem;
-  line-height: 2rem;
   text-align: left;
   padding: 0 0.625rem;
-  border-radius: 4px;
+  border-radius: var(--p-border-radius-sm);
   cursor: pointer;
 }
 
 .md-slash-menu .md-slash-item.is-active,
 .md-slash-menu .md-slash-item:hover {
   background: var(--ck-chrome-subtle);
-}
-
-/* The source view (toggle in the toolbar): the markdown itself, in the
-   app's mono voice, on the same readable measure as the rendered
-   document — the symbols are the content here. */
-.source-host .cm-editor {
-  background: transparent;
-  max-width: min(100%, 92ch);
-  margin-inline: auto;
-  padding: 0.75rem 0.25rem 30vh;
-}
-
-.source-host .cm-scroller {
-  font-family: var(--ck-font-mono);
-  line-height: 1.5;
-}
-
-.source-host .cm-gutters {
-  background: transparent;
-  border-right: 1px solid var(--ck-chrome-border);
-  color: var(--ck-chrome-muted);
-}
-
-.source-host .cm-activeLine {
-  background: var(--ck-chrome-subtle);
-}
-
-.source-host .cm-activeLineGutter {
-  background: transparent;
 }
 
 /* Live-source markers (the Obsidian model): the focused block's

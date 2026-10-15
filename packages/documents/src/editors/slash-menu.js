@@ -18,7 +18,10 @@ export function slashQuery(text) {
 
 export function createSlashMenu({ items, onPick }) {
   const element = document.createElement('div');
-  element.className = 'md-slash-menu';
+  // Visual chrome rides the host's semantic utilities (the tailwind
+  // scan covers pack editor modules); this stylesheet owns only the
+  // mechanical position/visibility.
+  element.className = 'md-slash-menu rounded-ui shadow-overlay bg-chrome-background border border-chrome-border';
   element.dataset.show = 'false';
 
   let view = null;
@@ -36,7 +39,7 @@ export function createSlashMenu({ items, onPick }) {
     element.replaceChildren(...filtered.map((item, index) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = index === active ? 'md-slash-item is-active' : 'md-slash-item';
+      button.className = index === active ? 'md-slash-item is-active text-body text-chrome-foreground' : 'md-slash-item text-body text-chrome-foreground';
       button.textContent = item.label;
       button.addEventListener('mousedown', event => event.preventDefault());
       button.addEventListener('click', () => pick(index));
