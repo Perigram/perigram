@@ -34,7 +34,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
     with a leading relative `m` corrupts the build.
   Both build via fantasticon and rewrite their `/* <font>:start */` block
   in `assets/css/main.css`, so icon codepoints never drift from the class
-  definitions. The consumers are type `glyph` declarations: the packs'
+  definitions, and rewrite the marker block in
+  `shared/icon-fonts.js` — the generated authoring palette listing every
+  glyph class string the families offer (the process designer's
+  declaration glyph row consumes it; glyph vocabulary never requires a
+  pack type of its own). The consumers are type `glyph` declarations: the packs'
   file types carry `ck-file-type-icon ck-file-type-icon-<typeId>`, and
   the facade plugin's listing (`workers/facade/listing.json`) carries
   `ck-entity-icon ck-entity-icon-<name>` — both consumed exactly like a

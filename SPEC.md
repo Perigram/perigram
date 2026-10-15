@@ -21,6 +21,12 @@ Designer should operate CTS, it's syntax should be represented fully in nodes. S
 programming environment, it should be the cleanest and most elegant thing ever seen. Types,
 operations, architecture, mapping cts to interface, nodes UI/UX: contracts/layouts/etc unified, core behavior tested, all the legacy removed, all architectural inconsistencies cleaned. Nodes represent CTS, ensure anything can be programmed with it. Types created, instances mutated/deleted, fields modified, data structures managed, and so on.
 
+Class declarations pick their glyph from the app's built icon-font
+palette beside the curated set: a glyph the fonts carry is authoring
+vocabulary for any declared class and never needs a pack type of its
+own — concepts that stay node-composable (like sheets) keep their
+glyphs without appearing as pack types.
+
 
 ## Parties in processes (owner direction 2026-10-13)
 

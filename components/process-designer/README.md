@@ -210,8 +210,11 @@ these declarations; they do not add states or terminal facts.
 Class card labels derive from the authored name. The declaration inspector
 authors the display tokens (the SPEC §4 naming vocabulary, canonical grammar
 in [`packages/cts/SPEC.md`](../../packages/cts/SPEC.md) §4). Beside the
-class name, one glyph row offers a curated PrimeIcon set plus a free-text
-override; an absent glyph derives from the class default table. Per field,
+class name, one glyph row offers a curated PrimeIcon set plus the generated
+icon-font palette (every `ck-*` glyph the fonts carry,
+`shared/icon-fonts.js` — glyph vocabulary needs no pack type of its own)
+plus a free-text override; an absent glyph derives from the class default
+table. Per field,
 the inspector offers a display label (the placeholder is the authored name;
 empty means derived), a `display` kind select over the closed SPEC §4
 vocabulary plus "auto" (key absent), and two single-holder toggles: the
