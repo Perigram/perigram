@@ -22,6 +22,7 @@ import {
   OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
   cassetteV2LayerPanelRows,
+  profileTerminalEdgesForTree,
   resolveCassetteV2AngleExpression,
   updateCassetteV2GraphNode,
   updateCassetteV2Workpiece,
@@ -1415,6 +1416,9 @@ export default function createSurface({ vue, components, locale, queries, notify
 
       const addFaceAtEdge = (parentId, edgeIndex) => {
         if (!parentId && parentId !== '') return;
+        // A profile-arranged edge is terminal: the profile consumes the
+        // edge and the face ends there — nothing grows from it.
+        if (profileTerminalEdgesForTree(cassetteTree.value).has(`${parentId}:${Math.max(0, Math.round(Number(edgeIndex) || 0))}`)) return;
         const result = addCassetteV2GraphChild(cassetteTree.value, parentId, edgeIndex);
         cassetteTree.value = result.tree;
         selectedNodeId.value = result.nodeId;

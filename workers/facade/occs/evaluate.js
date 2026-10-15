@@ -1,10 +1,12 @@
 import {
   buildCassetteV2CassetteMarkLayerData,
   buildCassetteV2TrapezoidTreeCurves,
+  profileCutEntitiesForTree,
   profileEdgeEmbeddingsForTree
 } from '../surfaces/lib/cassetteV2Renderer.js';
 import { buildOccsEvaluatedDimensionEntities } from './dimensions.js';
 import { buildOccsProductionLayout } from './production-layout.js';
+import { differenceCassetteV2FacePolygon } from '../surfaces/lib/cassetteV2Clipper.js';
 import { embedOccsProfilesIntoContour } from './profileEmbedding.js';
 import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';
 
@@ -40,6 +42,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
   const sheetWorkpieces = getSheetWorkpieces(definition, tree);
   const polygons = [];
   const cutLayerData = [];
+  const profileCutLayerData = [];
   const foldLayerData = [];
   const markLayerData = [];
   const contourLayerData = [];
@@ -104,8 +107,45 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
       });
     }
 
+    // Closed profile sections cut the host face where they intersect
+    // (owner law 2026-10-15): the same boolean difference the designer
+    // applies, and their polygons ride the production cut layer.
+    const profileCutEntities = profileCutEntitiesForTree(workpieceCurves, tree)
+      .filter(entity => faceCurves.has(entity.target));
+    const cutEmbeddedCurves = [];
+    for (const curve of embeddedCurves) {
+      const cuts = profileCutEntities.filter(entity => entity.target === curve.node.id);
+      if (!cuts.length) {
+        cutEmbeddedCurves.push(curve);
+        continue;
+      }
+      const difference = await differenceCassetteV2FacePolygon(
+        curve.boundaryVertices || curve.vertices,
+        cuts.map(entity => entity.geometry.vertices)
+      );
+      cutEmbeddedCurves.push({
+        ...curve,
+        boundaryVertices: difference.outer?.length ? difference.outer : curve.boundaryVertices || curve.vertices,
+        vertices: difference.outer?.length ? difference.outer : curve.vertices,
+        holes: difference.holes || curve.holes || []
+      });
+    }
+
+    for (const entity of profileCutEntities) {
+      profileCutLayerData.push({
+        layer: entity.layer,
+        coordinates: entity.geometry.vertices.map(vertex => [vertex[0], vertex[1]]),
+        handles: [entity.id],
+        workpieceId: workpiece.id,
+        workpieceDefinitionId: definitionIdForWorkpiece(workpiece),
+        occurrenceId: occurrenceIdForWorkpiece(workpiece),
+        profileWorkpieceId: entity.profileWorkpieceId,
+        relationId: entity.relationId
+      });
+    }
+
     const layout = await buildOccsProductionLayout(
-      embeddedCurves.map(curve => ({
+      cutEmbeddedCurves.map(curve => ({
         id: curve.node?.id,
         vertices: curve.boundaryVertices || curve.vertices
       }))
@@ -155,7 +195,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
   return {
     polygons,
     nestingPolygons: polygons,
-    layerData: [...cutLayerData, ...foldLayerData, ...markLayerData, ...contourLayerData, ...dimensionLayerData],
+    layerData: [...cutLayerData, ...profileCutLayerData, ...foldLayerData, ...markLayerData, ...contourLayerData, ...dimensionLayerData],
     dimensions: tree.parameters,
     dimensionEntities,
     annotations: {
