@@ -3390,6 +3390,7 @@
         "routing": "Маршрутизация",
         "chatRoute": "Чат",
         "summariesRoute": "Сводки звонков",
-        "envDefault": "Из окружения"
+        "envDefault": "Из окружения",
+        "chatRouteDefault": "Маршрут чата"
     }
 }

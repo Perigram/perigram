@@ -23,7 +23,7 @@ vi.mock('h3', () => ({
     })
 }));
 
-import { resolveLlmConfig, readLlmSettings, saveLlmSettings, testLlmConnection } from './service.js';
+import { resolveLlmConfig, readLlmSettings, saveLlmSettings, testLlmConnection, chatProfileIds } from './service.js';
 
 const AUTH = { userId: 'admin-1', organizationId: 'org-1' };
 
@@ -76,6 +76,40 @@ describe('resolveLlmConfig: the route chain', () => {
         process.env.LLM_BASE_URL = 'http://env:11434';
         process.env.LLM_MODEL = 'env-model';
         await expect(resolveLlmConfig('org-1', 'chat.summaries')).resolves.toMatchObject({ provider: 'ollama', baseUrl: 'http://env:11434' });
+    });
+
+    it('an explicit profile (a bot\'s declared brain) wins over any route', async () => {
+        withSetting({
+            profiles: {
+                fast: { kind: 'chat', provider: 'ollama', baseUrl: 'http://fast:11434', model: 'qwen3:8b' },
+                big: { kind: 'chat', provider: 'anthropic', baseUrl: 'https://big', model: 'glm-4.7' }
+            },
+            routes: { chat: 'fast' }
+        });
+        await expect(resolveLlmConfig('org-1', 'chat', { profileId: 'big' })).resolves.toMatchObject({ provider: 'anthropic', model: 'glm-4.7' });
+    });
+
+    it('a stale or non-chat explicit profile degrades to the route chain', async () => {
+        withSetting({
+            profiles: {
+                fast: { kind: 'chat', provider: 'ollama', baseUrl: 'http://fast:11434', model: 'qwen3:8b' },
+                images: { kind: 'image', provider: 'openai', baseUrl: 'http://img:8080', model: 'sd-xl' }
+            },
+            routes: { chat: 'fast' }
+        });
+        await expect(resolveLlmConfig('org-1', 'chat', { profileId: 'deleted-long-ago' })).resolves.toMatchObject({ provider: 'ollama' });
+        await expect(resolveLlmConfig('org-1', 'chat', { profileId: 'images' })).resolves.toMatchObject({ provider: 'ollama' });
+    });
+
+    it('lists chat profile ids for bot overrides', async () => {
+        withSetting({
+            profiles: {
+                fast: { kind: 'chat', provider: 'ollama', baseUrl: 'http://fast:11434', model: 'qwen3:8b' },
+                images: { kind: 'image', provider: 'openai', baseUrl: 'http://img:8080', model: 'sd-xl' }
+            },
+            routes: {}
+        });
+        await expect(chatProfileIds('org-1')).resolves.toEqual(['fast']);
     });
 
     it('never serves chat from an image profile, whatever the route says', async () => {

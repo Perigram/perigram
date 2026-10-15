@@ -117,6 +117,10 @@ export async function registerBot({ name, organizationId, roleIds = [], bindings
   return { user: new User(createdRaw), token };
 }
 
+export async function updateBotProfile(userId, profile = '') {
+  await usersRepository.updateBotProfile(userId, String(profile || ''));
+}
+
 export async function rotateBotToken(userId, requesterId = 'SYSTEM') {
   const user = await getById(userId);
   if (!user?.data?.bot) throw createError({ statusCode: 404, message: 'Bot not found' });

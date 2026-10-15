@@ -39,7 +39,8 @@ export class User extends BaseEntity {
       data: {
         ...safeData,
         // The bot marker travels (clients badge bots); the token hash never does.
-        ...(bot ? { bot: { createdAt: bot.createdAt || null } } : {}),
+        // The model profile id is the bot's declared brain — non-sensitive.
+        ...(bot ? { bot: { createdAt: bot.createdAt || null, profile: bot.profile || null } } : {}),
         ...(avatar?.fileId ? { avatarUrl: `/api/users/${this.id}/avatar${updatedAt ? `?v=${updatedAt}` : ''}` } : {})
       }
     };

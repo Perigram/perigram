@@ -6,12 +6,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // admission, direct keys are refused, and group joins use the
 // participant-gated bot seam — never the human membership gate.
 
-const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mockedProcessAuth, mockedProcessDefinitions } = vi.hoisted(() => ({
+const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mockedProcessAuth, mockedProcessDefinitions, mockedLlm } = vi.hoisted(() => ({
     mockedUsers: {
         list: vi.fn(),
         getById: vi.fn(),
         findUserByEmail: vi.fn(),
         registerBot: vi.fn(),
+        updateBotProfile: vi.fn(),
         canManageUsersInOrganization: vi.fn()
     },
     mockedSupport: {
@@ -26,13 +27,15 @@ const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mocke
     },
     mockedOrganizations: { findById: vi.fn() },
     mockedProcessAuth: { resolveProcessAuth: vi.fn(async (auth) => auth) },
-    mockedProcessDefinitions: { listActiveWorkflowStates: vi.fn() }
+    mockedProcessDefinitions: { listActiveWorkflowStates: vi.fn() },
+    mockedLlm: { chatProfileIds: vi.fn(async () => []) }
 }));
 
 vi.mock('~/server/features/users/service.js', () => mockedUsers);
 vi.mock('~/server/features/support/service.js', () => mockedSupport);
 vi.mock('~/server/features/organizations/repository.js', () => mockedOrganizations);
 vi.mock('~/server/features/process-definitions/service.js', () => mockedProcessDefinitions);
+vi.mock('~/server/features/llm/service.js', () => mockedLlm);
 vi.mock('~/server/features/process-definitions/runtime.js', () => mockedProcessAuth);
 vi.mock('./repository.js', () => mockedRepository);
 vi.mock('h3', () => ({
@@ -43,7 +46,7 @@ vi.mock('h3', () => ({
     })
 }));
 
-import { ensureOrganizationAssistant, listBotContacts, subscribeBot } from './service.js';
+import { ensureOrganizationAssistant, listBotContacts, subscribeBot, setBotProfile } from './service.js';
 
 const AUTH = { userId: 'user-human', organizationId: 'org-1' };
 
@@ -138,6 +141,25 @@ describe('listBotContacts', () => {
 
         mockedSupport.getConversationContextByKey.mockResolvedValue({ kind: 'direct' });
         await expect(listBotContacts(AUTH, 'direct:a:b')).rejects.toMatchObject({ statusCode: 400 });
+    });
+});
+
+describe('setBotProfile', () => {
+    it('accepts a chat profile from the org model table and clears on empty', async () => {
+        mockedUsers.getById.mockResolvedValue(botModel('bot-a', 'Assistant'));
+        mockedUsers.updateBotProfile.mockResolvedValue({});
+        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
+        await expect(setBotProfile(AUTH, 'bot-a', 'cloud-big')).resolves.toEqual({ id: 'bot-a', profile: 'cloud-big' });
+        expect(mockedUsers.updateBotProfile).toHaveBeenCalledWith('bot-a', 'cloud-big');
+        await expect(setBotProfile(AUTH, 'bot-a', '')).resolves.toEqual({ id: 'bot-a', profile: '' });
+        expect(mockedUsers.updateBotProfile).toHaveBeenLastCalledWith('bot-a', '');
+    });
+
+    it('refuses unknown or non-chat profiles and non-bots', async () => {
+        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
+        await expect(setBotProfile(AUTH, 'bot-a', 'images')).rejects.toMatchObject({ statusCode: 400 });
+        mockedUsers.getById.mockResolvedValue(humanModel('u1', 'Human'));
+        await expect(setBotProfile(AUTH, 'u1', 'cloud-big')).rejects.toMatchObject({ statusCode: 404 });
     });
 });
 

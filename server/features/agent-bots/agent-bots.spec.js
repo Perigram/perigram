@@ -58,7 +58,7 @@ const HUMAN = 'user-human';
 const BOT_A = 'user-bot-a';
 const BOT_B = 'user-bot-b';
 
-const botAuth = { userId: BOT_A, name: 'Bot', organizationId: 'org-1', organizationData: { name: 'Org' } };
+const botAuth = { userId: BOT_A, name: 'Bot', organizationId: 'org-1', organizationData: { name: 'Org' }, botProfile: 'cloud-big' };
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -150,8 +150,9 @@ describe('runBotReply', () => {
         await runBotReply(BOT_A, context, message);
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
         expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('the answer');
-        const { system, messages } = mockedLlm.chatCompletion.mock.calls[0][0];
+        const { system, messages, profileId } = mockedLlm.chatCompletion.mock.calls[0][0];
         expect(system).toMatch(/Bot/);
+        expect(profileId).toBe('cloud-big');
         expect(messages.some((entry) => entry.role === 'assistant' && entry.content === 'hi')).toBe(true);
     });
 

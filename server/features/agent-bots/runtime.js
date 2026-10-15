@@ -99,9 +99,10 @@ function historyMessages(messages = [], botUserId) {
  */
 async function runAgentLoop({ botAuth, system, conversation }) {
     const organizationId = botAuth.organizationId;
+    const profileId = botAuth.botProfile || '';
     const tools = chatToolDescriptors();
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-        const assistant = await llmService.chatCompletion({ organizationId, system, messages: conversation, tools });
+        const assistant = await llmService.chatCompletion({ organizationId, profileId, system, messages: conversation, tools });
         const toolCalls = assistant.toolCalls || [];
         if (!toolCalls.length) {
             return (assistant.content || '').trim() || null;
@@ -160,7 +161,7 @@ export async function runBotReply(botUserId, context, message) {
     try {
         const botAuth = await buildBotAuth(botUserId);
         const organizationId = botAuth.organizationId;
-        if (!(await llmService.isLlmAvailable(organizationId))) {
+        if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId: botAuth.botProfile }))) {
             await sendReply(botAuth, context, message, 'LLM provider is not configured for this organization.');
             return;
         }
@@ -227,7 +228,7 @@ export async function runBotWake(subscription, event) {
     inFlight.add(lockKey);
     try {
         const botAuth = await buildBotAuth(subscription.botUserId);
-        if (!(await llmService.isLlmAvailable(botAuth.organizationId))) return;
+        if (!(await llmService.isLlmAvailable(botAuth.organizationId, 'chat', { profileId: botAuth.botProfile }))) return;
         const service = getAppRegistry().getInstanceService(String(event.targetType || ''));
         const instance = await service?.processGetById?.(String(event.targetId || ''), botAuth).catch(() => null);
         // An unreadable or missing target skips the wake: this is the

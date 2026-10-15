@@ -3390,6 +3390,7 @@
         "routing": "Routing",
         "chatRoute": "Chat",
         "summariesRoute": "Call summaries",
-        "envDefault": "Environment default"
+        "envDefault": "Environment default",
+        "chatRouteDefault": "Chat route"
     }
 }
