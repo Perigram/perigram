@@ -136,11 +136,12 @@ every piece of its chrome disabled — toolbar, block-edit, top bar,
 link tooltip, latex, AI, the CodeMirror feature (it mounts a Vue app
 with a language-picker dropdown inside every fenced block; code
 renders as plain `pre`), the virtual cursor, and the placeholder:
-formatting rides PrimeVue controls in the editor
-toolbar (marks, headings, lists, quote — every control toggles, the
-pressed state showing what the focused block carries, an active block
-control returning it to body text; markdown input rules and keyboard
-shortcuts keep working). The surface is themed from the app's tokens
+formatting rides raw PrimeVue controls in the editor toolbar — the
+pressed state is PrimeVue's own severity vocabulary (active controls
+turn primary), no custom classes or chrome; marks, headings, lists,
+quote — every control toggles, an active block control returning it
+to body text; markdown input rules and keyboard shortcuts keep
+working. The surface is themed from the app's tokens
 (`src/editors/text-document-editor.css`): code speaks the technical
 role (the app's mono voice, normal ink — crepe's red inline-code chip
 is overridden), and the document column caps at a readable measure
