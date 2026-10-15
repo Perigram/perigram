@@ -3372,7 +3372,6 @@
     },
     "llm": {
         "provider": "ИИ-провайдер",
-        "providerNone": "Нет",
         "providerOpenAiShaped": "OpenAI-совместимый (локальный)",
         "baseUrl": "Базовый URL сервера",
         "model": "Модель",
@@ -3380,6 +3379,17 @@
         "apiKeySet": "Ключ сохранён — введите новый для замены",
         "test": "Проверить",
         "testOk": "Подключено",
-        "unconfigured": "Не настроено"
+        "unconfigured": "Не настроено",
+        "models": "Модели",
+        "profile": "Профиль модели",
+        "profileName": "Имя (слаг)",
+        "kind": "Тип",
+        "kindChat": "чат",
+        "kindImage": "изображения",
+        "addProfile": "Добавить профиль",
+        "routing": "Маршрутизация",
+        "chatRoute": "Чат",
+        "summariesRoute": "Сводки звонков",
+        "envDefault": "Из окружения"
     }
 }

@@ -67,12 +67,15 @@ describe('resolveLlmConfig', () => {
         expect(await resolveLlmConfig(null)).toEqual({ provider: 'none' });
     });
 
-    it('merges the organization setting over env defaults', async () => {
+    it('resolves a routed chat profile over env defaults', async () => {
         process.env.LLM_PROVIDER = 'ollama';
         process.env.LLM_BASE_URL = 'http://env-host:11434';
         process.env.LLM_MODEL = 'env-model';
         mockedOrganizations.getById.mockResolvedValue({
-            data: { settings: { llm: { provider: 'anthropic', baseUrl: 'https://llm.internal', model: 'glm-4.6' } } }
+            data: { settings: { llm: {
+                profiles: { primary: { kind: 'chat', provider: 'anthropic', baseUrl: 'https://llm.internal', model: 'glm-4.6' } },
+                routes: { chat: 'primary' }
+            } } }
         });
         const config = await resolveLlmConfig('org-1');
         expect(config).toEqual({ provider: 'anthropic', baseUrl: 'https://llm.internal', apiKey: '', model: 'glm-4.6' });

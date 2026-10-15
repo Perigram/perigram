@@ -98,6 +98,7 @@ export async function summarizeRecording({ record = {}, message = {} } = {}) {
         }
         const { content } = await llmService.chatCompletion({
             organizationId,
+            capability: 'chat.summaries',
             system: config.protocol,
             messages: [{ role: 'user', content: transcript }]
         });

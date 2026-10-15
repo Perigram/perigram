@@ -3372,7 +3372,6 @@
     },
     "llm": {
         "provider": "AI provider",
-        "providerNone": "None",
         "providerOpenAiShaped": "OpenAI-shaped (local)",
         "baseUrl": "Server base URL",
         "model": "Model",
@@ -3380,6 +3379,17 @@
         "apiKeySet": "Key stored — type to replace",
         "test": "Test",
         "testOk": "Connected",
-        "unconfigured": "Not configured"
+        "unconfigured": "Not configured",
+        "models": "Models",
+        "profile": "Model profile",
+        "profileName": "Name (slug)",
+        "kind": "Kind",
+        "kindChat": "chat",
+        "kindImage": "image",
+        "addProfile": "Add profile",
+        "routing": "Routing",
+        "chatRoute": "Chat",
+        "summariesRoute": "Call summaries",
+        "envDefault": "Environment default"
     }
 }

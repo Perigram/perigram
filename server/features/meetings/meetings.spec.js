@@ -78,6 +78,7 @@ describe('meetings service', () => {
     }));
     expect(mocks.llmService.chatCompletion).toHaveBeenCalledWith({
       organizationId: 'org-1',
+      capability: 'chat.summaries',
       system: expect.stringContaining('summary'),
       messages: [{ role: 'user', content: 'we decided to ship' }]
     });
