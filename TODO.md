@@ -519,6 +519,18 @@ role, the marker signage); crepe renders its own UI through the
 bridge, and the slash menu carries the host's semantic utilities on
 its elements.
 
+Round 6 (owner review, same day): two defects from the stripped state.
+Syntax "not highlighted" — the token classes took the red accent,
+reading as error state; they now take the app's categorical hues (the
+entity tones, the quantity signal for literals), with accent and danger
+reserved for errors. The dropdown "has prose font and appears on bg" —
+the bridge dropped crepe's `--crepe-shadow-*` variables, so its
+popovers lost elevation, and crepe's list items inherit fonts (a
+scoped variable does not re-resolve inherited declarations). The bridge
+restores the shadow variables from the popover-overlay token and the
+code block declares the UI voice, which its controls inherit while the
+code content keeps the mono voice from the CodeMirror theme.
+
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
 The toolbar format controls toggle (SPEC UI): an active heading, list,
