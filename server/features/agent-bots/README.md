@@ -100,12 +100,15 @@ wake scanner turns matching status transitions into proactive agent runs:
   primary states for the wake-rule pickers). `GET /api/agent-bots/contacts`
   is the member-visible twin of the listing (ensures the org assistant,
   no admin gate).
-Bot joins are participant-level; the admin routes are gated by
-user-management access in the active organization. Bot
-membership carries only the narrow `organizations` recovery grant that
-opens process definition management, and process roles ("lanes") are
-assigned like any member's — on the org team surface, where bot rows
-carry the badge.
+Bot joins are participant-level; bot administration (create, token
+rotation, delete) is an organization-settings concern — the
+`/organization/bots` system screen (`users:admin` gated), with the
+one-time token reveal and copy there. The chat sheet stays join/wake
+only. Bot membership carries only the narrow `organizations` recovery
+grant that opens process definition management, and process roles
+("lanes") are assigned like any member's — on the org team surface,
+where bot rows carry the badge and single-seat roles say so in the
+picker.
 
 Bot tokens are `pb_…` values in the `Authorization: Bearer` header; the
 stored form is a SHA-256 hash (never in DTOs — the same strip-and-restore

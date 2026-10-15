@@ -76,7 +76,11 @@ assistant bot contact, present in the new-chat pickers without any setup,
 and any participant may join a bot into a group or organization chat.
 Assigning agents to process roles ("lanes") happens on the team surface
 where every member's roles are assigned — bots are members, badged as
-bots, never authored into process definitions.
+bots, never authored into process definitions. Bot administration
+(creating bots, rotating tokens) lives in organization settings, not in
+chats. Some roles are single-seat: exactly one member — human or agent —
+holds the role at a time, and assigning it moves the seat, so a lane can
+be handed to an agent outright and taken back the same way.
 
 ## UI
 

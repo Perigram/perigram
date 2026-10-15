@@ -330,6 +330,19 @@
                       <Menu ref="roleMenuRef" id="role-detail-menu" :model="roleMenuItems" popup />
                     </template>
                   </div>
+                  <!-- Single-seat roles (organizations README): exactly one
+                       member holds the role at a time — assigning someone
+                       (human or bot) moves the seat. The natural shape for
+                       handing a whole lane to one agent. -->
+                  <div class="flex items-center gap-2">
+                    <ToggleSwitch
+                      :model-value="Boolean(selectedRoleRecord.exclusive)"
+                      input-id="role-exclusive"
+                      :aria-label="$t('organization.singleSeat')"
+                      @update:model-value="applyRoleExclusive"
+                    />
+                    <label for="role-exclusive" class="cursor-pointer text-body">{{ $t('organization.singleSeat') }}</label>
+                  </div>
                   <div v-if="selectedRoleAccessSummary.length" class="flex flex-wrap gap-1">
                     <Tag v-for="item in selectedRoleAccessSummary" :key="item.key" :value="`${item.text} · ${item.contributor.label}`" size="small" />
                   </div>
@@ -2659,7 +2672,28 @@ async function saveSelectedRole() {
   if (!selectedRoleRecord.value) return;
   const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
   try {
-    const role = await rolePersistence.update(organizationId, selectedRoleId.value, selectedRoleRecord.value.label);
+    const role = await rolePersistence.update(organizationId, selectedRoleId.value, {
+      label: selectedRoleRecord.value.label,
+      ...(selectedRoleRecord.value.exclusive ? { exclusive: true } : {})
+    });
+    organizationRoles.value = { ...organizationRoles.value, [role.id]: role };
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+    await loadOrganizationRoles();
+  }
+}
+
+// Single-seat toggle (organizations README): turning it on is refused with
+// the holder list while more than one member holds the role — unassign
+// down to one (or zero) first. Assigning a held seat moves it.
+async function applyRoleExclusive(exclusive) {
+  if (!selectedRoleRecord.value) return;
+  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
+  try {
+    const role = await rolePersistence.update(organizationId, selectedRoleId.value, {
+      label: selectedRoleRecord.value.label,
+      exclusive: Boolean(exclusive)
+    });
     organizationRoles.value = { ...organizationRoles.value, [role.id]: role };
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });

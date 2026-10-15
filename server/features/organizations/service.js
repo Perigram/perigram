@@ -169,7 +169,7 @@ export async function createRole(organizationId, payload = {}, auth = {}) {
   const label = normalizeRoleLabel(payload.label);
   assertUniqueRoleLabel(org.data.roles, label);
   const id = `role_${new ObjectId().toString().slice(0, 12)}`;
-  org.data.roles[id] = { id, label };
+  org.data.roles[id] = { id, label, ...normalizeExclusive(payload.exclusive) };
   await repository.updateById(organizationId, org);
   return org.data.roles[id];
 }
@@ -177,11 +177,31 @@ export async function createRole(organizationId, payload = {}, auth = {}) {
 export async function updateRole(organizationId, roleId, payload = {}, auth = {}) {
   const org = await loadManagedOrganization(organizationId, auth, 'admin');
   if (!org.data.roles[roleId]) throw createError({ statusCode: 404, message: 'Organization role not found' });
-  const label = normalizeRoleLabel(payload.label);
+  const current = org.data.roles[roleId];
+  const exclusive = payload.exclusive === undefined
+    ? (current.exclusive ? { exclusive: true } : {})
+    : normalizeExclusive(payload.exclusive);
+  if (exclusive.exclusive && !current.exclusive) {
+    const holders = Object.values(org.data.roleAssignments)
+      .filter(item => item.roleIds?.includes(roleId))
+      .map(item => item.userId);
+    if (holders.length > 1) {
+      throw createError({
+        statusCode: 409,
+        message: 'Single-seat role is currently held by more than one member',
+        data: { holders }
+      });
+    }
+  }
+  const label = normalizeRoleLabel(payload.label ?? current.label);
   assertUniqueRoleLabel(org.data.roles, label, roleId);
-  org.data.roles[roleId] = { id: roleId, label };
+  org.data.roles[roleId] = { id: roleId, label, ...exclusive };
   await repository.updateById(organizationId, org);
   return org.data.roles[roleId];
+}
+
+function normalizeExclusive(exclusive) {
+  return exclusive ? { exclusive: true } : {};
 }
 
 export async function deleteRole(organizationId, roleId, auth = {}) {

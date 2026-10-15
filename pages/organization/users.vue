@@ -464,7 +464,9 @@ async function inviteExistingUser() {
 
 const roleOptions = computed(() => {
   return Object.values(organizationRoles.value).map(role => ({
-    label: role.label || role.id,
+    // Single-seat roles say so in the picker (organizations README): the
+    // seat moves on assignment — one holder at a time.
+    label: role.exclusive ? `${role.label || role.id} · ${t('organization.singleSeat')}` : (role.label || role.id),
     value: role.id
   }));
 });

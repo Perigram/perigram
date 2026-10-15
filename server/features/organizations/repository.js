@@ -73,9 +73,35 @@ export async function findByIds(ids) {
 
 export async function setRoleAssignment(organizationId, userId, assignment) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).updateOne(
-    { _id: toFlexibleId(organizationId) },
-    { $set: { [`data.roleAssignments.${String(userId)}`]: assignment } }
+  const collection = db.collection(COLLECTION);
+  const filter = { _id: toFlexibleId(organizationId) };
+  const targetUserId = String(userId);
+  const roleIds = [...new Set(Array.isArray(assignment?.roleIds) ? assignment.roleIds.map(String) : [])];
+  // Single-seat roles (organizations README): assigning one moves the seat —
+  // every other holder loses it in the same write. This is the one
+  // assignment write seam (register, bots, invitations, the org API all
+  // pass through), so exclusivity has exactly one home.
+  const organization = roleIds.length
+    ? await collection.findOne(filter, { projection: { 'data.roles': 1, 'data.roleAssignments': 1 } })
+    : null;
+  const roles = organization?.data?.roles || {};
+  const exclusiveRoles = roleIds.filter(roleId => roles[roleId]?.exclusive);
+  const displaced = exclusiveRoles.length
+    ? Object.entries(organization?.data?.roleAssignments || {})
+        .filter(([holderId, row]) => holderId !== targetUserId && (row?.roleIds || []).some(id => exclusiveRoles.includes(String(id))))
+    : [];
+  for (const [holderId, row] of displaced) {
+    const remaining = (row?.roleIds || []).filter(id => !exclusiveRoles.includes(String(id)));
+    await collection.updateOne(
+      filter,
+      remaining.length
+        ? { $set: { [`data.roleAssignments.${holderId}.roleIds`]: remaining } }
+        : { $unset: { [`data.roleAssignments.${holderId}`]: '' } }
+    );
+  }
+  return await collection.updateOne(
+    filter,
+    { $set: { [`data.roleAssignments.${targetUserId}`]: assignment } }
   );
 }
 
