@@ -1,5 +1,38 @@
 # TODO
 
+## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
+
+The toolbar format controls toggle (SPEC UI): an active heading, list,
+or quote control unsets its block back to body text, and the pressed
+state shows what the focused block carries. The focused block shows
+its literal markdown markers (the Obsidian-model seam) — `> `, `### `,
+and the markers of mark runs the caret touches.
+
+- [x] A. Pure live-source seam (`source-markers.js`): focused-block
+      prefix and touched mark-run descriptors plus the toolbar
+      selection-state reader, node-tested without a DOM.
+- [x] B. Engine plugin (`source-markers-plugin.js`): markers as
+      non-editable widgets (clipboard-inert — serialization renders
+      from the document), selection state reported to the toolbar.
+- [x] C. Toolbar: active-state rendering (`aria-pressed`, pressed
+      style), unset behaviors (heading → text, list → lift, quote →
+      raw lift), crepe mount of the plugin before create.
+- [ ] WAITING — owner verification on the live stack: heading marker
+      visible while editing, H1/quote toggles convert blocks, payload
+      round-trips (`e2e/md-editor-repair.spec.js` covers the flow).
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/editor-markers-20261015`. The unset paths use the
+preset's own commands (`turnIntoTextCommand`, `liftListItemCommand`);
+blockquotes have no preset unwrap, so quote-off lifts through the raw
+prose `lift` via `editorViewCtx`. Marker widgets sit inside the focused
+block only — rendered content elsewhere is untouched, and copies never
+see them (prosemirror serializes the clipboard from the schema, not
+decorations). The full Obsidian source-editing of the focused block
+(editing the prefix as text) remains future work under the same SPEC
+direction; the marker seam is the visible half.
+
 ## Live client sync and CRDT co-editing (owner direction 2026-10-14)
 
 Two owner decisions: client state syncs optimistically with realtime
