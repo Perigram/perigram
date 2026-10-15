@@ -434,36 +434,60 @@ function parseJsonObject(text) {
     }
 }
 
-const THINK_OPEN = '\u003cthinking\u003e';
-const THINK_CLOSE = '\u003c/thinking\u003e';
+const THINK_OPEN_TAGS = ['\u003cthink\u003e', '\u003cthinking\u003e'];
+const THINK_CLOSE_TAGS = ['\u003c/think\u003e', '\u003c/thinking\u003e'];
 
 /**
- * Reasoning models that ride the chat wire inline — qwen3 wraps its
- * reasoning in think tags inside the content stream — are split here so
- * the neutral contract keeps reasoning and answer apart. `push` takes an
- * arbitrary content fragment and returns the resolved deltas, holding back
- * a partial delimiter that straddles fragments; `flush` drains the tail at
- * stream end.
+ * Reasoning models that ride the chat wire inline are split here so the
+ * neutral contract keeps reasoning and answer apart. Two shapes are
+ * handled: explicit open/close tag pairs anywhere in the content, and the
+ * Ollama-compatible OpenAI shape where qwen3's chat template prefills the
+ * open tag, so the content simply *starts* in reasoning and ends at the
+ * close tag (`reasoningFirst`). `push` takes an arbitrary fragment and
+ * returns the resolved deltas, holding back a partial delimiter that
+ * straddles fragments; `flush` drains the tail at stream end.
  */
-function createThinkingSplitter() {
-    let inThinking = false;
+function createThinkingSplitter({ reasoningFirst = false } = {}) {
+    let inThinking = reasoningFirst;
+    let sawTag = false;
     let held = '';
+    const tags = () => (
+        inThinking
+            ? (reasoningFirst ? [...THINK_CLOSE_TAGS, ...THINK_OPEN_TAGS] : THINK_CLOSE_TAGS)
+            : THINK_OPEN_TAGS
+    );
+    // Earliest match wins; at the same index the longer tag wins so no
+    // suffix of it leaks into the text.
+    const find = () => {
+        let best = null;
+        for (const tag of tags()) {
+            const index = held.indexOf(tag);
+            if (index < 0) continue;
+            if (!best || index < best.index || (index === best.index && tag.length > best.tag.length)) best = { index, tag };
+        }
+        return best;
+    };
     return {
         push(fragment) {
             held += fragment;
             const events = [];
             for (;;) {
-                const marker = inThinking ? THINK_CLOSE : THINK_OPEN;
-                const index = held.indexOf(marker);
-                if (index >= 0) {
-                    if (index) events.push({ type: inThinking ? 'thinking' : 'text', text: held.slice(0, index) });
-                    held = held.slice(index + marker.length);
-                    inThinking = !inThinking;
+                const match = find();
+                if (match) {
+                    if (match.index) events.push({ type: inThinking ? 'thinking' : 'text', text: held.slice(0, match.index) });
+                    held = held.slice(match.index + match.tag.length);
+                    // In reasoning-first mode an open tag while already
+                    // thinking is the prefill made explicit: consume it
+                    // without leaving the mode.
+                    if (!(inThinking && THINK_OPEN_TAGS.includes(match.tag))) inThinking = !inThinking;
+                    sawTag = true;
                     continue;
                 }
                 let hold = 0;
-                for (let length = Math.min(held.length, marker.length - 1); length > 0; length--) {
-                    if (held.endsWith(marker.slice(0, length))) { hold = length; break; }
+                for (const tag of tags()) {
+                    for (let length = Math.min(held.length, tag.length - 1); length > hold; length--) {
+                        if (held.endsWith(tag.slice(0, length))) { hold = length; break; }
+                    }
                 }
                 const text = held.slice(0, held.length - hold);
                 if (text) events.push({ type: inThinking ? 'thinking' : 'text', text });
@@ -475,30 +499,29 @@ function createThinkingSplitter() {
             const events = held ? [{ type: inThinking ? 'thinking' : 'text', text: held }] : [];
             held = '';
             return events;
-        }
+        },
+        // A reasoning-first stream that never met a tag carried a plain
+        // answer all along (a no-think model behind the same endpoint):
+        // the reader moves the accumulated reasoning into the answer.
+        get reclassify() { return reasoningFirst && !sawTag; }
     };
 }
 
 /** Splits a whole completion body into its reasoning and answer halves. */
-function splitThinking(content) {
-    const splitter = createThinkingSplitter();
+function splitThinking(content, { reasoningFirst = false } = {}) {
+    const splitter = createThinkingSplitter({ reasoningFirst });
     let thinking = '';
     let answer = '';
     for (const event of [...splitter.push(content || ''), ...splitter.flush()]) {
         if (event.type === 'thinking') thinking += event.text;
         else answer += event.text;
     }
+    if (splitter.reclassify && thinking) return { content: thinking, thinking: '' };
     return { content: answer, thinking };
 }
 
-/**
- * The neutral assistant message: `content` (the answer), `thinking`
- * (reasoning, empty for models that emit none), and structured tool calls.
- * Provider-supplied reasoning (Ollama `thinking`, OpenAI
- * `reasoning_content`) is kept ahead of any inline tags.
- */
-function neutralMessage({ content = '', reasoning = '', toolCalls = [] }) {
-    const split = splitThinking(content);
+function neutralMessage({ content = '', reasoning = '', toolCalls = [], reasoningFirst = false }) {
+    const split = splitThinking(content, { reasoningFirst });
     return {
         content: split.content,
         thinking: reasoning ? `${reasoning}${split.thinking}` : split.thinking,
@@ -506,7 +529,19 @@ function neutralMessage({ content = '', reasoning = '', toolCalls = [] }) {
     };
 }
 
-function wireResponseToNeutral(provider, payload) {
+// Ollama-compatible OpenAI shapes run qwen3-class reasoning models with
+// the open think tag prefilled by the chat template: content starts in
+// reasoning and ends at the close tag. Answer-first models behind the
+// same dialect keep live text deltas; the end-of-stream reconcile in the
+// agent runtime still corrects a mislabel.
+const REASONING_FIRST_MODEL = /(?:^|[^a-z0-9])(qwen3|qwq|deepseek-r1)(?![a-z0-9])/i;
+const reasoningFirstContent = (config) => (
+    config?.provider === 'openai' && REASONING_FIRST_MODEL.test(String(config?.model || ''))
+);
+
+function wireResponseToNeutral(config, payload) {
+    const provider = config.provider;
+    const reasoningFirst = reasoningFirstContent(config);
     if (provider === 'ollama') {
         const message = payload?.message || {};
         return neutralMessage({
@@ -539,6 +574,7 @@ function wireResponseToNeutral(provider, payload) {
     return neutralMessage({
         content: typeof message?.content === 'string' ? message.content : '',
         reasoning: typeof message?.reasoning_content === 'string' ? message.reasoning_content : '',
+        reasoningFirst,
         toolCalls: (message?.tool_calls || []).map((call) => ({
             id: call.id,
             name: call.function?.name || '',
@@ -675,7 +711,7 @@ export async function chatCompletion({ organizationId = null, capability = CHAT_
     try {
         const payload = await response.json().catch(() => null);
         if (!payload) throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
-        return wireResponseToNeutral(config.provider, payload);
+        return wireResponseToNeutral(config, payload);
     } finally {
         release();
     }
@@ -730,8 +766,8 @@ function sseData(line) {
  * provider-supplied reasoning, `end` drains the tail. Each returns the
  * deltas to yield.
  */
-function streamAccumulator() {
-    const splitter = createThinkingSplitter();
+function streamAccumulator({ reasoningFirst = false } = {}) {
+    const splitter = createThinkingSplitter({ reasoningFirst });
     const totals = { content: '', thinking: '' };
     const collect = (events) => {
         for (const event of events) totals[event.type === 'thinking' ? 'thinking' : 'content'] += event.text;
@@ -744,7 +780,14 @@ function streamAccumulator() {
             totals.thinking += text;
             return [{ type: 'thinking', text }];
         },
-        end: () => collect(splitter.flush())
+        end: () => {
+            const events = collect(splitter.flush());
+            if (splitter.reclassify && totals.thinking) {
+                totals.content = totals.thinking + totals.content;
+                totals.thinking = '';
+            }
+            return events;
+        }
     };
 }
 
@@ -754,8 +797,8 @@ function streamAccumulator() {
  * fragments (OpenAI/Messages split `arguments` across events, Ollama sends
  * them whole), so every reader accumulates before parsing.
  */
-async function* streamOpenAI(response, keepAlive) {
-    const acc = streamAccumulator();
+async function* streamOpenAI(response, keepAlive, options = {}) {
+    const acc = streamAccumulator(options);
     const calls = [];
     for await (const line of readLines(response, keepAlive)) {
         const data = sseData(line);
@@ -785,8 +828,8 @@ async function* streamOpenAI(response, keepAlive) {
     };
 }
 
-async function* streamOllama(response, keepAlive) {
-    const acc = streamAccumulator();
+async function* streamOllama(response, keepAlive, options = {}) {
+    const acc = streamAccumulator(options);
     const toolCalls = [];
     for await (const line of readLines(response, keepAlive)) {
         const trimmed = line.trim();
@@ -808,8 +851,8 @@ async function* streamOllama(response, keepAlive) {
     return { content: acc.totals.content, thinking: acc.totals.thinking, toolCalls };
 }
 
-async function* streamAnthropic(response, keepAlive) {
-    const acc = streamAccumulator();
+async function* streamAnthropic(response, keepAlive, options = {}) {
+    const acc = streamAccumulator(options);
     const toolCalls = [];
     let openBlock = null;
     for await (const line of readLines(response, keepAlive)) {
@@ -857,7 +900,7 @@ export async function* streamChatCompletion({ organizationId = null, capability 
     );
     const reader = config.provider === 'ollama' ? streamOllama(response, keepAlive)
         : config.provider === 'anthropic' ? streamAnthropic(response, keepAlive)
-            : streamOpenAI(response, keepAlive);
+            : streamOpenAI(response, keepAlive, { reasoningFirst: reasoningFirstContent(config) });
     try {
         const iterator = reader[Symbol.asyncIterator]();
         let step = await iterator.next();

@@ -147,7 +147,24 @@ export async function subscribeBot(auth, body = {}) {
     // the same check that authorizes SSE topics and message reads.
     const context = await supportService.getConversationContextByKey(auth, conversationKey);
     if (context.kind === 'direct') {
-        throw createError({ statusCode: 400, message: 'Direct chats need no bot subscription' });
+        // Direct chats carry no membership, but the conversation is still a
+        // model execution point: a profile-only row (no wake rules — status
+        // transitions never fire there).
+        const participants = (context.participants || []).map(item => String(item));
+        if (!participants.includes(bot.id)) {
+            throw createError({ statusCode: 400, message: 'Bot is not a participant of this chat' });
+        }
+        if (wakeOn?.length) {
+            throw createError({ statusCode: 400, message: 'Direct chats carry no wake rules' });
+        }
+        await repository.upsertSubscription({
+            botUserId: bot.id,
+            conversationKey: context.conversationKey,
+            conversationKind: 'direct',
+            organizationId: context.organizationId || auth.organizationId,
+            profile
+        });
+        return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true, profile };
     }
     if (context.kind === 'group') {
         await supportService.addBotGroupParticipant(auth, context.groupId, botId);
@@ -306,9 +323,6 @@ export async function listBotContacts(auth, conversationKey = '') {
     const key = String(conversationKey || '').trim();
     if (key) {
         const context = await supportService.getConversationContextByKey(auth, key);
-        if (context.kind === 'direct') {
-            throw createError({ statusCode: 400, message: 'Direct chats need no bot subscription' });
-        }
         subscriptions = await repository.findSubscriptionsByConversation([context.conversationKey]);
     }
     const byBot = new Map(subscriptions.map(row => [String(row.botUserId), row]));

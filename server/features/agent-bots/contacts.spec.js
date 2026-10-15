@@ -124,7 +124,7 @@ describe('listBotContacts', () => {
         expect(result.contacts[1].assistant).toBe(false);
     });
 
-    it('decorates rows with the conversation subscription and refuses direct keys', async () => {
+    it('decorates rows with the conversation subscription and serves direct keys', async () => {
         mockedUsers.findUserByEmail.mockResolvedValue(botModel('bot-a', 'Assistant'));
         mockedUsers.list.mockResolvedValue([botModel('bot-a', 'Assistant')]);
         mockedSupport.getConversationContextByKey.mockResolvedValue({
@@ -139,8 +139,12 @@ describe('listBotContacts', () => {
             wakeOn: [{ type: 'queue', state: 'nested' }]
         });
 
-        mockedSupport.getConversationContextByKey.mockResolvedValue({ kind: 'direct' });
-        await expect(listBotContacts(AUTH, 'direct:a:b')).rejects.toMatchObject({ statusCode: 400 });
+        mockedSupport.getConversationContextByKey.mockResolvedValue({ kind: 'direct', conversationKey: 'direct:a:b' });
+        // Direct keys are the same execution point through a profile-only
+        // row: they decorate instead of rejecting (no membership semantics).
+        await expect(listBotContacts(AUTH, 'direct:a:b')).resolves.toMatchObject({
+            contacts: [{ id: 'bot-a', subscribed: true, wakeOn: [{ type: 'queue', state: 'nested' }] }]
+        });
     });
 });
 
@@ -182,6 +186,28 @@ describe('subscribeBot', () => {
             wakeOn: [{ type: 'queue', state: 'nested' }]
         }));
         expect(result.subscribed).toBe(true);
+    });
+
+    it('stores a profile-only row for a direct chat with its bot participant', async () => {
+        mockedUsers.getById.mockResolvedValue(botModel('bot-a', 'Assistant'));
+        mockedSupport.getConversationContextByKey.mockResolvedValue({
+            kind: 'direct', conversationKey: 'direct:user-human:bot-a', participants: ['user-human', 'bot-a']
+        });
+        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
+        const result = await subscribeBot(AUTH, {
+            botId: 'bot-a', conversationKey: 'direct:user-human:bot-a', profile: 'cloud-big'
+        });
+        expect(mockedSupport.addBotGroupParticipant).not.toHaveBeenCalled();
+        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
+            botUserId: 'bot-a',
+            conversationKey: 'direct:user-human:bot-a',
+            conversationKind: 'direct',
+            profile: 'cloud-big'
+        }));
+        expect(result.subscribed).toBe(true);
+        await expect(subscribeBot(AUTH, {
+            botId: 'bot-a', conversationKey: 'direct:user-human:bot-a', wakeOn: [{ type: 'queue', state: 'nested' }]
+        })).rejects.toMatchObject({ statusCode: 400 });
     });
 
     it('validates the conversation and rule model overrides', async () => {

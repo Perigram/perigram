@@ -1594,13 +1594,21 @@ const startCall = async () => {
 
 // The conversation is an execution point: when bots are subscribed here,
 // the room picks the model they run on — the same conversation profile the
-// bot sheet edits per bot, applied across the conversation's bots. Direct
-// chats have no subscription: the bot's own brain applies.
-const conversationBots = computed(() => (
-    ['group', 'instance'].includes(activeConversation.value?.conversationKind)
-        ? agentBots.contacts.filter(bot => bot.subscribed)
-        : []
-));
+// bot sheet edits per bot, applied across the conversation's bots. A
+// direct chat with a bot is the same point through a profile-only row
+// (no membership needed).
+const conversationBots = computed(() => {
+    const conversation = activeConversation.value;
+    if (!conversation) return [];
+    if (['group', 'instance'].includes(conversation.conversationKind)) {
+        return agentBots.contacts.filter(bot => bot.subscribed);
+    }
+    if (conversation.conversationKind === 'direct' && conversation.participant?.data?.bot) {
+        const participantId = participantUserId(conversation);
+        return agentBots.contacts.filter(bot => String(bot.id) === participantId);
+    }
+    return [];
+});
 const conversationProfile = computed(() => {
     const profiles = new Set(conversationBots.value.map(bot => bot.profile || ''))
     return profiles.size === 1 ? [...profiles][0] : ''
@@ -3050,12 +3058,9 @@ watch(
             nextTick().then(scrollToBottom)
         })
         loadConversation()
-        // Subscribed bots carry this conversation's model (the picker above
-        // the composer); direct chats have no subscription — the bot's own
-        // brain applies.
-        if (['group', 'instance'].includes(activeConversation.value?.conversationKind)) {
-            agentBots.fetchContacts(key)
-        }
+        // Bot contacts carry this conversation's model rows (the picker
+        // above the composer), for subscribed rooms and direct bot chats.
+        agentBots.fetchContacts(key)
     }
 )
 

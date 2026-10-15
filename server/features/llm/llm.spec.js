@@ -240,10 +240,10 @@ function streamResponse(chunks) {
     };
 }
 
-async function streamRound(provider, chunks, messages = []) {
+async function streamRound(provider, chunks, messages = [], model = 'model-x') {
     process.env.LLM_PROVIDER = provider;
     process.env.LLM_BASE_URL = 'http://llm.internal';
-    process.env.LLM_MODEL = 'model-x';
+    process.env.LLM_MODEL = model;
     fetchMock.mockResolvedValueOnce(streamResponse(chunks));
     const deltas = [];
     const thinkingDeltas = [];
@@ -325,6 +325,31 @@ describe('streamChatCompletion', () => {
         expect(thinkingDeltas).toEqual(['plan A']);
         expect(deltas).toEqual(['Answer']);
         expect(message).toEqual({ type: 'message', content: 'Answer', thinking: 'plan A', toolCalls: [] });
+    });
+
+    it('splits a reasoning-first stream that carries no open tag (Ollama-prefilled qwen3)', async () => {
+        const close = '\u003c/think\u003e';
+        const raw = [
+            'data: {"choices":[{"delta":{"content":"Okay, pla"}}]}\n\n',
+            `data: {"choices":[{"delta":{"content":"n A${close}Answer"}}]}\n\n`,
+            'data: [DONE]\n\n'
+        ].join('');
+        const { deltas, thinkingDeltas, message } = await streamRound('openai', [raw], [], 'qwen3:4b');
+        expect(thinkingDeltas.join('')).toBe('Okay, plan A');
+        expect(deltas).toEqual(['Answer']);
+        expect(message).toEqual({ type: 'message', content: 'Answer', thinking: 'Okay, plan A', toolCalls: [] });
+    });
+
+    it('reclassifies a tagless reasoning-first stream as a plain answer', async () => {
+        const raw = [
+            'data: {"choices":[{"delta":{"content":"Just an "}}]}\n\n',
+            'data: {"choices":[{"delta":{"content":"answer"}}]}\n\n',
+            'data: [DONE]\n\n'
+        ].join('');
+        const { deltas, thinkingDeltas, message } = await streamRound('openai', [raw], [], 'qwen3:4b');
+        expect(thinkingDeltas.join('')).toBe('Just an answer');
+        expect(deltas).toEqual([]);
+        expect(message).toEqual({ type: 'message', content: 'Just an answer', thinking: '', toolCalls: [] });
     });
 
     it('keeps provider reasoning ahead of inline tags and strips them from the answer', async () => {

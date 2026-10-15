@@ -112,6 +112,14 @@ describe('resolveTargetBots', () => {
         expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, BOT_A] }, message)).toEqual([{ botUserId: BOT_A, profile: '' }]);
     });
 
+    it('resolves a direct chat profile from its profile-only subscription row', async () => {
+        mockedBotsService.isBotUser.mockImplementation(async (userId) => userId === BOT_A);
+        mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: BOT_A, profile: 'cloud-big' }]);
+        const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, BOT_A] };
+        expect(await resolveTargetBots({ kind: 'direct', conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, BOT_A] }, message))
+            .toEqual([{ botUserId: BOT_A, profile: 'cloud-big' }]);
+    });
+
     it('stays silent when both direct participants are bots', async () => {
         mockedBotsService.isBotUser.mockResolvedValue(true);
         const message = { sender: 'user', senderUserId: BOT_A, participants: [BOT_A, BOT_B] };
