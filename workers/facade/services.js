@@ -8,6 +8,7 @@
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from './vendor/dxf-extractor.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
 import { OCCS_LAYER_CUT_OUTER } from './occs/layers.js';
+import { occsLayerExportName, occsLayerStandard } from './occs/layerStandards.js';
 import { isOccsDocument } from './occs/parameters.js';
 import { evaluateOccsCassetteTemplate } from './occs/evaluate.js';
 import {
@@ -148,11 +149,17 @@ export async function importCassette({ artifact = {}, name, layerMapping = {} } 
 }
 
 // The sheet-design DXF export: the stored geometry preview and layer data
-// as a layered DXF. Input: { data: { geometry }, specs? }. Output: { dxf }.
+// as a layered DXF — layers carry their production names from the layer
+// standards (never bare codes). Input: { data: { geometry }, specs? }.
+// Output: { dxf }.
 export async function generateSheetDxf({ data = {} } = {}) {
+  const toExportLayer = (layer) => (layer && occsLayerStandard(layer) ? occsLayerExportName(layer) : layer);
   const dxf = generateLayeredDxf({
     layers: data.geometry?.preview?.layers || [],
-    layerData: data.geometry?.data?.layerData || [],
+    layerData: (data.geometry?.data?.layerData || []).map(item => ({
+      ...item,
+      layer: toExportLayer(item.layer || item.standardCode || item.name)
+    })),
     polygonParts: data.geometry?.data?.polygonParts || []
   });
   if (!dxf) {
