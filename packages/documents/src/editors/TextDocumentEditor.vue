@@ -219,7 +219,16 @@ onMounted(async () => {
   // keyed by node name. The serializer/parser slices resolve lazily
   // through the plugin factory's ctx — not ready at SchemaReady time,
   // long before the first edit.
-  crepe.editor.use($prose(ctx => new Plugin({
+  // DISABLED: a nested editable inside ProseMirror's editable root
+  // loses the selection tug-of-war (PM's document-level selection
+  // handling resets the DOM selection into its root, so keystrokes
+  // split between the overlay and the hidden rendered content —
+  // doubled characters, vanished blocks). The next attempt portals
+  // the overlay OUTSIDE the editor DOM, positioned over its block.
+  // The seam itself (serialize/parse) is proven healthy live.
+  const liveSourceOverlays = false;
+  if (liveSourceOverlays) {
+    crepe.editor.use($prose(ctx => new Plugin({
       props: {
         nodeViews: {
           paragraph: createSourceEditingView({
@@ -237,6 +246,7 @@ onMounted(async () => {
         }
       }
     })));
+  }
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes
     // are edits — a programmatic remote reload is reconciliation, not
