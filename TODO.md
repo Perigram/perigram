@@ -2195,6 +2195,58 @@ Still open on this task: closed profiles' production effect (dedicated
 standard layer + intersection detection, owner answer 2026-10-15) and
 the nesting-redraw naming path beyond the DXF export.
 
+### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
+
+Owner report: profiles (hangers) on the cassette section layer do
+nothing, the old standard's layers are missing, edges with arranged
+profiles show no +, only rare array setups work, and the sketch editor
+round (escape selection, unparametrizable fillets) persists.
+
+Findings and fixes on `agent/profile-array-fix-20261015`:
+
+- End-bound arrays always refused with count ≥ 2: the overlap validation
+  assumes ascending copy order while `edgeArrayDistances` returns
+  descending distances for the end binding. `embedOccsProfileEdge` now
+  sorts copy starts ascending — the binding places the array, never the
+  walk direction. This was the real "only rare array setups work" core:
+  any attachment snapped to End (a natural choice for hangers) with more
+  than one copy refused.
+- Refusals were SILENT in the designer: a refused embedding drew nothing
+  and no surface said why. The drawing now carries
+  `profileEmbeddingErrors` and the attachment row shows a refused status
+  with the reason as its tooltip.
+- The layer panel still mixed bare codes with production names: the
+  round-2 rename covered assembly/hardware/mark layers but not the core
+  face/cut/fold/dimension layers from `buildOccsDrawingFromFaceCurves`
+  (the default workpiece mode). All standard drawing layers now name
+  through `occsLayerExportName`; the designer-only `designer.section`
+  shows its localized label (en "Section" / ru «Сечение»). Closed
+  profiles' production effect remains the open item above — their section
+  previews are display-only today, which is why hangers on the section
+  layer appear to "do nothing".
+- Fillets: a radius larger than the corner's adjacent segments allow
+  emitted a geometrically inconsistent arc (trim clamped, center/radius
+  not) that rendered wrong and no longer extracted back as a fillet —
+  the authored radius then died to chord flattening ("weird fillets that
+  can't be parametrized"). The emitted arc is now derived from the
+  trimmed tangent points (largest fillet that fits) and round-trips.
+- Escape in the sketch editor early-returned while focus sat in an
+  authoring field (parameter/fillet input), leaving the engine's command
+  and selection untouched. Escape now routes from any focus.
+- The + affordance on edges with arranged profiles re-verified over the
+  live executor modules (open and closed profiles, workpiece and
+  attachment-selected modes): designerEdges carry + on all four edges in
+  every combination. The plugin serves the fixed module (curl-verified);
+  a long-lived SPA tab keeps the previously imported module in its module
+  map regardless of no-store — a full page reload is required after a
+  plugin surface deploy before re-testing.
+
+Validation: facade suites 100/100 (new pins: end-bound arrays, refused
+embedding on the drawing, oversized fillet clamp, layer export names),
+shared layer-standards pin 3/3, check-arch green. Live-app browser probe
+of the designer could not run — the E2E org stations no cassette screen;
+the owner-org verification stays with the owner.
+
 ### Agent Notes (2026-10-15, owner review round 2 — + affordance, arrays, layer names)
 
 - The "+" face-grow affordance vanished on EVERY edge while arranging
