@@ -154,13 +154,23 @@ TODO.md; no overlay ships.
 
 **Theming.** The stylesheet is a bridge, not a skin
 (`src/editors/text-document-editor.css`): crepe's variables map to the
-app's tokens (fonts, colors; controls inside fenced blocks speak the
-UI voice through a variable scope), the document reads in the prose
-voice on a readable measure (~72ch) centered in the pane, and the
-slash menu carries the host's semantic utilities. No element-level
-chrome exists on this surface — the visual ownership contract
+app's tokens (fonts, colors, shadows; fenced code blocks inherit the UI
+voice for their controls and declare the mono voice for their content),
+the document reads in the prose voice on a readable measure (~72ch)
+centered in the pane, and the slash menu carries the host's semantic
+utilities. No element-level chrome exists on this surface — the visual
+ownership contract
 ([docs/UI_COMPONENT_AUDIT.md](../../docs/UI_COMPONENT_AUDIT.md))
 governs it.
+
+**Code syntax.** Fenced blocks highlight through CodeMirror's own
+pipeline (`src/editors/cm-theme.js`); the token classes take the app's
+categorical hues — the entity tones for keywords, strings, and named
+entities, the quantity signal for literals, muted ink for comments — so
+the red accent and danger status stay reserved for errors. A block's
+language comes from crepe's picker (the toolbar and slash commands open
+a block with none, which highlights nothing until a language is
+chosen).
 
 **Sync.** Saves and renames publish the shared instance event through
 the persistence base, and open editors reconcile remote saves through

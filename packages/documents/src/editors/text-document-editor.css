@@ -13,7 +13,7 @@
   --crepe-color-on-surface: var(--ck-chrome-foreground);
   --crepe-color-on-surface-variant: var(--ck-chrome-muted);
   --crepe-color-outline: var(--ck-chrome-border);
-  --crepe-color-primary: var(--ck-accent-500, var(--ck-primary-300));
+  --crepe-color-primary: var(--p-primary-color);
   --crepe-color-secondary: var(--ck-chrome-subtle);
   --crepe-color-on-secondary: var(--ck-chrome-foreground);
   --crepe-color-inverse: var(--ck-chrome-foreground);
@@ -28,11 +28,17 @@
   --crepe-font-title: var(--ck-font-serif);
   --crepe-font-default: var(--ck-font-serif);
   --crepe-font-code: var(--ck-font-mono);
+
+  --crepe-shadow-1: var(--p-overlay-popover-shadow);
+  --crepe-shadow-2: var(--p-overlay-popover-shadow);
 }
 
-/* Controls inside fenced blocks speak the UI voice, not the document's
-   serif — a variable scope, not an element skin. */
+/* The code block's control region speaks the UI voice: the font is
+   inherited by crepe's block UI (language list, panels) that declares
+   none of its own, while the code content declares the mono voice in
+   the CodeMirror theme. */
 .crepe-host .milkdown .milkdown-code-block {
+  font-family: var(--ck-font-ui);
   --crepe-font-default: var(--ck-font-ui);
 }
 
