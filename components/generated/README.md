@@ -19,7 +19,7 @@ return to where the user came from. Instance opens emit
 navigates to the compiler-paired detail screen, panes and mobile map it
 to their own open seams.
 
-Every organization management surface — team, partners, billing, the
+Every organization management surface — team, bots, partners, billing, the
 plugin marketplace, and the process designer canvas — is a registered
 workspace page in `workspace-pages.js` carrying its `route`; the generated
 overview's system-screen buttons open them as home pane tabs through the
