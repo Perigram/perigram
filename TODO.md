@@ -1,5 +1,31 @@
 # TODO
 
+## Per-bot model override (owner direction 2026-10-15)
+
+One org-wide chat route left every bot thinking with the same brain;
+bots differ by job, so they differ by model.
+
+- [x] A. Resolution precedence: explicit profile (the bot's declared
+      brain) → exact capability route → chat family → env; non-chat or
+      stale explicit ids degrade to the route chain.
+- [x] B. Bot record: `data.bot.profile` (chat profile id or unset);
+      `PATCH /api/agent-bots/:id/profile` with validation against the org
+      model table.
+- [x] C. Runtime passes the bot's profile to the llm seam (replies and
+      wakes); `buildBotAuth` carries it on the auth context.
+- [x] D. Bots page: per-row model select (org chat route default).
+- [x] E. Specs: precedence, degradation, set validation, runtime pass-through.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/bot-profile-override-20261015`. The sanitized bot
+marker in user DTOs now carries the profile id beside createdAt (the
+token hash stays stripped). Meetings keeps the `chat.summaries` route —
+its posting bot identity is cosmetic there, not the thinker. Specs:
+precedence + degradation (3), chatProfileIds, setBotProfile (2), runtime
+profileId pass-through.
+
+
 ## Model profiles with capability routing (owner direction 2026-10-15)
 
 One org-wide provider was slop: models live on different endpoints per

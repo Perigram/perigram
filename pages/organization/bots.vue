@@ -105,6 +105,24 @@
             </div>
           </template>
         </Column>
+        <Column :header="$t('llm.profile')">
+          <template #body="{ data }">
+            <!-- The bot's declared brain: a chat profile, or the org's chat
+                 route when unset. -->
+            <Select
+              :model-value="data.profile || ''"
+              :options="botProfileOptions"
+              option-label="label"
+              option-value="value"
+              :aria-label="$t('llm.profile')"
+              class="w-56"
+              :loading="savingProfileId === data.id"
+              :disabled="savingProfileId === data.id"
+              :data-testid="`bot-profile-${data.id}`"
+              @update:model-value="value => setBotProfile(data, value)"
+            />
+          </template>
+        </Column>
         <Column field="createdAt" :header="$t('common.created')">
           <template #body="{ data }">
             {{ formatDate(data.createdAt) }}
@@ -302,6 +320,10 @@ const chatRouteOptions = computed(() => ([
     { label: t('llm.envDefault'), value: '' },
     ...profiles.value.filter(profile => profile.kind === 'chat').map(profile => ({ label: profile.id, value: profile.id }))
 ]));
+const botProfileOptions = computed(() => ([
+    { label: t('llm.chatRouteDefault'), value: '' },
+    ...profiles.value.filter(profile => profile.kind === 'chat').map(profile => ({ label: profile.id, value: profile.id }))
+]));
 
 const canManage = computed(() => agentBots.canManageBots);
 // The page is mounted both as a standalone route and as a home pane tab:
@@ -391,6 +413,24 @@ async function saveSettings() {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
     } finally {
         savingProvider.value = false;
+    }
+}
+
+const savingProfileId = ref('');
+
+async function setBotProfile(bot, profile) {
+    savingProfileId.value = bot.id;
+    try {
+        await $fetch(`/api/agent-bots/${bot.id}/profile`, {
+            method: 'PATCH',
+            body: { profile: profile || '' }
+        });
+        bots.value = bots.value.map(row => (row.id === bot.id ? { ...row, profile: profile || '' } : row));
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+        await refresh();
+    } finally {
+        savingProfileId.value = '';
     }
 }
 

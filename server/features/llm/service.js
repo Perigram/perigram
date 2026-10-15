@@ -84,10 +84,19 @@ const CHAT_CAPABILITY = 'chat';
  * default, then the environment default (an unrouted org runs on env).
  * Chat-kind profiles only — an image endpoint never serves a conversation.
  */
-export async function resolveLlmConfig(organizationId = null, capability = CHAT_CAPABILITY) {
+export async function resolveLlmConfig(organizationId = null, capability = CHAT_CAPABILITY, { profileId = '' } = {}) {
     const setting = await orgLlmSetting(organizationId);
-    const routes = setting?.routes && typeof setting.routes === 'object' ? setting.routes : {};
     const profiles = setting?.profiles && typeof setting.profiles === 'object' ? setting.profiles : {};
+    // An explicit profile (a bot's declared brain) wins before any route;
+    // only chat-kind profiles serve conversations, everything else falls
+    // through to the route chain so a stale reference degrades to the
+    // org default instead of breaking the bot.
+    const explicitId = String(profileId || '').trim();
+    if (explicitId && profiles[explicitId]?.kind === 'chat') {
+        const config = profileWireConfig(profiles[explicitId]);
+        if (config.provider !== 'none') return config;
+    }
+    const routes = setting?.routes && typeof setting.routes === 'object' ? setting.routes : {};
     const family = String(capability || CHAT_CAPABILITY).split('.')[0];
     const routedId = routes[capability] ?? routes[family] ?? routes[CHAT_CAPABILITY] ?? null;
     const profile = routedId ? profiles[routedId] : null;
@@ -98,8 +107,17 @@ export async function resolveLlmConfig(organizationId = null, capability = CHAT_
     return envWireConfig();
 }
 
-export async function isLlmAvailable(organizationId = null, capability = CHAT_CAPABILITY) {
-    return (await resolveLlmConfig(organizationId, capability)).provider !== 'none';
+/** The org's chat-kind profile ids — bot model-override validation. */
+export async function chatProfileIds(organizationId = null) {
+    const setting = await orgLlmSetting(organizationId);
+    const profiles = setting?.profiles && typeof setting.profiles === 'object' ? setting.profiles : {};
+    return Object.entries(profiles)
+        .filter(([, profile]) => profile?.kind === 'chat')
+        .map(([id]) => String(id));
+}
+
+export async function isLlmAvailable(organizationId = null, capability = CHAT_CAPABILITY, options = {}) {
+    return (await resolveLlmConfig(organizationId, capability, options)).provider !== 'none';
 }
 
 const PROFILE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,39}$/;
@@ -423,8 +441,8 @@ function wireEndpoint(provider, baseUrl) {
  * 502 when the endpoint is unreachable, answers non-2xx, or returns no
  * completion. The agent loop that owns rounds lives with the consumer.
  */
-export async function chatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, system = '', messages = [], tools = [] }) {
-    const config = await resolveLlmConfig(organizationId, capability);
+export async function chatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', system = '', messages = [], tools = [] }) {
+    const config = await resolveLlmConfig(organizationId, capability, { profileId });
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
     }

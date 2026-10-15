@@ -61,7 +61,8 @@ instances through the same tool catalog, with validate-before-activate and
 the migration/type-death gates as explicit steps. Bot brains run on the
 organization's named model profiles — local or cloud, per capability
 (chat, call summaries, and image endpoints when an image capability
-ships) — never a defaulted cloud endpoint.
+ships) — never a defaulted cloud endpoint. Any bot may declare the
+profile it thinks with; the org's chat route is the default brain.
 
 Lifecycle wakes: a bot subscribed to a conversation may be woken by status
 transitions — assignment-side wake rules on the subscription (type +

@@ -4,6 +4,7 @@ import * as supportService from '~/server/features/support/service.js';
 import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
+import * as llmService from '~/server/features/llm/service.js';
 import * as repository from './repository.js';
 
 /**
@@ -27,7 +28,8 @@ function botDTO(user) {
         id: dto._id ?? dto.id,
         name: dto.identity?.name || '',
         avatarUrl: dto.data?.avatarUrl || null,
-        createdAt: dto.data?.bot?.createdAt || null
+        createdAt: dto.data?.bot?.createdAt || null,
+        profile: dto.data?.bot?.profile || ''
     };
 }
 
@@ -58,6 +60,27 @@ export async function deleteBot(auth, botId = '') {
     await repository.removeSubscriptionsByBot(bot.id);
     await usersService.remove(bot.id, auth);
     return { deleted: true };
+}
+
+/**
+ * A bot's model override: a chat-kind profile id from the org's model
+ * table, or empty for the org's chat route. A stale id (profile since
+ * deleted) is accepted — resolution degrades to the route chain — but a
+ * nonexistent or image-kind id is refused here.
+ */
+export async function setBotProfile(auth, botId = '', profile = '') {
+    assertBotManager(auth);
+    const bot = await usersService.getById(botId);
+    if (!bot?.data?.bot) throw createError({ statusCode: 404, message: 'Bot not found' });
+    const target = String(profile || '').trim();
+    if (target) {
+        const allowed = await llmService.chatProfileIds(auth.organizationId);
+        if (!allowed.includes(target)) {
+            throw createError({ statusCode: 400, message: `Unknown chat profile: ${target}` });
+        }
+    }
+    await usersService.updateBotProfile(bot.id, target);
+    return { id: bot.id, profile: target };
 }
 
 export async function rotateBotToken(auth, botId = '') {
@@ -172,6 +195,9 @@ export async function buildBotAuth(botUserId) {
     const bot = await usersService.getById(botUserId);
     if (!bot?.data?.bot) throw createError({ statusCode: 404, message: 'Bot not found' });
     const authContext = usersService.buildAuthContext(bot);
+    // The bot's declared brain (a chat profile id): the runtime passes it
+    // to the llm seam as an explicit profile override.
+    authContext.botProfile = bot.data.bot.profile || '';
     if (bot.organizationId) {
         const org = await organizationsRepository.findById(bot.organizationId);
         if (org) {

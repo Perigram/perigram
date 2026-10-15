@@ -8,7 +8,8 @@ Routes are grouped into sub-directories corresponding to features:
 - `agent-bots/`: Authenticated bot administration and conversation
   membership (`GET/POST /api/agent-bots` — the listing takes
   `?conversationKey=` and returns subscription flags and wake rules;
-  `DELETE /api/agent-bots/:id`; `POST /api/agent-bots/:id/token` rotation)
+  `DELETE /api/agent-bots/:id`; `POST /api/agent-bots/:id/token` rotation;
+  `PATCH /api/agent-bots/:id/profile` for the bot's model override)
   plus `POST/DELETE /api/agent-bots/subscriptions` (the body carries
   optional `wakeOn` lifecycle wake rules) and the member-visible
   `GET /api/agent-bots/contacts` (org bots with the ensured assistant,
