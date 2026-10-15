@@ -2493,6 +2493,41 @@ in the folded payload (array placement, holes, sweep, no diagnostics
 noise). check-arch + check-docs green. The `perigram-plugin surfaces`
 guard still fails identically on the clean tree (pre-existing).
 
+### Agent Notes (2026-10-15, owner review round 7 — DXF editor expressions)
+
+Owner report: "Expressions break in dxf profile editor." Reproduced in
+a real-browser harness over the vendored engine with the repo's own
+fixtures (public/diamond.dxf).
+
+Two stacked defects on `agent/dxf-adopt-20261015`:
+
+- The import raced itself: `documentActivated` scheduled an extraction
+  that read the model space mid-transition (empty), and
+  `mergeOccsProfileSketchGeometry(empty, authored)` is the authored
+  sketch REPLACED by nothing — the model wiped; the import's explicit
+  extraction then merged against the wiped model, so every binding
+  landed numeric. Document activation now binds the listeners without
+  scheduling; the import's own extraction is the one that lands.
+- Binding an expression over existing geometry diverged by
+  construction: typing `W` into a corner stored the formula whose
+  evaluation (the parameter's value) sat nowhere near the imported
+  coordinate — with an empty table the evaluation threw (blank canvas
+  until the parameter existed), with a wrong-valued parameter the
+  corner teleported on the next reseed, and either way the next
+  extraction killed the binding (evaluation ≠ geometry). Adopt-on-bind:
+  a single unknown identifier authored into a field creates the
+  parameter with the field's current evaluated value
+  (`adoptOccsProfileBindingParameter`, occs/profiles.js) — no jump, no
+  blank canvas, and the merge keeps the binding forever.
+
+Verified live: import → bind `W` on an imported corner → `W` adopted at
+the corner's value, canvas intact; re-import the same file → the
+binding survives (`p8.x === 'W'`, ids stable); `W=30` → the parameter
+drives the sketch. Zero page errors. Facade suites 107/107 (new pin:
+the adopt law — unknown identifier adopts, existing parameters and
+compound expressions pass through, non-finite adopts nothing).
+
+
 
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
