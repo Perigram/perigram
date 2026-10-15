@@ -35,8 +35,10 @@ test.describe('markdown editor repair', () => {
     await app.seedSpeciesProcess({ types: ['text-document'] });
 
     await app.gotoClient('/screens/auto_text-document');
-    const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
-    await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
+    // The list's presentation follows its records (empty table, card
+    // gallery with preview bands once records exist) — settle on the
+    // screen title, which every presentation carries.
+    await expect(app.page.locator('main').getByRole('heading', { name: 'Text document' })).toBeVisible({ timeout: 20000 });
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
     const source = app.page.locator('.ProseMirror');
     for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
@@ -82,8 +84,10 @@ test.describe('markdown editor repair', () => {
     await app.seedSpeciesProcess({ types: ['text-document'] });
 
     await app.gotoClient('/screens/auto_text-document');
-    const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
-    await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
+    // The list's presentation follows its records (empty table, card
+    // gallery with preview bands once records exist) — settle on the
+    // screen title, which every presentation carries.
+    await expect(app.page.locator('main').getByRole('heading', { name: 'Text document' })).toBeVisible({ timeout: 20000 });
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
     const source = app.page.locator('.ProseMirror');
     for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
@@ -168,8 +172,10 @@ test.describe('markdown editor repair', () => {
     await app.seedSpeciesProcess({ types: ['text-document'], via: { 'text-document': 'upload' } });
 
     await app.gotoClient('/screens/auto_text-document');
-    const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
-    await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
+    // The list's presentation follows its records (empty table, card
+    // gallery with preview bands once records exist) — settle on the
+    // screen title, which every presentation carries.
+    await expect(app.page.locator('main').getByRole('heading', { name: 'Text document' })).toBeVisible({ timeout: 20000 });
     // The org carries the pack's starter editor create beside the seeded
     // upload create (it composes after the stationer's, so it is the
     // last New button); the editor create opens a workspace pane, the
@@ -204,8 +210,10 @@ test.describe('markdown editor repair', () => {
     await app.seedSpeciesProcess({ types: ['csv-table'], via: { 'csv-table': 'content' } });
 
     await app.gotoClient('/screens/auto_csv-table');
-    const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
-    await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
+    // The list's presentation follows its records (empty table, card
+    // gallery with preview bands once records exist) — settle on the
+    // screen title, which every presentation carries.
+    await expect(app.page.locator('main').getByRole('heading', { name: 'CSV table' })).toBeVisible({ timeout: 20000 });
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
     const dialog = app.page.locator('.p-dialog');
     for (let attempt = 0; attempt < 4 && !(await dialog.isVisible()); attempt += 1) {
