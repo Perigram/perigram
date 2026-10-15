@@ -185,7 +185,14 @@ onMounted(async () => {
       [CrepeEditor.Feature.TopBar]: false,
       [CrepeEditor.Feature.LinkTooltip]: false,
       [CrepeEditor.Feature.Latex]: false,
-      [CrepeEditor.Feature.AI]: false
+      [CrepeEditor.Feature.AI]: false,
+      // Code-block chrome mounts a Vue app inside the document (a
+      // language-picker dropdown beside every fence); plain pre blocks
+      // carry the code. The virtual cursor overlays an animated caret
+      // beside the native one, and the placeholder coaches.
+      [CrepeEditor.Feature.CodeMirror]: false,
+      [CrepeEditor.Feature.Cursor]: false,
+      [CrepeEditor.Feature.Placeholder]: false
     }
   });
   // The live-source seam: the focused block shows its markdown markers

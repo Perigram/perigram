@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Schema } from '@milkdown/prose/model';
 import { EditorState, TextSelection } from '@milkdown/prose/state';
-import { focusedMarkerDescriptors, focusedMarkRuns, selectionState } from './source-markers.js';
+import { focusedMarkerDescriptors, selectionState } from './source-markers.js';
 
 // The live-source seam's pure half: marker descriptors and toolbar
 // state derive from ProseMirror state alone. The schema mirrors the
@@ -35,18 +35,7 @@ const t = (text, marks = []) => schema.text(text, marks.map(name => schema.marks
 const node = (name, attrs, ...content) => schema.nodes[name].createAndFill(attrs, content);
 
 describe('focused block markers', () => {
-  it('shows the heading prefix of the focused heading', () => {
-    const state = stateFrom(
-      () => node('doc', null,
-        node('heading', { level: 3 }, t('Title'))),
-      3
-    );
-    expect(focusedMarkerDescriptors(state)).toEqual([
-      { pos: 1, side: -1, text: '### ' }
-    ]);
-  });
-
-  it('shows the quote prefix inside a blockquote and combines it with a heading', () => {
+  it('shows the quote prefix inside a blockquote and nothing for a quoted heading', () => {
     const quoted = stateFrom(
       () => node('doc', null,
         node('blockquote', null, node('paragraph', null, t('Quoted')))),
@@ -62,43 +51,29 @@ describe('focused block markers', () => {
       3
     );
     expect(focusedMarkerDescriptors(quotedHeading)).toEqual([
-      { pos: 2, side: -1, text: '> ## ' }
+      { pos: 2, side: -1, text: '> ' }
     ]);
   });
 
-  it('renders no prefix for a plain focused paragraph', () => {
-    const state = stateFrom(
+  it('renders nothing for headings and paragraphs — no marker may reflow the line', () => {
+    const heading = stateFrom(
+      () => node('doc', null, node('heading', { level: 3 }, t('Title'))),
+      3
+    );
+    expect(focusedMarkerDescriptors(heading)).toEqual([]);
+
+    const marked = stateFrom(
+      () => node('doc', null,
+        node('paragraph', null, t('plain '), t('bold', ['strong']), t(' tail'))),
+      8
+    );
+    expect(focusedMarkerDescriptors(marked)).toEqual([]);
+
+    const plain = stateFrom(
       () => node('doc', null, node('paragraph', null, t('Plain'))),
       1
     );
-    expect(focusedMarkerDescriptors(state)).toEqual([]);
-  });
-});
-
-describe('focused inline mark runs', () => {
-  const boldDoc = () => node('doc', null,
-    node('paragraph', null, t('plain '), t('bold', ['strong']), t(' tail')));
-
-  it('shows the literal markers of the run the caret touches', () => {
-    const inside = stateFrom(boldDoc, 8); // inside "bold"
-    expect(focusedMarkerDescriptors(inside)).toEqual([
-      { pos: 7, side: -1, text: '**' },
-      { pos: 11, side: 1, text: '**' }
-    ]);
-  });
-
-  it('hides markers for runs the selection does not touch', () => {
-    const outside = stateFrom(boldDoc, 2); // inside "plain "
-    expect(focusedMarkerDescriptors(outside)).toEqual([]);
-  });
-
-  it('merges adjacent nodes carrying the same mark into one run', () => {
-    const split = () => node('doc', null,
-      node('paragraph', null, t('bo', ['strong']), t('ld', ['strong'])));
-    const state = stateFrom(split, 2);
-    expect(focusedMarkRuns(state)).toEqual([
-      { mark: 'strong', from: 1, to: 5 }
-    ]);
+    expect(focusedMarkerDescriptors(plain)).toEqual([]);
   });
 });
 

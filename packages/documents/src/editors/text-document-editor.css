@@ -33,11 +33,10 @@
 
 /* The editor is the document: it reads in the prose voice with a
    readable measure — the column caps at ~72 characters and centers in
-   the pane, so narrow panes keep their width (the surface padding is
-   the host's) and wide panes never stretch a line past its measure.
-   One bounded scroll inside the pane, breathing room at the end so the
-   last line escapes the toolbar overlap. */
-.milkdown .editor {
+   the pane. Host-prefixed so the rules outrank crepe's reset (its
+   stylesheet loads dynamically, always after this file — its own
+   .editor rule ships a 120px side padding that otherwise wins). */
+.crepe-host .milkdown .editor {
   max-width: min(100%, 72ch);
   margin-inline: auto;
   padding: 0.75rem 0.25rem 30vh;
