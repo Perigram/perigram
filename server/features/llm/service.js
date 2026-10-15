@@ -285,41 +285,57 @@ export async function listEndpointModels(auth = {}, { provider = '', baseUrl = '
         throw createError({ statusCode: 400, message: 'Provider must be ollama, anthropic, or openai' });
     }
     if (!resolvedBaseUrl) throw createError({ statusCode: 400, message: 'Base URL is required' });
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    let response;
-    try {
-        response = await fetch(modelsEndpoint(resolvedProvider, resolvedBaseUrl), {
-            method: 'GET',
-            headers: wireHeaders(resolvedProvider, resolvedApiKey || undefined)
-        });
-    } catch (error) {
-        throw createError({ statusCode: 502, message: 'Endpoint is unreachable' });
-    } finally {
-        clearTimeout(timeout);
+    // Dialects lie: an OpenAI-shaped router behind an "ollama" pick, a base
+    // URL that already ends in /v1, a minimal server with one listing
+    // route. Probe the candidate paths in order and accept either listing
+    // shape, so the picker fills instead of dead-ending on the first 404.
+    const attempts = [];
+    for (const url of listingCandidates(resolvedProvider, resolvedBaseUrl)) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: wireHeaders(resolvedProvider, resolvedApiKey || undefined),
+                signal: controller.signal
+            });
+            clearTimeout(timeout);
+            if (!response.ok) {
+                attempts.push(`${url}: ${response.status}`);
+                continue;
+            }
+            const payload = await response.json().catch(() => null);
+            const models = endpointModelIds(payload);
+            if (models.length) return { models, endpoint: url };
+            attempts.push(`${url}: empty`);
+        } catch (error) {
+            clearTimeout(timeout);
+            attempts.push(`${url}: unreachable`);
+        }
     }
-    if (!response.ok) {
-        const detail = (await response.text().catch(() => '')).trim().slice(0, 200);
-        throw createError({ statusCode: 502, message: detail ? `Endpoint error: ${detail}` : 'Endpoint error' });
-    }
-    const payload = await response.json().catch(() => null);
-    const models = endpointModelIds(resolvedProvider, payload);
-    return { models };
+    throw createError({
+        statusCode: 502,
+        message: `No model listing found (tried ${attempts.join('; ')})`
+    });
 }
 
-function modelsEndpoint(provider, baseUrl) {
-    const base = baseUrl.replace(/\/$/, '');
-    if (provider === 'ollama') return `${base}/api/tags`;
-    if (provider === 'anthropic') return `${base}/v1/models`;
-    return `${base}/models`;
+function listingCandidates(provider, baseUrl) {
+    const base = String(baseUrl || '').replace(/\/+$/, '');
+    if (provider === 'ollama') return [`${base}/api/tags`, `${base}/v1/models`];
+    if (provider === 'anthropic') return [`${base}/v1/models`];
+    return [`${base}/v1/models`, `${base}/models`];
 }
 
-function endpointModelIds(provider, payload) {
-    if (provider === 'ollama') {
-        return (Array.isArray(payload?.models) ? payload.models : [])
-            .map(model => String(model?.name || model?.model || '').trim())
-            .filter(Boolean);
-    }
+/**
+ * Either listing shape, whatever path served it: Ollama tags name their
+ * rows (`models[].name`), the OpenAI-shaped and Messages collections id
+ * them (`data[].id`).
+ */
+function endpointModelIds(payload) {
+    const fromTags = (Array.isArray(payload?.models) ? payload.models : [])
+        .map(model => String(model?.name || model?.model || '').trim())
+        .filter(Boolean);
+    if (fromTags.length) return fromTags;
     return (Array.isArray(payload?.data) ? payload.data : [])
         .map(model => String(model?.id || '').trim())
         .filter(Boolean);

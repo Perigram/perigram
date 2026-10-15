@@ -189,28 +189,60 @@ describe('saveLlmSettings', () => {
 });
 
 describe('listEndpointModels', () => {
-    it('maps each provider listing wire to model ids', async () => {
-        const wire = {
-            ollama: { models: [{ name: 'qwen3:8b' }, { name: 'glm-4.7' }] },
-            openai: { data: [{ id: 'm1' }, { id: 'm2' }] },
-            anthropic: { data: [{ id: 'glm-4.7' }] }
-        };
-        for (const provider of Object.keys(wire)) {
-            vi.stubGlobal('fetch', vi.fn(async (url, init) => ({
-                ok: true,
-                json: async () => wire[provider]
-            })));
+    it('maps either listing shape from whichever candidate path serves it', async () => {
+        const cases = [
+            { provider: 'ollama', wire: { models: [{ name: 'qwen3:8b' }, { name: 'glm-4.7' }] }, expect: ['qwen3:8b', 'glm-4.7'] },
+            { provider: 'openai', wire: { data: [{ id: 'm1' }, { id: 'm2' }] }, expect: ['m1', 'm2'] },
+            { provider: 'anthropic', wire: { data: [{ id: 'glm-4.7' }] }, expect: ['glm-4.7'] }
+        ];
+        for (const { provider, wire, expect: expected } of cases) {
+            vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => wire })));
             try {
                 const result = await listEndpointModels(AUTH, { provider, baseUrl: 'http://llm' });
-                expect(result.models).toEqual(provider === 'anthropic' ? ['glm-4.7'] : provider === 'ollama' ? ['qwen3:8b', 'glm-4.7'] : ['m1', 'm2']);
-                expect(fetch).toHaveBeenCalledTimes(1);
+                expect(result.models).toEqual(expected);
             } finally {
                 vi.unstubAllGlobals();
             }
         }
     });
 
-    it('hits provider listing endpoints with wire headers', async () => {
+    it('probes the next dialect path when the first has no route (ollama pick, OpenAI-shaped server)', async () => {
+        const calls = [];
+        const fetchMock = vi.fn(async (url) => {
+            calls.push(url);
+            if (url.endsWith('/api/tags')) {
+                return { ok: false, status: 404, text: async () => '{"error":{"message":"no route: GET /api/tags"}}' };
+            }
+            return { ok: true, json: async () => ({ data: [{ id: 'served-model' }] }) };
+        });
+        vi.stubGlobal('fetch', fetchMock);
+        try {
+            const result = await listEndpointModels(AUTH, { provider: 'ollama', baseUrl: 'http://router:4000' });
+            expect(calls).toEqual(['http://router:4000/api/tags', 'http://router:4000/v1/models']);
+            expect(result.models).toEqual(['served-model']);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('accepts a base URL that already carries the /v1 prefix', async () => {
+        const calls = [];
+        const fetchMock = vi.fn(async (url) => {
+            calls.push(url);
+            if (url.endsWith('/v1/v1/models')) return { ok: false, status: 404, text: async () => '' };
+            return { ok: true, json: async () => ({ data: [{ id: 'm' }] }) };
+        });
+        vi.stubGlobal('fetch', fetchMock);
+        try {
+            const result = await listEndpointModels(AUTH, { provider: 'openai', baseUrl: 'http://llm/v1' });
+            expect(calls).toEqual(['http://llm/v1/v1/models', 'http://llm/v1/models']);
+            expect(result.models).toEqual(['m']);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('hits the Messages listing with wire headers', async () => {
         const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: [{ id: 'x' }] }) }));
         vi.stubGlobal('fetch', fetchMock);
         try {
@@ -244,12 +276,13 @@ describe('listEndpointModels', () => {
         }
     });
 
-    it('refuses unknown providers and missing base URLs, reports unreachable endpoints', async () => {
+    it('refuses unknown providers and missing base URLs, reports exhausted probes', async () => {
         await expect(listEndpointModels(AUTH, { provider: 'gpt' })).rejects.toMatchObject({ statusCode: 400 });
         await expect(listEndpointModels(AUTH, { provider: 'ollama' })).rejects.toMatchObject({ statusCode: 400 });
         vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, text: async () => 'boom' })));
         try {
-            await expect(listEndpointModels(AUTH, { provider: 'ollama', baseUrl: 'http://llm' })).rejects.toMatchObject({ statusCode: 502 });
+            await expect(listEndpointModels(AUTH, { provider: 'ollama', baseUrl: 'http://llm' }))
+                .rejects.toMatchObject({ statusCode: 502, message: /api\/tags.*v1\/models/ });
         } finally {
             vi.unstubAllGlobals();
         }

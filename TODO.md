@@ -1,5 +1,26 @@
 # TODO
 
+## Model listing probes dialect paths (owner defect 2026-10-15)
+
+The picker dead-ended on OpenAI-shaped servers picked as Ollama
+("/api/tags" -> no route) and never populated the execution-point
+selects, which stay empty without saved chat profiles.
+
+- [x] Listing probes candidates (ollama: /api/tags then /v1/models;
+      openai-shaped: /v1/models then /models, /v1-carrying bases
+      accepted) and parses either shape; exhausted probes report every
+      attempt in the error.
+- [x] Specs: probe fallthrough, /v1 base, shape mapping, key borrowing,
+      exhausted error.
+
+#### Agent Notes (2026-10-15)
+
+The execution-point selects were present in the tree — they render empty
+while the org has no chat profiles, and the broken listing is what
+blocked profile creation. Completion traffic keeps its provider-canonical
+path (no probing on the hot path); only listing probes.
+
+
 ## Model pickers at execution points (owner direction 2026-10-15)
 
 Selection belongs where work runs — chat, wake rules — not only in org
