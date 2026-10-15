@@ -352,6 +352,30 @@ export default function createSurface({ vue, components, locale, queries, notify
         }
         return rows;
       });
+      // Only parameters the profile's sketch actually references drive
+      // its geometry — a numeric sketch (drawn or imported without
+      // bindings) has none, and its workpiece row shows no dead chips.
+      const profileBoundParameterKeys = (workpiece) => {
+        const sketch = workpiece.profileSnapshot?.sketch || workpiece.profile?.sketch;
+        if (!sketch) return new Set();
+        const used = new Set();
+        const collect = (value) => {
+          if (typeof value !== 'string') return;
+          try {
+            collectCassetteV2ExpressionIdentifiers(value).forEach(identifier => used.add(identifier));
+          } catch {
+            // Half-authored values surface at evaluation; nothing binds.
+          }
+        };
+        (sketch.points || []).forEach(point => { collect(point.x); collect(point.y); });
+        (sketch.holes || []).forEach(hole => {
+          (hole.center || []).forEach(collect);
+          collect(hole.diameter);
+        });
+        (sketch.modifiers || []).forEach(modifier => collect(modifier.radius));
+        Object.values(sketch.parameters || {}).forEach(collect);
+        return used;
+      };
       const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
         id: workpiece.id,
         label: workpiece.name || workpiece.id,
@@ -359,6 +383,9 @@ export default function createSurface({ vue, components, locale, queries, notify
         family: workpiece.family || workpiece.hardware?.family || '',
         productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
         parameters: workpiece.parameters || workpiece.hardware?.parameters || {},
+        boundParameterKeys: workpiece.type === 'profile' || workpiece.profileSnapshot || workpiece.profile
+          ? profileBoundParameterKeys(workpiece)
+          : null,
         isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
         isProfile: workpiece.type === 'profile' || Boolean(workpiece.profileSnapshot || workpiece.profile),
         parentCount: workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length,
@@ -2043,19 +2070,21 @@ export default function createSurface({ vue, components, locale, queries, notify
                 ]),
                 row.id === selectedWorkpieceId.value && row.isProfile
                   ? h('div', { class: 'mt-2 flex flex-wrap items-center gap-1 pl-4' },
-                    Object.entries(row.parameters || {}).map(([key, value]) => h('div', {
-                      key: `${row.id}-${key}`,
-                      class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
-                    }, [
-                      h('span', { class: 'font-mono text-xs text-muted-color' }, key),
-                      h(InputText, {
-                        modelValue: value === null || value === undefined ? '' : String(value),
-                        'onUpdate:modelValue': next => { updateProfileWorkpieceParameter(row.id, key, next); },
-                        size: 'small',
-                        class: 'w-16 font-mono text-xs',
-                        'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`
-                      })
-                    ])))
+                    Object.entries(row.parameters || {})
+                      .filter(([key]) => row.boundParameterKeys?.has(key))
+                      .map(([key, value]) => h('div', {
+                        key: `${row.id}-${key}`,
+                        class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
+                      }, [
+                        h('span', { class: 'font-mono text-xs text-muted-color' }, key),
+                        h(InputText, {
+                          modelValue: value === null || value === undefined ? '' : String(value),
+                          'onUpdate:modelValue': next => { updateProfileWorkpieceParameter(row.id, key, next); },
+                          size: 'small',
+                          class: 'w-16 font-mono text-xs',
+                          'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`
+                        })
+                      ])))
                   : null,
                 row.id === selectedWorkpieceId.value && row.isHardware
                   ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' }, [
