@@ -498,14 +498,21 @@ Round 3 (owner review, same day): the source-mode band-aid (disabled
 toolbar) was rejected as slop — the real defects were that typing in
 source never armed Save, the toolbar could not act at all, a remote
 reload never reached the open source surface, and a no-op toggle
-round-trip armed Save. `source-commands.js` now maps every toolbar
-control onto markdown text (wraps unwrap, block prefixes set/lift,
-links insert a markdown link with the given href, fences toggle), the
-source surface tracks
-dirty and pressed states live, reload reconciles the visible surface,
-and the round-trip baseline keeps untouched toggles inert. In-document
-code blocks lost their standing tools row and line-number gutters —
-the language picker and copy reveal on hover/focus only.
+round-trip armed Save. That round shipped `source-commands.js` mapping
+every toolbar control onto markdown text with live dirty and pressed
+states, and put the block tools on hover with no in-document gutters.
+
+Round 4 (owner review, same day): both round-3 answers were rejected.
+The MD toggle is REMOVED — no source mode, no surface toggle; the
+document is the one surface (markdown authored through input rules,
+slash, toolbar; the raw payload stays the stored truth). The round-3
+`source-commands.js` and its spec are deleted. The code block chrome
+was restyled through the visual ownership contract
+(docs/UI_COMPONENT_AUDIT.md): semantic PrimeVue radius/shadow tokens,
+no raw pixel values, the slash menu's chrome rides the host's semantic
+utilities (`rounded-ui`, `shadow-overlay`, `bg-chrome-background`,
+`text-body`), and crepe-internal code surfaces keep only token-backed
+values.
 
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
