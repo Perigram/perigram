@@ -6,6 +6,7 @@ import {
   evaluateOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
+  adoptOccsProfileBindingParameter,
   occProfileEntitiesFromSketch,
   occProfileSectionChainedVertices,
   occProfileSketchFromEntities,
@@ -340,8 +341,24 @@ describe('OCCS profile helpers', () => {
     ]);
   });
 
-  it('resolves authored fillet corners into the drawable section chain', () => {
-    // A 6mm fillet on the p1 corner of a 42x28 rectangle: the sharp
+  it('adopts a single unknown identifier as a parameter carrying the field value', () => {
+    const sketch = { parameters: { W: 90 }, points: [], holes: [] };
+    // Unknown identifier + finite current value -> created.
+    expect(adoptOccsProfileBindingParameter(sketch, 'D', 12))
+      .toEqual({ W: 90, D: 12 });
+    // Existing parameter: untouched (its value is the truth).
+    expect(adoptOccsProfileBindingParameter(sketch, 'W', -45))
+      .toEqual({ W: 90 });
+    // Expressions, numbers, and blank values: untouched.
+    expect(adoptOccsProfileBindingParameter(sketch, 'W/2', -45)).toEqual({ W: 90 });
+    expect(adoptOccsProfileBindingParameter(sketch, 42, -45)).toEqual({ W: 90 });
+    expect(adoptOccsProfileBindingParameter(sketch, '', -45)).toEqual({ W: 90 });
+    // Non-finite current value: nothing adopted.
+    expect(adoptOccsProfileBindingParameter({ parameters: {}, points: [] }, 'W', null))
+      .toEqual({});
+  });
+
+  it('resolves authored fillet corners into the drawable section chain', () => {    // A 6mm fillet on the p1 corner of a 42x28 rectangle: the sharp
     // corner leaves the chain, tangent arc points join it.
     const chain = occProfileSectionChainedVertices({
       vertices: [[0, 0], [42, 0], [42, 28], [0, 28]],
