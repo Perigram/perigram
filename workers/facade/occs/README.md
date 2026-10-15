@@ -53,6 +53,13 @@ modules — no platform imports.
   editable snap points, point-by-point polylines with explicit open/closed
   state, circle holes, and per-corner fillet modifiers are normalized into
   `profile.section` polygon/polyline data plus a linear `profile.sweep`.
+  The default hanger template is parametric by law: its geometry binds to
+  its table (W/H the rectangle, R the corner fillets, D the hole, L the
+  sweep at evaluation), so a cassette's instance parameters drive it the
+  moment it is attached — the workpiece row's chips are live. The numeric
+  geometry seed normalize fills MISSING sketch fields with stays literal:
+  seeded fields belong to sketches that never authored them and carry no
+  table for the expressions to resolve against.
   The parameter table starts empty — parameters are added when a sketch
   needs them, nothing is pre-seeded. Every authoring field (point
   coordinates, hole centers and diameters, fillet radii, parameter
