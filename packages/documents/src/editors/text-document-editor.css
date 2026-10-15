@@ -58,25 +58,47 @@
 }
 
 /* Fenced code blocks render as CodeMirror inside crepe's block
-   component: the app's hairline box, the mono voice, and the block's
-   own tools (language picker, copy) visible on the surface. */
+   component: the app's hairline box and mono voice, no IDE chrome —
+   no line-number gutters inside a document. The block's tools
+   (language picker, copy) live on the block's hover/focus, not as a
+   standing row in every block. */
 .crepe-host .milkdown .milkdown-code-block {
+  position: relative;
   background: var(--ck-chrome-subtle);
   border: 1px solid var(--ck-chrome-border);
   border-radius: 8px;
-  padding: 0.25rem 0.75rem 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
 }
 
 .crepe-host .milkdown .milkdown-code-block .cm-editor {
   background: transparent;
 }
 
+.crepe-host .milkdown .milkdown-code-block .cm-gutters {
+  display: none;
+}
+
 .crepe-host .milkdown .milkdown-code-block .tools {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.5rem;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 0.25rem;
-  padding-top: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ck-chrome-background) 88%, transparent);
+  box-shadow: var(--crepe-shadow-1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.crepe-host .milkdown .milkdown-code-block:hover .tools,
+.crepe-host .milkdown .milkdown-code-block:focus-within .tools {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .crepe-host .milkdown .milkdown-code-block .language-picker {

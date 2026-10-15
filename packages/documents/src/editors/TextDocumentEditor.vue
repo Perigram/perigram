@@ -26,7 +26,6 @@
           rounded
           size="small"
           :class="control.class"
-          :disabled="sourceView"
           :aria-label="$t(control.labelKey)"
           :aria-pressed="isActive(control)"
           @click="runFormat(control)"
@@ -37,7 +36,6 @@
           text
           rounded
           size="small"
-          :disabled="sourceView"
           :aria-label="$t('editors.link')"
           :aria-pressed="linkActive"
           @click="toggleLinkPopover"
@@ -94,6 +92,7 @@ import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
 import { useDocumentName } from './useDocumentName.js';
 import { useRemoteDocumentSync } from './useRemoteDocumentSync.js';
+import { applySourceFormat } from './source-commands.js';
 import './text-document-editor.css';
 
 // The documents pack's markdown editor: the single-surface live editing
@@ -122,8 +121,16 @@ const { remoteChanged, reloadFromRemote, reloading } = useRemoteDocumentSync(pro
   dirty,
   reload: async () => {
     if (!crepe) return;
+    const text = (await props.persistence.loadText()) || '';
     const { replaceAll } = await loadCommands();
-    crepe.editor.action(replaceAll((await props.persistence.loadText()) || ''));
+    crepe.editor.action(replaceAll(text));
+    // The visible surface is the one reconciled: a reload while the
+    // source view is open refreshes its text too, and the untouched
+    // round-trip baseline follows.
+    if (sourceView.value) {
+      sourceBaseline = text;
+      syncSourceText(text);
+    }
   }
 });
 
@@ -205,6 +212,15 @@ function focusRenderedEditor() {
 
 async function runFormat(control, { force = false } = {}) {
   if (!crepe) return;
+  // The toolbar acts on whichever surface is visible: in source mode
+  // the same control edits the markdown text directly.
+  if (sourceView.value) {
+    if (!sourceEditor) return;
+    const spec = applySourceFormat(control)(sourceEditor.state);
+    if (spec) sourceEditor.dispatch(spec);
+    sourceEditor.focus();
+    return;
+  }
   const active = isActive(control);
   if (active && control.off === 'lift') {
     // Blockquotes have no preset unwrap command: lift the focused block
@@ -237,9 +253,16 @@ function toggleLinkPopover(event) {
 async function applyLink() {
   const href = linkUrl.value.trim();
   if (!href || !crepe) return;
+  linkPopover.value?.hide();
+  if (sourceView.value) {
+    if (!sourceEditor) return;
+    const spec = applySourceFormat({ id: 'link' }, { href })(sourceEditor.state);
+    if (spec) sourceEditor.dispatch(spec);
+    sourceEditor.focus();
+    return;
+  }
   const { callCommand, preset } = await loadCommands();
   crepe.editor.action(callCommand(preset.toggleLinkCommand.key, { href }));
-  linkPopover.value?.hide();
   focusRenderedEditor();
 }
 
@@ -358,18 +381,34 @@ onBeforeUnmount(() => {
 // source back through the markdown parser. The visible surface is
 // always what saves.
 let sourceEditor = null;
+// Programmatic source syncs (toggle-in, remote reload) are
+// reconciliation, not edits — the update listener skips them.
+let syncingSource = false;
+
+function syncSourceText(text) {
+  if (!sourceEditor) return;
+  syncingSource = true;
+  try {
+    sourceEditor.dispatch({ changes: { from: 0, to: sourceEditor.state.doc.length, insert: text } });
+  } finally {
+    syncingSource = false;
+  }
+  blockState.value = sourceSelectionState(sourceEditor.state);
+}
+
 async function ensureSourceEditor(text) {
   if (sourceEditor) {
-    sourceEditor.dispatch({ changes: { from: 0, to: sourceEditor.state.doc.length, insert: text } });
+    syncSourceText(text);
     return;
   }
-  const [{ EditorView, keymap }, { EditorState }, { basicSetup }, { markdown: markdownLanguage }, { defaultKeymap, indentWithTab }, { codeMirrorTheme }] = await Promise.all([
+  const [{ EditorView, keymap }, { EditorState }, { basicSetup }, { markdown: markdownLanguage }, { defaultKeymap, indentWithTab }, { codeMirrorTheme }, { sourceSelectionState }] = await Promise.all([
     import('@codemirror/view'),
     import('@codemirror/state'),
     import('codemirror'),
     import('@codemirror/lang-markdown'),
     import('@codemirror/commands'),
-    import('./cm-theme.js')
+    import('./cm-theme.js'),
+    import('./source-commands.js')
   ]);
   if (!sourceHost.value) return;
   sourceEditor = new EditorView({
@@ -380,21 +419,37 @@ async function ensureSourceEditor(text) {
         markdownLanguage(),
         keymap.of(defaultKeymap.concat(indentWithTab)),
         EditorView.lineWrapping,
-        codeMirrorTheme
+        codeMirrorTheme,
+        // The source surface is a real editor, not a viewer: typing
+        // arms the save button immediately, and the toolbar's pressed
+        // state follows the source selection.
+        EditorView.updateListener.of(update => {
+          if (syncingSource) return;
+          if (update.docChanged && loaded) dirty.value = true;
+          if (update.docChanged || update.selectionSet) {
+            blockState.value = sourceSelectionState(update.state);
+          }
+        })
       ]
     }),
     parent: sourceHost.value
   });
+  blockState.value = sourceSelectionState(sourceEditor.state);
 }
 
 // The serializer renders an empty trailing block as `<br />`; that is
 // its artifact, never content — every markdown export strips the tail.
 const stripSerializerTail = text => String(text || '').replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
 
+// The text handed to the source surface on toggle-in: an untouched
+// toggle round-trip changes nothing and arms nothing.
+let sourceBaseline = '';
+
 async function toggleSource() {
   if (!crepe) return;
   if (!sourceView.value) {
-    await ensureSourceEditor(stripSerializerTail(crepe.getMarkdown()));
+    sourceBaseline = stripSerializerTail(crepe.getMarkdown());
+    await ensureSourceEditor(sourceBaseline);
     sourceView.value = true;
     await nextTick();
     // The clicked toggle button keeps DOM focus through the click —
@@ -402,12 +457,14 @@ async function toggleSource() {
     requestAnimationFrame(() => sourceEditor?.focus());
     return;
   }
-  const text = sourceEditor?.state.doc.toString() || '';
-  const { replaceAll } = await loadCommands();
+  const text = stripSerializerTail(sourceEditor?.state.doc.toString() || '');
   sourceView.value = false;
   await nextTick();
-  crepe.editor.action(replaceAll(stripSerializerTail(text) || ''));
-  if (loaded) dirty.value = true;
+  if (text !== sourceBaseline) {
+    const { replaceAll } = await loadCommands();
+    crepe.editor.action(replaceAll(text || ''));
+  }
+  blockState.value = { block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, marks: [] };
   requestAnimationFrame(focusRenderedEditor);
 }
 
