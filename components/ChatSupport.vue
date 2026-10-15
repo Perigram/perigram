@@ -1437,7 +1437,7 @@ const createPromptValues = reactive({})
 const createPromptOptions = reactive({})
 // File creators ride the generic prompt: the `file` control uploads to
 // the files bucket and the construct path mints a file instance.
-const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadFile } = usePayloadUpload(
+const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadFile, pendingPayloadUpload } = usePayloadUpload(
   createPromptValues,
   { onError: error => toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 8000 }) }
 )
@@ -3246,6 +3246,9 @@ const submitCreatePrompt = async () => {
     if (!pendingCreateAction.value) return
     executingCreate.value = true
     try {
+        // A selected payload file finishes uploading before the create
+        // posts — the submission awaits the reference it must carry.
+        await pendingPayloadUpload()
         await executeCreateAction(
             pendingCreateAction.value,
             promptData(collectActionInputFields(pendingCreateAction.value), createPromptValues)

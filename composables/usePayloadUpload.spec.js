@@ -48,4 +48,24 @@ describe('usePayloadUpload', () => {
 
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it('exposes the in-flight upload so a racing submission awaits the reference', async () => {
+    let resolveUpload;
+    const fetch = vi.fn().mockImplementation(() => new Promise(resolve => { resolveUpload = resolve; }));
+    vi.stubGlobal('$fetch', fetch);
+    const values = reactive({});
+    const { pendingPayloadUpload, uploadPayloadFile } = usePayloadUpload(values);
+
+    const change = uploadPayloadFile({ id: 'payload' }, { target: { files: [new File(['x'], 'a.md', { type: 'text/markdown' })], value: 'a.md' } });
+    const pending = pendingPayloadUpload();
+    let submitted = false;
+    const submission = pending.then(() => { submitted = true; });
+    expect(submitted).toBe(false);
+    resolveUpload({ id: 'file-9' });
+    await change;
+    await submission;
+
+    expect(submitted).toBe(true);
+    expect(values.payload).toEqual({ fileId: 'file-9', mime: 'text/markdown', size: 1, name: 'a.md' });
+  });
 });
