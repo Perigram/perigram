@@ -46,7 +46,7 @@
         </div>
         <div class="flex flex-col items-start justify-end gap-3">
           <Tag
-            v-if="settings?.resolved?.provider !== 'none'"
+            v-if="settings?.resolved?.provider && settings.resolved.provider !== 'none'"
             :value="`${settings.resolved.provider} · ${settings.resolved.model}`"
             severity="success"
             data-testid="llm-resolved"
