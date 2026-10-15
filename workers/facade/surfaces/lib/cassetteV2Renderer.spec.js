@@ -11,6 +11,7 @@ import {
   buildCassetteV2IncrementalDrawing,
   buildCassetteV2TrapezoidTreeCurves,
   buildCassetteV2WorkpieceTopology,
+  cassetteV2LayerPanelRows,
   collectCassetteV2ExpressionIdentifiers,
   composeCassetteV2NodiGraph,
   createCassetteV2GraphTree,
@@ -344,6 +345,34 @@ describe('cassette v2 trapezoid renderer', () => {
     ]);
     const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
     expect(sectionLayer.paths.filter(path => path.relationId === relation.id)).toHaveLength(0);
+  });
+
+  it('layer panel rows cover the full standards registry, present or not', async () => {
+    const drawing = await renderCassetteV2TreeToDrawing(createCassetteV2GraphTree(), { mode: 'workpiece' });
+    const rows = cassetteV2LayerPanelRows(drawing);
+    const codes = rows.filter(row => row.code).map(row => row.code);
+    expect(codes).toHaveLength(22);
+    expect(codes.slice(0, 6)).toEqual([
+      'contour.prefix',
+      'contour.cassette_face',
+      'contour.flat_pattern.face_and_returns',
+      'contour.flat_pattern.offset_envelope',
+      'contour.material_sheet',
+      'contour.nesting_field'
+    ]);
+    // Registry order, registry names, parametric names interpolated.
+    const cutOuter = rows.find(row => row.code === 'cut.outer');
+    expect(cutOuter.name).toBe('2_1_Обрезь_3,15');
+    expect(cutOuter.tablePen).toMatchObject({ color: '#DC2626', weight: 0.6 });
+    // Presence: the bare face drawing carries the face contour, the cut
+    // contour, dimensions, and the designer-only section layer.
+    expect(cutOuter.present).toBe(true);
+    expect(rows.find(row => row.code === 'cut.hole').present).toBe(false);
+    expect(rows.find(row => row.code === 'fold.engrave').present).toBe(false);
+    // Non-standard drawing layers ride after the registry rows.
+    const leftover = rows.find(row => row.key === 'designer.section');
+    expect(leftover).toMatchObject({ code: '', present: true });
+    expect(rows[rows.length - 1].key).toBe(leftover.key);
   });
 
   it('re-evaluates a profile workpiece from its sketch when instance parameters change', async () => {

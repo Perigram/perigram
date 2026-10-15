@@ -21,6 +21,7 @@ import {
   getCassetteV2Workpieces,
   OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
+  cassetteV2LayerPanelRows,
   resolveCassetteV2AngleExpression,
   updateCassetteV2GraphNode,
   updateCassetteV2Workpiece,
@@ -536,16 +537,18 @@ export default function createSurface({ vue, components, locale, queries, notify
       const drawingLayerNames = computed(() => drawingLayers.value.map(layer => layer.name).filter(Boolean));
       const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
       const standardCodeOf = (standard) => standard?.fields?.code || null;
-      const layerRows = computed(() => drawingLayers.value.map(layer => {
-        const standard = standards.value.find(item => (
-          sameEntityId(item._id, layer.standardId) ||
-          (layer.standardCode && standardCodeOf(item) === layer.standardCode)
-        )) || null;
-        const pen = pens.value.find(item => sameEntityId(item._id, layer.penId)) || null;
-        // The designer-only section layer has no standard row — it shows
-        // its localized name, not the internal code.
-        const label = layer.role === 'section' ? t('cassette.v2.sectionLayer') : layer.name;
-        return { key: layer.name, label, layer, standard, pen };
+      // Full registry panel: every old-standard layer is listed whether
+      // the drawing carries it or not; the org's authored standard
+      // (shadow-by-code) still overrides the swatch when present.
+      const layerRows = computed(() => cassetteV2LayerPanelRows({ layers: drawingLayers.value }).map(row => {
+        const standard = row.code
+          ? standards.value.find(item => standardCodeOf(item) === row.code) || null
+          : null;
+        const orgPen = row.layer
+          ? pens.value.find(item => sameEntityId(item._id, row.layer.penId)) || null
+          : null;
+        const label = row.layer?.role === 'section' ? t('cassette.v2.sectionLayer') : row.name;
+        return { ...row, label, standard, orgPen };
       }));
       const onboardingSteps = computed(() => [
         {
@@ -1137,7 +1140,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         updateFaceParameter(inlineEditor.value.nodeId, inlineEditor.value.key, value);
       };
 
-      const layerInputId = (layer) => `cassette-v2-layer-${String(layer.name).replace(/[^A-Za-z0-9_-]/g, '-')}`;
+      const layerInputId = (row) => `cassette-v2-layer-${String(row.key).replace(/[^A-Za-z0-9_-]/g, '-')}`;
 
       const handleDrawingReady = async (drawing) => {
         const layers = Array.isArray(drawing?.layers) ? drawing.layers : [];
@@ -1582,16 +1585,17 @@ export default function createSurface({ vue, components, locale, queries, notify
         h('small', { class: 'uppercase text-muted text-supporting' }, t('common.layers')),
         ...layerRows.value.map(row => h('div', {
           key: row.key,
-          class: 'flex min-w-0 items-center gap-2 py-0.5'
+          class: ['flex min-w-0 items-center gap-2 py-0.5', row.present ? '' : 'opacity-50']
         }, [
           h(Checkbox, {
-            modelValue: visibleLayerNames.value,
-            value: row.layer.name,
-            inputId: layerInputId(row.layer),
+            modelValue: row.present ? visibleLayerNames.value : false,
+            value: row.layer?.name,
+            inputId: layerInputId(row),
             size: 'small',
-            'onUpdate:modelValue': updateVisibleLayerNames
+            disabled: !row.present,
+            'onUpdate:modelValue': row.present ? updateVisibleLayerNames : undefined
           }),
-          h('label', { for: layerInputId(row.layer), class: 'min-w-0 flex-1 truncate' }, [
+          h('label', { for: layerInputId(row), class: 'min-w-0 flex-1 truncate' }, [
             h('span', {
               class: 'instance-inline-chip min-w-0 max-w-full',
               title: row.label
@@ -1599,17 +1603,17 @@ export default function createSurface({ vue, components, locale, queries, notify
               h('span', { class: 'instance-inline-chip-label' }, row.label)
             ])
           ]),
-          row.standard
-            ? h(Tag, { value: row.standard?.fields?.code || '', severity: 'secondary', size: 'small' })
+          row.code
+            ? h(Tag, { value: row.code, severity: 'secondary', size: 'small' })
             : null,
-          row.pen
+          (row.orgPen || row.tablePen) && (row.orgPen || row.tablePen)?.color
             ? h('span', {
                 class: 'block h-3 w-10 shrink-0 rounded-ui border border-content-border',
                 style: {
-                  backgroundColor: row.pen?.fields?.stroke?.color || 'currentColor',
-                  height: `${Math.min(6, Number(row.pen?.fields?.stroke?.weight) * 2 + 1) || 3}px`
+                  backgroundColor: row.orgPen?.fields?.stroke?.color || row.tablePen.color,
+                  height: `${Math.min(6, Number(row.orgPen?.fields?.stroke?.weight ?? row.tablePen.weight) * 2 + 1) || 3}px`
                 },
-                title: entitySelectLabel(row.pen, ''),
+                ...(row.orgPen ? { title: entitySelectLabel(row.orgPen, '') } : {}),
                 'aria-hidden': 'true'
               })
             : null
