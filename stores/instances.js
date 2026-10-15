@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, reactive, ref } from 'vue';
-import { emitInstanceCreated, emitInstanceDeleted, emitInstanceUpdated, markSelfPublished, onInstanceChanged } from '~/utils/instance-events.js';
+import { emitInstanceCreated, emitInstanceDeleted, emitInstanceMutation, emitInstanceUpdated, markSelfPublished, onInstanceChanged } from '~/utils/instance-events.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { createdEntity } from '~/utils/instance-run-results.js';
 import { isCreateAction } from '~/utils/action-visibility.js';
@@ -370,27 +370,47 @@ export const useInstancesStore = defineStore('instances', () => {
   // preview instead of faking local state, and the replay re-lands the
   // mutation when connectivity returns. Uncached ids skip the preview.
   // Creates stay server-round-trip: the server assigns identity.
-  async function updateInstance(typeKey = '', id = '', body = {}, { typeId = typeKey } = {}) {
+  // Direct feature mutations that do not ride the CRUD verbs (the
+  // revisioned payload transport, editor feature flows) still owe the
+  // shared emission contract: emit the browser-local snapshot and
+  // publish the typed invalidation for other sessions. `origin` rides
+  // only the local event so the acting surface can skip its own
+  // publication (stores README).
+  function notifyMutated(typeId = '', id = '', { snapshot = null, change = 'updated', reason = 'update', origin = null } = {}) {
+    if (!typeId || !id) return;
+    emitInstanceMutation({
+      type: typeId,
+      id,
+      instance: snapshot,
+      change,
+      reason,
+      source: 'local',
+      ...(origin !== null ? { origin } : {})
+    });
+    publishMutation({ type: typeId, id, change, reason });
+  }
+
+  async function updateInstance(typeKey = '', id = '', body = {}, { typeId = typeKey, reason = 'update' } = {}) {
     const cacheKey = canonicalTypeKey(typeKey);
     const previous = recordFor(cacheKey, id)?.dto || null;
     if (previous) {
       const optimistic = applyWirePatch(previous, body);
       upsertRecord(cacheKey, optimistic);
-      emitInstanceUpdated({ type: typeId, id, instance: optimistic, reason: 'update' });
+      emitInstanceUpdated({ type: typeId, id, instance: optimistic, reason });
     }
     try {
       const data = await mutateDirect(typeKey, 'PATCH', {
         id,
         body,
-        meta: { kind: 'instance', typeId, instanceId: id, change: 'updated', reason: 'update' }
+        meta: { kind: 'instance', typeId, instanceId: id, change: 'updated', reason }
       });
-      emitInstanceUpdated({ type: typeId, id: data?._id || id, instance: data });
-      publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason: 'update' });
+      emitInstanceUpdated({ type: typeId, id: data?._id || id, instance: data, reason });
+      publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason });
       return data;
     } catch (err) {
       if (previous) {
         upsertRecord(cacheKey, previous);
-        emitInstanceUpdated({ type: typeId, id, instance: previous, reason: 'update-rollback' });
+        emitInstanceUpdated({ type: typeId, id, instance: previous, reason: `${reason}-rollback` });
       }
       throw err;
     }
@@ -469,6 +489,7 @@ export const useInstancesStore = defineStore('instances', () => {
     resolveReadableReference,
     runAction,
     mutateDirect,
+    notifyMutated,
     createInstance,
     updateInstance,
     removeInstance,

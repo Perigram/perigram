@@ -15,7 +15,17 @@
         />
         <Button v-if="nameDirty" icon="pi pi-check" severity="secondary" text rounded size="small" :aria-label="$t('common.apply')" @click="commitName" />
       </div>
-      <Button :label="$t('common.save')" icon="pi pi-save" size="small" text class="ml-auto" :loading="saving" :disabled="!dirty" @click="save" />
+      <Button
+        v-if="remoteChanged && dirty"
+        icon="pi pi-refresh"
+        severity="secondary"
+        text
+        rounded
+        size="small"
+        :aria-label="$t('common.refresh')"
+        @click="reloadFromRemote"
+      />
+      <Button :label="$t('common.save')" icon="pi pi-save" size="small" text :class="remoteChanged && dirty ? '' : 'ml-auto'" :loading="saving" :disabled="!dirty" @click="save" />
     </div>
     <DataTable
       :value="rows"
@@ -41,6 +51,7 @@ import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import InputText from 'primevue/inputtext';
 import { useDocumentName } from './useDocumentName.js';
+import { useRemoteDocumentSync } from './useRemoteDocumentSync.js';
 
 // The documents pack's csv editor: rows edit in a cell table and
 // serialize back to CSV text on save. Persistence contract matches the
@@ -62,7 +73,7 @@ const nameFieldPt = { root: { style: { background: 'transparent', borderColor: '
 let loading = true;
 watch(rows, () => { if (!loading) dirty.value = true; }, { deep: true });
 
-onMounted(async () => {
+async function loadRows() {
   try {
     const sheet = XLSX.read(await props.persistence.loadText(), { type: 'string' }).Sheets.Sheet1;
     const values = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
@@ -71,7 +82,17 @@ onMounted(async () => {
   } finally {
     loading = false;
   }
+}
+
+const { remoteChanged, reloadFromRemote } = useRemoteDocumentSync(props.persistence, {
+  dirty,
+  reload: async () => {
+    loading = true;
+    await loadRows();
+  }
 });
+
+onMounted(loadRows);
 
 // PrimeVue's cell editor binds a working copy and delivers the edit
 // through `cell-edit-complete` ({ data = the table's row object,

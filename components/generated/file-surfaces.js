@@ -114,7 +114,17 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
   // the record is coerced here; every surface adapter rides this base.
   const record = entity || {};
   let instanceId = String(record._id || record.id || '');
+  // Surfaces identify their own publications through this token: the
+  // local event carries it so the acting editor skips its own change
+  // (the cross-session invalidation never does).
+  const origin = `persistence:${typeId}:${instanceId || 'blank'}`;
+  const notify = (snapshot, reason) => {
+    useInstancesStore().notifyMutated(typeId, instanceId, { snapshot, reason, origin });
+  };
   return {
+    typeId,
+    instanceId,
+    origin,
     title: record.name || '',
     load: async () => {
       if (!instanceId) return '';
@@ -128,19 +138,24 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       if (!instanceId) {
         const created = await runBlankFileConstruct(typeId);
         instanceId = String(created._id || created.id || '');
+        if (!instanceId) throw new Error(`${typeId} creation returned no instance`);
+        notify(created, 'payload-create');
       }
       const form = new FormData();
       form.append('file', new File([text], filename, { type: mimeType }));
-      return await $fetch(`/api/instances/${encodeURIComponent(typeId)}/${encodeURIComponent(instanceId)}/payload`, { method: 'PUT', body: form });
+      const updated = await $fetch(`/api/instances/${encodeURIComponent(typeId)}/${encodeURIComponent(instanceId)}/payload`, { method: 'PUT', body: form });
+      // Editor saves owe the shared emission contract (stores README):
+      // the browser-local event reconciles every other open pane, the
+      // typed invalidation reaches other sessions through the realtime
+      // bridge.
+      notify(updated, 'payload-save');
+      return updated;
     },
     rename: async (name) => {
       const trimmed = String(name || '').trim();
       if (!trimmed || !instanceId) return null;
-      return await useInstancesStore().mutateDirect(useInstancesStore().canonicalTypeKey(typeId), 'PATCH', {
-        id: instanceId,
-        body: { name: trimmed },
-        meta: { change: 'updated', reason: 'editor-rename' }
-      });
+      const instances = useInstancesStore();
+      return await instances.updateInstance(instances.canonicalTypeKey(typeId), instanceId, { name: trimmed }, { typeId, reason: 'editor-rename' });
     }
   };
 }
