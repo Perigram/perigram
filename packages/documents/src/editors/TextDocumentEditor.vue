@@ -148,9 +148,9 @@ onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
   const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }] = await Promise.all([
     import('@milkdown/crepe'),
-    import('@milkdown/crepe/theme/common/style.css'),
     import('@milkdown/utils'),
-    import('./source-markers-plugin.js')
+    import('./source-markers-plugin.js'),
+    import('@milkdown/crepe/theme/common/style.css')
   ]);
   if (!editorHost.value) return;
   crepe = new CrepeEditor({
