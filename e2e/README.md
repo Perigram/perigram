@@ -137,6 +137,11 @@ definitions and their types die together.
   process, verifies the compiled Home and detail-context placement,
   parent-responsive entity chrome, and organization switching through the
   account menu.
+- `cassette-designer-3d.spec.js`: the cassette designer's folded 3D
+  viewport — after the blank designer opens, the debounced assembly
+  preview must lift the viewport's hidden state and mount a non-zero
+  WebGL canvas (regression for the setup-time `hasContent` freeze that
+  left the 3D view behind the empty-state icon).
 - `pane-navigation-history.spec.js`: the home workspace's pane navigation
   contract — an in-place tab replacement (list → record) surfaces the pane
   header's Back control and Back restores the replaced content; a new tab
