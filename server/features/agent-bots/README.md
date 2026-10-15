@@ -48,8 +48,10 @@ Three pieces share one tool catalog:
   tool invocation as it starts and settles, `bot_stream` with the answer
   so far, and `bot_stream_end` to clear the run. Only the final answer
   persists: a tool round retracts only its answer text (reasoning and
-  tool rows stay as the run's visible work), and the persisted message
-  supersedes the live activity.
+  tool rows stay as the run's visible work), each round reconciles the
+  sink with the assembled neutral message (a reasoning-first stream that
+  ends tagless was a plain answer), and the persisted message supersedes
+  the live activity.
 
 ## Conversation membership
 
@@ -58,6 +60,12 @@ Three pieces share one tool catalog:
 | Direct with a bot | None needed — pick the bot (the assistant floats first) in the new-chat picker | Implicit: the single bot participant answers |
 | Group chat | Subscription + group participants entry (posting admission is participant-scoped) | Subscription on `group:<id>` |
 | Instance/org chat | Subscription only (instance conversations have no participant list) | Subscription on the instance key or any ancestor key on the message's stored `instancePath` |
+
+The conversation is a model execution point in every kind: group and
+instance rows carry it on the subscription, a direct chat with a bot
+through a profile-only subscription row (no membership, no wake rules —
+those rows never match the wake scanner's `wakeOn` query), edited from
+the chat's own model select.
 
 Joining a bot to a room is participant-level (any member, through the
 thread header's bot sheet); human membership keeps the creator-or-admin
