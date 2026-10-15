@@ -1048,9 +1048,11 @@ renders as one chromeless activity block under the messages (no bubble
 chrome, no sender chip): the model's reasoning in a collapsible native
 `details` disclosure, one status-iconed row per tool invocation, and the
 answer growing in a plain subtle bubble — the persisted message clears
-the block. Conversations with subscribed bots also carry a model select
-above the composer setting the room's execution-point profile (blank
-falls back to each bot's own brain; the bot sheet edits per bot).
+the block. Conversations with bots also carry a model select above the
+composer setting the room's execution-point profile — subscribed bots in
+group/instance threads, the bot participant in a direct chat (a
+profile-only row); blank falls back to each bot's own brain, and the bot
+sheet edits per bot in group threads.
 Conversation history is lazy: the thread loads the newest
 message page and prepends older pages on scroll-to-top through the
 `limit`/`before` cursor contract, preserving the scroll anchor. Voice messages

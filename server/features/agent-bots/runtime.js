@@ -54,11 +54,13 @@ function botTypingBeats(botAuth, conversationKey) {
 function botActivitySink(botAuth, conversationKey) {
     const topic = `conversation:${conversationKey}`;
     const base = { conversationKey, userId: botAuth.userId, name: botAuth.name || '' };
-    let thinking = '';
     return {
-        thinking(delta) {
-            thinking += delta;
-            connectionsService.publish(topic, { ...base, type: 'bot_thinking', text: thinking });
+        // Absolute state, not deltas: the round publishes reasoning so far
+        // and reconciles with the assembled message at stream end, so a
+        // reasoning-first stream that turns out to be a plain answer can
+        // reclassify without the client accumulating garbage.
+        thinking(text) {
+            connectionsService.publish(topic, { ...base, type: 'bot_thinking', text });
         },
         tool(tool) {
             connectionsService.publish(topic, { ...base, type: 'bot_tool', tool });
@@ -116,7 +118,14 @@ export async function resolveTargetBots(context, message) {
         for (const participant of participants) {
             if (await senderIsBot(participant)) bots.push({ botUserId: participant, profile: '' });
         }
-        return bots.length === 1 ? bots : [];
+        if (bots.length !== 1) return [];
+        // Direct chats need no membership, but the conversation is still a
+        // model execution point: a profile-only subscription row may
+        // override the bot's own brain.
+        const [row] = await botRepository.findSubscriptionsByConversation([
+            String(message.conversationKey || context.conversationKey || '')
+        ]);
+        return [{ ...bots[0], profile: String(row?.profile || '') }];
     }
 
     const subscriptions = await botRepository.findSubscriptionsByConversation(candidateConversationKeys(context, message));
@@ -138,6 +147,7 @@ function systemPrompt(botName, organizationName) {
         'The authored process protocol is fixed: dataflowVersion 4. Never ask about versions.',
         'Authoring discipline: read before writing (get_process_definition / list_types / list_instances), always validate_process_definition before activate_process_definition, and treat activation gates (migration plans, type death) as confirmations to surface and resolve — never to bypass.',
         'Attach instances you handled with attach_instances so the conversation shows them as reference chips.',
+        'Report tools truthfully: claim an action only from its returned result, and state failures and their error as they are — never invent ids, statuses, or completions.',
         'Answer the conversation directly when no tool is needed. Keep replies short and concrete.'
     ].join(' ');
 }
@@ -156,11 +166,13 @@ function historyMessages(messages = [], botUserId) {
  * answer deltas as they grow, and returns the assembled neutral message.
  */
 async function streamedRound({ organizationId, profileId, system, messages, tools, onThinking = null, onText = null }) {
+    let thought = '';
     let full = '';
     let message = null;
     for await (const event of llmService.streamChatCompletion({ organizationId, profileId, system, messages, tools })) {
         if (event.type === 'thinking') {
-            if (onThinking) onThinking(event.text);
+            thought += event.text;
+            if (onThinking) onThinking(thought);
         } else if (event.type === 'text') {
             full += event.text;
             if (onText) onText(full);
@@ -168,7 +180,12 @@ async function streamedRound({ organizationId, profileId, system, messages, tool
             message = event;
         }
     }
-    return message || { content: full, thinking: '', toolCalls: [] };
+    const result = message || { content: full, thinking: thought, toolCalls: [] };
+    // Reconcile the live sink with the assembled message: a plain answer
+    // behind a reasoning-first endpoint only reveals itself at stream end.
+    if (onThinking) onThinking(result.thinking || '');
+    if (onText) onText(result.content || '');
+    return result;
 }
 
 /**

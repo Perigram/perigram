@@ -23,8 +23,9 @@ rows already live as members.
   split out of the content stream so only the answer persists) and every
   tool invocation appears as it starts and settles (`bot_tool`).
 - [ ] WAITING — owner verification on the live stack: the conversation's
-  model is picked in the chat itself (select above the composer for the
-  room's subscribed bots; blank falls back to each bot's brain).
+  model is picked in the chat itself (select above the composer: the
+  room's subscribed bots, or the bot participant of a direct chat; blank
+  falls back to each bot's brain).
 - [ ] WAITING — owner verification on the live stack: `LLM_TIMEOUT_MS`
   overrides the request idle guard.
 
@@ -50,6 +51,24 @@ through `botStreamSink` (full text so far, so the client just replaces the
 draft), retracting a tool round's text; the chat renders the draft bubble
 and hides the typing line while it is up. New specs: the three stream
 readers and a runtime publish assertion.
+
+Session `agent/chat-activity-fix-20261015` corrected that session's split
+against the live wire and unblocked the picker for direct chats. The
+persisted transcripts showed the gateway (Ollama's OpenAI shape) runs
+qwen3 with the open think tag prefilled: content starts in reasoning and
+ends at the close tag, and no open tag ever arrives — so the explicit-tag
+splitter never matched. The splitter now starts reasoning-first for
+qwen3-class models on the OpenAI dialect (matched by name), consumes a
+redundant open tag without leaving the mode, and reclassifies a tagless
+stream as a plain answer at stream end, with the runtime reconciling its
+activity sink to the assembled message each round — verified by replaying
+the persisted 5825-char bot message (5137 reasoning / 680 answer). Direct
+chats became a model execution point through profile-only subscription
+rows (no membership, no wake rules; the wake scanner's wakeOn query can
+never match them), so the picker and profile resolution work in the
+assistant chat. The bot system prompt gained the tool-truthfulness rule
+after a live transcript showed qwen3:4b fabricating a created process
+definition (reasoning planned the phrasing; nothing landed in the org).
 
 Session `agent/chat-activity-20261015` split reasoning from the answer and
 made the run's work visible. The gateway models (qwen3) ship reasoning
@@ -4974,3 +4993,4 @@ source), and the window is user-resizable: a bottom-left grip grows it
 up-left (anchored top-right during the gesture, like the drag header),
 clamped to the token minimums and the viewport, persisted in
 localStorage. The size binding pins a data-driven inline exception.
+

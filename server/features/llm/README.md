@@ -104,14 +104,22 @@ throwing.
   OpenAI-shaped `reasoning_content`, Messages `thinking` blocks) is read
   directly, and reasoning that rides inline in the content — qwen3's think
   tags — is split out, so consumers never see tags in `content` and
-  persist answers only. Throws 503 when unresolved, 502 when the endpoint
+  persist answers only. Two inline shapes are handled: explicit tag pairs
+  anywhere, and the Ollama-compatible OpenAI shape where the chat template
+  prefills the open tag, so qwen3-class models (matched by name) deliver
+  content that *starts* in reasoning and ends at the close tag. Throws 503
+  when unresolved, 502 when the endpoint
   is unreachable, answers non-2xx, or returns no completion. The agent loop
   that owns rounds and tool execution lives with the consumer.
 - `streamChatCompletion({ … })` → the streaming twin: an async generator
   yielding `{ type: 'thinking' | 'text', text }` deltas as the model emits
   them (the inline-tag split is stream-aware — a tag split across chunks
   is held back, not split), then one closing `{ type: 'message', content,
-  thinking, toolCalls }` — the fully assembled neutral message. Same
+  thinking, toolCalls }` — the fully assembled neutral message. A
+  reasoning-first stream that never meets a close tag turns out to be a
+  plain answer: its closing message reclassifies (content whole, thinking
+  empty), and the agent runtime reconciles its live activity sink with
+  that message at round end. Same
   503/502 posture; each chunk re-arms the idle guard.
 
 ## Consumers
