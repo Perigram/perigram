@@ -101,9 +101,10 @@ modules — no platform imports.
   closure — closed boundaries with three or more points save closed, open
   chains with two or more save open). An open profile saves as a
   `polyline` section whose first and last vertices are its break points:
-  the designer's section layer marks them and splits the host face's
-  contour at their projections where the profile lands, and the evaluated layerData carries the two
-  contour chains into production redraw on `contour.cassette_face`. The
+  the composite chain splices into the host face's contour where the
+  profile lands (the designer draws the stitched boundary; the evaluated
+  layerData carries the composite into production redraw on
+  `contour.cassette_face`). The
   sketch editor's authoring rows edit the parameter table and hole
   geometry directly on the sketch model, beneath a dimension annotation
   band; vertex coordinates and fillet radii edit through a canvas popup
@@ -157,6 +158,15 @@ modules — no platform imports.
   clamping; the designer drawing carries the refusals as
   `profileEmbeddingErrors` (`{relationId, reason}`) so the attachment row
   shows a refused status instead of the profile vanishing silently.
+  Closed profile sections produce their production effect through the
+  same pass (owner law 2026-10-15, profiles are terminal): the array
+  settings (or the point placement) place the section copies and each
+  copy cuts the host face where it intersects — the boolean difference
+  the integral-cut hanger clips ride — with the cut polygons named on
+  `cut.inner` in the evaluated layerData and the designer drawing
+  (a dedicated registry row awaits an owner-named production name; the
+  inner-cut layer is the existing production home of exactly this
+  operation).
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
   codes, including generated dimension annotation layers and caller-provided
@@ -172,12 +182,15 @@ modules — no platform imports.
 - Cassette Designer v2 emits a `code.cassette_mark` text entity for the
   bottom-left of each sheet workpiece's main/root face. The resolved text uses
   the cassette template name, template id, and one-based workpiece number; the
-  same layer data is carried through baking and nesting. Designer-only section
-  preview lines stay on `designer.section` — the cross-section planes and the
-  attached profiles' section previews, display-only, never production
-  geometry — so production mark layers do not receive contour-like helper
-  paths; the designer's layer panel shows it under its localized label, not
-  the code.
+  same layer data is carried through baking and nesting. Profiles are
+  terminal (owner law 2026-10-15): an edge carrying an arranged profile is
+  the end of the face — the + face-grow affordance never appears there and
+  `addFaceAtEdge` refuses it (`profileTerminalEdgesForTree`). Profile
+  geometry never rides `designer.section`: the open-profile composite
+  splices into the drawn face boundary exactly as production embeds it,
+  closed sections cut the face on `cut.inner`, and the section layer
+  carries section views only (shown under its localized panel label, not
+  the code).
   Whole-workpiece assembly previews use the same per-workpiece production layout
   as face/workpiece previews, so `contour.cassette_face`, `cut.outer`, and
   `fold.route` are dispatched from unioned workpiece geometry instead of raw

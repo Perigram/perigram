@@ -500,10 +500,11 @@ cassette tree already uses; instantiating a profile with different
 parameter values evaluates one deterministic geometry — parametric
 blocks by dimension table. A profile is authored closed or open; an open
 profile's first and last vertices are its break points: the editor marks
-them as helpers, the OCCS section carries them (type `polyline`), and
-the host face's contour splits at their projections where the profile
-lands (designer sections today; the production cut pass consuming the
-break points is the tracked follow-up). External solver
+them as helpers, the OCCS section carries them (type `polyline`), and the
+composite chain splices into the host face's contour where the profile
+lands — the designer draws the stitched boundary and the evaluated
+layerData carries the composite into production redraw on
+`contour.cassette_face`. External solver
 runtimes (SolveSpace to WASM and kin) stay out: GPL or commercial
 licensing (the LibreDWG precedent), megabyte-scale browser payloads for
 a dimension-table domain, and no constraint-authoring UX this platform
@@ -562,6 +563,15 @@ there is no perpendicular offset for open shapes — and the host contour
 rips at those points, embedding the profile chain into the contour as
 the break. The Basis toggle applies to closed profiles only; on an open
 sketch it is disabled, never a silent no-op.
+
+Owner declarations (2026-10-15, profiles are terminal): an edge carrying
+an arranged profile is the end of the face — the profile consumes the
+edge, nothing grows from it and nothing attaches to it; the + face-grow
+affordance never appears there. Profile geometry lives on production
+layers, never on the designer's section layer: a closed profile section
+arranged on an edge places by the array settings and cuts the host face
+where it intersects, an open profile stitches its chain into the host
+contour, and the section layer carries section views only.
 
 Owner decision (2026-10-15, engine integration law): the profile editor
 integrates the CAD engine under a one-way truth rule — the sketch model
