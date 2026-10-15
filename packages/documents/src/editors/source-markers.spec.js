@@ -16,6 +16,7 @@ const schema = new Schema({
     bullet_list: { content: 'list_item+', group: 'block' },
     ordered_list: { content: 'list_item+', group: 'block' },
     list_item: { content: 'block+' },
+    code_block: { content: 'text*', group: 'block' },
     text: { group: 'inline' }
   },
   marks: {
@@ -107,5 +108,13 @@ describe('toolbar selection state', () => {
       1
     );
     expect(selectionState(state).marks).toEqual(['code_inline']);
+  });
+
+  it('reports the focused fenced block so the toolbar can gate its code control', () => {
+    const fenced = stateFrom(
+      () => node('doc', null, node('code_block', null, t('const x = 1'))),
+      1
+    );
+    expect(selectionState(fenced)).toMatchObject({ block: 'code_block', marks: [] });
   });
 });

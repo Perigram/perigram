@@ -63,6 +63,17 @@ test.describe('markdown editor repair', () => {
     await expect(save).toBeDisabled();
     expect(normalized(await payloadText(app, 'text-document'))).toBe(normalized(MD_SOURCE));
 
+    // The MD toggle swaps surfaces and the toolbar speaks the active
+    // one: format controls disable in source mode, revive on return.
+    const sourceToggle = app.page.getByTestId('source-toggle');
+    const bold = app.page.getByRole('button', { name: 'Bold', exact: true });
+    await sourceToggle.click();
+    await expect(app.page.locator('.source-host .cm-content')).toBeVisible();
+    await expect(bold).toBeDisabled();
+    await sourceToggle.click();
+    await expect(source).toBeVisible();
+    await expect(bold).toBeEnabled();
+
     await app.expectCleanRuntime();
   });
 
@@ -114,6 +125,33 @@ test.describe('markdown editor repair', () => {
     await expect(quote).toHaveAttribute('aria-pressed', 'true');
     await quote.click();
     await expect(quote).toHaveAttribute('aria-pressed', 'false');
+
+    // The code block control turns the focused block into a fenced
+    // CodeMirror block with its language picker; toggling it off
+    // returns body text.
+    await app.page.keyboard.press('End');
+    await app.page.keyboard.press('Enter');
+    await app.page.keyboard.type('plain body');
+    const codeBlockButton = app.page.getByRole('button', { name: 'Code block', exact: true });
+    await codeBlockButton.click();
+    const fenced = source.locator('.milkdown-code-block');
+    await expect(fenced.locator('.cm-content')).toBeVisible();
+    await expect(fenced.locator('.language-button')).toBeVisible();
+    await expect(codeBlockButton).toHaveAttribute('aria-pressed', 'true');
+    await codeBlockButton.click();
+    await expect(fenced).toHaveCount(0);
+    await expect(app.page.getByText('plain body').first()).toBeVisible();
+
+    // Slash commands: `/` opens the block vocabulary at the caret,
+    // typing filters it, Enter inserts.
+    await app.page.keyboard.press('End');
+    await app.page.keyboard.press('Enter');
+    await app.page.keyboard.type('/quo');
+    const slashMenu = app.page.locator('.md-slash-menu[data-show="true"]');
+    await expect(slashMenu).toBeVisible();
+    await expect(slashMenu.getByRole('button', { name: 'Quote', exact: true })).toBeVisible();
+    await app.page.keyboard.press('Enter');
+    await expect(app.page.getByText('quoted line').first()).toBeAttached();
 
     const save = app.page.getByRole('button', { name: 'Save', exact: true });
     await expect(save).toBeEnabled();

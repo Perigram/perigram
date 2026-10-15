@@ -2133,12 +2133,20 @@
         "heading1": "Заголовок 1",
         "heading2": "Заголовок 2",
         "heading3": "Заголовок 3",
+        "heading4": "Заголовок 4",
+        "heading5": "Заголовок 5",
+        "heading6": "Заголовок 6",
         "sourceView": "Источник",
         "renderView": "Предпросмотр",
         "paragraph": "Абзац",
         "bulletList": "Маркированный список",
         "numberedList": "Нумерованный список",
-        "quote": "Цитата"
+        "quote": "Цитата",
+        "codeBlock": "Блок кода",
+        "link": "Ссылка",
+        "linkAddress": "Адрес",
+        "divider": "Разделитель",
+        "table": "Таблица"
     },
     "sketch": {
         "editorTitle": "Скетч",

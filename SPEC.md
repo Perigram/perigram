@@ -185,6 +185,14 @@ proxy converting through HTML). Every toolbar format control toggles
 (owner direction 2026-10-15): each sets its formatting and unsets it —
 an active heading, list, or quote control returns the block to body
 text, and the pressed state shows what the focused block carries.
+The authoring surface is complete (owner direction 2026-10-15):
+headings one through six, fenced code blocks toggled from the toolbar
+(blocks carry the language picker and syntax-highlighted CodeMirror
+editing), the link control with its address input, and slash commands —
+typing `/` at a word start offers the block vocabulary with keyboard
+navigation. The toolbar speaks the active surface: controls that
+cannot act in the markdown source mode disable. Code renders in the
+app's mono voice wherever it appears.
 `text-document` instances are creatable by
 uploading an existing `.md` file. Editor components belong to the packs
 that own their types (owner direction 2026-10-14): the documents pack

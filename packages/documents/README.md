@@ -120,19 +120,30 @@ single-surface live markdown editor (milkdown, owner direction
 writing; the editor's model IS markdown, serialization is the
 framework's own, no rich-text proxy).
 
-**Toolbar.** Every control toggles — an active block control returns
-the block to body text. `MD` switches the source and preview surfaces
-(the markdown text itself, and the rendered document); the visible
-surface is what saves. Markdown input rules and keyboard shortcuts
-work beside the controls; heading commands take the heading level as
-their raw command payload.
+**Toolbar.** Headings run H1–H6, the fenced code block control toggles
+(a code block returns to body text), and the link control applies an
+address to the selection — re-applying the href a linked selection
+already carries lifts the link. Every control toggles, and every
+control disables in the markdown source mode (the toolbar cannot act
+there). `MD` switches the source and preview surfaces (the markdown
+text itself, and the rendered document); the visible surface is what
+saves. Markdown input rules and keyboard shortcuts work beside the
+controls; heading commands take the heading level as their raw command
+payload.
 
 **Engine chrome.** Crepe's toolbar, block-edit, top bar, link tooltip,
-latex, AI, virtual cursor, and placeholder features are disabled, and
-its CodeMirror feature is replaced by the standalone source view
-(crepe's own mounts a Vue app with a language dropdown inside every
-fenced block). Fenced code highlights through the
-`@codemirror/language-data` registry. The quote's `> ` marker
+latex, AI, virtual cursor, and placeholder features are disabled. Its
+code-mirror feature stays and is configured through the crepe feature
+config — the supported channel, applied in the constructor: fenced
+blocks edit in CodeMirror with the full `@codemirror/language-data`
+registry and the app-token theme (`src/editors/cm-theme.js` — mono
+voice and token colors shared with the standalone source view), and
+the per-block tools (language picker with search, copy) visible and
+styled. Slash commands (`src/editors/slash-menu.js` over the official
+`@milkdown/plugin-slash`) type `/` at a word start to open the block
+vocabulary — filtered by the query, keyboard-navigated, inserting
+through the same command path the toolbar uses (a table picks a 3×3
+gfm grid). The quote's `> ` marker
 (`source-markers.js` + `source-markers-plugin.js`) is the one rendered
 prefix — heading and inline-mark glyphs reflow the focused line, so
 those signals ride the toolbar instead. Source editing is
