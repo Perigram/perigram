@@ -42,9 +42,11 @@ Three pieces share one tool catalog:
   over the [LLM capability module](../llm/README.md) on the `chat`
   capability route. Replies re-enter the
   auth-checked support send path as the bot user. While a run is in
-  flight it publishes the conversation's typing signal (the same
-  ephemeral beat the human composer rides) so the room sees the bot
-  working.
+  flight it publishes the conversation's ephemeral signals: the typing
+  beat the human composer rides, and `bot_stream` carrying the answer so
+  far (a growing bubble) with `bot_stream_end` to retract it. Only the
+  final answer persists; a tool round retracts its own streamed text, and
+  the persisted message supersedes any live draft.
 
 ## Conversation membership
 

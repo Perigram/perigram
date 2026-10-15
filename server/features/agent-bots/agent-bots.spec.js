@@ -7,7 +7,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // protocol-pinned beside them: handshake negotiation, notifications,
 // tool listing, and the auth/unknown-tool error shapes.
 
-const { mockedSupport, mockedLlm, mockedBotsService, mockedBotRepository, mockedTools, mockedRegistry } = vi.hoisted(() => ({
+const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedBotRepository, mockedTools, mockedRegistry } = vi.hoisted(() => {
+    const mockedLlm = { isLlmAvailable: vi.fn(), chatCompletion: vi.fn() };
+    // Streaming twin: delegates to the chatCompletion mock so a test sets one
+    // behavior and both seams answer identically; yields the content once,
+    // then the assembled neutral message.
+    mockedLlm.streamChatCompletion = vi.fn(async function* (args) {
+        const message = await mockedLlm.chatCompletion(args);
+        const content = message?.content || '';
+        if (content) yield { type: 'text', text: content };
+        yield { type: 'message', content, toolCalls: message?.toolCalls || [] };
+    });
+    return {
     mockedSupport: {
         registerMessageObserver: vi.fn(),
         listMessages: vi.fn(),
@@ -20,10 +31,8 @@ const { mockedSupport, mockedLlm, mockedBotsService, mockedBotRepository, mocked
             return { type: parts[1], id: parts[2] };
         }
     },
-    mockedLlm: {
-        isLlmAvailable: vi.fn(),
-        chatCompletion: vi.fn()
-    },
+    mockedLlm,
+    mockedConnections: { publish: vi.fn() },
     mockedBotsService: {
         buildBotAuth: vi.fn(),
         isBotUser: vi.fn()
@@ -43,10 +52,12 @@ const { mockedSupport, mockedLlm, mockedBotsService, mockedBotRepository, mocked
     mockedRegistry: {
         getInstanceService: vi.fn()
     }
-}));
+    };
+});
 
 vi.mock('~/server/features/llm/service.js', () => mockedLlm);
 vi.mock('~/server/features/support/service.js', () => mockedSupport);
+vi.mock('~/server/features/connections/service.js', () => mockedConnections);
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: () => mockedRegistry }));
 vi.mock('./service.js', () => mockedBotsService);
 vi.mock('./repository.js', () => mockedBotRepository);
@@ -162,6 +173,19 @@ describe('runBotReply', () => {
         expect(system).toMatch(/Bot/);
         expect(profileId).toBe('cloud-big');
         expect(messages.some((entry) => entry.role === 'assistant' && entry.content === 'hi')).toBe(true);
+    });
+
+    it('streams the answer onto the conversation topic while the run works', async () => {
+        mockedLlm.chatCompletion.mockResolvedValue({ content: 'the answer', toolCalls: [] });
+        await runBotReply(BOT_A, context, message);
+        const publishes = mockedConnections.publish.mock.calls.map(([topic, payload]) => ({ topic, payload }));
+        const streamed = publishes.filter(({ payload }) => payload?.type === 'bot_stream');
+        expect(streamed.length).toBeGreaterThan(0);
+        expect(streamed.at(-1)).toEqual({
+            topic: `conversation:${context.conversationKey}`,
+            payload: { type: 'bot_stream', conversationKey: context.conversationKey, userId: BOT_A, name: 'Bot', text: 'the answer' }
+        });
+        expect(publishes.some(({ payload }) => payload?.type === 'bot_stream_end')).toBe(true);
     });
 
     it('lets the conversation override the bot\'s own brain', async () => {

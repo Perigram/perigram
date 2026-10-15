@@ -755,6 +755,22 @@
                             </div>
                         </div>
                     </template>
+
+                    <!-- The agent's live answer: partial text rides the
+                         conversation topic while the run works; the final
+                         persisted message replaces it. -->
+                    <div
+                        v-if="streamingBot"
+                        class="relative mr-auto flex min-w-0 max-w-support-chat-message flex-col"
+                        data-testid="chat-streaming-bubble"
+                    >
+                        <div class="flex min-w-0 max-w-full flex-col gap-1 self-start items-start">
+                            <UserChip v-if="streamingBot.name" :user-id="streamingBot.userId" class="max-w-full" />
+                            <div class="max-w-full min-w-0 rounded-ui bg-subtle px-4 py-2 text-body">
+                                <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">{{ streamingBot.text }}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div
@@ -762,7 +778,7 @@
                     :class="fullPage ? '' : 'max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]'"
                 >
                     <div
-                        v-show="typingName"
+                        v-show="typingName && !streamingBot"
                         ref="typingIndicatorRef"
                         class="px-1 text-muted text-supporting opacity-0"
                     >
@@ -1482,6 +1498,9 @@ const groupMemberIds = ref([])
 const groupSaving = ref(false)
 const typingName = ref('')
 const typingIndicatorRef = ref(null)
+// The agent's live answer while a run works (server `bot_stream` events):
+// `{ userId, name, text }` or null. The persisted message replaces it.
+const streamingBot = ref(null)
 let typingResetTimer = null
 let typingSendTimer = null
 
@@ -2925,6 +2944,7 @@ const goToMessage = async (id) => {
 watch(
     [activeConversationKey, supportDialog, () => props.embedded],
     ([key, dialogOpen, embedded]) => {
+        streamingBot.value = null
         if (unsubscribeConversation) {
             unsubscribeConversation()
             unsubscribeConversation = null
@@ -2935,9 +2955,24 @@ watch(
                 receiveTyping(payload)
                 return
             }
+            if (payload?.type === 'bot_stream') {
+                streamingBot.value = {
+                    userId: payload.userId,
+                    name: payload.name || '',
+                    text: payload.text || ''
+                }
+                nextTick().then(scrollToBottom)
+                return
+            }
+            if (payload?.type === 'bot_stream_end') {
+                streamingBot.value = null
+                return
+            }
             // Ringing arrives only through the calls store's `call.invite`
             // subscription — one owner, no second local ring state.
             if (payload?.type !== 'message') return
+            // The persisted message supersedes the live draft.
+            streamingBot.value = null
             messages.value.push(payload.message)
             supportChatStore.markRead(key)
             nextTick().then(scrollToBottom)
@@ -2966,6 +3001,7 @@ onBeforeUnmount(() => {
         unsubscribeConversation()
         unsubscribeConversation = null
     }
+    streamingBot.value = null
     if (typingResetTimer) clearTimeout(typingResetTimer)
     if (typingSendTimer) clearTimeout(typingSendTimer)
     if (mediaRecorder) {

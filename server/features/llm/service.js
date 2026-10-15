@@ -42,7 +42,9 @@ import * as organizationsService from '~/server/features/organizations/service.j
  */
 
 const PROVIDERS = new Set(['ollama', 'anthropic', 'openai']);
-const REQUEST_TIMEOUT_MS = 120000;
+// The idle guard on one request: time to first response bytes, and between
+// stream chunks once streaming. `LLM_TIMEOUT_MS` overrides it.
+const REQUEST_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS) > 0 ? Number(process.env.LLM_TIMEOUT_MS) : 120000;
 const ANTHROPIC_VERSION = '2023-06-01';
 
 async function orgLlmSetting(organizationId) {
@@ -232,12 +234,13 @@ export async function testLlmConnection(auth = {}, { profileId = '' } = {}) {
         return { ok: false, reason: 'No provider resolves — save a routed profile or check the environment defaults' };
     }
     try {
-        await postCompletion(config, JSON.stringify(wireRequest(
+        const { release } = await openCompletion(config, JSON.stringify(wireRequest(
             config.provider, config,
             'Reply with the single word: ok',
             [{ role: 'user', content: 'Reply with the single word: ok' }],
             []
         )));
+        release();
         return { ok: true, provider: config.provider, model: config.model };
     } catch (error) {
         return { ok: false, provider: config.provider, model: config.model, reason: error?.message || 'Connection failed' };
@@ -466,7 +469,7 @@ function wireResponseToNeutral(provider, payload) {
     };
 }
 
-function wireRequest(provider, config, system, messages, tools) {
+function wireRequest(provider, config, system, messages, tools, { stream = false } = {}) {
     const wireTools = neutralToolsToWire(provider, tools);
     if (provider === 'anthropic') {
         return {
@@ -474,15 +477,20 @@ function wireRequest(provider, config, system, messages, tools) {
             max_tokens: 4096,
             ...(system ? { system } : {}),
             messages: neutralMessagesToWire(provider, system, messages),
-            ...(wireTools ? { tools: wireTools } : {})
+            ...(wireTools ? { tools: wireTools } : {}),
+            ...(stream ? { stream: true } : {})
         };
     }
-    return {
+    const body = {
         model: config.model,
         messages: neutralMessagesToWire(provider, system, messages),
-        ...(wireTools ? { tools: wireTools } : {}),
-        ...(provider === 'ollama' ? { stream: false } : {})
+        ...(wireTools ? { tools: wireTools } : {})
     };
+    // Ollama's native protocol requires an explicit flag either way; the
+    // OpenAI-shaped protocol streams only when asked.
+    if (provider === 'ollama') body.stream = stream;
+    else if (stream) body.stream = true;
+    return body;
 }
 
 function wireHeaders(provider, apiKey) {
@@ -516,7 +524,14 @@ function completionPaths(provider, baseUrl) {
 // canonical candidate caches the winner so later rounds pay nothing.
 const resolvedCompletionPaths = new Map();
 
-async function postCompletion(config, requestBodyJson) {
+/**
+ * One HTTP request against the completion path, with the same-dialect
+ * fallback candidate and the idle guard. Returns `{ response, keepAlive,
+ * release }`: `keepAlive` re-arms the idle timer (streaming callers call it
+ * per chunk so a long generation is never killed mid-flight while bytes
+ * keep arriving), `release` drops it.
+ */
+async function openCompletion(config, requestBodyJson) {
     const paths = completionPaths(config.provider, config.baseUrl);
     const cacheKey = `${config.provider}::${String(config.baseUrl || '').replace(/\/+$/, '').replace(/\/v1$/, '')}`;
     const ordered = resolvedCompletionPaths.has(cacheKey)
@@ -526,7 +541,12 @@ async function postCompletion(config, requestBodyJson) {
     let lastDetail = '';
     for (const url of ordered) {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        let timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        const keepAlive = () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        };
+        const release = () => clearTimeout(timer);
         let response;
         try {
             response = await fetch(url, {
@@ -536,15 +556,14 @@ async function postCompletion(config, requestBodyJson) {
                 signal: controller.signal
             });
         } catch (error) {
-            clearTimeout(timeout);
+            release();
             throw createError({ statusCode: 502, message: `LLM service is unreachable (${error?.cause?.code || error?.name || error?.message || 'unknown'})` });
-        } finally {
-            clearTimeout(timeout);
         }
         if (response.ok) {
             if (ordered.length > 1) resolvedCompletionPaths.set(cacheKey, url);
-            return response;
+            return { response, keepAlive, release };
         }
+        release();
         lastStatus = response.status;
         lastDetail = (await response.text().catch(() => '')).trim().slice(0, 200);
         // Only a missing route justifies the next same-dialect candidate;
@@ -574,8 +593,179 @@ export async function chatCompletion({ organizationId = null, capability = CHAT_
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
     }
-    const response = await postCompletion(config, JSON.stringify(wireRequest(config.provider, config, system, messages, tools)));
-    const payload = await response.json().catch(() => null);
-    if (!payload) throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
-    return wireResponseToNeutral(config.provider, payload);
+    const { response, release } = await openCompletion(config, JSON.stringify(wireRequest(config.provider, config, system, messages, tools)));
+    try {
+        const payload = await response.json().catch(() => null);
+        if (!payload) throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
+        return wireResponseToNeutral(config.provider, payload);
+    } finally {
+        release();
+    }
+}
+
+// --- Streaming ------------------------------------------------------------
+
+/**
+ * Yields decoded lines from a streaming response body, re-arming the idle
+ * guard per chunk, so a stalled endpoint aborts exactly like a dead
+ * connection instead of hanging the worker forever.
+ */
+async function* readLines(response, keepAlive) {
+    const body = response.body;
+    if (!body) return;
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+        while (true) {
+            let step;
+            try {
+                step = await reader.read();
+            } catch (error) {
+                throw createError({ statusCode: 502, message: `LLM stream interrupted (${error?.name || error?.message || 'unknown'})` });
+            }
+            if (step.done) break;
+            keepAlive();
+            buffer += decoder.decode(step.value, { stream: true });
+            let index;
+            while ((index = buffer.indexOf('\n')) >= 0) {
+                yield buffer.slice(0, index).replace(/\r$/, '');
+                buffer = buffer.slice(index + 1);
+            }
+        }
+        if (buffer.trim()) yield buffer.replace(/\r$/, '');
+    } finally {
+        reader.releaseLock?.();
+    }
+}
+
+/** SSE payload of one `data:` line, or null for comments/blanks/`[DONE]`. */
+function sseData(line) {
+    if (!line.startsWith('data:')) return null;
+    const data = line.slice(5).trim();
+    return !data || data === '[DONE]' ? null : data;
+}
+
+/**
+ * Provider stream readers: each yields `{ type: 'text', text }` deltas and
+ * returns the assembled neutral message. Tool calls arrive as fragments
+ * (OpenAI/Messages split `arguments` across events, Ollama sends them
+ * whole), so every reader accumulates before parsing.
+ */
+async function* streamOpenAI(response, keepAlive) {
+    let content = '';
+    const calls = [];
+    for await (const line of readLines(response, keepAlive)) {
+        const data = sseData(line);
+        if (!data) continue;
+        let chunk;
+        try { chunk = JSON.parse(data); } catch { continue; }
+        const delta = chunk?.choices?.[0]?.delta;
+        if (!delta) continue;
+        if (typeof delta.content === 'string' && delta.content) {
+            content += delta.content;
+            yield { type: 'text', text: delta.content };
+        }
+        for (const call of delta.tool_calls || []) {
+            const index = call.index ?? calls.length;
+            const slot = calls[index] || (calls[index] = { id: '', name: '', args: '' });
+            if (call.id) slot.id = call.id;
+            if (call.function?.name) slot.name += call.function.name;
+            if (call.function?.arguments) slot.args += call.function.arguments;
+        }
+    }
+    return {
+        content,
+        toolCalls: calls.filter(Boolean).map(call => ({
+            id: call.id, name: call.name, arguments: parseJsonObject(call.args)
+        }))
+    };
+}
+
+async function* streamOllama(response, keepAlive) {
+    let content = '';
+    const toolCalls = [];
+    for await (const line of readLines(response, keepAlive)) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let chunk;
+        try { chunk = JSON.parse(trimmed); } catch { continue; }
+        const message = chunk?.message || {};
+        if (typeof message.content === 'string' && message.content) {
+            content += message.content;
+            yield { type: 'text', text: message.content };
+        }
+        for (const [index, call] of (message.tool_calls || []).entries()) {
+            toolCalls.push({
+                id: call.id || `ollama-${index}`,
+                name: call.function?.name || '',
+                arguments: parseJsonObject(call.function?.arguments)
+            });
+        }
+    }
+    return { content, toolCalls };
+}
+
+async function* streamAnthropic(response, keepAlive) {
+    let content = '';
+    const toolCalls = [];
+    let openBlock = null;
+    for await (const line of readLines(response, keepAlive)) {
+        const data = sseData(line);
+        if (!data) continue;
+        let event;
+        try { event = JSON.parse(data); } catch { continue; }
+        if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+            openBlock = { id: event.content_block.id, name: event.content_block.name, args: '' };
+        } else if (event.type === 'content_block_delta') {
+            const delta = event.delta || {};
+            if (delta.type === 'text_delta' && typeof delta.text === 'string') {
+                content += delta.text;
+                yield { type: 'text', text: delta.text };
+            } else if (delta.type === 'input_json_delta' && openBlock) {
+                openBlock.args += delta.partial_json || '';
+            }
+        } else if (event.type === 'content_block_stop' && openBlock) {
+            toolCalls.push({ id: openBlock.id, name: openBlock.name, arguments: parseJsonObject(openBlock.args) });
+            openBlock = null;
+        }
+    }
+    return { content, toolCalls };
+}
+
+/**
+ * Streaming twin of `chatCompletion` on the same neutral contract: an async
+ * generator that yields `{ type: 'text', text }` deltas as the model emits
+ * them and closes with one `{ type: 'message', content, toolCalls }` — the
+ * fully assembled neutral assistant message. Throws 503/502 exactly like
+ * the non-streaming path. Consumers that cannot render partial output use
+ * `chatCompletion`; the agent loop streams only what it will keep.
+ */
+export async function* streamChatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', system = '', messages = [], tools = [] }) {
+    const config = await resolveLlmConfig(organizationId, capability, { profileId });
+    if (config.provider === 'none') {
+        throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
+    }
+    const { response, keepAlive, release } = await openCompletion(
+        config,
+        JSON.stringify(wireRequest(config.provider, config, system, messages, tools, { stream: true }))
+    );
+    const reader = config.provider === 'ollama' ? streamOllama(response, keepAlive)
+        : config.provider === 'anthropic' ? streamAnthropic(response, keepAlive)
+            : streamOpenAI(response, keepAlive);
+    try {
+        const iterator = reader[Symbol.asyncIterator]();
+        let step = await iterator.next();
+        while (!step.done) {
+            yield step.value;
+            step = await iterator.next();
+        }
+        const message = step.value || { content: '', toolCalls: [] };
+        if (!message.content && !message.toolCalls.length) {
+            throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
+        }
+        yield { type: 'message', content: message.content, toolCalls: message.toolCalls };
+    } finally {
+        release();
+    }
 }
