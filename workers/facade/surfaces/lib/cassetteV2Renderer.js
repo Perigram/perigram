@@ -25,7 +25,7 @@ import {
 import { buildOccsProductionLayout } from '../../occs/production-layout.js';
 import { buildOccsFaceDimensionEntities } from '../../occs/dimensions.js';
 import { buildOccsFoldedPreviewPayload } from '../../occs/folded-3d.js';
-import { applyOccsLayerPens } from '../../occs/layerStandards.js';
+import { applyOccsLayerPens, OCCS_LAYER_STANDARDS, occsLayerExportName, occsLayerStandard } from '../../occs/layerStandards.js';
 import { differenceCassetteV2FacePolygon } from './cassetteV2Clipper.js';
 import {
   OCCS_EDGE_ARRAY_DEFAULTS,
@@ -46,7 +46,6 @@ import {
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 import { embedOccsProfileEdge } from '../../occs/profileEmbedding.js';
-import { occsLayerExportName } from '../../occs/layerStandards.js';
 import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
@@ -3550,4 +3549,40 @@ export const renderCassetteV2ToDrawing = async (definition = {}) => {
     parameters,
     nodes: [node]
   });
+};
+
+// The designer layer panel's rows: the FULL standards registry — every
+// layer of the old standard, present in the drawing or not — followed by
+// the drawing's non-standard layers (designer-only helpers). Presence
+// gates the visibility toggle; names are the registry production export
+// names, codes stay language-neutral identifiers.
+export const cassetteV2LayerPanelRows = (drawing = {}) => {
+  const layers = Array.isArray(drawing?.layers) ? drawing.layers : [];
+  const byCode = new Map();
+  const rest = [];
+  for (const layer of layers) {
+    if (layer.standardCode && occsLayerStandard(layer.standardCode)) byCode.set(layer.standardCode, layer);
+    else rest.push(layer);
+  }
+  const rows = OCCS_LAYER_STANDARDS.map(standard => ({
+    key: standard.code,
+    name: occsLayerExportName(standard.code),
+    code: standard.code,
+    tablePen: standard.pen,
+    production: Boolean(standard.production),
+    present: byCode.has(standard.code),
+    layer: byCode.get(standard.code) || null
+  }));
+  for (const layer of rest) {
+    rows.push({
+      key: layer.name,
+      name: layer.name,
+      code: '',
+      tablePen: null,
+      production: false,
+      present: true,
+      layer
+    });
+  }
+  return rows;
 };

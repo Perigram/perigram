@@ -111,7 +111,10 @@ modules — no platform imports.
   vertex; Escape or clicking away closes it). Escape routes at the window
   level: it closes the popup, cancels the engine's active command, and
   clears the selection — from any focus, including a toolbar button or an
-  authoring field. The sketch model is the
+  authoring field. The canvas reseeds (clear + redraw) on every authored
+  edit, and the engine's selection dies with the removed entities — a
+  selection left standing over reseeded geometry references dead object
+  ids and the next erase fails inside the engine. The sketch model is the
   single truth and the canvas is its render and input surface:
   extraction MERGES back (`mergeOccsProfileSketchGeometry`) — a corner
   whose extracted position matches its authored evaluation keeps the
@@ -160,6 +163,12 @@ modules — no platform imports.
   annotation/mark layers. Every standard layer's display name is its
   registry production export name (`occsLayerExportName`) in every drawing
   mode — bare codes never surface; `standardCode` carries the matching key.
+  The designer's layer panel lists the FULL standards registry (every layer
+  of the old standard, present in the drawing or not) through
+  `cassetteV2LayerPanelRows`: each row carries the production name, the
+  language-neutral code, and the standard pen; only layers the drawing
+  carries get live visibility toggles, and the drawing's non-standard layers
+  (designer-only helpers) follow after the registry rows.
 - Cassette Designer v2 emits a `code.cassette_mark` text entity for the
   bottom-left of each sheet workpiece's main/root face. The resolved text uses
   the cassette template name, template id, and one-based workpiece number; the

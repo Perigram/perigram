@@ -296,13 +296,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (event.key !== 'Escape') return;
         if (selectedVertexId.value) selectedVertexId.value = null;
         manager?.commandManager?.cancelActive?.();
-        const view = manager?.curView;
-        if (!view) return;
-        if (view.selectionSet?.ids?.size) {
-          view.selectionSet.clear();
-          view.htmlTransientManager?.deselectAll?.();
-          view.isHtmlDirty = true;
-        }
+        clearEngineSelection();
       };
 
       // Text labels until proper tool icons exist: the engine bundle ships
@@ -511,7 +505,21 @@ export default function createSketchEditor({ vue, components, locale }) {
         manager.curView?.addEntity?.(created);
       };
 
+      // The engine's selection set holds object ids. Every reseed
+      // (authoring edits, imports, clears) removes entities behind its
+      // back — a selection left standing references dead ids, and the
+      // next erase over them fails inside the engine
+      // (`lookupObject not found`). Selection dies with the entities.
+      const clearEngineSelection = () => {
+        const view = manager?.curView;
+        if (!view?.selectionSet) return;
+        view.selectionSet.clear();
+        view.htmlTransientManager?.deselectAll?.();
+        view.isHtmlDirty = true;
+      };
+
       const clearDrawingEntities = () => {
+        clearEngineSelection();
         for (const entity of modelSpaceEntities()) {
           manager.curView?.removeEntity?.(entity);
           const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
