@@ -1,4 +1,5 @@
 import { OCCS_LAYER_DIMENSION_CASSETTE } from './layers.js';
+import { occsLayerExportName } from './layerStandards.js';
 
 const numeric = (value, fallback = 0) => {
   const next = Number(value);
@@ -275,7 +276,7 @@ export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {})
   if (!paths.length) return null;
   return {
     layer: {
-      name: OCCS_LAYER_DIMENSION_CASSETTE,
+      name: occsLayerExportName(OCCS_LAYER_DIMENSION_CASSETTE),
       standardCode: OCCS_LAYER_DIMENSION_CASSETTE,
       role: 'dimension',
       color: 'currentColor',

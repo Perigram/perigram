@@ -1,5 +1,6 @@
 import { buildOccsProductionLayout } from './production-layout.js';
 import { buildOccsDimensionLayerFromFaceCurves } from './dimensions.js';
+import { occsLayerExportName } from './layerStandards.js';
 import {
   OCCS_LAYER_CONTOUR_CASSETTE_FACE,
   OCCS_LAYER_CUT_OUTER,
@@ -103,7 +104,7 @@ export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {})
   }));
   const layers = [
     {
-      name: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
+      name: occsLayerExportName(OCCS_LAYER_CONTOUR_CASSETTE_FACE),
       standardCode: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
       role: 'face',
       color: 'currentColor',
@@ -112,7 +113,7 @@ export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {})
       paths: facePaths
     },
     {
-      name: OCCS_LAYER_CUT_OUTER,
+      name: occsLayerExportName(OCCS_LAYER_CUT_OUTER),
       standardCode: OCCS_LAYER_CUT_OUTER,
       role: 'cut',
       color: 'currentColor',
@@ -124,7 +125,7 @@ export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {})
 
   if (foldRoutePaths.length) {
     layers.push({
-      name: OCCS_LAYER_FOLD_ROUTE,
+      name: occsLayerExportName(OCCS_LAYER_FOLD_ROUTE),
       standardCode: OCCS_LAYER_FOLD_ROUTE,
       role: 'fold',
       color: 'currentColor',

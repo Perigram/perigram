@@ -92,7 +92,11 @@ modules — no platform imports.
   re-extracted through this one path. A tangent corner arc between two
   line segments maps to the corner's fillet modifier (the polygon keeps
   the theoretical sharp corner); any other arc flattens to chords within
-  a 0.05 mm sagitta tolerance; circles become holes. A sketch is authored
+  a 0.05 mm sagitta tolerance; circles become holes. A fillet radius
+  larger than the corner's adjacent segments allow renders as the largest
+  tangent fillet that fits — the emitted arc is derived from the trimmed
+  tangent points, so it round-trips back through extraction instead of
+  degenerating into chords. A sketch is authored
   closed or open (the editor's toggle; drawn chains keep their extracted
   closure — closed boundaries with three or more points save closed, open
   chains with two or more save open). An open profile saves as a
@@ -104,7 +108,10 @@ modules — no platform imports.
   geometry directly on the sketch model, beneath a dimension annotation
   band; vertex coordinates and fillet radii edit through a canvas popup
   that opens on the selected corner (Select-tool click near an authored
-  vertex; Escape or clicking away closes it). The sketch model is the
+  vertex; Escape or clicking away closes it). Escape routes at the window
+  level: it closes the popup, cancels the engine's active command, and
+  clears the selection — from any focus, including a toolbar button or an
+  authoring field. The sketch model is the
   single truth and the canvas is its render and input surface:
   extraction MERGES back (`mergeOccsProfileSketchGeometry`) — a corner
   whose extracted position matches its authored evaluation keeps the
@@ -140,19 +147,28 @@ modules — no platform imports.
   rides `contour.cassette_face`, and the production cut/nesting contour truly
   follows the stitched boundary. The margin holds from both edge ends for the
   whole copy (count/spacing distribute copy starts over the span the chord
-  leaves), so every count/spacing setup that fits embeds. Overflowing,
-  overlapping, or too-short placements refuse the evaluation with an error
-  instead of clamping.
+  leaves), so every count/spacing setup that fits embeds. The array binding
+  (start/center/end snap) places the array, never the walk direction:
+  copies always run edge-start to edge-end. Overflowing, overlapping, or
+  too-short placements refuse the evaluation with an error instead of
+  clamping; the designer drawing carries the refusals as
+  `profileEmbeddingErrors` (`{relationId, reason}`) so the attachment row
+  shows a refused status instead of the profile vanishing silently.
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
   codes, including generated dimension annotation layers and caller-provided
-  annotation/mark layers.
+  annotation/mark layers. Every standard layer's display name is its
+  registry production export name (`occsLayerExportName`) in every drawing
+  mode — bare codes never surface; `standardCode` carries the matching key.
 - Cassette Designer v2 emits a `code.cassette_mark` text entity for the
   bottom-left of each sheet workpiece's main/root face. The resolved text uses
   the cassette template name, template id, and one-based workpiece number; the
   same layer data is carried through baking and nesting. Designer-only section
-  preview lines stay on `designer.section` so production mark layers do not
-  receive contour-like helper paths.
+  preview lines stay on `designer.section` — the cross-section planes and the
+  attached profiles' section previews, display-only, never production
+  geometry — so production mark layers do not receive contour-like helper
+  paths; the designer's layer panel shows it under its localized label, not
+  the code.
   Whole-workpiece assembly previews use the same per-workpiece production layout
   as face/workpiece previews, so `contour.cassette_face`, `cut.outer`, and
   `fold.route` are dispatched from unioned workpiece geometry instead of raw

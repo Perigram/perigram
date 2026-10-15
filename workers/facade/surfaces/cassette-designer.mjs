@@ -313,6 +313,9 @@ export default function createSurface({ vue, components, locale, queries, notify
       const relationDiagnosticsById = computed(() => new Map(
         (foldedPreviewDiagnostics.value.attachments || []).map(attachment => [attachment.id, attachment])
       ));
+      const profileEmbeddingErrorById = computed(() => new Map(
+        (previewSource.value?.profileEmbeddingErrors || []).map(error => [error.relationId, error.reason])
+      ));
       const assemblySummary = computed(() => `${workpieces.value.length}/${workpieceRelations.value.length}`);
       const workpieceLabel = (workpieceId) => {
         const workpiece = workpieceById.value.get(workpieceId);
@@ -321,7 +324,9 @@ export default function createSurface({ vue, components, locale, queries, notify
       const workpieceRelationRowsById = computed(() => {
         const rows = new Map(workpieces.value.map(workpiece => [workpiece.id, []]));
         for (const relation of workpieceRelations.value) {
-          const status = relationDiagnosticsById.value.get(relation.id)?.status || 'ok';
+          const status = profileEmbeddingErrorById.value.has(relation.id)
+            ? 'refused'
+            : relationDiagnosticsById.value.get(relation.id)?.status || 'ok';
           if (relation.sourceWorkpieceId) {
             rows.get(relation.sourceWorkpieceId)?.push({
               relation,
@@ -358,7 +363,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         relations: workpieceRelationRowsById.value.get(workpiece.id) || []
       })));
       const relationStatusSeverity = (status) => {
-        if (status === 'impossible') return 'danger';
+        if (status === 'impossible' || status === 'refused') return 'danger';
         if (status === 'unresolved') return 'warn';
         return 'secondary';
       };
@@ -537,7 +542,10 @@ export default function createSurface({ vue, components, locale, queries, notify
           (layer.standardCode && standardCodeOf(item) === layer.standardCode)
         )) || null;
         const pen = pens.value.find(item => sameEntityId(item._id, layer.penId)) || null;
-        return { key: layer.name, layer, standard, pen };
+        // The designer-only section layer has no standard row — it shows
+        // its localized name, not the internal code.
+        const label = layer.role === 'section' ? t('cassette.v2.sectionLayer') : layer.name;
+        return { key: layer.name, label, layer, standard, pen };
       }));
       const onboardingSteps = computed(() => [
         {
@@ -1586,9 +1594,9 @@ export default function createSurface({ vue, components, locale, queries, notify
           h('label', { for: layerInputId(row.layer), class: 'min-w-0 flex-1 truncate' }, [
             h('span', {
               class: 'instance-inline-chip min-w-0 max-w-full',
-              title: row.layer.name
+              title: row.label
             }, [
-              h('span', { class: 'instance-inline-chip-label' }, row.layer.name)
+              h('span', { class: 'instance-inline-chip-label' }, row.label)
             ])
           ]),
           row.standard
@@ -2088,7 +2096,8 @@ export default function createSurface({ vue, components, locale, queries, notify
                           ? h(Tag, {
                               value: t(`cassette.v2.attachmentStatus.${relationRow.status}`),
                               severity: relationStatusSeverity(relationRow.status),
-                              size: 'small'
+                              size: 'small',
+                              title: profileEmbeddingErrorById.value.get(relationRow.relation.id) || undefined
                             })
                           : null
                       ]),

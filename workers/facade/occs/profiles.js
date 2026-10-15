@@ -865,6 +865,12 @@ export const occProfileEntitiesFromSketch = (sketch = {}, options = {}) => {
       lengthPrevious * 0.49,
       lengthNext * 0.49
     );
+    // A radius larger than the adjacent segments allow clamps to the
+    // largest fillet that fits: the arc is derived from the trimmed
+    // tangent points, so it stays tangent to both segments and
+    // extraction maps it back to the fillet instead of flattening it
+    // into chords.
+    const fittedRadius = trim * Math.tan(interiorAngle / 2);
     const start = { x: vertex.x + unitPrevious.x * trim, y: vertex.y + unitPrevious.y * trim };
     const end = { x: vertex.x + unitNext.x * trim, y: vertex.y + unitNext.y * trim };
     const bisector = {
@@ -872,14 +878,14 @@ export const occProfileEntitiesFromSketch = (sketch = {}, options = {}) => {
       y: unitPrevious.y + unitNext.y
     };
     const bisectorLength = Math.hypot(bisector.x, bisector.y);
-    const centerDistance = radius / Math.sin(interiorAngle / 2);
+    const centerDistance = fittedRadius / Math.sin(interiorAngle / 2);
     const center = {
       x: vertex.x + (bisector.x / bisectorLength) * centerDistance,
       y: vertex.y + (bisector.y / bisectorLength) * centerDistance
     };
     corners.push({
       vertex,
-      radius,
+      radius: fittedRadius,
       trim,
       start,
       end,

@@ -315,6 +315,37 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(marks).toHaveLength(2);
   });
 
+  it('rides a refused edge embedding on the drawing instead of vanishing silently', async () => {
+    const initialTree = createCassetteV2GraphTree();
+    const square = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const added = addCassetteV2ProfileWorkpiece(initialTree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Open strip',
+      kind: 'hanger',
+      process: 'extruded',
+      parameters: square.parameters,
+      occsProfile: occsProfileFromSketch(square),
+      sketch: square
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    // Default face 500x400 with a 42-wide chord: spacing tighter than the
+    // chord cannot fit and the embedding refuses.
+    const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E2',
+      arrayMode: 'spacing',
+      arraySpacing: '20'
+    });
+
+    const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece' });
+    expect(drawing.profileEmbeddingErrors).toEqual([
+      { relationId: relation.id, reason: expect.stringContaining('overlaps copy 2') }
+    ]);
+    const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
+    expect(sectionLayer.paths.filter(path => path.relationId === relation.id)).toHaveLength(0);
+  });
+
   it('re-evaluates a profile workpiece from its sketch when instance parameters change', async () => {
     const initialTree = createCassetteV2GraphTree();
     const sketch = {
@@ -1239,7 +1270,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(findBoundaryOutputRef(graph)).toEqual({ nodeId: 'boundary-node', outputId: 'boundary-output' });
     expect(drawing.layers.map(layer => layer.name)).toEqual([
       'construction.nodi',
-      'contour.flat_pattern.face_and_returns'
+      '1_2_Развертка кассеты_Лицо+подгибы'
     ]);
     expect(drawing.layers[1].paths[0].d).toContain('M 0 0 L 10 0 L 8 -5 L 2 -5 L 0 0 Z');
     expect(drawing.vertices).toHaveLength(4);

@@ -429,6 +429,7 @@
             "deleteWorkpiece": "Удалить заготовку",
             "removeAttachment": "Удалить привязку",
             "driver": "ведущая",
+            "sectionLayer": "Сечение",
             "foldedPreview": "Предпросмотр 3D гибки",
             "cassetteFoldedPreview": "Кассета 3D",
             "showWholeCassette": "Показать всю кассету",
@@ -557,7 +558,8 @@
             "attachmentStatus": {
                 "ok": "ok",
                 "unresolved": "не разрешена",
-                "impossible": "невозможна"
+                "impossible": "невозможна",
+                "refused": "отклонена"
             },
             "snapPoints": {
                 "center": "Центр",

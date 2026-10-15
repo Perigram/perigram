@@ -2414,6 +2414,7 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
   const paths = [];
   const viewBoxCurves = [];
+  const embeddingErrors = [];
 
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
     const workpiece = relationProfileWorkpiece(sourceTree, relation);
@@ -2447,9 +2448,16 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
       continue;
     }
     const active = !options.selectedRelationId || options.selectedRelationId === item.relationId;
+    if (!item.embedding.ok) {
+      // A refusing embedding draws nothing — the refusal rides the
+      // drawing so the designer can mark the relation instead of
+      // letting the profile vanish silently.
+      embeddingErrors.push({ relationId: item.relationId, reason: item.embedding.reason });
+      continue;
+    }
     // The placed copies (solid) and the composite that replaces the host
     // edge (dashed): the designer shows exactly what production embeds.
-    for (const copy of item.embedding.ok ? item.embedding.copies : []) {
+    for (const copy of item.embedding.copies) {
       const svgPoints = copy.map(toSvgPoint);
       if (svgPoints.length < 2) continue;
       paths.push({
@@ -2490,7 +2498,7 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
     }
   }
 
-  return { paths, viewBoxCurves };
+  return { paths, viewBoxCurves, embeddingErrors };
 };
 
 const circlePathAt = (point = [0, 0], diameter = 5) => {
@@ -3195,6 +3203,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     drawing.layers = assemblyLayers.concat(hardwareLayers);
   }
   drawing.designerAttachmentMarkers = designerAttachmentMarkers;
+  drawing.profileEmbeddingErrors = designerProfileSections.embeddingErrors;
   // The plugin's layer standards bake the base pens here — every drawing
   // this renderer emits is styled; org-authored standards still override
   // host-side (shadow-by-code over the host transport).
@@ -3242,7 +3251,7 @@ export const buildCassetteV2Drawing = (result, engine, graph, definition = {}) =
   }
 
   layers.push({
-    name: BOUNDARY_LAYER,
+    name: occsLayerExportName(BOUNDARY_LAYER),
     standardCode: BOUNDARY_LAYER,
     role: 'boundary',
     color: 'currentColor',

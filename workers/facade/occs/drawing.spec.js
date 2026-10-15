@@ -22,6 +22,15 @@ describe('OCCS drawing helpers', () => {
       'fold.route',
       'dimension.cassette'
     ]);
+    // Layer names carry the registry production export names, never bare
+    // codes — the designer's layer panel speaks the old standard's
+    // vocabulary in every drawing mode.
+    expect(drawing.layers.map(layer => layer.name)).toEqual([
+      '1_1_Лицо_Кассеты',
+      '2_1_Обрезь_3,15',
+      '3_1_Фрезеровка_90',
+      '5_1_Размер_Кассета'
+    ]);
     expect(drawing.layers[2].paths).toEqual([{
       d: 'M 100 -40 L 0 -40',
       fill: 'none',

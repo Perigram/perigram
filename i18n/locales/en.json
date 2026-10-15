@@ -429,6 +429,7 @@
             "deleteWorkpiece": "Delete workpiece",
             "removeAttachment": "Remove attachment",
             "driver": "driver",
+            "sectionLayer": "Section",
             "foldedPreview": "Folded 3D preview",
             "cassetteFoldedPreview": "Cassette 3D",
             "showWholeCassette": "Show whole cassette",
@@ -557,7 +558,8 @@
             "attachmentStatus": {
                 "ok": "ok",
                 "unresolved": "unresolved",
-                "impossible": "impossible"
+                "impossible": "impossible",
+                "refused": "refused"
             },
             "snapPoints": {
                 "center": "Center",
