@@ -138,8 +138,11 @@ modules — no platform imports.
   edge, no perpendicular offset), the whole edge is replaced by the composite
   chain — host start, straight runs, copy chains, host end — the composite
   rides `contour.cassette_face`, and the production cut/nesting contour truly
-  follows the stitched boundary. Overflowing or overlapping placements refuse
-  the evaluation with an error instead of clamping.
+  follows the stitched boundary. The margin holds from both edge ends for the
+  whole copy (count/spacing distribute copy starts over the span the chord
+  leaves), so every count/spacing setup that fits embeds. Overflowing,
+  overlapping, or too-short placements refuse the evaluation with an error
+  instead of clamping.
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
   codes, including generated dimension annotation layers and caller-provided

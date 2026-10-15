@@ -456,10 +456,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         }
         return selectedWorkpieceId.value ? [selectedWorkpieceId.value] : [];
       });
-      const drawingCanvasSource = computed(() => {
-        if (!previewSource.value || inspectorSelection.value !== 'attachment') return previewSource.value;
-        return { ...previewSource.value, designerEdges: [] };
-      });
+      const drawingCanvasSource = computed(() => previewSource.value);
       const selectedExpressionParameters = computed(() => {
         const scope = { ...globalParameters.value };
         if (selectedNode.value?.parentId) {
@@ -1415,7 +1412,6 @@ export default function createSurface({ vue, components, locale, queries, notify
       };
 
       const handleDesignerAction = ({ edge, edgeIndex }) => {
-        if (inspectorSelection.value === 'attachment') return;
         if (!edge?.nodeId && edge?.nodeId !== '') return;
         addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex);
       };

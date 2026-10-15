@@ -8,7 +8,7 @@
 // host edge end. Overlaps — a copy's end past the next copy's start, or
 // past the edge end — are detected and reported, never silently
 // clamped. Pure module: no renderer, no platform imports.
-import { expandOccsEdgeArray2d } from './hardware.js';
+import { edgeArrayDistances } from './hardware.js';
 
 const numeric = (value, fallback = 0) => {
   const next = Number(value);
@@ -49,18 +49,6 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
   const pattern = relation.pattern?.type === 'edgeArray'
     ? relation.pattern
     : { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' };
-  // Anchor points along the bound edge; the perpendicular component of
-  // the origin is dropped on purpose.
-  const anchors = expandOccsEdgeArray2d({
-    vertices: contour,
-    pattern,
-    origin: [resolve(relation.offsetX, 0), 0],
-    binding: relation.targetSnap || 'start',
-    resolve
-  });
-  if (!anchors.length) {
-    return { ok: false, reason: 'array settings place no anchor on the edge' };
-  }
 
   const match = String(pattern.edge || 'E0').match(/\d+/);
   const edgeIndex = match ? Math.max(0, Math.round(numeric(match[0], 0))) % contour.length : 0;
@@ -90,19 +78,40 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     start[1] + (x - start[0]) * sin + (y - start[1]) * cos
   ]);
 
-  // Place each copy at its anchor; validate spans along the edge.
-  const along = (point) => (point[0] - edgeStart[0]) * axis[0] + (point[1] - edgeStart[1]) * axis[1];
+  // Array starts are chord-aware: the margin holds from both edge ends
+  // for the WHOLE copy (not just its start anchor), so the last copy
+  // ends at edgeLength − margin and count/spacing distribute copy starts
+  // over the span that is left. The perpendicular component of the
+  // origin is dropped on purpose — open profiles keep their feet on the
+  // edge.
+  const margin = Math.max(0, resolve(relation.offsetX, 0));
+  const rowSpan = edgeLength - 2 * margin - chordLength;
+  if (rowSpan < -1e-6) {
+    return { ok: false, reason: 'edge too short for the profile at this margin' };
+  }
+  const starts = edgeArrayDistances({
+    edgeLength: rowSpan,
+    pattern,
+    startOffset: 0,
+    binding: relation.targetSnap || 'start',
+    resolve
+  }).map(distance => margin + distance);
+  if (!starts.length) {
+    return { ok: false, reason: 'array settings place no copy on the edge' };
+  }
+
+  // Place each copy at its start; validate spans along the edge.
   const copies = [];
-  for (const anchor of anchors) {
-    const origin = [edgeStart[0] + axis[0] * anchor.along, edgeStart[1] + axis[1] * anchor.along];
+  for (const startAlong of starts) {
+    const origin = [edgeStart[0] + axis[0] * startAlong, edgeStart[1] + axis[1] * startAlong];
     const placed = oriented.map(([x, y]) => roundPoint([
       origin[0] + x - start[0],
       origin[1] + y - start[1]
     ]));
     copies.push({
       points: placed,
-      startAlong: anchor.along,
-      endAlong: anchor.along + chordLength
+      startAlong,
+      endAlong: startAlong + chordLength
     });
   }
   for (let index = 0; index < copies.length; index += 1) {
@@ -116,12 +125,21 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     }
   }
 
-  // The composite chain replaces the edge between the host vertices.
+  // The composite chain replaces the edge between the host vertices;
+  // coincident joint points (a copy starting exactly where the previous
+  // ended) collapse instead of duplicating.
   const composite = [edgeStart];
   for (const copy of copies) {
-    composite.push(...copy.points);
+    for (const point of copy.points) {
+      const last = composite[composite.length - 1];
+      if (Math.hypot(last[0] - point[0], last[1] - point[1]) < 1e-9) continue;
+      composite.push(point);
+    }
   }
-  composite.push(edgeEnd);
+  const lastPoint = composite[composite.length - 1];
+  if (Math.hypot(lastPoint[0] - edgeEnd[0], lastPoint[1] - edgeEnd[1]) >= 1e-9) {
+    composite.push(edgeEnd);
+  }
   return {
     ok: true,
     edgeIndex,

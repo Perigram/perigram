@@ -26,14 +26,14 @@ describe('embedOccsProfileEdge', () => {
     const embedding = embedOccsProfileEdge({
       section: BUMP,
       vertices: FACE,
-      relation: { offsetX: 10, pattern: { type: 'edgeArray', edge: 'E0', mode: 'spacing', spacing: '45' } }
+      relation: { offsetX: 10, pattern: { type: 'edgeArray', edge: 'E0', mode: 'spacing', spacing: '40' } }
     });
     expect(embedding.ok).toBe(true);
     expect(embedding.copies).toHaveLength(2);
     expect(embedding.composite).toEqual([
       [0, 0],
       [10, 0], [30, 10], [50, 0],
-      [55, 0], [75, 10], [95, 0],
+      [70, 10], [90, 0],
       [100, 0]
     ]);
   });
@@ -48,7 +48,7 @@ describe('embedOccsProfileEdge', () => {
       relation: { offsetX: 0, pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' } }
     });
     expect(embedding.ok).toBe(true);
-    expect(embedding.composite).toEqual([[0, 0], [0, 0], [20, -10], [40, 0], [100, 0]]);
+    expect(embedding.composite).toEqual([[0, 0], [20, -10], [40, 0], [100, 0]]);
 
     const mirrored = embedOccsProfileEdge({
       section: BUMP,
@@ -59,6 +59,20 @@ describe('embedOccsProfileEdge', () => {
     expect(mirrored.composite).toEqual([[0, 0], [10, 0], [30, -10], [50, 0], [100, 0]]);
   });
 
+  it('count mode distributes whole copies across the usable span', () => {
+    const embedding = embedOccsProfileEdge({
+      section: BUMP,
+      vertices: FACE,
+      relation: { offsetX: 5, pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '2' } }
+    });
+    expect(embedding.ok).toBe(true);
+    // Span 100 - 2*5 - 40 = 50; starts at 5 and 55: the first copy starts
+    // at the margin, the last ends at edgeLength - margin.
+    expect(embedding.copies).toHaveLength(2);
+    expect(embedding.copies[0][0]).toEqual([5, 0]);
+    expect(embedding.copies[1][embedding.copies[1].length - 1]).toEqual([95, 0]);
+  });
+
   it('forbids overflowing and overlapping copies', () => {
     const longBump = { vertices: [[0, 0], [30, 15], [60, 0]], open: true };
     const overflow = embedOccsProfileEdge({
@@ -67,12 +81,12 @@ describe('embedOccsProfileEdge', () => {
       relation: { offsetX: 50, pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' } }
     });
     expect(overflow.ok).toBe(false);
-    expect(overflow.reason).toMatch(/past the host edge end/);
+    expect(overflow.reason).toMatch(/too short/);
 
     const overlap = embedOccsProfileEdge({
       section: BUMP,
       vertices: FACE,
-      relation: { offsetX: 35, pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '2' } }
+      relation: { offsetX: 10, pattern: { type: 'edgeArray', edge: 'E0', mode: 'spacing', spacing: '20' } }
     });
     expect(overlap.ok).toBe(false);
     expect(overlap.reason).toMatch(/overlaps copy 2/);
@@ -93,7 +107,7 @@ describe('embedOccsProfilesIntoContour', () => {
       relation: { offsetX: 50, pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' } }
     });
     const result = embedOccsProfilesIntoContour(FACE, [good, bad]);
-    expect(result.errors).toEqual(['copy 1 runs past the host edge end']);
+    expect(result.errors).toEqual(['edge too short for the profile at this margin']);
     expect(result.applied).toHaveLength(1);
     expect(result.contour).toEqual([
       [0, 0], [10, 0], [30, 10], [50, 0], [100, 0], [100, 50], [0, 50]
