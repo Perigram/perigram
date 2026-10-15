@@ -26,7 +26,6 @@
           rounded
           size="small"
           :class="control.class"
-          :disabled="sourceActive"
           :aria-label="$t(control.labelKey)"
           :aria-pressed="isActive(control)"
           @click="runFormat(control)"
@@ -125,12 +124,9 @@ const formatControls = [
   { id: 'quote', icon: 'pi pi-comment', labelKey: 'editors.quote', command: 'wrapInBlockquoteCommand', off: 'lift' }
 ];
 
-// The focused block as the toolbar sees it, reported by the live-source
-// plugin on every selection or document change.
+// The focused block as the toolbar sees it, reported by the
+// source-markers plugin on every selection or document change.
 const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, marks: [] });
-// True while a block is being edited as raw markdown — block commands
-// would fight the overlay's uncommitted source.
-const sourceActive = ref(false);
 
 function isActive(control) {
   const state = blockState.value;
@@ -153,15 +149,20 @@ function isActive(control) {
 let commands = null;
 async function loadCommands() {
   if (commands) return commands;
-  const [{ callCommand, replaceAll }, preset, { editorViewCtx }, { lift }, { TextSelection }] = await Promise.all([
+  const [{ callCommand, replaceAll }, preset, { editorViewCtx }, { lift }] = await Promise.all([
     import('@milkdown/utils'),
     import('@milkdown/preset-commonmark'),
     import('@milkdown/core'),
-    import('@milkdown/prose/commands'),
-    import('@milkdown/prose/state')
+    import('@milkdown/prose/commands')
   ]);
-  commands = { callCommand, replaceAll, preset, editorViewCtx, lift, TextSelection };
+  commands = { callCommand, replaceAll, preset, editorViewCtx, lift };
   return commands;
+}
+
+// The toolbar row suppresses mousedown so pointer clicks never steal
+// focus from the editor; keyboard activation returns it here.
+function focusRenderedEditor() {
+  editorHost.value?.querySelector('.ProseMirror')?.focus();
 }
 
 async function runFormat(control) {
@@ -175,14 +176,14 @@ async function runFormat(control) {
       const view = ctx.get(editorViewCtx);
       lift(view.state, view.dispatch, view);
     });
-    editorHost.value?.focus();
+    focusRenderedEditor();
     return;
   }
   const { callCommand, preset } = await loadCommands();
   const command = preset[active && control.off ? control.off : control.command];
   if (!command) return;
   crepe.editor.action(callCommand(command.key, control.payload));
-  editorHost.value?.focus();
+  focusRenderedEditor();
 }
 
 // Browser-only surface (the engine touches the DOM): built after mount,
@@ -192,13 +193,10 @@ let loaded = false;
 
 onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
-  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }, { createSourceEditingView }, { parserCtx, serializerCtx }, { Plugin }, { codeBlockConfig }, { languages: codeLanguages }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }, { codeBlockConfig }, { languages: codeLanguages }] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/utils'),
     import('./source-markers-plugin.js'),
-    import('./source-editing.js'),
-    import('@milkdown/core'),
-    import('@milkdown/prose/state'),
     import('@milkdown/kit/component/code-block'),
     import('@codemirror/language-data'),
     import('@milkdown/crepe/theme/common/style.css')
@@ -220,53 +218,12 @@ onMounted(async () => {
       [CrepeEditor.Feature.Placeholder]: false
     }
   });
-  // The live-source seam: the focused block shows its markdown markers,
-  // the edited block becomes its markdown source through a view-level
-  // overlay (the document keeps its real nodes at all times), and the
-  // toolbar learns the selection state. The serializer/parser slices
-  // resolve lazily — they are not ready at SchemaReady time, but long
-  // before the first edit.
+  // The selection seam: the source-markers plugin renders the focused
+  // block's markdown prefix as a view-only widget and reports the
+  // selection state to the toolbar.
   crepe.editor.use($prose(() => createSourceMarkersPlugin({
     onSelectionState: next => { blockState.value = next; }
   })));
-  // Node views through a plain ProseMirror plugin (milkdown's $view
-  // registration did not take under crepe): the overlay factory is
-  // keyed by node name. The serializer/parser slices resolve lazily
-  // through the plugin factory's ctx — not ready at SchemaReady time,
-  // long before the first edit.
-  // Node views through a plain ProseMirror plugin (milkdown's $view
-  // registration did not take under crepe): the overlay factory is
-  // keyed by node name. The serializer/parser slices resolve lazily
-  // through the plugin factory's ctx — not ready at SchemaReady time,
-  // long before the first edit.
-  // DISABLED: a nested editable inside ProseMirror's editable root
-  // loses the selection tug-of-war (PM's document-level selection
-  // handling resets the DOM selection into its root, so keystrokes
-  // split between the overlay and the hidden rendered content —
-  // doubled characters, vanished blocks). The next attempt portals
-  // the overlay OUTSIDE the editor DOM, positioned over its block.
-  // The seam itself (serialize/parse) is proven healthy live.
-  const liveSourceOverlays = false;
-  if (liveSourceOverlays) {
-    crepe.editor.use($prose(ctx => new Plugin({
-      props: {
-        nodeViews: {
-          paragraph: createSourceEditingView({
-            serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
-            parse: text => ctx.get(parserCtx)(text),
-            onInput: () => { if (loaded) dirty.value = true; },
-            onActive: next => { sourceActive.value = next; }
-          }),
-          heading: createSourceEditingView({
-            serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
-            parse: text => ctx.get(parserCtx)(text),
-            onInput: () => { if (loaded) dirty.value = true; },
-            onActive: next => { sourceActive.value = next; }
-          })
-        }
-      }
-    })));
-  }
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes
     // are edits — a programmatic remote reload is reconciliation, not
@@ -291,9 +248,8 @@ onBeforeUnmount(() => {
 
 // The source view: the markdown itself, symbols and all. Toggling in
 // serializes the rendered document; toggling out parses the edited
-// source back through the markdown parser. The rendered surface stays
-// the serializer's truth for saves only when visible — the visible
-// surface is always what saves.
+// source back through the markdown parser. The visible surface is
+// always what saves.
 let sourceEditor = null;
 async function ensureSourceEditor(text) {
   if (sourceEditor) {
@@ -322,10 +278,14 @@ async function ensureSourceEditor(text) {
   });
 }
 
+// The serializer renders an empty trailing block as `<br />`; that is
+// its artifact, never content — every markdown export strips the tail.
+const stripSerializerTail = text => String(text || '').replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
+
 async function toggleSource() {
   if (!crepe) return;
   if (!sourceView.value) {
-    await ensureSourceEditor(crepe.getMarkdown().replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n'));
+    await ensureSourceEditor(stripSerializerTail(crepe.getMarkdown()));
     sourceView.value = true;
     await nextTick();
     // The clicked toggle button keeps DOM focus through the click —
@@ -337,36 +297,23 @@ async function toggleSource() {
   const { replaceAll } = await loadCommands();
   sourceView.value = false;
   await nextTick();
-  crepe.editor.action(replaceAll(text.replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n') || ''));
+  crepe.editor.action(replaceAll(stripSerializerTail(text) || ''));
   if (loaded) dirty.value = true;
-  requestAnimationFrame(() => editorHost.value?.querySelector('.ProseMirror')?.focus?.());
+  requestAnimationFrame(focusRenderedEditor);
 }
 
 async function save() {
   if (!crepe) return;
   saving.value = true;
   try {
-    // The visible surface is what saves: in source view the markdown
-    // text is the content; in the rendered view it is the serialized
-    // document (after flushing any pending selection state).
-    let markdown;
-    if (sourceView.value) {
-      markdown = (sourceEditor?.state.doc.toString() || '').replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
-    } else {
-      const { editorViewCtx, TextSelection } = await loadCommands();
-      crepe.editor.action(ctx => {
-        const view = ctx.get(editorViewCtx);
-        view.dispatch(view.state.tr
-          .setSelection(TextSelection.create(view.state.doc, view.state.doc.content.size))
-          .setMeta('sourceEditing', true));
-      });
-      await new Promise(resolve => setTimeout(resolve, 0));
-      markdown = crepe.getMarkdown().replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
-    }
+    // The visible surface is what saves: the markdown text in source
+    // view, the serialized document in the rendered view.
+    const markdown = stripSerializerTail(sourceView.value
+      ? sourceEditor?.state.doc.toString()
+      : crepe.getMarkdown());
     // The name carries no extension of its own — strip a trailing one
     // before the persistence extension lands (`notes.md` stays
-    // `notes.md`, never `notes.md.md`). The serializer renders an empty
-    // trailing block as `<br />`; that is its artifact, not content.
+    // `notes.md`, never `notes.md.md`).
     const stem = String(displayName.value || 'document').replace(/\.(md|txt)$/i, '');
     emit('saved', await props.persistence.saveText(markdown, `${stem}${props.persistence.extension || '.md'}`));
     dirty.value = false;
