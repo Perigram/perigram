@@ -200,6 +200,10 @@ test.describe('markdown editor repair', () => {
     });
     await expect(dialog.getByText('probe-notes.md').first()).toBeVisible({ timeout: 20000 });
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
+    // The create posts after its payload upload settles; the dialog
+    // closing is the completion signal — only then does the newest
+    // instance carry the uploaded content.
+    await expect(dialog).toBeHidden({ timeout: 20000 });
 
     expect(normalized(await payloadText(app, 'text-document'))).toBe(normalized(MD_SOURCE));
     await app.expectCleanRuntime();
