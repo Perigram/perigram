@@ -58,7 +58,9 @@ token; they act with their own grants, never borrowed user identity. Bots
 join group and instance (organization) chats by subscription and answer
 direct chats; a bot in chat authors process definitions and operates
 instances through the same tool catalog, with validate-before-activate and
-the migration/type-death gates as explicit steps. Bot brains run on the
+the migration/type-death gates as explicit steps. A bot attaches instances
+to its chat replies as inline reference chips — the same validated
+instance refs human sends carry. Bot brains run on the
 organization's named model profiles — local or cloud, per capability
 (chat, call summaries, and image endpoints when an image capability
 ships) — never a defaulted cloud endpoint. Model selection happens at the

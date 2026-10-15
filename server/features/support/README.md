@@ -164,7 +164,10 @@ previews).
 Message writes drop unsupported or unreadable refs instead of accepting
 arbitrary ids. Messages may contain
 only attachments; an empty body is valid as long as at least one instance ref
-survives write-time validation.
+survives write-time validation. Agent bots attach through the same seam:
+the chat tool `attach_instances` validates refs with `normalizeInstanceRefs`
+against the bot's auth, and the reply send re-validates identically to a
+composer send.
 
 ### Artifact Refs
 

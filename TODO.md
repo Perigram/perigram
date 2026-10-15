@@ -1,5 +1,32 @@
 # TODO
 
+## Agent chat runtime: instance attach + decisive loop (owner direction 2026-10-15)
+
+Live-stack transcripts: the bot answers (observer fixed) and knows the
+dataflow version gate, but a small local model burns the tool-round budget
+asking clarifying questions ("what version?", "shall I proceed?") instead
+of acting on declared intent, and it has no way to attach instances to its
+replies.
+
+- [ ] WAITING — owner verification on the live stack: `attach_instances`
+  validates through the support message-write ref seam and the bot's reply
+  carries the chips (chat runtime only; the MCP listing excludes it).
+- [ ] WAITING — owner verification on the live stack: the bot acts on
+  declared intent ("create anything") without asking permission or version
+  questions; activation gates remain the only confirmations.
+
+#### Agent Notes (2026-10-15)
+
+Session `agent/bot-attach-instances-20261015`. The run loop gained a
+per-run side channel (`run.instanceRefs`) threaded through `executeTool`;
+`attach_instances` accumulates validated refs there and `runAgentLoop`
+returns them beside the final text — chat replies and wakes merge them
+into the send body, and `sendUserMessage` re-validates exactly like a
+human composer send (support `normalizeInstanceRefs`, now exported as the
+seam). The system prompt encodes the decisive discipline and the fixed
+`dataflowVersion 4` fact — the transcript showed the small model burning
+all 8 rounds asking "what version? shall I proceed?" instead of acting.
+
 ## Real-stack diagnosis; models/bots page split (owner direction 2026-10-15)
 
 The unreachable profile was diagnosed against the live stack (not mocks):

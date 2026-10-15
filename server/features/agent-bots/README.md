@@ -25,8 +25,12 @@ Three pieces share one tool catalog:
   returned as structured results), the type vocabulary
   ([cts-types](../cts-types/README.md)), instance reads through the
   registry-resolved instance services (party types included, CTS SPEC §13),
-  and compiled action listing/execution. Tools run with the calling
-  principal's auth; the catalog owns no business logic.
+  and compiled action listing/execution. `attach_instances` is chat-run
+  only: it validates instances through the support message-write ref seam
+  ([support](../support/README.md) inline instance references) and rides
+  them on the bot's reply as reference chips; the MCP listing excludes
+  chat-only tools. Tools run with the calling principal's auth; the
+  catalog owns no business logic.
 - **MCP transport** (`mcp.js` → `POST /api/mcp`): single-message JSON-RPC
   over streamable HTTP with `application/json` replies and stateless
   sessions (`initialize` → `tools/list` → `tools/call`/`ping`;
