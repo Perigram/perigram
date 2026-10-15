@@ -358,7 +358,7 @@ const relationCreatorOptions = reactive({});
 // to the files bucket and submits the payload reference — shared with
 // ChatSupport through usePayloadUpload so both create file instances
 // through the same control.
-const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadFile } = usePayloadUpload(
+const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadFile, pendingPayloadUpload } = usePayloadUpload(
   promptValues,
   { onError: error => toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 8000 }) }
 );
@@ -521,6 +521,9 @@ async function submitPromptedAction() {
   if (!pendingAction.value) return;
   submittingAction.value = true;
   try {
+    // A selected payload file finishes uploading before the create
+    // posts — the submission awaits the reference it must carry.
+    await pendingPayloadUpload();
     const data = relationCreatorMode.value
       ? { relationCreator: promptData(relationCreatorFields.value, relationCreatorValues) }
       : promptData(actionInputFields.value, promptValues);
