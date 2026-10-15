@@ -34,13 +34,16 @@
         />
       </div>
       <Button
-        :icon="sourceView ? 'pi pi-eye' : 'pi pi-code'"
+        label="MD"
         severity="secondary"
         text
         rounded
         size="small"
+        class="format-control text-xs"
+        :class="{ 'is-active': sourceView }"
         data-testid="source-toggle"
         :aria-label="$t(sourceView ? 'editors.renderView' : 'editors.sourceView')"
+        :aria-pressed="sourceView"
         @click="toggleSource"
       />
       <Button
