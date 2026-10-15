@@ -329,6 +329,23 @@ constructor. The dead toolbar in source mode was the removed
 `sourceActive` binding's shadow: the controls had no real mode gate, so
 they ran hidden-document commands in source view.
 
+Live verification (same day, against the dev stack): all four
+`md-editor-repair.spec.js` legs pass — the blank editor round-trip with
+source-mode toolbar gating, format toggles with the quote marker, the
+code block round-trip, slash inserts, the `.md` upload, and csv saves.
+Three defects surfaced on the way and are fixed: the CodeMirror theme
+module shipped unquoted hyphenated object keys (a JS syntax error that
+killed the editor at mount while node-side guards stayed green — the
+new `editor-modules.spec.js` pulls the browser-only module graph through
+the guard run), a prompted create could post before its in-flight
+payload upload finished (`usePayloadUpload` now exposes the pending
+upload; GeneratedScreen and ChatSupport await it), and the md e2e legs
+navigated with raw `page.goto` (the documented SSR deep-link bounce),
+settled on the empty-table shape (card gallery replaces it once
+records exist), and the suite now pins the English surface through the
+i18n cookie — the stack default locale is ru and every label locator
+in the suite is English.
+
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
 The toolbar format controls toggle (SPEC UI): an active heading, list,
