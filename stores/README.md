@@ -39,7 +39,12 @@ Three cells; every surface derives from them, nothing else caches:
   round-trip: identity is server-assigned, and generated create dialogs
   apply the run result synchronously. A successful publication records
   the echoed event id so the publishing tab skips its own invalidation
-  deliveries (see `instanceEvents.js` below). Endpoint resolution is owned here, split by plane: READS
+  deliveries (see `instanceEvents.js` below). Mutations that do not
+  ride the verbs — the revisioned editor payload transport — owe the
+  same contract through `notifyMutated(typeId, id, { snapshot, reason,
+  origin })`: it emits the browser-local event (carrying the acting
+  surface's `origin` token so that surface can skip its own change)
+  and publishes the typed invalidation for other sessions. Endpoint resolution is owned here, split by plane: READS
   resolve through the generic instance transport `/api/instances/:typeId`
   for every type the server resolver serves — party types included (their
   process bindings speak the same §3 wire); mutations keep the feature

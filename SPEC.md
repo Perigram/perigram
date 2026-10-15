@@ -72,7 +72,10 @@ rides the realtime connections stream: the same entity-change
 invalidation the cursor poll delivers is consumed live from the org
 topic, the poll remaining the catch-up path, and a tab never
 re-processes the invalidations it published itself — its mutations
-already applied the fresher snapshot.
+already applied the fresher snapshot. Editor saves and renames publish
+the same invalidation; open editors reconcile a remote save — clean
+ones reload their document, dirty ones surface the divergence until
+character-level CRDT convergence lands.
 
 Process designer palette: a searchable grid of chips, no icons. Operation
 categories (palette chips and canvas nodes alike) are told apart by shared

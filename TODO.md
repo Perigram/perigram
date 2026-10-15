@@ -1,5 +1,44 @@
 # TODO
 
+## Markdown editor: source mode, remote reconciliation, surface polish (owner direction 2026-10-15)
+
+The edited block becomes its markdown source (the Obsidian model),
+editor saves and renames publish the shared instance invalidation so
+open panes converge, and the editor surface reads as a Perigram prose
+surface (pane-width padding, the app's mono code voice).
+
+- [x] A. Source mode (`source-mode.js`): the focused heading/paragraph
+      swaps into its serialized markdown as a real document
+      transaction; leaving parses back through the markdown parser;
+      Enter at the source end commits the block and opens a fresh
+      paragraph; Escape commits in place; block controls pause while
+      the block is its source.
+- [x] B. Editor sync: the persistence base publishes saves/renames
+      (`notifyMutated` on the instances store, rename through
+      `updateInstance`); `useRemoteDocumentSync` reconciles both pack
+      editors — clean reloads, dirty raises the refresh affordance
+      (pre-CRDT divergence posture).
+- [x] C. Surface: side padding follows the pane width (container
+      query), inline code and code blocks speak the app's mono font
+      (crepe ships none).
+- [ ] WAITING — owner verification on the live stack: edit one document
+      in two panes (save in one — the other reloads or offers refresh),
+      caret into a heading (source appears), Enter commits it, quotes
+      show their `> ` marker, code voice is mono.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/editor-source-sync-20261015`. The prior
+marker-only pass (2026-10-15, `agent/editor-markers-20261015`) showed
+prefixes; source mode replaces that experience for headings/paragraphs
+— the block IS its source while edited. Known v1 caveats, tracked
+here: undo across a source/render swap boundary can strand a literal
+source block (visible, re-editable — save serializes whatever is in
+the doc); the caret maps approximately into source text when marks
+change lengths; quote/list interiors keep marker decorations rather
+than full source mode. The full while-typing convergence remains the
+CRDT stages below.
+
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
 The toolbar format controls toggle (SPEC UI): an active heading, list,
