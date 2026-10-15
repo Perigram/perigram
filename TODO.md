@@ -2275,6 +2275,41 @@ shared layer-standards pin 3/3, check-arch green. Live-app browser probe
 of the designer could not run — the E2E org stations no cassette screen;
 the owner-org verification stays with the owner.
 
+### Agent Notes (2026-10-15, owner review round 4 — full registry panel, zombie selection)
+
+Owner report: Russian layer names appeared in an English interface, the
+correct old-standard layers are still missing ("only those you seen
+before your work"), nothing else fixed; a live console error followed
+(`Command failed: erase — lookupObject(23) not found`).
+
+Findings and fixes on `agent/editor-sel-layers-20261015`:
+
+- The panel interpretation was wrong: the owner asks for the old
+  standard's FULL layer set, not renamed drawing layers. The panel now
+  lists all 22 registry rows (production name + language-neutral code +
+  pen) whether the drawing carries them or not; absent rows render
+  dimmed without a toggle, the drawing's non-standard helpers follow.
+  The Russian production names are the registry's names of record — each
+  row also shows its code so an English UI stays readable.
+- The erase failure root-caused and reproduced in a real-browser harness:
+  the editor reseeds the engine database behind its back on every
+  authored edit, but never cleared the engine's selection — the selection
+  kept dead object ids and the next erase died inside the engine with
+  `lookupObject not found`. `clearDrawingEntities` now clears the
+  selection first (`clearEngineSelection`, also reused by Escape).
+  Proven: selection 1 → reseed → 0, Delete erases cleanly, zero console
+  errors; the round-3 Escape behavior re-verified unchanged.
+- Correction to the round-3 note: the "1→0" Escape verification there
+  could not have observed `selectionSet.ids.size` — the engine's
+  selection wrapper exposes `count` (the `ids` getter read undefined),
+  so the guard in the shipped Escape handler was dead code. The clear is
+  now unconditional when a selection set exists.
+
+Validation: facade suites 101/101 (new full-registry panel pin),
+check-docs, check-arch green. The `perigram-plugin surfaces` guard still
+fails identically on the clean tree (pre-existing, untouched).
+
+
 ### Agent Notes (2026-10-15, owner review round 2 — + affordance, arrays, layer names)
 
 - The "+" face-grow affordance vanished on EVERY edge while arranging
