@@ -19,7 +19,7 @@ vi.mock('h3', () => ({
     })
 }));
 
-import { resolveLlmConfig, chatCompletion } from './service.js';
+import { resolveLlmConfig, chatCompletion, streamChatCompletion } from './service.js';
 
 const fetchMock = vi.fn();
 
@@ -221,5 +221,98 @@ describe('chatCompletion: failure modes', () => {
         process.env.LLM_MODEL = 'model-x';
         fetchMock.mockResolvedValueOnce({ ok: true, json: async () => null });
         await expect(chatCompletion({ organizationId: null })).rejects.toMatchObject({ statusCode: 502 });
+    });
+});
+
+// --- Streaming ------------------------------------------------------------
+
+/** A fake streaming Response whose body emits the given string chunks. */
+function streamResponse(chunks) {
+    const encoder = new TextEncoder();
+    return {
+        ok: true,
+        body: new ReadableStream({
+            start(controller) {
+                for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+                controller.close();
+            }
+        })
+    };
+}
+
+async function streamRound(provider, chunks, messages = []) {
+    process.env.LLM_PROVIDER = provider;
+    process.env.LLM_BASE_URL = 'http://llm.internal';
+    process.env.LLM_MODEL = 'model-x';
+    fetchMock.mockResolvedValueOnce(streamResponse(chunks));
+    const deltas = [];
+    let message = null;
+    for await (const event of streamChatCompletion({ organizationId: null, system: 'be brief', messages, tools: TOOLS })) {
+        if (event.type === 'text') deltas.push(event.text);
+        else if (event.type === 'message') message = event;
+    }
+    const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+    return { deltas, message, request, url: fetchMock.mock.calls[0][0] };
+}
+
+describe('streamChatCompletion', () => {
+    it('parses OpenAI-shaped SSE deltas, reassembling split tool arguments', async () => {
+        const raw = [
+            'data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n',
+            'data: {"choices":[{"delta":{"content":"lo"}}]}\n\n',
+            'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"list_types","arguments":"{\\"a\\":"}}]}}]}\n\n',
+            'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"1}"}}]}}]}\n\n',
+            'data: [DONE]\n\n'
+        ].join('');
+        // Split mid-line across chunks to prove the reader buffers.
+        const cut = raw.indexOf('"lo"') + 2;
+        const { deltas, message, request, url } = await streamRound('openai', [raw.slice(0, cut), raw.slice(cut)]);
+        expect(url).toBe('http://llm.internal/v1/chat/completions');
+        expect(request.stream).toBe(true);
+        expect(deltas).toEqual(['Hel', 'lo']);
+        expect(message).toEqual({
+            type: 'message',
+            content: 'Hello',
+            toolCalls: [{ id: 'c1', name: 'list_types', arguments: { a: 1 } }]
+        });
+    });
+
+    it('parses native Ollama newline-delimited JSON', async () => {
+        const { deltas, message, request } = await streamRound('ollama', [
+            '{"message":{"content":"Hi"},"done":false}\n',
+            '{"message":{"content":" there","tool_calls":[{"function":{"name":"list_types","arguments":{"a":1}}}]},"done":false}\n',
+            '{"message":{"content":""},"done":true}\n'
+        ]);
+        expect(request.stream).toBe(true);
+        expect(deltas).toEqual(['Hi', ' there']);
+        expect(message).toEqual({
+            type: 'message',
+            content: 'Hi there',
+            toolCalls: [{ id: 'ollama-0', name: 'list_types', arguments: { a: 1 } }]
+        });
+    });
+
+    it('parses Messages-protocol events, reassembling partial tool JSON', async () => {
+        const { deltas, message, request } = await streamRound('anthropic', [
+            'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n',
+            'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Ans"}}\n\n',
+            'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n',
+            'event: content_block_start\ndata: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"tu_1","name":"list_types"}}\n\n',
+            'event: content_block_delta\ndata: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"b\\":2}"}}\n\n',
+            'event: content_block_stop\ndata: {"type":"content_block_stop","index":1}\n\n'
+        ]);
+        expect(request.stream).toBe(true);
+        expect(deltas).toEqual(['Ans']);
+        expect(message).toEqual({
+            type: 'message',
+            content: 'Ans',
+            toolCalls: [{ id: 'tu_1', name: 'list_types', arguments: { b: 2 } }]
+        });
+    });
+
+    it('throws 503 when no provider resolves', async () => {
+        await expect((async () => {
+            for await (const _ of streamChatCompletion({ organizationId: null })) { /* drain */ }
+        })()).rejects.toMatchObject({ statusCode: 503 });
     });
 });

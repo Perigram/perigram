@@ -43,6 +43,35 @@ function botTypingBeats(botAuth, conversationKey) {
     return setInterval(beat, BOT_TYPING_INTERVAL_MS);
 }
 
+/**
+ * Room presence for a bot's answer as it is produced: the runtime owns no
+ * delivery channel, so partial text rides the conversation topic like the
+ * typing beat — `bot_stream` carries the answer so far (the client paints
+ * a growing bubble), `bot_stream_end` retracts it. A tool round retracts
+ * its own text because the loop keeps only the final answer.
+ */
+function botStreamSink(botAuth, conversationKey) {
+    const topic = `conversation:${conversationKey}`;
+    return {
+        delta(text) {
+            connectionsService.publish(topic, {
+                type: 'bot_stream',
+                conversationKey,
+                userId: botAuth.userId,
+                name: botAuth.name || '',
+                text
+            });
+        },
+        clear() {
+            connectionsService.publish(topic, {
+                type: 'bot_stream_end',
+                conversationKey,
+                userId: botAuth.userId
+            });
+        }
+    };
+}
+
 const botFlagCache = new Map();
 const BOT_FLAG_TTL_MS = 60_000;
 
@@ -123,23 +152,52 @@ function historyMessages(messages = [], botUserId) {
 }
 
 /**
+ * One streamed round: consumes the LLM stream, forwarding the running text
+ * to `onText` as it grows, and returns the assembled neutral assistant
+ * message.
+ */
+async function streamedRound({ organizationId, profileId, system, messages, tools, onText = null }) {
+    let full = '';
+    let message = null;
+    for await (const event of llmService.streamChatCompletion({ organizationId, profileId, system, messages, tools })) {
+        if (event.type === 'text') {
+            full += event.text;
+            if (onText) onText(full);
+        } else if (event.type === 'message') {
+            message = event;
+        }
+    }
+    return message || { content: full, toolCalls: [] };
+}
+
+/**
  * The shared bounded tool-calling loop: neutral conversation in, final
  * assistant text plus any attached instance refs out (text null when the
  * model produced nothing). Tool failures become tool-result errors the
- * model can read and adjust around.
+ * model can read and adjust around. Text from every round streams live
+ * through `stream`; a round that ends in tool calls retracts its own text
+ * (only the final answer persists).
  */
-async function runAgentLoop({ botAuth, system, conversation, profileId = '' }) {
+async function runAgentLoop({ botAuth, system, conversation, profileId = '', stream = null }) {
     const organizationId = botAuth.organizationId;
     const tools = chatToolDescriptors();
     // Per-run side channel: chat-only tools accumulate state here that the
     // final reply consumes (instance refs the model attached mid-loop).
     const run = { instanceRefs: [] };
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-        const assistant = await llmService.chatCompletion({ organizationId, profileId, system, messages: conversation, tools });
+        const assistant = await streamedRound({
+            organizationId,
+            profileId,
+            system,
+            messages: conversation,
+            tools,
+            onText: stream ? (text) => stream.delta(text) : null
+        });
         const toolCalls = assistant.toolCalls || [];
         if (!toolCalls.length) {
             return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs };
         }
+        if (stream) stream.clear();
         conversation.push({ role: 'assistant', content: assistant.content || '', toolCalls });
         for (const call of toolCalls) {
             let result;
@@ -156,6 +214,7 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '' }) {
             });
         }
     }
+    if (stream) stream.clear();
     return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs };
 }
 
@@ -196,9 +255,11 @@ export async function runBotReply(botUserId, context, message, conversationProfi
     }
     inFlight.add(lockKey);
     let typing = null;
+    let stream = null;
     try {
         const botAuth = await buildBotAuth(botUserId);
         typing = botTypingBeats(botAuth, message.conversationKey);
+        stream = botStreamSink(botAuth, message.conversationKey);
         const organizationId = botAuth.organizationId;
         const profileId = conversationProfile || botAuth.botProfile;
         if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId }))) {
@@ -209,7 +270,8 @@ export async function runBotReply(botUserId, context, message, conversationProfi
             botAuth,
             profileId,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
-            conversation: await conversationHistory(message.conversationKey, botUserId)
+            conversation: await conversationHistory(message.conversationKey, botUserId),
+            stream
         });
         if (text) await sendReply(botAuth, context, message, text, instanceRefs);    } catch (error) {
         console.error('[AGENT-BOTS] reply failed:', error);
@@ -221,6 +283,7 @@ export async function runBotReply(botUserId, context, message, conversationProfi
         }
     } finally {
         if (typing) clearInterval(typing);
+        if (stream) stream.clear();
         inFlight.delete(lockKey);
     }
 }
@@ -272,9 +335,11 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
     }
     inFlight.add(lockKey);
     let typing = null;
+    let stream = null;
     try {
         const botAuth = await buildBotAuth(subscription.botUserId);
         typing = botTypingBeats(botAuth, subscription.conversationKey);
+        stream = botStreamSink(botAuth, subscription.conversationKey);
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the bot's own, then the org route.
         const profileId = ruleProfile || String(subscription.profile || '') || botAuth.botProfile;
@@ -299,7 +364,8 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
             conversation: [
                 ...await conversationHistory(subscription.conversationKey, subscription.botUserId),
                 { role: 'user', content: trigger }
-            ]
+            ],
+            stream
         });
         if (!text) return;
         const body = postingBodyForKey(subscription.conversationKey, text);
@@ -308,6 +374,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         console.error('[AGENT-BOTS] wake failed:', error);
     } finally {
         if (typing) clearInterval(typing);
+        if (stream) stream.clear();
         inFlight.delete(lockKey);
     }
 }
