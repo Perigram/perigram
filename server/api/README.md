@@ -2,6 +2,22 @@
 
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
+- `agent-bots/`: Authenticated bot administration and conversation
+  membership (`GET/POST /api/agent-bots` — the listing takes
+  `?conversationKey=` and returns subscription flags; `DELETE
+  /api/agent-bots/:id`; `POST /api/agent-bots/:id/token` rotation) plus
+  `POST/DELETE /api/agent-bots/subscriptions`. Everything is gated by user
+  management access in the active organization. See
+  [agent-bots feature](../features/agent-bots/README.md).
+- `mcp/`: `POST /api/mcp` — the MCP streamable-HTTP endpoint over the
+  shared agent tool catalog (single JSON-RPC messages, `application/json`
+  replies; authenticated by whatever the auth middleware resolved — user
+  JWT, session cookie, or bot token). See
+  [agent-bots feature](../features/agent-bots/README.md).
+- `llm/`: `GET /api/llm/config` reports `{ available }` for the caller's
+  organization so clients render bot affordances only when a chat
+  completions provider is configured (see
+  [llm feature](../features/llm/README.md)).
 - `artifacts/`: Metadata, deletion, and streaming for generated files.
 - `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
   replacement, authorized source streaming, and deletion. Template-generated

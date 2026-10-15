@@ -1,5 +1,61 @@
 # TODO
 
+## Agent bots and MCP tool access (owner direction 2026-10-15)
+
+Agents manipulate process definitions and instances procedurally: an MCP
+endpoint over a shared tool catalog, and chat bots that answer in group, org,
+and direct chats.
+
+- [x] A. LLM capability module: per-org OpenAI-compatible provider selection
+      following the transcription config pattern (`data.settings.llm`, `LLM_*`
+      env defaults), chat completions with tool calling.
+- [x] B. Bot users: organization member with a `data.bot` marker and token
+      (hash-stored, issued on create/rotate); bot-token auth path in the auth
+      middleware beside JWT and session cookie.
+- [x] C. Agent tool catalog over existing service seams: process definition
+      lifecycle (list/get/create/update/validate/activate/deactivate),
+      vocabulary and instance reads through the registry, compiled action
+      listing and execution.
+- [x] D. MCP endpoint: `POST /api/mcp` streamable-HTTP JSON-RPC
+      (initialize, ping, tools/list, tools/call) authenticated as a user or
+      bot.
+- [x] E. Bot subscriptions (`agent_bot_subscriptions`) for group and
+      instance conversations; support seams (message observers, group
+      participant management) staying bot-agnostic.
+- [x] F. Bot runtime: trigger rules (direct auto-answer, subscription gate,
+      bot-sender skip), LLM tool loop with bounded rounds, reply posted as
+      the bot through the auth-checked send path.
+- [x] G. Chat UI: bot panel (list, create, token reveal, delete, add/remove
+      per conversation), bot badge, direct chats with bots through the
+      existing user picker.
+- [x] H. Specs: trigger rules, MCP transport, tool catalog.
+- [ ] WAITING — owner verification on the live stack: create a bot in the
+      Chats panel (token reveals once), chat with it directly, join it to a
+      group and the org chat, and point an MCP client at
+      `POST /api/mcp` with the bot token; LLM provider must be configured
+      (`LLM_*` env or org `data.settings.llm`).
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/agent-bots-mcp-20261015`. Bots are ordinary members
+(users README documents the `data.bot` marker; token hashes follow the
+password strip/restore persistence contract) carrying only the narrow
+`organizations` membership recovery grant that opens process definition
+management — process roles are assigned on the org users page like any
+member. The tool catalog is one module shared by MCP and the chat loop;
+activation gates (409 migration plan, type death) return to agents as
+structured `{ activationBlocked, gate }` results rather than errors.
+Instance-chat bots subscribed to a composed ancestor answer messages
+landing on descendant instance chats via the stored `instancePath`. The
+runtime replies through `sendUserMessage` with the bot's own
+`resolveProcessAuth` context; bot senders never trigger (no loops), and one
+reply is in flight per bot+conversation. Guard rails: check-arch (both new
+features registered as capability features), check-docs, framework
+validate, design-system, users spec, SSR smoke, and the new
+`agent-bots.spec.js` (23 tests) all pass; the remaining full-suite failures
+(30 tests across process-definitions/livekit/invitations/ui-mapping
+specs) fail identically at clean HEAD — pre-existing, untouched.
+
 ## Markdown editor: source mode, remote reconciliation, surface polish (owner direction 2026-10-15)
 
 The edited block becomes its markdown source (the Obsidian model),

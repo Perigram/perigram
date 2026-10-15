@@ -17,6 +17,8 @@ Nuxt/Nitro backend for the Perigram modular monolith.
 | Effects | `server/core/effects/` | Declared cross-entity effect execution. |
 | Runtime registry | `server/runtime/` | Explicit app registry binding domain contracts to services/handlers. |
 | Process definitions | `server/features/process-definitions/` | Organization-owned process graph drafts and compiled active runtime contracts. |
+| Agent bots | `server/features/agent-bots/` | Bot members, the shared agent tool catalog, the MCP transport, and the chat bot runtime. |
+| LLM | `server/features/llm/` | Per-organization OpenAI-compatible chat completions capability. |
 | Entity event bus | `server/features/instance-events/` | Authenticated in-memory SSE invalidation bus for cross-device entity updates. |
 
 ## Golden Path

@@ -47,6 +47,19 @@ and a write accepts, only instances inside the declared domain. One
 declaration, one evaluator, every surface: pickers project it, the write
 boundary enforces it.
 
+## Agent access and chat bots (owner direction 2026-10-15)
+
+Agents operate the platform programmatically through the same boundaries as
+every other client: one curated tool catalog over the existing service seams
+(process definition lifecycle, registry instance reads, compiled action
+execution) exposed through an MCP endpoint and consumed by in-app chat bots.
+Bots are ordinary organization members carrying a bot marker and their own
+token; they act with their own grants, never borrowed user identity. Bots
+join group and instance (organization) chats by subscription and answer
+direct chats; a bot in chat authors process definitions and operates
+instances through the same tool catalog, with validate-before-activate and
+the migration/type-death gates as explicit steps.
+
 ## UI
 
 All UI is written in raw, unmodified PrimeVue plus the repo's registered

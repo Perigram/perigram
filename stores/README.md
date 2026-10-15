@@ -124,6 +124,10 @@ process vocabulary; none may gain new consumers.
   store loads `/api/support/conversations` only after `auth.userIsSet` is true
   and refreshes it on a short interval so login/auth hydration cannot leave the
   drawer with only its synthetic support row.
+- `agentBots.js`: Org bot administration state for the chat bot panel
+  (`/api/agent-bots` picker rows with per-conversation subscription flags,
+  create/delete/token reveal); the server gates everything behind user
+  management access and a 403 hides the surface.
 - `calls.js`: Shared LiveKit call-activity state and the app's call line
   state machine (`idle → ringing → joining → in-call`). Connects once per
   app (mounted by the app layout) to `call.invite` on the user topic and
