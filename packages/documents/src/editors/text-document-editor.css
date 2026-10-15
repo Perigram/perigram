@@ -31,37 +31,46 @@
   --crepe-shadow-2: 0 2px 6px 2px rgb(0 0 0 / 0.12);
 }
 
-/* The editor is the document: it reads in the prose voice with room to
-   write — one bounded scroll inside the pane, breathing room at the
-   end so the last line escapes the toolbar overlap. Side padding
-   follows the pane (container query on the editor host): narrow panes
-   keep their width, wide panes keep the line length readable. */
-.crepe-host {
-  container-type: inline-size;
-}
-
+/* The editor is the document: it reads in the prose voice with a
+   readable measure — the column caps at ~72 characters and centers in
+   the pane, so narrow panes keep their width (the surface padding is
+   the host's) and wide panes never stretch a line past its measure.
+   One bounded scroll inside the pane, breathing room at the end so the
+   last line escapes the toolbar overlap. */
 .milkdown .editor {
-  padding: 0.75rem clamp(0.75rem, 6cqi, 3rem) 30vh;
+  max-width: min(100%, 72ch);
+  margin-inline: auto;
+  padding: 0.75rem 0.25rem 30vh;
   outline: none;
 }
 
-/* Crepe ships no font for plain code elements (only its CodeMirror
-   feature consumes the code font) — inline code and code blocks speak
-   the app's mono voice. */
-.milkdown :not(pre) > code,
-.milkdown pre {
+/* Code speaks the app's technical role (mono voice, normal ink — crepe
+   ships a red inline-code chip at 87.5% that reads as a warning, not
+   code). Host-prefixed so the rules outrank crepe's reset regardless
+   of import order — the crepe stylesheet loads dynamically, always
+   after this file. */
+.crepe-host .milkdown .ProseMirror code {
+  color: var(--crepe-color-on-background);
+  background: var(--crepe-color-surface-low);
   font-family: var(--crepe-font-code);
+  font-size: 0.875em;
+  padding: 0 0.25em;
+  border-radius: 4px;
 }
 
-/* The source-mode block (source-mode.js): the edited block IS its
-   markdown — mono, no code-block chrome; it reads as the document's
-   own text, not a fenced listing. */
-.milkdown .md-source-block {
-  background: transparent;
-  border: none;
-  padding: 0;
-  color: var(--crepe-color-on-background);
+.crepe-host .milkdown .ProseMirror pre {
+  background: var(--crepe-color-surface-low);
+  border: 1px solid var(--crepe-color-outline);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
   font-family: var(--crepe-font-code);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.crepe-host .milkdown .ProseMirror pre code {
+  background: transparent;
+  font-size: inherit;
 }
 
 /* Live-source markers (the Obsidian model): the focused block's

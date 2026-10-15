@@ -119,27 +119,25 @@ single-surface live markdown editor (milkdown, owner direction
 2026-10-15: the Obsidian model — the document renders in place while
 writing, the focused block shows its markdown source; the editor's
 model IS markdown, serialization is the framework's own, no rich-text
-proxy). The live-source seam is two plugins over one pure core:
-`src/editors/source-mode.js` swaps the edited heading/paragraph into
-its serialized markdown (a real document transaction — the caret
-enters the source, leaving parses it back through the markdown parser,
-Enter at the source end commits the block and opens a fresh paragraph,
-Escape commits in place; serialization is injected, so the logic runs
-headless in specs) and `source-markers.js` (pure state readers: the
-focused block's remaining markdown prefixes — `> ` — and the literal
-markers of mark runs the caret touches) plus `source-markers-plugin.js`
-(the ProseMirror plugin rendering markers as non-editable widgets and
-reporting the toolbar selection state; copies never see them —
-clipboard serialization renders from the document, not decorations).
-The engine ships with its chrome disabled: formatting rides PrimeVue
-controls in the editor toolbar (marks, headings, lists, quote — every
-control toggles, the pressed state showing what the focused block
-carries, an active block control returning it to body text; markdown
-input rules and keyboard shortcuts keep working; block controls pause
-while the edited block is its source). The surface is themed from the
-app's tokens (`src/editors/text-document-editor.css`): the code voice
-is the app's mono font, and the document's side padding follows the
-pane width (container query). Saves and renames publish the shared
+proxy). The live-source seam today is `src/editors/source-markers.js`
+(pure state readers: the focused block's markdown prefix — `> `, `### `
+— and the literal markers of inline mark runs the caret touches) plus
+`source-markers-plugin.js` (the ProseMirror plugin rendering them as
+non-editable, clipboard-inert widgets and reporting the toolbar
+selection state). Editing the source text of the focused block is a
+view-level concern and ships as its own task (TODO) — a
+representation-swap into the document was tried and reverted: any
+temporary node in the doc lies to every consumer (a save mid-edit
+wrote a fenced block where the heading was). The engine ships with its
+chrome disabled: formatting rides PrimeVue controls in the editor
+toolbar (marks, headings, lists, quote — every control toggles, the
+pressed state showing what the focused block carries, an active block
+control returning it to body text; markdown input rules and keyboard
+shortcuts keep working). The surface is themed from the app's tokens
+(`src/editors/text-document-editor.css`): code speaks the technical
+role (the app's mono voice, normal ink — crepe's red inline-code chip
+is overridden), and the document column caps at a readable measure
+(~72ch) centered in the pane. Saves and renames publish the shared
 instance event through the persistence base, and open editors
 reconcile remote saves through `useRemoteDocumentSync.js` — a clean
 editor reloads, a dirty one raises its refresh affordance (pre-CRDT:

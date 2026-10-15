@@ -27,7 +27,6 @@
           size="small"
           class="format-control"
           :class="[control.class, { 'is-active': isActive(control) }]"
-          :disabled="blockState.block === 'code_block'"
           :aria-label="$t(control.labelKey)"
           :aria-pressed="isActive(control)"
           @click="runFormat(control)"
@@ -144,9 +143,6 @@ async function loadCommands() {
 
 async function runFormat(control) {
   if (!crepe) return;
-  // Source mode edits raw markdown: block commands would bypass the
-  // parse-back and strand literal source in the document.
-  if (blockState.value.block === 'code_block') return;
   const active = isActive(control);
   if (active && control.off === 'lift') {
     // Blockquotes have no preset unwrap command: lift the focused block
@@ -173,12 +169,10 @@ let loaded = false;
 
 onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
-  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }, { createSourceModePlugin }, { parserCtx, serializerCtx }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/utils'),
     import('./source-markers-plugin.js'),
-    import('./source-mode.js'),
-    import('@milkdown/core'),
     import('@milkdown/crepe/theme/common/style.css')
   ]);
   if (!editorHost.value) return;
@@ -194,15 +188,10 @@ onMounted(async () => {
       [CrepeEditor.Feature.AI]: false
     }
   });
-  // The live-source seam: the focused block shows its markdown markers,
-  // the edited block becomes its markdown source (serialized in,
-  // parsed back out), and the toolbar learns the selection state.
+  // The live-source seam: the focused block shows its markdown markers
+  // and the toolbar learns the selection state.
   crepe.editor.use($prose(() => createSourceMarkersPlugin({
     onSelectionState: next => { blockState.value = next; }
-  })));
-  crepe.editor.use($prose(ctx => createSourceModePlugin({
-    serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
-    parse: text => ctx.get(parserCtx)(text)
   })));
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes
