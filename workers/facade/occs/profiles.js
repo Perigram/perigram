@@ -410,6 +410,89 @@ const flattenArcToPoints = (arc, chordTolerance) => {
   return points;
 };
 
+// The section walk every cassette consumer draws: the stored section
+// keeps the theoretical sharp corners and its fillet modifiers; this
+// pass resolves each authored corner to its tangent arc points (the
+// same trim/bisector math and chord tolerance the editor's entity
+// seeding uses, radius clamped to the largest arc that fits). Open
+// chain ends keep their vertices — fillets need both neighbours.
+export const occProfileSectionChainedVertices = (section = {}, chordTolerance = 0.05) => {
+  const raw = Array.isArray(section.vertices) ? section.vertices : [];
+  const vertices = raw.map(vertex => [Number(vertex?.[0]), Number(vertex?.[1])]);
+  if (vertices.length < 2) return vertices;
+  const closed = !section.open && section.type !== 'polyline' && vertices.length >= 3;
+  const radiusByIndex = new Map();
+  for (const modifier of Array.isArray(section.modifiers) ? section.modifiers : []) {
+    if (modifier?.type !== 'fillet') continue;
+    const index = Number(String(modifier.vertexId ?? '').slice(1));
+    const radius = Number(modifier.radius);
+    if (Number.isInteger(index) && index >= 0 && index < vertices.length && Number.isFinite(radius) && radius > 0) {
+      radiusByIndex.set(index, radius);
+    }
+  }
+  if (!radiusByIndex.size) return vertices;
+
+  const chain = [];
+  for (let index = 0; index < vertices.length; index += 1) {
+    const vertex = vertices[index];
+    const radius = radiusByIndex.get(index) || 0;
+    const previous = closed ? vertices[(index - 1 + vertices.length) % vertices.length] : vertices[index - 1];
+    const next = closed ? vertices[(index + 1) % vertices.length] : vertices[index + 1];
+    if (!previous || !next || radius <= 0) {
+      chain.push(vertex);
+      continue;
+    }
+    const toPrevious = [previous[0] - vertex[0], previous[1] - vertex[1]];
+    const toNext = [next[0] - vertex[0], next[1] - vertex[1]];
+    const lengthPrevious = Math.hypot(toPrevious[0], toPrevious[1]);
+    const lengthNext = Math.hypot(toNext[0], toNext[1]);
+    if (!lengthPrevious || !lengthNext) {
+      chain.push(vertex);
+      continue;
+    }
+    const unitPrevious = [toPrevious[0] / lengthPrevious, toPrevious[1] / lengthPrevious];
+    const unitNext = [toNext[0] / lengthNext, toNext[1] / lengthNext];
+    const cosine = unitPrevious[0] * unitNext[0] + unitPrevious[1] * unitNext[1];
+    const interiorAngle = Math.acos(Math.max(-1, Math.min(1, cosine)));
+    if (interiorAngle >= Math.PI - 1e-9 || interiorAngle <= 1e-9) {
+      chain.push(vertex);
+      continue;
+    }
+    const trim = Math.min(
+      radius / Math.tan(interiorAngle / 2),
+      lengthPrevious * 0.49,
+      lengthNext * 0.49
+    );
+    const fittedRadius = trim * Math.tan(interiorAngle / 2);
+    const start = [vertex[0] + unitPrevious[0] * trim, vertex[1] + unitPrevious[1] * trim];
+    const end = [vertex[0] + unitNext[0] * trim, vertex[1] + unitNext[1] * trim];
+    const bisector = [unitPrevious[0] + unitNext[0], unitPrevious[1] + unitNext[1]];
+    const bisectorLength = Math.hypot(bisector[0], bisector[1]);
+    const centerDistance = fittedRadius / Math.sin(interiorAngle / 2);
+    const center = [
+      vertex[0] + (bisector[0] / bisectorLength) * centerDistance,
+      vertex[1] + (bisector[1] / bisectorLength) * centerDistance
+    ];
+    const startAngle = Math.atan2(start[1] - center[1], start[0] - center[0]);
+    const endAngle = Math.atan2(end[1] - center[1], end[0] - center[0]);
+    let sweep = endAngle - startAngle;
+    while (sweep <= -Math.PI) sweep += Math.PI * 2;
+    while (sweep > Math.PI) sweep -= Math.PI * 2;
+    const tolerance = Math.min(chordTolerance, fittedRadius * 0.5);
+    const step = tolerance > 0 && fittedRadius > tolerance
+      ? 2 * Math.acos(1 - tolerance / fittedRadius)
+      : Math.PI / 2;
+    const count = Math.max(2, Math.ceil(Math.abs(sweep) / Math.max(step, 1e-6)));
+    chain.push(start);
+    for (let step2 = 1; step2 < count; step2 += 1) {
+      const angle = startAngle + sweep * (step2 / count);
+      chain.push([center[0] + fittedRadius * Math.cos(angle), center[1] + fittedRadius * Math.sin(angle)]);
+    }
+    chain.push(end);
+  }
+  return chain;
+};
+
 const tangentToFillet = (segment, incoming, outgoing) => {
   // The arc is a fillet modifier only when it runs tangent to the line
   // segment on both ends; the vertex is where the untrimmed lines meet.

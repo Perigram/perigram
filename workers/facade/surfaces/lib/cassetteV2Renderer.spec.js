@@ -34,6 +34,7 @@ import {
 } from './cassetteV2Renderer.js';
 import {
   createDefaultOccsProfileSketch,
+  normalizeOccsProfileSketch,
   occsProfileFromSketch,
   setOccsProfileSketchClosed
 } from '../../occs/profiles.js';
@@ -331,8 +332,56 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(edgeIndexes).toEqual([0, 1, 3]);
   });
 
-  it('treats a closed profile edge array as terminal and cuts every copy', async () => {
-    const initialTree = createCassetteV2GraphTree();
+  it('rounds authored fillet corners in the cassette cut and the embedded boundary', async () => {
+    // The default template carries its own corner fillets — a true
+    // sharp baseline clears them.
+    const filleted = normalizeOccsProfileSketch({
+      ...createDefaultOccsProfileSketch({ W: 42, H: 28 }),
+      modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 6 }]
+    });
+    const sharp = normalizeOccsProfileSketch({
+      ...createDefaultOccsProfileSketch({ W: 42, H: 28 }),
+      modifiers: []
+    });
+
+    const build = (sketch, open) => {
+      const effective = open ? setOccsProfileSketchClosed(sketch, false) : sketch;
+      const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+        referenceWorkpieceId: 'wp_1',
+        referenceNodeId: 'face_1',
+        name: 'Filleted hanger',
+        kind: 'hanger',
+        process: 'extruded',
+        parameters: effective.parameters,
+        occsProfile: occsProfileFromSketch(effective),
+        sketch: effective
+      });
+      const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+      return updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+        placementMode: 'edgeArray',
+        arrayEdge: 'E2',
+        arrayMode: 'count',
+        arrayCount: '1',
+        offsetX: '100',
+        offsetY: '30'
+      });
+    };
+
+    const filletedDrawing = await renderCassetteV2TreeToDrawing(build(filleted, false), { mode: 'workpiece' });
+    const sharpDrawing = await renderCassetteV2TreeToDrawing(build(sharp, false), { mode: 'workpiece' });
+    const filletCut = filletedDrawing.layers.find(layer => layer.standardCode === 'cut.inner').paths[0].d;
+    const sharpCut = sharpDrawing.layers.find(layer => layer.standardCode === 'cut.inner').paths[0].d;
+    expect(filletCut.match(/L/g).length).toBeGreaterThan(sharpCut.match(/L/g).length);
+
+    // Open profile: the stitched boundary carries the rounded corner.
+    const openFilleted = await renderCassetteV2TreeToDrawing(build(filleted, true), { mode: 'workpiece' });
+    const openSharp = await renderCassetteV2TreeToDrawing(build(sharp, true), { mode: 'workpiece' });
+    const openFilletedFace = openFilleted.designerFaces.find(face => face.nodeId === 'face_1');
+    const openSharpFace = openSharp.designerFaces.find(face => face.nodeId === 'face_1');
+    expect(openFilletedFace.d.length).toBeGreaterThan(openSharpFace.d.length);
+  });
+
+  it('treats a closed profile edge array as terminal and cuts every copy', async () => {    const initialTree = createCassetteV2GraphTree();
     const square = createDefaultOccsProfileSketch();
     const added = addCassetteV2ProfileWorkpiece(initialTree, {
       referenceWorkpieceId: 'wp_1',

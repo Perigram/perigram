@@ -2385,6 +2385,46 @@ profile edge array is terminal and cuts every copy on cut.inner;
 evaluate names closed-profile cuts on the cut layer with relation and
 workpiece metadata.
 
+### Agent Notes (2026-10-15, owner review round 6 — fillets in the cassette, profiles in 3D)
+
+Owner reports: authored profile vertex fillets never showed in the
+cassette, and profiles stopped working in the 3D view.
+
+Findings on `agent/profile-fillet-3d-20261015`:
+
+- Fillets: the stored section carries the fillet modifiers beside the
+  theoretical sharp corners, and no cassette consumer read them — the
+  editor canvas drew the arcs (entity seeding) while the embedding, the
+  cut polygons, and the 3D preview all walked the sharp polygon. New
+  `occProfileSectionChainedVertices` (occs/profiles.js, the single home
+  of the law) resolves authored corners to tangent arc points with the
+  same trim/bisector math and 0.05mm chord tolerance the editor uses;
+  `embedOccsProfileEdge`, `profileCutPolygon`, and the new 3D bodies
+  all draw that walk. Verified: a 6mm corner fillet turns the
+  4-point cut polygon into a 10-point rounded one, and the open-profile
+  stitched boundary carries the same rounding.
+- 3D: profiles never had bodies in the folded preview (verified
+  byte-identical behavior at the pre-round-5 merge — the body channel
+  was hardware-only since the plugin migration), and every profile
+  relation reported «не разрешена» because profile joints carry no
+  source face. Closed profile sections now ride the body channel:
+  fillet-resolved section with holes, extruded along the sweep length,
+  one body per array/point placement (Three.js ExtrudeGeometry in the
+  component). Profile relations left the face-joint diagnostics — their
+  placement is the body channel.
+- Scope note: profile section HOLES cut the face only through the 3D
+  body preview today; the 2D boolean cut pipeline takes outer polygons
+  and does not yet subtract section holes (same gap the hardware
+  hanger-clip slot has).
+
+Validation: facade suites 109/109 — new pins: the chained-vertices walk
+(fillet resolve, clamp, open ends, no-modifier passthrough), fillet
+rounding in the cassette cut and embedded boundary, and profile bodies
+in the folded payload (array placement, holes, sweep, no diagnostics
+noise). check-arch + check-docs green. The `perigram-plugin surfaces`
+guard still fails identically on the clean tree (pre-existing).
+
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 

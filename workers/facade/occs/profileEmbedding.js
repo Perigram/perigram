@@ -9,6 +9,7 @@
 // past the edge end — are detected and reported, never silently
 // clamped. Pure module: no renderer, no platform imports.
 import { edgeArrayDistances } from './hardware.js';
+import { occProfileSectionChainedVertices } from './profiles.js';
 
 const numeric = (value, fallback = 0) => {
   const next = Number(value);
@@ -38,7 +39,10 @@ const roundPoint = (point) => [
 // offsetY is deliberately ignored (open profiles keep their feet on the
 // edge). Mirrors still apply (the chain may flip before alignment).
 export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {}, resolve = numeric } = {}) => {
-  const chain = (section.vertices || []).map(vertex => [numeric(vertex?.[0]), numeric(vertex?.[1])]);
+  // The authored fillet corners resolve to their arc points — the chain
+  // the edge embedding stitches is the drawable geometry, not the
+  // theoretical sharp polygon.
+  const chain = occProfileSectionChainedVertices(section);
   if (chain.length < 2) {
     return { ok: false, reason: 'profile section has no chain' };
   }

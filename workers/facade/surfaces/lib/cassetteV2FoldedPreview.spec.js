@@ -343,4 +343,52 @@ describe('cassette v2 folded preview', () => {
     expect(preview.bodies).toHaveLength(0);
     expect(preview.cutouts).toHaveLength(1);
   });
+
+  it('extrudes closed profile sections as 3D bodies placed by their array', () => {
+    const preview = buildCassetteV2FoldedPreview({
+      faces: [{
+        nodeId: 'face_1',
+        workpieceId: 'wp_1',
+        vertices: [[0, 0, 0], [500, 0, 0], [500, 400, 0], [0, 400, 0]]
+      }],
+      bodies: [{
+        id: 'rel_1:wp_2',
+        workpieceId: 'wp_2',
+        relationId: 'rel_1',
+        targetWorkpieceId: 'wp_1',
+        targetFaceId: 'face_1',
+        targetSnap: 'start',
+        targetSide: 'front',
+        offsetX: 50,
+        offsetY: 30,
+        rotation: 0,
+        mirrorX: false,
+        mirrorY: false,
+        pattern: { type: 'edgeArray', edge: 'E2', mode: 'count', count: 2, spacing: 0 },
+        family: 'profile',
+        productionMode: '',
+        parameters: {},
+        section: {
+          local: [[0, 0], [42, 0], [42, 28], [0, 28]],
+          holes: [{ center: [21, 14], diameter: 6 }]
+        },
+        sweepLength: 100
+      }]
+    });
+
+    expect(preview.bodies).toHaveLength(2);
+    for (const body of preview.bodies) {
+      expect(body.family).toBe('profile');
+      expect(body.points).toHaveLength(4);
+      expect(body.holes).toHaveLength(1);
+      expect(body.holes[0]).toHaveLength(25);
+      expect(body.length).toBe(100);
+      expect(body.normal[2]).not.toBe(0);
+    }
+    // Array copies sit apart along the bound edge (its direction may
+    // run either way).
+    expect(Math.abs(preview.bodies[1].center[0] - preview.bodies[0].center[0])).toBeGreaterThan(0);
+    // The section rides the face plane (z = 0 face, offset along +y).
+    expect(preview.bodies[0].points.every(point => Number.isFinite(point[2]))).toBe(true);
+  });
 });
