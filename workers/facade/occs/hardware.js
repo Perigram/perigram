@@ -145,7 +145,7 @@ const normalizeEdgeBinding = (binding = 'start') => {
   return 'start';
 };
 
-const edgeArrayDistances = ({ edgeLength = 0, pattern = {}, startOffset = 0, binding = 'start', resolve = numeric } = {}) => {
+export const edgeArrayDistances = ({ edgeLength = 0, pattern = {}, startOffset = 0, binding = 'start', resolve = numeric } = {}) => {
   const margin = Math.max(0, startOffset);
   const usableStart = margin;
   const usableEnd = edgeLength - margin;

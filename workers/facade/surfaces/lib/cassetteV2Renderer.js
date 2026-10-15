@@ -46,6 +46,7 @@ import {
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 import { embedOccsProfileEdge } from '../../occs/profileEmbedding.js';
+import { occsLayerExportName } from '../../occs/layerStandards.js';
 import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
@@ -2098,7 +2099,7 @@ const designerAssemblyLayersForCurves = async (curves = [], extraLayers = [], op
   }
   const layers = [
     {
-      name: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
+      name: occsLayerExportName(OCCS_LAYER_CONTOUR_CASSETTE_FACE),
       standardCode: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
       role: 'face',
       color: 'currentColor',
@@ -2107,7 +2108,7 @@ const designerAssemblyLayersForCurves = async (curves = [], extraLayers = [], op
       paths: facePaths
     },
     {
-      name: OCCS_LAYER_CUT_OUTER,
+      name: occsLayerExportName(OCCS_LAYER_CUT_OUTER),
       standardCode: OCCS_LAYER_CUT_OUTER,
       role: 'cut',
       color: 'currentColor',
@@ -2119,7 +2120,7 @@ const designerAssemblyLayersForCurves = async (curves = [], extraLayers = [], op
 
   if (foldPaths.length) {
     layers.push({
-      name: OCCS_LAYER_FOLD_ROUTE,
+      name: occsLayerExportName(OCCS_LAYER_FOLD_ROUTE),
       standardCode: OCCS_LAYER_FOLD_ROUTE,
       role: 'fold',
       color: 'currentColor',
@@ -2244,7 +2245,7 @@ const designerHardwareMarkersForTree = (curves = [], tree = createCassetteV2Grap
 const hardwareSchematicLayer = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const markers = designerHardwareMarkersForTree(curves, tree, options);
   return {
-    name: OCCS_LAYER_CODE_CASSETTE_MARK,
+    name: occsLayerExportName(OCCS_LAYER_CODE_CASSETTE_MARK),
     standardCode: OCCS_LAYER_CODE_CASSETTE_MARK,
     role: 'hardware',
     color: 'currentColor',
@@ -2627,7 +2628,7 @@ const hardwareProductionLayers = (entities = []) => {
   const holePaths = pathsForLayer(OCCS_LAYER_CUT_HOLE);
   if (innerPaths.length) {
     layers.push({
-      name: OCCS_LAYER_CUT_INNER,
+      name: occsLayerExportName(OCCS_LAYER_CUT_INNER),
       standardCode: OCCS_LAYER_CUT_INNER,
       role: 'cut',
       color: 'currentColor',
@@ -2638,7 +2639,7 @@ const hardwareProductionLayers = (entities = []) => {
   }
   if (holePaths.length) {
     layers.push({
-      name: OCCS_LAYER_CUT_HOLE,
+      name: occsLayerExportName(OCCS_LAYER_CUT_HOLE),
       standardCode: OCCS_LAYER_CUT_HOLE,
       role: 'cut',
       color: 'currentColor',
@@ -2831,7 +2832,7 @@ export const buildCassetteV2CassetteMarkLayerData = (curves = [], tree = createC
 export const buildCassetteV2CassetteMarkLayer = (curves = [], tree = createCassetteV2GraphTree(), context = {}) => {
   const marks = buildCassetteV2CassetteMarkLayerData(curves, tree, context);
   return {
-    name: OCCS_LAYER_CODE_CASSETTE_MARK,
+    name: occsLayerExportName(OCCS_LAYER_CODE_CASSETTE_MARK),
     standardCode: OCCS_LAYER_CODE_CASSETTE_MARK,
     role: 'mark',
     color: 'currentColor',
@@ -3015,7 +3016,7 @@ const designerSectionsForTree = (curves = [], foldedPreview = {}, tree = createC
 const mergeCassetteMarkLayers = (...layers) => {
   const paths = layers.flatMap(layer => Array.isArray(layer?.paths) ? layer.paths : []);
   return {
-    name: OCCS_LAYER_CODE_CASSETTE_MARK,
+    name: occsLayerExportName(OCCS_LAYER_CODE_CASSETTE_MARK),
     standardCode: OCCS_LAYER_CODE_CASSETTE_MARK,
     role: 'mark',
     color: 'currentColor',
