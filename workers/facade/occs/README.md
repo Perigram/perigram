@@ -92,7 +92,19 @@ modules — no platform imports.
   re-extracted through this one path. A tangent corner arc between two
   line segments maps to the corner's fillet modifier (the polygon keeps
   the theoretical sharp corner); any other arc flattens to chords within
-  a 0.05 mm sagitta tolerance; circles become holes. A fillet radius
+  a 0.05 mm sagitta tolerance; circles become holes. Expression binding
+  adopts: authoring a single unknown identifier into a field (vertex
+  coordinate, hole center or diameter, fillet radius) creates that
+  parameter WITH the field's current evaluated value
+  (`adoptOccsProfileBindingParameter`) — the geometry never jumps, the
+  evaluation resolves immediately, and the merge law keeps the binding
+  because evaluation matches the drawn geometry by construction;
+  existing parameters and compound expressions pass through untouched
+  (their formula is the truth). Document transitions (DXF import) bind
+  the database listeners without scheduling an extraction: the import's
+  own explicit extraction is the one that lands — a mid-transition
+  empty read merged into the authored sketch would wipe it and take
+  every binding with it. A fillet radius
   larger than the corner's adjacent segments allow renders as the largest
   tangent fillet that fits — the emitted arc is derived from the trimmed
   tangent points, so it round-trips back through extraction instead of

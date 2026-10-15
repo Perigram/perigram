@@ -4,6 +4,7 @@
 // grips, and undo/redo run in the engine; entity records and the sketch
 // model normalize through occs/profiles.js.
 import {
+  adoptOccsProfileBindingParameter,
   evaluateOccsProfileSketch,
   mergeOccsProfileSketchGeometry,
   normalizeOccsProfileSketch,
@@ -627,21 +628,39 @@ export default function createSketchEditor({ vue, components, locale }) {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         const numeric = Number(value);
         // Numbers clamp to non-negative; expression strings pass through
-        // untouched like every other authoring field.
+        // untouched like every other authoring field. Binding a single
+        // unknown identifier adopts the field's current value.
         const radius = value === '' || value === null || value === undefined
           ? 0
           : Number.isFinite(numeric) ? Math.max(0, numeric) : String(value).trim();
+        const parameters = adoptOccsProfileBindingParameter(normalized, radius, filletRadiusOf(normalized, vertexId) ?? 0);
         const modifiers = normalized.modifiers.filter(modifier => !(
           modifier.type === 'fillet' && modifier.vertexId === vertexId
         ));
         if (radius !== 0) modifiers.push({ type: 'fillet', vertexId, radius });
-        commitSketch({ ...normalized, modifiers });
+        commitSketch({ ...normalized, parameters, modifiers });
+      };
+
+      // The field's current evaluated number feeds adopt-on-bind; an
+      // unresolvable model adopts nothing (the save gate reports).
+      const evaluatedFieldValue = (read) => {
+        try {
+          return read(evaluateOccsProfileSketch(normalizeOccsProfileSketch(props.modelValue || {})));
+        } catch {
+          return null;
+        }
       };
 
       const applyVertexField = (vertexId, field, value) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const parameters = adoptOccsProfileBindingParameter(
+          normalized,
+          value,
+          evaluatedFieldValue(evaluated => evaluated.points.find(point => point.id === vertexId)?.[field])
+        );
         commitSketch({
           ...normalized,
+          parameters,
           points: normalized.points.map(point => (
             point.id === vertexId ? { ...point, [field]: value } : point
           ))
@@ -650,8 +669,14 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const applyHoleField = (holeId, index, value) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const parameters = adoptOccsProfileBindingParameter(
+          normalized,
+          value,
+          evaluatedFieldValue(evaluated => evaluated.holes.find(hole => hole.id === holeId)?.center?.[index])
+        );
         commitSketch({
           ...normalized,
+          parameters,
           holes: normalized.holes.map(hole => (
             hole.id === holeId
               ? { ...hole, center: hole.center.map((entry, at) => (at === index ? value : entry)) }
@@ -662,8 +687,14 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const applyHoleDiameter = (holeId, value) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const parameters = adoptOccsProfileBindingParameter(
+          normalized,
+          value,
+          evaluatedFieldValue(evaluated => evaluated.holes.find(hole => hole.id === holeId)?.diameter)
+        );
         commitSketch({
           ...normalized,
+          parameters,
           holes: normalized.holes.map(hole => (
             hole.id === holeId ? { ...hole, diameter: value } : hole
           ))
@@ -946,8 +977,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           writeMode = manager.curDocument?.openMode;
           await openBlankDocument();
           if (disposed) return;
-          manager.events.documentActivated.addEventListener(bindDatabase);
-          manager.events.documentCreated.addEventListener(bindDatabase);
+          manager.events.documentActivated.addEventListener(() => bindDatabase({ schedule: false }));
+          manager.events.documentCreated.addEventListener(() => bindDatabase({ schedule: false }));
           bindCommandEvents();
           containerRef.value?.addEventListener('keydown', handleKeydown, true);
           window.addEventListener('keydown', handleWindowKeydown, true);

@@ -348,6 +348,26 @@ export const setOccsProfileSketchClosed = (sketch = {}, closed, fallbackParamete
   return { ...normalized, closed: false, edges, anchors: null };
 };
 
+// Adopt-on-bind (owner law 2026-10-15): authoring a single unknown
+// identifier into a field creates that parameter WITH the field's
+// current value — the geometry never jumps, the evaluation resolves
+// immediately (no blank canvas), and the merge law keeps the binding
+// because evaluation matches the drawn geometry by construction.
+// Existing parameters and non-identifier expressions pass through
+// untouched: their formula is the truth and may legitimately move the
+// geometry.
+export const adoptOccsProfileBindingParameter = (sketch = {}, value, currentValue) => {
+  if (typeof value !== 'string') return sketch.parameters || {};
+  const identifier = value.trim();
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) return sketch.parameters || {};
+  const parameters = sketch.parameters || {};
+  if (Object.prototype.hasOwnProperty.call(parameters, identifier)) return parameters;
+  if (currentValue === null || currentValue === undefined || currentValue === '') return parameters;
+  const numeric = Number(currentValue);
+  if (!Number.isFinite(numeric)) return parameters;
+  return { ...parameters, [identifier]: numeric };
+};
+
 
 const pointFromDxf = (point = {}) => ({
   x: numericValue(point.x ?? point[0]),
