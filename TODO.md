@@ -78,39 +78,41 @@ selection per organization. Pinned by `server/features/llm/llm.spec.js`
 The edited block becomes its markdown source (the Obsidian model),
 editor saves and renames publish the shared instance invalidation so
 open panes converge, and the editor surface reads as a Perigram prose
-surface (pane-width padding, the app's mono code voice).
+surface (readable measure, the app's technical code voice).
 
-- [x] A. Source mode (`source-mode.js`): the focused heading/paragraph
-      swaps into its serialized markdown as a real document
-      transaction; leaving parses back through the markdown parser;
-      Enter at the source end commits the block and opens a fresh
-      paragraph; Escape commits in place; block controls pause while
-      the block is its source.
-- [x] B. Editor sync: the persistence base publishes saves/renames
+- [x] A. Editor sync: the persistence base publishes saves/renames
       (`notifyMutated` on the instances store, rename through
       `updateInstance`); `useRemoteDocumentSync` reconciles both pack
       editors — clean reloads, dirty raises the refresh affordance
       (pre-CRDT divergence posture).
-- [x] C. Surface: side padding follows the pane width (container
-      query), inline code and code blocks speak the app's mono font
-      (crepe ships none).
-- [ ] WAITING — owner verification on the live stack: edit one document
-      in two panes (save in one — the other reloads or offers refresh),
-      caret into a heading (source appears), Enter commits it, quotes
-      show their `> ` marker, code voice is mono.
+- [x] B. Surface: the document column caps at a readable measure
+      (~72ch) centered in the pane; code speaks the technical role
+      (app mono voice, normal ink, subtle chip — crepe's red
+      inline-code chip is overridden with host-prefixed rules that
+      outrank its dynamically-loaded stylesheet).
+- [ ] C. Focused-block source editing, redone as a VIEW concern: a
+      node-view/decoration layer that renders and edits the focused
+      block's markdown source outside the document — the doc keeps its
+      semantic nodes at all times (saves, undo, the future CRDT
+      binding, and other panes never see representation swaps). The
+      first attempt swapped the block into a code-block node and was
+      REVERTED the same day (owner report): a save mid-edit serialized
+      the temporary node and wrote a fenced block where the heading
+      was — any temporary doc node lies to every consumer.
+- [ ] WAITING — owner verification on the live stack: save in one of
+      two panes (the other reloads or offers refresh), code voice is
+      the app's mono with normal ink, wide panes cap the line length.
 
 #### Agent Notes (2026-10-15)
 
-Implemented on `agent/editor-source-sync-20261015`. The prior
-marker-only pass (2026-10-15, `agent/editor-markers-20261015`) showed
-prefixes; source mode replaces that experience for headings/paragraphs
-— the block IS its source while edited. Known v1 caveats, tracked
-here: undo across a source/render swap boundary can strand a literal
-source block (visible, re-editable — save serializes whatever is in
-the doc); the caret maps approximately into source text when marks
-change lengths; quote/list interiors keep marker decorations rather
-than full source mode. The full while-typing convergence remains the
-CRDT stages below.
+Sync and surface shipped on `agent/editor-source-sync-20261015`; the
+source-swap experiment (`source-mode.js`) shipped there too and was
+reverted on `agent/editor-truth-20261015` after live use corrupted
+saved documents (fenced blocks replacing headings). Root cause: the
+swap put a view concern into the document. C remains the owner
+direction (SPEC UI, the Obsidian model) and needs the view-level
+design. Marker decorations (`source-markers.js` — prefixes and touched
+mark runs) remain the visible half and are view-only by construction.
 
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
