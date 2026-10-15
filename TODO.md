@@ -2105,6 +2105,28 @@ Still open on this task: closed profiles' production effect (dedicated
 standard layer + intersection detection, owner answer 2026-10-15) and
 the nesting-redraw naming path beyond the DXF export.
 
+### Agent Notes (2026-10-15, owner review round 2 — + affordance, arrays, layer names)
+
+- The "+" face-grow affordance vanished on EVERY edge while arranging
+  attachments: `drawingCanvasSource` cleared `designerEdges` whenever the
+  inspector sat in attachment selection, and `handleDesignerAction`
+  bailed in the same mode. Both removed — the + stays and grows faces
+  even on edges carrying arranged profiles.
+- Array placement is chord-aware now: the margin holds from both edge
+  ends for the whole copy and count/spacing distribute copy STARTS over
+  the span the chord leaves (previously the hardware point-array
+  distances ignored the chord, so only setups whose chord happened to
+  fit the point spacing embedded — "only rare array setups work").
+  Coincident joints collapse in the composite.
+- The designer drawing names its standard layers through the production
+  export names (the layer panel shows `2_1_Обрезь_3,15`,
+  `1_1_Лицо_Кассеты`, ... beside the standard code) — the old standard's
+  vocabulary is visible again in the cassette designer.
+- Editor round: Escape-cancel, tool-button sync, and mid-command tool
+  switch re-verified LIVE in the app (probe `EDITOR TOOL SYNC` /
+  `EDITOR TOOL SWITCH` all green) — the remaining reports matched a
+  stale module in an un-reloaded tab.
+
 ### Agent Notes (2026-10-15, engine integration re-architected)
 
 Owner accepted the re-architecture over patching (escape dead with focus
