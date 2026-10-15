@@ -2060,6 +2060,24 @@ into M5.
   splits the host contour at its anchors; the Basis toggle is disabled
   on open sketches.
 
+### Agent Notes (2026-10-15, engine integration re-architected)
+
+Owner accepted the re-architecture over patching (escape dead with focus
+outside the canvas, tool buttons never tracking command state, draws
+destroying authored expressions — codified clobber). Shipped: the merge
+law (`mergeOccsProfileSketchGeometry` in occs/profiles.js — extraction
+keeps authored ids/expressions/fillets on corners whose position
+matches their evaluation; moved/new geometry goes numeric; unresolvable
+authored sketches fall back to plain extraction); toolbar state derived
+from the engine's `editor.events.commandWillStart/commandEnded`
+(`runCommand` no longer writes `activeTool`); Escape routes through
+`commandManager.cancelActive()` (focus-independent); starting a tool
+cancels the running one. Verified by harness E2E
+(/tmp/opencode/osnap-harness/verify-rearch.cjs): expressions survive a
+subsequent draw, Escape cancels with focus on the toolbar, the Line
+button unsticks, Line→Circle mid-command switches cleanly. Snapping
+itself re-verified live in the app at DPR 1 and 1.5 the same morning.
+
 ### Agent Notes (2026-10-15, snapping verified live + Basis fix)
 
 Live-app probe (real e2e stack, `.playwright/probe-*.png`, spec since

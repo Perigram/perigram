@@ -99,9 +99,15 @@ modules — no platform imports.
   geometry directly on the sketch model, beneath a dimension annotation
   band; vertex coordinates and fillet radii edit through a canvas popup
   that opens on the selected corner (Select-tool click near an authored
-  vertex; Escape or clicking away closes it). The extraction pass
-  re-derives points, holes, and modifiers from drawn geometry, so a
-  later draw or import overwrites authored expressions and radii. Parametric instantiation: a profile
+  vertex; Escape or clicking away closes it). The sketch model is the
+  single truth and the canvas is its render and input surface:
+  extraction MERGES back (`mergeOccsProfileSketchGeometry`) — a corner
+  whose extracted position matches its authored evaluation keeps the
+  authored id, expressions, and fillet radius, so drawing, importing,
+  or undoing never destroys parametric authoring; moved or new
+  geometry goes numeric, and an authored sketch whose expressions no
+  longer resolve falls back to the plain extraction until fixed.
+  Parametric instantiation: a profile
   workpiece's parameter table overrides the profile's authored table and
   its snapshot re-derives from the authored sketch (the stored section is
   a last-good cache — a transient invalid parameter holds it); the
