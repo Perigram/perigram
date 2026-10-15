@@ -23,9 +23,9 @@ Routes are grouped into sub-directories corresponding to features:
 - `llm/`: `GET /api/llm/config` reports `{ available }` for the caller's
   organization so clients render bot affordances only when an LLM provider
   is configured (see [llm feature](../features/llm/README.md));
-  `GET/PUT /api/llm/settings` administer the org's provider selection
-  (keys never travel), and `POST /api/llm/test` is the one-round
-  connection test.
+  `GET/PUT /api/llm/settings` administer the org's named model profiles
+  and capability routes (keys never travel), and `POST /api/llm/test`
+  (`{ profileId? }`) is the one-round connection test.
 - `artifacts/`: Metadata, deletion, and streaming for generated files.
 - `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
   replacement, authorized source streaming, and deletion. Template-generated

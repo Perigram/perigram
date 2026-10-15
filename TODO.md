@@ -1,5 +1,38 @@
 # TODO
 
+## Model profiles with capability routing (owner direction 2026-10-15)
+
+One org-wide provider was slop: models live on different endpoints per
+purpose. The org declares named profiles and routes capabilities to them.
+
+- [x] A. Contract: `data.settings.llm` = `{ profiles: { id: { kind, provider,
+      baseUrl, model, apiKey? } }, routes: { capability: profileId } }`;
+      route chain exact → chat family → env; image-kind profiles
+      declarable, chat routes refuse them.
+- [x] B. Migration: one-way script for the retired single-provider shape
+      (profile `default`, route `chat`); consumers updated in-task
+      (meetings rides `chat.summaries`).
+- [x] C. Settings API: profile validation (slug ids, providers, required
+      fields, route targets), key keep/clear semantics, masked reads.
+- [x] D. Per-profile connection test (`POST /api/llm/test { profileId }`).
+- [x] E. Bots page models table: profiles CRUD dialog, routing selects,
+      resolved-status tag.
+- [x] F. Specs: route chain, image-never-serves-chat, validation, key
+      semantics, per-profile test.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/llm-profiles-20261015`. Speech-to-text stays in the
+transcription feature (own local/cloud providers) — folding STT into the
+model table would re-centralize a deliberate split. The `chat` route is
+the family default for bots and wakes; `chat.summaries` overrides for
+call summaries; env remains the unnamed fallback profile. Retired
+single-provider org settings migrate via
+`server/scripts/migrate-llm-settings-profiles.js` (run once). Specs:
+llm-settings.spec.js rewritten for profiles (13), llm.spec resolution
+updated, meetings capability pinned.
+
+
 ## LLM provider setup on the bots screen (owner direction 2026-10-15)
 
 Bot setup was invisible: the provider config lived only in env/org
