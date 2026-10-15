@@ -6,6 +6,7 @@ const ORGANIZATION_PARTNERS_SCREEN_KEY = 'organization_partners';
 const ORGANIZATION_PLUGINS_SCREEN_KEY = 'organization_plugins';
 const ORGANIZATION_TEAM_SCREEN_KEY = 'organization_team';
 const ORGANIZATION_PROCESS_SCREEN_KEY = 'organization_process';
+const ORGANIZATION_BOTS_SCREEN_KEY = 'organization_bots';
 
 export function resolveOrganizationSystemScreens(auth = {}) {
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
@@ -116,6 +117,21 @@ export function resolveOrganizationSystemScreens(auth = {}) {
       sourceRoute: '/organization/users',
       typeId: 'organization',
       icon: 'pi pi-users',
+      scope: organizationScope,
+      required: { feature: 'users', level: 'admin' }
+    });
+    screens.push({
+      id: ORGANIZATION_BOTS_SCREEN_KEY,
+      screenKey: ORGANIZATION_BOTS_SCREEN_KEY,
+      labelKey: 'organization.botsManagement',
+      descriptionKey: 'organization.botsManagementHint',
+      kind: 'system',
+      template: 'route',
+      placement: 'hub',
+      route: '/organization/bots',
+      sourceRoute: '/organization/bots',
+      typeId: 'organization',
+      icon: 'pi pi-sparkles',
       scope: organizationScope,
       required: { feature: 'users', level: 'admin' }
     });

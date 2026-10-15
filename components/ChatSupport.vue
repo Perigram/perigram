@@ -57,17 +57,6 @@
                         :aria-label="$t('support.newGroup')"
                         @click="openGroupDialog"
                     />
-                    <Button
-                        v-if="agentBots.canManageBots"
-                        icon="pi pi-sparkles"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="$t('support.bots.title')"
-                        data-testid="chat-bot-panel-trigger"
-                        @click="botPanelVisible = true"
-                    />
                     <!-- The drawer's inbox view needs its own close: the
                          thread header's close vanishes with the thread, and
                          nothing else dismisses the drawer from here. -->
