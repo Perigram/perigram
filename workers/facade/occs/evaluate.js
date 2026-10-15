@@ -1,10 +1,11 @@
 import {
   buildCassetteV2CassetteMarkLayerData,
   buildCassetteV2TrapezoidTreeCurves,
-  profileBreaksForTree
+  profileEdgeEmbeddingsForTree
 } from '../surfaces/lib/cassetteV2Renderer.js';
 import { buildOccsEvaluatedDimensionEntities } from './dimensions.js';
 import { buildOccsProductionLayout } from './production-layout.js';
+import { embedOccsProfilesIntoContour } from './profileEmbedding.js';
 import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';
 
 const clonePlain = (value) => JSON.parse(JSON.stringify(value || {}));
@@ -53,28 +54,58 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
     markLayerData.push(...buildCassetteV2CassetteMarkLayerData(workpieceCurves, tree, context)
       .filter(mark => mark.workpieceId === workpiece.id));
 
-    // Open profiles inserted into this workpiece's faces split the host
-    // contour at their break points; the evaluated layerData carries the
-    // two chains so production redraws the broken contour (the nesting
-    // polygons stay whole — a break is an edge feature, not a cut).
-    for (const profileBreak of profileBreaksForTree(workpieceCurves, tree)) {
-      for (const [index, chain] of profileBreak.splitChains.entries()) {
-        if (chain.length < 2) continue;
-        contourLayerData.push({
-          layer: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
-          coordinates: chain.map(vertex => [vertex[0], vertex[1]]),
-          handles: [`${profileBreak.relationId}:B${index + 1}`],
-          workpieceId: workpiece.id,
-          workpieceDefinitionId: definitionIdForWorkpiece(workpiece),
-          occurrenceId: occurrenceIdForWorkpiece(workpiece),
-          profileWorkpieceId: profileBreak.profileWorkpieceId,
-          relationId: profileBreak.relationId
-        });
+    // Open profiles replace their bound host edge with the composite
+    // chain (array placement, anchors on the edge — the owner law of
+    // 2026-10-15). The production contour truly embeds: cut/nesting
+    // geometry follows the stitched boundary, and the contour layer
+    // carries it for redraw. Overlapping or overflowing placements are
+    // forbidden — the evaluation refuses instead of clamping.
+    const faceCurves = new Map(workpieceCurves.map(curve => [curve.node.id, curve]));
+    const embeddings = profileEdgeEmbeddingsForTree(workpieceCurves, tree)
+      .filter(item => faceCurves.has(item.targetFaceId));
+    const embeddingErrors = embeddings.filter(item => !item.embedding.ok);
+    if (embeddingErrors.length) {
+      const details = embeddingErrors
+        .map(item => `${item.profileWorkpieceId}: ${item.embedding.reason}`)
+        .join('; ');
+      throw new Error(`Open profile placement is invalid (${details})`);
+    }
+    const embeddedCurves = workpieceCurves.map((curve) => {
+      const faceEmbeddings = embeddings
+        .filter(item => item.targetFaceId === curve.node.id)
+        .map(item => item.embedding);
+      if (!faceEmbeddings.length) return curve;
+      const source = curve.originalBoundaryVertices
+        || curve.referenceVertices
+        || curve.boundaryVertices
+        || curve.vertices;
+      const { contour, errors } = embedOccsProfilesIntoContour(source, faceEmbeddings);
+      if (errors.length) {
+        throw new Error(`Open profile placement is invalid (${errors.join('; ')})`);
       }
+      return {
+        ...curve,
+        boundaryVertices: contour,
+        ...(curve.originalBoundaryVertices ? { originalBoundaryVertices: contour } : {}),
+        ...(curve.referenceVertices ? { referenceVertices: contour } : {})
+      };
+    });
+    for (const item of embeddings) {
+      const curve = faceCurves.get(item.targetFaceId);
+      contourLayerData.push({
+        layer: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
+        coordinates: item.embedding.composite.map(vertex => [vertex[0], vertex[1]]),
+        handles: [`${item.relationId}:EDGE`],
+        workpieceId: workpiece.id,
+        workpieceDefinitionId: definitionIdForWorkpiece(workpiece),
+        occurrenceId: occurrenceIdForWorkpiece(workpiece),
+        profileWorkpieceId: item.profileWorkpieceId,
+        relationId: item.relationId
+      });
     }
 
     const layout = await buildOccsProductionLayout(
-      workpieceCurves.map(curve => ({
+      embeddedCurves.map(curve => ({
         id: curve.node?.id,
         vertices: curve.boundaryVertices || curve.vertices
       }))

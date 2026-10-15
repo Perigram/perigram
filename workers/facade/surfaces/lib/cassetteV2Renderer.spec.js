@@ -284,7 +284,7 @@ describe('cassette v2 trapezoid renderer', () => {
     ]));
   });
 
-  it('renders an open profile as a broken section: open path, endpoint marks, split host contour', async () => {
+  it('renders an open profile through its edge embedding: placed copies, composite, break marks', async () => {
     const initialTree = createCassetteV2GraphTree();
     const square = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
     const result = addCassetteV2ProfileWorkpiece(initialTree, {
@@ -302,15 +302,17 @@ describe('cassette v2 trapezoid renderer', () => {
 
     const drawing = await renderCassetteV2TreeToDrawing(result.tree, { mode: 'assembly' });
     const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
+    // The placed copy renders as an open path (anchors on the edge).
     const profilePath = sectionLayer.paths.find(path => path.sectionKind === 'profile' && path.workpieceId === result.workpieceId);
     expect(profilePath.d.endsWith('Z')).toBe(false);
     const breakPaths = sectionLayer.paths.filter(path => path.sectionKind === 'profile-break');
-    expect(breakPaths.filter(path => path.breakEnd === 'start')).toHaveLength(1);
-    expect(breakPaths.filter(path => path.breakEnd === 'end')).toHaveLength(1);
-    // The host face's contour splits into the two chains between the break points.
-    const splitChains = breakPaths.filter(path => !path.breakEnd && path.dasharray === '4 3');
-    expect(splitChains).toHaveLength(2);
-    expect(splitChains.every(chain => chain.d.startsWith('M') && !chain.d.endsWith('Z'))).toBe(true);
+    // One dashed composite replacing the host edge, open (host-vertex to
+    // host-vertex), plus the two break marks at the copy anchors.
+    const composite = breakPaths.filter(path => path.dasharray === '4 3');
+    expect(composite).toHaveLength(1);
+    expect(composite[0].d.startsWith('M') && !composite[0].d.endsWith('Z')).toBe(true);
+    const marks = breakPaths.filter(path => !path.dasharray);
+    expect(marks).toHaveLength(2);
   });
 
   it('re-evaluates a profile workpiece from its sketch when instance parameters change', async () => {

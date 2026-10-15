@@ -9,12 +9,13 @@ import {
 } from '../surfaces/lib/cassetteV2Renderer.js';
 import {
   createDefaultOccsProfileSketch,
+  normalizeOccsProfileSketch,
   occsProfileFromSketch,
   setOccsProfileSketchClosed
 } from './profiles.js';
 
 describe('OCCS cassette evaluation', () => {
-  it('carries open-profile break chains into the evaluated layerData', async () => {
+  it('embeds the open-profile composite into the evaluated contour and nesting', async () => {
     const openSketch = setOccsProfileSketchClosed(createDefaultOccsProfileSketch({ W: 30, H: 20 }), false);
     const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
@@ -29,18 +30,49 @@ describe('OCCS cassette evaluation', () => {
     const definition = createCassetteV2OccsDocument(added.tree);
     const result = await evaluateOccsCassetteTemplate(definition, {});
 
-    const breakChains = result.layerData.filter(item => item.layer === 'contour.cassette_face');
-    expect(breakChains).toHaveLength(2);
-    expect(breakChains.every(chain => chain.relationId && chain.profileWorkpieceId)).toBe(true);
-    for (const chain of breakChains) {
-      expect(chain.coordinates.length).toBeGreaterThanOrEqual(2);
-      const first = chain.coordinates[0];
-      const last = chain.coordinates[chain.coordinates.length - 1];
-      // Open chains: endpoints are the break projections, never a closed ring.
-      expect(Math.hypot(first[0] - last[0], first[1] - last[1])).toBeGreaterThan(0.001);
-    }
-    // Nesting polygons stay whole — a break is an edge feature, not a cut.
+    // The whole bound edge is replaced by the composite chain: host edge
+    // start, the placed profile copies, host edge end — one chain per
+    // relation, riding the contour layer for redraw.
+    const embedded = result.layerData.filter(item => item.layer === 'contour.cassette_face');
+    expect(embedded).toHaveLength(1);
+    expect(embedded[0].relationId).toBeTruthy();
+    expect(embedded[0].profileWorkpieceId).toBeTruthy();
+    const coordinates = embedded[0].coordinates;
+    expect(coordinates.length).toBeGreaterThan(3);
+    const first = coordinates[0];
+    const last = coordinates[coordinates.length - 1];
+    // The composite spans the host edge: its ends are the host vertices,
+    // never a closed ring.
+    expect(Math.hypot(first[0] - last[0], first[1] - last[1])).toBeGreaterThan(0.001);
+    // Nesting follows the truly embedded boundary: the polygon vertex
+    // count grows past the plain face contour by the copy interiors.
     expect(result.nestingPolygons).toHaveLength(1);
+    const plain = await evaluateOccsCassetteTemplate(
+      createCassetteV2OccsDocument(createCassetteV2GraphTree()), {}
+    );
+    expect(result.nestingPolygons[0].coordinates.length)
+      .toBeGreaterThan(plain.nestingPolygons[0].coordinates.length);
+  });
+
+  it('refuses open-profile placements that overflow or overlap', async () => {
+    const longSketch = normalizeOccsProfileSketch({
+      version: '0.1', units: 'mm', parameters: {},
+      points: [{ id: 'p0', x: 0, y: 0 }, { id: 'p1', x: 5000, y: 0 }],
+      edges: [{ id: 'e0', type: 'line', from: 'p0', to: 'p1' }],
+      holes: [], closed: false, modifiers: [], constraints: []
+    });
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Too long strip',
+      kind: 'hanger',
+      process: 'extruded',
+      parameters: longSketch.parameters,
+      occsProfile: occsProfileFromSketch(longSketch),
+      sketch: longSketch
+    });
+    const definition = createCassetteV2OccsDocument(added.tree);
+    await expect(evaluateOccsCassetteTemplate(definition, {})).rejects.toThrow(/invalid/i);
   });
 
   it('evaluates a graph-tree OCCS template into cut polygons for nesting', async () => {

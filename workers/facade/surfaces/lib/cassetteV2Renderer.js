@@ -45,6 +45,7 @@ import {
   normalizeHangerProductionMode
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
+import { embedOccsProfileEdge } from '../../occs/profileEmbedding.js';
 import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
@@ -2358,15 +2359,19 @@ const splitContourAtBreaks = (vertices = [], first = [0, 0], second = [0, 0]) =>
   return [forward, backward];
 };
 
-// The single break computation: for every open profile attached through a
-// relation, the positioned section endpoints and the host contour split
-// into the two chains between them. The designer section layer draws it;
-// the evaluated layerData carries the same chains into production.
-export const profileBreaksForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
+// The open-profile edge embeddings for a tree (owner law, 2026-10-15):
+// every open profile attached through a relation places by its array
+// settings alone — the profile's start and end anchors lie ON the bound
+// host edge — and the whole edge is replaced by the composite chain
+// (host start, straight runs, copy chains, host end). The pure geometry
+// lives in occs/profileEmbedding.js; the designer section layer draws
+// the copies and the composite, and the evaluated production data
+// splices the composite into the host contour.
+export const profileEdgeEmbeddingsForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
-  const breaks = [];
+  const results = [];
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
     const workpiece = relationProfileWorkpiece(sourceTree, relation);
     if (!workpiece) continue;
@@ -2375,23 +2380,31 @@ export const profileBreaksForTree = (curves = [], tree = createCassetteV2GraphTr
     const profile = normalizeCassetteV2Profile(workpiece, parameters);
     const open = profile.section?.open || profile.section?.type === 'polyline';
     if (!open) continue;
-    const placement = profileSectionPlacement(profile, targetCurve, relation, parameters);
-    if (placement.points.length < 2) continue;
     const contour = targetCurve.originalBoundaryVertices
       || targetCurve.referenceVertices
       || targetCurve.boundaryVertices
       || targetCurve.vertices;
-    const breakPoints = [placement.points[0], placement.points[placement.points.length - 1]];
-    breaks.push({
+    results.push({
       relationId: relation.id,
       profileWorkpieceId: relation.sourceWorkpieceId,
       targetWorkpieceId: relation.targetWorkpieceId,
       targetFaceId: relation.targetFaceId,
-      breakPoints,
-      splitChains: splitContourAtBreaks(contour, breakPoints[0], breakPoints[1]) || []
+      placement: {
+        offsetX: relation.offsetX,
+        targetSnap: relation.targetSnap,
+        mirrorX: relation.mirrorX,
+        mirrorY: relation.mirrorY,
+        pattern: relation.pattern
+      },
+      embedding: embedOccsProfileEdge({
+        section: profile.section,
+        vertices: contour,
+        relation,
+        resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
+      })
     });
   }
-  return breaks;
+  return results;
 };
 
 const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
@@ -2410,13 +2423,14 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
     const targetCurve = curveById.get(relation.targetFaceId);
     if (!targetCurve) continue;
     const profile = normalizeCassetteV2Profile(workpiece, parameters);
+    const open = profile.section?.open || profile.section?.type === 'polyline';
+    if (open) continue; // open profiles render through their edge embedding below
     const placement = profileSectionPlacement(profile, targetCurve, relation, parameters);
     if (placement.points.length < 2) continue;
     const points = placement.points;
     const svgPoints = points.map(toSvgPoint);
-    const open = profile.section?.open || profile.section?.type === 'polyline';
     paths.push({
-      d: open ? sectionPath(svgPoints) : `${sectionPath(svgPoints)} Z`,
+      d: `${sectionPath(svgPoints)} Z`,
       fill: 'none',
       stroke: 'layer',
       workpieceId: relation.sourceWorkpieceId,
@@ -2427,40 +2441,51 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
     viewBoxCurves.push({ vertices: points });
   }
 
-  for (const profileBreak of profileBreaksForTree(curves, sourceTree)) {
-    if (options.contextWorkpieceId && ![profileBreak.profileWorkpieceId, profileBreak.targetWorkpieceId].includes(options.contextWorkpieceId)) {
+  for (const item of profileEdgeEmbeddingsForTree(curves, sourceTree)) {
+    if (options.contextWorkpieceId && ![item.profileWorkpieceId, item.targetWorkpieceId].includes(options.contextWorkpieceId)) {
       continue;
     }
-    const active = !options.selectedRelationId || options.selectedRelationId === profileBreak.relationId;
-    // An open profile's break points: marked on the section layer, and the
-    // host face's contour splits at them into the two chains between the
-    // projections.
-    for (const [index, point] of profileBreak.breakPoints.entries()) {
+    const active = !options.selectedRelationId || options.selectedRelationId === item.relationId;
+    // The placed copies (solid) and the composite that replaces the host
+    // edge (dashed): the designer shows exactly what production embeds.
+    for (const copy of item.embedding.ok ? item.embedding.copies : []) {
+      const svgPoints = copy.map(toSvgPoint);
+      if (svgPoints.length < 2) continue;
       paths.push({
-        d: circlePathAt(point, 4),
+        d: sectionPath(svgPoints),
         fill: 'none',
         stroke: 'layer',
-        workpieceId: profileBreak.profileWorkpieceId,
-        relationId: profileBreak.relationId,
-        sectionKind: 'profile-break',
-        breakEnd: index === 0 ? 'start' : 'end',
+        workpieceId: item.profileWorkpieceId,
+        relationId: item.relationId,
+        sectionKind: 'profile',
         active
       });
+      viewBoxCurves.push({ vertices: copy });
     }
-    for (const chain of profileBreak.splitChains) {
-      const chainPoints = chain.map(vertex => toSvgPoint(vertex));
-      if (chainPoints.length < 2) continue;
+    if (item.embedding.ok) {
+      const compositePoints = item.embedding.composite.map(toSvgPoint);
       paths.push({
-        d: sectionPath(chainPoints),
+        d: sectionPath(compositePoints),
         fill: 'none',
         stroke: 'layer',
         dasharray: '4 3',
-        workpieceId: profileBreak.profileWorkpieceId,
-        relationId: profileBreak.relationId,
+        workpieceId: item.profileWorkpieceId,
+        relationId: item.relationId,
         sectionKind: 'profile-break',
         active
       });
-      viewBoxCurves.push({ vertices: chain });
+      viewBoxCurves.push({ vertices: item.embedding.composite });
+      for (const point of item.embedding.breakPoints) {
+        paths.push({
+          d: circlePathAt(point, 4),
+          fill: 'none',
+          stroke: 'layer',
+          workpieceId: item.profileWorkpieceId,
+          relationId: item.relationId,
+          sectionKind: 'profile-break',
+          active
+        });
+      }
     }
   }
 
