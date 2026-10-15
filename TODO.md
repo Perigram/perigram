@@ -2731,9 +2731,48 @@ New pin: the owner's exact case — default hanger attached, R set from
 the cassette row, the snapshot's evaluated fillet radius follows R and
 the cut polygon grows with the larger arcs.
 
+### Agent Notes (2026-10-15, owner review round 10 — profile parameters, array spacing, field self-fill)
 
+Owner reports: "parameters in cassette's profile parameters don't
+re-evaluate profile"; array spacing set to 0 still leaves gaps between
+profiles; fields in the profile position popup fill themselves with
+characters nobody typed ("like 'A' or numbers").
 
+Findings on `agent/profile-params-20261015` (all three pinned by facade
+suites — 116/116):
 
+- Round 9 made the default template parametric but nothing reached it:
+  `normalizeCassetteV2Profile` returned only the instance table
+  (`{...table}`) as the workpiece's table, so the sketch-less/default
+  template path stored `{}` while its sketch referenced W/H/R/D — the row
+  had zero chips to drive (the round-9 spec asserted the sketch, never
+  the table). The workpiece's table is now its derived sketch's table
+  with the instance values on top, so the row renders a chip per bound
+  key and every chip re-derives the profile. The profile dialog's
+  new-profile draft now opens on the parametric hanger template instead
+  of an empty sketch, so "add hanger" is the hanger.
+- Array spacing was a pitch and the mode was ignored whenever it was 0
+  (the count-mode path stretched copies over the edge — the very "spaces
+  at zero spacing" the owner saw). `edgeArrayDistances` now takes the
+  copy length: spacing is the gap between copies, zero butts them, and a
+  spacing rule packs the copies that fit. Point-like hardware copies pass
+  no length and keep their pitch behaviour byte-identical.
+- Every authoring field committed on each keystroke through
+  normalization: `''` became a spurious 0 (the field "typed" numbers on
+  its own), `42.` ate its dot, and adopt-on-bind minted a parameter from
+  a half-typed identifier (the phantom "A"). One shared draft
+  (`surfaces/lib/components/fieldDraft.mjs`) now holds the typed text
+  while focused and commits on blur/Enter for the popup's coordinates and
+  fillet radius, the parameter and hole rows, and the designer's
+  instance-parameter chips; Escape abandons the draft. Its spec pins the
+  failure modes (per-keystroke commit, spurious zero, half-typed adopt,
+  commit-once-on-blur).
+
+Validation: `npx vitest run workers/facade` 116/116; `perigram-plugin
+surfaces` green for cassette-designer, sheet-design-editor and
+cassette-preview; check-arch + check-docs green. Live-stack E2E (owner
+verification of the popup and the row chips) did not run — the app stack
+was not up and starting dev servers is out of agent scope.
 
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)

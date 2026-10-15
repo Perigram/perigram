@@ -598,6 +598,22 @@ parameters on a profile workpiece drive only the identifiers its sketch
 references — a numeric sketch (drawn or imported without bindings) has
 no driving parameters and shows none.
 
+Owner declarations (2026-10-15, profile parameter rows, array spacing,
+authoring fields — owner review round 10): the parameters a profile
+workpiece's row shows drive its geometry — editing one re-evaluates the
+profile; a profile added with no template and no authored sketch is the
+parametric default hanger, its row carries that template's own W/H/R/D/L
+table from the first render, and the profile dialog drafts a new profile
+on the same template. Array spacing is the gap between adjacent copies:
+zero butts them together, and a spacing rule places the copies that fit
+rather than stretching them across the edge; a count the span cannot hold
+is the refusal. Authoring fields — the vertex popup's coordinates and
+fillet radius, the parameter and hole rows, and the workpiece row's
+instance-parameter chips — commit the text on blur or Enter, never per
+keystroke: a keystroke-committed value normalizes under the caret (`''`
+becomes 0, `42.` becomes 42) and adopt-on-bind mints a parameter from a
+half-typed identifier.
+
 Owner decision (2026-10-15, engine integration law): the profile editor
 integrates the CAD engine under a one-way truth rule — the sketch model
 is the single truth, the canvas its render and input surface. Extraction
