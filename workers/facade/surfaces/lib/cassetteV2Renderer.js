@@ -280,7 +280,11 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   return {
     kind: data.kind,
     process: data.process,
-    parameters: { ...table },
+    // The workpiece's table is the derived sketch's table with the
+    // instance values the workpiece carries on top. An instance table
+    // alone left the parametric default's own W/H/R/D table unreachable
+    // — the default template's row chips had nothing to render.
+    parameters: { ...sketch.parameters, ...table },
     // The stored sketch keeps the clean table — never the scope-merged
     // evaluation copy.
     sketch,

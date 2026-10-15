@@ -22,11 +22,14 @@ describe('embedOccsProfileEdge', () => {
     expect(embedding.breakPoints).toEqual([[10, 0], [50, 0]]);
   });
 
-  it('joins array copies end-to-start with straight runs', () => {
+  it('joins array copies end-to-start with a zero spacing — no gap left between them', () => {
+    // Spacing is the GAP between copies: zero butts them together, and
+    // both copies still fit the 100mm edge at a 10mm margin (spans
+    // 10-50 and 50-90; the shared joint point collapses).
     const embedding = embedOccsProfileEdge({
       section: BUMP,
       vertices: FACE,
-      relation: { offsetX: 10, pattern: { type: 'edgeArray', edge: 'E0', mode: 'spacing', spacing: '40' } }
+      relation: { offsetX: 10, pattern: { type: 'edgeArray', edge: 'E0', mode: 'spacing', spacing: '0' } }
     });
     expect(embedding.ok).toBe(true);
     expect(embedding.copies).toHaveLength(2);
@@ -73,15 +76,38 @@ describe('embedOccsProfileEdge', () => {
     expect(embedding.copies[1][embedding.copies[1].length - 1]).toEqual([95, 0]);
   });
 
+  it('spacing packs whole copies with the requested gap between them', () => {
+    const long = [[0, 0], [200, 0], [200, 50], [0, 50]];
+    const startsFor = (spacing) => embedOccsProfileEdge({
+      section: BUMP,
+      vertices: long,
+      relation: { offsetX: 10, pattern: { type: 'edgeArray', edge: 'E0', mode: 'spacing', spacing } }
+    });
+
+    // A 20mm gap: 40mm chords at pitch 60 on the 140mm span left by the
+    // margins — three copies packed from the margin, not stretched over
+    // the edge.
+    const gapped = startsFor('20');
+    expect(gapped.ok).toBe(true);
+    expect(gapped.copies.map(copy => [copy[0][0], copy[copy.length - 1][0]]))
+      .toEqual([[10, 50], [70, 110], [130, 170]]);
+
+    // The same span with a zero gap butts four copies together.
+    const butted = startsFor('0');
+    expect(butted.ok).toBe(true);
+    expect(butted.copies.map(copy => [copy[0][0], copy[copy.length - 1][0]]))
+      .toEqual([[10, 50], [50, 90], [90, 130], [130, 170]]);
+  });
+
   it('end-bound arrays walk copies edge-start to edge-end like every binding', () => {
     // The binding places the array, never the direction the composite
     // chain runs: an end-anchored array must not trip the overlap
     // validation with descending copy starts. Both setups fit the
-    // 100mm edge (margin 5, chord 40): two copies by count, two by
-    // 40mm spacing.
+    // 100mm edge (margin 5, chord 40): two copies by count, two butted
+    // together by zero spacing.
     for (const pattern of [
       { mode: 'count', count: '2' },
-      { mode: 'spacing', spacing: '40' }
+      { mode: 'spacing', spacing: '0' }
     ]) {
       const embedding = embedOccsProfileEdge({
         section: BUMP,
@@ -116,10 +142,12 @@ describe('embedOccsProfileEdge', () => {
     expect(overflow.ok).toBe(false);
     expect(overflow.reason).toMatch(/too short/);
 
+    // Count mode is the one that can ask for more copies than the span
+    // holds; spacing mode only ever places what fits.
     const overlap = embedOccsProfileEdge({
       section: BUMP,
       vertices: FACE,
-      relation: { offsetX: 10, pattern: { type: 'edgeArray', edge: 'E0', mode: 'spacing', spacing: '20' } }
+      relation: { offsetX: 10, pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '3' } }
     });
     expect(overlap.ok).toBe(false);
     expect(overlap.reason).toMatch(/overlaps copy 2/);

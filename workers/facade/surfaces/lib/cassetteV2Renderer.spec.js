@@ -35,6 +35,7 @@ import {
 import {
   createDefaultOccsProfileSketch,
   normalizeOccsProfileSketch,
+  occProfileSectionChainedVertices,
   occsProfileFromSketch,
   setOccsProfileSketchClosed
 } from '../../occs/profiles.js';
@@ -430,13 +431,13 @@ describe('cassette v2 trapezoid renderer', () => {
       sketch: square
     });
     const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
-    // Default face 500x400 with a 42-wide chord: spacing tighter than the
-    // chord cannot fit and the embedding refuses.
+    // Default face 500x400 with a 28-wide chord: twenty copies cannot
+    // fit and the embedding refuses.
     const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
       placementMode: 'edgeArray',
       arrayEdge: 'E2',
-      arrayMode: 'spacing',
-      arraySpacing: '20'
+      arrayMode: 'count',
+      arrayCount: '20'
     });
 
     const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece' });
@@ -473,6 +474,32 @@ describe('cassette v2 trapezoid renderer', () => {
     const leftover = rows.find(row => row.key === 'designer.section');
     expect(leftover).toMatchObject({ code: '', present: true });
     expect(rows[rows.length - 1].key).toBe(leftover.key);
+  });
+
+  it('carries the parametric default table on an attached profile so its row chips drive it', async () => {
+    const initialTree = createCassetteV2GraphTree();
+    const added = addCassetteV2ProfileWorkpiece(initialTree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger'
+    });
+    const workpieceOf = (tree) => getCassetteV2Workpieces(tree).find(item => item.id === added.workpieceId);
+
+    // No template, no authored sketch: the parametric default template
+    // supplies both the geometry and its table. The workpiece's own
+    // table carries it, because that is the table the row renders a
+    // chip per bound key from.
+    const attached = workpieceOf(added.tree);
+    expect(attached.parameters).toEqual({ W: 42, H: 28, R: 3, D: 6, L: 120 });
+
+    // Editing the chip re-evaluates: a larger R grows the corner arcs.
+    const edited = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
+      parameters: { ...attached.parameters, R: 12 }
+    });
+    const radius = (tree) => occProfileSectionChainedVertices(
+      workpieceOf(tree).profileSnapshot.section
+    ).length;
+    expect(radius(edited)).toBeGreaterThan(radius(added.tree));
   });
 
   it('re-evaluates a profile workpiece from its sketch when instance parameters change', async () => {

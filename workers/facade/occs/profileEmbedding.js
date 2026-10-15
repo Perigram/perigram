@@ -85,9 +85,10 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
   // Array starts are chord-aware: the margin holds from both edge ends
   // for the WHOLE copy (not just its start anchor), so the last copy
   // ends at edgeLength − margin and count/spacing distribute copy starts
-  // over the span that is left. The perpendicular component of the
-  // origin is dropped on purpose — open profiles keep their feet on the
-  // edge.
+  // over the span that is left. Spacing is the gap between adjacent
+  // copies, so a zero spacing butts them together. The perpendicular
+  // component of the origin is dropped on purpose — open profiles keep
+  // their feet on the edge.
   const margin = Math.max(0, resolve(relation.offsetX, 0));
   const rowSpan = edgeLength - 2 * margin - chordLength;
   if (rowSpan < -1e-6) {
@@ -98,6 +99,7 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     pattern,
     startOffset: 0,
     binding: relation.targetSnap || 'start',
+    copyLength: chordLength,
     resolve
   }).map(distance => margin + distance);
   if (!starts.length) {

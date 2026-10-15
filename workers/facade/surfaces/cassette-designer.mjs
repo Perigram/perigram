@@ -39,6 +39,7 @@ import {
   occsProfileFromSketch
 } from '../occs/profiles.js';
 import createExpressionEditor from './lib/components/expressionEditor.mjs';
+import createFieldDraft from './lib/components/fieldDraft.mjs';
 import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
@@ -254,11 +255,13 @@ export default function createSurface({ vue, components, locale, queries, notify
       const onboardingIndex = ref(0);
       const onboardingDismissed = ref(false);
       const inlineEditorDrag = ref(null);
+      // The focused profile-parameter chip's raw text (see fieldDraft).
+      const parameterDraft = createFieldDraft({ vue });
       const profileDialogVisible = ref(false);
       const editingProfileWorkpieceId = ref('');
       const profileDraft = ref({
         name: '',
-        ...createDefaultOccsProfileTemplateData({ sketch: createEmptyOccsProfileSketch() })
+        ...createDefaultOccsProfileTemplateData()
       });
       const templateRecords = ref([]);
       const loadedDocument = ref(null);
@@ -947,6 +950,9 @@ export default function createSurface({ vue, components, locale, queries, notify
         applyTemplate(hydrated);
       }, { immediate: true });
 
+      // A chip's draft dies with the workpiece selection that owns it.
+      watch(selectedWorkpieceId, () => { parameterDraft.clear(); });
+
       watch([selectedWorkpieceId, workpieceRelations], () => {
         const selectedIncoming = selectedWorkpieceRelations.value.find(relation => relation.driver) ||
           selectedWorkpieceRelations.value[0] ||
@@ -1290,7 +1296,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         const data = {
           kind: profileDraft.value.kind,
           process: profileDraft.value.process,
-          parameters: sketch.parameters || profileDraft.value.parameters || {},
+          parameters: sketch.parameters,
           sketch,
           occsProfile: occsProfileFromSketch(sketch)
         };
@@ -1315,9 +1321,12 @@ export default function createSurface({ vue, components, locale, queries, notify
             occsProfile: profile.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile.occsProfile || null
           };
         } else {
+          // A new profile opens on the parametric default template: its
+          // table carries W/H/R/D/L and its geometry binds to it, so the
+          // saved workpiece's row chips drive the profile.
           profileDraft.value = {
             name: t('cassette.v2.profileEditor.defaultName'),
-            ...createDefaultOccsProfileTemplateData({ sketch: createEmptyOccsProfileSketch() })
+            ...createDefaultOccsProfileTemplateData()
           };
         }
         profileDialogVisible.value = true;
@@ -1377,6 +1386,21 @@ export default function createSurface({ vue, components, locale, queries, notify
         if (!workpiece) return;
         cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, workpieceId, {
           parameters: { ...(workpiece.parameters || {}), [key]: value }
+        });
+      };
+
+      // The chip holds its typed text while focused and commits it on
+      // blur/Enter (see fieldDraft).
+      const profileParameterField = (row, key, value) => {
+        const draftKey = `${row.id}:${key}`;
+        return h(InputText, {
+          modelValue: parameterDraft.text(draftKey, value),
+          ...parameterDraft.handlers(draftKey, value, next => {
+            updateProfileWorkpieceParameter(row.id, key, next);
+          }),
+          size: 'small',
+          class: 'w-16 font-mono text-xs',
+          'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`
         });
       };
 
@@ -2077,13 +2101,7 @@ export default function createSurface({ vue, components, locale, queries, notify
                         class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
                       }, [
                         h('span', { class: 'font-mono text-xs text-muted-color' }, key),
-                        h(InputText, {
-                          modelValue: value === null || value === undefined ? '' : String(value),
-                          'onUpdate:modelValue': next => { updateProfileWorkpieceParameter(row.id, key, next); },
-                          size: 'small',
-                          class: 'w-16 font-mono text-xs',
-                          'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`
-                        })
+                        profileParameterField(row, key, value)
                       ])))
                   : null,
                 row.id === selectedWorkpieceId.value && row.isHardware
