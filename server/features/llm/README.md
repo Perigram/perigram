@@ -40,9 +40,11 @@ Organizations declare **named model profiles** (owner direction
 }
 ```
 
-`resolveLlmConfig(organizationId, capability)` walks the route chain —
-exact capability route, then the `chat` family default, then the
-environment — and only a chat-kind profile ever serves a conversation.
+`resolveLlmConfig(organizationId, capability, { profileId })` walks the
+chain — an explicit profile (a bot's declared brain) first, then the
+exact capability route, the `chat` family default, the environment — and
+only a chat-kind profile ever serves a conversation (stale or non-chat
+explicit ids degrade to the route chain).
 Image-kind profiles are declarable today (endpoint, model, key) and
 consumed when an image capability ships; speech-to-text is not part of
 this module ([transcription](../transcription/README.md) owns its own
@@ -58,8 +60,8 @@ providers). The environment is the unnamed default profile:
 A route that cannot produce both `baseUrl` and `model` resolves to
 `{ provider: 'none' }`: consumers treat the capability as unavailable
 rather than failing per request. Consumers today: the agent bots loop and
-wakes (`chat`), meetings call summaries (`chat.summaries`, falling back
-to `chat`). The retired single-provider `data.settings.llm` shape was
+wakes (the bot's declared profile, else `chat`), meetings call summaries
+(`chat.summaries`, falling back to `chat`). The retired single-provider `data.settings.llm` shape was
 migrated by `server/scripts/migrate-llm-settings-profiles.js` (profile
 `default`, route `chat`).
 

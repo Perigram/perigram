@@ -6,6 +6,11 @@ platform surface. A bot is an ordinary organization member (a user with the
 hashed token; it acts with its own grants through the same boundaries as
 every other client, never with borrowed user identity.
 
+Every bot may declare the model profile it thinks with (the org's model
+table, `PATCH /api/agent-bots/:id/profile`); unset bots ride the org's
+`chat` capability route. The runtime passes the bot's profile to the llm
+seam as an explicit override.
+
 Three pieces share one tool catalog:
 
 - **Tool catalog** (`tools.js`): the curated vocabulary over existing
@@ -94,6 +99,10 @@ wake scanner turns matching status transitions into proactive agent runs:
 - `GET/POST /api/agent-bots` (list with optional `?conversationKey=`, create
   `{ name, roleIds? }` — creation returns the token exactly once),
   `DELETE /api/agent-bots/:id`, `POST /api/agent-bots/:id/token` (rotation),
+  `PATCH /api/agent-bots/:id/profile` (`{ profile }` — the bot's model
+  override: a chat profile id from the org model table, empty for the
+  org's chat route; unknown or non-chat ids are refused, stale stored
+  references degrade to the route chain),
   `POST/DELETE /api/agent-bots/subscriptions` (`{ botId, conversationKey,
   wakeOn? }` — `wakeOn` is the subscription's lifecycle wake rule list:
   omitted leaves stored rules, `null`/`[]` clears, a non-empty array

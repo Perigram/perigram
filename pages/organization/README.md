@@ -39,7 +39,8 @@ for bots: the models table first (named model profiles with capability
 routing and per-profile connection tests — writing
 `data.settings.llm.profiles`/`routes` through the llm settings seam; a bot
 without a resolvable route answers nothing), then the bot list (create
-with one-time token reveal, rotate, delete). The token is MCP-only wiring
+with one-time token reveal, rotate, delete, and each bot's model —
+per-bot profile override with the org chat route as default). The token is MCP-only wiring
 for external agents; chat usage needs none of it. The page is gated with
 the team screen (`users:admin`); chat surfaces only join bots to
 conversations (see
