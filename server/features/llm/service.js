@@ -297,7 +297,7 @@ export async function listEndpointModels(auth = {}, { provider = '', baseUrl = '
             attempts.push(`${url}: empty`);
         } catch (error) {
             clearTimeout(timeout);
-            attempts.push(`${url}: unreachable`);
+            attempts.push(`${url}: unreachable (${error?.cause?.code || error?.name || 'unknown'})`);
         }
     }
     throw createError({
@@ -537,7 +537,7 @@ async function postCompletion(config, requestBodyJson) {
             });
         } catch (error) {
             clearTimeout(timeout);
-            throw createError({ statusCode: 502, message: 'LLM service is unreachable' });
+            throw createError({ statusCode: 502, message: `LLM service is unreachable (${error?.cause?.code || error?.name || error?.message || 'unknown'})` });
         } finally {
             clearTimeout(timeout);
         }

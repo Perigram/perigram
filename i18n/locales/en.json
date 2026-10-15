@@ -2440,7 +2440,9 @@
         "details": "Details",
         "botsManagement": "Bots",
         "botsManagementHint": "Agent members, access tokens",
-        "singleSeat": "single seat"
+        "singleSeat": "single seat",
+        "modelsManagement": "AI models",
+        "modelsManagementHint": "Model profiles and capability routing"
     },
     "sheetDesign": {
         "sheetDesigns": "Sheet designs",

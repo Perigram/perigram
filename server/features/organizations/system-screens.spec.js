@@ -18,6 +18,7 @@ describe('organization system screens', () => {
       'organization_partners',
       'organization_plugins',
       'organization_team',
+      'organization_models',
       'organization_bots',
       'organization_process'
     ]);
@@ -33,6 +34,7 @@ describe('organization system screens', () => {
       'organization_partners',
       'organization_plugins',
       'organization_team',
+      'organization_models',
       'organization_bots',
       'organization_process'
     ]);
@@ -60,6 +62,7 @@ describe('organization system screens', () => {
       'organization_partners',
       'organization_plugins',
       'organization_team',
+      'organization_models',
       'organization_bots',
       'organization_process'
     ]);
@@ -77,9 +80,10 @@ describe('organization system screens', () => {
     expect(result.screens.map(screen => screen.screenKey)).toEqual([
       'organization_overview',
       'organization_team',
+      'organization_models',
       'organization_bots'
     ]);
-    expect(result.screens[0].systemScreens.map(screen => screen.screenKey)).toEqual(['organization_team', 'organization_bots']);
+    expect(result.screens[0].systemScreens.map(screen => screen.screenKey)).toEqual(['organization_team', 'organization_models', 'organization_bots']);
   });
 
   it('omits admin checkout from billing when the user has read-only organization access', () => {
