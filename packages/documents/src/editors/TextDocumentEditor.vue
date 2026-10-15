@@ -27,12 +27,24 @@
           size="small"
           class="format-control"
           :class="[control.class, { 'is-active': isActive(control) }]"
+          :disabled="blockState.block === 'code_block'"
           :aria-label="$t(control.labelKey)"
           :aria-pressed="isActive(control)"
           @click="runFormat(control)"
         />
       </div>
-      <Button :label="$t('common.save')" icon="pi pi-save" size="small" text class="ml-auto" :loading="saving" :disabled="!dirty" @click="save" />
+      <Button
+        v-if="remoteChanged && dirty"
+        icon="pi pi-refresh"
+        severity="secondary"
+        text
+        rounded
+        size="small"
+        class="ml-auto"
+        :aria-label="$t('common.refresh')"
+        @click="reloadFromRemote"
+      />
+      <Button :label="$t('common.save')" icon="pi pi-save" size="small" text :class="remoteChanged && dirty ? '' : 'ml-auto'" :loading="saving" :disabled="!dirty" @click="save" />
     </div>
     <div ref="editorHost" class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto" :aria-label="$t('editors.text')" />
   </div>
@@ -43,6 +55,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { useDocumentName } from './useDocumentName.js';
+import { useRemoteDocumentSync } from './useRemoteDocumentSync.js';
 import './text-document-editor.css';
 
 // The documents pack's markdown editor: the single-surface live editing
@@ -61,6 +74,17 @@ const editorHost = ref(null);
 const saving = ref(false);
 const dirty = ref(false);
 const { displayName, nameDraft, editingName, nameDirty, commitName } = useDocumentName(props.persistence, () => emit('refresh'));
+
+// Remote saves/renames reconcile this surface: clean reloads the text,
+// dirty raises the refresh affordance.
+const { remoteChanged, reloadFromRemote } = useRemoteDocumentSync(props.persistence, {
+  dirty,
+  reload: async () => {
+    if (!crepe) return;
+    const { replaceAll } = await loadCommands();
+    crepe.editor.action(replaceAll((await props.persistence.loadText()) || ''));
+  }
+});
 
 // Quiet document text, not form chrome: the pt styles strip the
 // outlined fill and border — the focus ring keeps the edit affordance.
@@ -108,18 +132,21 @@ function isActive(control) {
 let commands = null;
 async function loadCommands() {
   if (commands) return commands;
-  const [{ callCommand }, preset, { editorViewCtx }, { lift }] = await Promise.all([
+  const [{ callCommand, replaceAll }, preset, { editorViewCtx }, { lift }] = await Promise.all([
     import('@milkdown/utils'),
     import('@milkdown/preset-commonmark'),
     import('@milkdown/core'),
     import('@milkdown/prose/commands')
   ]);
-  commands = { callCommand, preset, editorViewCtx, lift };
+  commands = { callCommand, replaceAll, preset, editorViewCtx, lift };
   return commands;
 }
 
 async function runFormat(control) {
   if (!crepe) return;
+  // Source mode edits raw markdown: block commands would bypass the
+  // parse-back and strand literal source in the document.
+  if (blockState.value.block === 'code_block') return;
   const active = isActive(control);
   if (active && control.off === 'lift') {
     // Blockquotes have no preset unwrap command: lift the focused block
@@ -146,10 +173,12 @@ let loaded = false;
 
 onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
-  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }, { createSourceModePlugin }, { parserCtx, serializerCtx }] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/utils'),
     import('./source-markers-plugin.js'),
+    import('./source-mode.js'),
+    import('@milkdown/core'),
     import('@milkdown/crepe/theme/common/style.css')
   ]);
   if (!editorHost.value) return;
@@ -165,10 +194,15 @@ onMounted(async () => {
       [CrepeEditor.Feature.AI]: false
     }
   });
-  // The live-source seam: the focused block shows its markdown markers
-  // and the toolbar learns the selection state.
+  // The live-source seam: the focused block shows its markdown markers,
+  // the edited block becomes its markdown source (serialized in,
+  // parsed back out), and the toolbar learns the selection state.
   crepe.editor.use($prose(() => createSourceMarkersPlugin({
     onSelectionState: next => { blockState.value = next; }
+  })));
+  crepe.editor.use($prose(ctx => createSourceModePlugin({
+    serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
+    parse: text => ctx.get(parserCtx)(text)
   })));
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes

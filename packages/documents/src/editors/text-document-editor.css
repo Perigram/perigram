@@ -33,10 +33,35 @@
 
 /* The editor is the document: it reads in the prose voice with room to
    write — one bounded scroll inside the pane, breathing room at the
-   end so the last line escapes the toolbar overlap. */
+   end so the last line escapes the toolbar overlap. Side padding
+   follows the pane (container query on the editor host): narrow panes
+   keep their width, wide panes keep the line length readable. */
+.crepe-host {
+  container-type: inline-size;
+}
+
 .milkdown .editor {
-  padding: 0.75rem 0.25rem 30vh;
+  padding: 0.75rem clamp(0.75rem, 6cqi, 3rem) 30vh;
   outline: none;
+}
+
+/* Crepe ships no font for plain code elements (only its CodeMirror
+   feature consumes the code font) — inline code and code blocks speak
+   the app's mono voice. */
+.milkdown :not(pre) > code,
+.milkdown pre {
+  font-family: var(--crepe-font-code);
+}
+
+/* The source-mode block (source-mode.js): the edited block IS its
+   markdown — mono, no code-block chrome; it reads as the document's
+   own text, not a fenced listing. */
+.milkdown .md-source-block {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--crepe-color-on-background);
+  font-family: var(--crepe-font-code);
 }
 
 /* Live-source markers (the Obsidian model): the focused block's
