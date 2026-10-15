@@ -1,5 +1,6 @@
 import * as llmService from '~/server/features/llm/service.js';
 import * as supportService from '~/server/features/support/service.js';
+import * as connectionsService from '~/server/features/connections/service.js';
 import { MESSAGE_SENDER } from '~/server/features/support/const.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { buildBotAuth, isBotUser } from './service.js';
@@ -22,6 +23,25 @@ const MAX_TOOL_ROUNDS = 8;
 // own sends racing the reply) must not stack duplicate answers. Chat
 // replies and lifecycle wakes share the lock space.
 const inFlight = new Set();
+
+const BOT_TYPING_INTERVAL_MS = 2000;
+
+/**
+ * Room presence for a running bot: the same ephemeral typing signal the
+ * human composer rides, published server-side while the loop works. The
+ * client auto-clears between beats, so the signal repeats until the run
+ * ends.
+ */
+function botTypingBeats(botAuth, conversationKey) {
+    const beat = () => connectionsService.publish(`conversation:${conversationKey}`, {
+        type: 'typing',
+        conversationKey,
+        userId: botAuth.userId,
+        name: botAuth.name || ''
+    });
+    beat();
+    return setInterval(beat, BOT_TYPING_INTERVAL_MS);
+}
 
 const botFlagCache = new Map();
 const BOT_FLAG_TTL_MS = 60_000;
@@ -175,8 +195,10 @@ export async function runBotReply(botUserId, context, message, conversationProfi
         return;
     }
     inFlight.add(lockKey);
+    let typing = null;
     try {
         const botAuth = await buildBotAuth(botUserId);
+        typing = botTypingBeats(botAuth, message.conversationKey);
         const organizationId = botAuth.organizationId;
         const profileId = conversationProfile || botAuth.botProfile;
         if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId }))) {
@@ -198,6 +220,7 @@ export async function runBotReply(botUserId, context, message, conversationProfi
             console.error('[AGENT-BOTS] failure notice failed:', nested);
         }
     } finally {
+        if (typing) clearInterval(typing);
         inFlight.delete(lockKey);
     }
 }
@@ -248,8 +271,10 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         return;
     }
     inFlight.add(lockKey);
+    let typing = null;
     try {
         const botAuth = await buildBotAuth(subscription.botUserId);
+        typing = botTypingBeats(botAuth, subscription.conversationKey);
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the bot's own, then the org route.
         const profileId = ruleProfile || String(subscription.profile || '') || botAuth.botProfile;
@@ -282,6 +307,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
     } catch (error) {
         console.error('[AGENT-BOTS] wake failed:', error);
     } finally {
+        if (typing) clearInterval(typing);
         inFlight.delete(lockKey);
     }
 }
