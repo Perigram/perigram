@@ -21,13 +21,13 @@ export const DEFAULT_OCCS_PROFILE_PARAMETERS = Object.freeze({
   L: 120
 });
 
-export const createDefaultOccsProfileSketch = (parameters = {}) => ({
-  version: '0.1',
-  units: 'mm',
-  parameters: {
-    ...DEFAULT_OCCS_PROFILE_PARAMETERS,
-    ...parameters
-  },
+// The numeric geometry seed normalize fills MISSING sketch fields with.
+// It must stay literal: seeded fields belong to sketches that never
+// authored them, and expression-bound seeds would reference identifiers
+// those sketches do not carry (evaluation throws). The parametric
+// default below is the TEMPLATE path — the profile dialog and the
+// sketch-less fallback, whose tables always carry W/H/R/D/L.
+const PROFILE_GEOMETRY_SEED = Object.freeze({
   points: [
     { id: 'p0', x: 0, y: 0 },
     { id: 'p1', x: 42, y: 0 },
@@ -42,13 +42,36 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
   ],
   holes: [
     { id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }
+  ]
+});
+
+export const createDefaultOccsProfileSketch = (parameters = {}) => ({
+  version: '0.1',
+  units: 'mm',
+  parameters: {
+    ...DEFAULT_OCCS_PROFILE_PARAMETERS,
+    ...parameters
+  },
+  // Parametric by law: the geometry binds to the table (W/H the
+  // rectangle, R the corner fillets, D the hole; L resolves the sweep at
+  // evaluation), so cassette instance parameters drive it and the
+  // workpiece row's chips are live.
+  points: [
+    { id: 'p0', x: 0, y: 0 },
+    { id: 'p1', x: 'W', y: 0 },
+    { id: 'p2', x: 'W', y: 'H' },
+    { id: 'p3', x: 0, y: 'H' }
+  ],
+  edges: PROFILE_GEOMETRY_SEED.edges,
+  holes: [
+    { id: 'h0', type: 'circle', center: ['W/2', 'H/2'], diameter: 'D' }
   ],
   closed: true,
   modifiers: [
-    { type: 'fillet', vertexId: 'p0', radius: 3 },
-    { type: 'fillet', vertexId: 'p1', radius: 3 },
-    { type: 'fillet', vertexId: 'p2', radius: 3 },
-    { type: 'fillet', vertexId: 'p3', radius: 3 }
+    { type: 'fillet', vertexId: 'p0', radius: 'R' },
+    { type: 'fillet', vertexId: 'p1', radius: 'R' },
+    { type: 'fillet', vertexId: 'p2', radius: 'R' },
+    { type: 'fillet', vertexId: 'p3', radius: 'R' }
   ],
   constraints: []
 });
@@ -128,7 +151,15 @@ const normalizeFilletModifiers = (modifiers = [], pointIds = new Set()) => {
 };
 
 export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
-  const fallback = createDefaultOccsProfileSketch(fallbackParameters);
+  // Missing geometry fields fill from the numeric seed — never the
+  // parametric default, whose expressions need a table the sketch may
+  // not carry.
+  const fallback = {
+    points: PROFILE_GEOMETRY_SEED.points,
+    edges: PROFILE_GEOMETRY_SEED.edges,
+    holes: PROFILE_GEOMETRY_SEED.holes,
+    parameters: { ...DEFAULT_OCCS_PROFILE_PARAMETERS, ...fallbackParameters }
+  };
   const rawParameters = {
     ...(fallbackParameters || {}),
     ...(sketch.parameters || {})
