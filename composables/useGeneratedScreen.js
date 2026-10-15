@@ -108,22 +108,22 @@ export function useGeneratedScreen(screenRef) {
   }
 
   function applyInstanceSnapshot(typeId, instance = null) {
-    const id = entity?._id?.toString?.() || entity?._id || entity?._id?.toString?.() || entity?._id;
-    if (!typeId || !id || !entity) return;
+    const id = instance?._id?.toString?.() || instance?._id || null;
+    if (!typeId || !id || !instance) return;
     sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
       if (state.source?.typeId !== typeId) return [sourceId, state];
       if (state.source.mode === 'single') {
         const sourceIdValue = resolveSourceIdentifier(state.source, screen.value);
-        return String(sourceIdValue) === String(id) ? [sourceId, { ...state, entity }] : [sourceId, state];
+        return String(sourceIdValue) === String(id) ? [sourceId, { ...state, entity: instance }] : [sourceId, state];
       }
       const index = (state.items || []).findIndex(item => String(item?._id || item?._id) === String(id));
       if (index < 0) {
-        return entityMatchesSource(entity, state.source, screen.value)
-          ? [sourceId, { ...state, items: [...(state.items || []), entity] }]
+        return entityMatchesSource(instance, state.source, screen.value)
+          ? [sourceId, { ...state, items: [...(state.items || []), instance] }]
           : [sourceId, state];
       }
       const items = [...state.items];
-      items[index] = entity;
+      items[index] = instance;
       return [sourceId, { ...state, items }];
     }));
   }
