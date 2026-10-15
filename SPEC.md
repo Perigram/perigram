@@ -539,6 +539,19 @@ rips at those points, embedding the profile chain into the contour as
 the break. The Basis toggle applies to closed profiles only; on an open
 sketch it is disabled, never a silent no-op.
 
+Owner decision (2026-10-15, engine integration law): the profile editor
+integrates the CAD engine under a one-way truth rule — the sketch model
+is the single truth, the canvas its render and input surface. Extraction
+merges back instead of replacing: a corner whose extracted position
+matches its authored evaluation keeps the authored id, expressions, and
+fillet radius, so drawing, importing, or undoing never destroys
+parametric authoring. The toolbar reflects the engine's command
+lifecycle (commandWillStart/commandEnded) — buttons stick only while
+their command runs; starting another tool cancels the running one. The
+surface owns Escape routing (the engine's own handling needs focus
+inside its container): Escape closes the vertex popup, cancels the
+active command, and clears the selection, regardless of focus.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,
