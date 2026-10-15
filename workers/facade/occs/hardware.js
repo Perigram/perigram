@@ -145,7 +145,7 @@ const normalizeEdgeBinding = (binding = 'start') => {
   return 'start';
 };
 
-export const edgeArrayDistances = ({ edgeLength = 0, pattern = {}, startOffset = 0, binding = 'start', resolve = numeric } = {}) => {
+export const edgeArrayDistances = ({ edgeLength = 0, pattern = {}, startOffset = 0, binding = 'start', copyLength = 0, resolve = numeric } = {}) => {
   const margin = Math.max(0, startOffset);
   const usableStart = margin;
   const usableEnd = edgeLength - margin;
@@ -154,24 +154,29 @@ export const edgeArrayDistances = ({ edgeLength = 0, pattern = {}, startOffset =
   const mode = pattern.mode === 'spacing' ? 'spacing' : 'count';
   const normalizedBinding = normalizeEdgeBinding(binding);
   const requestedCount = Math.max(1, Math.round(resolve(pattern.count, 1)));
+  // Spacing is the GAP between adjacent copies, so a zero spacing butts
+  // them together; the pitch a copy actually consumes is its own length
+  // plus that gap. Point-like copies (hardware) pass no length and keep
+  // spacing as their pitch.
   const requestedSpacing = Math.max(0, resolve(pattern.spacing, 0));
+  const pitch = Math.max(0, copyLength) + requestedSpacing;
 
-  if (mode === 'spacing' && requestedSpacing > 0) {
+  if (mode === 'spacing' && pitch > 0) {
     if (normalizedBinding === 'end') {
       const distances = [];
-      for (let distance = usableEnd; distance >= usableStart - 0.001; distance -= requestedSpacing) {
+      for (let distance = usableEnd; distance >= usableStart - 0.001; distance -= pitch) {
         distances.push(Math.max(usableStart, distance));
       }
       return distances;
     }
 
     const span = Math.max(0, usableEnd - usableStart);
-    const count = Math.max(1, Math.floor(span / requestedSpacing) + 1);
-    const total = (count - 1) * requestedSpacing;
+    const count = Math.max(1, Math.floor(span / pitch) + 1);
+    const total = (count - 1) * pitch;
     const first = normalizedBinding === 'center'
       ? usableStart + (span - total) / 2
       : usableStart;
-    return Array.from({ length: count }, (_, index) => Math.min(usableEnd, first + requestedSpacing * index));
+    return Array.from({ length: count }, (_, index) => Math.min(usableEnd, first + pitch * index));
   }
 
   if (requestedCount === 1) {

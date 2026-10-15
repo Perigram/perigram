@@ -14,6 +14,7 @@ import {
   setOccsProfileSketchClosed
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
+import createFieldDraft from './fieldDraft.mjs';
 
 const EXTRACT_DEBOUNCE_MS = 40;
 
@@ -744,9 +745,16 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      // Authoring fields (vertex x/y, hole centers and diameters,
+      // parameter values, fillet radii) hold their typed text while
+      // focused and commit it on blur/Enter. The draft dies with the
+      // vertex selection that owns it — Escape included.
+      const fieldDraft = createFieldDraft({ vue });
+      watch(selectedVertexId, () => { fieldDraft.clear(); });
+
       const expressionField = (value, hint, onInput, ariaLabel) => h(InputText, {
-        modelValue: value === null || value === undefined ? '' : String(value),
-        'onUpdate:modelValue': onInput,
+        modelValue: fieldDraft.text(ariaLabel, value),
+        ...fieldDraft.handlers(ariaLabel, value, onInput),
         size: 'small',
         class: 'w-16 font-mono text-xs',
         title: hint,
@@ -887,11 +895,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           expressionField(popup.x, `x${resolvedHint(sketch, popup.x)}`, next => { applyVertexField(id, 'x', next); }, `x ${id}`),
           expressionField(popup.y, `y${resolvedHint(sketch, popup.y)}`, next => { applyVertexField(id, 'y', next); }, `y ${id}`),
           h(InputText, {
-            modelValue: popup.fillet === null ? '' : String(popup.fillet),
-            'onUpdate:modelValue': next => {
-              const numeric = Number(next);
-              applyFilletRadius(id, next === '' ? 0 : (Number.isFinite(numeric) ? numeric : next));
-            },
+            modelValue: fieldDraft.text(`r ${id}`, popup.fillet),
+            ...fieldDraft.handlers(`r ${id}`, popup.fillet, next => { applyFilletRadius(id, next); }),
             size: 'small',
             class: 'w-14 font-mono text-xs',
             disabled: popup.openEnd,

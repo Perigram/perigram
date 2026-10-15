@@ -44,8 +44,12 @@ modules — no platform imports.
   placements resolve to exact `cut.hole` circles. Edge arrays use attachment X
   as a margin from both edge ends, attachment Y as the face-normal offset, and
   the target snap (`start`, `end`, or `center`) as the array binding before
-  applying either a `count` or `spacing` rule. Cassette Designer v2 exposes that
-  same contract as edge margin, normal offset, edge, count/step value, and
+  applying either a `count` or `spacing` rule. `spacing` is the gap between
+  adjacent copies — zero butts them together — and a spacing rule places the
+  copies that fit, never stretching them over the edge; point-like hardware
+  copies carry no length of their own, so there spacing is the pitch between
+  placements. Cassette Designer v2 exposes that
+  same contract as edge margin, normal offset, edge, count/spacing value, and
   profile mirror controls on the attachment relation; hanger width/height is
   not duplicated in the workpiece row when a saved profile supplies geometry.
 - `profiles.js` declares the reusable OCCS profile sketch helper used by
@@ -56,12 +60,17 @@ modules — no platform imports.
   The default hanger template is parametric by law: its geometry binds to
   its table (W/H the rectangle, R the corner fillets, D the hole, L the
   sweep at evaluation), so a cassette's instance parameters drive it the
-  moment it is attached — the workpiece row's chips are live. The numeric
-  geometry seed normalize fills MISSING sketch fields with stays literal:
-  seeded fields belong to sketches that never authored them and carry no
-  table for the expressions to resolve against.
-  The parameter table starts empty — parameters are added when a sketch
-  needs them, nothing is pre-seeded. Every authoring field (point
+  moment it is attached — the workpiece row's chips are live. The profile
+  dialog drafts a new profile on this same template, and an attached
+  workpiece's table is its derived sketch's table with the instance values
+  on top, so the row renders a chip for every parameter the sketch binds,
+  never only the ones an instance happened to override. The numeric
+  geometry seed that `normalizeOccsProfileSketch` fills MISSING sketch
+  fields with stays literal: seeded fields belong to sketches that never
+  authored them and carry no table for the expressions to resolve against.
+  A blank authoring session starts with an empty
+  table — parameters are added when a sketch
+  needs them, nothing is pre-seeded there. Every authoring field (point
   coordinates, hole centers and diameters, fillet radii, parameter
   values) carries a number or an expression string evaluated
   against the parameter table through `expressions.js` — the same
@@ -133,7 +142,14 @@ modules — no platform imports.
   geometry directly on the sketch model, beneath a dimension annotation
   band; vertex coordinates and fillet radii edit through a canvas popup
   that opens on the selected corner (Select-tool click near an authored
-  vertex; Escape or clicking away closes it). Escape routes at the window
+  vertex; Escape or clicking away closes it). Every authoring field — the
+  popup's coordinates and fillet radius, the parameter and hole rows, and
+  the designer's instance-parameter chips — holds the text being typed and
+  commits it on blur or Enter (`surfaces/lib/components/fieldDraft.mjs`): a
+  per-keystroke commit runs each character through normalization (`''`
+  becomes 0, `42.` becomes 42) and rewrites the field under the caret, and
+  adopt-on-bind would mint a parameter from a half-typed identifier.
+  Escape routes at the window
   level: it closes the popup, cancels the engine's active command, and
   clears the selection — from any focus, including a toolbar button or an
   authoring field. The canvas reseeds (clear + redraw) on every authored
@@ -148,7 +164,9 @@ modules — no platform imports.
   geometry goes numeric, and an authored sketch whose expressions no
   longer resolve falls back to the plain extraction until fixed.
   Parametric instantiation: a profile
-  workpiece's parameter table overrides the profile's authored table and
+  workpiece's instance parameters override the profile's authored table —
+  the workpiece's own table is the derived table with those instance
+  values on top — and
   its snapshot re-derives from the authored sketch (the stored section is
   a last-good cache — a transient invalid parameter holds it); the
   workpiece rows edit instance parameters in place, instance values may
@@ -174,11 +192,13 @@ modules — no platform imports.
   chain — host start, straight runs, copy chains, host end — the composite
   rides `contour.cassette_face`, and the production cut/nesting contour truly
   follows the stitched boundary. The margin holds from both edge ends for the
-  whole copy (count/spacing distribute copy starts over the span the chord
-  leaves), so every count/spacing setup that fits embeds. The array binding
+  whole copy: count mode spreads the requested copies over the span the chord
+  leaves — a count the span cannot hold refuses — and spacing mode packs
+  copies from the binding at the requested gap between them (zero butts them
+  together), placing the copies that fit. The array binding
   (start/center/end snap) places the array, never the walk direction:
-  copies always run edge-start to edge-end. Overflowing, overlapping, or
-  too-short placements refuse the evaluation with an error instead of
+  copies always run edge-start to edge-end. A placement that cannot fit, or a
+  margin that leaves no span, refuses the evaluation with an error instead of
   clamping; the designer drawing carries the refusals as
   `profileEmbeddingErrors` (`{relationId, reason}`) so the attachment row
   shows a refused status instead of the profile vanishing silently.

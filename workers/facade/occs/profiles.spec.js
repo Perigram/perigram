@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createDefaultOccsProfileSketch,
+  createDefaultOccsProfileTemplateData,
   createEmptyOccsProfileSketch,
   closeOccsProfileSketchBoundary,
   evaluateOccsProfileSketch,
@@ -210,6 +211,22 @@ describe('OCCS profile helpers', () => {
       parameters: { W: 10 }
     });
     expect(authored.parameters).toEqual({ W: 10 });
+  });
+
+  it('opens a new profile on the parametric hanger template', () => {
+    // What the designer's profile dialog drafts for a new profile: the
+    // template's table carries W/H/R/D/L and its geometry binds to it, so
+    // the saved workpiece's row chips are live from the first render.
+    const draft = createDefaultOccsProfileTemplateData();
+    const sketch = normalizeOccsProfileSketch(draft.sketch, draft.parameters);
+    expect(sketch.parameters).toEqual({ W: 42, H: 28, R: 3, D: 6, L: 120 });
+    expect(sketch.points.map(point => [point.x, point.y]))
+      .toEqual([[0, 0], ['W', 0], ['W', 'H'], [0, 'H']]);
+    expect(sketch.modifiers.map(modifier => modifier.radius)).toEqual(['R', 'R', 'R', 'R']);
+    expect(isOccsProfileSketchSavable(sketch, draft.parameters)).toBe(true);
+    const profile = occsProfileFromSketch(sketch);
+    expect(profile.section.holes).toEqual([{ type: 'circle', center: ['21', '14'], diameter: '6' }]);
+    expect(profile.sweep).toEqual({ type: 'linear', length: '120' });
   });
 
   it('tags flattened arc interiors as chord points and keeps corners authored', () => {
