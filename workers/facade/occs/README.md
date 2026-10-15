@@ -152,7 +152,10 @@ modules — no platform imports.
   Escape routes at the window
   level: it closes the popup, cancels the engine's active command, and
   clears the selection — from any focus, including a toolbar button or an
-  authoring field. The canvas reseeds (clear + redraw) on every authored
+  authoring field. Editor teardown lets the engine's font preload settle
+  (plus its glyph-redraw delay) before destroying the manager singleton:
+  a redraw timer firing after the singleton dies is an uncaught page
+  error. The canvas reseeds (clear + redraw) on every authored
   edit, and the engine's selection dies with the removed entities — a
   selection left standing over reseeded geometry references dead object
   ids and the next erase fails inside the engine. The sketch model is the
