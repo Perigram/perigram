@@ -1,5 +1,40 @@
 # TODO
 
+## Agent chat surface rework (owner direction 2026-10-15)
+
+Chatting with an agent is starting a new chat, not administering bots:
+the org assistant is a contact, participants join bots into group/org
+rooms, lanes are role assignments on the team surface, and the bot glyph
+is not a brand logo.
+
+- [x] A. Org assistant: lazily bootstrapped per organization through a
+      deterministic address (idempotent), floats first in the new-chat
+      picker beside every other org bot.
+- [x] B. Member-visible contacts (`GET /api/agent-bots/contacts`):
+      subscription flags and wake rules for a conversation, no admin
+      gate; admin operations (create/token/delete) stay manager-gated.
+- [x] C. Participant-level bot joins: thread-header bot sheet on group
+      and instance chats for every participant; support gains
+      bot-gated participant seams (`addBotGroupParticipant`/
+      `removeBotGroupParticipant`).
+- [x] D. Lanes: org team surface badges bot members — role assignment
+      (the lane binding) works there exactly as for humans.
+- [x] E. Icon: `pi-sparkles` replaces the Android-brand glyph everywhere.
+- [x] F. Specs: assistant idempotency, contacts listing and gating,
+      participant join seam.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/bot-ux-contacts-20261015`. The assistant bootstrap
+is idempotent across workers via the deterministic per-org email (409
+collision = exists); contacts are member-visible while administration
+stays manager-gated; group joins for bots are participant-level through
+new bot-gated support seams (human membership keeps the creator/admin
+gate); the new-chat picker floats bot contacts above human members with
+the sparkles badge, and the org team table badges bot rows where lane
+(role) assignment lives. `pi-android` (a brand logo) replaced by
+`pi-sparkles` in every surface. New spec: contacts.spec.js (7 tests).
+
 ## Agent lifecycle wakes (owner direction 2026-10-15)
 
 Status transitions wake subscribed bots: assignment-side wake rules

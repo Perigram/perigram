@@ -13,8 +13,30 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
     const bots = ref([]);
     const loaded = ref(false);
     const forbidden = ref(false);
+    const contacts = ref([]);
+    const assistantId = ref(null);
 
     const canManageBots = computed(() => authStore.hasTenantPermission?.('users', 'admin'));
+
+    /**
+     * Member-visible bot contacts (the AI rows in chat pickers and the
+     * per-conversation bot sheet): ensures the org assistant exists and
+     * decorates rows with the conversation's subscription flag and wake
+     * rules. Administration stays manager-gated.
+     */
+    async function fetchContacts(conversationKey = '') {
+        if (process.server || !authStore.userIsSet) return;
+        try {
+            const query = conversationKey ? `?conversationKey=${encodeURIComponent(conversationKey)}` : '';
+            const response = await $fetch(`/api/agent-bots/contacts${query}`);
+            contacts.value = response?.contacts || [];
+            assistantId.value = response?.assistantId || null;
+            loaded.value = true;
+        } catch (err) {
+            console.error('Failed to load bot contacts:', err);
+            contacts.value = [];
+        }
+    }
 
     async function refresh(conversationKey = '') {
         if (process.server || !authStore.userIsSet) return;
@@ -51,6 +73,9 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
             method: subscribed ? 'POST' : 'DELETE',
             body: { botId, conversationKey }
         });
+        contacts.value = contacts.value.map(bot => (
+            String(bot.id) === String(botId) ? { ...bot, subscribed } : bot
+        ));
         bots.value = bots.value.map(bot => (
             String(bot.id) === String(botId) ? { ...bot, subscribed } : bot
         ));
@@ -70,21 +95,26 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
             method: 'POST',
             body: { botId, conversationKey, wakeOn }
         });
-        await refresh(conversationKey);
+        await fetchContacts(conversationKey);
     }
 
     function reset() {
         bots.value = [];
         loaded.value = false;
         forbidden.value = false;
+        contacts.value = [];
+        assistantId.value = null;
     }
 
     return {
         bots,
         loaded,
         forbidden,
+        contacts,
+        assistantId,
         canManageBots,
         refresh,
+        fetchContacts,
         createBot,
         deleteBot,
         rotateBotToken,

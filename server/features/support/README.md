@@ -69,9 +69,12 @@ org `lineage`, plus a `participants` user-id list) and owns the derived
   are rejected rather than silently dropped, and the creator is always
   included. The group itself stays homed in the creator's organization
   lineage. Creation pings every participant's inbox topic. Membership
-  edits on an existing group go through the service seam
+  edits on an existing group go through the service seams
   (`addGroupParticipant`/`removeGroupParticipant`, creator-or-admin gated,
-  the creator irremovable) — driven by the
+  the creator irremovable) — and bot membership through the
+  participant-gated twins (`addBotGroupParticipant`/
+  `removeBotGroupParticipant`: any participant may add or remove a bot,
+  and only bot members are valid targets) — driven by the
   [agent bots](../agent-bots/README.md) subscription endpoint when a bot
   joins or leaves a group chat.
 - `DELETE /api/support/groups/:id` removes one; the creating member or an
@@ -350,7 +353,8 @@ stays bot-agnostic.
 
 Bots (users carrying the `data.bot` marker — see
 [agent bots](../agent-bots/README.md)) participate in conversations like
-any member: direct threads with a bot are ordinary direct conversations,
+any member: direct threads with a bot are ordinary direct conversations
+(every organization's assistant floats first in the new-chat picker),
 group membership rides the participants list, and instance (organization)
 chats admit them through org-scoped reads. Bot replies re-enter
 `sendUserMessage` with the bot's own auth context; there is no separate

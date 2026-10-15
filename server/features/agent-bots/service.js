@@ -112,7 +112,7 @@ export async function subscribeBot(auth, body = {}) {
         throw createError({ statusCode: 400, message: 'Direct chats need no bot subscription' });
     }
     if (context.kind === 'group') {
-        await supportService.addGroupParticipant(auth, context.groupId, botId);
+        await supportService.addBotGroupParticipant(auth, context.groupId, botId);
     }
     await repository.upsertSubscription({
         botUserId: bot.id,
@@ -131,7 +131,7 @@ export async function unsubscribeBot(auth, body = {}) {
     if (!conversationKey || !botId) throw createError({ statusCode: 400, message: 'botId and conversationKey are required' });
     const context = await supportService.getConversationContextByKey(auth, conversationKey);
     if (context.kind === 'group') {
-        await supportService.removeGroupParticipant(auth, context.groupId, botId);
+        await supportService.removeBotGroupParticipant(auth, context.groupId, botId);
     }
     await repository.removeSubscription(botId, context.conversationKey);
     return { botId, conversationKey: context.conversationKey, subscribed: false };
@@ -189,4 +189,90 @@ export async function isBotUser(userId) {
     if (!userId) return false;
     const user = await usersService.getById(userId).catch(() => null);
     return Boolean(user?.data?.bot);
+}
+
+// --- Org assistant and member-visible contacts --------------------------------
+
+const ASSISTANT_NAME = 'Assistant';
+const assistantEmailFor = (organizationId) => `assistant-${organizationId}@bots.perigram.internal`;
+
+/**
+ * The org assistant (SPEC: agent access): every organization has one
+ * default bot contact so chatting with an agent is as immediate as
+ * starting a new chat — nobody creates anything first. Bootstrap is
+ * idempotent per organization through the deterministic assistant address
+ * (a 409 collision means it exists); process roles are assigned like any
+ * member's, later, on the org team surface.
+ */
+export async function ensureOrganizationAssistant(organizationId) {
+    const orgId = organizationId?.toString?.().trim?.() || '';
+    if (!orgId) return null;
+    const existing = await usersService
+        .findUserByEmail(assistantEmailFor(orgId))
+        .catch(() => null);
+    if (existing?.data?.bot) return existing;
+    try {
+        const { user } = await usersService.registerBot({
+            name: ASSISTANT_NAME,
+            organizationId: orgId,
+            email: assistantEmailFor(orgId)
+        });
+        return user;
+    } catch (error) {
+        // Concurrent bootstrap in another worker registered first: the
+        // deterministic address collided — resolve and reuse that one.
+        if (error?.statusCode === 409) {
+            const winner = await usersService
+                .findUserByEmail(assistantEmailFor(orgId))
+                .catch(() => null);
+            if (winner?.data?.bot) return winner;
+        }
+        throw error;
+    }
+}
+
+function contactRow(bot, subscription, assistantId) {
+    const dto = bot.toJSON();
+    const id = dto._id ?? dto.id;
+    return {
+        id,
+        name: dto.identity?.name || '',
+        avatarUrl: dto.data?.avatarUrl || null,
+        assistant: String(id) === String(assistantId),
+        subscribed: Boolean(subscription),
+        wakeOn: subscription?.wakeOn || []
+    };
+}
+
+/**
+ * Member-visible bot contacts (the chat pickers' AI section and the
+ * per-conversation bot sheet): ensures the org assistant exists, lists
+ * every org bot, and — when a conversation key is supplied and the caller
+ * is admitted to it — decorates rows with the subscription flag and wake
+ * rules. Administration (create/token/delete) stays on the manager-gated
+ * routes; joining a bot to a room is participant-level.
+ */
+export async function listBotContacts(auth, conversationKey = '') {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    if (!auth.organizationId) return { assistantId: null, contacts: [] };
+    const assistant = await ensureOrganizationAssistant(auth.organizationId);
+    const members = await usersService.list(auth.userId, auth.organizationId, auth.role, auth);
+    const bots = (members || []).filter(member => member?.data?.bot);
+
+    let subscriptions = [];
+    const key = String(conversationKey || '').trim();
+    if (key) {
+        const context = await supportService.getConversationContextByKey(auth, key);
+        if (context.kind === 'direct') {
+            throw createError({ statusCode: 400, message: 'Direct chats need no bot subscription' });
+        }
+        subscriptions = await repository.findSubscriptionsByConversation([context.conversationKey]);
+    }
+    const byBot = new Map(subscriptions.map(row => [String(row.botUserId), row]));
+    return {
+        assistantId: assistant?.id || null,
+        contacts: bots
+            .map(bot => contactRow(bot, byBot.get(String(bot.id)), assistant?.id))
+            .sort((a, b) => (b.assistant ? 1 : 0) - (a.assistant ? 1 : 0) || a.name.localeCompare(b.name))
+    };
 }
