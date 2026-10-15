@@ -34,7 +34,7 @@ test.describe('markdown editor repair', () => {
     test.setTimeout(180_000);
     await app.seedSpeciesProcess({ types: ['text-document'] });
 
-    await app.page.goto('/screens/auto_text-document');
+    await app.gotoClient('/screens/auto_text-document');
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
@@ -81,7 +81,7 @@ test.describe('markdown editor repair', () => {
     test.setTimeout(180_000);
     await app.seedSpeciesProcess({ types: ['text-document'] });
 
-    await app.page.goto('/screens/auto_text-document');
+    await app.gotoClient('/screens/auto_text-document');
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
@@ -167,7 +167,7 @@ test.describe('markdown editor repair', () => {
     test.setTimeout(180_000);
     await app.seedSpeciesProcess({ types: ['text-document'], via: { 'text-document': 'upload' } });
 
-    await app.page.goto('/screens/auto_text-document');
+    await app.gotoClient('/screens/auto_text-document');
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
     // The org carries the pack's starter editor create beside the seeded
@@ -203,7 +203,7 @@ test.describe('markdown editor repair', () => {
     test.setTimeout(180_000);
     await app.seedSpeciesProcess({ types: ['csv-table'], via: { 'csv-table': 'content' } });
 
-    await app.page.goto('/screens/auto_csv-table');
+    await app.gotoClient('/screens/auto_csv-table');
     const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
     await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
     const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
@@ -228,7 +228,7 @@ test.describe('markdown editor repair', () => {
       if (!id) await app.page.waitForTimeout(1000);
     }
     expect(id, 'content construct created the csv instance').toBeTruthy();
-    await app.page.goto(`/screens/auto_csv-table_detail?instanceId=${id}`);
+    await app.gotoClient(`/screens/auto_csv-table_detail?instanceId=${id}`);
     await expect(app.page.locator('main').getByRole('columnheader', { name: 'a' })).toBeVisible({ timeout: 20000 });
     await app.page.locator('main').getByRole('button', { name: 'CSV Editor' }).click();
     const grid = app.page.getByRole('table').first();
