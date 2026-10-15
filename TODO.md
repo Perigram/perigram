@@ -18,6 +18,13 @@ rows already live as members.
   neutral LLM contract, published as `bot_stream`/`bot_stream_end` on the
   conversation topic, rendered as a growing bubble the persisted message
   replaces).
+- [ ] WAITING — owner verification on the live stack: the bot's reasoning
+  streams as a collapsible chromeless thinking block (`bot_thinking`,
+  split out of the content stream so only the answer persists) and every
+  tool invocation appears as it starts and settles (`bot_tool`).
+- [ ] WAITING — owner verification on the live stack: the conversation's
+  model is picked in the chat itself (select above the composer for the
+  room's subscribed bots; blank falls back to each bot's brain).
 - [ ] WAITING — owner verification on the live stack: `LLM_TIMEOUT_MS`
   overrides the request idle guard.
 
@@ -43,6 +50,24 @@ through `botStreamSink` (full text so far, so the client just replaces the
 draft), retracting a tool round's text; the chat renders the draft bubble
 and hides the typing line while it is up. New specs: the three stream
 readers and a runtime publish assertion.
+
+Session `agent/chat-activity-20261015` split reasoning from the answer and
+made the run's work visible. The gateway models (qwen3) ship reasoning
+inline in the content stream wrapped in think tags, so the LLM module
+gained a stream-aware splitter (a tag straddling chunks is held back, not
+split) plus direct reads of provider reasoning fields (Ollama `thinking`,
+OpenAI-shaped `reasoning_content`, Messages thinking blocks); the neutral
+message now carries `thinking` beside `content`, and the stream yields
+`thinking` deltas — persisted messages contain the answer only. The
+runtime's sink became an activity sink: `bot_thinking` (accumulated across
+rounds), `bot_tool` per invocation (running/done/error), `bot_stream` for
+the answer, `bot_stream_end` clearing the run; a tool round retracts only
+its answer text. The chat renders one chromeless activity block
+(collapsible `details` thinking, tool rows, answer bubble) and gained the
+conversation model select above the composer, applied across the room's
+subscribed bots (options centralized in the agentBots store beside the
+bot sheet's). New specs: inline-split streaming and whole-body reasoning,
+and a thinking/tool activity publish assertion.
 
 ## Agent chat runtime: instance attach + decisive loop (owner direction 2026-10-15)
 

@@ -95,18 +95,24 @@ throwing.
 - `resolveLlmConfig(organizationId)` → `{ provider, baseUrl?, apiKey?, model? }`; `{ provider: 'none' }` when disabled or unusable.
 - `isLlmAvailable(organizationId)` → boolean shorthand.
 - `chatCompletion({ organizationId, system, messages, tools })` → the
-  neutral assistant message `{ content, toolCalls: [{ id, name,
+  neutral assistant message `{ content, thinking, toolCalls: [{ id, name,
   arguments }] }`; `messages` are neutral conversation entries (assistant
   entries may carry `toolCalls`, tool results carry `toolCallId` + `name`),
   `tools` are the catalog's `{ name, description, inputSchema }`
-  descriptors. Throws 503 when unresolved, 502 when the endpoint is
-  unreachable, answers non-2xx, or returns no completion. The agent loop
+  descriptors. `thinking` is the model's reasoning and `content` its
+  answer: reasoning that providers ship as a field (Ollama `thinking`,
+  OpenAI-shaped `reasoning_content`, Messages `thinking` blocks) is read
+  directly, and reasoning that rides inline in the content — qwen3's think
+  tags — is split out, so consumers never see tags in `content` and
+  persist answers only. Throws 503 when unresolved, 502 when the endpoint
+  is unreachable, answers non-2xx, or returns no completion. The agent loop
   that owns rounds and tool execution lives with the consumer.
 - `streamChatCompletion({ … })` → the streaming twin: an async generator
-  yielding `{ type: 'text', text }` deltas as the model emits them, then
-  one closing `{ type: 'message', content, toolCalls }` — the fully
-  assembled neutral message. Same 503/502 posture; each chunk re-arms the
-  idle guard.
+  yielding `{ type: 'thinking' | 'text', text }` deltas as the model emits
+  them (the inline-tag split is stream-aware — a tag split across chunks
+  is held back, not split), then one closing `{ type: 'message', content,
+  thinking, toolCalls }` — the fully assembled neutral message. Same
+  503/502 posture; each chunk re-arms the idle guard.
 
 ## Consumers
 

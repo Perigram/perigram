@@ -1043,7 +1043,15 @@ the sender's avatar and display name through the shared user chip
 (`components/shared/UserChip.vue`, once per run, never for the viewer's
 own messages). Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every
-shape — text, media, or files. Conversation history is lazy: the thread loads the newest
+shape — text, media, or files. While a subscribed bot runs, its live work
+renders as one chromeless activity block under the messages (no bubble
+chrome, no sender chip): the model's reasoning in a collapsible native
+`details` disclosure, one status-iconed row per tool invocation, and the
+answer growing in a plain subtle bubble — the persisted message clears
+the block. Conversations with subscribed bots also carry a model select
+above the composer setting the room's execution-point profile (blank
+falls back to each bot's own brain; the bot sheet edits per bot).
+Conversation history is lazy: the thread loads the newest
 message page and prepends older pages on scroll-to-top through the
 `limit`/`before` cursor contract, preserving the scroll anchor. Voice messages
 record through `MediaRecorder`, upload through the files endpoint, and render
