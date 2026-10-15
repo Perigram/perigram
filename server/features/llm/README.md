@@ -71,7 +71,8 @@ migrated by `server/scripts/migrate-llm-settings-profiles.js` (profile
 
 ## Administration
 
-The organization's bots screen owns the model table: profiles (name,
+The organization's models screen (`/organization/models`) owns the model
+table: profiles (name,
 kind, provider, base URL, model, optional key) and capability routing
 (`chat`, `chat.summaries`), saved through `GET/PUT /api/llm/settings`
 (gated by organization settings access via

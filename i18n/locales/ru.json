@@ -2440,7 +2440,9 @@
         "details": "Детали",
         "botsManagement": "Боты",
         "botsManagementHint": "Боты-участники и токены доступа",
-        "singleSeat": "одно место"
+        "singleSeat": "одно место",
+        "modelsManagement": "ИИ-модели",
+        "modelsManagementHint": "Профили моделей и маршрутизация"
     },
     "sheetDesign": {
         "sheetDesigns": "Дизайны листов",

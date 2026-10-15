@@ -7,6 +7,7 @@ const ORGANIZATION_PLUGINS_SCREEN_KEY = 'organization_plugins';
 const ORGANIZATION_TEAM_SCREEN_KEY = 'organization_team';
 const ORGANIZATION_PROCESS_SCREEN_KEY = 'organization_process';
 const ORGANIZATION_BOTS_SCREEN_KEY = 'organization_bots';
+const ORGANIZATION_MODELS_SCREEN_KEY = 'organization_models';
 
 export function resolveOrganizationSystemScreens(auth = {}) {
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
@@ -121,6 +122,21 @@ export function resolveOrganizationSystemScreens(auth = {}) {
       required: { feature: 'users', level: 'admin' }
     });
     screens.push({
+      id: ORGANIZATION_MODELS_SCREEN_KEY,
+      screenKey: ORGANIZATION_MODELS_SCREEN_KEY,
+      labelKey: 'organization.modelsManagement',
+      descriptionKey: 'organization.modelsManagementHint',
+      kind: 'system',
+      template: 'route',
+      placement: 'hub',
+      route: '/organization/models',
+      sourceRoute: '/organization/models',
+      typeId: 'organization',
+      icon: 'pi pi-sparkles',
+      scope: organizationScope,
+      required: { feature: 'users', level: 'admin' }
+    });
+    screens.push({
       id: ORGANIZATION_BOTS_SCREEN_KEY,
       screenKey: ORGANIZATION_BOTS_SCREEN_KEY,
       labelKey: 'organization.botsManagement',
@@ -131,7 +147,7 @@ export function resolveOrganizationSystemScreens(auth = {}) {
       route: '/organization/bots',
       sourceRoute: '/organization/bots',
       typeId: 'organization',
-      icon: 'pi pi-sparkles',
+      icon: 'pi pi-comment',
       scope: organizationScope,
       required: { feature: 'users', level: 'admin' }
     });
