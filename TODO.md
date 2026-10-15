@@ -1,5 +1,35 @@
 # TODO
 
+## LLM provider setup on the bots screen (owner direction 2026-10-15)
+
+Bot setup was invisible: the provider config lived only in env/org
+documents, and the one visible artifact was an MCP token the owner does
+not want to think about. Provider administration belongs on the bots
+settings surface with a connection test.
+
+- [x] A. Settings seams: organizations `readSettingsSection`/
+      `updateSettingsSection` (section-scoped merge under
+      `data.settings` — the generic update's shallow data merge would
+      clobber sibling sections).
+- [x] B. llm settings service: read (masked — keys never travel),
+      save (keep-on-omit, clear-on-empty key semantics, provider
+      validation), one-round connection test that reports instead of
+      throwing.
+- [x] C. Routes: `GET/PUT /api/llm/settings`, `POST /api/llm/test`.
+- [x] D. Bots page: provider card (provider, base URL, model, optional
+      key, resolved-status tag, save + test).
+- [x] E. Specs: masking, validation, key semantics, test outcomes.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/llm-settings-20261015`. The specs caught the
+settings read shipping the resolved config's raw apiKey to admins —
+stripped (reads report `apiKeySet`; the resolved projection carries no
+key). MCP tokens are unchanged and remain the only use for that `pb_…`
+value: `Authorization: Bearer <token>` against `POST /api/mcp` for
+external agents; chat usage never needs it. Specs:
+llm-settings.spec.js (9).
+
 ## Bot administration in org settings; single-seat roles (owner direction 2026-10-15)
 
 Creating bots belongs to organization settings, not chats; some roles

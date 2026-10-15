@@ -78,7 +78,9 @@ Assigning agents to process roles ("lanes") happens on the team surface
 where every member's roles are assigned — bots are members, badged as
 bots, never authored into process definitions. Bot administration
 (creating bots, rotating tokens) lives in organization settings, not in
-chats. Some roles are single-seat: exactly one member — human or agent —
+chats. The provider a bot thinks with is administered on the same
+settings surface, with a connection test — tokens are MCP-only wiring.
+Some roles are single-seat: exactly one member — human or agent —
 holds the role at a time, and assigning it moves the seat, so a lane can
 be handed to an agent outright and taken back the same way.
 

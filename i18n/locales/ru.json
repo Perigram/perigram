@@ -3369,5 +3369,17 @@
         "apiKey": "API-ключ",
         "apiKeyPlaceholder": "Ключ для executor'а издателя (Bearer)",
         "savedToast": "Подключение сохранено"
+    },
+    "llm": {
+        "provider": "ИИ-провайдер",
+        "providerNone": "Нет",
+        "providerOpenAiShaped": "OpenAI-совместимый (локальный)",
+        "baseUrl": "Базовый URL сервера",
+        "model": "Модель",
+        "apiKey": "API-ключ (необязательно)",
+        "apiKeySet": "Ключ сохранён — введите новый для замены",
+        "test": "Проверить",
+        "testOk": "Подключено",
+        "unconfigured": "Не настроено"
     }
 }

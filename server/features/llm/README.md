@@ -47,6 +47,21 @@ A provider without both `baseUrl` and `model` resolves to `none`:
 consumers treat the LLM as unavailable rather than failing per request
 (the same posture as [transcription](../transcription/README.md)).
 
+## Administration
+
+The organization's bots screen owns provider setup
+(`GET/PUT /api/llm/settings`, gated by organization settings access
+through [organizations](../organizations/README.md)
+`readSettingsSection`/`updateSettingsSection`): provider, base URL,
+model, and an optional key write to `data.settings.llm` — the same
+contract the env defaults fill. Keys never travel: reads report
+`apiKeySet` (and the resolved config ships without the key), an omitted
+key on save keeps the stored one, an empty string clears it. A selected
+provider requires base URL and model. `POST /api/llm/test` performs one
+real completion round against the resolved provider and reports
+`{ ok, provider?, model?, reason? }` instead of throwing — the card's
+connection test.
+
 ## Service Contract
 
 - `resolveLlmConfig(organizationId)` → `{ provider, baseUrl?, apiKey?, model? }`; `{ provider: 'none' }` when disabled or unusable.
@@ -69,6 +84,8 @@ consumers treat the LLM as unavailable rather than failing per request
   provider per organization, no per-feature model configuration (the
   retired `MEETINGS_LLM_*` env and per-feature baseUrl/model/apiKey
   settings moved here in the same change).
+- The organization bots screen: provider administration and the
+  connection test (see Administration above).
 - `GET /api/llm/config` reports `{ available }` for the caller's
   organization so clients render bot affordances only when a provider is
   actually configured.
