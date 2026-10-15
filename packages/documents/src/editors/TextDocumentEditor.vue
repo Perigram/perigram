@@ -96,12 +96,14 @@ const nameFieldPt = { root: { style: { background: 'transparent', borderColor: '
 // turns return the block to body text, quote lifts the block out), and
 // the pressed state shows what the focused block carries. Markdown
 // input rules (typing `# `, `- `, `> `) keep working beside these.
+// Heading commands take the LEVEL as the raw command payload.
 const formatControls = [
   { id: 'strong', label: 'B', class: 'font-bold', labelKey: 'editors.bold', command: 'toggleStrongCommand' },
   { id: 'emphasis', label: 'I', class: 'italic', labelKey: 'editors.italic', command: 'toggleEmphasisCommand' },
   { id: 'code', label: '</>', class: 'text-technical text-xs', labelKey: 'editors.inlineCode', command: 'toggleInlineCodeCommand' },
-  { id: 'h1', label: 'H1', class: 'text-xs', labelKey: 'editors.heading1', command: 'wrapInHeadingCommand', payload: { level: 1 }, off: 'turnIntoTextCommand' },
-  { id: 'h2', label: 'H2', class: 'text-xs', labelKey: 'editors.heading2', command: 'wrapInHeadingCommand', payload: { level: 2 }, off: 'turnIntoTextCommand' },
+  { id: 'h1', label: 'H1', class: 'text-xs', labelKey: 'editors.heading1', command: 'wrapInHeadingCommand', payload: 1, off: 'turnIntoTextCommand' },
+  { id: 'h2', label: 'H2', class: 'text-xs', labelKey: 'editors.heading2', command: 'wrapInHeadingCommand', payload: 2, off: 'turnIntoTextCommand' },
+  { id: 'h3', label: 'H3', class: 'text-xs', labelKey: 'editors.heading3', command: 'wrapInHeadingCommand', payload: 3, off: 'turnIntoTextCommand' },
   { id: 'paragraph', label: '¶', class: 'text-xs', labelKey: 'editors.paragraph', command: 'turnIntoTextCommand' },
   { id: 'bullet', icon: 'pi pi-list', labelKey: 'editors.bulletList', command: 'wrapInBulletListCommand', off: 'liftListItemCommand' },
   { id: 'ordered', icon: 'pi pi-list-check', labelKey: 'editors.numberedList', command: 'wrapInOrderedListCommand', off: 'liftListItemCommand' },
@@ -123,6 +125,7 @@ function isActive(control) {
     case 'code': return state.marks.includes('code_inline');
     case 'h1': return state.block === 'heading' && state.headingLevel === 1;
     case 'h2': return state.block === 'heading' && state.headingLevel === 2;
+    case 'h3': return state.block === 'heading' && state.headingLevel === 3;
     case 'paragraph': return state.block === 'paragraph' && !state.bullet && !state.ordered && !state.quote;
     case 'bullet': return state.bullet;
     case 'ordered': return state.ordered;
@@ -174,13 +177,15 @@ let loaded = false;
 
 onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
-  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }, { createSourceEditingView }, { parserCtx, serializerCtx }, { Plugin }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }, { createSourceEditingView }, { parserCtx, serializerCtx }, { Plugin }, { codeBlockConfig }, { languages: codeLanguages }] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/utils'),
     import('./source-markers-plugin.js'),
     import('./source-editing.js'),
     import('@milkdown/core'),
     import('@milkdown/prose/state'),
+    import('@milkdown/kit/component/code-block'),
+    import('@codemirror/language-data'),
     import('@milkdown/crepe/theme/common/style.css')
   ]);
   if (!editorHost.value) return;
@@ -253,6 +258,10 @@ onMounted(async () => {
     // an edit, and must not arm the save button.
     if (loaded && !reloading.value) dirty.value = true;
   }));
+  // Code blocks highlight through CodeMirror's language registry —
+  // crepe ships it with an EMPTY language list, so fenced code renders
+  // unhighlighted until the lazy language-data set is configured.
+  crepe.editor.config(ctx => ctx.update(codeBlockConfig.key, config => ({ ...config, languages: codeLanguages })));
   await crepe.create();
   loaded = true;
 });
