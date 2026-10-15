@@ -170,7 +170,10 @@ async function conversationHistory(conversationKey, botUserId) {
  */
 export async function runBotReply(botUserId, context, message, conversationProfile = '') {
     const lockKey = `${botUserId}:${message.conversationKey}`;
-    if (inFlight.has(lockKey)) return;
+    if (inFlight.has(lockKey)) {
+        console.warn('[AGENT-BOTS] reply skipped, another run already in flight:', lockKey);
+        return;
+    }
     inFlight.add(lockKey);
     try {
         const botAuth = await buildBotAuth(botUserId);
