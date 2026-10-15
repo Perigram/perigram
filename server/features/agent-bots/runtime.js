@@ -202,6 +202,10 @@ export function handleMessageInserted(context, message) {
         .catch(error => console.error('[AGENT-BOTS] trigger failed:', error));
 }
 
+export function registerSupportMessageObserver() {
+    return supportService.registerMessageObserver(handleMessageInserted);
+}
+
 // --- Lifecycle wakes --------------------------------------------------------
 
 /** Posting body for a subscription's own conversation, derived from its key. */

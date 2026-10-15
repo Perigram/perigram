@@ -51,7 +51,7 @@ vi.mock('./service.js', () => mockedBotsService);
 vi.mock('./repository.js', () => mockedBotRepository);
 vi.mock('./tools.js', () => mockedTools);
 
-import { resolveTargetBots, runBotReply, runBotWake } from './runtime.js';
+import { resolveTargetBots, runBotReply, runBotWake, registerSupportMessageObserver, handleMessageInserted } from './runtime.js';
 import { handleMcpRequest } from './mcp.js';
 
 const HUMAN = 'user-human';
@@ -69,6 +69,13 @@ beforeEach(() => {
     mockedSupport.listMessages.mockResolvedValue([]);
     mockedSupport.sendUserMessage.mockResolvedValue({});
     mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([]);
+});
+
+describe('registerSupportMessageObserver', () => {
+    it('wires the chat trigger into the support message seam (the nitro plugin calls this)', () => {
+        registerSupportMessageObserver();
+        expect(mockedSupport.registerMessageObserver).toHaveBeenCalledWith(handleMessageInserted);
+    });
 });
 
 describe('resolveTargetBots', () => {
