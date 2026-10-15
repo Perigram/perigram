@@ -15,9 +15,8 @@ Routes are grouped into sub-directories corresponding to features:
   JWT, session cookie, or bot token). See
   [agent-bots feature](../features/agent-bots/README.md).
 - `llm/`: `GET /api/llm/config` reports `{ available }` for the caller's
-  organization so clients render bot affordances only when a chat
-  completions provider is configured (see
-  [llm feature](../features/llm/README.md)).
+  organization so clients render bot affordances only when an LLM provider
+  is configured (see [llm feature](../features/llm/README.md)).
 - `artifacts/`: Metadata, deletion, and streaming for generated files.
 - `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
   replacement, authorized source streaming, and deletion. Template-generated

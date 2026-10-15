@@ -18,7 +18,7 @@ Nuxt/Nitro backend for the Perigram modular monolith.
 | Runtime registry | `server/runtime/` | Explicit app registry binding domain contracts to services/handlers. |
 | Process definitions | `server/features/process-definitions/` | Organization-owned process graph drafts and compiled active runtime contracts. |
 | Agent bots | `server/features/agent-bots/` | Bot members, the shared agent tool catalog, the MCP transport, and the chat bot runtime. |
-| LLM | `server/features/llm/` | Per-organization OpenAI-compatible chat completions capability. |
+| LLM | `server/features/llm/` | Per-organization chat completions over a selectable provider table (Ollama, Anthropic Messages, OpenAI-shaped local servers). |
 | Entity event bus | `server/features/instance-events/` | Authenticated in-memory SSE invalidation bus for cross-device entity updates. |
 
 ## Golden Path
