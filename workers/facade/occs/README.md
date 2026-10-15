@@ -214,12 +214,14 @@ modules — no platform imports.
   per-face paths.
 - `folded-3d.js` prepares canonical folded preview payloads for the Three.js
   preview component, including optional non-sheet hardware body descriptors.
-  Closed profile sections ride the same body channel: their fillet-resolved
-  section (holes included) extrudes along the sweep length at every
-  array/point placement — profiles are physical parts in the 3D preview,
-  placed by the same relation settings production uses. Profile relations
-  carry no source face, so they never enter the face-joint diagnostics
-  (their placement IS the body channel — no unresolved noise).
+  Profile workpieces carry no geometry of their own (owner law 2026-10-15):
+  they modify face geometry, and the folded 3D rides the MODIFIED faces —
+  the folded-preview curve set runs the same profile pass as the 2D drawing
+  (open-profile chains splice into the local boundary, closed sections and
+  hardware cuts subtract), with the authored boundary kept as the fold
+  reference so edge indexes stay stable. Profiles never ride the body
+  channel, and profile relations never enter the face-joint diagnostics
+  (they carry no source face by design — no unresolved noise).
 - `templates.js` provides the default OCCS cassette fixture template.
 
 ## Conventions

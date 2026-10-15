@@ -580,11 +580,16 @@ sketch it is disabled, never a silent no-op.
 Owner declarations (2026-10-15, profiles are terminal): an edge carrying
 an arranged profile is the end of the face — the profile consumes the
 edge, nothing grows from it and nothing attaches to it; the + face-grow
-affordance never appears there. Profile geometry lives on production
-layers, never on the designer's section layer: a closed profile section
+affordance never appears there. Profile workpieces carry no geometry of
+their own: they modify face geometry, and every consumer of the face —
+the 2D drawing, the folded 3D, the evaluated production data — sees the
+same modified geometry. A closed profile section
 arranged on an edge places by the array settings and cuts the host face
 where it intersects, an open profile stitches its chain into the host
-contour, and the section layer carries section views only.
+contour, and the section layer carries section views only. Instance
+parameters on a profile workpiece drive only the identifiers its sketch
+references — a numeric sketch (drawn or imported without bindings) has
+no driving parameters and shows none.
 
 Owner decision (2026-10-15, engine integration law): the profile editor
 integrates the CAD engine under a one-way truth rule — the sketch model

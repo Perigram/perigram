@@ -2583,6 +2583,44 @@ drives the sketch. Zero page errors. Facade suites 107/107 (new pin:
 the adopt law — unknown identifier adopts, existing parameters and
 compound expressions pass through, non-finite adopts nothing).
 
+### Agent Notes (2026-10-15, owner review round 8 — profiles modify face geometry)
+
+Owner: "3d still doesn't work", "parameters don't work when I set it
+from cassette", and the decisive law — "Profile workpieces didn't have
+their geometry, they modify fucking face geometry." Round 6's profile
+3D BODIES were an invention: deleted. Profiles carry no geometry of
+their own; the folded 3D rides the MODIFIED faces.
+
+Findings and fixes on `agent/profile-face-mod-20261015`:
+
+- The folded-preview curve set never ran the profile pass: assembly
+  mode hands the LOCAL (untransformed) curves to the 3D while the
+  embedding and cut entities were computed in drawing space — the 3D
+  faces showed the plain trapezoid in every case (measured: face
+  vertices 4, no stitched boundary, no cut holes; this is why 3D
+  "didn't work" and why instance parameters LOOKED dead — the user
+  watches the 3D). The folded pass now runs in its own space: local
+  embedding splice + local cut entities + boolean difference, the same
+  modifications the 2D drawing shows; the authored boundary stays the
+  fold reference so edge indexes remain stable under the stitched
+  vertices.
+- Parameters from the cassette: the mechanism works for
+  expression-bound sketches (measured: W 42→90 re-derives section, cut,
+  and folded face). A numeric sketch (the default template is literal,
+  and imported DXFs arrive unbound) has nothing for parameters to
+  drive — and the workpiece row showed dead W/H/R/D/L chips. The row
+  now renders only the identifiers the sketch references
+  (profileBoundParameterKeys); binding an identifier (adopt-on-bind,
+  round 7) is the parametrization path.
+- Deleted with the bodies: the renderer/folded-component extrusion
+  branches and their spec; the round-6 folded spec pin is replaced by
+  the face-modification pin (open profile: folded face vertices > 4
+  with a 4-vertex authored reference; closed: cut holes on the folded
+  face; no bodies in either).
+
+Validation: facade suites 107/107, check-arch + check-docs green.
+
+
 
 
 
