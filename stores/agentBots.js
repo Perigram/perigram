@@ -56,6 +56,23 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         ));
     }
 
+    async function fetchWakeOptions() {
+        try {
+            return (await $fetch('/api/agent-bots/wake-options')) || [];
+        } catch (err) {
+            console.error('Failed to load wake options:', err);
+            return [];
+        }
+    }
+
+    async function setSubscriptionRules(botId, conversationKey, wakeOn) {
+        await $fetch('/api/agent-bots/subscriptions', {
+            method: 'POST',
+            body: { botId, conversationKey, wakeOn }
+        });
+        await refresh(conversationKey);
+    }
+
     function reset() {
         bots.value = [];
         loaded.value = false;
@@ -72,6 +89,8 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         deleteBot,
         rotateBotToken,
         setSubscribed,
+        fetchWakeOptions,
+        setSubscriptionRules,
         reset
     };
 });

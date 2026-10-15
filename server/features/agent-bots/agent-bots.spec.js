@@ -7,12 +7,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // protocol-pinned beside them: handshake negotiation, notifications,
 // tool listing, and the auth/unknown-tool error shapes.
 
-const { mockedSupport, mockedLlm, mockedBotsService, mockedBotRepository, mockedTools } = vi.hoisted(() => ({
+const { mockedSupport, mockedLlm, mockedBotsService, mockedBotRepository, mockedTools, mockedRegistry } = vi.hoisted(() => ({
     mockedSupport: {
         registerMessageObserver: vi.fn(),
         listMessages: vi.fn(),
         sendUserMessage: vi.fn(),
-        instanceConversationKey: (type, id) => `instance:${type}:${id}`
+        instanceConversationKey: (type, id) => `instance:${type}:${id}`,
+        parseInstanceKey: (key = '') => {
+            const parts = String(key).split(':');
+            if (parts.length !== 3 || parts[0] !== 'instance' || !parts[1] || !parts[2]) return null;
+            return { type: parts[1], id: parts[2] };
+        }
     },
     mockedLlm: {
         isLlmAvailable: vi.fn(),
@@ -33,16 +38,20 @@ const { mockedSupport, mockedLlm, mockedBotsService, mockedBotRepository, mocked
         mcpToolDescriptors: vi.fn(() => [
             { name: 'list_types', description: 'lists types', inputSchema: { type: 'object', properties: {} } }
         ])
+    },
+    mockedRegistry: {
+        getInstanceService: vi.fn()
     }
 }));
 
 vi.mock('~/server/features/llm/service.js', () => mockedLlm);
 vi.mock('~/server/features/support/service.js', () => mockedSupport);
+vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: () => mockedRegistry }));
 vi.mock('./service.js', () => mockedBotsService);
 vi.mock('./repository.js', () => mockedBotRepository);
 vi.mock('./tools.js', () => mockedTools);
 
-import { resolveTargetBots, runBotReply } from './runtime.js';
+import { resolveTargetBots, runBotReply, runBotWake } from './runtime.js';
 import { handleMcpRequest } from './mcp.js';
 
 const HUMAN = 'user-human';
@@ -196,6 +205,81 @@ describe('runBotReply', () => {
         await Promise.all([
             runBotReply(BOT_A, context, message),
             runBotReply(BOT_A, context, message)
+        ]);
+        expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('runBotWake', () => {
+    const subscription = { botUserId: BOT_A, conversationKey: 'instance:organization:org-1', organizationId: 'org-1' };
+    const wakeEvent = {
+        targetId: 'inst-7',
+        targetType: 'queue',
+        fromStatePrimary: 'approved',
+        toStatePrimary: 'nested',
+        actor: { id: 'user-human', label: 'Human', principalType: 'user' }
+    };
+
+    beforeEach(() => {
+        mockedRegistry.getInstanceService.mockReturnValue({
+            processGetById: vi.fn(async () => ({ _id: 'inst-7', name: 'Queue 7' }))
+        });
+    });
+
+    it('stays silent when no provider resolves (nobody waits in the room)', async () => {
+        mockedLlm.isLlmAvailable.mockResolvedValue(false);
+        await runBotWake(subscription, wakeEvent);
+        expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
+        expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
+    });
+
+    it('reads the instance with the bot auth and posts the answer into the subscribed conversation', async () => {
+        mockedLlm.chatCompletion.mockResolvedValue({ content: 'nested and accounted for', toolCalls: [] });
+        mockedSupport.listMessages.mockResolvedValue([]);
+        await runBotWake(subscription, wakeEvent);
+        expect(mockedRegistry.getInstanceService).toHaveBeenCalledWith('queue');
+        const [readId, readAuth] = mockedRegistry.getInstanceService().processGetById.mock.calls[0];
+        expect(readId).toBe('inst-7');
+        expect(readAuth).toEqual(botAuth);
+        const trigger = mockedLlm.chatCompletion.mock.calls[0][0].messages.at(-1);
+        expect(trigger.role).toBe('user');
+        expect(trigger.content).toContain('Queue 7');
+        expect(trigger.content).toContain('approved → nested');
+        expect(mockedSupport.sendUserMessage).toHaveBeenCalledWith(botAuth, {
+            instance: { type: 'organization', id: 'org-1' },
+            message: 'nested and accounted for'
+        });
+    });
+
+    it('posts into group subscriptions by conversation key', async () => {
+        mockedLlm.chatCompletion.mockResolvedValue({ content: 'ok', toolCalls: [] });
+        mockedSupport.listMessages.mockResolvedValue([]);
+        await runBotWake({ ...subscription, conversationKey: 'group:g1' }, wakeEvent);
+        expect(mockedSupport.sendUserMessage).toHaveBeenCalledWith(botAuth, {
+            conversationKey: 'group:g1',
+            message: 'ok'
+        });
+    });
+
+    it('skips silently when the bot cannot read the instance', async () => {
+        mockedRegistry.getInstanceService.mockReturnValue({
+            processGetById: vi.fn(async () => { throw new Error('denied'); })
+        });
+        await runBotWake(subscription, wakeEvent);
+        expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
+        expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
+    });
+
+    it('shares the in-flight lock with chat replies for the same conversation', async () => {
+        mockedLlm.chatCompletion.mockImplementation(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            return { content: 'one', toolCalls: [] };
+        });
+        const context = { kind: 'group', conversationKey: 'group:g1' };
+        const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'group:g1', participants: [HUMAN] };
+        await Promise.all([
+            runBotReply(BOT_A, context, message),
+            runBotWake({ botUserId: BOT_A, conversationKey: 'group:g1' }, wakeEvent)
         ]);
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
     });

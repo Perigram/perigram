@@ -1,6 +1,7 @@
 import { createError } from 'h3';
 import * as usersService from '~/server/features/users/service.js';
 import * as supportService from '~/server/features/support/service.js';
+import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
 import * as repository from './repository.js';
@@ -66,18 +67,41 @@ export async function rotateBotToken(auth, botId = '') {
     return { token: await usersService.rotateBotToken(bot.id, auth.userId) };
 }
 
+const WAKE_RULES_MAX = 20;
+
+function normalizeWakeOn(wakeOn) {
+    if (wakeOn === undefined || wakeOn === null) return null;
+    if (!Array.isArray(wakeOn)) {
+        throw createError({ statusCode: 400, message: 'wakeOn must be an array of { type, state } rules' });
+    }
+    if (wakeOn.length > WAKE_RULES_MAX) {
+        throw createError({ statusCode: 400, message: `wakeOn accepts at most ${WAKE_RULES_MAX} rules` });
+    }
+    return wakeOn.map((rule) => {
+        const type = String(rule?.type || '').trim();
+        const state = String(rule?.state || '').trim();
+        if (!type || !state) {
+            throw createError({ statusCode: 400, message: 'wakeOn rules require type and state' });
+        }
+        return { type, state };
+    });
+}
+
 /**
  * The conversation membership join. Group subscriptions also join the bot
  * into the group's participants (posting admission is participant-scoped);
  * instance conversations have no participant list and the subscription is
  * the whole membership. Direct conversations are never subscribed — bots
- * answer them implicitly.
+ * answer them implicitly. `wakeOn` carries the subscription's lifecycle
+ * wake rules (see the wake scanner): omitted leaves stored rules
+ * untouched, `null`/`[]` clears them, a non-empty array replaces them.
  */
 export async function subscribeBot(auth, body = {}) {
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
     const conversationKey = String(body?.conversationKey || '').trim();
     const botId = String(body?.botId || '').trim();
     if (!conversationKey || !botId) throw createError({ statusCode: 400, message: 'botId and conversationKey are required' });
+    const wakeOn = normalizeWakeOn(body?.wakeOn);
     const bot = await usersService.getById(botId);
     if (!bot?.data?.bot) throw createError({ statusCode: 404, message: 'Bot not found' });
 
@@ -94,9 +118,10 @@ export async function subscribeBot(auth, body = {}) {
         botUserId: bot.id,
         conversationKey: context.conversationKey,
         conversationKind: context.kind,
-        organizationId: context.organizationId || auth.organizationId
+        organizationId: context.organizationId || auth.organizationId,
+        ...(wakeOn ? { wakeOn } : {})
     });
-    return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true };
+    return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true, ...(wakeOn ? { wakeOn } : {}) };
 }
 
 export async function unsubscribeBot(auth, body = {}) {
@@ -114,16 +139,28 @@ export async function unsubscribeBot(auth, body = {}) {
 
 /**
  * The bot picker row set for one conversation: every org bot with its
- * subscription flag for the requested key.
+ * subscription flag and wake rules for the requested key.
  */
 export async function listConversationBots(auth, conversationKey = '') {
     assertBotManager(auth);
     const key = String(conversationKey || '').trim();
     const bots = await listBots(auth);
-    if (!key) return bots.map(bot => ({ ...bot, subscribed: false }));
+    if (!key) return bots.map(bot => ({ ...bot, subscribed: false, wakeOn: [] }));
     const subscriptions = await repository.findSubscriptionsByConversation([key]);
-    const subscribedIds = new Set(subscriptions.map(row => String(row.botUserId)));
-    return bots.map(bot => ({ ...bot, subscribed: subscribedIds.has(String(bot.id)) }));
+    const byBot = new Map(subscriptions.map(row => [String(row.botUserId), row]));
+    return bots.map(bot => {
+        const row = byBot.get(String(bot.id));
+        return { ...bot, subscribed: Boolean(row), wakeOn: row?.wakeOn || [] };
+    });
+}
+
+/**
+ * Wake-rule picker options: the organization's active compiled machines'
+ * emitted types with their primary-region state paths.
+ */
+export async function listWakeOptions(auth) {
+    assertBotManager(auth);
+    return await processDefinitionsService.listActiveWorkflowStates(auth);
 }
 
 /**

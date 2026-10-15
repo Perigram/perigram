@@ -27,6 +27,30 @@ export async function findByEntity(instanceId, typeId) {
         .toArray();
 }
 
+/**
+ * Cursor-based ascending read for lifecycle consumers (the agent bot wake
+ * scanner): the events strictly after `lastId` (insertion order), oldest
+ * first, projected to the wake-matching fields. The cursor contract is
+ * `_id`-based: callers persist the last `_id` they processed.
+ */
+export async function findAfter(lastId = null, limit = 200) {
+    const db = await connectDB();
+    return await db.collection(COLLECTION)
+        .find(lastId ? { _id: { $gt: toFlexibleId(lastId) } } : {})
+        .sort({ _id: 1 })
+        .limit(limit)
+        .project({
+            targetId: 1,
+            targetType: 1,
+            fromStatePrimary: 1,
+            toStatePrimary: 1,
+            'operation.kind': 1,
+            actor: 1,
+            timestamp: 1
+        })
+        .toArray();
+}
+
 export async function findLatestByEntity(instanceId, typeId) {
     const db = await connectDB();
     return await db.collection(COLLECTION)

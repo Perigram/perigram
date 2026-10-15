@@ -96,6 +96,70 @@
                 </template>
             </Listbox>
             <div v-else class="text-muted text-body">{{ $t('support.bots.empty') }}</div>
+            <template v-if="canToggle && subscribedBots.length">
+                <Divider class="my-1" />
+                <div class="flex items-center gap-2 px-1 text-muted text-supporting">
+                    <i class="pi pi-bolt shrink-0" aria-hidden="true" />
+                    <span class="min-w-0 flex-1 truncate">{{ $t('support.bots.wakes') }}</span>
+                </div>
+                <div
+                    v-for="rule in wakeRules"
+                    :key="`${rule.botId}:${rule.type}:${rule.state}`"
+                    class="flex min-w-0 items-center gap-2 px-1"
+                    data-testid="chat-bot-wake-rule"
+                >
+                    <span class="min-w-0 flex-1 truncate text-label">
+                        {{ rule.botName }} · {{ rule.type }} → {{ rule.state }}
+                    </span>
+                    <Button
+                        icon="pi pi-times"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('common.delete')"
+                        @click="removeWakeRule(rule)"
+                    />
+                </div>
+                <div class="flex items-center gap-2">
+                    <Select
+                        v-model="ruleBotId"
+                        :options="subscribedBots"
+                        option-label="name"
+                        option-value="id"
+                        :placeholder="$t('support.bots.botPlaceholder')"
+                        class="min-w-0 flex-1"
+                        :aria-label="$t('support.bots.botPlaceholder')"
+                    />
+                    <Select
+                        v-model="ruleType"
+                        :options="wakeOptions"
+                        option-label="typeId"
+                        option-value="typeId"
+                        :placeholder="$t('support.bots.typePlaceholder')"
+                        class="min-w-0 flex-1"
+                        :aria-label="$t('support.bots.typePlaceholder')"
+                        @update:model-value="ruleState = null"
+                    />
+                    <Select
+                        v-model="ruleState"
+                        :options="ruleStateOptions"
+                        :placeholder="$t('support.bots.statePlaceholder')"
+                        class="min-w-0 flex-1"
+                        :aria-label="$t('support.bots.statePlaceholder')"
+                        :disabled="!ruleType"
+                    />
+                    <Button
+                        icon="pi pi-plus"
+                        severity="secondary"
+                        outlined
+                        :aria-label="$t('common.add')"
+                        :disabled="!ruleBotId || !ruleType || !ruleState"
+                        data-testid="chat-bot-wake-add"
+                        @click="addWakeRule"
+                    />
+                </div>
+            </template>
         </div>
     </StandardDialog>
 </template>
@@ -104,8 +168,10 @@
 import { computed, ref, watch } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
+import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Listbox from 'primevue/listbox';
+import Select from 'primevue/select';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
@@ -130,9 +196,20 @@ const newBotName = ref('');
 const saving = ref(false);
 const loading = ref(false);
 const issuedToken = ref('');
+const wakeOptions = ref([]);
+const ruleBotId = ref(null);
+const ruleType = ref(null);
+const ruleState = ref(null);
 
 const bots = computed(() => agentBots.bots);
 const canToggle = computed(() => props.subscribable && Boolean(props.conversationKey));
+const subscribedBots = computed(() => bots.value.filter(bot => bot.subscribed));
+const ruleStateOptions = computed(() => (
+    wakeOptions.value.find(option => option.typeId === ruleType.value)?.states || []
+));
+const wakeRules = computed(() => subscribedBots.value.flatMap(bot => (
+    (bot.wakeOn || []).map(rule => ({ ...rule, botId: bot.id, botName: bot.name }))
+)));
 
 watch(visible, async (open) => {
     if (!open) {
@@ -143,11 +220,36 @@ watch(visible, async (open) => {
     loading.value = true;
     try {
         await agentBots.refresh(props.conversationKey);
+        if (canToggle.value) wakeOptions.value = await agentBots.fetchWakeOptions();
     } finally {
         loading.value = false;
     }
     if (!bots.value.length) creating.value = true;
 });
+
+const saveRules = async (botId, wakeOn) => {
+    try {
+        await agentBots.setSubscriptionRules(botId, props.conversationKey, wakeOn);
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+    }
+};
+
+const addWakeRule = () => {
+    const bot = subscribedBots.value.find(item => String(item.id) === String(ruleBotId.value));
+    if (!bot) return;
+    const rules = [...(bot.wakeOn || []), { type: ruleType.value, state: ruleState.value }];
+    saveRules(bot.id, rules);
+    ruleBotId.value = null;
+    ruleType.value = null;
+    ruleState.value = null;
+};
+
+const removeWakeRule = (rule) => {
+    const bot = subscribedBots.value.find(item => String(item.id) === String(rule.botId));
+    if (!bot) return;
+    saveRules(bot.id, (bot.wakeOn || []).filter(item => !(item.type === rule.type && item.state === rule.state)));
+};
 
 const createBot = async () => {
     const name = newBotName.value.trim();

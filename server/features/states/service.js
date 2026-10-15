@@ -67,6 +67,14 @@ export async function getHistoryByTarget(typeId, instanceId) {
   return await enrichHistoryActors(history);
 }
 
+/**
+ * Status events strictly after the cursor, oldest first — the
+ * insertion-ordered read lifecycle consumers (agent bot wakes) sweep.
+ */
+export async function findStatusEventsAfter(lastId = null, limit = 200) {
+  return await repository.findAfter(lastId, limit);
+}
+
 async function enrichHistoryActors(history) {
   const actorIds = [...new Set(history
     .map(event => event.actor?.id || event.status?.userId)

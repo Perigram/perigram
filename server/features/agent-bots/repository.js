@@ -18,15 +18,19 @@ async function collection() {
  * `organizationId` ride the row so triggers and cleanup never re-derive
  * them from the key.
  */
-export async function upsertSubscription({ botUserId, conversationKey, conversationKind, organizationId }) {
+export async function upsertSubscription({ botUserId, conversationKey, conversationKind, organizationId, wakeOn = null }) {
     const col = await collection();
+    const normalizedWakeOn = Array.isArray(wakeOn)
+        ? wakeOn.map(rule => ({ type: String(rule.type), state: String(rule.state) }))
+        : null;
     await col.updateOne(
         { botUserId: String(botUserId), conversationKey: String(conversationKey) },
         {
             $set: {
                 conversationKind: String(conversationKind || ''),
                 organizationId: organizationId?.toString?.() || null,
-                updatedAt: new Date()
+                updatedAt: new Date(),
+                wakeOn: normalizedWakeOn
             },
             $setOnInsert: { createdAt: new Date() }
         },
@@ -50,6 +54,19 @@ export async function findSubscriptionsByConversation(conversationKeys = []) {
 export async function findSubscriptionsByBot(botUserId) {
     const col = await collection();
     return await col.find({ botUserId: String(botUserId) }).toArray();
+}
+
+/**
+ * Wake-matching read for the scanner: subscriptions carrying a `wakeOn`
+ * rule for the exact type + primary state. Instance-scope narrowing (the
+ * event's target must be the subscription's own instance) is the
+ * caller's in-memory check — the query stays shape-simple.
+ */
+export async function findWakeSubscriptions({ type, state }) {
+    const col = await collection();
+    return await col.find({
+        wakeOn: { $elemMatch: { type: String(type || ''), state: String(state || '') } }
+    }).toArray();
 }
 
 export async function removeSubscriptionsByBot(botUserId) {

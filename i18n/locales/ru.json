@@ -195,7 +195,11 @@
         "toggleInConversation": "В этом чате",
         "rotateToken": "Новый токен",
         "empty": "Ботов пока нет",
-        "deleteConfirm": "Удалить бота {name}?"
+        "deleteConfirm": "Удалить бота {name}?",
+        "wakes": "Пробуждения",
+        "botPlaceholder": "Бот",
+        "typePlaceholder": "Тип",
+        "statePlaceholder": "Статус"
     },
     "sendMessage": "Написать",
     "members": "Участники",
