@@ -2077,6 +2077,32 @@ into M5.
   splits the host contour at its anchors; the Basis toggle is disabled
   on open sketches.
 
+### Agent Notes (2026-10-15, layer names + open-profile embedding shipped)
+
+Layer names: every runtime layer-standard row carries its registry
+production `exportName` (with `nameTemplate`/`parameterDefaults` for the
+parametric three: cut.outer, cut.hole, fold.route); the sheet-DXF export
+maps every layerData layer through `occsLayerExportName` — bare codes no
+longer reach the DXF. The sync pin (`shared/facade-layer-standards.spec.js`)
+now pins exportName parity with the registry and the interpolation.
+
+Open profiles embed (owner semantics, this session): array settings
+alone place copies — anchors land ON the bound edge, perpendicular
+offset ignored; the whole edge is replaced by the composite chain
+(host start → straight run → copy chains joined by straight runs →
+straight run → host end). New pure `occs/profileEmbedding.js` builds and
+validates it (overflow/overlap refuse evaluation); the designer draws
+the copies + dashed composite; evaluate.js splices the composite into
+the production contour, so cut/nesting geometry follows the stitched
+boundary, and the composite rides `contour.cassette_face` (the old
+split-chains display law is retired). E2E artifact:
+`node /tmp/opencode/osnap-harness/verify-production.cjs` (evaluate →
+embedded nesting polygon → named DXF; PASS).
+
+Still open on this task: closed profiles' production effect (dedicated
+standard layer + intersection detection, owner answer 2026-10-15) and
+the nesting-redraw naming path beyond the DXF export.
+
 ### Agent Notes (2026-10-15, engine integration re-architected)
 
 Owner accepted the re-architecture over patching (escape dead with focus

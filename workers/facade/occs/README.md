@@ -11,6 +11,11 @@ modules — no platform imports.
 
 - `layers.js` exports semantic OCCS layer ids, including production contours,
   fold/cut routes, dimensions, and `code.cassette_mark` annotation marks.
+  `layerStandards.js` also carries each layer's production export name from
+  the spec registry (parametric where the registry names them so: the cut
+  layers' `{diameter}`, the fold route's `{angle}`), and
+  `occsLayerExportName(code, overrides)` resolves it — the sheet-DXF export
+  names every layer through it, never through bare codes.
 - `layerStandards.js` ships the cassette layer standards (owner direction
   2026-10-11): the OCCS layer vocabulary and its pens as one runtime table
   (code, group, kind, purpose, production, pen), replacing the pre-extraction
@@ -128,10 +133,13 @@ modules — no platform imports.
   occurrence id metadata. The same evaluated `layerData` is carried through the
   nesting request as source layers so generated sheet designs can redraw placed
   cut, fold, dimension, and annotation layers after the worker returns
-  placements. Open profiles inserted into a face contribute their break to
-  that layerData: the host contour's two chains between the break
-  projections ride `contour.cassette_face` (nesting polygons stay whole —
-  a break is an edge feature, not a cut).
+  placements. Open profiles embed through `profileEmbedding.js` (owner law
+  2026-10-15): array settings alone place the copies (anchors ON the bound
+  edge, no perpendicular offset), the whole edge is replaced by the composite
+  chain — host start, straight runs, copy chains, host end — the composite
+  rides `contour.cassette_face`, and the production cut/nesting contour truly
+  follows the stitched boundary. Overflowing or overlapping placements refuse
+  the evaluation with an error instead of clamping.
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
   codes, including generated dimension annotation layers and caller-provided
