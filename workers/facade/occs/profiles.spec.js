@@ -7,6 +7,7 @@ import {
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
+  occProfileSectionChainedVertices,
   occProfileSketchFromEntities,
   mergeOccsProfileSketchGeometry,
   occsProfileFromSketch,
@@ -339,8 +340,52 @@ describe('OCCS profile helpers', () => {
     ]);
   });
 
-  it('clamps an oversized fillet to the largest arc that fits and stays tangent', () => {
-    // Radius 40 cannot fit a 42x28 rectangle (tangent distance would
+  it('resolves authored fillet corners into the drawable section chain', () => {
+    // A 6mm fillet on the p1 corner of a 42x28 rectangle: the sharp
+    // corner leaves the chain, tangent arc points join it.
+    const chain = occProfileSectionChainedVertices({
+      vertices: [[0, 0], [42, 0], [42, 28], [0, 28]],
+      modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 6 }],
+      type: 'polygon'
+    });
+    expect(chain.length).toBeGreaterThan(5);
+    expect(chain).not.toContainEqual([42, 0]);
+    expect(chain[0]).toEqual([0, 0]);
+    // The arc meets both segments tangentially: the first trim point
+    // sits 6mm before the corner on the bottom edge, the last 6mm after
+    // it on the right edge.
+    expect(chain[1]).toEqual([36, 0]);
+    expect(chain.at(-3)[0]).toBeCloseTo(42, 6);
+    expect(chain.at(-3)[1]).toBeCloseTo(6, 6);
+    // Arc interior points bulge toward the corner.
+    const interior = chain.slice(2, -2);
+    expect(interior.some(point => point[0] > 36 && point[1] > 0)).toBe(true);
+
+    // An oversized radius clamps to the largest arc that fits.
+    const clamped = occProfileSectionChainedVertices({
+      vertices: [[0, 0], [42, 0], [42, 28], [0, 28]],
+      modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 40 }],
+      type: 'polygon'
+    });
+    expect(clamped[1]).toEqual([42 - 28 * 0.49, 0]);
+
+    // Open chain ends keep their vertices: fillets need both neighbours.
+    const open = occProfileSectionChainedVertices({
+      vertices: [[0, 0], [42, 0], [42, 28]],
+      modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 6 }],
+      type: 'polyline',
+      open: true
+    });
+    expect(open[0]).toEqual([0, 0]);
+    expect(open[open.length - 1]).toEqual([42, 28]);
+    expect(open).not.toContainEqual([42, 0]);
+
+    // No modifiers: the chain is the plain vertex walk.
+    expect(occProfileSectionChainedVertices({ vertices: [[0, 0], [5, 0]] }))
+      .toEqual([[0, 0], [5, 0]]);
+  });
+
+  it('clamps an oversized fillet to the largest arc that fits and stays tangent', () => {    // Radius 40 cannot fit a 42x28 rectangle (tangent distance would
     // pass the segment midpoints): the emitted arc is the largest
     // tangent fillet, and extraction maps it back to a fillet instead
     // of flattening it into chords.

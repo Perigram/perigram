@@ -49,6 +49,7 @@ import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/p
 import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
+  occProfileSectionChainedVertices,
   occsProfileFromSketch
 } from '../../occs/profiles.js';
 
@@ -2490,7 +2491,11 @@ const mirroredProfileVertex = (vertex = [], relation = {}) => [
 const profileCutPolygon = (workpiece = {}, point = [0, 0, 0], relation = {}, scope = {}) => {
   if (!workpiece.profileSnapshot && !workpiece.profile) return null;
   const profile = normalizeCassetteV2Profile(workpiece, scope);
-  const vertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
+  const section = Array.isArray(profile.section?.vertices) ? profile.section : null;
+  if (!section) return null;
+  // The cut follows the drawable chain — authored fillet corners
+  // resolved to their arc points.
+  const vertices = occProfileSectionChainedVertices(section);
   if (vertices.length < 3) return null;
   // An anchored profile cuts anchor-relative: the anchor vertex lands on
   // the placement point. Mirrors apply before the relation's rotation,
@@ -2998,6 +3003,58 @@ const foldedPreviewBodiesForTree = (tree = createCassetteV2GraphTree(), paramete
   const sourceTree = cloneCassetteV2Tree(tree);
   return getCassetteV2WorkpieceRelations(sourceTree)
     .map((relation) => {
+      const profileWorkpiece = relationProfileWorkpiece(sourceTree, relation);
+      if (profileWorkpiece) {
+        // A profile is a physical extrusion: its section (fillet corners
+        // resolved) sweeps along its linear length, placed by the same
+        // array/point settings every profile placement uses.
+        const profile = normalizeCassetteV2Profile(profileWorkpiece, parameters);
+        const open = profile.section?.open || profile.section?.type === 'polyline';
+        if (open) return null; // open profiles consume the host edge, no body
+        const section = Array.isArray(profile.section?.vertices) ? profile.section : null;
+        if (!section) return null;
+        const anchor = profile.section?.anchor;
+        const rotation = resolveCassetteV2AngleExpression(relation.rotation, parameters, 0);
+        const mirror = (vertex) => [
+          (vertex[0] - numeric(anchor?.[0], 0)) * (relation.mirrorX ? -1 : 1),
+          (vertex[1] - numeric(anchor?.[1], 0)) * (relation.mirrorY ? -1 : 1)
+        ];
+        const local = occProfileSectionChainedVertices(section).map((vertex) => {
+          const mirrored = mirror(vertex);
+          const angle = rotation || 0;
+          return angle
+            ? [
+                mirrored[0] * Math.cos(angle) - mirrored[1] * Math.sin(angle),
+                mirrored[0] * Math.sin(angle) + mirrored[1] * Math.cos(angle)
+              ]
+            : mirrored;
+        });
+        return {
+          id: `${relation.id}:${profileWorkpiece.id}`,
+          workpieceId: profileWorkpiece.id,
+          relationId: relation.id,
+          targetWorkpieceId: relation.targetWorkpieceId,
+          targetFaceId: relation.targetFaceId,
+          targetSnap: relation.targetSnap,
+          targetSide: relation.targetSide,
+          offsetX: resolveCassetteV2Expression(relation.offsetX, parameters, 0),
+          offsetY: resolveCassetteV2Expression(relation.offsetY, parameters, 0),
+          rotation,
+          mirrorX: Boolean(relation.mirrorX),
+          mirrorY: Boolean(relation.mirrorY),
+          pattern: relation.pattern ? {
+            ...relation.pattern,
+            mode: relation.pattern.mode || 'count',
+            count: resolveCassetteV2Expression(relation.pattern.count, parameters, 1),
+            spacing: resolveCassetteV2Expression(relation.pattern.spacing, parameters, 0)
+          } : null,
+          family: 'profile',
+          productionMode: '',
+          parameters: {},
+          section: { local, holes: (profile.section?.holes || []).map(hole => hole) },
+          sweepLength: resolveCassetteV2Expression(profile.sweep?.length, parameters, 100)
+        };
+      }
       const workpiece = relationHardwareWorkpiece(sourceTree, relation);
       if (!workpiece) return null;
       const hardware = normalizeCassetteV2Hardware(workpiece);
@@ -3051,21 +3108,23 @@ const foldedPreviewForTree = (curves = [], tree = createCassetteV2GraphTree(), o
       angle: resolveCassetteV2AngleExpression(foldAngleFromNode(node), parameters, 90)
     }));
   const joints = options.includeJoints
-    ? getCassetteV2WorkpieceRelations(tree).map(relation => ({
-      id: relation.id,
-      sourceWorkpieceId: relation.sourceWorkpieceId,
-      sourceFaceId: relation.sourceFaceId,
-      sourceSnap: relation.sourceSnap,
-      targetWorkpieceId: relation.targetWorkpieceId,
-      targetFaceId: relation.targetFaceId,
-      targetSnap: relation.targetSnap,
-      targetSide: relation.targetSide,
-      offsetX: resolveCassetteV2Expression(relation.offsetX, parameters, 0),
-      offsetY: resolveCassetteV2Expression(relation.offsetY, parameters, 0),
-      rotation: resolveCassetteV2AngleExpression(relation.rotation, parameters, 0),
-      driver: relation.driver,
-      pattern: relation.pattern
-    }))
+    ? getCassetteV2WorkpieceRelations(tree)
+      .filter(relation => !relationProfileWorkpiece(tree, relation))
+      .map(relation => ({
+        id: relation.id,
+        sourceWorkpieceId: relation.sourceWorkpieceId,
+        sourceFaceId: relation.sourceFaceId,
+        sourceSnap: relation.sourceSnap,
+        targetWorkpieceId: relation.targetWorkpieceId,
+        targetFaceId: relation.targetFaceId,
+        targetSnap: relation.targetSnap,
+        targetSide: relation.targetSide,
+        offsetX: resolveCassetteV2Expression(relation.offsetX, parameters, 0),
+        offsetY: resolveCassetteV2Expression(relation.offsetY, parameters, 0),
+        rotation: resolveCassetteV2AngleExpression(relation.rotation, parameters, 0),
+        driver: relation.driver,
+        pattern: relation.pattern
+      }))
     : [];
   const bodies = foldedPreviewBodiesForTree(tree, parameters);
   const cutouts = foldedPreviewProductionEntitiesForTree(curves, tree);

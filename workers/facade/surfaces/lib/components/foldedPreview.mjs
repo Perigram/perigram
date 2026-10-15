@@ -205,8 +205,47 @@ export default function createFoldedPreview({ vue, components, locale }) {
         const height = bodyParameter(body, 'height', length);
         const thickness = bodyParameter(body, 'thickness', Math.max(1.5, diameter * 0.25));
         const family = body.family || 'bolt';
-        let geometry;
+        let mesh;
 
+        if (family === 'profile' && Array.isArray(body.points) && body.points.length >= 3) {
+          // The extruded profile section: points are world-space on the
+          // host face's plane, the sweep runs along the face normal.
+          const normal = toDirection3(body.normal || [0, 0, 1]);
+          const first = toVector3(body.points[0]);
+          const span = toVector3(body.points[1]).clone().sub(first);
+          if (span.lengthSq() < 1e-9) span.set(1, 0, 0);
+          const u = span.clone().normalize();
+          const v = new THREE.Vector3().crossVectors(normal, u).normalize();
+          const shape = new THREE.Shape(body.points.map(point => {
+            const world = toVector3(point);
+            return new THREE.Vector2(world.dot(u), world.dot(v));
+          }));
+          for (const hole of body.holes || []) {
+            if (!Array.isArray(hole) || hole.length < 3) continue;
+            shape.holes.push(new THREE.Path(hole.map(point => {
+              const world = toVector3(point);
+              return new THREE.Vector2(world.dot(u), world.dot(v));
+            })));
+          }
+          const geometry = new THREE.ExtrudeGeometry(shape, {
+            depth: Math.max(1, Number(body.length) || 100),
+            bevelEnabled: false
+          });
+          mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+            color: bodyColor(body),
+            roughness: 0.54,
+            metalness: 0.42
+          }));
+          const basis = new THREE.Matrix4().makeBasis(u, v, normal);
+          mesh.quaternion.setFromRotationMatrix(basis);
+          mesh.userData = {
+            workpieceId: body.workpieceId,
+            bodyId: body.id
+          };
+          return mesh;
+        }
+
+        let geometry;
         if (family === 'nut') {
           geometry = new THREE.CylinderGeometry(width / 2, width / 2, thickness, 6);
         } else if (family === 'washer') {
@@ -217,7 +256,7 @@ export default function createFoldedPreview({ vue, components, locale }) {
           geometry = new THREE.CylinderGeometry(diameter / 2, diameter / 2, Math.max(2, length), 20);
         }
 
-        const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+        mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
           color: bodyColor(body),
           roughness: 0.54,
           metalness: family === 'hanger_clip' ? 0.18 : 0.42
