@@ -44,30 +44,30 @@ function botTypingBeats(botAuth, conversationKey) {
 }
 
 /**
- * Room presence for a bot's answer as it is produced: the runtime owns no
- * delivery channel, so partial text rides the conversation topic like the
- * typing beat — `bot_stream` carries the answer so far (the client paints
- * a growing bubble), `bot_stream_end` retracts it. A tool round retracts
- * its own text because the loop keeps only the final answer.
+ * Room presence for a bot's run as it is produced: the runtime owns no
+ * delivery channel, so the run's activity rides the conversation topic like
+ * the typing beat. `bot_thinking` carries the reasoning so far (accumulated
+ * across rounds), `bot_tool` one tool invocation as it starts and settles,
+ * `bot_stream` the answer so far, and `bot_stream_end` clears the run once
+ * the persisted message supersedes it.
  */
-function botStreamSink(botAuth, conversationKey) {
+function botActivitySink(botAuth, conversationKey) {
     const topic = `conversation:${conversationKey}`;
+    const base = { conversationKey, userId: botAuth.userId, name: botAuth.name || '' };
+    let thinking = '';
     return {
-        delta(text) {
-            connectionsService.publish(topic, {
-                type: 'bot_stream',
-                conversationKey,
-                userId: botAuth.userId,
-                name: botAuth.name || '',
-                text
-            });
+        thinking(delta) {
+            thinking += delta;
+            connectionsService.publish(topic, { ...base, type: 'bot_thinking', text: thinking });
         },
-        clear() {
-            connectionsService.publish(topic, {
-                type: 'bot_stream_end',
-                conversationKey,
-                userId: botAuth.userId
-            });
+        tool(tool) {
+            connectionsService.publish(topic, { ...base, type: 'bot_tool', tool });
+        },
+        answer(text) {
+            connectionsService.publish(topic, { ...base, type: 'bot_stream', text });
+        },
+        end() {
+            connectionsService.publish(topic, { ...base, type: 'bot_stream_end' });
         }
     };
 }
@@ -152,31 +152,32 @@ function historyMessages(messages = [], botUserId) {
 }
 
 /**
- * One streamed round: consumes the LLM stream, forwarding the running text
- * to `onText` as it grows, and returns the assembled neutral assistant
- * message.
+ * One streamed round: consumes the LLM stream, forwarding reasoning and
+ * answer deltas as they grow, and returns the assembled neutral message.
  */
-async function streamedRound({ organizationId, profileId, system, messages, tools, onText = null }) {
+async function streamedRound({ organizationId, profileId, system, messages, tools, onThinking = null, onText = null }) {
     let full = '';
     let message = null;
     for await (const event of llmService.streamChatCompletion({ organizationId, profileId, system, messages, tools })) {
-        if (event.type === 'text') {
+        if (event.type === 'thinking') {
+            if (onThinking) onThinking(event.text);
+        } else if (event.type === 'text') {
             full += event.text;
             if (onText) onText(full);
         } else if (event.type === 'message') {
             message = event;
         }
     }
-    return message || { content: full, toolCalls: [] };
+    return message || { content: full, thinking: '', toolCalls: [] };
 }
 
 /**
  * The shared bounded tool-calling loop: neutral conversation in, final
  * assistant text plus any attached instance refs out (text null when the
  * model produced nothing). Tool failures become tool-result errors the
- * model can read and adjust around. Text from every round streams live
- * through `stream`; a round that ends in tool calls retracts its own text
- * (only the final answer persists).
+ * model can read and adjust around. The run's reasoning and tool activity
+ * stay visible through `stream`; a round that ends in tool calls retracts
+ * only its own answer text (only the final answer persists).
  */
 async function runAgentLoop({ botAuth, system, conversation, profileId = '', stream = null }) {
     const organizationId = botAuth.organizationId;
@@ -191,20 +192,26 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', str
             system,
             messages: conversation,
             tools,
-            onText: stream ? (text) => stream.delta(text) : null
+            onThinking: stream ? (text) => stream.thinking(text) : null,
+            onText: stream ? (text) => stream.answer(text) : null
         });
         const toolCalls = assistant.toolCalls || [];
         if (!toolCalls.length) {
             return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs };
         }
-        if (stream) stream.clear();
+        // This round answered a tool call, not the room: drop its answer text.
+        // The reasoning and the tool rows stay as the run's visible work.
+        if (stream) stream.answer('');
         conversation.push({ role: 'assistant', content: assistant.content || '', toolCalls });
         for (const call of toolCalls) {
+            if (stream) stream.tool({ id: call.id, name: call.name, status: 'running' });
             let result;
             try {
                 result = await executeTool(call.name, call.arguments, botAuth, run);
+                if (stream) stream.tool({ id: call.id, name: call.name, status: 'done' });
             } catch (error) {
                 result = { error: error?.message || String(error) };
+                if (stream) stream.tool({ id: call.id, name: call.name, status: 'error' });
             }
             conversation.push({
                 role: 'tool',
@@ -214,7 +221,6 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', str
             });
         }
     }
-    if (stream) stream.clear();
     return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs };
 }
 
@@ -259,7 +265,7 @@ export async function runBotReply(botUserId, context, message, conversationProfi
     try {
         const botAuth = await buildBotAuth(botUserId);
         typing = botTypingBeats(botAuth, message.conversationKey);
-        stream = botStreamSink(botAuth, message.conversationKey);
+        stream = botActivitySink(botAuth, message.conversationKey);
         const organizationId = botAuth.organizationId;
         const profileId = conversationProfile || botAuth.botProfile;
         if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId }))) {
@@ -283,7 +289,7 @@ export async function runBotReply(botUserId, context, message, conversationProfi
         }
     } finally {
         if (typing) clearInterval(typing);
-        if (stream) stream.clear();
+        if (stream) stream.end();
         inFlight.delete(lockKey);
     }
 }
@@ -339,7 +345,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
     try {
         const botAuth = await buildBotAuth(subscription.botUserId);
         typing = botTypingBeats(botAuth, subscription.conversationKey);
-        stream = botStreamSink(botAuth, subscription.conversationKey);
+        stream = botActivitySink(botAuth, subscription.conversationKey);
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the bot's own, then the org route.
         const profileId = ruleProfile || String(subscription.profile || '') || botAuth.botProfile;
@@ -374,7 +380,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         console.error('[AGENT-BOTS] wake failed:', error);
     } finally {
         if (typing) clearInterval(typing);
-        if (stream) stream.clear();
+        if (stream) stream.end();
         inFlight.delete(lockKey);
     }
 }

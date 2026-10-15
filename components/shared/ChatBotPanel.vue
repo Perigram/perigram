@@ -182,10 +182,7 @@ const ruleStateOptions = computed(() => (
 const wakeRules = computed(() => subscribedBots.value.flatMap(bot => (
     (bot.wakeOn || []).map(rule => ({ ...rule, botId: bot.id, botName: bot.name }))
 )));
-const conversationProfileOptions = computed(() => ([
-    { label: t('llm.auto'), value: '' },
-    ...agentBots.chatProfiles.map(profile => ({ label: profile.id, value: profile.id }))
-]));
+const conversationProfileOptions = computed(() => agentBots.chatProfileOptions(t('llm.auto')));
 
 watch(visible, async (open) => {
     if (!open) return;

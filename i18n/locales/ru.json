@@ -130,6 +130,7 @@
         "noMessages": "Нет сообщений",
         "online": "В сети",
         "typing": "{name} печатает…",
+        "thinking": "Размышляет",
         "noConversations": "Чатов пока нет",
         "selectConversation": "Выберите чат или начните новый",
         "recipientChatOnlyWarning": "{label} недоступна получателю вне этого чата",

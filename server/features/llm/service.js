@@ -434,39 +434,117 @@ function parseJsonObject(text) {
     }
 }
 
+const THINK_OPEN = '\u003cthinking\u003e';
+const THINK_CLOSE = '\u003c/thinking\u003e';
+
+/**
+ * Reasoning models that ride the chat wire inline — qwen3 wraps its
+ * reasoning in think tags inside the content stream — are split here so
+ * the neutral contract keeps reasoning and answer apart. `push` takes an
+ * arbitrary content fragment and returns the resolved deltas, holding back
+ * a partial delimiter that straddles fragments; `flush` drains the tail at
+ * stream end.
+ */
+function createThinkingSplitter() {
+    let inThinking = false;
+    let held = '';
+    return {
+        push(fragment) {
+            held += fragment;
+            const events = [];
+            for (;;) {
+                const marker = inThinking ? THINK_CLOSE : THINK_OPEN;
+                const index = held.indexOf(marker);
+                if (index >= 0) {
+                    if (index) events.push({ type: inThinking ? 'thinking' : 'text', text: held.slice(0, index) });
+                    held = held.slice(index + marker.length);
+                    inThinking = !inThinking;
+                    continue;
+                }
+                let hold = 0;
+                for (let length = Math.min(held.length, marker.length - 1); length > 0; length--) {
+                    if (held.endsWith(marker.slice(0, length))) { hold = length; break; }
+                }
+                const text = held.slice(0, held.length - hold);
+                if (text) events.push({ type: inThinking ? 'thinking' : 'text', text });
+                held = held.slice(held.length - hold);
+                return events;
+            }
+        },
+        flush() {
+            const events = held ? [{ type: inThinking ? 'thinking' : 'text', text: held }] : [];
+            held = '';
+            return events;
+        }
+    };
+}
+
+/** Splits a whole completion body into its reasoning and answer halves. */
+function splitThinking(content) {
+    const splitter = createThinkingSplitter();
+    let thinking = '';
+    let answer = '';
+    for (const event of [...splitter.push(content || ''), ...splitter.flush()]) {
+        if (event.type === 'thinking') thinking += event.text;
+        else answer += event.text;
+    }
+    return { content: answer, thinking };
+}
+
+/**
+ * The neutral assistant message: `content` (the answer), `thinking`
+ * (reasoning, empty for models that emit none), and structured tool calls.
+ * Provider-supplied reasoning (Ollama `thinking`, OpenAI
+ * `reasoning_content`) is kept ahead of any inline tags.
+ */
+function neutralMessage({ content = '', reasoning = '', toolCalls = [] }) {
+    const split = splitThinking(content);
+    return {
+        content: split.content,
+        thinking: reasoning ? `${reasoning}${split.thinking}` : split.thinking,
+        toolCalls
+    };
+}
+
 function wireResponseToNeutral(provider, payload) {
     if (provider === 'ollama') {
         const message = payload?.message || {};
-        return {
+        return neutralMessage({
             content: typeof message.content === 'string' ? message.content : '',
+            reasoning: typeof message.thinking === 'string' ? message.thinking : '',
             toolCalls: (message.tool_calls || []).map((call, index) => ({
                 id: call.id || `ollama-${index}`,
                 name: call.function?.name || '',
                 arguments: parseJsonObject(call.function?.arguments)
             }))
-        };
+        });
     }
     if (provider === 'anthropic') {
         const blocks = Array.isArray(payload?.content) ? payload.content : [];
-        return {
+        return neutralMessage({
             content: blocks
                 .filter((block) => block.type === 'text' && typeof block.text === 'string')
                 .map((block) => block.text)
                 .join(''),
+            reasoning: blocks
+                .filter((block) => block.type === 'thinking' && typeof block.thinking === 'string')
+                .map((block) => block.thinking)
+                .join(''),
             toolCalls: blocks
                 .filter((block) => block.type === 'tool_use')
                 .map((block) => ({ id: block.id, name: block.name, arguments: block.input ?? {} }))
-        };
+        });
     }
     const message = payload?.choices?.[0]?.message;
-    return {
+    return neutralMessage({
         content: typeof message?.content === 'string' ? message.content : '',
+        reasoning: typeof message?.reasoning_content === 'string' ? message.reasoning_content : '',
         toolCalls: (message?.tool_calls || []).map((call) => ({
             id: call.id,
             name: call.function?.name || '',
             arguments: parseJsonObject(call.function?.arguments)
         }))
-    };
+    });
 }
 
 function wireRequest(provider, config, system, messages, tools, { stream = false } = {}) {
@@ -647,13 +725,37 @@ function sseData(line) {
 }
 
 /**
- * Provider stream readers: each yields `{ type: 'text', text }` deltas and
- * returns the assembled neutral message. Tool calls arrive as fragments
- * (OpenAI/Messages split `arguments` across events, Ollama sends them
- * whole), so every reader accumulates before parsing.
+ * Per-stream reasoning/answer accumulator over the inline-tag splitter:
+ * `feed` routes a content fragment through it, `note` records
+ * provider-supplied reasoning, `end` drains the tail. Each returns the
+ * deltas to yield.
+ */
+function streamAccumulator() {
+    const splitter = createThinkingSplitter();
+    const totals = { content: '', thinking: '' };
+    const collect = (events) => {
+        for (const event of events) totals[event.type === 'thinking' ? 'thinking' : 'content'] += event.text;
+        return events;
+    };
+    return {
+        totals,
+        feed: (fragment) => collect(splitter.push(fragment)),
+        note: (text) => {
+            totals.thinking += text;
+            return [{ type: 'thinking', text }];
+        },
+        end: () => collect(splitter.flush())
+    };
+}
+
+/**
+ * Provider stream readers: each yields `{ type: 'thinking' | 'text', text }`
+ * deltas and returns the assembled neutral message. Tool calls arrive as
+ * fragments (OpenAI/Messages split `arguments` across events, Ollama sends
+ * them whole), so every reader accumulates before parsing.
  */
 async function* streamOpenAI(response, keepAlive) {
-    let content = '';
+    const acc = streamAccumulator();
     const calls = [];
     for await (const line of readLines(response, keepAlive)) {
         const data = sseData(line);
@@ -662,10 +764,9 @@ async function* streamOpenAI(response, keepAlive) {
         try { chunk = JSON.parse(data); } catch { continue; }
         const delta = chunk?.choices?.[0]?.delta;
         if (!delta) continue;
-        if (typeof delta.content === 'string' && delta.content) {
-            content += delta.content;
-            yield { type: 'text', text: delta.content };
-        }
+        const reasoning = delta.reasoning_content ?? delta.reasoning;
+        if (typeof reasoning === 'string' && reasoning) yield* acc.note(reasoning);
+        if (typeof delta.content === 'string' && delta.content) yield* acc.feed(delta.content);
         for (const call of delta.tool_calls || []) {
             const index = call.index ?? calls.length;
             const slot = calls[index] || (calls[index] = { id: '', name: '', args: '' });
@@ -674,8 +775,10 @@ async function* streamOpenAI(response, keepAlive) {
             if (call.function?.arguments) slot.args += call.function.arguments;
         }
     }
+    yield* acc.end();
     return {
-        content,
+        content: acc.totals.content,
+        thinking: acc.totals.thinking,
         toolCalls: calls.filter(Boolean).map(call => ({
             id: call.id, name: call.name, arguments: parseJsonObject(call.args)
         }))
@@ -683,7 +786,7 @@ async function* streamOpenAI(response, keepAlive) {
 }
 
 async function* streamOllama(response, keepAlive) {
-    let content = '';
+    const acc = streamAccumulator();
     const toolCalls = [];
     for await (const line of readLines(response, keepAlive)) {
         const trimmed = line.trim();
@@ -691,10 +794,8 @@ async function* streamOllama(response, keepAlive) {
         let chunk;
         try { chunk = JSON.parse(trimmed); } catch { continue; }
         const message = chunk?.message || {};
-        if (typeof message.content === 'string' && message.content) {
-            content += message.content;
-            yield { type: 'text', text: message.content };
-        }
+        if (typeof message.thinking === 'string' && message.thinking) yield* acc.note(message.thinking);
+        if (typeof message.content === 'string' && message.content) yield* acc.feed(message.content);
         for (const [index, call] of (message.tool_calls || []).entries()) {
             toolCalls.push({
                 id: call.id || `ollama-${index}`,
@@ -703,11 +804,12 @@ async function* streamOllama(response, keepAlive) {
             });
         }
     }
-    return { content, toolCalls };
+    yield* acc.end();
+    return { content: acc.totals.content, thinking: acc.totals.thinking, toolCalls };
 }
 
 async function* streamAnthropic(response, keepAlive) {
-    let content = '';
+    const acc = streamAccumulator();
     const toolCalls = [];
     let openBlock = null;
     for await (const line of readLines(response, keepAlive)) {
@@ -719,9 +821,10 @@ async function* streamAnthropic(response, keepAlive) {
             openBlock = { id: event.content_block.id, name: event.content_block.name, args: '' };
         } else if (event.type === 'content_block_delta') {
             const delta = event.delta || {};
-            if (delta.type === 'text_delta' && typeof delta.text === 'string') {
-                content += delta.text;
-                yield { type: 'text', text: delta.text };
+            if (delta.type === 'thinking_delta' && typeof delta.thinking === 'string') {
+                yield* acc.note(delta.thinking);
+            } else if (delta.type === 'text_delta' && typeof delta.text === 'string') {
+                yield* acc.feed(delta.text);
             } else if (delta.type === 'input_json_delta' && openBlock) {
                 openBlock.args += delta.partial_json || '';
             }
@@ -730,16 +833,18 @@ async function* streamAnthropic(response, keepAlive) {
             openBlock = null;
         }
     }
-    return { content, toolCalls };
+    yield* acc.end();
+    return { content: acc.totals.content, thinking: acc.totals.thinking, toolCalls };
 }
 
 /**
  * Streaming twin of `chatCompletion` on the same neutral contract: an async
- * generator that yields `{ type: 'text', text }` deltas as the model emits
- * them and closes with one `{ type: 'message', content, toolCalls }` — the
- * fully assembled neutral assistant message. Throws 503/502 exactly like
- * the non-streaming path. Consumers that cannot render partial output use
- * `chatCompletion`; the agent loop streams only what it will keep.
+ * generator that yields `{ type: 'thinking' | 'text', text }` deltas as the
+ * model emits them and closes with one `{ type: 'message', content,
+ * thinking, toolCalls }` — the fully assembled neutral assistant message.
+ * Throws 503/502 exactly like the non-streaming path. Consumers that cannot
+ * render partial output use `chatCompletion`; the agent loop streams only
+ * what it will keep.
  */
 export async function* streamChatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', system = '', messages = [], tools = [] }) {
     const config = await resolveLlmConfig(organizationId, capability, { profileId });
@@ -760,11 +865,11 @@ export async function* streamChatCompletion({ organizationId = null, capability 
             yield step.value;
             step = await iterator.next();
         }
-        const message = step.value || { content: '', toolCalls: [] };
+        const message = step.value || { content: '', thinking: '', toolCalls: [] };
         if (!message.content && !message.toolCalls.length) {
             throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
         }
-        yield { type: 'message', content: message.content, toolCalls: message.toolCalls };
+        yield { type: 'message', content: message.content, thinking: message.thinking || '', toolCalls: message.toolCalls };
     } finally {
         release();
     }

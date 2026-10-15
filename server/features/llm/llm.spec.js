@@ -135,7 +135,7 @@ describe('chatCompletion: anthropic', () => {
         expect(request.tools[0]).toEqual({
             name: 'list_types', description: 'lists types', input_schema: { type: 'object', properties: {} }
         });
-        expect(result).toEqual({ content: 'answer', toolCalls: [{ id: 'tu_1', name: 'list_types', arguments: { b: 2 } }] });
+        expect(result).toEqual({ content: 'answer', thinking: '', toolCalls: [{ id: 'tu_1', name: 'list_types', arguments: { b: 2 } }] });
     });
 
     it('merges consecutive tool results into one tool_result user turn', async () => {
@@ -175,7 +175,7 @@ describe('chatCompletion: openai-shaped local servers', () => {
         });
         expect(url).toBe('http://llm.internal/v1/chat/completions');
         expect(request.messages[0]).toEqual({ role: 'system', content: 'be brief' });
-        expect(result).toEqual({ content: 'hi', toolCalls: [{ id: 'c1', name: 'list_types', arguments: { z: 3 } }] });
+        expect(result).toEqual({ content: 'hi', thinking: '', toolCalls: [{ id: 'c1', name: 'list_types', arguments: { z: 3 } }] });
     });
 
     it('sends assistant tool calls with string arguments and tool results by call id', async () => {
@@ -246,13 +246,15 @@ async function streamRound(provider, chunks, messages = []) {
     process.env.LLM_MODEL = 'model-x';
     fetchMock.mockResolvedValueOnce(streamResponse(chunks));
     const deltas = [];
+    const thinkingDeltas = [];
     let message = null;
     for await (const event of streamChatCompletion({ organizationId: null, system: 'be brief', messages, tools: TOOLS })) {
         if (event.type === 'text') deltas.push(event.text);
+        else if (event.type === 'thinking') thinkingDeltas.push(event.text);
         else if (event.type === 'message') message = event;
     }
     const request = JSON.parse(fetchMock.mock.calls[0][1].body);
-    return { deltas, message, request, url: fetchMock.mock.calls[0][0] };
+    return { deltas, thinkingDeltas, message, request, url: fetchMock.mock.calls[0][0] };
 }
 
 describe('streamChatCompletion', () => {
@@ -273,6 +275,7 @@ describe('streamChatCompletion', () => {
         expect(message).toEqual({
             type: 'message',
             content: 'Hello',
+            thinking: '',
             toolCalls: [{ id: 'c1', name: 'list_types', arguments: { a: 1 } }]
         });
     });
@@ -288,6 +291,7 @@ describe('streamChatCompletion', () => {
         expect(message).toEqual({
             type: 'message',
             content: 'Hi there',
+            thinking: '',
             toolCalls: [{ id: 'ollama-0', name: 'list_types', arguments: { a: 1 } }]
         });
     });
@@ -306,8 +310,33 @@ describe('streamChatCompletion', () => {
         expect(message).toEqual({
             type: 'message',
             content: 'Ans',
+            thinking: '',
             toolCalls: [{ id: 'tu_1', name: 'list_types', arguments: { b: 2 } }]
         });
+    });
+
+    it('splits inline thinking from the answer across chunk boundaries', async () => {
+        const raw = [
+            'data: {"choices":[{"delta":{"content":"\u003cthi"}}]}\n\n',
+            'data: {"choices":[{"delta":{"content":"nking\u003eplan A\u003c/thinking\u003eAnswer"}}]}\n\n',
+            'data: [DONE]\n\n'
+        ].join('');
+        const { deltas, thinkingDeltas, message } = await streamRound('openai', [raw]);
+        expect(thinkingDeltas).toEqual(['plan A']);
+        expect(deltas).toEqual(['Answer']);
+        expect(message).toEqual({ type: 'message', content: 'Answer', thinking: 'plan A', toolCalls: [] });
+    });
+
+    it('keeps provider reasoning ahead of inline tags and strips them from the answer', async () => {
+        process.env.LLM_PROVIDER = 'openai';
+        process.env.LLM_BASE_URL = 'http://llm.internal';
+        process.env.LLM_MODEL = 'model-x';
+        fetchMock.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ choices: [{ message: { content: '\u003cthinking\u003ewhy\u003c/thinking\u003e42', reasoning_content: 'hmm' } }] })
+        });
+        const result = await chatCompletion({ organizationId: null });
+        expect(result).toEqual({ content: '42', thinking: 'hmmwhy', toolCalls: [] });
     });
 
     it('throws 503 when no provider resolves', async () => {

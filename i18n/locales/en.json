@@ -130,6 +130,7 @@
         "noMessages": "No messages",
         "online": "Online",
         "typing": "{name} is typing…",
+        "thinking": "Thinking",
         "noConversations": "No conversations yet",
         "selectConversation": "Select a conversation or start a new one",
         "recipientChatOnlyWarning": "{label} is unavailable to the recipient outside this chat",

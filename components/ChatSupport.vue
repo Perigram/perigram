@@ -756,19 +756,38 @@
                         </div>
                     </template>
 
-                    <!-- The agent's live answer: partial text rides the
-                         conversation topic while the run works; the final
+                    <!-- The agent's live run: reasoning (collapsible),
+                         tool activity, and the answer as it is produced.
+                         Chromeless trace of work, not a message — the
                          persisted message replaces it. -->
                     <div
-                        v-if="streamingBot"
-                        class="relative mr-auto flex min-w-0 max-w-support-chat-message flex-col"
-                        data-testid="chat-streaming-bubble"
+                        v-if="agentActivity"
+                        class="mr-auto flex min-w-0 max-w-support-chat-message flex-col gap-2"
+                        data-testid="chat-agent-activity"
                     >
-                        <div class="flex min-w-0 max-w-full flex-col gap-1 self-start items-start">
-                            <UserChip v-if="streamingBot.name" :user-id="streamingBot.userId" class="max-w-full" />
-                            <div class="max-w-full min-w-0 rounded-ui bg-subtle px-4 py-2 text-body">
-                                <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">{{ streamingBot.text }}</p>
-                            </div>
+                        <details
+                            v-if="agentActivity.thinking"
+                            open
+                            class="px-1 text-muted text-supporting"
+                            data-testid="chat-agent-thinking"
+                        >
+                            <summary class="cursor-pointer select-none">{{ $t('support.thinking') }}</summary>
+                            <p class="m-0 mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ agentActivity.thinking }}</p>
+                        </details>
+                        <div
+                            v-for="tool in agentActivity.tools"
+                            :key="tool.id"
+                            class="flex min-w-0 items-center gap-2 px-1 text-muted text-supporting"
+                            data-testid="chat-agent-tool"
+                        >
+                            <i :class="toolStatusIcon(tool.status)" aria-hidden="true" />
+                            <span class="min-w-0 truncate">{{ tool.name }}</span>
+                        </div>
+                        <div
+                            v-if="agentActivity.answer"
+                            class="max-w-full min-w-0 self-start rounded-ui bg-subtle px-4 py-2"
+                        >
+                            <p class="m-0 whitespace-pre-wrap break-words text-body [overflow-wrap:anywhere]">{{ agentActivity.answer }}</p>
                         </div>
                     </div>
                 </div>
@@ -778,11 +797,26 @@
                     :class="fullPage ? '' : 'max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]'"
                 >
                     <div
-                        v-show="typingName && !streamingBot"
+                        v-show="typingName && !agentActivity"
                         ref="typingIndicatorRef"
                         class="px-1 text-muted text-supporting opacity-0"
                     >
                         {{ $t('support.typing', { name: typingName }) }}
+                    </div>
+                    <!-- The conversation is an execution point: its bots run
+                         on this model (blank = each bot's own brain). -->
+                    <div v-if="conversationBots.length" class="flex items-center justify-end px-1">
+                        <PrimeSelect
+                            :model-value="conversationProfile"
+                            :options="conversationProfileOptions"
+                            option-label="label"
+                            option-value="value"
+                            size="small"
+                            class="w-40"
+                            :aria-label="$t('llm.profile')"
+                            data-testid="chat-conversation-model"
+                            @update:model-value="setConversationProfile"
+                        />
                     </div>
                     <!-- Reply quote bar: the next send carries the parent id.
                          Rendered like the in-bubble quote (sender + snippet) —
@@ -1357,6 +1391,7 @@ import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import Select from '~/components/shared/InstanceSelect.vue'
+import PrimeSelect from 'primevue/select'
 import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue'
 import Textarea from 'primevue/textarea'
 import Menu from 'primevue/menu'
@@ -1498,9 +1533,18 @@ const groupMemberIds = ref([])
 const groupSaving = ref(false)
 const typingName = ref('')
 const typingIndicatorRef = ref(null)
-// The agent's live answer while a run works (server `bot_stream` events):
-// `{ userId, name, text }` or null. The persisted message replaces it.
-const streamingBot = ref(null)
+// The agent's live run while it works (server `bot_thinking` / `bot_tool` /
+// `bot_stream` events): `{ userId, name, thinking, tools, answer }` or null.
+// The persisted message replaces it.
+const agentActivity = ref(null)
+const receiveAgentActivity = (payload, mutate) => {
+    if (!agentActivity.value || agentActivity.value.userId !== payload.userId) {
+        agentActivity.value = { userId: payload.userId, name: payload.name || '', thinking: '', tools: [], answer: '' }
+    }
+    mutate(agentActivity.value)
+    nextTick().then(scrollToBottom)
+}
+const toolStatusIcon = (status) => (status === 'done' ? 'pi pi-check' : status === 'error' ? 'pi pi-exclamation-triangle' : 'pi pi-spin pi-spinner')
 let typingResetTimer = null
 let typingSendTimer = null
 
@@ -1546,6 +1590,26 @@ const startCall = async () => {
     } catch (error) {
         console.error('Failed to start call:', error)
     }
+}
+
+// The conversation is an execution point: when bots are subscribed here,
+// the room picks the model they run on — the same conversation profile the
+// bot sheet edits per bot, applied across the conversation's bots. Direct
+// chats have no subscription: the bot's own brain applies.
+const conversationBots = computed(() => (
+    ['group', 'instance'].includes(activeConversation.value?.conversationKind)
+        ? agentBots.contacts.filter(bot => bot.subscribed)
+        : []
+));
+const conversationProfile = computed(() => {
+    const profiles = new Set(conversationBots.value.map(bot => bot.profile || ''))
+    return profiles.size === 1 ? [...profiles][0] : ''
+});
+const conversationProfileOptions = computed(() => agentBots.chatProfileOptions(t('llm.auto')))
+const setConversationProfile = async (profile) => {
+    const key = activeConversation.value?.conversationKey
+    if (!key) return
+    await Promise.all(conversationBots.value.map(bot => agentBots.setSubscriptionProfile(bot.id, key, profile || '')))
 }
 
 // Pane-hosted chats open calls as workspace tabs; mobile surfaces keep the
@@ -2944,7 +3008,7 @@ const goToMessage = async (id) => {
 watch(
     [activeConversationKey, supportDialog, () => props.embedded],
     ([key, dialogOpen, embedded]) => {
-        streamingBot.value = null
+        agentActivity.value = null
         if (unsubscribeConversation) {
             unsubscribeConversation()
             unsubscribeConversation = null
@@ -2955,29 +3019,43 @@ watch(
                 receiveTyping(payload)
                 return
             }
+            if (payload?.type === 'bot_thinking') {
+                receiveAgentActivity(payload, activity => { activity.thinking = payload.text || '' })
+                return
+            }
+            if (payload?.type === 'bot_tool') {
+                receiveAgentActivity(payload, (activity) => {
+                    const tool = { id: payload.tool?.id, name: payload.tool?.name || '', status: payload.tool?.status || 'running' }
+                    const index = activity.tools.findIndex(item => item.id === tool.id)
+                    if (index >= 0) activity.tools[index] = tool
+                    else activity.tools.push(tool)
+                })
+                return
+            }
             if (payload?.type === 'bot_stream') {
-                streamingBot.value = {
-                    userId: payload.userId,
-                    name: payload.name || '',
-                    text: payload.text || ''
-                }
-                nextTick().then(scrollToBottom)
+                receiveAgentActivity(payload, activity => { activity.answer = payload.text || '' })
                 return
             }
             if (payload?.type === 'bot_stream_end') {
-                streamingBot.value = null
+                agentActivity.value = null
                 return
             }
             // Ringing arrives only through the calls store's `call.invite`
             // subscription — one owner, no second local ring state.
             if (payload?.type !== 'message') return
-            // The persisted message supersedes the live draft.
-            streamingBot.value = null
+            // The persisted message supersedes the live run.
+            agentActivity.value = null
             messages.value.push(payload.message)
             supportChatStore.markRead(key)
             nextTick().then(scrollToBottom)
         })
         loadConversation()
+        // Subscribed bots carry this conversation's model (the picker above
+        // the composer); direct chats have no subscription — the bot's own
+        // brain applies.
+        if (['group', 'instance'].includes(activeConversation.value?.conversationKind)) {
+            agentBots.fetchContacts(key)
+        }
     }
 )
 
@@ -3001,7 +3079,7 @@ onBeforeUnmount(() => {
         unsubscribeConversation()
         unsubscribeConversation = null
     }
-    streamingBot.value = null
+    agentActivity.value = null
     if (typingResetTimer) clearTimeout(typingResetTimer)
     if (typingSendTimer) clearTimeout(typingSendTimer)
     if (mediaRecorder) {

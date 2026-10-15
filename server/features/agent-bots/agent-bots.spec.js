@@ -15,8 +15,10 @@ const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedBo
     mockedLlm.streamChatCompletion = vi.fn(async function* (args) {
         const message = await mockedLlm.chatCompletion(args);
         const content = message?.content || '';
+        const thinking = message?.thinking || '';
+        if (thinking) yield { type: 'thinking', text: thinking };
         if (content) yield { type: 'text', text: content };
-        yield { type: 'message', content, toolCalls: message?.toolCalls || [] };
+        yield { type: 'message', content, thinking, toolCalls: message?.toolCalls || [] };
     });
     return {
     mockedSupport: {
@@ -186,6 +188,18 @@ describe('runBotReply', () => {
             payload: { type: 'bot_stream', conversationKey: context.conversationKey, userId: BOT_A, name: 'Bot', text: 'the answer' }
         });
         expect(publishes.some(({ payload }) => payload?.type === 'bot_stream_end')).toBe(true);
+    });
+
+    it('publishes thinking and tool activity while the loop works', async () => {
+        mockedLlm.chatCompletion
+            .mockResolvedValueOnce({ content: '', thinking: 'need the types', toolCalls: [{ id: 't1', name: 'list_types', arguments: {} }] })
+            .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
+        mockedTools.executeTool.mockResolvedValue({ types: [] });
+        await runBotReply(BOT_A, context, message);
+        const published = mockedConnections.publish.mock.calls.map(([, payload]) => payload);
+        expect(published.some(payload => payload?.type === 'bot_thinking' && payload.text === 'need the types')).toBe(true);
+        expect(published.some(payload => payload?.type === 'bot_tool' && payload.tool?.name === 'list_types' && payload.tool.status === 'running')).toBe(true);
+        expect(published.some(payload => payload?.type === 'bot_tool' && payload.tool?.status === 'done')).toBe(true);
     });
 
     it('lets the conversation override the bot\'s own brain', async () => {
