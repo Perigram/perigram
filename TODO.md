@@ -1,5 +1,31 @@
 # TODO
 
+## Real-stack diagnosis; models/bots page split (owner direction 2026-10-15)
+
+The unreachable profile was diagnosed against the live stack (not mocks):
+the route to the model server goes through the wt0 mesh with ~0.5-1.4s
+RTT, and the v2raya container is crash-looping ("Quitting..."), so TCP
+from the app container blackholes while ICMP still passes. The bots page
+mixed two concerns in an awful stack.
+
+- [x] postCompletion/listing surface the fetch cause (ETIMEDOUT,
+      ECONNREFUSED, ...) instead of a bare "unreachable".
+- [x] Page split: /organization/models (profiles table, toolbar add,
+      capability routing, toast feedback for tests) and /organization/bots
+      (members: create/token/delete + per-bot model default). Models
+      screen registered in system screens and the workspace page
+      registry (bots icon now pi-comment, models keeps pi-sparkles).
+- [x] Specs: system-screens inventories extended.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/bots-page-split-20261015`. The connectivity fix is
+infrastructural (restore the mesh/v2raya path or point the profile at a
+directly reachable address); the code now names the failure cause. Also
+noted live: the org's routes map is empty — the per-profile Test works,
+but bot replies need the chat route (or a bot's declared profile) set.
+
+
 ## Completion path canonicalization (owner defect 2026-10-15)
 
 The same no_route disease hit completions: OpenAI-dialect routers mount
