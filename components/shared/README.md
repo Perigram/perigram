@@ -547,6 +547,15 @@ shared entity popup (`useEntityPopup` → the user's directory profile).
 Keep person identity displays on this chip; keep entity refs on
 `InstanceInlineRef`.
 
+### `ChatBotPanel.vue`
+The chat bot panel (`StandardDialog`): org bot rows with per-conversation
+join switches (group/instance threads only — direct chats need no
+membership), one-time token reveal/copy on create and rotation, and bot
+deletion through the confirm service. Backed by
+[stores/agentBots.js](../../stores/README.md); the trigger lives in the
+Chats inbox header and only for principals with user-management access
+(the server enforces the same gate).
+
 ### `ChatAttachmentPicker.vue`
 The chat composer's attachment surface: a Popover hosting PrimeVue
 `Tree`, both unmodified Aura. No `pt`, padding, border, or background

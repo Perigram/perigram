@@ -8,11 +8,13 @@ export async function create(data) {
   const db = await connectDB();
   const cleanData = data.toJSON ? data.toJSON() : data;
   const passwordHash = data.data?.passwordHash || cleanData.data?.passwordHash;
+  const bot = data.data?.bot || cleanData.data?.bot;
   const doc = {
     ...cleanData,
     data: {
       ...(cleanData.data || {}),
-      ...(passwordHash ? { passwordHash } : {})
+      ...(passwordHash ? { passwordHash } : {}),
+      ...(bot ? { bot } : {})
     },
     _id: cleanData._id || data._id || new ObjectId()
   };
@@ -43,6 +45,20 @@ export async function findByEmail(email) {
       { 'email': emailLower }
     ]
   });
+}
+
+export async function findByBotTokenHash(tokenHash) {
+  if (!tokenHash) return null;
+  const db = await connectDB();
+  return await db.collection(COLLECTION).findOne({ 'data.bot.tokenHash': tokenHash });
+}
+
+export async function updateBotToken(userId, tokenHash) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(userId) },
+    { $set: { 'data.bot.tokenHash': tokenHash } }
+  );
 }
 
 export async function find(filter = {}) {

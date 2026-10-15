@@ -29,6 +29,13 @@ user mutation stays on the feature routes below.
 - `permissions`: Tenant recovery grants; ordinary process access is not copied here.
 - `memberships`: Array of organization memberships `{ organizationId, permissions, status, owner? }`; memberships establish tenant relationship and approval state only
 - `isActive`: Boolean flag
+- `bot`: Marker for bot members (`{ tokenHash, createdAt }` persisted; DTOs
+  carry only `{ createdAt }`). Bots have no password (no login) and an
+  internal placeholder email; the membership carries only the narrow
+  `organizations` recovery grant that opens process definition management.
+  `registerBot` (used by the [agent bots](../agent-bots/README.md)
+  feature) mints the `pb_…` token once and stores its SHA-256 hash — the
+  same strip-from-DTOs / restore-on-persist contract as password hashes.
 
 ## Authentication Flow
 1. Login → `usersService.login(email, password)`

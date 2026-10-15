@@ -197,6 +197,14 @@ export async function findGroupsByParticipant(userId) {
         .toArray();
 }
 
+export async function updateGroupParticipants(id, participants = []) {
+    const db = await connectDB();
+    return await db.collection(GROUPS_COLLECTION).updateOne(
+        { _id: toFlexibleId(id) },
+        { $set: { participants: participants.map(item => String(item)) } }
+    );
+}
+
 export async function deleteGroupById(id) {
     const db = await connectDB();
     return await db.collection(GROUPS_COLLECTION).deleteOne({ _id: toFlexibleId(id) });

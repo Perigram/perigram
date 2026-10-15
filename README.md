@@ -263,6 +263,8 @@ builds only).
 | Runtime registry | [server/runtime/README.md](./server/runtime/README.md) |
 | Commands | [server/core/commands/README.md](./server/core/commands/README.md) |
 | Tasks | [server/core/tasks/README.md](./server/core/tasks/README.md) |
+| Agent bots (tool catalog, MCP, chat runtime) | [server/features/agent-bots/README.md](./server/features/agent-bots/README.md) |
+| LLM providers | [server/features/llm/README.md](./server/features/llm/README.md) |
 | Facade plugin (executor + listing) | [workers/facade/README.md](./workers/facade/README.md) |
 | Type system (CTS) | [packages/cts/README.md](./packages/cts/README.md) |
 | Process compiler | [packages/processes/README.md](./packages/processes/README.md) |

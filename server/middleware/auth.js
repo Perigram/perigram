@@ -4,7 +4,9 @@ import { getUserBySessionId } from '../features/users/service.js';
 import * as usersRepository from '../features/users/repository.js';
 import * as organizationsRepository from '../features/organizations/repository.js';
 import { resolveProcessAuth } from '../features/process-definitions/runtime.js';
+import { buildAuthContext } from '../features/users/service.js';
 import { User } from '../features/users/model.js';
+import { createHash } from 'node:crypto';
 
 export default defineEventHandler(async (event) => {
   let user = null;
@@ -20,10 +22,18 @@ export default defineEventHandler(async (event) => {
         if (raw) user = new User(raw);
       }
     } catch (err) {
-      console.warn('[AUTH] JWT failed:', err.message);
+      // 1b. Bot tokens (`pb_…`) share the Authorization header with JWTs:
+      // a failed JWT verify on that shape is a bot-token lookup instead.
+      if (token.startsWith('pb_')) {
+        const tokenHash = createHash('sha256').update(token).digest('hex');
+        const raw = await usersRepository.findByBotTokenHash(tokenHash);
+        if (raw?.data?.bot && raw.data?.isActive) user = new User(raw);
+      } else {
+        console.warn('[AUTH] JWT failed:', err.message);
+      }
     }
   }
-  
+
   // 2. Fallback to session cookie
   if (!user) {
     const cookie = parseCookies(event);
@@ -39,18 +49,7 @@ export default defineEventHandler(async (event) => {
 
   // 3. Populate Context
   if (user && user.isActive) {
-    const userDto = user.toJSON();
-    const authContext = {
-      userId: user.id,
-      name: user.identity?.name || '',
-      email: user.data?.email || '',
-      avatarUrl: userDto.data?.avatarUrl || null,
-      organizationId: user.organizationId?.toString() || null,
-      role: user.role,
-      permissions: user.permissions,
-      memberships: user.memberships || [],
-      restrictedTo: user.restrictedTo
-    };
+    const authContext = buildAuthContext(user);
 
     if (user.organizationId) {
       const org = await organizationsRepository.findById(user.organizationId);

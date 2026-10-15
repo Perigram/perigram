@@ -68,7 +68,12 @@ org `lineage`, plus a `participants` user-id list) and owns the derived
   participants are user-scope — any existing account may join, unknown ids
   are rejected rather than silently dropped, and the creator is always
   included. The group itself stays homed in the creator's organization
-  lineage. Creation pings every participant's inbox topic.
+  lineage. Creation pings every participant's inbox topic. Membership
+  edits on an existing group go through the service seam
+  (`addGroupParticipant`/`removeGroupParticipant`, creator-or-admin gated,
+  the creator irremovable) — driven by the
+  [agent bots](../agent-bots/README.md) subscription endpoint when a bot
+  joins or leaves a group chat.
 - `DELETE /api/support/groups/:id` removes one; the creating member or an
   admin may delete.
 - Group conversations appear in the user's inbox through
@@ -330,6 +335,26 @@ caller as a send target; the new message denormalizes `forwardedFrom
 { senderUserId, senderName, sentAt }` so a forwarded-from header line —
 rendered above the message content on every shape, text, media, or
 files — names the original sender without joins.
+
+## Server-side message observers
+
+`registerMessageObserver(fn)` is the in-process seam for server consumers
+of persisted messages: observers receive `(context, message)` after the
+write has fanned out through the connections layer, run outside the send
+path (failures are logged, never propagated to the sender), and may return
+promises the seam tracks. The [agent bots](../agent-bots/README.md)
+runtime registers the chat-bot trigger this way — the support feature
+stays bot-agnostic.
+
+## Bot members in chats
+
+Bots (users carrying the `data.bot` marker — see
+[agent bots](../agent-bots/README.md)) participate in conversations like
+any member: direct threads with a bot are ordinary direct conversations,
+group membership rides the participants list, and instance (organization)
+chats admit them through org-scoped reads. Bot replies re-enter
+`sendUserMessage` with the bot's own auth context; there is no separate
+bot delivery channel.
 
 ## API
 
