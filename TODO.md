@@ -295,6 +295,40 @@ day (origin stripped by emitInstanceMutation, stale payload loads,
 programmatic reloads arming the save button) were fixed on
 `agent/editor-sync-fix-20261015` with spec coverage.
 
+## Markdown editor: the complete authoring surface (owner direction 2026-10-15)
+
+The editor's usage round (SPEC UI): code blocks toggle from the toolbar
+and carry their language picker, syntax highlighting, and the app's mono
+voice; headings run one through six; links set through an address input;
+`/` offers the block vocabulary; the toolbar disables what cannot act
+in the markdown source mode.
+
+- [x] A. Code blocks: fenced blocks render CodeMirror with the language
+      list riding the crepe feature config (the supported channel — the
+      post-hoc config-slice update never reached the live block), a
+      token-backed theme in the app's mono voice (shared by the source
+      view), and the language picker plus copy affordance visible and
+      styled.
+- [x] B. Toolbar: H4–H6 join the row, the code block control toggles
+      (create ↔ body text), the link control applies an address and
+      re-applying it lifts the link, and every format control disables
+      in source mode.
+- [x] C. Slash commands: the `/` menu over the official plugin-slash —
+      filters as the query types, navigates by keyboard, inserts through
+      the same command path the toolbar uses.
+- [ ] WAITING — owner verification on the live stack.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/md-editor-authoring-20261015`. Root cause of the
+dead syntax highlighting: crepe applies feature configs in its
+constructor, so the editor's later `ctx.update(codeBlockConfig.key, …)`
+landed before the feature's own config replaced `languages` with its
+default — the supported channel is `featureConfigs` on the Crepe
+constructor. The dead toolbar in source mode was the removed
+`sourceActive` binding's shadow: the controls had no real mode gate, so
+they ran hidden-document commands in source view.
+
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
 The toolbar format controls toggle (SPEC UI): an active heading, list,
