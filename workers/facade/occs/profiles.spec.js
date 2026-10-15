@@ -8,6 +8,7 @@ import {
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
   occProfileSketchFromEntities,
+  mergeOccsProfileSketchGeometry,
   occsProfileFromSketch,
   projectProfileSketchPointFromPrevious,
   setOccsProfileSketchClosed
@@ -250,6 +251,56 @@ describe('OCCS profile helpers', () => {
     const section = occsProfileFromSketch(open).section;
     expect(section.anchorDistances).toBeUndefined();
     expect(section.breakPoints).toHaveLength(2);
+  });
+
+  it('merges extraction into authored expressions — drawing never destroys parametrics', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: { W: 100 },
+      points: [
+        { id: 'a0', x: 0, y: 0 },
+        { id: 'a1', x: 'W/2', y: 0 },
+        { id: 'a2', x: 'W/2', y: 40 }
+      ],
+      edges: [
+        { from: 'a0', to: 'a1' },
+        { from: 'a1', to: 'a2' }
+      ],
+      closed: false,
+      modifiers: [{ type: 'fillet', vertexId: 'a1', radius: 'W/40' }]
+    });
+    // The same three corners plus one drawn extension.
+    const extracted = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 50, y: 0 } },
+      { type: 'LINE', start: { x: 50, y: 0 }, end: { x: 50, y: 40 } },
+      { type: 'LINE', start: { x: 50, y: 40 }, end: { x: 20, y: 40 } }
+    ], { W: 100 });
+    const merged = mergeOccsProfileSketchGeometry(extracted, authored);
+
+    expect(merged.points[0]).toMatchObject({ id: 'a0', x: 0 });
+    expect(merged.points[1]).toMatchObject({ id: 'a1', x: 'W/2' });
+    expect(merged.points[2]).toMatchObject({ id: 'a2', x: 'W/2', y: 40 });
+    expect(merged.points[3]).toMatchObject({ x: 20, y: 40 });
+    expect(merged.points[3].id).not.toBe('a0');
+    expect(merged.modifiers).toContainEqual({ type: 'fillet', vertexId: 'a1', radius: 'W/40' });
+    expect(merged.closed).toBe(false);
+    expect(merged.unchained).toBe(0);
+
+    // A moved corner loses its expression; untouched corners keep theirs.
+    const moved = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 50, y: 0 } },
+      { type: 'LINE', start: { x: 50, y: 0 }, end: { x: 50, y: 77 } }
+    ], { W: 100 });
+    const mergedMoved = mergeOccsProfileSketchGeometry(moved, authored);
+    expect(mergedMoved.points[0]).toMatchObject({ id: 'a0' });
+    expect(mergedMoved.points[1]).toMatchObject({ id: 'a1', x: 'W/2' });
+    expect(mergedMoved.points[2]).toMatchObject({ y: 77 });
+
+    // Unresolvable authored expressions fall back to the plain extraction.
+    const broken = {
+      ...authored,
+      points: authored.points.map((point, index) => (index === 1 ? { ...point, x: 'nope' } : point))
+    };
+    expect(mergeOccsProfileSketchGeometry(extracted, broken)).toBe(extracted);
   });
 
   it('round-trips a filleted sketch through CAD entity records', () => {

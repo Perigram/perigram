@@ -720,6 +720,102 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
   }, parameters);
 };
 
+// Extraction merges into the authored sketch instead of replacing it: an
+// extracted point sitting on an authored point's evaluated position
+// (within a rounding epsilon) keeps the authored id, expression
+// coordinates, and fillet radius — drawing, importing, or undoing never
+// destroys parametric authoring. Moved or new points carry the
+// extracted numerics. An authored sketch whose expressions do not
+// resolve falls back to the plain extraction (the save gate reports it).
+const MERGE_EPSILON_MM = 1e-3;
+
+export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}) => {
+  let source = null;
+  try {
+    source = evaluateOccsProfileSketch(authored);
+  } catch {
+    return extracted;
+  }
+  const authoredPoints = new Map(
+    (Array.isArray(authored.points) ? authored.points : []).map(point => [point.id, point])
+  );
+  const authoredFillet = new Map(
+    (Array.isArray(authored.modifiers) ? authored.modifiers : [])
+      .filter(modifier => modifier?.type === 'fillet')
+      .map(modifier => [modifier.vertexId, modifier.radius])
+  );
+  const usedAuthored = new Set();
+  const kept = [];
+  const points = extracted.points.map((point) => {
+    let best = null;
+    for (const candidate of source.points) {
+      if (usedAuthored.has(candidate.id) || Boolean(candidate.chord) !== Boolean(point.chord)) continue;
+      const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
+      if (distance <= MERGE_EPSILON_MM && (!best || distance < best.distance)) {
+        best = { candidate, distance };
+      }
+    }
+    if (!best) return { ...point };
+    usedAuthored.add(best.candidate.id);
+    kept.push(best.candidate.id);
+    const original = authoredPoints.get(best.candidate.id);
+    return {
+      id: best.candidate.id,
+      x: original ? original.x : best.candidate.x,
+      y: original ? original.y : best.candidate.y
+    };
+  });
+  // Fresh ids must not collide with the kept authored ids.
+  const taken = new Set(points.map(point => point.id));
+  let nextId = 0;
+  for (const point of points) {
+    if (usedAuthored.has(point.id)) continue;
+    while (taken.has(`p${nextId}`)) nextId += 1;
+    const id = `p${nextId}`;
+    taken.add(id);
+    point.id = id;
+  }
+  const idAtIndex = new Map(points.map((point, index) => [index, point.id]));
+  const extractedVertexId = (vertexId) => {
+    const index = Number(String(vertexId ?? '').slice(1));
+    return Number.isInteger(index) ? idAtIndex.get(index) ?? vertexId : vertexId;
+  };
+  const modifiers = [];
+  for (const vertexId of kept) {
+    if (authoredFillet.has(vertexId)) {
+      modifiers.push({ type: 'fillet', vertexId, radius: authoredFillet.get(vertexId) });
+    }
+  }
+  for (const modifier of extracted.modifiers) {
+    if (!modifier || modifier.type !== 'fillet') continue;
+    const vertexId = extractedVertexId(modifier.vertexId);
+    if (kept.includes(vertexId)) continue;
+    modifiers.push({ ...modifier, vertexId });
+  }
+  const authoredHoles = (Array.isArray(authored.holes) ? authored.holes : []);
+  const usedHoles = new Set();
+  const holes = extracted.holes.map((hole, index) => {
+    let best = null;
+    source.holes.forEach((candidate, at) => {
+      if (usedHoles.has(at)) return;
+      const distance = Math.hypot(candidate.center[0] - hole.center[0], candidate.center[1] - hole.center[1]);
+      if (distance <= MERGE_EPSILON_MM
+        && Math.abs(candidate.diameter - hole.diameter) <= MERGE_EPSILON_MM
+        && (!best || distance < best.distance)) best = { at, distance };
+    });
+    if (!best) return { ...hole, id: `h${index}` };
+    usedHoles.add(best.at);
+    const original = authoredHoles[best.at];
+    return {
+      id: original?.id ?? `h${index}`,
+      type: 'circle',
+      center: original ? original.center : hole.center,
+      diameter: original ? original.diameter : hole.diameter
+    };
+  });
+  return { ...extracted, points, holes, modifiers };
+};
+
 // Rebuilds CAD entity records from a sketch so the canvas can seed with
 // the exact geometry: the boundary becomes discrete line segments with a
 // tangent arc at every fillet corner, holes become circles. This is the

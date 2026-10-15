@@ -5,6 +5,7 @@
 // model normalize through occs/profiles.js.
 import {
   evaluateOccsProfileSketch,
+  mergeOccsProfileSketchGeometry,
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
   occProfileSketchFromEntities,
@@ -286,13 +287,15 @@ export default function createSketchEditor({ vue, components, locale }) {
         selectedVertexId.value = point ? point.id : null;
       };
 
-      // The engine's Escape handling is scoped to its canvas container;
-      // after any toolbar click focus sits outside it and selections could
-      // never be escaped. A window-level listener clears them.
+      // The surface owns Escape routing: the engine's own handling needs
+      // focus inside its container, and toolbar clicks move focus
+      // outside it. Escape closes the vertex popup, cancels the engine's
+      // active command, and clears its selection — in that order.
       const handleWindowKeydown = (event) => {
         if (event.key !== 'Escape') return;
         if (selectedVertexId.value) selectedVertexId.value = null;
         if (event.target?.closest?.('input, textarea, select, [contenteditable]')) return;
+        manager?.commandManager?.cancelActive?.();
         const view = manager?.curView;
         if (!view) return;
         if (view.selectionSet?.ids?.size) {
@@ -392,17 +395,28 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!manager || disposed) return;
         const context = parametersOf(props.modelValue);
         const extracted = occProfileSketchFromEntities(entityRecords(), context);
-        // Anchors are model state, not derivable from geometry — extraction
-        // preserves them (normalize drops the anchor when its vertex died).
+        // Extraction merges into the authored sketch — unchanged corners
+        // keep their authored expressions, ids, and fillet radii; only
+        // moved or new geometry goes numeric. Anchors are model state,
+        // not derivable from geometry (normalize drops the anchor when
+        // its vertex died).
         const sketch = normalizeOccsProfileSketch({
-          ...extracted,
+          ...mergeOccsProfileSketchGeometry(extracted, props.modelValue || {}),
           anchors: props.modelValue?.anchors ?? null
         }, context.parameters);
         const fingerprint = JSON.stringify(sketch);
         if (fingerprint === lastEmitted) return;
         lastEmitted = fingerprint;
         emit('update:modelValue', sketch);
-        emit('profile', occsProfileFromSketch(sketch, context));
+        // A merged sketch can keep authored expressions the evaluator
+        // rejects — the profile stays null then; the save gate reports.
+        let profile = null;
+        try {
+          profile = occsProfileFromSketch(sketch, context);
+        } catch {
+          // Unresolvable expressions: nothing to emit while invalid.
+        }
+        emit('profile', profile);
       };
 
       const scheduleExtraction = () => {
@@ -527,9 +541,36 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      // The engine owns the active-tool state: commands started from the
+      // toolbar, the queue, or the canvas all announce themselves through
+      // the editor's lifecycle events, and the toolbar only reflects
+      // them. Draw commands stick while running; everything else returns
+      // to Select when the command ends.
+      const DRAW_COMMANDS = new Set(['line', 'pline', 'circle', 'arc', 'rectang']);
+      let unbindCommandEvents = null;
+      const bindCommandEvents = () => {
+        const events = manager?.editor?.events;
+        if (!events?.commandWillStart || !events?.commandEnded) return;
+        const onWillStart = ({ command }) => {
+          const name = String(command?.globalName || command?.localName || '').toLowerCase();
+          activeTool.value = DRAW_COMMANDS.has(name) ? name : 'select';
+        };
+        const onEnded = () => { activeTool.value = 'select'; };
+        events.commandWillStart.addEventListener(onWillStart);
+        events.commandEnded.addEventListener(onEnded);
+        unbindCommandEvents = () => {
+          events.commandWillStart.removeEventListener(onWillStart);
+          events.commandEnded.removeEventListener(onEnded);
+        };
+      };
+
       const runCommand = (tool) => {
         if (tool.command) {
-          activeTool.value = tool.command;
+          // An active command is cancelled first — the queue would
+          // otherwise stack prompts behind it.
+          if (activeTool.value !== 'select') {
+            manager?.commandManager?.cancelActive?.();
+          }
           manager?.sendStringToExecute?.(tool.command);
         }
         tool.onActivate?.();
@@ -541,10 +582,10 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       // Edits author the sketch model directly (expressions stay strings);
       // the canvas reseeds from evaluated geometry — unresolvable
-      // expressions seed nothing and the chips keep the raw values for
-      // editing. The extraction pass still re-derives points, holes, and
-      // modifiers from drawn geometry, so a later draw/import overwrites
-      // authored expressions and radii.
+      // expressions seed nothing and the rows keep the raw values for
+      // editing. Later draws merge back through
+      // mergeOccsProfileSketchGeometry, which keeps authored expressions
+      // on unchanged corners.
       const commitSketch = (next) => {
         if (!manager || disposed) return;
         // Authored edits rebuild the canvas from the model, dropping any
@@ -899,6 +940,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (disposed) return;
           manager.events.documentActivated.addEventListener(bindDatabase);
           manager.events.documentCreated.addEventListener(bindDatabase);
+          bindCommandEvents();
           containerRef.value?.addEventListener('keydown', handleKeydown, true);
           window.addEventListener('keydown', handleWindowKeydown, true);
           manager.curView?.events?.renderFrame?.addEventListener?.(bumpViewTick);
@@ -943,6 +985,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         extractTimer = null;
         zoomObserver?.disconnect?.();
         zoomObserver = null;
+        unbindCommandEvents?.();
+        unbindCommandEvents = null;
         window.removeEventListener('keydown', handleWindowKeydown, true);
         manager?.curView?.events?.renderFrame?.removeEventListener?.(bumpViewTick);
         containerRef.value?.removeEventListener?.('keydown', handleKeydown, true);
