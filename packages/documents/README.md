@@ -138,10 +138,10 @@ code-mirror feature stays and is configured through the crepe feature
 config — the supported channel, applied in the constructor: fenced
 blocks edit in CodeMirror with the full `@codemirror/language-data`
 registry and the app-token theme (`src/editors/cm-theme.js` — mono
-voice and token colors, no line-number gutters inside the document),
-and the per-block tools (language picker with search, copy) reveal on
-the block's hover or focus — never as a standing row inside every
-block. Slash commands (`src/editors/slash-menu.js` over the official
+voice and token colors). The block's own tools (language picker,
+copy) are crepe's UI, rendered by crepe's structural theme through
+the token bridge — nothing re-skins them. Slash commands
+(`src/editors/slash-menu.js` over the official
 `@milkdown/plugin-slash`) type `/` at a word start to open the block
 vocabulary — filtered by the query, keyboard-navigated, inserting
 through the same command path the toolbar uses (a table picks a 3×3
@@ -152,10 +152,15 @@ those signals ride the toolbar instead. The focused block as editable
 markdown source remains the Obsidian-model direction, tracked in
 TODO.md; no overlay ships.
 
-**Theming.** The engine surface is bridged from the app's tokens
-(`src/editors/text-document-editor.css`): the prose voice, the
-technical role for code, and a readable measure (~72ch) centered in
-the pane.
+**Theming.** The stylesheet is a bridge, not a skin
+(`src/editors/text-document-editor.css`): crepe's variables map to the
+app's tokens (fonts, colors; controls inside fenced blocks speak the
+UI voice through a variable scope), the document reads in the prose
+voice on a readable measure (~72ch) centered in the pane, and the
+slash menu carries the host's semantic utilities. No element-level
+chrome exists on this surface — the visual ownership contract
+([docs/UI_COMPONENT_AUDIT.md](../../docs/UI_COMPONENT_AUDIT.md))
+governs it.
 
 **Sync.** Saves and renames publish the shared instance event through
 the persistence base, and open editors reconcile remote saves through

@@ -506,13 +506,18 @@ Round 4 (owner review, same day): both round-3 answers were rejected.
 The MD toggle is REMOVED — no source mode, no surface toggle; the
 document is the one surface (markdown authored through input rules,
 slash, toolbar; the raw payload stays the stored truth). The round-3
-`source-commands.js` and its spec are deleted. The code block chrome
-was restyled through the visual ownership contract
-(docs/UI_COMPONENT_AUDIT.md): semantic PrimeVue radius/shadow tokens,
-no raw pixel values, the slash menu's chrome rides the host's semantic
-utilities (`rounded-ui`, `shadow-overlay`, `bg-chrome-background`,
-`text-body`), and crepe-internal code surfaces keep only token-backed
-values.
+`source-commands.js` and its spec are deleted.
+
+Round 5 (owner review, same day): the hand-styled block chrome was
+rejected wholesale — the project's UI rules own this. The entire
+element-level chrome layer is deleted: no block slab, no tools chip,
+no language-button/copy/dropdown skins, no gutter hiding, no custom
+control styling anywhere. The stylesheet is a token bridge plus layout
+constraints only (crepe's variables mapped to the app's tokens, the UI
+voice scoped inside fenced blocks, the 72ch measure, the inline-code
+role, the marker signage); crepe renders its own UI through the
+bridge, and the slash menu carries the host's semantic utilities on
+its elements.
 
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
