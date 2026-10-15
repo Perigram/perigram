@@ -27,7 +27,9 @@ const { mockedSupport, mockedLlm, mockedBotsService, mockedBotRepository, mocked
     },
     mockedTools: {
         executeTool: vi.fn(),
-        llmToolDescriptors: vi.fn(() => []),
+        chatToolDescriptors: vi.fn(() => [
+            { name: 'list_types', description: 'lists types', inputSchema: { type: 'object', properties: {} } }
+        ]),
         mcpToolDescriptors: vi.fn(() => [
             { name: 'list_types', description: 'lists types', inputSchema: { type: 'object', properties: {} } }
         ])
@@ -135,27 +137,28 @@ describe('runBotReply', () => {
             { senderUserId: HUMAN, message: 'hello' },
             { senderUserId: BOT_A, message: 'hi' }
         ]);
-        mockedLlm.chatCompletion.mockResolvedValue({ content: 'the answer' });
+        mockedLlm.chatCompletion.mockResolvedValue({ content: 'the answer', toolCalls: [] });
         await runBotReply(BOT_A, context, message);
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
         expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('the answer');
-        const seenMessages = mockedLlm.chatCompletion.mock.calls[0][0].messages;
-        expect(seenMessages[0].role).toBe('system');
-        expect(seenMessages.some((entry) => entry.role === 'assistant' && entry.content === 'hi')).toBe(true);
+        const { system, messages } = mockedLlm.chatCompletion.mock.calls[0][0];
+        expect(system).toMatch(/Bot/);
+        expect(messages.some((entry) => entry.role === 'assistant' && entry.content === 'hi')).toBe(true);
     });
 
     it('executes tool calls with the bot auth and feeds results back', async () => {
         mockedLlm.chatCompletion
             .mockResolvedValueOnce({
                 content: '',
-                tool_calls: [{ id: 'call-1', function: { name: 'list_types', arguments: '{"x":1}' } }]
+                toolCalls: [{ id: 'call-1', name: 'list_types', arguments: { x: 1 } }]
             })
-            .mockResolvedValueOnce({ content: 'done' });
+            .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
         mockedTools.executeTool.mockResolvedValue({ types: [] });
         await runBotReply(BOT_A, context, message);
         expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, botAuth);
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
-        expect(toolMessage.tool_call_id).toBe('call-1');
+        expect(toolMessage.toolCallId).toBe('call-1');
+        expect(toolMessage.name).toBe('list_types');
         expect(JSON.parse(toolMessage.content)).toEqual({ types: [] });
         expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('done');
     });
@@ -164,9 +167,9 @@ describe('runBotReply', () => {
         mockedLlm.chatCompletion
             .mockResolvedValueOnce({
                 content: '',
-                tool_calls: [{ id: 'call-1', function: { name: 'list_types', arguments: '{}' } }]
+                toolCalls: [{ id: 'call-1', name: 'list_types', arguments: {} }]
             })
-            .mockResolvedValueOnce({ content: 'recovered' });
+            .mockResolvedValueOnce({ content: 'recovered', toolCalls: [] });
         mockedTools.executeTool.mockRejectedValue(new Error('boom'));
         await runBotReply(BOT_A, context, message);
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
@@ -177,7 +180,7 @@ describe('runBotReply', () => {
     it('stops at the round budget with an honest notice', async () => {
         mockedLlm.chatCompletion.mockResolvedValue({
             content: '',
-            tool_calls: [{ id: 'c', function: { name: 'list_types', arguments: '{}' } }]
+            toolCalls: [{ id: 'c', name: 'list_types', arguments: {} }]
         });
         mockedTools.executeTool.mockResolvedValue({});
         await runBotReply(BOT_A, context, message);

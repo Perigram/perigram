@@ -6,9 +6,11 @@ Agents manipulate process definitions and instances procedurally: an MCP
 endpoint over a shared tool catalog, and chat bots that answer in group, org,
 and direct chats.
 
-- [x] A. LLM capability module: per-org OpenAI-compatible provider selection
-      following the transcription config pattern (`data.settings.llm`, `LLM_*`
-      env defaults), chat completions with tool calling.
+- [x] A. LLM capability module: per-org provider selection over a
+      selectable provider table (owner reshaped 2026-10-15: local models,
+      options to choose) — `ollama` (native `/api/chat`), `anthropic`
+      (Messages), `openai` (local OpenAI-shaped servers); no default base
+      URL anywhere, org `data.settings.llm` over `LLM_*` env.
 - [x] B. Bot users: organization member with a `data.bot` marker and token
       (hash-stored, issued on create/rotate); bot-token auth path in the auth
       middleware beside JWT and session cookie.
@@ -55,6 +57,21 @@ validate, design-system, users spec, SSR smoke, and the new
 `agent-bots.spec.js` (23 tests) all pass; the remaining full-suite failures
 (30 tests across process-definitions/livekit/invitations/ui-mapping
 specs) fail identically at clean HEAD — pre-existing, untouched.
+
+#### Agent Notes (2026-10-15, provider reshape)
+
+The owner rejected the OpenAI-cloud posture ("local models on my own
+server", "options to choose"): the llm module now owns a provider table
+with per-provider wire translation (`ollama` native, `anthropic`
+Messages, `openai` for local OpenAI-shaped servers), no default base URL
+anywhere, and one neutral conversation contract — the tool catalog and
+bot loop are protocol-blind and never see a wire shape. The single
+OpenAI-cloud implementation was fully retired in the same change (no
+dual path). The dedup pass moved meetings' private OpenAI-shaped
+summarizer onto the shared module: `MEETINGS_LLM_*` env and the
+per-feature baseUrl/model/apiKey settings are gone — one provider
+selection per organization. Pinned by `server/features/llm/llm.spec.js`
+(16 tests) beside the updated loop and meetings specs.
 
 ## Markdown editor: source mode, remote reconciliation, surface polish (owner direction 2026-10-15)
 

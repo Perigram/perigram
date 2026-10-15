@@ -1,11 +1,10 @@
-import { createError } from 'h3';
 import * as organizationsService from '~/server/features/organizations/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import * as filesService from '~/server/features/files/service.js';
 import * as transcriptionService from '~/server/features/transcription/service.js';
+import * as llmService from '~/server/features/llm/service.js';
 import { insertRecordingMessage, findChatGroup } from '../support/service.js';
 
-const REQUEST_TIMEOUT_MS = 120000;
 const DEFAULT_PROTOCOL = [
     'You summarize recorded calls for the team.',
     'Write a compact summary in the call\'s language:',
@@ -14,26 +13,20 @@ const DEFAULT_PROTOCOL = [
 ].join(' ');
 
 /**
- * Config resolution mirrors the transcription feature: the org's
- * `data.settings.meetings` overrides environment defaults, and a missing
- * chat endpoint disables summaries entirely (see the meetings README).
+ * Config resolution keeps only the meetings-owned concerns (protocol file,
+ * posting bot); the chat model itself is the organization's shared LLM
+ * provider selection (see the llm feature). A missing provider or an
+ * explicit `enabled: false` disables summaries entirely.
  */
 export async function resolveMeetingsConfig(organizationId = null) {
     const setting = await orgMeetingsSetting(organizationId);
-    const baseUrl = String(setting?.baseUrl || '').trim()
-        || String(process.env.MEETINGS_LLM_BASE_URL || '').trim();
-    const model = String(setting?.model || '').trim()
-        || String(process.env.MEETINGS_LLM_MODEL || '').trim();
-    if (!setting?.enabled && !baseUrl) return { enabled: false };
-    if (!baseUrl) return { enabled: false };
+    if (setting?.enabled === false) return { enabled: false };
+    if (!(await llmService.isLlmAvailable(organizationId))) return { enabled: false };
     const protocol = await protocolText(setting?.protocolFileId);
     return {
         enabled: true,
         protocol,
-        botUserId: String(setting?.botUserId || '').trim(),
-        baseUrl,
-        model,
-        apiKey: String(setting?.apiKey || '').trim() || String(process.env.MEETINGS_LLM_API_KEY || '').trim()
+        botUserId: String(setting?.botUserId || '').trim()
     };
 }
 
@@ -103,7 +96,12 @@ export async function summarizeRecording({ record = {}, message = {} } = {}) {
             console.log(`Meeting summary skipped: no speech in recording ${record.egressId}`);
             return null;
         }
-        const summary = await chatCompletion(config, transcript);
+        const { content } = await llmService.chatCompletion({
+            organizationId,
+            system: config.protocol,
+            messages: [{ role: 'user', content: transcript }]
+        });
+        const summary = content.trim();
         if (!summary) return null;
         return await insertRecordingMessage({
             conversationKey: record.conversationKey,
@@ -116,40 +114,3 @@ export async function summarizeRecording({ record = {}, message = {} } = {}) {
     }
 }
 
-async function chatCompletion(config, transcript) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    let response;
-    try {
-        response = await fetch(`${config.baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {})
-            },
-            body: JSON.stringify({
-                model: config.model,
-                stream: false,
-                messages: [
-                    { role: 'system', content: config.protocol },
-                    { role: 'user', content: transcript }
-                ]
-            }),
-            signal: controller.signal
-        });
-    } catch (error) {
-        throw createError({ statusCode: 502, message: 'Meeting model is unreachable' });
-    } finally {
-        clearTimeout(timeout);
-    }
-    if (!response.ok) {
-        const detail = (await response.text().catch(() => '')).trim().slice(0, 200);
-        throw createError({
-            statusCode: 502,
-            message: detail ? `Meeting model error: ${detail}` : 'Meeting model error'
-        });
-    }
-    const payload = await response.json().catch(() => null);
-    const content = payload?.choices?.[0]?.message?.content;
-    return typeof content === 'string' ? content.trim() : '';
-}

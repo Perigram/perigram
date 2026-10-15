@@ -261,12 +261,13 @@ export function mcpToolDescriptors() {
     return TOOL_SPECS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
 }
 
-/** OpenAI-compatible function-tool descriptors for the chat loop. */
-export function llmToolDescriptors() {
-    return TOOL_SPECS.map(({ name, description, inputSchema }) => ({
-        type: 'function',
-        function: { name, description, parameters: inputSchema }
-    }));
+/**
+ * Protocol-neutral chat descriptors for the LLM loop — the same shape MCP
+ * serves. The [llm module](../llm/README.md) translates them onto each
+ * provider's wire shape.
+ */
+export function chatToolDescriptors() {
+    return TOOL_SPECS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
 }
 
 export async function executeTool(name, args, auth) {

@@ -3,7 +3,7 @@ import * as supportService from '~/server/features/support/service.js';
 import { MESSAGE_SENDER } from '~/server/features/support/const.js';
 import { buildBotAuth, isBotUser } from './service.js';
 import * as botRepository from './repository.js';
-import { executeTool, llmToolDescriptors } from './tools.js';
+import { executeTool, chatToolDescriptors } from './tools.js';
 
 /**
  * The chat bot runtime: registered (by the agent-bots nitro plugin) as a
@@ -126,33 +126,29 @@ export async function runBotReply(botUserId, context, message) {
             return;
         }
         const history = await supportService.listMessages({ conversationKey: message.conversationKey }, { limit: HISTORY_LIMIT });
-        const messages = [
-            { role: 'system', content: systemPrompt(botAuth.name, botAuth.organizationData?.name || '') },
-            ...historyMessages(history, botUserId)
-        ];
-        const tools = llmToolDescriptors();
+        const conversation = historyMessages(history, botUserId);
+        const system = systemPrompt(botAuth.name, botAuth.organizationData?.name || '');
+        const tools = chatToolDescriptors();
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-            const assistant = await llmService.chatCompletion({ organizationId, messages, tools });
-            const toolCalls = assistant.tool_calls || [];
+            const assistant = await llmService.chatCompletion({ organizationId, system, messages: conversation, tools });
+            const toolCalls = assistant.toolCalls || [];
             if (!toolCalls.length) {
-                const text = typeof assistant.content === 'string' ? assistant.content.trim() : '';
+                const text = (assistant.content || '').trim();
                 if (text) await sendReply(botAuth, context, message, text);
                 return;
             }
-            messages.push({ role: 'assistant', content: assistant.content || '', tool_calls: toolCalls });
+            conversation.push({ role: 'assistant', content: assistant.content || '', toolCalls });
             for (const call of toolCalls) {
                 let result;
                 try {
-                    const args = typeof call.function?.arguments === 'string'
-                        ? JSON.parse(call.function.arguments || '{}')
-                        : (call.function?.arguments || {});
-                    result = await executeTool(call.function?.name, args, botAuth);
+                    result = await executeTool(call.name, call.arguments, botAuth);
                 } catch (error) {
                     result = { error: error?.message || String(error) };
                 }
-                messages.push({
+                conversation.push({
                     role: 'tool',
-                    tool_call_id: call.id,
+                    toolCallId: call.id,
+                    name: call.name,
                     content: JSON.stringify(result)
                 });
             }

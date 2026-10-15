@@ -58,7 +58,10 @@ token; they act with their own grants, never borrowed user identity. Bots
 join group and instance (organization) chats by subscription and answer
 direct chats; a bot in chat authors process definitions and operates
 instances through the same tool catalog, with validate-before-activate and
-the migration/type-death gates as explicit steps.
+the migration/type-death gates as explicit steps. Bot brains run on local
+models on the owner's own server, with a selectable provider table
+(Ollama, Anthropic Messages, OpenAI-shaped local servers) — never a
+defaulted cloud endpoint.
 
 ## UI
 
