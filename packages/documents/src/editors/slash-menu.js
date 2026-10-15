@@ -39,7 +39,7 @@ export function createSlashMenu({ items, onPick }) {
     element.replaceChildren(...filtered.map((item, index) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = index === active ? 'md-slash-item is-active text-body text-chrome-foreground' : 'md-slash-item text-body text-chrome-foreground';
+      button.className = `md-slash-item w-full text-left px-2.5 py-1 rounded-ui text-body text-chrome-foreground hover:bg-chrome-subtle${index === active ? ' bg-chrome-subtle' : ''}`;
       button.textContent = item.label;
       button.addEventListener('mousedown', event => event.preventDefault());
       button.addEventListener('click', () => pick(index));

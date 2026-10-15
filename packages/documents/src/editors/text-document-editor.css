@@ -1,10 +1,10 @@
-/* The markdown editor's theme: crepe's structural theme plus this
-   bridge from the app's design tokens — the editor is a Perigram prose
-   surface, never a foreign crepe skin. Variable names are crepe's (the
-   component contract); values are the app's tokens, which themselves
-   flip under .dark-mode. Chrome values (radii, shadows) are the
-   semantic PrimeVue tokens — the visual ownership contract lives in
-   docs/UI_COMPONENT_AUDIT.md. */
+/* The markdown editor's bridge to the app's design tokens — the ONLY
+   styling this surface owns. Crepe's structural theme consumes these
+   variables and renders its own chrome; controls inside the engine
+   (code-block tools, panels) are crepe's, carried by the bridged
+   tokens, never re-skinned here. The visual ownership contract lives
+   in docs/UI_COMPONENT_AUDIT.md: no element-level chrome, no second
+   control skin. Values flip under .dark-mode on their own. */
 .milkdown {
   --crepe-color-background: var(--ck-page-background);
   --crepe-color-on-background: var(--ck-chrome-foreground);
@@ -30,9 +30,15 @@
   --crepe-font-code: var(--ck-font-mono);
 }
 
+/* Controls inside fenced blocks speak the UI voice, not the document's
+   serif — a variable scope, not an element skin. */
+.crepe-host .milkdown .milkdown-code-block {
+  --crepe-font-default: var(--ck-font-ui);
+}
+
 /* The editor is the document: it reads in the prose voice with a
    readable measure — the column caps at ~72 characters and centers in
-   the pane. Host-prefixed so the rules outrank crepe's reset (its
+   the pane. Host-prefixed so the rule outranks crepe's reset (its
    stylesheet loads dynamically, always after this file — its own
    .editor rule ships a 120px side padding that otherwise wins). */
 .crepe-host .milkdown .editor {
@@ -42,11 +48,9 @@
   outline: none;
 }
 
-/* Code speaks the app's technical role (mono voice, normal ink — crepe
-   ships a red inline-code chip at 87.5% that reads as a warning, not
-   code). Host-prefixed so the rules outrank crepe's reset regardless
-   of import order — the crepe stylesheet loads dynamically, always
-   after this file. */
+/* Inline code speaks the app's technical role (mono voice, normal
+   ink — crepe ships a red inline-code chip that reads as a warning,
+   not code). */
 .crepe-host .milkdown .ProseMirror code {
   color: var(--crepe-color-on-background);
   background: var(--crepe-color-surface-low);
@@ -56,119 +60,9 @@
   border-radius: var(--p-border-radius-sm);
 }
 
-/* Fenced code blocks render as CodeMirror inside crepe's block
-   component: the chrome-subtle slab, the semantic radius, no IDE
-   gutters inside a document. The block's tools (language picker, copy)
-   live on the block's hover/focus, not as a standing row. */
-.crepe-host .milkdown .milkdown-code-block {
-  position: relative;
-  background: var(--ck-chrome-subtle);
-  border: 1px solid var(--ck-chrome-border);
-  border-radius: var(--p-border-radius-md);
-  margin: 0.75rem 0;
-  padding: 0.75rem 1rem;
-}
-
-.crepe-host .milkdown .milkdown-code-block .cm-editor {
-  background: transparent;
-}
-
-.crepe-host .milkdown .milkdown-code-block .cm-gutters {
-  display: none;
-}
-
-.crepe-host .milkdown .milkdown-code-block .tools {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  border-radius: var(--p-border-radius-md);
-  background: var(--ck-chrome-background);
-  box-shadow: var(--p-overlay-popover-shadow);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms ease;
-}
-
-.crepe-host .milkdown .milkdown-code-block:hover .tools,
-.crepe-host .milkdown .milkdown-code-block:focus-within .tools {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.crepe-host .milkdown .milkdown-code-block .language-picker {
-  position: static;
-  width: auto;
-  padding-top: 0;
-}
-
-.crepe-host .milkdown .milkdown-code-block .language-button,
-.crepe-host .milkdown .milkdown-code-block .tools-button-group button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  border: none;
-  background: transparent;
-  color: var(--ck-chrome-muted);
-  font-family: var(--ck-font-mono);
-  font-size: 0.875em;
-  padding: 0 0.25rem;
-  border-radius: var(--p-border-radius-sm);
-  cursor: pointer;
-}
-
-.crepe-host .milkdown .milkdown-code-block .language-button:hover,
-.crepe-host .milkdown .milkdown-code-block .tools-button-group button:hover {
-  background: var(--ck-chrome-subtle);
-  color: var(--ck-chrome-foreground);
-}
-
-.crepe-host .milkdown .milkdown-code-block .list-wrapper {
-  background: var(--ck-chrome-background);
-  border: 1px solid var(--ck-chrome-border);
-  border-radius: var(--p-border-radius-md);
-  box-shadow: var(--p-overlay-popover-shadow);
-  overflow: hidden;
-}
-
-.crepe-host .milkdown .milkdown-code-block .search-input {
-  border: none;
-  border-bottom: 1px solid var(--ck-chrome-border);
-  outline: none;
-  background: transparent;
-  color: var(--ck-chrome-foreground);
-  font-family: var(--ck-font-ui);
-  padding: 0.375rem 0.75rem;
-  width: 100%;
-}
-
-.crepe-host .milkdown .milkdown-code-block .language-list {
-  max-height: 16rem;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0.25rem;
-  list-style: none;
-}
-
-.crepe-host .milkdown .milkdown-code-block .language-list-item {
-  font-family: var(--ck-font-mono);
-  font-size: 0.875em;
-  color: var(--ck-chrome-foreground);
-  padding: 0 0.5rem;
-  border-radius: var(--p-border-radius-sm);
-  cursor: pointer;
-}
-
-.crepe-host .milkdown .milkdown-code-block .language-list-item:hover,
-.crepe-host .milkdown .milkdown-code-block .language-list-item.selected {
-  background: var(--ck-chrome-subtle);
-}
-
-/* The slash command menu (slash-menu.js): the block vocabulary at the
-   caret. Position and visibility are mechanical here; the visual
-   chrome rides the host's semantic utilities on the element itself. */
+/* The slash command menu (slash-menu.js): position and visibility
+   mechanics only — the visual chrome rides the host's semantic
+   utilities on the element itself. */
 .md-slash-menu {
   position: fixed;
   z-index: 90;
@@ -182,20 +76,6 @@
 
 .md-slash-menu[data-show='true'] {
   display: flex;
-}
-
-.md-slash-menu .md-slash-item {
-  border: none;
-  background: transparent;
-  text-align: left;
-  padding: 0 0.625rem;
-  border-radius: var(--p-border-radius-sm);
-  cursor: pointer;
-}
-
-.md-slash-menu .md-slash-item.is-active,
-.md-slash-menu .md-slash-item:hover {
-  background: var(--ck-chrome-subtle);
 }
 
 /* Live-source markers (the Obsidian model): the focused block's
