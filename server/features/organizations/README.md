@@ -68,9 +68,9 @@ process-definitions collection ([process-definitions](../process-definitions/REA
   `organizations:read` (see
   [partnerships](../partnerships/README.md)), a team
   route screen at `/organization/users` when the caller has `users:admin`,
-  a bots route screen at `/organization/bots` under the same gate (agent
-  member administration — see
-  [agent bots](../agent-bots/README.md)), and
+  an AI models route screen at `/organization/models` under the same gate
+  (provider administration — see
+  [LLM](../llm/README.md)), and
   a process-designer route screen at `/organization/process` when the caller
   has `organizations:admin`. Billing checkout remains an action on the billing
   screen and requires `organizations:admin`. When an active process exists,
