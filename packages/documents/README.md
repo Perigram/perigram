@@ -119,43 +119,42 @@ single-surface live markdown editor (milkdown, owner direction
 2026-10-15: the Obsidian model — the document renders in place while
 writing, the focused block shows its markdown source; the editor's
 model IS markdown, serialization is the framework's own, no rich-text
-proxy). The live-source seam today is `src/editors/source-markers.js`
-(pure state readers: the quote marker `> ` — the one prefix that sits
-in existing indent and shifts no text) plus
-`source-markers-plugin.js` (the ProseMirror plugin rendering them as
-non-editable, clipboard-inert widgets and reporting the toolbar
-selection state — the quote's `> ` only; heading and inline-mark
-glyphs reflow the focused line and are deliberately absent, the
-toolbar's pressed state carries those signals). Editing the source
-text of the focused block is a
-view-level concern and ships as its own task (TODO) — a
-representation-swap into the document was tried and reverted: any
-temporary node in the doc lies to every consumer (a save mid-edit
-wrote a fenced block where the heading was). The engine ships with
-every piece of its chrome disabled — toolbar, block-edit, top bar,
-link tooltip, latex, AI, the CodeMirror feature (it mounts a Vue app
-with a language-picker dropdown inside every fenced block; code
-renders as plain `pre`), the virtual cursor, and the placeholder:
-formatting rides raw PrimeVue controls in the editor toolbar — the
-pressed state is PrimeVue's own severity vocabulary (active controls
-turn primary), no custom classes or chrome; marks, headings, lists,
-quote — every control toggles, an active block control returning it
-to body text; markdown input rules and keyboard shortcuts keep
-working. The surface is themed from the app's tokens
-(`src/editors/text-document-editor.css`): code speaks the technical
-role (the app's mono voice, normal ink — crepe's red inline-code chip
-is overridden), and the document column caps at a readable measure
-(~72ch) centered in the pane. Saves and renames publish the shared
-instance event through the persistence base, and open editors
-reconcile remote saves through `useRemoteDocumentSync.js` — a clean
-editor reloads, a dirty one raises its refresh affordance (pre-CRDT:
-divergence is never silent, last writer wins per revisioned save).
-The csv editor edits rows in a cell table and serializes CSV text on
-save (PrimeVue's cell editor commits through `cell-edit-complete`),
-with the same remote-document reconciliation. Both take the
-instance-backed persistence contract (loads through the payload
-download URL, saves through the revisioned instance payload transport —
-the contract home is
+proxy).
+
+**Toolbar.** Every control toggles — an active block control returns
+the block to body text. `MD` switches the source and preview surfaces
+(the markdown text itself, and the rendered document); the visible
+surface is what saves. Markdown input rules and keyboard shortcuts
+work beside the controls; heading commands take the heading level as
+their raw command payload.
+
+**Engine chrome.** Crepe's toolbar, block-edit, top bar, link tooltip,
+latex, AI, virtual cursor, and placeholder features are disabled, and
+its CodeMirror feature is replaced by the standalone source view
+(crepe's own mounts a Vue app with a language dropdown inside every
+fenced block). Fenced code highlights through the
+`@codemirror/language-data` registry. The quote's `> ` marker
+(`source-markers.js` + `source-markers-plugin.js`) is the one rendered
+prefix — heading and inline-mark glyphs reflow the focused line, so
+those signals ride the toolbar instead. Editing a whole block as its
+source remains a view-level task (TODO).
+
+**Theming.** The engine surface is bridged from the app's tokens
+(`src/editors/text-document-editor.css`): the prose voice, the
+technical role for code, and a readable measure (~72ch) centered in
+the pane.
+
+**Sync.** Saves and renames publish the shared instance event through
+the persistence base, and open editors reconcile remote saves through
+`useRemoteDocumentSync.js` — a clean editor reloads, a dirty one
+raises its refresh affordance (pre-CRDT: divergence is never silent,
+last writer wins per revisioned save). The csv editor edits rows in a
+cell table and serializes CSV text on save (PrimeVue's cell editor
+commits through `cell-edit-complete`), with the same
+remote-document reconciliation. Both take the instance-backed
+persistence contract (loads through the payload download URL, saves
+through the revisioned instance payload transport — the contract home
+is
 [components/generated/README.md](../../components/generated/README.md)).
 
 ## Starter constructs
