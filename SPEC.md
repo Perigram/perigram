@@ -71,6 +71,13 @@ in the subscribed conversation. The state machine stays process
 vocabulary: in-graph agent nodes remain out of contract, bot actors never
 re-wake bots, and creation (initialize) events do not trigger.
 
+Talking to agents is starting a chat: every organization has one
+assistant bot contact, present in the new-chat pickers without any setup,
+and any participant may join a bot into a group or organization chat.
+Assigning agents to process roles ("lanes") happens on the team surface
+where every member's roles are assigned — bots are members, badged as
+bots, never authored into process definitions.
+
 ## UI
 
 All UI is written in raw, unmodified PrimeVue plus the repo's registered

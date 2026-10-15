@@ -32,13 +32,29 @@ Three pieces share one tool catalog:
 
 | Kind | Membership | Trigger |
 |---|---|---|
-| Direct with a bot | None needed — pick the bot in the chat user picker | Implicit: the single bot participant answers |
+| Direct with a bot | None needed — pick the bot (the assistant floats first) in the new-chat picker | Implicit: the single bot participant answers |
 | Group chat | Subscription + group participants entry (posting admission is participant-scoped) | Subscription on `group:<id>` |
 | Instance/org chat | Subscription only (instance conversations have no participant list) | Subscription on the instance key or any ancestor key on the message's stored `instancePath` |
 
-Support-channel messages never trigger; bot senders never trigger (no
-bot-to-bot loops); one in-flight reply per bot and conversation (chat
+Joining a bot to a room is participant-level (any member, through the
+thread header's bot sheet); human membership keeps the creator-or-admin
+gate. Support-channel messages never trigger; bot senders never trigger
+(no bot-to-bot loops); one in-flight reply per bot and conversation (chat
 replies and wakes share the lock space).
+
+## Org assistant and contacts
+
+Every organization has one assistant bot (SPEC: agent access), lazily
+bootstrapped through its deterministic address
+`assistant-<orgId>@bots.perigram.internal` — collision means it exists,
+so bootstrap is idempotent across workers. `GET /api/agent-bots/contacts`
+(member-visible, optional `?conversationKey=`) ensures the assistant and
+returns every org bot decorated with the conversation's subscription flag
+and wake rules; the assistant sorts first. The chat pickers float these
+rows above human members (the badge rides the user DTO's bot marker), so
+chatting with an agent is a new chat away — nobody creates anything
+first. Bot administration (create, token, delete) stays manager-gated in
+the same sheet.
 
 ## Lifecycle wakes
 
@@ -81,11 +97,15 @@ wake scanner turns matching status transitions into proactive agent runs:
   wakeOn? }` — `wakeOn` is the subscription's lifecycle wake rule list:
   omitted leaves stored rules, `null`/`[]` clears, a non-empty array
   replaces), and `GET /api/agent-bots/wake-options` (active compiled
-  primary states for the wake-rule pickers).
-All gated by user-management access in the active organization; bot
+  primary states for the wake-rule pickers). `GET /api/agent-bots/contacts`
+  is the member-visible twin of the listing (ensures the org assistant,
+  no admin gate).
+Bot joins are participant-level; the admin routes are gated by
+user-management access in the active organization. Bot
 membership carries only the narrow `organizations` recovery grant that
-opens process definition management, and process roles are assigned like
-any member's (org users page).
+opens process definition management, and process roles ("lanes") are
+assigned like any member's — on the org team surface, where bot rows
+carry the badge.
 
 Bot tokens are `pb_…` values in the `Authorization: Bearer` header; the
 stored form is a SHA-256 hash (never in DTOs — the same strip-and-restore

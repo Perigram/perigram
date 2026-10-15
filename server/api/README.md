@@ -10,8 +10,10 @@ Routes are grouped into sub-directories corresponding to features:
   `?conversationKey=` and returns subscription flags and wake rules;
   `DELETE /api/agent-bots/:id`; `POST /api/agent-bots/:id/token` rotation)
   plus `POST/DELETE /api/agent-bots/subscriptions` (the body carries
-  optional `wakeOn` lifecycle wake rules). Everything is gated by user
-  management access in the active organization. See
+  optional `wakeOn` lifecycle wake rules) and the member-visible
+  `GET /api/agent-bots/contacts` (org bots with the ensured assistant,
+  conversation subscription flags). Admin routes are gated by user
+  management access; bot joins are participant-level. See
   [agent-bots feature](../features/agent-bots/README.md).
 - `mcp/`: `POST /api/mcp` — the MCP streamable-HTTP endpoint over the
   shared agent tool catalog (single JSON-RPC messages, `application/json`
