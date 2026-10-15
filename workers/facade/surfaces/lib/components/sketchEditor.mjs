@@ -18,6 +18,11 @@ import createFieldDraft from './fieldDraft.mjs';
 
 const EXTRACT_DEBOUNCE_MS = 40;
 
+// The engine's glyph-redraw timer runs 50 ms after its font preload
+// resolves; teardown settles at least that long before destroying the
+// manager singleton the timer reads.
+const GLYPH_REDRAW_SETTLE_MS = 80;
+
 // Header-only blank DXF: the open pipeline fills the layer, layout,
 // and model-space defaults itself, so no template file (vendored or
 // CDN) is needed to boot a drawable document.
@@ -1038,6 +1043,13 @@ export default function createSketchEditor({ vue, components, locale }) {
         const dying = manager;
         manager = null;
         engineChain = engineChain.then(async () => {
+          // The engine schedules a glyph-redraw timer when its font
+          // preload resolves, and that timer reads the manager
+          // singleton — one firing after destroy() clears the singleton
+          // is an uncaught page error. Let fonts settle (plus the
+          // engine's redraw delay) while the instance is alive.
+          try { await dying?.curView?.awaitTextStyleFontsReady?.(); } catch { /* bounded by the engine's own timeout */ }
+          await new Promise(resolve => setTimeout(resolve, GLYPH_REDRAW_SETTLE_MS));
           await dying?.destroy?.();
         });
       });
