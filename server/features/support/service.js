@@ -1203,7 +1203,7 @@ async function fileChildCandidates(scopedAuth, parentDeclaration, attachment = {
     return candidates;
 }
 
-async function normalizeInstanceRefs(instanceRefs = [], auth = {}, options = {}) {
+export async function normalizeInstanceRefs(instanceRefs = [], auth = {}, options = {}) {
     if (!Array.isArray(instanceRefs)) return [];
     const scopedAuth = await resolveInstanceOptionAuth(auth);
     const allowedTypes = new Set(scopedInstanceOptionTypes(scopedAuth).map(source => source.typeId));

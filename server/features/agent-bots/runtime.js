@@ -85,7 +85,10 @@ function systemPrompt(botName, organizationName) {
     return [
         `You are ${botName}, an agent operating inside Perigram — a process programming platform — for the organization "${organizationName}".`,
         'You manipulate process definitions and instances through the provided tools, which enforce the same access rules as every other client.',
+        'Act on the user\'s declared intent without asking permission first — do the work, then report what happened. Activation gates are the only confirmations.',
+        'The authored process protocol is fixed: dataflowVersion 4. Never ask about versions.',
         'Authoring discipline: read before writing (get_process_definition / list_types / list_instances), always validate_process_definition before activate_process_definition, and treat activation gates (migration plans, type death) as confirmations to surface and resolve — never to bypass.',
+        'Attach instances you handled with attach_instances so the conversation shows them as reference chips.',
         'Answer the conversation directly when no tool is needed. Keep replies short and concrete.'
     ].join(' ');
 }
@@ -101,23 +104,27 @@ function historyMessages(messages = [], botUserId) {
 
 /**
  * The shared bounded tool-calling loop: neutral conversation in, final
- * assistant text out (null when the model produced nothing). Tool failures
- * become tool-result errors the model can read and adjust around.
+ * assistant text plus any attached instance refs out (text null when the
+ * model produced nothing). Tool failures become tool-result errors the
+ * model can read and adjust around.
  */
 async function runAgentLoop({ botAuth, system, conversation, profileId = '' }) {
     const organizationId = botAuth.organizationId;
     const tools = chatToolDescriptors();
+    // Per-run side channel: chat-only tools accumulate state here that the
+    // final reply consumes (instance refs the model attached mid-loop).
+    const run = { instanceRefs: [] };
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         const assistant = await llmService.chatCompletion({ organizationId, profileId, system, messages: conversation, tools });
         const toolCalls = assistant.toolCalls || [];
         if (!toolCalls.length) {
-            return (assistant.content || '').trim() || null;
+            return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs };
         }
         conversation.push({ role: 'assistant', content: assistant.content || '', toolCalls });
         for (const call of toolCalls) {
             let result;
             try {
-                result = await executeTool(call.name, call.arguments, botAuth);
+                result = await executeTool(call.name, call.arguments, botAuth, run);
             } catch (error) {
                 result = { error: error?.message || String(error) };
             }
@@ -129,25 +136,26 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '' }) {
             });
         }
     }
-    return 'Stopped: tool round budget reached without a final answer.';
+    return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs };
 }
 
-function replyBodyFor(context, message, text, botUserId) {
+function replyBodyFor(context, message, text, botUserId, instanceRefs = []) {
+    const refs = instanceRefs.length ? { instanceRefs } : {};
     if (context.kind === 'direct') {
         const other = (message.participants || context.participants || [])
             .map(item => String(item))
             .find(item => item !== String(botUserId));
-        return { recipientUserId: other, message: text };
+        return { recipientUserId: other, message: text, ...refs };
     }
     if (context.kind === 'group') {
-        return { conversationKey: context.conversationKey, message: text };
+        return { conversationKey: context.conversationKey, message: text, ...refs };
     }
     const link = message.instanceLink || {};
-    return { instance: { type: link.type, id: link.id }, message: text };
+    return { instance: { type: link.type, id: link.id }, message: text, ...refs };
 }
 
-async function sendReply(botAuth, context, message, text) {
-    await supportService.sendUserMessage(botAuth, replyBodyFor(context, message, text, botAuth.userId));
+async function sendReply(botAuth, context, message, text, instanceRefs = []) {
+    await supportService.sendUserMessage(botAuth, replyBodyFor(context, message, text, botAuth.userId, instanceRefs));
 }
 
 async function conversationHistory(conversationKey, botUserId) {
@@ -172,14 +180,13 @@ export async function runBotReply(botUserId, context, message, conversationProfi
             await sendReply(botAuth, context, message, 'LLM provider is not configured for this organization.');
             return;
         }
-        const text = await runAgentLoop({
+        const { text, instanceRefs } = await runAgentLoop({
             botAuth,
             profileId,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
             conversation: await conversationHistory(message.conversationKey, botUserId)
         });
-        if (text) await sendReply(botAuth, context, message, text);
-    } catch (error) {
+        if (text) await sendReply(botAuth, context, message, text, instanceRefs);    } catch (error) {
         console.error('[AGENT-BOTS] reply failed:', error);
         try {
             const botAuth = await buildBotAuth(botUserId);
@@ -257,7 +264,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
             actorLabelOf(event) ? `by ${actorLabelOf(event)}.` : '.',
             'Do the work this room expects; inspect the instance with tools if you need more than this summary.'
         ].join(' ');
-        const text = await runAgentLoop({
+        const { text, instanceRefs } = await runAgentLoop({
             botAuth,
             profileId,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
@@ -268,7 +275,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         });
         if (!text) return;
         const body = postingBodyForKey(subscription.conversationKey, text);
-        if (body) await supportService.sendUserMessage(botAuth, body);
+        if (body) await supportService.sendUserMessage(botAuth, instanceRefs.length ? { ...body, instanceRefs } : body);
     } catch (error) {
         console.error('[AGENT-BOTS] wake failed:', error);
     } finally {

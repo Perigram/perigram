@@ -1,5 +1,6 @@
 import { createError } from 'h3';
 import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
+import * as supportService from '~/server/features/support/service.js';
 import { describeOrganizationTypes } from '~/server/features/cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
@@ -218,6 +219,39 @@ export const TOOL_SPECS = [
         }
     },
     {
+        name: 'attach_instances',
+        description: 'Attaches instances as reference chips on the reply being composed (the chat composer\'s instance attach). Only readable instances survive validation; accepted refs ride the final answer in this conversation.',
+        chatOnly: true,
+        inputSchema: {
+            type: 'object',
+            properties: {
+                instances: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: { type: { type: 'string' }, id: { type: 'string' } },
+                        required: ['type', 'id'],
+                        additionalProperties: false
+                    }
+                }
+            },
+            required: ['instances'],
+            additionalProperties: false
+        },
+        execute: async (args, auth, run) => {
+            if (!run) throw createError({ statusCode: 400, message: 'attach_instances is available inside a chat run only' });
+            const validated = await supportService.normalizeInstanceRefs(args.instances || [], auth);
+            const seen = new Set(run.instanceRefs.map(ref => `${ref.type}:${ref.id}`));
+            for (const ref of validated) {
+                const key = `${ref.type}:${ref.id}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                run.instanceRefs.push(ref);
+            }
+            return validated.map(ref => ({ type: ref.type, id: ref.id, label: ref.label }));
+        }
+    },
+    {
         name: 'list_actions',
         description: 'Lists the compiled process actions available to the calling principal (the action manifest): create, update, delete, link, unlink, and command actions with their target types.',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
@@ -258,7 +292,9 @@ const SPECS_BY_NAME = new Map(TOOL_SPECS.map(spec => [spec.name, spec]));
 
 /** MCP `tools/list` descriptors. */
 export function mcpToolDescriptors() {
-    return TOOL_SPECS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
+    return TOOL_SPECS
+        .filter(spec => !spec.chatOnly)
+        .map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
 }
 
 /**

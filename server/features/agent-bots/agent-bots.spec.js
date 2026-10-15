@@ -12,6 +12,7 @@ const { mockedSupport, mockedLlm, mockedBotsService, mockedBotRepository, mocked
         registerMessageObserver: vi.fn(),
         listMessages: vi.fn(),
         sendUserMessage: vi.fn(),
+        normalizeInstanceRefs: vi.fn(refs => Array.isArray(refs) ? refs : []),
         instanceConversationKey: (type, id) => `instance:${type}:${id}`,
         parseInstanceKey: (key = '') => {
             const parts = String(key).split(':');
@@ -178,12 +179,30 @@ describe('runBotReply', () => {
             .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
         mockedTools.executeTool.mockResolvedValue({ types: [] });
         await runBotReply(BOT_A, context, message);
-        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, botAuth);
+        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, botAuth, { instanceRefs: [] });
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
         expect(toolMessage.toolCallId).toBe('call-1');
         expect(toolMessage.name).toBe('list_types');
         expect(JSON.parse(toolMessage.content)).toEqual({ types: [] });
         expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('done');
+    });
+
+    it('rides chat-run attached instance refs on the final reply', async () => {
+        const ref = { type: 'cassette', id: 'c1', label: 'Cassette c1' };
+        mockedLlm.chatCompletion
+            .mockResolvedValueOnce({
+                content: '',
+                toolCalls: [{ id: 'call-1', name: 'attach_instances', arguments: { instances: [{ type: ref.type, id: ref.id }] } }]
+            })
+            .mockResolvedValueOnce({ content: 'attached', toolCalls: [] });
+        mockedTools.executeTool.mockImplementation(async (name, args, auth, run) => {
+            if (name === 'attach_instances' && run) run.instanceRefs.push(ref);
+            return [ref];
+        });
+        await runBotReply(BOT_A, context, message);
+        const body = mockedSupport.sendUserMessage.mock.calls[0][1];
+        expect(body.message).toBe('attached');
+        expect(body.instanceRefs).toEqual([ref]);
     });
 
     it('turns tool failures into readable tool results and continues', async () => {
