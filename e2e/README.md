@@ -53,9 +53,10 @@ definitions and their types die together.
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
 - `md-editor-repair.spec.js`: the markdown editor repair legs live —
   the blank text-document editor opens pristine (save disabled until
-  edited) and round-trips source through preview/save, a `.md` uploads
-  through the protocol create dialog with the type's accept, and csv
-  cell edits commit and serialize on save.
+  edited) and round-trips source through preview/save, the format
+  controls toggle blocks with the focused quote showing its `> `
+  marker, a `.md` uploads through the protocol create dialog with the
+  type's accept, and csv cell edits commit and serialize on save.
 - `md-fresh-org.spec.js`: visible-by-default probe — a brand-new
   organization's manifest carries the pack's starter screen and create
   action, New opens the pack's blank markdown editor, and a typed

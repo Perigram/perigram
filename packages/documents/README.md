@@ -117,9 +117,8 @@ editor surfaces belong to the pack that owns the type, the app-side
 file-surface registry is only the mount table. The text editor is a
 single-surface live markdown editor (milkdown, owner direction
 2026-10-15: the Obsidian model — the document renders in place while
-writing, the focused block shows its markdown source; the editor's
-model IS markdown, serialization is the framework's own, no rich-text
-proxy).
+writing; the editor's model IS markdown, serialization is the
+framework's own, no rich-text proxy).
 
 **Toolbar.** Every control toggles — an active block control returns
 the block to body text. `MD` switches the source and preview surfaces
@@ -136,8 +135,9 @@ fenced block). Fenced code highlights through the
 `@codemirror/language-data` registry. The quote's `> ` marker
 (`source-markers.js` + `source-markers-plugin.js`) is the one rendered
 prefix — heading and inline-mark glyphs reflow the focused line, so
-those signals ride the toolbar instead. Editing a whole block as its
-source remains a view-level task (TODO).
+those signals ride the toolbar instead. Source editing is
+whole-document, through the MD toggle; there is no per-block source
+overlay.
 
 **Theming.** The engine surface is bridged from the app's tokens
 (`src/editors/text-document-editor.css`): the prose voice, the
