@@ -77,7 +77,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'create_process_definition',
-        description: 'Creates an empty process definition draft.',
+        description: 'Creates an empty process definition draft (authored data holds only the dataflowVersion marker).',
         inputSchema: {
             type: 'object',
             properties: { name: { type: 'string' } },
@@ -90,7 +90,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'update_process_definition',
-        description: 'Saves authored semantic records onto a definition (full data replace, exactly like the designer\'s save). Use get_process_definition first, mutate the returned data, then save it back.',
+        description: 'Saves authored semantic records onto a definition (full data replace, exactly like the designer\'s save). data must carry dataflowVersion: 4 — the sole operation protocol; saves without it are rejected. Use get_process_definition first, mutate the returned data, then save it back.',
         inputSchema: {
             type: 'object',
             properties: {
