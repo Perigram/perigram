@@ -4,10 +4,9 @@
 // indent. Heading prefixes and inline mark markers reflow the line the
 // moment the caret enters (the glyphs take inline space) — that
 // cursor-jumping is worse than the mystery, so the toolbar's pressed
-// state carries those signals instead, and true source editing stays a
-// view-level task (TODO). Pure ProseMirror-state readers with no
-// engine imports; the plugin in `source-markers-plugin.js` turns the
-// descriptors into decorations.
+// state carries those signals instead. Pure ProseMirror-state readers
+// with no engine imports; the plugin in `source-markers-plugin.js`
+// turns the descriptors into decorations.
 
 export function focusedBlockPrefix(state) {
   const { $from } = state.selection;

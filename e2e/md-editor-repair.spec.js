@@ -53,8 +53,8 @@ test.describe('markdown editor repair', () => {
     await app.page.keyboard.type(MD_SOURCE);
     await expect(save).toBeEnabled();
 
-    // Split view is the default: the rendered document is live beside
-    // the source while typing — no toggle needed.
+    // The single surface renders live while typing — the typed markdown
+    // becomes the document, no toggle needed.
     await expect(app.page.getByRole('heading', { name: 'Probe doc' })).toBeVisible();
     await expect(app.page.getByText('markdown').first()).toBeVisible();
     await app.page.screenshot({ path: '.playwright/md-editor-preview.png' });
@@ -86,15 +86,14 @@ test.describe('markdown editor repair', () => {
     const heading = app.page.getByRole('heading', { name: 'Probe heading', exact: true });
     await expect(heading).toBeVisible();
 
-    // The focused heading shows its literal markdown prefix, and the H1
-    // control reports itself pressed.
-    await expect(source.locator('.md-source-marker')).toHaveText('# ');
+    // Only the reflow-free quote marker renders as a glyph; the
+    // heading's signal rides the H1 control's pressed state.
     const h1 = app.page.getByRole('button', { name: 'Heading 1', exact: true });
     await expect(h1).toHaveAttribute('aria-pressed', 'true');
     await app.page.screenshot({ path: '.playwright/md-editor-source-marker.png' });
 
     // Toggling the pressed heading control returns the block to body
-    // text: the heading is gone, the marker is gone.
+    // text: the heading is gone, no marker appears.
     await h1.click();
     await expect(heading).toBeHidden();
     await expect(source.locator('.md-source-marker')).toHaveCount(0);
@@ -109,6 +108,8 @@ test.describe('markdown editor repair', () => {
     await app.page.keyboard.press('Enter');
     await app.page.keyboard.type('> quoted line');
     await expect(app.page.getByText('quoted line').first()).toBeVisible();
+    // The focused quote block shows its literal `> ` prefix.
+    await expect(source.locator('.md-source-marker')).toHaveText('> ');
     const quote = app.page.getByRole('button', { name: 'Quote', exact: true });
     await expect(quote).toHaveAttribute('aria-pressed', 'true');
     await quote.click();

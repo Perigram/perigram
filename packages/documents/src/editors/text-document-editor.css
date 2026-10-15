@@ -108,28 +108,9 @@
   display: none;
 }
 
-/* The live-source overlay (source-editing.js): the edited block IS its
-   markdown, read in the document's own typography — the same voice the
-   rendered block uses, source symbols and all. It is a view, never a
-   document node. */
-.md-live-block .md-live-source {
-  display: none;
-  outline: none;
-  white-space: pre-wrap;
-}
-
-.md-live-block.is-source .md-live-source {
-  display: block;
-}
-
-.md-live-block.is-source .md-live-rendered {
-  display: none;
-}
-
 /* Live-source markers (the Obsidian model): the focused block's
-   markdown prefix and the mark runs the caret touches render as their
-   literal glyphs — muted, mono, non-editable; the marker is signage,
-   not content. */
+   markdown prefix renders as its literal glyph — muted, mono,
+   non-editable; the marker is signage, not content. */
 .md-source-marker {
   color: var(--crepe-color-on-surface-variant);
   font-family: var(--crepe-font-code);
