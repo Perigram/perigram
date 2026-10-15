@@ -2133,6 +2133,8 @@
         "heading1": "Заголовок 1",
         "heading2": "Заголовок 2",
         "heading3": "Заголовок 3",
+        "sourceView": "Источник",
+        "renderView": "Предпросмотр",
         "paragraph": "Абзац",
         "bulletList": "Маркированный список",
         "numberedList": "Нумерованный список",

@@ -72,6 +72,35 @@
   font-size: inherit;
 }
 
+/* The source view (toggle in the toolbar): the markdown itself, in the
+   app's mono voice, on the same readable measure as the rendered
+   document — the symbols are the content here. */
+.source-host .cm-editor {
+  background: transparent;
+  max-width: min(100%, 92ch);
+  margin-inline: auto;
+  padding: 0.75rem 0.25rem 30vh;
+}
+
+.source-host .cm-scroller {
+  font-family: var(--ck-font-mono);
+  line-height: 1.5;
+}
+
+.source-host .cm-gutters {
+  background: transparent;
+  border-right: 1px solid var(--ck-chrome-border);
+  color: var(--ck-chrome-muted);
+}
+
+.source-host .cm-activeLine {
+  background: var(--ck-chrome-subtle);
+}
+
+.source-host .cm-activeLineGutter {
+  background: transparent;
+}
+
 /* Code blocks keep their CodeMirror editing and highlighting; the
    per-block tools bar (the language-picker dropdown) is chrome, not
    content — hidden, the language rides the fence itself. */
