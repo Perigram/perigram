@@ -5,15 +5,11 @@ export function emitInstanceChanged(detail = {}) {
   window.dispatchEvent(new CustomEvent(INSTANCE_CHANGED_EVENT, { detail: normalizeInstanceChangeDetail(detail) }));
 }
 
-export function emitInstanceMutation({ type, id, instance = null, change = 'updated', reason = change, source = 'local' } = {}) {
-  emitInstanceChanged({
-    type,
-    id,
-    instance,
-    change,
-    reason,
-    source
-  });
+export function emitInstanceMutation(detail = {}) {
+  // Forward the whole detail: extra fields (the acting surface's
+  // `origin` token) must reach listeners — the normalizer owns the
+  // defaults, rebuilding here would strip them.
+  emitInstanceChanged(detail);
 }
 
 export function emitInstanceCreated({ type, id, instance = null, reason = 'create', source = 'local' } = {}) {

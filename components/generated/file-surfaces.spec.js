@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
 
 vi.mock('~/packages/tech-drawing/src/editors/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
 vi.mock('~/packages/documents/src/editors/TextDocumentEditor.vue', () => ({ default: { name: 'TextDocumentEditor' } }));
@@ -153,6 +154,31 @@ describe('file surface registry', () => {
 
     const csv = textInstancePersistence({ _id: 'c-1' }, 'csv-table', 'csv');
     expect(csv.saveText).toBeInstanceOf(Function);
+  });
+
+  it('resolves the payload store-first so reloads serve the current revision', async () => {
+    // Every save writes a new payload file; a persistence built at
+    // mount holds the old reference. The load must prefer the store's
+    // record (kept fresh by the save event's snapshot) over the stale
+    // closure payload.
+    setActivePinia(createPinia());
+    const { useInstancesStore } = await import('~/stores/instances');
+    const instances = useInstancesStore();
+    instances.upsertRecord('text-document', { _id: 't-9', payload: { fileId: 'file-new' } });
+
+    const stale = textInstancePersistence({ _id: 't-9', payload: { fileId: 'file-old' } }, 'text-document', 'text');
+    const urls = [];
+    vi.stubGlobal('fetch', vi.fn(async url => {
+      urls.push(String(url));
+      return { ok: true, text: async () => 'fresh text' };
+    }));
+    try {
+      await expect(stale.loadText()).resolves.toBe('fresh text');
+      expect(urls).toHaveLength(1);
+      expect(urls[0]).toContain('file-new');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('builds the blank-page persistence against a null entity', async () => {
