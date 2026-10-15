@@ -6,10 +6,15 @@ platform surface. A bot is an ordinary organization member (a user with the
 hashed token; it acts with its own grants through the same boundaries as
 every other client, never with borrowed user identity.
 
-Every bot may declare the model profile it thinks with (the org's model
-table, `PATCH /api/agent-bots/:id/profile`); unset bots ride the org's
-`chat` capability route. The runtime passes the bot's profile to the llm
-seam as an explicit override.
+Model selection lives at the execution points, composing as optional
+overrides: **wake rule → conversation subscription → bot → org `chat`
+route → environment**. The bot sheet carries a per-conversation model
+select beside each subscribed bot and an optional model on each wake
+rule (`POST /api/agent-bots/subscriptions` accepts `profile` on the body
+and on `wakeOn` rules, validated against the org model table); the org
+bots page sets each bot's own default (`PATCH
+/api/agent-bots/:id/profile`). Stale stored ids degrade to the next
+level instead of breaking the run.
 
 Three pieces share one tool catalog:
 
