@@ -48,6 +48,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   or editing source SVGs — nothing outside the marked CSS blocks is
   hand-editable (hand-written rules parked inside the markers are deleted
   on rebuild).
+- `migrate-llm-settings-profiles.js`: one-way rewrite of the retired
+  single-provider `data.settings.llm` shape into named profiles with
+  capability routing (`{ provider, baseUrl, model, apiKey? }` becomes
+  profile `default` routed to `chat`; orgs already on profiles are
+  skipped). Run once after deploying the profiles contract.
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks

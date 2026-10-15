@@ -35,13 +35,14 @@ The route is exposed as a system screen gated by `organizations:read`, while
 every mutation stays gated by `organizations:admin` on the respective side.
 
 `bots.vue` is the agent member administration route — the org settings home
-for bots: the AI provider card first (provider, base URL, model, optional
-key, connection test — writing `data.settings.llm` through the llm settings
-seam; a bot without a resolvable provider answers nothing), then the bot
-list (create with one-time token reveal, rotate, delete). The token is
-MCP-only wiring for external agents; chat usage needs none of it. The page
-is gated with the team screen (`users:admin`); chat surfaces only join
-bots to conversations (see
+for bots: the models table first (named model profiles with capability
+routing and per-profile connection tests — writing
+`data.settings.llm.profiles`/`routes` through the llm settings seam; a bot
+without a resolvable route answers nothing), then the bot list (create
+with one-time token reveal, rotate, delete). The token is MCP-only wiring
+for external agents; chat usage needs none of it. The page is gated with
+the team screen (`users:admin`); chat surfaces only join bots to
+conversations (see
 [agent bots](../../server/features/agent-bots/README.md)).
 
 `plugins.vue` is the plugin marketplace surface (see

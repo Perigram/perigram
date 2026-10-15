@@ -24,43 +24,58 @@ endpoint. `provider: 'none'` (the default) disables the LLM everywhere.
 
 ## Configuration Resolution
 
-Per-organization selection lives on the organization document at
-`data.settings.llm` (writable through the standard organization update's
-`data` merge, readable by org admins):
+Organizations declare **named model profiles** (owner direction
+2026-10-15: models live on different endpoints per purpose) at
+`data.settings.llm.profiles` and **route capabilities** to them at
+`data.settings.llm.routes`:
 
 ```json
-{ "provider": "ollama", "baseUrl": "http://llm.host:11434", "model": "qwen3:32b" }
+{
+  "profiles": {
+    "local-fast": { "kind": "chat", "provider": "ollama", "baseUrl": "http://a:11434", "model": "qwen3:8b" },
+    "cloud-big":  { "kind": "chat", "provider": "anthropic", "baseUrl": "…", "model": "glm-4.7", "apiKey": "…" },
+    "images":     { "kind": "image", "provider": "openai", "baseUrl": "http://img:8080", "model": "sd-xl" }
+  },
+  "routes": { "chat": "local-fast", "chat.summaries": "cloud-big" }
+}
 ```
 
-`provider` is required (`ollama` | `anthropic` | `openai` | `none`);
-`baseUrl`, `apiKey`, and `model` are optional per-org overrides.
-Environment defaults fill every unset slot:
+`resolveLlmConfig(organizationId, capability)` walks the route chain —
+exact capability route, then the `chat` family default, then the
+environment — and only a chat-kind profile ever serves a conversation.
+Image-kind profiles are declarable today (endpoint, model, key) and
+consumed when an image capability ships; speech-to-text is not part of
+this module ([transcription](../transcription/README.md) owns its own
+providers). The environment is the unnamed default profile:
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `LLM_PROVIDER` | `none` | Provider when the org sets none. |
+| `LLM_PROVIDER` | `none` | Env-default provider when no route resolves. |
 | `LLM_BASE_URL` | — | Server base; **required** — never defaulted. |
 | `LLM_API_KEY` | — | Optional key (many local servers run open). |
 | `LLM_MODEL` | — | Model id; **required** — never defaulted. |
 
-A provider without both `baseUrl` and `model` resolves to `none`:
-consumers treat the LLM as unavailable rather than failing per request
-(the same posture as [transcription](../transcription/README.md)).
+A route that cannot produce both `baseUrl` and `model` resolves to
+`{ provider: 'none' }`: consumers treat the capability as unavailable
+rather than failing per request. Consumers today: the agent bots loop and
+wakes (`chat`), meetings call summaries (`chat.summaries`, falling back
+to `chat`). The retired single-provider `data.settings.llm` shape was
+migrated by `server/scripts/migrate-llm-settings-profiles.js` (profile
+`default`, route `chat`).
 
 ## Administration
 
-The organization's bots screen owns provider setup
-(`GET/PUT /api/llm/settings`, gated by organization settings access
-through [organizations](../organizations/README.md)
-`readSettingsSection`/`updateSettingsSection`): provider, base URL,
-model, and an optional key write to `data.settings.llm` — the same
-contract the env defaults fill. Keys never travel: reads report
-`apiKeySet` (and the resolved config ships without the key), an omitted
-key on save keeps the stored one, an empty string clears it. A selected
-provider requires base URL and model. `POST /api/llm/test` performs one
-real completion round against the resolved provider and reports
-`{ ok, provider?, model?, reason? }` instead of throwing — the card's
-connection test.
+The organization's bots screen owns the model table: profiles (name,
+kind, provider, base URL, model, optional key) and capability routing
+(`chat`, `chat.summaries`), saved through `GET/PUT /api/llm/settings`
+(gated by organization settings access via
+[organizations](../organizations/README.md)
+`readSettingsSection`/`updateSettingsSection`). Keys never travel: reads
+report `apiKeySet` and a key-free resolved projection; saves keep an
+omitted key and clear on empty string. `POST /api/llm/test` runs one real
+completion round against one saved chat profile (or the resolved default
+route) and reports `{ ok, provider?, model?, reason? }` instead of
+throwing.
 
 ## Service Contract
 

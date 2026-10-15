@@ -25,7 +25,8 @@ Three pieces share one tool catalog:
 - **Chat runtime** (`runtime.js`): registered by the `agent-bots` nitro
   plugin as a support message observer, it decides which bots answer a
   persisted message and drives a bounded tool-calling loop (max 8 rounds)
-  over the [LLM capability module](../llm/README.md). Replies re-enter the
+  over the [LLM capability module](../llm/README.md) on the `chat`
+  capability route. Replies re-enter the
   auth-checked support send path as the bot user.
 
 ## Conversation membership

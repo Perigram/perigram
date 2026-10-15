@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Administered provider settings, pinned: unknown providers are refused,
-// a selected provider requires base URL and model, the stored key survives
-// saves that omit it and clears on empty string, reads never expose keys,
-// and the connection test reports instead of throwing.
+// Named profiles with capability routing, pinned: the route chain
+// (exact → chat family → env), image profiles never serving chat,
+// validation (ids, providers, required fields, route targets), key
+// masking and keep/clear semantics, and the per-profile connection test
+// that reports instead of throwing.
 
 const { mockedOrganizations } = vi.hoisted(() => ({
     mockedOrganizations: {
@@ -22,18 +23,20 @@ vi.mock('h3', () => ({
     })
 }));
 
-import { readLlmSettings, saveLlmSettings, testLlmConnection } from './service.js';
+import { resolveLlmConfig, readLlmSettings, saveLlmSettings, testLlmConnection } from './service.js';
 
 const AUTH = { userId: 'admin-1', organizationId: 'org-1' };
 
 const ENV_KEYS = ['LLM_PROVIDER', 'LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL'];
 const envBackup = {};
 
+const withSetting = (setting) => {
+    mockedOrganizations.getById.mockResolvedValue({ data: { settings: { llm: setting } } });
+    mockedOrganizations.readSettingsSection.mockResolvedValue(setting);
+};
+
 beforeEach(() => {
     vi.clearAllMocks();
-    mockedOrganizations.getById.mockResolvedValue(null);
-    mockedOrganizations.readSettingsSection.mockResolvedValue(null);
-    mockedOrganizations.updateSettingsSection.mockResolvedValue({});
     for (const key of ENV_KEYS) {
         envBackup[key] = process.env[key];
         delete process.env[key];
@@ -47,95 +50,143 @@ afterEach(() => {
     }
 });
 
-describe('readLlmSettings', () => {
-    it('masks the key and reports the resolved provider', async () => {
-        const setting = { provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b', apiKey: 'secret' };
-        mockedOrganizations.readSettingsSection.mockResolvedValue(setting);
-        mockedOrganizations.getById.mockResolvedValue({ data: { settings: { llm: setting } } });
-        const result = await readLlmSettings(AUTH);
-        expect(result.saved).toEqual({ provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b', apiKeySet: true });
-        expect(JSON.stringify(result)).not.toContain('secret');
-        expect(result.resolved).toMatchObject({ provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b' });
+describe('resolveLlmConfig: the route chain', () => {
+    it('uses the exact capability route first', async () => {
+        withSetting({
+            profiles: {
+                fast: { kind: 'chat', provider: 'ollama', baseUrl: 'http://fast:11434', model: 'qwen3:8b' },
+                big: { kind: 'chat', provider: 'anthropic', baseUrl: 'https://big', model: 'glm-4.7', apiKey: 'k' }
+            },
+            routes: { chat: 'fast', 'chat.summaries': 'big' }
+        });
+        await expect(resolveLlmConfig('org-1', 'chat.summaries')).resolves.toMatchObject({ provider: 'anthropic', model: 'glm-4.7' });
+        await expect(resolveLlmConfig('org-1', 'chat')).resolves.toMatchObject({ provider: 'ollama', model: 'qwen3:8b' });
+        await expect(resolveLlmConfig('org-1')).resolves.toMatchObject({ provider: 'ollama' });
     });
 
-    it('reports no saved section with env defaults visible', async () => {
+    it('falls back to the chat family, then the environment', async () => {
+        withSetting({
+            profiles: { fast: { kind: 'chat', provider: 'ollama', baseUrl: 'http://fast:11434', model: 'qwen3:8b' } },
+            routes: { chat: 'fast' }
+        });
+        await expect(resolveLlmConfig('org-1', 'chat.summaries')).resolves.toMatchObject({ provider: 'ollama' });
+
+        withSetting(null);
         process.env.LLM_PROVIDER = 'ollama';
         process.env.LLM_BASE_URL = 'http://env:11434';
         process.env.LLM_MODEL = 'env-model';
+        await expect(resolveLlmConfig('org-1', 'chat.summaries')).resolves.toMatchObject({ provider: 'ollama', baseUrl: 'http://env:11434' });
+    });
+
+    it('never serves chat from an image profile, whatever the route says', async () => {
+        withSetting({
+            profiles: { images: { kind: 'image', provider: 'openai', baseUrl: 'http://img:8080', model: 'sd-xl' } },
+            routes: { chat: 'images' }
+        });
+        await expect(resolveLlmConfig('org-1')).resolves.toEqual({ provider: 'none' });
+    });
+});
+
+describe('readLlmSettings', () => {
+    it('masks keys and exposes finite routes', async () => {
+        withSetting({
+            profiles: {
+                big: { kind: 'chat', provider: 'anthropic', baseUrl: 'https://big', model: 'glm-4.7', apiKey: 'secret' },
+                images: { kind: 'image', provider: 'openai', baseUrl: 'http://img:8080', model: 'sd-xl' }
+            },
+            routes: { chat: 'big', 'chat.summaries': 'big', bogus: 'big' }
+        });
         const result = await readLlmSettings(AUTH);
-        expect(result.saved).toBeNull();
-        expect(result.envDefaults).toEqual({ provider: 'ollama', baseUrl: 'http://env:11434', model: 'env-model' });
+        expect(result.profiles).toHaveLength(2);
+        expect(result.profiles.find(profile => profile.id === 'big')).toMatchObject({ apiKeySet: true, kind: 'chat' });
+        expect(result.profiles.find(profile => profile.id === 'images')).toMatchObject({ kind: 'image', apiKeySet: false });
+        expect(result.routes).toEqual({ chat: 'big', 'chat.summaries': 'big' });
+        expect(JSON.stringify(result)).not.toContain('secret');
+    });
+
+    it('reports an empty org as env-only with the resolved default', async () => {
+        withSetting(null);
+        const result = await readLlmSettings(AUTH);
+        expect(result.profiles).toEqual([]);
+        expect(result.routes).toEqual({ chat: '', 'chat.summaries': '' });
+        expect(result.resolved).toEqual({ provider: 'none' });
     });
 });
 
 describe('saveLlmSettings', () => {
-    it('rejects unknown providers and incomplete selections', async () => {
-        await expect(saveLlmSettings(AUTH, { provider: 'gpt-everywhere' })).rejects.toMatchObject({ statusCode: 400 });
-        await expect(saveLlmSettings(AUTH, { provider: 'ollama', baseUrl: 'http://llm:11434' })).rejects.toMatchObject({ statusCode: 400 });
-        await expect(saveLlmSettings(AUTH, { provider: 'ollama', model: 'm' })).rejects.toMatchObject({ statusCode: 400 });
-        expect(mockedOrganizations.updateSettingsSection).not.toHaveBeenCalled();
+    it('validates ids, providers, and required fields', async () => {
+        await expect(saveLlmSettings(AUTH, { profiles: [{ id: 'bad id!', kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm' }] }))
+            .rejects.toMatchObject({ statusCode: 400 });
+        await expect(saveLlmSettings(AUTH, { profiles: [{ id: 'p1', kind: 'chat', provider: 'gpt', baseUrl: 'b', model: 'm' }] }))
+            .rejects.toMatchObject({ statusCode: 400 });
+        await expect(saveLlmSettings(AUTH, { profiles: [{ id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: '', model: 'm' }] }))
+            .rejects.toMatchObject({ statusCode: 400 });
+        await expect(saveLlmSettings(AUTH, { profiles: [
+            { id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm' },
+            { id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm' }
+        ] })).rejects.toMatchObject({ statusCode: 400 });
     });
 
-    it('saves a provider selection and keeps a previously stored key when omitted', async () => {
-        mockedOrganizations.readSettingsSection.mockResolvedValue({
-            provider: 'anthropic', baseUrl: 'https://old', model: 'old-model', apiKey: 'kept-secret'
+    it('keeps a stored key on omit, clears on empty, stores verbatim', async () => {
+        withSetting({
+            profiles: { p1: { kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm', apiKey: 'kept' } },
+            routes: {}
         });
-        await saveLlmSettings(AUTH, { provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b' });
-        const [, section, value] = mockedOrganizations.updateSettingsSection.mock.calls[0];
-        expect(section).toBe('llm');
-        expect(value).toEqual({ provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b', apiKey: 'kept-secret' });
+        const row = { id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm' };
+        await saveLlmSettings(AUTH, { profiles: [row] });
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2].profiles.p1.apiKey).toBe('kept');
+
+        await saveLlmSettings(AUTH, { profiles: [{ ...row, apiKey: '' }] });
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[1][2].profiles.p1.apiKey).toBeUndefined();
+
+        await saveLlmSettings(AUTH, { profiles: [{ ...row, apiKey: 'fresh' }] });
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[2][2].profiles.p1.apiKey).toBe('fresh');
     });
 
-    it('clears the key on an explicit empty string and stores a new one verbatim', async () => {
-        mockedOrganizations.readSettingsSection.mockResolvedValue({ provider: 'ollama', apiKey: 'old' });
-        await saveLlmSettings(AUTH, { provider: 'ollama', baseUrl: 'http://llm:11434', model: 'm', apiKey: '' });
-        expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2].apiKey).toBeUndefined();
-
-        await saveLlmSettings(AUTH, { provider: 'ollama', baseUrl: 'http://llm:11434', model: 'm', apiKey: 'fresh' });
-        expect(mockedOrganizations.updateSettingsSection.mock.calls[1][2].apiKey).toBe('fresh');
-    });
-
-    it('saves the none provider as a bare selection', async () => {
-        await saveLlmSettings(AUTH, { provider: 'none' });
-        expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2]).toEqual({ provider: 'none' });
+    it('rejects routes naming unknown or non-chat profiles', async () => {
+        const row = { id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm' };
+        await expect(saveLlmSettings(AUTH, { profiles: [row], routes: { chat: 'nope' } }))
+            .rejects.toMatchObject({ statusCode: 400 });
+        await expect(saveLlmSettings(AUTH, { profiles: [{ id: 'img', kind: 'image', provider: 'openai', baseUrl: 'b', model: 'm' }], routes: { chat: 'img' } }))
+            .rejects.toMatchObject({ statusCode: 400 });
+        await saveLlmSettings(AUTH, { profiles: [row], routes: { chat: 'p1', 'chat.summaries': 'p1' } });
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2].routes).toEqual({ chat: 'p1', 'chat.summaries': 'p1' });
     });
 });
 
 describe('testLlmConnection', () => {
-    const withSavedProvider = (setting) => {
-        mockedOrganizations.readSettingsSection.mockResolvedValue(setting);
-        mockedOrganizations.getById.mockResolvedValue({ data: { settings: { llm: setting } } });
-    };
-
-    it('reports unconfigured instead of throwing', async () => {
-        const result = await testLlmConnection(AUTH);
-        expect(result.ok).toBe(false);
-        expect(result.reason).toMatch(/No provider/i);
+    it('reports unconfigured and unknown targets instead of throwing', async () => {
+        withSetting(null);
+        await expect(testLlmConnection(AUTH)).resolves.toMatchObject({ ok: false });
+        withSetting({ profiles: { img: { kind: 'image', provider: 'openai', baseUrl: 'b', model: 'm' } }, routes: {} });
+        await expect(testLlmConnection(AUTH, { profileId: 'img' })).resolves.toMatchObject({ ok: false });
+        await expect(testLlmConnection(AUTH, { profileId: 'missing' })).resolves.toMatchObject({ ok: false });
     });
 
-    it('performs one real completion round against the resolved provider', async () => {
-        withSavedProvider({ provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b' });
-        const fetchMock = vi.fn(async () => ({
-            ok: true,
-            json: async () => ({ message: { role: 'assistant', content: 'ok' } })
-        }));
+    it('tests one saved chat profile by id with one real round', async () => {
+        withSetting({
+            profiles: { local: { kind: 'chat', provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b' } },
+            routes: { chat: 'local' }
+        });
+        const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ message: { role: 'assistant', content: 'ok' } }) }));
         vi.stubGlobal('fetch', fetchMock);
         try {
-            const result = await testLlmConnection(AUTH);
+            const result = await testLlmConnection(AUTH, { profileId: 'local' });
             expect(result).toEqual({ ok: true, provider: 'ollama', model: 'qwen3:8b' });
-            const [url, init] = fetchMock.mock.calls[0];
-            expect(url).toBe('http://llm:11434/api/chat');
-            expect(JSON.parse(init.body).model).toBe('qwen3:8b');
+            expect(fetchMock.mock.calls[0][0]).toBe('http://llm:11434/api/chat');
         } finally {
             vi.unstubAllGlobals();
         }
     });
 
     it('reports endpoint failures with their reason', async () => {
-        withSavedProvider({ provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b' });
+        withSetting({
+            profiles: { local: { kind: 'chat', provider: 'ollama', baseUrl: 'http://llm:11434', model: 'qwen3:8b' } },
+            routes: { chat: 'local' }
+        });
         vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, text: async () => 'boom' })));
         try {
-            const result = await testLlmConnection(AUTH);
+            const result = await testLlmConnection(AUTH, { profileId: 'local' });
             expect(result.ok).toBe(false);
             expect(result.reason).toMatch(/boom/);
         } finally {

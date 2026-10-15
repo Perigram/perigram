@@ -4,7 +4,8 @@ Meetings turn finished call recordings into conversation content: the
 recording's audio is transcribed through the
 [transcription feature](../transcription/README.md) and an org-owned
 protocol (a markdown instruction file) summarizes the transcript through
-the organization's shared [LLM provider](../llm/README.md), posting the
+the organization's shared [LLM provider](../llm/README.md) on the
+`chat.summaries` capability route, posting the
 summary into the call's conversation. It owns no collection — the pipeline
 is triggered by the
 [livekit feature](../livekit/README.md#recordings) after a recording
