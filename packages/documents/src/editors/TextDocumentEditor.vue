@@ -34,6 +34,15 @@
         />
       </div>
       <Button
+        :icon="sourceView ? 'pi pi-eye' : 'pi pi-code'"
+        severity="secondary"
+        text
+        rounded
+        size="small"
+        :aria-label="$t(sourceView ? 'editors.renderView' : 'editors.sourceView')"
+        @click="toggleSource"
+      />
+      <Button
         v-if="remoteChanged && dirty"
         icon="pi pi-refresh"
         severity="secondary"
@@ -46,7 +55,8 @@
       />
       <Button :label="$t('common.save')" icon="pi pi-save" size="small" text :class="remoteChanged && dirty ? '' : 'ml-auto'" :loading="saving" :disabled="!dirty" @click="save" />
     </div>
-    <div ref="editorHost" class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto" :aria-label="$t('editors.text')" />
+    <div v-show="!sourceView" ref="editorHost" class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto" :aria-label="$t('editors.text')" />
+    <div v-show="sourceView" ref="sourceHost" class="source-host text-prose min-h-0 flex-1 overflow-y-auto" :aria-label="$t('editors.sourceView')" />
   </div>
 </template>
 
@@ -71,6 +81,8 @@ const props = defineProps({
 const emit = defineEmits(['saved', 'refresh']);
 
 const editorHost = ref(null);
+const sourceHost = ref(null);
+const sourceView = ref(false);
 const saving = ref(false);
 const dirty = ref(false);
 const { displayName, nameDraft, editingName, nameDirty, commitName } = useDocumentName(props.persistence, () => emit('refresh'));
@@ -268,31 +280,87 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   loaded = false;
+  sourceEditor?.destroy();
+  sourceEditor = null;
   crepe?.destroy();
   crepe = null;
 });
+
+// The source view: the markdown itself, symbols and all. Toggling in
+// serializes the rendered document; toggling out parses the edited
+// source back through the markdown parser. The rendered surface stays
+// the serializer's truth for saves only when visible — the visible
+// surface is always what saves.
+let sourceEditor = null;
+async function ensureSourceEditor(text) {
+  if (sourceEditor) {
+    sourceEditor.dispatch({ changes: { from: 0, to: sourceEditor.state.doc.length, insert: text } });
+    return;
+  }
+  const [{ EditorView, keymap }, { EditorState }, { basicSetup }, { markdown: markdownLanguage }, { defaultKeymap, indentWithTab }] = await Promise.all([
+    import('@codemirror/view'),
+    import('@codemirror/state'),
+    import('codemirror'),
+    import('@codemirror/lang-markdown'),
+    import('@codemirror/commands')
+  ]);
+  if (!sourceHost.value) return;
+  sourceEditor = new EditorView({
+    state: EditorState.create({
+      doc: text,
+      extensions: [
+        basicSetup,
+        markdownLanguage(),
+        keymap.of(defaultKeymap.concat(indentWithTab)),
+        EditorView.lineWrapping
+      ]
+    }),
+    parent: sourceHost.value
+  });
+}
+
+async function toggleSource() {
+  if (!crepe) return;
+  if (!sourceView.value) {
+    await ensureSourceEditor(crepe.getMarkdown().replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n'));
+    sourceView.value = true;
+    sourceEditor?.focus();
+    return;
+  }
+  const text = sourceEditor?.state.doc.toString() || '';
+  const { replaceAll } = await loadCommands();
+  sourceView.value = false;
+  crepe.editor.action(replaceAll(text.replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n') || ''));
+  if (loaded) dirty.value = true;
+  editorHost.value?.focus();
+}
 
 async function save() {
   if (!crepe) return;
   saving.value = true;
   try {
-    // Flush an actively edited source block first: moving the selection
-    // to the document end commits the overlay's markdown into the
-    // document (one transaction) before serialization reads it.
-    const { editorViewCtx, TextSelection } = await loadCommands();
-    crepe.editor.action(ctx => {
-      const view = ctx.get(editorViewCtx);
-      view.dispatch(view.state.tr
-        .setSelection(TextSelection.create(view.state.doc, view.state.doc.content.size))
-        .setMeta('sourceEditing', true));
-    });
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // The visible surface is what saves: in source view the markdown
+    // text is the content; in the rendered view it is the serialized
+    // document (after flushing any pending selection state).
+    let markdown;
+    if (sourceView.value) {
+      markdown = (sourceEditor?.state.doc.toString() || '').replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
+    } else {
+      const { editorViewCtx, TextSelection } = await loadCommands();
+      crepe.editor.action(ctx => {
+        const view = ctx.get(editorViewCtx);
+        view.dispatch(view.state.tr
+          .setSelection(TextSelection.create(view.state.doc, view.state.doc.content.size))
+          .setMeta('sourceEditing', true));
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      markdown = crepe.getMarkdown().replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
+    }
     // The name carries no extension of its own — strip a trailing one
     // before the persistence extension lands (`notes.md` stays
     // `notes.md`, never `notes.md.md`). The serializer renders an empty
     // trailing block as `<br />`; that is its artifact, not content.
     const stem = String(displayName.value || 'document').replace(/\.(md|txt)$/i, '');
-    const markdown = crepe.getMarkdown().replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
     emit('saved', await props.persistence.saveText(markdown, `${stem}${props.persistence.extension || '.md'}`));
     dirty.value = false;
   } finally { saving.value = false; }
