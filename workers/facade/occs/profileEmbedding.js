@@ -99,6 +99,11 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
   if (!starts.length) {
     return { ok: false, reason: 'array settings place no copy on the edge' };
   }
+  // The binding decides where the array sits, never the direction the
+  // composite walks: copies always run edge-start -> edge-end, so an
+  // end-anchored array (distances returned descending) is reordered
+  // before the span and overlap validation see it.
+  starts.sort((left, right) => left - right);
 
   // Place each copy at its start; validate spans along the edge.
   const copies = [];

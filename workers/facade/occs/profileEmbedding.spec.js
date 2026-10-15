@@ -73,6 +73,39 @@ describe('embedOccsProfileEdge', () => {
     expect(embedding.copies[1][embedding.copies[1].length - 1]).toEqual([95, 0]);
   });
 
+  it('end-bound arrays walk copies edge-start to edge-end like every binding', () => {
+    // The binding places the array, never the direction the composite
+    // chain runs: an end-anchored array must not trip the overlap
+    // validation with descending copy starts. Both setups fit the
+    // 100mm edge (margin 5, chord 40): two copies by count, two by
+    // 40mm spacing.
+    for (const pattern of [
+      { mode: 'count', count: '2' },
+      { mode: 'spacing', spacing: '40' }
+    ]) {
+      const embedding = embedOccsProfileEdge({
+        section: BUMP,
+        vertices: FACE,
+        relation: { offsetX: 5, targetSnap: 'end', pattern: { type: 'edgeArray', edge: 'E0', ...pattern } }
+      });
+      expect(embedding.ok).toBe(true);
+      const starts = embedding.copies.map(copy => copy[0][0]);
+      expect([...starts].sort((left, right) => left - right)).toEqual(starts);
+      expect(embedding.composite[0]).toEqual([0, 0]);
+      expect(embedding.composite[embedding.composite.length - 1]).toEqual([100, 0]);
+    }
+
+    // Three 40mm chords cannot fit the span — the refusal is the
+    // honest physical answer, not the binding.
+    const impossible = embedOccsProfileEdge({
+      section: BUMP,
+      vertices: FACE,
+      relation: { offsetX: 5, targetSnap: 'end', pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '3' } }
+    });
+    expect(impossible.ok).toBe(false);
+    expect(impossible.reason).toMatch(/overlaps copy 2/);
+  });
+
   it('forbids overflowing and overlapping copies', () => {
     const longBump = { vertices: [[0, 0], [30, 15], [60, 0]], open: true };
     const overflow = embedOccsProfileEdge({

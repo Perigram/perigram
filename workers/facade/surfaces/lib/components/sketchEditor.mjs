@@ -288,13 +288,13 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       // The surface owns Escape routing: the engine's own handling needs
-      // focus inside its container, and toolbar clicks move focus
-      // outside it. Escape closes the vertex popup, cancels the engine's
-      // active command, and clears its selection — in that order.
+      // focus inside its container, and toolbar clicks or a focused
+      // authoring field move it outside it. Escape closes the vertex
+      // popup, cancels the engine's active command, and clears its
+      // selection — in that order, from any focus.
       const handleWindowKeydown = (event) => {
         if (event.key !== 'Escape') return;
         if (selectedVertexId.value) selectedVertexId.value = null;
-        if (event.target?.closest?.('input, textarea, select, [contenteditable]')) return;
         manager?.commandManager?.cancelActive?.();
         const view = manager?.curView;
         if (!view) return;

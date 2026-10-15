@@ -339,6 +339,38 @@ describe('OCCS profile helpers', () => {
     ]);
   });
 
+  it('clamps an oversized fillet to the largest arc that fits and stays tangent', () => {
+    // Radius 40 cannot fit a 42x28 rectangle (tangent distance would
+    // pass the segment midpoints): the emitted arc is the largest
+    // tangent fillet, and extraction maps it back to a fillet instead
+    // of flattening it into chords.
+    const sketch = normalizeOccsProfileSketch({
+      points: [
+        { id: 'p0', x: 0, y: 0 },
+        { id: 'p1', x: 42, y: 0 },
+        { id: 'p2', x: 42, y: 28 },
+        { id: 'p3', x: 0, y: 28 }
+      ],
+      holes: [],
+      closed: true,
+      modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 40 }],
+      constraints: []
+    });
+
+    const entities = occProfileEntitiesFromSketch(sketch);
+    const arc = entities.find(entity => entity.type === 'ARC');
+    expect(arc).toBeDefined();
+    // The corner is a right angle whose shorter neighbour segment is 28
+    // (p1->p2): trim clamps to 28*0.49 = 13.72 and the fitted radius
+    // follows (tan 45deg = 1), well under 40.
+    expect(arc.radius).toBeCloseTo(28 * 0.49, 6);
+
+    const round = occProfileSketchFromEntities(entities);
+    expect(round.modifiers).toHaveLength(1);
+    expect(round.modifiers[0]).toMatchObject({ type: 'fillet', vertexId: 'p1' });
+    expect(round.modifiers[0].radius).toBeCloseTo(28 * 0.49, 6);
+  });
+
   it('chains shuffled line entities into the closed boundary', () => {
     const sketch = occProfileSketchFromEntities([
       { type: 'LINE', start: { x: 10, y: 10 }, end: { x: 0, y: 10 } },
