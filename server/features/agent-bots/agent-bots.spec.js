@@ -88,7 +88,7 @@ describe('resolveTargetBots', () => {
     it('answers a direct chat when exactly one participant is a bot', async () => {
         mockedBotsService.isBotUser.mockImplementation(async (userId) => userId === BOT_A);
         const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, BOT_A] };
-        expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, BOT_A] }, message)).toEqual([BOT_A]);
+        expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, BOT_A] }, message)).toEqual([{ botUserId: BOT_A, profile: '' }]);
     });
 
     it('stays silent when both direct participants are bots', async () => {
@@ -102,10 +102,10 @@ describe('resolveTargetBots', () => {
         expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, 'user-other'] }, message)).toEqual([]);
     });
 
-    it('triggers group bots through subscriptions', async () => {
-        mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: BOT_A }]);
+    it('triggers group bots through subscriptions, carrying the conversation profile', async () => {
+        mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: BOT_A, profile: 'cloud-big' }]);
         const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'group:g' };
-        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g' }, message)).toEqual([BOT_A]);
+        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g' }, message)).toEqual([{ botUserId: BOT_A, profile: 'cloud-big' }]);
     });
 
     it('triggers an instance bot subscribed to any ancestor on the message path', async () => {
@@ -123,7 +123,7 @@ describe('resolveTargetBots', () => {
                 { type: 'cassette', id: 'c1' }
             ]
         };
-        expect(await resolveTargetBots(context, message)).toEqual([BOT_A]);
+        expect(await resolveTargetBots(context, message)).toEqual([{ botUserId: BOT_A, profile: '' }]);
     });
 });
 
@@ -154,6 +154,12 @@ describe('runBotReply', () => {
         expect(system).toMatch(/Bot/);
         expect(profileId).toBe('cloud-big');
         expect(messages.some((entry) => entry.role === 'assistant' && entry.content === 'hi')).toBe(true);
+    });
+
+    it('lets the conversation override the bot\'s own brain', async () => {
+        mockedLlm.chatCompletion.mockResolvedValue({ content: 'room brain', toolCalls: [] });
+        await runBotReply(BOT_A, context, message, 'local-fast');
+        expect(mockedLlm.chatCompletion.mock.calls[0][0].profileId).toBe('local-fast');
     });
 
     it('executes tool calls with the bot auth and feeds results back', async () => {
@@ -269,6 +275,17 @@ describe('runBotWake', () => {
         await runBotWake(subscription, wakeEvent);
         expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
         expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
+    });
+
+    it('prefers the wake rule model, then the conversation\'s, then the bot\'s', async () => {
+        mockedLlm.chatCompletion.mockResolvedValue({ content: 'ok', toolCalls: [] });
+        mockedSupport.listMessages.mockResolvedValue([]);
+        await runBotWake({ botUserId: BOT_A, conversationKey: 'group:g1', profile: 'convo-brain' }, wakeEvent, 'rule-brain');
+        expect(mockedLlm.chatCompletion.mock.calls[0][0].profileId).toBe('rule-brain');
+        await runBotWake({ botUserId: BOT_A, conversationKey: 'group:g1', profile: 'convo-brain' }, wakeEvent, '');
+        expect(mockedLlm.chatCompletion.mock.calls[1][0].profileId).toBe('convo-brain');
+        await runBotWake({ botUserId: BOT_A, conversationKey: 'group:g1' }, wakeEvent, '');
+        expect(mockedLlm.chatCompletion.mock.calls[2][0].profileId).toBe('cloud-big');
     });
 
     it('shares the in-flight lock with chat replies for the same conversation', async () => {

@@ -87,11 +87,12 @@ describe('scanStatusEventsForWakes', () => {
         mockedStatesService.findStatusEventsAfter.mockResolvedValue([
             event({ operation: { kind: 'intent', intent: 'complete' } })
         ]);
-        const subscription = { botUserId: BOT, conversationKey: 'group:g1' };
+        const subscription = { botUserId: BOT, conversationKey: 'group:g1', wakeOn: [{ type: 'queue', state: 'nested', profile: 'rule-brain' }] };
         mockedBotRepository.findWakeSubscriptions.mockResolvedValue([subscription]);
         const summary = await scanStatusEventsForWakes();
         expect(summary.wakes).toBe(1);
         expect(mockedRuntime.runBotWake).toHaveBeenCalledTimes(1);
+        expect(mockedRuntime.runBotWake).toHaveBeenCalledWith(subscription, expect.anything(), 'rule-brain');
     });
 
     it('never wakes on bot-actor events (loop prevention); SYSTEM actors wake', async () => {
@@ -114,14 +115,14 @@ describe('scanStatusEventsForWakes', () => {
 
     it('narrows instance-scoped subscriptions to their own instance', async () => {
         mockedStatesService.findStatusEventsAfter.mockResolvedValue([event({ targetId: 'inst-9' })]);
-        const sameInstance = { botUserId: BOT, conversationKey: 'instance:queue:inst-9' };
-        const otherInstance = { botUserId: 'user-bot-b', conversationKey: 'instance:queue:inst-1' };
-        const orgScoped = { botUserId: 'user-bot-c', conversationKey: 'instance:organization:org-1' };
+        const sameInstance = { botUserId: BOT, conversationKey: 'instance:queue:inst-9', wakeOn: [{ type: 'queue', state: 'nested' }] };
+        const otherInstance = { botUserId: 'user-bot-b', conversationKey: 'instance:queue:inst-1', wakeOn: [{ type: 'queue', state: 'nested' }] };
+        const orgScoped = { botUserId: 'user-bot-c', conversationKey: 'instance:organization:org-1', wakeOn: [{ type: 'queue', state: 'nested' }] };
         mockedBotRepository.findWakeSubscriptions.mockResolvedValue([sameInstance, otherInstance, orgScoped]);
         const summary = await scanStatusEventsForWakes();
         expect(summary.wakes).toBe(2);
         expect(mockedRuntime.runBotWake).toHaveBeenCalledTimes(2);
-        expect(mockedRuntime.runBotWake).toHaveBeenCalledWith(sameInstance, expect.objectContaining({ targetId: 'inst-9' }));
-        expect(mockedRuntime.runBotWake).toHaveBeenCalledWith(orgScoped, expect.anything());
+        expect(mockedRuntime.runBotWake).toHaveBeenCalledWith(sameInstance, expect.objectContaining({ targetId: 'inst-9' }), '');
+        expect(mockedRuntime.runBotWake).toHaveBeenCalledWith(orgScoped, expect.anything(), '');
     });
 });

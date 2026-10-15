@@ -3399,6 +3399,8 @@
         "chatRoute": "Чат",
         "summariesRoute": "Сводки звонков",
         "envDefault": "Из окружения",
-        "chatRouteDefault": "Маршрут чата"
+        "chatRouteDefault": "Маршрут чата",
+        "loadModels": "Модели сервера",
+        "auto": "Авто"
     }
 }

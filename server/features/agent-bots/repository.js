@@ -18,7 +18,7 @@ async function collection() {
  * `organizationId` ride the row so triggers and cleanup never re-derive
  * them from the key.
  */
-export async function upsertSubscription({ botUserId, conversationKey, conversationKind, organizationId, wakeOn = null }) {
+export async function upsertSubscription({ botUserId, conversationKey, conversationKind, organizationId, wakeOn = null, profile = '' }) {
     const col = await collection();
     const normalizedWakeOn = Array.isArray(wakeOn)
         ? wakeOn.map(rule => ({ type: String(rule.type), state: String(rule.state) }))
@@ -30,7 +30,8 @@ export async function upsertSubscription({ botUserId, conversationKey, conversat
                 conversationKind: String(conversationKind || ''),
                 organizationId: organizationId?.toString?.() || null,
                 updatedAt: new Date(),
-                wakeOn: normalizedWakeOn
+                wakeOn: normalizedWakeOn,
+                profile: String(profile || '')
             },
             $setOnInsert: { createdAt: new Date() }
         },

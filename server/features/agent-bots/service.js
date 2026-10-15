@@ -106,7 +106,8 @@ function normalizeWakeOn(wakeOn) {
         if (!type || !state) {
             throw createError({ statusCode: 400, message: 'wakeOn rules require type and state' });
         }
-        return { type, state };
+        const profile = String(rule?.profile || '').trim();
+        return profile ? { type, state, profile } : { type, state };
     });
 }
 
@@ -127,6 +128,20 @@ export async function subscribeBot(auth, body = {}) {
     const wakeOn = normalizeWakeOn(body?.wakeOn);
     const bot = await usersService.getById(botId);
     if (!bot?.data?.bot) throw createError({ statusCode: 404, message: 'Bot not found' });
+    // Model selection at the execution point: the subscription (this bot,
+    // this conversation) and each wake rule may carry a chat profile that
+    // overrides the bot's own. Unknown ids are refused here; stale stored
+    // ones degrade to the next precedence level at resolution time.
+    const allowedProfiles = await llmService.chatProfileIds(auth.organizationId);
+    const profile = String(body?.profile || '').trim();
+    if (profile && !allowedProfiles.includes(profile)) {
+        throw createError({ statusCode: 400, message: `Unknown chat profile: ${profile}` });
+    }
+    for (const rule of wakeOn || []) {
+        if (rule.profile && !allowedProfiles.includes(rule.profile)) {
+            throw createError({ statusCode: 400, message: `Unknown chat profile on wake rule: ${rule.profile}` });
+        }
+    }
 
     // Conversation admission runs through the support context resolution —
     // the same check that authorizes SSE topics and message reads.
@@ -142,9 +157,10 @@ export async function subscribeBot(auth, body = {}) {
         conversationKey: context.conversationKey,
         conversationKind: context.kind,
         organizationId: context.organizationId || auth.organizationId,
-        ...(wakeOn ? { wakeOn } : {})
+        ...(wakeOn ? { wakeOn } : {}),
+        profile
     });
-    return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true, ...(wakeOn ? { wakeOn } : {}) };
+    return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true, profile, ...(wakeOn ? { wakeOn } : {}) };
 }
 
 export async function unsubscribeBot(auth, body = {}) {
@@ -266,6 +282,7 @@ function contactRow(bot, subscription, assistantId) {
         avatarUrl: dto.data?.avatarUrl || null,
         assistant: String(id) === String(assistantId),
         subscribed: Boolean(subscription),
+        profile: subscription?.profile || '',
         wakeOn: subscription?.wakeOn || []
     };
 }
@@ -295,8 +312,10 @@ export async function listBotContacts(auth, conversationKey = '') {
         subscriptions = await repository.findSubscriptionsByConversation([context.conversationKey]);
     }
     const byBot = new Map(subscriptions.map(row => [String(row.botUserId), row]));
+    const chatProfiles = (await llmService.chatProfileIds(auth.organizationId)).map(id => ({ id }));
     return {
         assistantId: assistant?.id || null,
+        chatProfiles,
         contacts: bots
             .map(bot => contactRow(bot, byBot.get(String(bot.id)), assistant?.id))
             .sort((a, b) => (b.assistant ? 1 : 0) - (a.assistant ? 1 : 0) || a.name.localeCompare(b.name))

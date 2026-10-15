@@ -257,6 +257,74 @@ export async function testLlmConnection(auth = {}, { profileId = '' } = {}) {
     }
 }
 
+/**
+ * The models an endpoint serves (the profile dialog's picker): Ollama
+ * lists `/api/tags`, the OpenAI-shaped and Messages protocols list their
+ * models collections. Credentials come inline (a not-yet-saved dialog
+ * row) or from a saved profile by id — the stored key never travels to
+ * the client either way.
+ */
+export async function listEndpointModels(auth = {}, { provider = '', baseUrl = '', apiKey = '', profileId = '' } = {}) {
+    const organizationId = auth.organizationId;
+    let resolvedProvider = String(provider || '').trim();
+    let resolvedBaseUrl = String(baseUrl || '').trim();
+    let resolvedApiKey = String(apiKey || '').trim();
+    const targetId = String(profileId || '').trim();
+    if (targetId) {
+        const saved = await organizationsService.readSettingsSection(organizationId, 'llm', auth).catch(() => null);
+        const profile = saved?.profiles?.[targetId];
+        if (!profile) throw createError({ statusCode: 404, message: 'Unknown profile' });
+        // The dialog's inline provider/baseUrl win (the row may be mid-edit);
+        // the saved profile contributes only its stored key when the form
+        // field is empty — the key itself never travels to the client.
+        if (!resolvedProvider) resolvedProvider = profile.provider;
+        if (!resolvedBaseUrl) resolvedBaseUrl = profile.baseUrl;
+        if (!resolvedApiKey && profile.apiKey) resolvedApiKey = profile.apiKey;
+    }
+    if (!PROVIDERS.has(resolvedProvider)) {
+        throw createError({ statusCode: 400, message: 'Provider must be ollama, anthropic, or openai' });
+    }
+    if (!resolvedBaseUrl) throw createError({ statusCode: 400, message: 'Base URL is required' });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let response;
+    try {
+        response = await fetch(modelsEndpoint(resolvedProvider, resolvedBaseUrl), {
+            method: 'GET',
+            headers: wireHeaders(resolvedProvider, resolvedApiKey || undefined)
+        });
+    } catch (error) {
+        throw createError({ statusCode: 502, message: 'Endpoint is unreachable' });
+    } finally {
+        clearTimeout(timeout);
+    }
+    if (!response.ok) {
+        const detail = (await response.text().catch(() => '')).trim().slice(0, 200);
+        throw createError({ statusCode: 502, message: detail ? `Endpoint error: ${detail}` : 'Endpoint error' });
+    }
+    const payload = await response.json().catch(() => null);
+    const models = endpointModelIds(resolvedProvider, payload);
+    return { models };
+}
+
+function modelsEndpoint(provider, baseUrl) {
+    const base = baseUrl.replace(/\/$/, '');
+    if (provider === 'ollama') return `${base}/api/tags`;
+    if (provider === 'anthropic') return `${base}/v1/models`;
+    return `${base}/models`;
+}
+
+function endpointModelIds(provider, payload) {
+    if (provider === 'ollama') {
+        return (Array.isArray(payload?.models) ? payload.models : [])
+            .map(model => String(model?.name || model?.model || '').trim())
+            .filter(Boolean);
+    }
+    return (Array.isArray(payload?.data) ? payload.data : [])
+        .map(model => String(model?.id || '').trim())
+        .filter(Boolean);
+}
+
 // --- Neutral → wire translation -------------------------------------------
 
 function neutralToolsToWire(provider, tools = []) {

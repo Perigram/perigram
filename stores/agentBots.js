@@ -14,6 +14,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
     const loaded = ref(false);
     const forbidden = ref(false);
     const contacts = ref([]);
+    const chatProfiles = ref([]);
     const assistantId = ref(null);
 
     const canManageBots = computed(() => authStore.hasTenantPermission?.('users', 'admin'));
@@ -30,6 +31,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
             const query = conversationKey ? `?conversationKey=${encodeURIComponent(conversationKey)}` : '';
             const response = await $fetch(`/api/agent-bots/contacts${query}`);
             contacts.value = response?.contacts || [];
+            chatProfiles.value = response?.chatProfiles || [];
             assistantId.value = response?.assistantId || null;
             loaded.value = true;
         } catch (err) {
@@ -90,6 +92,16 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         }
     }
 
+    async function setSubscriptionProfile(botId, conversationKey, profile) {
+        await $fetch('/api/agent-bots/subscriptions', {
+            method: 'POST',
+            body: { botId, conversationKey, profile }
+        });
+        contacts.value = contacts.value.map(bot => (
+            String(bot.id) === String(botId) ? { ...bot, profile } : bot
+        ));
+    }
+
     async function setSubscriptionRules(botId, conversationKey, wakeOn) {
         await $fetch('/api/agent-bots/subscriptions', {
             method: 'POST',
@@ -103,6 +115,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         loaded.value = false;
         forbidden.value = false;
         contacts.value = [];
+        chatProfiles.value = [];
         assistantId.value = null;
     }
 
@@ -111,6 +124,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         loaded,
         forbidden,
         contacts,
+        chatProfiles,
         assistantId,
         canManageBots,
         refresh,
@@ -119,6 +133,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         deleteBot,
         rotateBotToken,
         setSubscribed,
+        setSubscriptionProfile,
         fetchWakeOptions,
         setSubscriptionRules,
         reset

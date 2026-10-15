@@ -65,13 +65,20 @@ export async function resolveTargetBots(context, message) {
         const participants = (message.participants || context.participants || []).map(item => String(item));
         const bots = [];
         for (const participant of participants) {
-            if (await senderIsBot(participant)) bots.push(participant);
+            if (await senderIsBot(participant)) bots.push({ botUserId: participant, profile: '' });
         }
         return bots.length === 1 ? bots : [];
     }
 
     const subscriptions = await botRepository.findSubscriptionsByConversation(candidateConversationKeys(context, message));
-    return [...new Set(subscriptions.map(row => String(row.botUserId)))];
+    // Deduplicated by bot, keeping the subscription row: the conversation
+    // is an execution point and its profile overrides the bot's own brain.
+    const byBot = new Map();
+    for (const row of subscriptions) {
+        const botUserId = String(row.botUserId);
+        if (!byBot.has(botUserId)) byBot.set(botUserId, { botUserId, profile: String(row.profile || '') });
+    }
+    return [...byBot.values()];
 }
 
 function systemPrompt(botName, organizationName) {
@@ -97,9 +104,8 @@ function historyMessages(messages = [], botUserId) {
  * assistant text out (null when the model produced nothing). Tool failures
  * become tool-result errors the model can read and adjust around.
  */
-async function runAgentLoop({ botAuth, system, conversation }) {
+async function runAgentLoop({ botAuth, system, conversation, profileId = '' }) {
     const organizationId = botAuth.organizationId;
-    const profileId = botAuth.botProfile || '';
     const tools = chatToolDescriptors();
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         const assistant = await llmService.chatCompletion({ organizationId, profileId, system, messages: conversation, tools });
@@ -154,19 +160,21 @@ async function conversationHistory(conversationKey, botUserId) {
  * assistant text posted through the auth-checked send path. Loop-level
  * failures surface as a short reply so the room never stares at silence.
  */
-export async function runBotReply(botUserId, context, message) {
+export async function runBotReply(botUserId, context, message, conversationProfile = '') {
     const lockKey = `${botUserId}:${message.conversationKey}`;
     if (inFlight.has(lockKey)) return;
     inFlight.add(lockKey);
     try {
         const botAuth = await buildBotAuth(botUserId);
         const organizationId = botAuth.organizationId;
-        if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId: botAuth.botProfile }))) {
+        const profileId = conversationProfile || botAuth.botProfile;
+        if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId }))) {
             await sendReply(botAuth, context, message, 'LLM provider is not configured for this organization.');
             return;
         }
         const text = await runAgentLoop({
             botAuth,
+            profileId,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
             conversation: await conversationHistory(message.conversationKey, botUserId)
         });
@@ -190,7 +198,7 @@ export async function runBotReply(botUserId, context, message) {
  */
 export function handleMessageInserted(context, message) {
     resolveTargetBots(context, message)
-        .then(botIds => Promise.all(botIds.map(botId => runBotReply(botId, context, message))))
+        .then(entries => Promise.all(entries.map(({ botUserId, profile }) => runBotReply(botUserId, context, message, profile))))
         .catch(error => console.error('[AGENT-BOTS] trigger failed:', error));
 }
 
@@ -219,7 +227,7 @@ function actorLabelOf(event) {
  * the loop's answer lands in the subscribed conversation. No provider or
  * a failing wake logs and stays silent: nobody is waiting in the room.
  */
-export async function runBotWake(subscription, event) {
+export async function runBotWake(subscription, event, ruleProfile = '') {
     const lockKey = `${subscription.botUserId}:${subscription.conversationKey}`;
     if (inFlight.has(lockKey)) {
         console.warn('[AGENT-BOTS] wake skipped, reply already in flight:', lockKey);
@@ -228,7 +236,10 @@ export async function runBotWake(subscription, event) {
     inFlight.add(lockKey);
     try {
         const botAuth = await buildBotAuth(subscription.botUserId);
-        if (!(await llmService.isLlmAvailable(botAuth.organizationId, 'chat', { profileId: botAuth.botProfile }))) return;
+        // Execution-point precedence: the wake rule's model, then this
+        // conversation's, then the bot's own, then the org route.
+        const profileId = ruleProfile || String(subscription.profile || '') || botAuth.botProfile;
+        if (!(await llmService.isLlmAvailable(botAuth.organizationId, 'chat', { profileId }))) return;
         const service = getAppRegistry().getInstanceService(String(event.targetType || ''));
         const instance = await service?.processGetById?.(String(event.targetId || ''), botAuth).catch(() => null);
         // An unreadable or missing target skips the wake: this is the
@@ -244,6 +255,7 @@ export async function runBotWake(subscription, event) {
         ].join(' ');
         const text = await runAgentLoop({
             botAuth,
+            profileId,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
             conversation: [
                 ...await conversationHistory(subscription.conversationKey, subscription.botUserId),
