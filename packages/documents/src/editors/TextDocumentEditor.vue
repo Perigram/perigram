@@ -39,6 +39,7 @@
         text
         rounded
         size="small"
+        data-testid="source-toggle"
         :aria-label="$t(sourceView ? 'editors.renderView' : 'editors.sourceView')"
         @click="toggleSource"
       />
@@ -61,7 +62,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { useDocumentName } from './useDocumentName.js';
@@ -324,15 +325,19 @@ async function toggleSource() {
   if (!sourceView.value) {
     await ensureSourceEditor(crepe.getMarkdown().replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n'));
     sourceView.value = true;
-    sourceEditor?.focus();
+    await nextTick();
+    // The clicked toggle button keeps DOM focus through the click —
+    // hand it to the source editor past the render flip.
+    requestAnimationFrame(() => sourceEditor?.focus());
     return;
   }
   const text = sourceEditor?.state.doc.toString() || '';
   const { replaceAll } = await loadCommands();
   sourceView.value = false;
+  await nextTick();
   crepe.editor.action(replaceAll(text.replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n') || ''));
   if (loaded) dirty.value = true;
-  editorHost.value?.focus();
+  requestAnimationFrame(() => editorHost.value?.querySelector('.ProseMirror')?.focus?.());
 }
 
 async function save() {
