@@ -119,10 +119,18 @@ single-surface live markdown editor (milkdown, owner direction
 2026-10-15: the Obsidian model — the document renders in place while
 writing, the focused block shows its markdown source; the editor's
 model IS markdown, serialization is the framework's own, no rich-text
-proxy). The engine ships with its chrome disabled: formatting rides
-PrimeVue controls in the editor toolbar (marks, headings, lists,
-quote — markdown input rules and keyboard shortcuts keep working), and
-the surface is themed from the app's tokens
+proxy). The live-source seam is `src/editors/source-markers.js` (pure
+state readers: the focused block's markdown prefix — `> `, `### ` —
+and the literal markers of inline mark runs the caret touches) plus
+`source-markers-plugin.js` (the ProseMirror plugin rendering them as
+non-editable widgets and reporting the toolbar selection state; copies
+never see them — clipboard serialization renders from the document,
+not decorations). The engine ships with its chrome disabled:
+formatting rides PrimeVue controls in the editor toolbar (marks,
+headings, lists, quote — every control toggles, the pressed state
+showing what the focused block carries, an active block control
+returning it to body text; markdown input rules and keyboard shortcuts
+keep working), and the surface is themed from the app's tokens
 (`src/editors/text-document-editor.css`). The
 csv editor edits rows in a cell table and serializes CSV text on save
 (PrimeVue's cell editor commits through `cell-edit-complete`). Both take

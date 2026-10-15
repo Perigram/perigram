@@ -26,8 +26,9 @@
           rounded
           size="small"
           class="format-control"
-          :class="control.class"
+          :class="[control.class, { 'is-active': isActive(control) }]"
           :aria-label="$t(control.labelKey)"
+          :aria-pressed="isActive(control)"
           @click="runFormat(control)"
         />
       </div>
@@ -66,37 +67,73 @@ const { displayName, nameDraft, editingName, nameDirty, commitName } = useDocume
 const nameFieldPt = { root: { style: { background: 'transparent', borderColor: 'transparent' } } };
 
 // The format row speaks markdown's own vocabulary. Marks carry their
-// meaning typographically (B is bold); blocks use the icon set. Heading
-// and paragraph turns address the focused block; markdown input rules
-// (typing `# `, `- `, `> `) keep working beside these.
+// meaning typographically (B is bold); blocks use the icon set. Every
+// control toggles: an active block control unsets it (heading and list
+// turns return the block to body text, quote lifts the block out), and
+// the pressed state shows what the focused block carries. Markdown
+// input rules (typing `# `, `- `, `> `) keep working beside these.
 const formatControls = [
   { id: 'strong', label: 'B', class: 'font-bold', labelKey: 'editors.bold', command: 'toggleStrongCommand' },
   { id: 'emphasis', label: 'I', class: 'italic', labelKey: 'editors.italic', command: 'toggleEmphasisCommand' },
   { id: 'code', label: '</>', class: 'text-technical text-xs', labelKey: 'editors.inlineCode', command: 'toggleInlineCodeCommand' },
-  { id: 'h1', label: 'H1', class: 'text-xs', labelKey: 'editors.heading1', command: 'wrapInHeadingCommand', payload: { level: 1 } },
-  { id: 'h2', label: 'H2', class: 'text-xs', labelKey: 'editors.heading2', command: 'wrapInHeadingCommand', payload: { level: 2 } },
+  { id: 'h1', label: 'H1', class: 'text-xs', labelKey: 'editors.heading1', command: 'wrapInHeadingCommand', payload: { level: 1 }, off: 'turnIntoTextCommand' },
+  { id: 'h2', label: 'H2', class: 'text-xs', labelKey: 'editors.heading2', command: 'wrapInHeadingCommand', payload: { level: 2 }, off: 'turnIntoTextCommand' },
   { id: 'paragraph', label: '¶', class: 'text-xs', labelKey: 'editors.paragraph', command: 'turnIntoTextCommand' },
-  { id: 'bullet', icon: 'pi pi-list', labelKey: 'editors.bulletList', command: 'wrapInBulletListCommand' },
-  { id: 'ordered', icon: 'pi pi-list-check', labelKey: 'editors.numberedList', command: 'wrapInOrderedListCommand' },
-  { id: 'quote', icon: 'pi pi-comment', labelKey: 'editors.quote', command: 'wrapInBlockquoteCommand' }
+  { id: 'bullet', icon: 'pi pi-list', labelKey: 'editors.bulletList', command: 'wrapInBulletListCommand', off: 'liftListItemCommand' },
+  { id: 'ordered', icon: 'pi pi-list-check', labelKey: 'editors.numberedList', command: 'wrapInOrderedListCommand', off: 'liftListItemCommand' },
+  { id: 'quote', icon: 'pi pi-comment', labelKey: 'editors.quote', command: 'wrapInBlockquoteCommand', off: 'lift' }
 ];
+
+// The focused block as the toolbar sees it, reported by the live-source
+// plugin on every selection or document change.
+const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, marks: [] });
+
+function isActive(control) {
+  const state = blockState.value;
+  switch (control.id) {
+    case 'strong': return state.marks.includes('strong');
+    case 'emphasis': return state.marks.includes('emphasis');
+    case 'code': return state.marks.includes('code_inline');
+    case 'h1': return state.block === 'heading' && state.headingLevel === 1;
+    case 'h2': return state.block === 'heading' && state.headingLevel === 2;
+    case 'paragraph': return state.block === 'paragraph' && !state.bullet && !state.ordered && !state.quote;
+    case 'bullet': return state.bullet;
+    case 'ordered': return state.ordered;
+    case 'quote': return state.quote;
+    default: return false;
+  }
+}
 
 // The engine commands resolve lazily (browser-only modules), once.
 let commands = null;
 async function loadCommands() {
   if (commands) return commands;
-  const [{ callCommand }, preset] = await Promise.all([
+  const [{ callCommand }, preset, { editorViewCtx }, { lift }] = await Promise.all([
     import('@milkdown/utils'),
-    import('@milkdown/preset-commonmark')
+    import('@milkdown/preset-commonmark'),
+    import('@milkdown/core'),
+    import('@milkdown/prose/commands')
   ]);
-  commands = { callCommand, preset };
+  commands = { callCommand, preset, editorViewCtx, lift };
   return commands;
 }
 
 async function runFormat(control) {
   if (!crepe) return;
+  const active = isActive(control);
+  if (active && control.off === 'lift') {
+    // Blockquotes have no preset unwrap command: lift the focused block
+    // out of the quote through the raw prose command.
+    const { editorViewCtx, lift } = await loadCommands();
+    crepe.editor.action(ctx => {
+      const view = ctx.get(editorViewCtx);
+      lift(view.state, view.dispatch, view);
+    });
+    editorHost.value?.focus();
+    return;
+  }
   const { callCommand, preset } = await loadCommands();
-  const command = preset[control.command];
+  const command = preset[active && control.off ? control.off : control.command];
   if (!command) return;
   crepe.editor.action(callCommand(command.key, control.payload));
   editorHost.value?.focus();
@@ -109,9 +146,11 @@ let loaded = false;
 
 onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
-  const [{ Crepe: CrepeEditor }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }] = await Promise.all([
     import('@milkdown/crepe'),
-    import('@milkdown/crepe/theme/common/style.css')
+    import('@milkdown/crepe/theme/common/style.css'),
+    import('@milkdown/utils'),
+    import('./source-markers-plugin.js')
   ]);
   if (!editorHost.value) return;
   crepe = new CrepeEditor({
@@ -126,6 +165,11 @@ onMounted(async () => {
       [CrepeEditor.Feature.AI]: false
     }
   });
+  // The live-source seam: the focused block shows its markdown markers
+  // and the toolbar learns the selection state.
+  crepe.editor.use($prose(() => createSourceMarkersPlugin({
+    onSelectionState: next => { blockState.value = next; }
+  })));
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes
     // are edits.

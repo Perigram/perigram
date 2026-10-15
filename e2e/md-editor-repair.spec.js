@@ -66,6 +66,64 @@ test.describe('markdown editor repair', () => {
     await app.expectCleanRuntime();
   });
 
+  test('format controls toggle blocks and the focused block shows its markdown source', async ({ app }) => {
+    test.setTimeout(180_000);
+    await app.seedSpeciesProcess({ types: ['text-document'] });
+
+    await app.page.goto('/screens/auto_text-document');
+    const settled = app.page.locator('main').getByRole('columnheader', { name: 'Name' });
+    await expect(settled.or(app.page.getByText('No records')).first()).toBeVisible({ timeout: 20000 });
+    const newButton = app.page.locator('main').getByRole('button', { name: 'New', exact: true }).first();
+    const source = app.page.locator('.ProseMirror');
+    for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
+      await newButton.click();
+      await expect(source).toBeVisible({ timeout: 5000 }).catch(() => {});
+    }
+    await expect(source).toBeVisible({ timeout: 10000 });
+
+    await source.click();
+    await app.page.keyboard.type('# Probe heading');
+    const heading = app.page.getByRole('heading', { name: 'Probe heading', exact: true });
+    await expect(heading).toBeVisible();
+
+    // The focused heading shows its literal markdown prefix, and the H1
+    // control reports itself pressed.
+    await expect(source.locator('.md-source-marker')).toHaveText('# ');
+    const h1 = app.page.getByRole('button', { name: 'Heading 1', exact: true });
+    await expect(h1).toHaveAttribute('aria-pressed', 'true');
+    await app.page.screenshot({ path: '.playwright/md-editor-source-marker.png' });
+
+    // Toggling the pressed heading control returns the block to body
+    // text: the heading is gone, the marker is gone.
+    await h1.click();
+    await expect(heading).toBeHidden();
+    await expect(source.locator('.md-source-marker')).toHaveCount(0);
+    await expect(h1).toHaveAttribute('aria-pressed', 'false');
+    await expect(app.page.getByText('Probe heading').first()).toBeVisible();
+
+    // Pressing it again re-creates the heading without touching the
+    // text, and the quote control lifts its block the same way.
+    await h1.click();
+    await expect(heading).toBeVisible();
+    await app.page.keyboard.press('End');
+    await app.page.keyboard.press('Enter');
+    await app.page.keyboard.type('> quoted line');
+    await expect(app.page.getByText('quoted line').first()).toBeVisible();
+    const quote = app.page.getByRole('button', { name: 'Quote', exact: true });
+    await expect(quote).toHaveAttribute('aria-pressed', 'true');
+    await quote.click();
+    await expect(quote).toHaveAttribute('aria-pressed', 'false');
+
+    const save = app.page.getByRole('button', { name: 'Save', exact: true });
+    await expect(save).toBeEnabled();
+    await save.click();
+    await expect(save).toBeDisabled();
+    const saved = normalized(await payloadText(app, 'text-document'));
+    expect(saved).toContain('# Probe heading');
+    expect(saved).toContain('quoted line');
+    await app.expectCleanRuntime();
+  });
+
   test('uploaded .md opens in the editor with its content', async ({ app }) => {
     test.setTimeout(180_000);
     await app.seedSpeciesProcess({ types: ['text-document'], via: { 'text-document': 'upload' } });

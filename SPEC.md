@@ -140,7 +140,11 @@ documents edit in a single-surface live editor (owner direction
 2026-10-15: the Obsidian model — the document renders in place while
 writing, the focused block shows its markdown source; the editor's
 model IS markdown, serialization is the framework's own, no rich-text
-proxy converting through HTML), `text-document` instances are creatable by
+proxy converting through HTML). Every toolbar format control toggles
+(owner direction 2026-10-15): each sets its formatting and unsets it —
+an active heading, list, or quote control returns the block to body
+text, and the pressed state shows what the focused block carries.
+`text-document` instances are creatable by
 uploading an existing `.md` file. Editor components belong to the packs
 that own their types (owner direction 2026-10-14): the documents pack
 ships the markdown and csv editors, tech-drawing ships the sketch
