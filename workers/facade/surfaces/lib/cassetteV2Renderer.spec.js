@@ -23,6 +23,7 @@ import {
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
   normalizeCassetteV2Trapezoid,
+  profileTerminalEdgesForTree,
   renderCassetteV2ToDrawing,
   renderCassetteV2TreeToDrawing,
   resolveCassetteV2AngleExpression,
@@ -275,17 +276,21 @@ describe('cassette v2 trapezoid renderer', () => {
       manufacturing: { process: 'extruded' }
     });
     const drawing = await renderCassetteV2TreeToDrawing(result.tree, { mode: 'assembly' });
-    const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
-    expect(sectionLayer.paths).toEqual(expect.arrayContaining([
+    // Closed profile sections produce their production effect: the cut
+    // polygon rides the inner-cut layer, nothing rides the section layer.
+    const cutInner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
+    expect(cutInner.paths).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        workpieceId: result.workpieceId,
-        relationId: expect.any(String),
-        sectionKind: 'profile'
+        workpieceId: 'wp_1',
+        hardwareWorkpieceId: undefined,
+        relationId: expect.any(String)
       })
     ]));
+    const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
+    expect(sectionLayer.paths.filter(path => path.relationId)).toHaveLength(0);
   });
 
-  it('renders an open profile through its edge embedding: placed copies, composite, break marks', async () => {
+  it('embeds an open profile into the face boundary and terminates its edge', async () => {
     const initialTree = createCassetteV2GraphTree();
     const square = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
     const result = addCassetteV2ProfileWorkpiece(initialTree, {
@@ -300,20 +305,63 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const workpiece = getCassetteV2Workpieces(result.tree).find(item => item.id === result.workpieceId);
     expect(workpiece.profileSnapshot.section).toMatchObject({ type: 'polyline', open: true });
+    const relation = getCassetteV2WorkpieceRelations(result.tree)[0];
+    const arranged = updateCassetteV2WorkpieceRelation(result.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E2',
+      arrayMode: 'count',
+      arrayCount: '1'
+    });
 
-    const drawing = await renderCassetteV2TreeToDrawing(result.tree, { mode: 'assembly' });
+    const cleanDrawing = await renderCassetteV2TreeToDrawing(initialTree, { mode: 'assembly' });
+    const drawing = await renderCassetteV2TreeToDrawing(arranged, { mode: 'assembly' });
+    // The composite chain splices into the drawn boundary: the face
+    // outline grows beyond the four authored corners...
+    const cleanFace = cleanDrawing.designerFaces.find(face => face.nodeId === 'face_1');
+    const face = drawing.designerFaces.find(face => face.nodeId === 'face_1');
+    expect(face.d.length).toBeGreaterThan(cleanFace.d.length);
+    // ...the section layer carries no profile geometry...
     const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
-    // The placed copy renders as an open path (anchors on the edge).
-    const profilePath = sectionLayer.paths.find(path => path.sectionKind === 'profile' && path.workpieceId === result.workpieceId);
-    expect(profilePath.d.endsWith('Z')).toBe(false);
-    const breakPaths = sectionLayer.paths.filter(path => path.sectionKind === 'profile-break');
-    // One dashed composite replacing the host edge, open (host-vertex to
-    // host-vertex), plus the two break marks at the copy anchors.
-    const composite = breakPaths.filter(path => path.dasharray === '4 3');
-    expect(composite).toHaveLength(1);
-    expect(composite[0].d.startsWith('M') && !composite[0].d.endsWith('Z')).toBe(true);
-    const marks = breakPaths.filter(path => !path.dasharray);
-    expect(marks).toHaveLength(2);
+    expect(sectionLayer.paths.filter(path => path.relationId)).toHaveLength(0);
+    // ...and the profile-arranged edge is terminal — no + affordance.
+    expect(profileTerminalEdgesForTree(arranged).has('face_1:2')).toBe(true);
+    const edgeIndexes = drawing.designerEdges
+      .filter(edge => edge.nodeId === 'face_1')
+      .map(edge => edge.edgeIndex);
+    expect(edgeIndexes).toEqual([0, 1, 3]);
+  });
+
+  it('treats a closed profile edge array as terminal and cuts every copy', async () => {
+    const initialTree = createCassetteV2GraphTree();
+    const square = createDefaultOccsProfileSketch();
+    const added = addCassetteV2ProfileWorkpiece(initialTree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger',
+      kind: 'hanger',
+      process: 'extruded',
+      parameters: square.parameters,
+      occsProfile: occsProfileFromSketch(square),
+      sketch: square
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    // The 42x28 section rides E2 (the top edge): a margin from both edge
+    // ends and a normal offset pull all three copies fully inside the
+    // face — each copy a cut on the inner-cut layer.
+    const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E2',
+      arrayMode: 'count',
+      arrayCount: '3',
+      offsetX: '50',
+      offsetY: '30'
+    });
+
+    const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece' });
+    const cutInner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
+    expect(cutInner.paths.filter(path => path.relationId === relation.id)).toHaveLength(3);
+    expect(drawing.designerEdges.filter(edge => edge.nodeId === 'face_1').map(edge => edge.edgeIndex))
+      .toEqual([0, 1, 3]);
   });
 
   it('rides a refused edge embedding on the drawing instead of vanishing silently', async () => {

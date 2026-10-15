@@ -45,7 +45,7 @@ import {
   normalizeHangerProductionMode
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
-import { embedOccsProfileEdge } from '../../occs/profileEmbedding.js';
+import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/profileEmbedding.js';
 import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
@@ -1975,11 +1975,14 @@ export const composeCassetteV2NodiGraph = (tree = createCassetteV2GraphTree(), t
   return { graph, faces };
 };
 
-const designerEdgesForBoundary = (nodeId, vertices = [], foldedEdges = new Map()) => {
+const designerEdgesForBoundary = (nodeId, vertices = [], foldedEdges = new Map(), terminalEdges = new Set()) => {
   const boundaryVertices = withoutClosingVertex(vertices);
   return boundaryVertices
     .map((vertex, edgeIndex) => {
       if (foldedEdges.has(pointKey(nodeId, edgeIndex))) return null;
+      // A profile-arranged edge is terminal: the profile consumes it,
+      // the face ends here — no + affordance, nothing attaches.
+      if (terminalEdges.has(`${nodeId}:${edgeIndex}`)) return null;
 
       const next = boundaryVertices[(edgeIndex + 1) % boundaryVertices.length];
       const [x1, y1] = toSvgPoint(vertex);
@@ -2266,43 +2269,6 @@ const hardwareSchematicLayer = (curves = [], tree = createCassetteV2GraphTree(),
   };
 };
 
-// Positions a profile section against its host face. A closed profile
-// with a basis (anchor) vertex maps that vertex onto the snap+offset
-// point — the anchor is the profile's placement origin; without one the
-// section's own sketch origin lands there. Open profiles place by their
-// sketch origin; their endpoints are the break points.
-const profileSectionPlacement = (profile = {}, targetCurve = {}, relation = {}, parameters = {}) => {
-  const rawVertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
-  if (rawVertices.length < 2) return { points: [] };
-  const vertices = rawVertices.map(vertex => [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)]);
-  const targetVertices = targetCurve?.boundaryVertices || targetCurve?.vertices || [];
-  const snap = faceSnapPoint(targetVertices, relation.targetSnap);
-  const offset = [
-    resolveCassetteV2Expression(relation.offsetX, parameters, 0),
-    resolveCassetteV2Expression(relation.offsetY, parameters, 0)
-  ];
-  const rotation = resolveCassetteV2AngleExpression(relation.rotation, parameters, 0);
-  const transformed = (vertex) => rotate2d(mirroredProfileVertex(vertex, relation), rotation);
-  const open = profile.section?.open || profile.section?.type === 'polyline';
-  const anchor = profile.section?.anchor;
-
-  let origin;
-  if (!open && anchor) {
-    const anchorTransformed = transformed([numeric(anchor[0], 0), numeric(anchor[1], 0)]);
-    const target = [numeric(snap?.[0], 0) + offset[0], numeric(snap?.[1], 0) + offset[1]];
-    origin = [target[0] - anchorTransformed[0], target[1] - anchorTransformed[1]];
-  } else {
-    origin = [numeric(snap?.[0], 0) + offset[0], numeric(snap?.[1], 0) + offset[1]];
-  }
-
-  return {
-    points: vertices.map(vertex => {
-      const placed = transformed(vertex);
-      return [origin[0] + placed[0], origin[1] + placed[1], 0];
-    })
-  };
-};
-
 // Projects a point onto a closed polygon's nearest edge: returns the
 // inserted vertex and the edge index it splits. Null when degenerate.
 const projectOnContour = (vertices = [], point = [0, 0]) => {
@@ -2407,14 +2373,44 @@ export const profileEdgeEmbeddingsForTree = (curves = [], tree = createCassetteV
   return results;
 };
 
-const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
+// Owner law (2026-10-15, profiles are terminal): an edge carrying an
+// arranged profile is the end of the face — the profile consumes the
+// edge, nothing grows from it and nothing attaches to it. Keyed
+// `${faceId}:${edgeIndex}` over every edge-array profile relation; an
+// open profile without an explicit pattern embeds on E0 (the embedding
+// default) and terminates that edge too.
+export const profileTerminalEdgesForTree = (tree = createCassetteV2GraphTree()) => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const parameters = treeParameters(sourceTree);
+  const terminal = new Set();
+  for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
+    const workpiece = relationProfileWorkpiece(sourceTree, relation);
+    if (!workpiece) continue;
+    let edge = relation.pattern?.type === 'edgeArray' ? relation.pattern.edge : null;
+    if (!edge) {
+      const profile = normalizeCassetteV2Profile(workpiece, parameters);
+      const open = profile.section?.open || profile.section?.type === 'polyline';
+      if (!open) continue; // closed profiles place by point without a pattern
+      edge = 'E0';
+    }
+    const match = String(edge).match(/\d+/);
+    if (!match) continue;
+    terminal.add(`${relation.targetFaceId}:${Math.max(0, Math.round(numeric(match[0], 0)))}`);
+  }
+  return terminal;
+};
+
+// Closed profile sections arranged on a face produce their production
+// effect (owner law 2026-10-15): the array settings (or the point
+// placement) place the section copies and each copy cuts the host face
+// where it intersects — the same boolean pipeline and the same
+// cut.inner layer the integral-cut hanger clips ride. Sections that
+// fall entirely outside the face stay boolean-only operands.
+export const profileCutEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
-  const paths = [];
-  const viewBoxCurves = [];
-  const embeddingErrors = [];
-
+  const entities = [];
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
     const workpiece = relationProfileWorkpiece(sourceTree, relation);
     if (!workpiece) continue;
@@ -2425,79 +2421,27 @@ const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2Grap
     if (!targetCurve) continue;
     const profile = normalizeCassetteV2Profile(workpiece, parameters);
     const open = profile.section?.open || profile.section?.type === 'polyline';
-    if (open) continue; // open profiles render through their edge embedding below
-    const placement = profileSectionPlacement(profile, targetCurve, relation, parameters);
-    if (placement.points.length < 2) continue;
-    const points = placement.points;
-    const svgPoints = points.map(toSvgPoint);
-    paths.push({
-      d: `${sectionPath(svgPoints)} Z`,
-      fill: 'none',
-      stroke: 'layer',
-      workpieceId: relation.sourceWorkpieceId,
-      relationId: relation.id,
-      sectionKind: 'profile',
-      active: !options.selectedRelationId || options.selectedRelationId === relation.id
+    if (open) continue; // open profiles consume the edge through the contour embedding
+    hardwarePointsForRelation(targetCurve, relation, parameters).forEach((point, index) => {
+      const vertices = profileCutPolygon(workpiece, point, relation, parameters);
+      if (!vertices) return;
+      entities.push({
+        id: `${relation.id}:profile_cut:${index}`,
+        layer: OCCS_LAYER_CUT_INNER,
+        target: relation.targetFaceId,
+        workpieceId: relation.targetWorkpieceId,
+        profileWorkpieceId: relation.sourceWorkpieceId,
+        relationId: relation.id,
+        geometry: { type: 'polygon', vertices },
+        booleanOperation: true,
+        booleanOnly: !polygonInsideFace(
+          vertices,
+          targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
+        )
+      });
     });
-    viewBoxCurves.push({ vertices: points });
   }
-
-  for (const item of profileEdgeEmbeddingsForTree(curves, sourceTree)) {
-    if (options.contextWorkpieceId && ![item.profileWorkpieceId, item.targetWorkpieceId].includes(options.contextWorkpieceId)) {
-      continue;
-    }
-    const active = !options.selectedRelationId || options.selectedRelationId === item.relationId;
-    if (!item.embedding.ok) {
-      // A refusing embedding draws nothing — the refusal rides the
-      // drawing so the designer can mark the relation instead of
-      // letting the profile vanish silently.
-      embeddingErrors.push({ relationId: item.relationId, reason: item.embedding.reason });
-      continue;
-    }
-    // The placed copies (solid) and the composite that replaces the host
-    // edge (dashed): the designer shows exactly what production embeds.
-    for (const copy of item.embedding.copies) {
-      const svgPoints = copy.map(toSvgPoint);
-      if (svgPoints.length < 2) continue;
-      paths.push({
-        d: sectionPath(svgPoints),
-        fill: 'none',
-        stroke: 'layer',
-        workpieceId: item.profileWorkpieceId,
-        relationId: item.relationId,
-        sectionKind: 'profile',
-        active
-      });
-      viewBoxCurves.push({ vertices: copy });
-    }
-    if (item.embedding.ok) {
-      const compositePoints = item.embedding.composite.map(toSvgPoint);
-      paths.push({
-        d: sectionPath(compositePoints),
-        fill: 'none',
-        stroke: 'layer',
-        dasharray: '4 3',
-        workpieceId: item.profileWorkpieceId,
-        relationId: item.relationId,
-        sectionKind: 'profile-break',
-        active
-      });
-      viewBoxCurves.push({ vertices: item.embedding.composite });
-      for (const point of item.embedding.breakPoints) {
-        paths.push({
-          d: circlePathAt(point, 4),
-          fill: 'none',
-          stroke: 'layer',
-          workpieceId: item.profileWorkpieceId,
-          relationId: item.relationId,
-          sectionKind: 'profile-break',
-          active
-        });
-      }
-    }
-  }
-
-  return { paths, viewBoxCurves, embeddingErrors };
+  return entities;
 };
 
 const circlePathAt = (point = [0, 0], diameter = 5) => {
@@ -2549,16 +2493,20 @@ const profileCutPolygon = (workpiece = {}, point = [0, 0, 0], relation = {}, sco
   const vertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
   if (vertices.length < 3) return null;
   // An anchored profile cuts anchor-relative: the anchor vertex lands on
-  // the placement point.
+  // the placement point. Mirrors apply before the relation's rotation,
+  // the same order every profile placement uses.
   const anchor = profile.section?.anchor;
+  const rotation = resolveCassetteV2AngleExpression(relation.rotation || '0', scope, 0);
   return vertices.map((vertex) => {
     const local = anchor
       ? [numeric(vertex?.[0], 0) - numeric(anchor[0], 0), numeric(vertex?.[1], 0) - numeric(anchor[1], 0)]
       : [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)];
-    const mirrored = mirroredProfileVertex(local, relation);
+    const placed = rotation
+      ? rotate2d(mirroredProfileVertex(local, relation), rotation)
+      : mirroredProfileVertex(local, relation);
     return [
-      numeric(point?.[0], 0) + mirrored[0],
-      numeric(point?.[1], 0) + mirrored[1],
+      numeric(point?.[0], 0) + placed[0],
+      numeric(point?.[1], 0) + placed[1],
       0
     ];
   });
@@ -3127,10 +3075,54 @@ const foldedPreviewForTree = (curves = [], tree = createCassetteV2GraphTree(), o
 
 const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const foldedEdges = getCassetteV2FoldEdges(tree);
-  const hardwareProductionEntities = hardwareProductionEntitiesForTree(curves, tree);
-  const shapedCurves = await applyHardwareBooleanDifferences(curves, hardwareProductionEntities);
+  // Open profiles consume their bound edge: the composite chain splices
+  // into the face boundary the same way production embeds it, so the
+  // designer shows the true stitched contour. A refusing embedding
+  // leaves the face untouched and rides the drawing as an error.
+  const embeddingsByFace = new Map();
+  const profileEmbeddingErrors = [];
+  for (const item of profileEdgeEmbeddingsForTree(curves, tree)) {
+    if (item.embedding.ok) {
+      if (!embeddingsByFace.has(item.targetFaceId)) embeddingsByFace.set(item.targetFaceId, []);
+      embeddingsByFace.get(item.targetFaceId).push(item.embedding);
+    } else {
+      profileEmbeddingErrors.push({ relationId: item.relationId, reason: item.embedding.reason });
+    }
+  }
+  const embeddedCurves = curves.map((curve) => {
+    const faceEmbeddings = embeddingsByFace.get(curve.node.id) || [];
+    if (!faceEmbeddings.length) return curve;
+    const source = curve.originalBoundaryVertices
+      || curve.referenceVertices
+      || curve.boundaryVertices
+      || curve.vertices;
+    const { contour, errors } = embedOccsProfilesIntoContour(source, faceEmbeddings);
+    if (errors.length) {
+      errors.forEach(reason => profileEmbeddingErrors.push({ relationId: '', reason }));
+      return curve;
+    }
+    return {
+      ...curve,
+      // The authored boundary stays the interaction model (labels, edge
+      // indexes, dimension controls); the drawn geometry follows the
+      // stitched contour.
+      labelBoundaryVertices: curve.labelBoundaryVertices
+        || curve.referenceVertices
+        || curve.originalBoundaryVertices
+        || curve.boundaryVertices
+        || curve.vertices,
+      boundaryVertices: contour,
+      vertices: contour
+    };
+  });
+  const terminalEdges = profileTerminalEdgesForTree(tree);
+  const productionEntities = [
+    ...hardwareProductionEntitiesForTree(curves, tree),
+    ...profileCutEntitiesForTree(curves, tree)
+  ];
+  const shapedCurves = await applyHardwareBooleanDifferences(embeddedCurves, productionEntities);
   const foldedPreviewCurves = options.foldedPreviewCurves
-    ? await applyHardwareBooleanDifferences(options.foldedPreviewCurves, hardwareProductionEntities)
+    ? await applyHardwareBooleanDifferences(options.foldedPreviewCurves, productionEntities)
     : shapedCurves;
   const drawingCurves = shapedCurves.map(curve => {
     const labelBoundaryVertices = curve.labelBoundaryVertices
@@ -3145,18 +3137,12 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     };
   });
   const designerEdges = drawingCurves.flatMap(curve => (
-    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, foldedEdges)
+    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, foldedEdges, terminalEdges)
   ));
   const designerFoldEdges = designerFoldEdgesForTree(shapedCurves, tree);
   const foldedPreview = foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
   const designerSections = designerSectionsForTree(shapedCurves, foldedPreview, tree);
-  const designerProfileSections = designerProfileSectionsForTree(shapedCurves, tree, {
-    contextWorkpieceId: options.contextWorkpieceId,
-    selectedRelationId: options.selectedRelationId
-  });
-  designerSections.layer.paths.push(...designerProfileSections.paths);
-  designerSections.viewBoxCurves.push(...designerProfileSections.viewBoxCurves);
-  const hardwareLayers = hardwareProductionLayers(hardwareProductionEntities);
+  const hardwareLayers = hardwareProductionLayers(productionEntities);
   const cassetteMarkLayer = buildCassetteV2CassetteMarkLayer(shapedCurves, tree, options.cassetteMarkContext || {});
   const hardwareLayer = hardwareSchematicLayer(shapedCurves, tree, {
     contextWorkpieceId: options.contextWorkpieceId,
@@ -3202,7 +3188,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     drawing.layers = assemblyLayers.concat(hardwareLayers);
   }
   drawing.designerAttachmentMarkers = designerAttachmentMarkers;
-  drawing.profileEmbeddingErrors = designerProfileSections.embeddingErrors;
+  drawing.profileEmbeddingErrors = profileEmbeddingErrors;
   // The plugin's layer standards bake the base pens here — every drawing
   // this renderer emits is styled; org-authored standards still override
   // host-side (shadow-by-code over the host transport).

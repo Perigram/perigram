@@ -54,6 +54,40 @@ describe('OCCS cassette evaluation', () => {
       .toBeGreaterThan(plain.nestingPolygons[0].coordinates.length);
   });
 
+  it('cuts closed profile sections into the evaluated face and names them on the cut layer', async () => {
+    const square = createDefaultOccsProfileSketch();
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger',
+      kind: 'hanger',
+      process: 'extruded',
+      parameters: square.parameters,
+      occsProfile: occsProfileFromSketch(square),
+      sketch: square
+    });
+    const relations = await import('../surfaces/lib/cassetteV2Renderer.js');
+    const relation = relations.getCassetteV2WorkpieceRelations(added.tree)[0];
+    const tree = relations.updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E2',
+      arrayMode: 'count',
+      arrayCount: '3',
+      offsetX: '50',
+      offsetY: '30'
+    });
+
+    const definition = createCassetteV2OccsDocument(tree);
+    const result = await evaluateOccsCassetteTemplate(definition, {});
+    const profileCuts = result.layerData.filter(item => item.layer === 'cut.inner');
+    expect(profileCuts).toHaveLength(3);
+    for (const cut of profileCuts) {
+      expect(cut.relationId).toBe(relation.id);
+      expect(cut.profileWorkpieceId).toBeTruthy();
+      expect(cut.coordinates.length).toBeGreaterThanOrEqual(4);
+    }
+  });
+
   it('refuses open-profile placements that overflow or overlap', async () => {
     const longSketch = normalizeOccsProfileSketch({
       version: '0.1', units: 'mm', parameters: {},

@@ -2282,9 +2282,49 @@ split-chains display law is retired). E2E artifact:
 `node /tmp/opencode/osnap-harness/verify-production.cjs` (evaluate →
 embedded nesting polygon → named DXF; PASS).
 
-Still open on this task: closed profiles' production effect (dedicated
-standard layer + intersection detection, owner answer 2026-10-15) and
-the nesting-redraw naming path beyond the DXF export.
+Still open on this task: the nesting-redraw naming path beyond the DXF
+export.
+
+### Agent Notes (2026-10-15, owner review round 5 — profiles are terminal)
+
+Owner declaration (recorded in SPEC beside the profiles-in-production
+block): an edge carrying an arranged profile is the end of the face —
+the + affordance must NOT appear there (the profile consumes the edge,
+nothing attaches), and profiles do not live in the section layer. This
+reverses the round-2 "always-on + affordance" fix: that note misread the
+owner's report ("no + on hover" was the CORRECT old-standard behavior
+lost in migration, not a bug to fix), and rounds 3-4 preserved the
+misreading while "verifying" it against model probes.
+
+Implemented on `agent/profile-terminal-20261015`:
+
+- `profileTerminalEdgesForTree`: every edge-array profile relation (and
+  every patternless open profile, which embeds on E0 by the embedding's
+  own default) marks its bound edge terminal. `designerEdgesForBoundary`
+  filters terminal edges — no + chip — and the designer's
+  `addFaceAtEdge` refuses them as defense.
+- Profiles left `designer.section` entirely. Open profiles: the
+  composite chain splices into the DRAWN face boundary (the same
+  `embedOccsProfilesIntoContour` production uses), the authored boundary
+  stays the interaction model (labels, edge indexes, dimension
+  controls), and the section layer keeps section views only. Closed
+  profiles: their production effect now exists — the array settings (or
+  the point placement) place the copies and each copy cuts the host face
+  through the integral-cut hanger boolean pipeline, with the cut
+  polygons on `cut.inner` in the designer drawing AND the evaluated
+  layerData (bake/nesting/DXF). A dedicated registry row awaits an
+  owner-named production name; `cut.inner` is the existing production
+  home of exactly this operation.
+- `profileCutPolygon` gained the relation rotation (mirror-then-rotate,
+  the placement order every profile uses); the dead
+  `profileSectionPlacement` (section-layer previews) is deleted.
+
+Validation: facade suites 102/102 + evaluate 6/6 — new pins: open
+profile embeds into the drawn boundary and terminates its edge; closed
+profile edge array is terminal and cuts every copy on cut.inner;
+evaluate names closed-profile cuts on the cut layer with relation and
+workpiece metadata.
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 
