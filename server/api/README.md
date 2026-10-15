@@ -2,11 +2,15 @@
 
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
+- `GET /api/agent-bots/wake-options`: the org's active compiled primary
+  states for the bot wake-rule pickers (see
+  [agent-bots feature](../features/agent-bots/README.md)).
 - `agent-bots/`: Authenticated bot administration and conversation
   membership (`GET/POST /api/agent-bots` — the listing takes
-  `?conversationKey=` and returns subscription flags; `DELETE
-  /api/agent-bots/:id`; `POST /api/agent-bots/:id/token` rotation) plus
-  `POST/DELETE /api/agent-bots/subscriptions`. Everything is gated by user
+  `?conversationKey=` and returns subscription flags and wake rules;
+  `DELETE /api/agent-bots/:id`; `POST /api/agent-bots/:id/token` rotation)
+  plus `POST/DELETE /api/agent-bots/subscriptions` (the body carries
+  optional `wakeOn` lifecycle wake rules). Everything is gated by user
   management access in the active organization. See
   [agent-bots feature](../features/agent-bots/README.md).
 - `mcp/`: `POST /api/mcp` — the MCP streamable-HTTP endpoint over the
