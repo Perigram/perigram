@@ -190,15 +190,14 @@ an active heading, list, or quote control returns the block to body
 text, and the pressed state shows what the focused block carries.
 The authoring surface is complete (owner direction 2026-10-15):
 headings one through six, fenced code blocks toggled from the toolbar
-(blocks carry the language picker and syntax-highlighted CodeMirror
-editing), the link control with its address input, and slash commands —
-typing `/` at a word start offers the block vocabulary with keyboard
-navigation. The toolbar acts on whichever surface is visible: in the
-markdown source mode the same controls edit the markdown text (inline
-marks wrap the selection, block controls set the line prefix), typing
-in source arms the save button, and the block UI of fenced code
-appears on hover, never as standing chrome. Code renders in the
-app's mono voice wherever it appears.
+(blocks carry the language picker on hover and syntax-highlighted
+CodeMirror editing), the link control with its address input, and slash
+commands — typing `/` at a word start offers the block vocabulary with
+keyboard navigation. There is no source mode and no surface toggle
+(owner direction 2026-10-15): the document is the one surface, markdown
+is authored through input rules, slash commands, and the toolbar, and
+the block UI of fenced code appears on hover, never as standing
+chrome. Code renders in the app's mono voice wherever it appears.
 `text-document` instances are creatable by
 uploading an existing `.md` file. Editor components belong to the packs
 that own their types (owner direction 2026-10-14): the documents pack

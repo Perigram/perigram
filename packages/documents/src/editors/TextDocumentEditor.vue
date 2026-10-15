@@ -56,17 +56,6 @@
         </div>
       </Popover>
       <Button
-        label="MD"
-        :severity="sourceView ? 'primary' : 'secondary'"
-        text
-        rounded
-        size="small"
-        data-testid="source-toggle"
-        :aria-label="$t(sourceView ? 'editors.renderView' : 'editors.sourceView')"
-        :aria-pressed="sourceView"
-        @click="toggleSource"
-      />
-      <Button
         v-if="remoteChanged && dirty"
         icon="pi pi-refresh"
         severity="secondary"
@@ -79,20 +68,18 @@
       />
       <Button :label="$t('common.save')" icon="pi pi-save" size="small" text :class="remoteChanged && dirty ? '' : 'ml-auto'" :loading="saving" :disabled="!dirty" @click="save" />
     </div>
-    <div v-show="!sourceView" ref="editorHost" class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto" :aria-label="$t('editors.text')" />
-    <div v-show="sourceView" ref="sourceHost" class="source-host text-prose min-h-0 flex-1 overflow-y-auto" :aria-label="$t('editors.sourceView')" />
+    <div ref="editorHost" class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto" :aria-label="$t('editors.text')" />
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
 import { useDocumentName } from './useDocumentName.js';
 import { useRemoteDocumentSync } from './useRemoteDocumentSync.js';
-import { applySourceFormat } from './source-commands.js';
 import './text-document-editor.css';
 
 // The documents pack's markdown editor: the single-surface live editing
@@ -109,8 +96,6 @@ const emit = defineEmits(['saved', 'refresh']);
 const { t } = useI18n();
 
 const editorHost = ref(null);
-const sourceHost = ref(null);
-const sourceView = ref(false);
 const saving = ref(false);
 const dirty = ref(false);
 const { displayName, nameDraft, editingName, nameDirty, commitName } = useDocumentName(props.persistence, () => emit('refresh'));
@@ -121,16 +106,8 @@ const { remoteChanged, reloadFromRemote, reloading } = useRemoteDocumentSync(pro
   dirty,
   reload: async () => {
     if (!crepe) return;
-    const text = (await props.persistence.loadText()) || '';
     const { replaceAll } = await loadCommands();
-    crepe.editor.action(replaceAll(text));
-    // The visible surface is the one reconciled: a reload while the
-    // source view is open refreshes its text too, and the untouched
-    // round-trip baseline follows.
-    if (sourceView.value) {
-      sourceBaseline = text;
-      syncSourceText(text);
-    }
+    crepe.editor.action(replaceAll((await props.persistence.loadText()) || ''));
   }
 });
 
@@ -212,15 +189,6 @@ function focusRenderedEditor() {
 
 async function runFormat(control, { force = false } = {}) {
   if (!crepe) return;
-  // The toolbar acts on whichever surface is visible: in source mode
-  // the same control edits the markdown text directly.
-  if (sourceView.value) {
-    if (!sourceEditor) return;
-    const spec = applySourceFormat(control)(sourceEditor.state);
-    if (spec) sourceEditor.dispatch(spec);
-    sourceEditor.focus();
-    return;
-  }
   const active = isActive(control);
   if (active && control.off === 'lift') {
     // Blockquotes have no preset unwrap command: lift the focused block
@@ -254,13 +222,6 @@ async function applyLink() {
   const href = linkUrl.value.trim();
   if (!href || !crepe) return;
   linkPopover.value?.hide();
-  if (sourceView.value) {
-    if (!sourceEditor) return;
-    const spec = applySourceFormat({ id: 'link' }, { href })(sourceEditor.state);
-    if (spec) sourceEditor.dispatch(spec);
-    sourceEditor.focus();
-    return;
-  }
   const { callCommand, preset } = await loadCommands();
   crepe.editor.action(callCommand(preset.toggleLinkCommand.key, { href }));
   focusRenderedEditor();
@@ -370,113 +331,19 @@ onBeforeUnmount(() => {
   loaded = false;
   slashMenu?.destroy();
   slashMenu = null;
-  sourceEditor?.destroy();
-  sourceEditor = null;
   crepe?.destroy();
   crepe = null;
 });
-
-// The source view: the markdown itself, symbols and all. Toggling in
-// serializes the rendered document; toggling out parses the edited
-// source back through the markdown parser. The visible surface is
-// always what saves.
-let sourceEditor = null;
-// Programmatic source syncs (toggle-in, remote reload) are
-// reconciliation, not edits — the update listener skips them.
-let syncingSource = false;
-
-function syncSourceText(text) {
-  if (!sourceEditor) return;
-  syncingSource = true;
-  try {
-    sourceEditor.dispatch({ changes: { from: 0, to: sourceEditor.state.doc.length, insert: text } });
-  } finally {
-    syncingSource = false;
-  }
-  blockState.value = sourceSelectionState(sourceEditor.state);
-}
-
-async function ensureSourceEditor(text) {
-  if (sourceEditor) {
-    syncSourceText(text);
-    return;
-  }
-  const [{ EditorView, keymap }, { EditorState }, { basicSetup }, { markdown: markdownLanguage }, { defaultKeymap, indentWithTab }, { codeMirrorTheme }, { sourceSelectionState }] = await Promise.all([
-    import('@codemirror/view'),
-    import('@codemirror/state'),
-    import('codemirror'),
-    import('@codemirror/lang-markdown'),
-    import('@codemirror/commands'),
-    import('./cm-theme.js'),
-    import('./source-commands.js')
-  ]);
-  if (!sourceHost.value) return;
-  sourceEditor = new EditorView({
-    state: EditorState.create({
-      doc: text,
-      extensions: [
-        basicSetup,
-        markdownLanguage(),
-        keymap.of(defaultKeymap.concat(indentWithTab)),
-        EditorView.lineWrapping,
-        codeMirrorTheme,
-        // The source surface is a real editor, not a viewer: typing
-        // arms the save button immediately, and the toolbar's pressed
-        // state follows the source selection.
-        EditorView.updateListener.of(update => {
-          if (syncingSource) return;
-          if (update.docChanged && loaded) dirty.value = true;
-          if (update.docChanged || update.selectionSet) {
-            blockState.value = sourceSelectionState(update.state);
-          }
-        })
-      ]
-    }),
-    parent: sourceHost.value
-  });
-  blockState.value = sourceSelectionState(sourceEditor.state);
-}
 
 // The serializer renders an empty trailing block as `<br />`; that is
 // its artifact, never content — every markdown export strips the tail.
 const stripSerializerTail = text => String(text || '').replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
 
-// The text handed to the source surface on toggle-in: an untouched
-// toggle round-trip changes nothing and arms nothing.
-let sourceBaseline = '';
-
-async function toggleSource() {
-  if (!crepe) return;
-  if (!sourceView.value) {
-    sourceBaseline = stripSerializerTail(crepe.getMarkdown());
-    await ensureSourceEditor(sourceBaseline);
-    sourceView.value = true;
-    await nextTick();
-    // The clicked toggle button keeps DOM focus through the click —
-    // hand it to the source editor past the render flip.
-    requestAnimationFrame(() => sourceEditor?.focus());
-    return;
-  }
-  const text = stripSerializerTail(sourceEditor?.state.doc.toString() || '');
-  sourceView.value = false;
-  await nextTick();
-  if (text !== sourceBaseline) {
-    const { replaceAll } = await loadCommands();
-    crepe.editor.action(replaceAll(text || ''));
-  }
-  blockState.value = { block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, marks: [] };
-  requestAnimationFrame(focusRenderedEditor);
-}
-
 async function save() {
   if (!crepe) return;
   saving.value = true;
   try {
-    // The visible surface is what saves: the markdown text in source
-    // view, the serialized document in the rendered view.
-    const markdown = stripSerializerTail(sourceView.value
-      ? sourceEditor?.state.doc.toString()
-      : crepe.getMarkdown());
+    const markdown = stripSerializerTail(crepe.getMarkdown());
     // The name carries no extension of its own — strip a trailing one
     // before the persistence extension lands (`notes.md` stays
     // `notes.md`, never `notes.md.md`).

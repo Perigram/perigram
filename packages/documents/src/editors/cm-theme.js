@@ -1,8 +1,8 @@
-// The CodeMirror voice for every code surface in the editor — fenced
-// blocks and the markdown source view: the app's mono font and
-// token-backed colors, so code reads as the app's technical content,
-// never as a foreign CodeMirror skin. Values are CSS variables, so the
-// theme flips with the app's dark mode on its own.
+// The CodeMirror voice for fenced code blocks in the document: the
+// app's mono font and token-backed colors, so code reads as the app's
+// technical content, never as a foreign CodeMirror skin. Values are
+// CSS variables, so the theme flips with the app's dark mode on its
+// own; sizes are em-relative to the document voice.
 import { EditorView } from '@codemirror/view';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
@@ -16,8 +16,7 @@ export const codeMirrorTheme = [
     '&.cm-focused': { outline: 'none' },
     '.cm-scroller': {
       fontFamily: 'var(--ck-font-mono)',
-      fontSize: '0.875rem',
-      lineHeight: '1.5'
+      fontSize: '0.875em'
     },
     '.cm-gutters': {
       backgroundColor: 'transparent',

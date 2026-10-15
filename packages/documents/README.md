@@ -123,19 +123,14 @@ framework's own, no rich-text proxy).
 **Toolbar.** Headings run H1–H6, the fenced code block control toggles
 (a code block returns to body text), and the link control applies an
 address to the selection — re-applying the href a linked selection
-already carries lifts the link. Every control toggles, and every
-control acts on whichever surface is visible: in the markdown source
-mode the same controls edit the markdown text through
-`src/editors/source-commands.js` (inline marks wrap the selection,
-block controls set or lift the line prefix, the link control inserts
-a markdown link carrying the given href), with the pressed state
-following the source
-selection. `MD` switches the source and preview surfaces (the markdown
-text itself, and the rendered document); the visible surface is what
-saves, and typing in either arms the save. An untouched toggle
-round-trip changes nothing and arms nothing. Markdown input rules and
+already carries lifts the link. Every control toggles; the pressed
+state shows what the focused block carries. Markdown input rules and
 keyboard shortcuts work beside the controls; heading commands take the
-heading level as their raw command payload.
+heading level as their raw command payload. There is no source mode
+and no surface toggle (owner direction 2026-10-15): the document is
+the one surface — markdown is authored through input rules, slash
+commands, and the toolbar, and the raw payload remains the stored
+truth behind the revision trail.
 
 **Engine chrome.** Crepe's toolbar, block-edit, top bar, link tooltip,
 latex, AI, virtual cursor, and placeholder features are disabled. Its
@@ -143,20 +138,19 @@ code-mirror feature stays and is configured through the crepe feature
 config — the supported channel, applied in the constructor: fenced
 blocks edit in CodeMirror with the full `@codemirror/language-data`
 registry and the app-token theme (`src/editors/cm-theme.js` — mono
-voice and token colors shared with the standalone source view, no
-line-number gutters inside the document), and the per-block tools
-(language picker with search, copy) reveal on the block's hover or
-focus — never as a standing row inside every block. Slash commands
-(`src/editors/slash-menu.js` over the official
+voice and token colors, no line-number gutters inside the document),
+and the per-block tools (language picker with search, copy) reveal on
+the block's hover or focus — never as a standing row inside every
+block. Slash commands (`src/editors/slash-menu.js` over the official
 `@milkdown/plugin-slash`) type `/` at a word start to open the block
 vocabulary — filtered by the query, keyboard-navigated, inserting
 through the same command path the toolbar uses (a table picks a 3×3
 gfm grid). The quote's `> ` marker
 (`source-markers.js` + `source-markers-plugin.js`) is the one rendered
 prefix — heading and inline-mark glyphs reflow the focused line, so
-those signals ride the toolbar instead. Source editing is
-whole-document, through the MD toggle; there is no per-block source
-overlay.
+those signals ride the toolbar instead. The focused block as editable
+markdown source remains the Obsidian-model direction, tracked in
+TODO.md; no overlay ships.
 
 **Theming.** The engine surface is bridged from the app's tokens
 (`src/editors/text-document-editor.css`): the prose voice, the
@@ -165,10 +159,9 @@ the pane.
 
 **Sync.** Saves and renames publish the shared instance event through
 the persistence base, and open editors reconcile remote saves through
-`useRemoteDocumentSync.js` — a clean editor reloads (whichever surface
-is visible), a dirty one raises its refresh affordance (pre-CRDT:
-divergence is never silent, last writer wins per revisioned save). The
-csv editor edits rows in a
+`useRemoteDocumentSync.js` — a clean editor reloads, a dirty one
+raises its refresh affordance (pre-CRDT: divergence is never silent,
+last writer wins per revisioned save). The csv editor edits rows in a
 cell table and serializes CSV text on save (PrimeVue's cell editor
 commits through `cell-edit-complete`), with the same
 remote-document reconciliation. Both take the instance-backed

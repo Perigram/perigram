@@ -2,7 +2,7 @@ import { test, expect } from './fixtures.js';
 
 // Markdown editor repair evidence (TODO §Text editor fills its pane,
 // item C): the blank editor opens pristine (save disabled), markdown
-// round-trips through source + preview + save, a `.md` file enters
+// round-trips through typing + save, a `.md` file enters
 // through the upload protocol, and csv edits serialize rows on save
 // (the empty-file regression).
 
@@ -64,27 +64,6 @@ test.describe('markdown editor repair', () => {
     await save.click();
     await expect(save).toBeDisabled();
     expect(normalized(await payloadText(app, 'text-document'))).toBe(normalized(MD_SOURCE));
-
-    // The MD toggle swaps surfaces and the toolbar keeps acting: in
-    // source mode the same controls edit the markdown text, and typing
-    // arms the save button without toggling back.
-    const sourceToggle = app.page.getByTestId('source-toggle');
-    const bold = app.page.getByRole('button', { name: 'Bold', exact: true });
-    const sourceContent = app.page.locator('.source-host .cm-content');
-    await sourceToggle.click();
-    await expect(sourceContent).toBeVisible();
-    await expect(bold).toBeEnabled();
-    await sourceContent.click();
-    await app.page.keyboard.press('End');
-    await app.page.keyboard.type('\nsource line');
-    await expect(save).toBeEnabled();
-    await app.page.keyboard.press('Home');
-    await app.page.keyboard.press('Shift+End');
-    await bold.click();
-    await expect(sourceContent).toContainText('**source line**');
-    await sourceToggle.click();
-    await expect(source).toBeVisible();
-    await expect(save).toBeEnabled();
 
     await app.expectCleanRuntime();
   });
