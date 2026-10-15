@@ -45,6 +45,16 @@ export const test = base.extend({
   app: async ({ page, request }, use) => {
     const errors = [];
 
+    // The suite's label assertions speak the English surface; the
+    // app's default locale is ru. Pin the i18n cookie before the app
+    // boots — locale detection reads it on first load, so label
+    // locators stay deterministic against any stack default.
+    await page.context().addCookies([{
+      name: 'i18n_locale',
+      value: 'en',
+      url: process.env.E2E_BASE_URL || 'http://localhost:3000'
+    }]);
+
     page.on('pageerror', error => {
       errors.push(`pageerror: ${error.message}${error.stack ? `\n${error.stack.split('\n').slice(1, 5).join('\n')}` : ''}`);
     });
