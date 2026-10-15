@@ -223,6 +223,45 @@ function assertGroupManager(auth, group) {
 }
 
 /**
+ * Bot membership edits are participant-gated (any member adds an agent to
+ * the room, the chat-app convention) and bot-only: the target must carry
+ * the users feature's bot marker. Human membership keeps the
+ * creator-or-admin gate above.
+ */
+export async function addBotGroupParticipant(auth, groupId = '', botUserId = '') {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const group = await repository.findGroupById(groupId);
+    if (!group) throw createError({ statusCode: 404, message: 'Chat group not found' });
+    const participants = (group.participants || []).map(item => item?.toString?.() || item);
+    if (!auth.isAdmin && !participants.includes(String(auth.userId))) {
+        throw createError({ statusCode: 403, message: 'Forbidden' });
+    }
+    const botId = String(botUserId || '').trim();
+    const target = await usersService.getById(botId).catch(() => null);
+    if (!target?.data?.bot) throw createError({ statusCode: 400, message: 'Target is not a bot member' });
+    if (participants.includes(botId)) return groupDTO(group);
+    const next = [...participants, botId];
+    await repository.updateGroupParticipants(groupId, next);
+    notifyInboxParticipants([botId], groupConversationKey(group._id));
+    return groupDTO({ ...group, participants: next });
+}
+
+export async function removeBotGroupParticipant(auth, groupId = '', botUserId = '') {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const group = await repository.findGroupById(groupId);
+    if (!group) throw createError({ statusCode: 404, message: 'Chat group not found' });
+    const participants = (group.participants || []).map(item => item?.toString?.() || item);
+    if (!auth.isAdmin && !participants.includes(String(auth.userId))) {
+        throw createError({ statusCode: 403, message: 'Forbidden' });
+    }
+    const botId = String(botUserId || '').trim();
+    const next = participants.filter(item => item !== botId);
+    if (next.length === participants.length) return groupDTO(group);
+    await repository.updateGroupParticipants(groupId, next);
+    return groupDTO({ ...group, participants: next });
+}
+
+/**
  * Read-side group lookup shared with the livekit feature for group-room
  * admission and webhook fanout; returns the group DTO or null.
  */

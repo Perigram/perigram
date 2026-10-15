@@ -9,7 +9,7 @@
             <span>{{ $t('support.bots.title') }}</span>
         </template>
         <div class="flex min-w-0 flex-col gap-3">
-            <div v-if="creating" class="flex items-center gap-2">
+            <div v-if="creating && agentBots.canManageBots" class="flex items-center gap-2">
                 <InputText
                     v-model="newBotName"
                     type="text"
@@ -51,9 +51,9 @@
                 <i class="pi pi-spin pi-spinner text-muted" aria-hidden="true" />
             </div>
             <Listbox
-                v-else-if="bots.length"
+                v-else-if="botRows.length"
                 :model-value="null"
-                :options="bots"
+                :options="botRows"
                 option-label="name"
                 class="border-0"
                 data-testid="chat-bot-list"
@@ -67,6 +67,13 @@
                             class="shrink-0 bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                         />
                         <span class="min-w-0 flex-1 truncate text-label">{{ option.name }}</span>
+                        <Tag
+                            v-if="option.assistant"
+                            :value="$t('support.bots.assistant')"
+                            severity="secondary"
+                            size="small"
+                            class="shrink-0"
+                        />
                         <ToggleSwitch
                             v-if="canToggle"
                             :model-value="option.subscribed"
@@ -74,24 +81,26 @@
                             :data-testid="`chat-bot-subscribe-${option.id}`"
                             @update:model-value="setSubscribed(option, $event)"
                         />
-                        <Button
-                            icon="pi pi-key"
-                            severity="secondary"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('support.bots.rotateToken')"
-                            @click.stop="rotateToken(option)"
-                        />
-                        <Button
-                            icon="pi pi-trash"
-                            severity="danger"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('common.delete')"
-                            @click.stop="requestDelete(option)"
-                        />
+                        <template v-if="agentBots.canManageBots">
+                            <Button
+                                icon="pi pi-key"
+                                severity="secondary"
+                                text
+                                rounded
+                                size="small"
+                                :aria-label="$t('support.bots.rotateToken')"
+                                @click.stop="rotateToken(option)"
+                            />
+                            <Button
+                                icon="pi pi-trash"
+                                severity="danger"
+                                text
+                                rounded
+                                size="small"
+                                :aria-label="$t('common.delete')"
+                                @click.stop="requestDelete(option)"
+                            />
+                        </template>
                     </div>
                 </template>
             </Listbox>
@@ -172,6 +181,7 @@ import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Listbox from 'primevue/listbox';
 import Select from 'primevue/select';
+import Tag from 'primevue/tag';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
@@ -201,9 +211,9 @@ const ruleBotId = ref(null);
 const ruleType = ref(null);
 const ruleState = ref(null);
 
-const bots = computed(() => agentBots.bots);
+const botRows = computed(() => agentBots.contacts);
 const canToggle = computed(() => props.subscribable && Boolean(props.conversationKey));
-const subscribedBots = computed(() => bots.value.filter(bot => bot.subscribed));
+const subscribedBots = computed(() => botRows.value.filter(bot => bot.subscribed));
 const ruleStateOptions = computed(() => (
     wakeOptions.value.find(option => option.typeId === ruleType.value)?.states || []
 ));
@@ -219,12 +229,12 @@ watch(visible, async (open) => {
     }
     loading.value = true;
     try {
-        await agentBots.refresh(props.conversationKey);
+        await agentBots.fetchContacts(props.conversationKey);
         if (canToggle.value) wakeOptions.value = await agentBots.fetchWakeOptions();
     } finally {
         loading.value = false;
     }
-    if (!bots.value.length) creating.value = true;
+    if (!botRows.value.length && agentBots.canManageBots) creating.value = true;
 });
 
 const saveRules = async (botId, wakeOn) => {
@@ -260,7 +270,7 @@ const createBot = async () => {
         issuedToken.value = created?.token || '';
         newBotName.value = '';
         creating.value = false;
-        await agentBots.refresh(props.conversationKey);
+        await agentBots.fetchContacts(props.conversationKey);
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
     } finally {
@@ -285,7 +295,7 @@ const requestDelete = (bot) => {
         accept: async () => {
             try {
                 await agentBots.deleteBot(bot.id);
-                await agentBots.refresh(props.conversationKey);
+                await agentBots.fetchContacts(props.conversationKey);
             } catch (error) {
                 toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
             }
@@ -298,7 +308,7 @@ const setSubscribed = async (bot, subscribed) => {
         await agentBots.setSubscribed(bot.id, props.conversationKey, subscribed);
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
-        await agentBots.refresh(props.conversationKey);
+        await agentBots.fetchContacts(props.conversationKey);
     }
 };
 

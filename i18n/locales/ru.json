@@ -199,7 +199,8 @@
         "wakes": "Пробуждения",
         "botPlaceholder": "Бот",
         "typePlaceholder": "Тип",
-        "statePlaceholder": "Статус"
+        "statePlaceholder": "Статус",
+        "assistant": "ассистент"
     },
     "sendMessage": "Написать",
     "members": "Участники",

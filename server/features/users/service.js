@@ -74,9 +74,12 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
  * email, a bot marker with the hashed token, and a membership carrying the
  * narrow `organizations` recovery grant that opens process definition
  * management (and nothing else). Process roles ride the organization's role
- * assignment like any member's.
+ * assignment like any member's. `email` is normally derived from the minted
+ * uid; the org assistant passes its deterministic per-org address instead,
+ * which makes assistant bootstrap idempotent across workers (the 409
+ * collision means it already exists).
  */
-export async function registerBot({ name, organizationId, roleIds = [], bindings = {} } = {}, creatorUserId = 'SYSTEM') {
+export async function registerBot({ name, organizationId, roleIds = [], bindings = {}, email = null } = {}, creatorUserId = 'SYSTEM') {
   if (!name || !organizationId) {
     throw createError({ statusCode: 400, message: 'Bot name and organization are required' });
   }
@@ -88,15 +91,15 @@ export async function registerBot({ name, organizationId, roleIds = [], bindings
     throw createError({ statusCode: 400, message: `Unknown organization roles: ${missingRoleIds.join(', ')}` });
   }
   const uid = `user-${new ObjectId().toString().substring(0, 8)}`;
-  const email = `${uid}@bots.perigram.internal`.toLowerCase();
-  const existing = await usersRepository.findByEmail(email);
+  const botEmail = String(email || `${uid}@bots.perigram.internal`).toLowerCase();
+  const existing = await usersRepository.findByEmail(botEmail);
   if (existing) throw createError({ statusCode: 409, message: 'Bot identity collision, retry' });
   const token = `pb_${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '')}`;
   const tokenHash = createHash('sha256').update(token).digest('hex');
   const user = new User({
     identity: { uid, name },
     data: {
-      email,
+      email: botEmail,
       memberships: [{
         organizationId,
         permissions: { organizations: 'admin' },
@@ -263,6 +266,11 @@ export async function getById(uid) {
   const raw = await usersRepository.findById(uid);
   if (!raw) return null;
   return new User(raw);
+}
+
+export async function findUserByEmail(email) {
+  const raw = await usersRepository.findByEmail(String(email || '').toLowerCase());
+  return raw ? new User(raw) : null;
 }
 
 export async function saveAvatar(uid, file = {}, auth = {}) {

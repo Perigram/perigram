@@ -9,7 +9,16 @@
     <TableFrame class="ck-collection-rows">
     <DataTable :value="users" :loading="loading" :pt="tablePt"
     :row-class="rowSurfaceClass">
-      <Column field="identity.name" :header="$t('profile.name')" sortable />
+      <Column field="identity.name" sortable>
+        <template #body="{ data }">
+          <div class="flex min-w-0 items-center gap-2">
+            <span class="truncate">{{ data.identity?.name }}</span>
+            <!-- Bot members are assignable to process roles exactly like
+                 humans — the badge marks which rows are agents. -->
+            <Tag v-if="data.data?.bot" :value="$t('support.bots.badge')" severity="secondary" size="small" />
+          </div>
+        </template>
+      </Column>
       <Column field="data.email" :header="$t('profile.email')" sortable />
       <Column :header="$t('organization.processRoles')">
         <template #body="{ data }">

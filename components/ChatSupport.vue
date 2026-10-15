@@ -59,7 +59,7 @@
                     />
                     <Button
                         v-if="agentBots.canManageBots"
-                        icon="pi pi-android"
+                        icon="pi pi-sparkles"
                         severity="secondary"
                         text
                         rounded
@@ -436,6 +436,17 @@
                         </Popover>
                     </div>
                     <div class="flex shrink-0 items-center gap-1">
+                        <Button
+                            v-if="['group', 'instance'].includes(activeConversation.conversationKind)"
+                            icon="pi pi-sparkles"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('support.bots.title')"
+                            data-testid="chat-thread-bots"
+                            @click="botPanelVisible = true"
+                        />
                         <Button
                             v-if="activeConversation.conversationKind !== 'support'"
                             icon="pi pi-phone"
@@ -3330,9 +3341,14 @@ const removeInstanceRef = (targetRef) => {
 const loadNewChatUsers = async () => {
     newChatUsersLoading.value = true
     try {
-        newChatUsers.value = await $fetch('/api/support/instance-options', {
-            query: { type: 'user' }
-        })
+        // Bots load beside members: the assistant is ensured server-side, so
+        // chatting with an agent is a new chat away — no setup surface.
+        await Promise.all([
+            $fetch('/api/support/instance-options', { query: { type: 'user' } }).then((rows) => {
+                newChatUsers.value = rows
+            }),
+            agentBots.fetchContacts()
+        ])
     } catch (error) {
         console.error('Failed to load chat users:', error)
         newChatUsers.value = []
@@ -3352,10 +3368,30 @@ const directoryUserOption = (entry) => ({
     instance: entry
 })
 const { query: newChatSearch, results: newChatDirectoryOptions, searching: newChatSearching } = useDirectoryUserSearch()
+// Bot contacts ride the picker's user-option shape (instance DTO carries
+// the bot marker for the badge) and float above human members.
+const botContactOptions = computed(() => agentBots.contacts.map(contact => ({
+    type: 'user',
+    value: String(contact.id),
+    label: contact.name,
+    instance: {
+        _id: contact.id,
+        identity: { name: contact.name },
+        data: { bot: { createdAt: null }, avatarUrl: contact.avatarUrl }
+    }
+})))
+
 const newChatOptions = computed(() => {
     const query = newChatSearch.value.trim()
-    if (query.length < 2) return newChatUsers.value
-    return newChatDirectoryOptions.value.map(directoryUserOption)
+    if (query.length < 2) {
+        return [
+            ...botContactOptions.value,
+            ...newChatUsers.value.filter(option => !option.instance?.data?.bot)
+        ]
+    }
+    const lower = query.toLowerCase()
+    const matchingBots = botContactOptions.value.filter(option => option.label.toLowerCase().includes(lower))
+    return [...matchingBots, ...newChatDirectoryOptions.value.map(directoryUserOption)]
 })
 
 // Group members reach beyond the organization the same way: the merged

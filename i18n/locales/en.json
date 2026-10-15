@@ -199,7 +199,8 @@
         "wakes": "Wakes",
         "botPlaceholder": "Bot",
         "typePlaceholder": "Type",
-        "statePlaceholder": "State"
+        "statePlaceholder": "State",
+        "assistant": "assistant"
     },
     "sendMessage": "Send message",
     "members": "Members",
