@@ -155,8 +155,19 @@ reverted on `agent/editor-truth-20261015` after live use corrupted
 saved documents (fenced blocks replacing headings). Root cause: the
 swap put a view concern into the document. C remains the owner
 direction (SPEC UI, the Obsidian model) and needs the view-level
-design. Marker decorations (`source-markers.js` — prefixes and touched
-mark runs) remain the visible half and are view-only by construction.
+design. The 2026-10-15 chrome pass (`agent/editor-chrome-20261015`,
+live-verified against the dev stack with a real session) found the
+"weird dropdowns/helpers" the owner reported: crepe's CodeMirror
+feature mounts a Vue app with a language-picker dropdown inside every
+fenced block, a virtual cursor overlays the native caret, and the
+placeholder coaches — all disabled now; crepe's own 120px `.editor`
+side padding was winning the cascade against the pack stylesheet
+(dynamic load order) and the heading/inline marker widgets reflowed
+the focused line — both fixed with host-prefixed rules and by keeping
+only the reflow-free quote marker. The sync-layer defects of the same
+day (origin stripped by emitInstanceMutation, stale payload loads,
+programmatic reloads arming the save button) were fixed on
+`agent/editor-sync-fix-20261015` with spec coverage.
 
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
