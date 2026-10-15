@@ -232,25 +232,12 @@ export async function testLlmConnection(auth = {}, { profileId = '' } = {}) {
         return { ok: false, reason: 'No provider resolves — save a routed profile or check the environment defaults' };
     }
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-        let response;
-        try {
-            response = await fetch(wireEndpoint(config.provider, config.baseUrl), {
-                method: 'POST',
-                headers: wireHeaders(config.provider, config.apiKey),
-                body: JSON.stringify(wireRequest(config.provider, config, 'Reply with the single word: ok', [{ role: 'user', content: 'Reply with the single word: ok' }], [])),
-                signal: controller.signal
-            });
-        } finally {
-            clearTimeout(timeout);
-        }
-        if (!response.ok) {
-            const detail = (await response.text().catch(() => '')).trim().slice(0, 200);
-            return { ok: false, provider: config.provider, model: config.model, reason: detail ? `LLM service error: ${detail}` : 'LLM service error' };
-        }
-        const payload = await response.json().catch(() => null);
-        if (!payload) return { ok: false, provider: config.provider, model: config.model, reason: 'LLM service returned no completion' };
+        await postCompletion(config, JSON.stringify(wireRequest(
+            config.provider, config,
+            'Reply with the single word: ok',
+            [{ role: 'user', content: 'Reply with the single word: ok' }],
+            []
+        )));
         return { ok: true, provider: config.provider, model: config.model };
     } catch (error) {
         return { ok: false, provider: config.provider, model: config.model, reason: error?.message || 'Connection failed' };
@@ -509,10 +496,67 @@ function wireHeaders(provider, apiKey) {
     return { ...headers, Authorization: `Bearer ${apiKey}` };
 }
 
-function wireEndpoint(provider, baseUrl) {
-    if (provider === 'ollama') return `${baseUrl.replace(/\/$/, '')}/api/chat`;
-    if (provider === 'anthropic') return `${baseUrl.replace(/\/$/, '')}/v1/messages`;
-    return `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+/**
+ * Completion paths, canonicalized: the OpenAI dialect conventionally
+ * mounts under `/v1` (routers reject the root path with no_route), so a
+ * base that already carries `/v1` is stripped and the prefix always
+ * applied; same for the Messages dialect. Ollama's native path is
+ * unambiguous. The second candidate covers root-mounted servers —
+ * same dialect only, never a wire-shape guess.
+ */
+function completionPaths(provider, baseUrl) {
+    const base = String(baseUrl || '').replace(/\/+$/, '');
+    const root = base.replace(/\/v1$/, '');
+    if (provider === 'ollama') return [`${base}/api/chat`];
+    if (provider === 'anthropic') return [`${root}/v1/messages`, `${root}/messages`];
+    return [`${root}/v1/chat/completions`, `${root}/chat/completions`];
+}
+
+// Resolved fast paths per (provider, root) — a first-request 404 on the
+// canonical candidate caches the winner so later rounds pay nothing.
+const resolvedCompletionPaths = new Map();
+
+async function postCompletion(config, requestBodyJson) {
+    const paths = completionPaths(config.provider, config.baseUrl);
+    const cacheKey = `${config.provider}::${String(config.baseUrl || '').replace(/\/+$/, '').replace(/\/v1$/, '')}`;
+    const ordered = resolvedCompletionPaths.has(cacheKey)
+        ? [resolvedCompletionPaths.get(cacheKey)]
+        : paths;
+    let lastStatus = 0;
+    let lastDetail = '';
+    for (const url of ordered) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        let response;
+        try {
+            response = await fetch(url, {
+                method: 'POST',
+                headers: wireHeaders(config.provider, config.apiKey),
+                body: requestBodyJson,
+                signal: controller.signal
+            });
+        } catch (error) {
+            clearTimeout(timeout);
+            throw createError({ statusCode: 502, message: 'LLM service is unreachable' });
+        } finally {
+            clearTimeout(timeout);
+        }
+        if (response.ok) {
+            if (ordered.length > 1) resolvedCompletionPaths.set(cacheKey, url);
+            return response;
+        }
+        lastStatus = response.status;
+        lastDetail = (await response.text().catch(() => '')).trim().slice(0, 200);
+        // Only a missing route justifies the next same-dialect candidate;
+        // auth, validation, and model errors belong to the caller.
+        if (![404, 405, 501].includes(response.status)) break;
+    }
+    throw createError({
+        statusCode: 502,
+        message: lastDetail
+            ? `LLM service error (${lastStatus}): ${lastDetail}`
+            : `LLM service error (${lastStatus})`
+    });
 }
 
 /**
@@ -530,28 +574,7 @@ export async function chatCompletion({ organizationId = null, capability = CHAT_
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
     }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    let response;
-    try {
-        response = await fetch(wireEndpoint(config.provider, config.baseUrl), {
-            method: 'POST',
-            headers: wireHeaders(config.provider, config.apiKey),
-            body: JSON.stringify(wireRequest(config.provider, config, system, messages, tools)),
-            signal: controller.signal
-        });
-    } catch (error) {
-        throw createError({ statusCode: 502, message: 'LLM service is unreachable' });
-    } finally {
-        clearTimeout(timeout);
-    }
-    if (!response.ok) {
-        const detail = (await response.text().catch(() => '')).trim().slice(0, 200);
-        throw createError({
-            statusCode: 502,
-            message: detail ? `LLM service error: ${detail}` : 'LLM service error'
-        });
-    }
+    const response = await postCompletion(config, JSON.stringify(wireRequest(config.provider, config, system, messages, tools)));
     const payload = await response.json().catch(() => null);
     if (!payload) throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
     return wireResponseToNeutral(config.provider, payload);

@@ -1,5 +1,24 @@
 # TODO
 
+## Completion path canonicalization (owner defect 2026-10-15)
+
+The same no_route disease hit completions: OpenAI-dialect routers mount
+under /v1, and the canonical single path assumed the base carried it.
+
+- [x] /v1 canonicalization (bases carrying /v1 stripped and re-applied,
+      openai and anthropic dialects); ollama's native path unchanged.
+- [x] Same-dialect root-mounted fallback on 404/405/501, cached per
+      endpoint after first resolution; caller-side errors (401, 5xx)
+      never probe.
+- [x] Test and completion share one posting helper.
+- [x] Specs: canonicalization, fallback+cache, no-probe-on-401.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/llm-completion-path-20261015`. The path cache is
+per-process (dev single-worker); a restart re-probes once at worst.
+
+
 ## Model listing probes dialect paths (owner defect 2026-10-15)
 
 The picker dead-ended on OpenAI-shaped servers picked as Ollama

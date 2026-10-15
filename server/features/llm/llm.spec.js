@@ -173,7 +173,7 @@ describe('chatCompletion: openai-shaped local servers', () => {
         const { result, request, url } = await callRound('openai', {
             choices: [{ message: { content: 'hi', tool_calls: [{ id: 'c1', function: { name: 'list_types', arguments: '{"z":3}' } }] } }]
         });
-        expect(url).toBe('http://llm.internal/chat/completions');
+        expect(url).toBe('http://llm.internal/v1/chat/completions');
         expect(request.messages[0]).toEqual({ role: 'system', content: 'be brief' });
         expect(result).toEqual({ content: 'hi', toolCalls: [{ id: 'c1', name: 'list_types', arguments: { z: 3 } }] });
     });
