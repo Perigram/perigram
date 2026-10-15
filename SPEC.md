@@ -506,6 +506,23 @@ default object-snap mask (endpoint, midpoint, center, quadrant,
 intersection, nearest) on mount, so per-origin persisted engine settings
 cannot disable snapping; the Tangent toggle rides on top of that mask.
 
+Owner declarations (2026-10-15, profiles in production): the layer
+standards the plugin ships are the full registry of record — the
+production layer names and their parametric suffixes included (milling
+tool diameter on the outer cut, hole diameter, fold angle), exactly as
+the pre-plugin seeding carried them — and every production surface the
+plugin emits (DXF export, nesting redraw, baked layerData) names its
+layers through that table, never through bare layer codes. Profile
+workpieces must produce their full production effect in the cassette:
+their arrangement (edge arrays — edge binding, margins from the edge
+ends, count/spacing) places them, and their cut geometry lands on the
+correct layers. An open profile positions by array settings only: its
+two anchors snap directly onto the host face's dashed edge points —
+there is no perpendicular offset for open shapes — and the host contour
+rips at those points, embedding the profile chain into the contour as
+the break. The Basis toggle applies to closed profiles only; on an open
+sketch it is disabled, never a silent no-op.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,
