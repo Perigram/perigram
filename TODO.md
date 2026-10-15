@@ -467,6 +467,19 @@ records exist), and the suite now pins the English surface through the
 i18n cookie — the stack default locale is ru and every label locator
 in the suite is English.
 
+Round 3 (owner review, same day): the source-mode band-aid (disabled
+toolbar) was rejected as slop — the real defects were that typing in
+source never armed Save, the toolbar could not act at all, a remote
+reload never reached the open source surface, and a no-op toggle
+round-trip armed Save. `source-commands.js` now maps every toolbar
+control onto markdown text (wraps unwrap, block prefixes set/lift,
+links insert a markdown link with the given href, fences toggle), the
+source surface tracks
+dirty and pressed states live, reload reconciles the visible surface,
+and the round-trip baseline keeps untouched toggles inert. In-document
+code blocks lost their standing tools row and line-number gutters —
+the language picker and copy reveal on hover/focus only.
+
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
 The toolbar format controls toggle (SPEC UI): an active heading, list,

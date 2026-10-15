@@ -191,8 +191,11 @@ headings one through six, fenced code blocks toggled from the toolbar
 (blocks carry the language picker and syntax-highlighted CodeMirror
 editing), the link control with its address input, and slash commands —
 typing `/` at a word start offers the block vocabulary with keyboard
-navigation. The toolbar speaks the active surface: controls that
-cannot act in the markdown source mode disable. Code renders in the
+navigation. The toolbar acts on whichever surface is visible: in the
+markdown source mode the same controls edit the markdown text (inline
+marks wrap the selection, block controls set the line prefix), typing
+in source arms the save button, and the block UI of fenced code
+appears on hover, never as standing chrome. Code renders in the
 app's mono voice wherever it appears.
 `text-document` instances are creatable by
 uploading an existing `.md` file. Editor components belong to the packs
