@@ -135,6 +135,26 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   return new Organization(updatedRaw);
 }
 
+/**
+ * Section-scoped settings writes for capability modules (transcription,
+ * llm, meetings): the generic update merges `data` shallowly, which would
+ * clobber sibling settings sections — this merges one key under
+ * `data.settings` and nothing else. `readSettingsSection` is the gated
+ * read twin.
+ */
+export async function readSettingsSection(organizationId, section, auth = {}) {
+  const org = await loadManagedOrganization(organizationId, auth, 'read');
+  const value = org.data?.settings?.[section];
+  return value && typeof value === 'object' ? value : (value ?? null);
+}
+
+export async function updateSettingsSection(organizationId, section, value, auth = {}) {
+  const org = await loadManagedOrganization(organizationId, auth, 'write');
+  org.data.settings = { ...(org.data.settings || {}), [section]: value };
+  await repository.updateById(organizationId, org);
+  return org.data.settings[section];
+}
+
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   if (!hasPermission({ permissions: resolveAuthPermissions(userPermissions) }, 'organizations', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });

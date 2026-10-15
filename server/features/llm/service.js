@@ -2,6 +2,15 @@ import { createError } from 'h3';
 import * as organizationsService from '~/server/features/organizations/service.js';
 
 /**
+ * Administered settings (the organization bots screen's provider card):
+ * the org's `data.settings.llm` over env defaults. Keys never travel —
+ * reads report `apiKeySet`, writes keep an absent key and clear on empty
+ * string.
+ */
+
+const SETTINGS_PROVIDERS = new Set(['none', 'ollama', 'anthropic', 'openai']);
+
+/**
  * LLM is a capability module over a selectable provider table (owner
  * direction 2026-10-15: local models with options to choose). Consumers
  * speak ONE neutral conversation contract — system string, user/assistant/
@@ -51,6 +60,79 @@ export async function resolveLlmConfig(organizationId = null) {
 
 export async function isLlmAvailable(organizationId = null) {
     return (await resolveLlmConfig(organizationId)).provider !== 'none';
+}
+
+export async function readLlmSettings(auth = {}) {
+    const organizationId = auth.organizationId;
+    const saved = await organizationsService.readSettingsSection(organizationId, 'llm', auth).catch(() => null);
+    // The resolved config carries the raw key for the wire path; the
+    // settings read never ships it.
+    const resolved = await resolveLlmConfig(organizationId);
+    delete resolved.apiKey;
+    return {
+        saved: saved && typeof saved === 'object' ? {
+            provider: String(saved.provider || 'none'),
+            baseUrl: String(saved.baseUrl || ''),
+            model: String(saved.model || ''),
+            apiKeySet: Boolean(saved.apiKey)
+        } : null,
+        resolved,
+        envDefaults: {
+            provider: String(process.env.LLM_PROVIDER || 'none'),
+            baseUrl: String(process.env.LLM_BASE_URL || ''),
+            model: String(process.env.LLM_MODEL || '')
+        }
+    };
+}
+
+export async function saveLlmSettings(auth = {}, payload = {}) {
+    const organizationId = auth.organizationId;
+    if (!organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
+    const provider = String(payload?.provider ?? 'none').trim();
+    if (!SETTINGS_PROVIDERS.has(provider)) {
+        throw createError({ statusCode: 400, message: 'Provider must be one of: none, ollama, anthropic, openai' });
+    }
+    const previous = await organizationsService.readSettingsSection(organizationId, 'llm', auth).catch(() => null) || {};
+    const setting = { provider };
+    if (provider !== 'none') {
+        setting.baseUrl = String(payload?.baseUrl || '').trim();
+        setting.model = String(payload?.model || '').trim();
+        if (!setting.baseUrl || !setting.model) {
+            throw createError({ statusCode: 400, message: 'Base URL and model are required for a selected provider' });
+        }
+        if (payload?.apiKey === undefined || payload?.apiKey === null) {
+            if (previous.apiKey) setting.apiKey = previous.apiKey;
+        } else {
+            const apiKey = String(payload.apiKey).trim();
+            if (apiKey) setting.apiKey = apiKey;
+        }
+    }
+    await organizationsService.updateSettingsSection(organizationId, 'llm', setting, auth);
+    return await readLlmSettings(auth);
+}
+
+/**
+ * One real completion round against the resolved provider: the provider
+ * card's connection test. Returns `{ ok, provider?, model?, reason? }` —
+ * never throws, so the surface reports instead of toasting.
+ */
+export async function testLlmConnection(auth = {}) {
+    const organizationId = auth.organizationId;
+    const config = await resolveLlmConfig(organizationId);
+    if (config.provider === 'none') {
+        return { ok: false, reason: 'No provider resolves — set one up or check the environment defaults' };
+    }
+    try {
+        await chatCompletion({
+            organizationId,
+            system: '',
+            messages: [{ role: 'user', content: 'Reply with the single word: ok' }],
+            tools: []
+        });
+        return { ok: true, provider: config.provider, model: config.model };
+    } catch (error) {
+        return { ok: false, provider: config.provider, model: config.model, reason: error?.message || 'Connection failed' };
+    }
 }
 
 // --- Neutral → wire translation -------------------------------------------

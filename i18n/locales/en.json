@@ -3369,5 +3369,17 @@
         "apiKey": "API key",
         "apiKeyPlaceholder": "Bearer key for the publisher's executor",
         "savedToast": "Connection saved"
+    },
+    "llm": {
+        "provider": "AI provider",
+        "providerNone": "None",
+        "providerOpenAiShaped": "OpenAI-shaped (local)",
+        "baseUrl": "Server base URL",
+        "model": "Model",
+        "apiKey": "API key (optional)",
+        "apiKeySet": "Key stored — type to replace",
+        "test": "Test",
+        "testOk": "Connected",
+        "unconfigured": "Not configured"
     }
 }

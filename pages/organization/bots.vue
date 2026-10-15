@@ -4,6 +4,82 @@
         <Button :label="$t('common.create')" icon="pi pi-plus" :disabled="!canManage" @click="openCreate" />
     </template>
 
+    <div class="flex flex-col gap-6">
+      <!-- The brain before the members: a bot without a resolvable provider
+           answers nothing, so provider setup lives at the top of this
+           surface. -->
+      <ActionToolbar :title="$t('llm.provider')" />
+      <div class="grid gap-3 md:grid-cols-2">
+        <div class="flex flex-col gap-2">
+          <Select
+            v-model="providerForm.provider"
+            :options="providerOptions"
+            option-label="label"
+            option-value="value"
+            :aria-label="$t('llm.provider')"
+            data-testid="llm-provider"
+          />
+          <InputText
+            v-if="providerForm.provider !== 'none'"
+            v-model="providerForm.baseUrl"
+            type="text"
+            :placeholder="$t('llm.baseUrl')"
+            :aria-label="$t('llm.baseUrl')"
+            data-testid="llm-base-url"
+          />
+          <InputText
+            v-if="providerForm.provider !== 'none'"
+            v-model="providerForm.model"
+            type="text"
+            :placeholder="$t('llm.model')"
+            :aria-label="$t('llm.model')"
+            data-testid="llm-model"
+          />
+          <Password
+            v-if="providerForm.provider !== 'none'"
+            v-model="providerForm.apiKey"
+            :feedback="false"
+            :placeholder="settings?.saved?.apiKeySet ? $t('llm.apiKeySet') : $t('llm.apiKey')"
+            :aria-label="$t('llm.apiKey')"
+            input-class="w-full"
+          />
+        </div>
+        <div class="flex flex-col items-start justify-end gap-3">
+          <Tag
+            v-if="settings?.resolved?.provider !== 'none'"
+            :value="`${settings.resolved.provider} · ${settings.resolved.model}`"
+            severity="success"
+            data-testid="llm-resolved"
+          />
+          <Tag v-else-if="settings" :value="$t('llm.unconfigured')" severity="secondary" />
+          <span v-if="testResult" class="flex min-w-0 items-center gap-2 text-supporting" :class="testResult.ok ? 'text-primary' : 'text-muted'">
+            <i class="pi shrink-0" :class="testResult.ok ? 'pi-check' : 'pi-times'" aria-hidden="true" />
+            <span class="min-w-0 truncate">{{ testResult.ok ? $t('llm.testOk') : testResult.reason }}</span>
+          </span>
+          <div class="flex gap-2">
+            <Button
+              :label="$t('common.save')"
+              severity="secondary"
+              outlined
+              :loading="savingProvider"
+              :disabled="!providerLoaded"
+              data-testid="llm-save"
+              @click="saveProvider"
+            />
+            <Button
+              :label="$t('llm.test')"
+              severity="secondary"
+              text
+              :loading="testing"
+              :disabled="!providerLoaded"
+              data-testid="llm-test"
+              @click="testProvider"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <TableFrame class="ck-collection-rows">
       <DataTable :value="bots" :loading="loading" :pt="tablePt" :row-class="rowSurfaceClass" data-testid="org-bots-table">
         <Column field="name" :header="$t('profile.name')">
@@ -86,12 +162,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import InputText from 'primevue/inputtext';
+import Password from 'primevue/password';
+import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
@@ -99,6 +177,7 @@ import { useToast } from 'primevue/usetoast';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useAgentBotsStore } from '~/stores/agentBots';
 import { usePageBack } from '~/composables/usePageBack';
@@ -128,6 +207,23 @@ const saving = ref(false);
 const workingBotId = ref('');
 const issuedToken = ref('');
 
+// Provider setup (the bot brain): org `data.settings.llm` over env
+// defaults, saved through the llm settings seam with a live connection
+// test. Keys never render — an empty password field keeps the stored one.
+const settings = ref(null);
+const providerLoaded = ref(false);
+const providerForm = reactive({ provider: 'none', baseUrl: '', model: '', apiKey: '' });
+const savingProvider = ref(false);
+const testing = ref(false);
+const testResult = ref(null);
+
+const providerOptions = computed(() => ([
+    { label: t('llm.providerNone'), value: 'none' },
+    { label: 'Ollama', value: 'ollama' },
+    { label: 'Anthropic Messages', value: 'anthropic' },
+    { label: t('llm.providerOpenAiShaped'), value: 'openai' }
+]));
+
 const canManage = computed(() => agentBots.canManageBots);
 // The page is mounted both as a standalone route and as a home pane tab:
 // the back control belongs to the routed surface.
@@ -144,6 +240,49 @@ async function refresh() {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
     } finally {
         loading.value = false;
+    }
+}
+
+async function loadSettings() {
+    try {
+        settings.value = await $fetch('/api/llm/settings');
+        const saved = settings.value?.saved;
+        providerForm.provider = saved?.provider || settings.value?.envDefaults?.provider || 'none';
+        providerForm.baseUrl = saved?.baseUrl || '';
+        providerForm.model = saved?.model || '';
+        providerForm.apiKey = '';
+        providerLoaded.value = true;
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+    }
+}
+
+async function saveProvider() {
+    savingProvider.value = true;
+    try {
+        settings.value = await $fetch('/api/llm/settings', {
+            method: 'PUT',
+            body: { ...providerForm }
+        });
+        providerForm.apiKey = '';
+        testResult.value = null;
+        toast.add({ severity: 'success', summary: t('common.success'), life: 1500 });
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+    } finally {
+        savingProvider.value = false;
+    }
+}
+
+async function testProvider() {
+    testing.value = true;
+    testResult.value = null;
+    try {
+        testResult.value = await $fetch('/api/llm/test', { method: 'POST' });
+    } catch (error) {
+        testResult.value = { ok: false, reason: error?.data?.message || error?.message || '' };
+    } finally {
+        testing.value = false;
     }
 }
 
@@ -211,5 +350,8 @@ async function copyToken() {
     }
 }
 
-onMounted(refresh);
+onMounted(() => {
+    refresh();
+    loadSettings();
+});
 </script>
