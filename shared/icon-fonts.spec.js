@@ -24,4 +24,24 @@ describe('Icon font glyph coverage', () => {
     }
     expect(checked).toBeGreaterThan(0);
   });
+
+  it('keeps the generated palette module in sync with the font CSS', async () => {
+    const { iconFontGlyphs } = await import('../shared/icon-fonts.js');
+    const css = readFileSync('assets/css/main.css', 'utf8');
+    const escape = token => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    expect(new Set(iconFontGlyphs).size).toBe(iconFontGlyphs.length);
+    for (const glyph of iconFontGlyphs) {
+      const [base, glyphClass] = glyph.split(/\s+/);
+      expect(glyph, `"${glyph}" must be a "base class" pair`).toMatch(/^ck-[\w-]+ ck-[\w-]+$/);
+      expect(css, `palette entry "${glyphClass}" has no ::before rule — rerun npm run icons:build`)
+        .toMatch(new RegExp(`\\.${escape(glyphClass)}::before`));
+      expect(css, `palette entry base "${base}" has no family rule`)
+        .toMatch(new RegExp(`\\.${escape(base)}\\s*\\{`));
+    }
+    const cssGlyphClasses = [...css.matchAll(/\.((?:ck-)[\w-]+)::before/g)].map(match => match[1]);
+    const moduleGlyphClasses = iconFontGlyphs.map(glyph => glyph.split(/\s+/)[1]);
+    expect(cssGlyphClasses.sort(), 'the CSS carries glyph classes the palette module does not list')
+      .toEqual(moduleGlyphClasses.sort());
+  });
 });

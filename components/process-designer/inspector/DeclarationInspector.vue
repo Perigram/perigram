@@ -236,6 +236,7 @@ import Select from '~/components/shared/InstanceSelect.vue';
 import Checkbox from 'primevue/checkbox';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import { DECLARABLE_CLASSES, DISPLAY_KINDS } from '~/packages/cts/src/index.js';
+import { iconFontGlyphs } from '#shared/icon-fonts.js';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -255,8 +256,10 @@ const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value:
 
 const severityOptions = ['info', 'success', 'warn', 'danger', 'secondary'].map(value => ({ label: value, value }));
 
-// A curated glyph set (the class defaults plus common entity shapes) —
-// one picker row, not an icon designer; the free-text field beside it
+// A curated PrimeIcon set (the class defaults plus common entity shapes)
+// followed by the built icon-font palette (every ck-* glyph the font
+// build offers, generated beside the CSS in shared/icon-fonts.js) — one
+// picker row, not an icon designer; the free-text field beside it
 // carries any other icon id verbatim.
 const GLYPH_CHOICES = Object.freeze([
   'pi pi-users', 'pi pi-file', 'pi pi-box', 'pi pi-folder', 'pi pi-cog',
@@ -265,7 +268,8 @@ const GLYPH_CHOICES = Object.freeze([
 
 const glyphOptions = Object.freeze([
   { label: '', value: '' },
-  ...GLYPH_CHOICES.map(value => ({ label: value, value }))
+  ...GLYPH_CHOICES.map(value => ({ label: value, value })),
+  ...iconFontGlyphs.map(value => ({ label: value, value }))
 ]);
 
 const displayKindOptions = Object.freeze([
