@@ -174,13 +174,13 @@ let loaded = false;
 
 onMounted(async () => {
   const initial = (await props.persistence.loadText()) || '';
-  const [{ Crepe: CrepeEditor }, { $prose, $view }, { createSourceMarkersPlugin }, { createSourceEditingView }, { parserCtx, serializerCtx }, preset] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose }, { createSourceMarkersPlugin }, { createSourceEditingView }, { parserCtx, serializerCtx }, { Plugin }] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/utils'),
     import('./source-markers-plugin.js'),
     import('./source-editing.js'),
     import('@milkdown/core'),
-    import('@milkdown/preset-commonmark'),
+    import('@milkdown/prose/state'),
     import('@milkdown/crepe/theme/common/style.css')
   ]);
   if (!editorHost.value) return;
@@ -209,14 +209,29 @@ onMounted(async () => {
   crepe.editor.use($prose(() => createSourceMarkersPlugin({
     onSelectionState: next => { blockState.value = next; }
   })));
-  for (const schema of [preset.paragraphSchema, preset.headingSchema]) {
-    crepe.editor.use($view(schema, ctx => createSourceEditingView({
-      serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
-      parse: text => ctx.get(parserCtx)(text),
-      onInput: () => { if (loaded) dirty.value = true; },
-      onActive: next => { sourceActive.value = next; }
-    })));
-  }
+  // Node views through a plain ProseMirror plugin (milkdown's $view
+  // registration did not take under crepe): the overlay factory is
+  // keyed by node name. The serializer/parser slices resolve lazily
+  // through the plugin factory's ctx — not ready at SchemaReady time,
+  // long before the first edit.
+  crepe.editor.use($prose(ctx => new Plugin({
+    props: {
+      nodeViews: {
+        paragraph: createSourceEditingView({
+          serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
+          parse: text => ctx.get(parserCtx)(text),
+          onInput: () => { if (loaded) dirty.value = true; },
+          onActive: next => { sourceActive.value = next; }
+        }),
+        heading: createSourceEditingView({
+          serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
+          parse: text => ctx.get(parserCtx)(text),
+          onInput: () => { if (loaded) dirty.value = true; },
+          onActive: next => { sourceActive.value = next; }
+        })
+      }
+    }
+  })));
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes
     // are edits — a programmatic remote reload is reconciliation, not
