@@ -43,6 +43,21 @@
                             :data-testid="`chat-bot-subscribe-${option.id}`"
                             @update:model-value="setSubscribed(option, $event)"
                         />
+                        <!-- The conversation is an execution point: a
+                             subscribed bot may run on a different model
+                             here than its own default. -->
+                        <Select
+                            v-if="canToggle && option.subscribed"
+                            :model-value="option.profile || ''"
+                            :options="conversationProfileOptions"
+                            option-label="label"
+                            option-value="value"
+                            size="small"
+                            class="w-36 shrink-0"
+                            :aria-label="$t('llm.profile')"
+                            :data-testid="`chat-bot-model-${option.id}`"
+                            @update:model-value="value => setConversationProfile(option, value)"
+                        />
                     </div>
                 </template>
             </Listbox>
@@ -60,7 +75,7 @@
                     data-testid="chat-bot-wake-rule"
                 >
                     <span class="min-w-0 flex-1 truncate text-label">
-                        {{ rule.botName }} · {{ rule.type }} → {{ rule.state }}
+                        {{ rule.botName }} · {{ rule.type }} → {{ rule.state }}{{ rule.profile ? ` · ${rule.profile}` : '' }}
                     </span>
                     <Button
                         icon="pi pi-times"
@@ -99,6 +114,16 @@
                         class="min-w-0 flex-1"
                         :aria-label="$t('support.bots.statePlaceholder')"
                         :disabled="!ruleType"
+                    />
+                    <Select
+                        v-model="ruleProfile"
+                        :options="conversationProfileOptions"
+                        option-label="label"
+                        option-value="value"
+                        :placeholder="$t('llm.profile')"
+                        size="small"
+                        class="w-32 shrink-0"
+                        :aria-label="$t('llm.profile')"
                     />
                     <Button
                         icon="pi pi-plus"
@@ -146,6 +171,7 @@ const wakeOptions = ref([]);
 const ruleBotId = ref(null);
 const ruleType = ref(null);
 const ruleState = ref(null);
+const ruleProfile = ref('');
 
 const botRows = computed(() => agentBots.contacts);
 const canToggle = computed(() => props.subscribable && Boolean(props.conversationKey));
@@ -156,6 +182,10 @@ const ruleStateOptions = computed(() => (
 const wakeRules = computed(() => subscribedBots.value.flatMap(bot => (
     (bot.wakeOn || []).map(rule => ({ ...rule, botId: bot.id, botName: bot.name }))
 )));
+const conversationProfileOptions = computed(() => ([
+    { label: t('llm.auto'), value: '' },
+    ...agentBots.chatProfiles.map(profile => ({ label: profile.id, value: profile.id }))
+]));
 
 watch(visible, async (open) => {
     if (!open) return;
@@ -179,17 +209,28 @@ const saveRules = async (botId, wakeOn) => {
 const addWakeRule = () => {
     const bot = subscribedBots.value.find(item => String(item.id) === String(ruleBotId.value));
     if (!bot) return;
-    const rules = [...(bot.wakeOn || []), { type: ruleType.value, state: ruleState.value }];
-    saveRules(bot.id, rules);
+    const rule = { type: ruleType.value, state: ruleState.value };
+    if (ruleProfile.value) rule.profile = ruleProfile.value;
+    saveRules(bot.id, [...(bot.wakeOn || []), rule]);
     ruleBotId.value = null;
     ruleType.value = null;
     ruleState.value = null;
+    ruleProfile.value = '';
 };
 
 const removeWakeRule = (rule) => {
     const bot = subscribedBots.value.find(item => String(item.id) === String(rule.botId));
     if (!bot) return;
     saveRules(bot.id, (bot.wakeOn || []).filter(item => !(item.type === rule.type && item.state === rule.state)));
+};
+
+const setConversationProfile = async (bot, profile) => {
+    try {
+        await agentBots.setSubscriptionProfile(bot.id, props.conversationKey, profile || '');
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+        await agentBots.fetchContacts(props.conversationKey);
+    }
 };
 
 const setSubscribed = async (bot, subscribed) => {

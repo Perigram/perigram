@@ -60,8 +60,8 @@ providers). The environment is the unnamed default profile:
 A route that cannot produce both `baseUrl` and `model` resolves to
 `{ provider: 'none' }`: consumers treat the capability as unavailable
 rather than failing per request. Consumers today: the agent bots loop and
-wakes (the bot's declared profile, else `chat`), meetings call summaries
-(`chat.summaries`, falling back to `chat`). The retired single-provider `data.settings.llm` shape was
+wakes (wake rule → conversation → bot → org `chat` route precedence),
+meetings call summaries (`chat.summaries`, falling back to `chat`). The retired single-provider `data.settings.llm` shape was
 migrated by `server/scripts/migrate-llm-settings-profiles.js` (profile
 `default`, route `chat`).
 

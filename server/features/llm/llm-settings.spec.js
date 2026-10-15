@@ -23,7 +23,7 @@ vi.mock('h3', () => ({
     })
 }));
 
-import { resolveLlmConfig, readLlmSettings, saveLlmSettings, testLlmConnection, chatProfileIds } from './service.js';
+import { resolveLlmConfig, readLlmSettings, saveLlmSettings, testLlmConnection, chatProfileIds, listEndpointModels } from './service.js';
 
 const AUTH = { userId: 'admin-1', organizationId: 'org-1' };
 
@@ -185,6 +185,74 @@ describe('saveLlmSettings', () => {
             .rejects.toMatchObject({ statusCode: 400 });
         await saveLlmSettings(AUTH, { profiles: [row], routes: { chat: 'p1', 'chat.summaries': 'p1' } });
         expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2].routes).toEqual({ chat: 'p1', 'chat.summaries': 'p1' });
+    });
+});
+
+describe('listEndpointModels', () => {
+    it('maps each provider listing wire to model ids', async () => {
+        const wire = {
+            ollama: { models: [{ name: 'qwen3:8b' }, { name: 'glm-4.7' }] },
+            openai: { data: [{ id: 'm1' }, { id: 'm2' }] },
+            anthropic: { data: [{ id: 'glm-4.7' }] }
+        };
+        for (const provider of Object.keys(wire)) {
+            vi.stubGlobal('fetch', vi.fn(async (url, init) => ({
+                ok: true,
+                json: async () => wire[provider]
+            })));
+            try {
+                const result = await listEndpointModels(AUTH, { provider, baseUrl: 'http://llm' });
+                expect(result.models).toEqual(provider === 'anthropic' ? ['glm-4.7'] : provider === 'ollama' ? ['qwen3:8b', 'glm-4.7'] : ['m1', 'm2']);
+                expect(fetch).toHaveBeenCalledTimes(1);
+            } finally {
+                vi.unstubAllGlobals();
+            }
+        }
+    });
+
+    it('hits provider listing endpoints with wire headers', async () => {
+        const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: [{ id: 'x' }] }) }));
+        vi.stubGlobal('fetch', fetchMock);
+        try {
+            await listEndpointModels(AUTH, { provider: 'anthropic', baseUrl: 'https://llm/api/anthropic', apiKey: 'k' });
+            const [url, init] = fetchMock.mock.calls[0];
+            expect(url).toBe('https://llm/api/anthropic/v1/models');
+            expect(init.headers['x-api-key']).toBe('k');
+            expect(init.headers['anthropic-version']).toBe('2023-06-01');
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('borrows a saved profile key by id, with inline fields winning', async () => {
+        withSetting({
+            profiles: { saved: { kind: 'chat', provider: 'ollama', baseUrl: 'http://stored:11434', model: 'm', apiKey: 'stored-key' } },
+            routes: {}
+        });
+        const fetchMock = vi.fn(async (url, init) => ({
+            ok: true,
+            json: async () => ({ models: [{ name: 'edited-url-model' }] })
+        }));
+        vi.stubGlobal('fetch', fetchMock);
+        try {
+            const result = await listEndpointModels(AUTH, { profileId: 'saved', baseUrl: 'http://edited:11434' });
+            expect(fetchMock.mock.calls[0][0]).toBe('http://edited:11434/api/tags');
+            expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer stored-key');
+            expect(result.models).toEqual(['edited-url-model']);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('refuses unknown providers and missing base URLs, reports unreachable endpoints', async () => {
+        await expect(listEndpointModels(AUTH, { provider: 'gpt' })).rejects.toMatchObject({ statusCode: 400 });
+        await expect(listEndpointModels(AUTH, { provider: 'ollama' })).rejects.toMatchObject({ statusCode: 400 });
+        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, text: async () => 'boom' })));
+        try {
+            await expect(listEndpointModels(AUTH, { provider: 'ollama', baseUrl: 'http://llm' })).rejects.toMatchObject({ statusCode: 502 });
+        } finally {
+            vi.unstubAllGlobals();
+        }
     });
 });
 

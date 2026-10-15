@@ -3399,6 +3399,8 @@
         "chatRoute": "Chat",
         "summariesRoute": "Call summaries",
         "envDefault": "Environment default",
-        "chatRouteDefault": "Chat route"
+        "chatRouteDefault": "Chat route",
+        "loadModels": "List models from the endpoint",
+        "auto": "Auto"
     }
 }

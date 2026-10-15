@@ -184,6 +184,38 @@ describe('subscribeBot', () => {
         expect(result.subscribed).toBe(true);
     });
 
+    it('validates the conversation and rule model overrides', async () => {
+        mockedUsers.getById.mockResolvedValue(botModel('bot-a', 'Assistant'));
+        mockedSupport.getConversationContextByKey.mockResolvedValue({
+            kind: 'group', conversationKey: 'group:g1', groupId: 'g1'
+        });
+        mockedSupport.addBotGroupParticipant.mockResolvedValue({});
+        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
+        await expect(subscribeBot(AUTH, { botId: 'bot-a', conversationKey: 'group:g1', profile: 'nope' }))
+            .rejects.toMatchObject({ statusCode: 400 });
+        await expect(subscribeBot(AUTH, {
+            botId: 'bot-a', conversationKey: 'group:g1',
+            wakeOn: [{ type: 'queue', state: 'nested', profile: 'nope' }]
+        })).rejects.toMatchObject({ statusCode: 400 });
+        const result = await subscribeBot(AUTH, {
+            botId: 'bot-a', conversationKey: 'group:g1', profile: 'cloud-big',
+            wakeOn: [{ type: 'queue', state: 'nested', profile: 'cloud-big' }]
+        });
+        expect(result.profile).toBe('cloud-big');
+        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
+            profile: 'cloud-big',
+            wakeOn: [{ type: 'queue', state: 'nested', profile: 'cloud-big' }]
+        }));
+    });
+
+    it('exposes chat profiles beside contact rows', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(botModel('bot-a', 'Assistant'));
+        mockedUsers.list.mockResolvedValue([botModel('bot-a', 'Assistant')]);
+        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big', 'local-fast']);
+        const result = await listBotContacts(AUTH);
+        expect(result.chatProfiles).toEqual([{ id: 'cloud-big' }, { id: 'local-fast' }]);
+    });
+
     it('rejects non-bot targets', async () => {
         mockedUsers.getById.mockResolvedValue({ toJSON: () => ({ _id: 'u1', data: {} }) });
         await expect(subscribeBot(AUTH, { botId: 'u1', conversationKey: 'group:g1' }))

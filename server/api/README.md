@@ -11,7 +11,8 @@ Routes are grouped into sub-directories corresponding to features:
   `DELETE /api/agent-bots/:id`; `POST /api/agent-bots/:id/token` rotation;
   `PATCH /api/agent-bots/:id/profile` for the bot's model override)
   plus `POST/DELETE /api/agent-bots/subscriptions` (the body carries
-  optional `wakeOn` lifecycle wake rules) and the member-visible
+  optional `wakeOn` lifecycle wake rules and an optional per-conversation
+  `profile`; rules accept a `profile` too) and the member-visible
   `GET /api/agent-bots/contacts` (org bots with the ensured assistant,
   conversation subscription flags). Admin routes are gated by user
   management access; bot joins are participant-level. See

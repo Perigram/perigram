@@ -56,7 +56,11 @@ async function dispatchWake(event) {
         // another type) is org-wide for the rule's type — org isolation
         // rides the wake's own access-checked instance read.
         if (scope && scope.type === String(event.targetType) && String(scope.id) !== String(event.targetId)) continue;
-        runBotWake(subscription, event).catch(error => console.error('[AGENT-BOTS] wake dispatch failed:', error));
+        // The matched rule carries the execution point's model override.
+        const rule = (subscription.wakeOn || []).find(item => (
+            String(item.type) === String(event.targetType) && String(item.state) === state
+        )) || {};
+        runBotWake(subscription, event, String(rule.profile || '')).catch(error => console.error('[AGENT-BOTS] wake dispatch failed:', error));
         fired += 1;
     }
     return fired;

@@ -1,5 +1,34 @@
 # TODO
 
+## Model pickers at execution points (owner direction 2026-10-15)
+
+Selection belongs where work runs — chat, wake rules — not only in org
+settings; and the settings dialog lists models from the endpoint instead
+of hand-typing.
+
+- [x] A. Precedence chain: wake rule → conversation subscription → bot →
+      org chat route → env; stale stored ids degrade, unknown ids are
+      refused at save.
+- [x] B. Bot sheet: per-conversation model select beside each subscribed
+      bot; optional model on each wake rule (rows display it).
+- [x] C. Contacts carry chatProfiles + the row's profile; scanner passes
+      the matched rule's profile into the wake.
+- [x] D. Settings dialog: endpoint-fed model list (Ollama /api/tags,
+      OpenAI-shaped and Messages model collections) with stored-key
+      borrowing by profile id (inline fields win mid-edit).
+- [x] E. Specs: precedence at every level, scanner rule pass-through,
+      listing wire mapping and key borrowing, save validation.
+
+#### Agent Notes (2026-10-15)
+
+Implemented on `agent/llm-model-listing-20261015`. Direct chats carry no
+conversation override (no subscription record) — the bot's own brain
+answers there by design. The scanner now resolves the matched wake rule
+per subscription so the rule's model reaches the wake run. Specs: +4
+listing, +2 precedence, +2 validation/contacts, scanner/runtime updated
+to the entry shape.
+
+
 ## Per-bot model override (owner direction 2026-10-15)
 
 One org-wide chat route left every bot thinking with the same brain;

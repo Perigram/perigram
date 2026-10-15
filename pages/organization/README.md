@@ -36,7 +36,7 @@ every mutation stays gated by `organizations:admin` on the respective side.
 
 `bots.vue` is the agent member administration route — the org settings home
 for bots: the models table first (named model profiles with capability
-routing and per-profile connection tests — writing
+routing, endpoint-fed model pickers, and per-profile connection tests — writing
 `data.settings.llm.profiles`/`routes` through the llm settings seam; a bot
 without a resolvable route answers nothing), then the bot list (create
 with one-time token reveal, rotate, delete, and each bot's model —
