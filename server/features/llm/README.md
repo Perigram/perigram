@@ -57,9 +57,13 @@ providers). The environment is the unnamed default profile:
 | `LLM_API_KEY` | — | Optional key (many local servers run open). |
 | `LLM_MODEL` | — | Model id; **required** — never defaulted. |
 
-A route that cannot produce both `baseUrl` and `model` resolves to
-`{ provider: 'none' }`: consumers treat the capability as unavailable
-rather than failing per request. Consumers today: the agent bots loop and
+Completion paths canonicalize: a base already carrying `/v1` is
+stripped and the prefix re-applied (routers reject the root path with
+`no_route`), and a first-request missing route falls back once to the
+same-dialect root-mounted path, caching the winner per endpoint — never
+a cross-dialect wire guess. A route that cannot produce both `baseUrl`
+and `model` resolves to `{ provider: 'none' }`: consumers treat the
+capability as unavailable rather than failing per request. Consumers today: the agent bots loop and
 wakes (wake rule → conversation → bot → org `chat` route precedence),
 meetings call summaries (`chat.summaries`, falling back to `chat`). The retired single-provider `data.settings.llm` shape was
 migrated by `server/scripts/migrate-llm-settings-profiles.js` (profile
