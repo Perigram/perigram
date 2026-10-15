@@ -214,24 +214,37 @@ onMounted(async () => {
   // keyed by node name. The serializer/parser slices resolve lazily
   // through the plugin factory's ctx — not ready at SchemaReady time,
   // long before the first edit.
-  crepe.editor.use($prose(ctx => new Plugin({
-    props: {
-      nodeViews: {
-        paragraph: createSourceEditingView({
-          serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
-          parse: text => ctx.get(parserCtx)(text),
-          onInput: () => { if (loaded) dirty.value = true; },
-          onActive: next => { sourceActive.value = next; }
-        }),
-        heading: createSourceEditingView({
-          serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
-          parse: text => ctx.get(parserCtx)(text),
-          onInput: () => { if (loaded) dirty.value = true; },
-          onActive: next => { sourceActive.value = next; }
-        })
+  // Node views through a plain ProseMirror plugin (milkdown's $view
+  // registration did not take under crepe): the overlay factory is
+  // keyed by node name. The serializer/parser slices resolve lazily
+  // through the plugin factory's ctx — not ready at SchemaReady time,
+  // long before the first edit.
+  // DISABLED after live verification: the overlay round-trip corrupts
+  // content in real flows (empty commits, dropped headings — the
+  // serialize/parse seam under crepe needs its own session). Everything
+  // else in the live-source seam (chrome strip, code voice, measure,
+  // markers, toolbar) stands verified.
+  const liveSourceOverlays = false;
+  if (liveSourceOverlays) {
+    crepe.editor.use($prose(ctx => new Plugin({
+      props: {
+        nodeViews: {
+          paragraph: createSourceEditingView({
+            serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
+            parse: text => ctx.get(parserCtx)(text),
+            onInput: () => { if (loaded) dirty.value = true; },
+            onActive: next => { sourceActive.value = next; }
+          }),
+          heading: createSourceEditingView({
+            serialize: node => ctx.get(serializerCtx)(node.type.schema.node('doc', null, [node])),
+            parse: text => ctx.get(parserCtx)(text),
+            onInput: () => { if (loaded) dirty.value = true; },
+            onActive: next => { sourceActive.value = next; }
+          })
+        }
       }
-    }
-  })));
+    })));
+  }
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes
     // are edits — a programmatic remote reload is reconciliation, not
