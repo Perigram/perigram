@@ -344,39 +344,6 @@ const bodyInstances = (placed, bodies = []) => bodies.flatMap((body) => {
         normal: basis.normal
       }];
 
-  if (body.family === 'profile') {
-    // The section's local 2D coordinates ride the face plane at every
-    // placement point; the sweep extrudes along the face normal.
-    const localToWorld = (local) => add3(
-      scale3(basis.xAxis, numeric(local?.[0], 0)),
-      scale3(basis.yAxis, numeric(local?.[1], 0))
-    );
-    const ringToWorld = (center3d, local) => add3(center3d, localToWorld(local));
-    return points.map(entry => ({
-      id: `${body.id}:${entry.index}`,
-      workpieceId: body.workpieceId,
-      relationId: body.relationId,
-      family: 'profile',
-      productionMode: '',
-      parameters: {},
-      center: entry.point,
-      axis: entry.axis || basis.xAxis,
-      normal: entry.normal || basis.normal,
-      points: (body.section?.local || []).map(local => ringToWorld(entry.point, local)),
-      holes: (body.section?.holes || []).map(hole => {
-        const radius = Math.max(0.1, numeric(hole.diameter, 0) / 2);
-        return Array.from({ length: 25 }, (_, index) => {
-          const angle = (index / 24) * Math.PI * 2;
-          return ringToWorld(entry.point, [
-            numeric(hole.center?.[0], 0) + Math.cos(angle) * radius,
-            numeric(hole.center?.[1], 0) + Math.sin(angle) * radius
-          ]);
-        });
-      }),
-      length: numeric(body.sweepLength, 100)
-    }));
-  }
-
   return points.map(entry => ({
     id: `${body.id}:${entry.index}`,
     workpieceId: body.workpieceId,

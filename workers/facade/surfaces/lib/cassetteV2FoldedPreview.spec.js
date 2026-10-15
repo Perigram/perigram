@@ -344,51 +344,49 @@ describe('cassette v2 folded preview', () => {
     expect(preview.cutouts).toHaveLength(1);
   });
 
-  it('extrudes closed profile sections as 3D bodies placed by their array', () => {
-    const preview = buildCassetteV2FoldedPreview({
-      faces: [{
-        nodeId: 'face_1',
-        workpieceId: 'wp_1',
-        vertices: [[0, 0, 0], [500, 0, 0], [500, 400, 0], [0, 400, 0]]
-      }],
-      bodies: [{
-        id: 'rel_1:wp_2',
-        workpieceId: 'wp_2',
-        relationId: 'rel_1',
-        targetWorkpieceId: 'wp_1',
-        targetFaceId: 'face_1',
-        targetSnap: 'start',
-        targetSide: 'front',
-        offsetX: 50,
-        offsetY: 30,
-        rotation: 0,
-        mirrorX: false,
-        mirrorY: false,
-        pattern: { type: 'edgeArray', edge: 'E2', mode: 'count', count: 2, spacing: 0 },
-        family: 'profile',
-        productionMode: '',
-        parameters: {},
-        section: {
-          local: [[0, 0], [42, 0], [42, 28], [0, 28]],
-          holes: [{ center: [21, 14], diameter: 6 }]
-        },
-        sweepLength: 100
-      }]
-    });
+  it('carries profile modifications into the folded 3D faces', async () => {
+    const { renderCassetteV2TreeToDrawing, addCassetteV2ProfileWorkpiece, updateCassetteV2WorkpieceRelation, getCassetteV2WorkpieceRelations, createCassetteV2GraphTree } =
+      await import('./cassetteV2Renderer.js');
+    const { createDefaultOccsProfileSketch, occsProfileFromSketch, setOccsProfileSketchClosed } =
+      await import('../../occs/profiles.js');
 
-    expect(preview.bodies).toHaveLength(2);
-    for (const body of preview.bodies) {
-      expect(body.family).toBe('profile');
-      expect(body.points).toHaveLength(4);
-      expect(body.holes).toHaveLength(1);
-      expect(body.holes[0]).toHaveLength(25);
-      expect(body.length).toBe(100);
-      expect(body.normal[2]).not.toBe(0);
-    }
-    // Array copies sit apart along the bound edge (its direction may
-    // run either way).
-    expect(Math.abs(preview.bodies[1].center[0] - preview.bodies[0].center[0])).toBeGreaterThan(0);
-    // The section rides the face plane (z = 0 face, offset along +y).
-    expect(preview.bodies[0].points.every(point => Number.isFinite(point[2]))).toBe(true);
+    const build = (sketch, patch) => {
+      const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+        referenceWorkpieceId: 'wp_1',
+        referenceNodeId: 'face_1',
+        name: 'Hanger',
+        kind: 'hanger',
+        process: 'extruded',
+        parameters: sketch.parameters,
+        occsProfile: occsProfileFromSketch(sketch),
+        sketch
+      });
+      const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+      return updateCassetteV2WorkpieceRelation(added.tree, relation.id, patch);
+    };
+
+    // Open profile: the folded face's boundary is the stitched contour.
+    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch({ W: 42, H: 28 }), false);
+    const openDrawing = await renderCassetteV2TreeToDrawing(
+      build(open, { placementMode: 'edgeArray', arrayEdge: 'E2', arrayMode: 'count', arrayCount: '1' }),
+      { mode: 'assembly', contextWorkpieceId: 'wp_1' }
+    );
+    const openFace = openDrawing.foldedPreview.faces.find(face => face.nodeId === 'face_1');
+    expect((openFace.vertices || []).length).toBeGreaterThan(4);
+    // The fold reference stays the authored boundary (edge indexes
+    // stable under the stitched vertices).
+    expect((openFace.referenceVertices || []).length).toBe(4);
+    // Profiles carry no geometry of their own: no bodies.
+    expect(openDrawing.foldedPreview.bodies || []).toHaveLength(0);
+
+    // Closed profile: the cut subtracts from the folded face.
+    const closed = createDefaultOccsProfileSketch({ W: 42, H: 28 });
+    const closedDrawing = await renderCassetteV2TreeToDrawing(
+      build(closed, { placementMode: 'edgeArray', arrayEdge: 'E2', arrayMode: 'count', arrayCount: '1', offsetX: '100', offsetY: '30' }),
+      { mode: 'assembly', contextWorkpieceId: 'wp_1' }
+    );
+    const closedFace = closedDrawing.foldedPreview.faces.find(face => face.nodeId === 'face_1');
+    expect((closedFace.holes || []).length).toBeGreaterThan(0);
+    expect(closedDrawing.foldedPreview.bodies || []).toHaveLength(0);
   });
 });
