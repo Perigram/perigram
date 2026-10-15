@@ -390,7 +390,9 @@ export default function createFoldedPreview({ vue, components, locale }) {
         renderer.value?.domElement?.remove?.();
       });
 
-      const hasContent = visibleFaces.value.length || visibleBodies.value.length;
+      // The preview data lands after mount (the designer's debounced
+      // assembly render), so content visibility must stay reactive.
+      const hasContent = computed(() => Boolean(visibleFaces.value.length || visibleBodies.value.length));
       return () => h('div', { class: 'relative h-full w-full select-none rounded-ui border border-content-border p-2 shadow-overlay' }, [
         h('div', { class: 'flex h-6 items-center justify-between gap-2' }, [
           h('small', { class: 'truncate text-muted' }, t(props.titleKey)),
@@ -421,7 +423,7 @@ export default function createFoldedPreview({ vue, components, locale }) {
         ]),
         h('div', {
           ref: viewportRef,
-          class: ['h-[calc(100%-1.5rem)] w-full cursor-grab touch-none active:cursor-grabbing', hasContent ? '' : 'hidden'],
+          class: ['h-[calc(100%-1.5rem)] w-full cursor-grab touch-none active:cursor-grabbing', hasContent.value ? '' : 'hidden'],
           role: 'img',
           'aria-label': t(props.titleKey),
           onPointerdown: recordPointerDown,
@@ -430,7 +432,7 @@ export default function createFoldedPreview({ vue, components, locale }) {
             selectMesh(event);
           }
         }),
-        !hasContent
+        !hasContent.value
           ? h('div', { class: 'flex h-[calc(100%-1.5rem)] w-full items-center justify-center text-muted' }, [
               h('i', { class: 'pi pi-image', 'aria-hidden': 'true' })
             ])
