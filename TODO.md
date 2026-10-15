@@ -2822,6 +2822,35 @@ cassette-preview; check-arch + check-docs green. Live-stack E2E (owner
 verification of the popup and the row chips) did not run — the app stack
 was not up and starting dev servers is out of agent scope.
 
+### Agent Notes (2026-10-15, owner review round 11 — "still there": live-stack reproduction)
+
+Owner reports the self-filling fields are still there and driving the
+profile with parameters still works only from within the profile editor.
+
+Reproduced on the live stack (app + executor up, fresh browser session
+through the app's own plugin-module URL): both behaviors are fixed in
+the merged code. A profile authored through the dialog carries live
+W/H/R/D chips (42/28/3/6); editing the W chip to 84 changes the assembly
+drawing (the hanger's footprint grows accordingly) and the reopened
+dialog shows W=84; the dialog's parameter field holds `1` → `1.` → `1.5`
+exactly as typed. The owner's tab was serving the previously imported
+surface module — the SPA keeps imported plugin modules in its module
+map, so a full page reload is required after the surface changes; a
+fresh load picks the fixed module from the executor (verified the served
+module contains the fix).
+
+The reproduction is now a committed regression spec
+(`e2e/cassette-designer-parameters.spec.js`, artifact
+`.playwright/cassette-designer-parameters.png`) instead of a throwaway
+probe.
+
+Found and fixed beside it: closing the profile dialog threw
+"AcApDocManager instance is not created yet!" page errors — the vendored
+CAD engine schedules a glyph-redraw timer when its font preload
+resolves, and one firing after the manager singleton dies is an uncaught
+error. The sketch editor's teardown now lets the engine's fonts settle
+(plus its redraw delay) before destroying the singleton.
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 
