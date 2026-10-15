@@ -2654,6 +2654,36 @@ Findings and fixes on `agent/profile-face-mod-20261015`:
 
 Validation: facade suites 107/107, check-arch + check-docs green.
 
+### Agent Notes (2026-10-15, owner review round 9 — the default hanger's dead parameters)
+
+Owner: "Cassette ROWS don't drive anything. I add hanger to cassette
+tree, and it shows its parameter (fillet radius in my case) and
+changing it does nothing."
+
+Root cause on `agent/default-bind-20261015`: the default hanger
+template advertised W/H/R/D/L while its sketch was literal — points
+42/28, fillet radii a hardcoded 3, hole 21/14⌀6. The parameters were
+decoration; R could not drive the fillet because nothing referenced it.
+The template's sketch now binds its geometry to its table (points
+'W'/'H', fillet radii 'R', hole center 'W/2'/'H/2' diameter 'D'; L
+already resolved the sweep) — attached hangers re-derive from the
+cassette row and every chip is live. The renderer spec that pinned the
+inert numbers now pins the parametric ones (its W:40/H:24 template
+finally drives its own hole).
+
+Guard rail found by the specs: `normalizeOccsProfileSketch` fills
+MISSING sketch fields (holes especially) from a default — seeding the
+bound expressions there poisoned every hole-less sketch (evaluation
+threw on the unknown identifiers: savable gates refused, the merge law
+fell back to plain extraction). The missing-field seed is now a frozen
+numeric literal (`PROFILE_GEOMETRY_SEED`); the parametric default is
+the template/dialog path only.
+
+New pin: the owner's exact case — default hanger attached, R set from
+the cassette row, the snapshot's evaluated fillet radius follows R and
+the cut polygon grows with the larger arcs.
+
+
 
 
 

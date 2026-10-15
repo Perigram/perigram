@@ -270,7 +270,10 @@ describe('cassette v2 trapezoid renderer', () => {
       profile: {
         section: {
           type: 'polygon',
-          holes: [{ type: 'circle', center: ['21', '14'], diameter: '6' }]
+          // The default template is parametric: the template's own
+          // parameters drive the evaluated section (W/2 x H/2 hole of
+          // diameter D — inert numbers before the binding).
+          holes: [{ type: 'circle', center: ['20', '12'], diameter: '5' }]
         },
         sweep: { type: 'linear', length: '100' }
       },

@@ -344,8 +344,47 @@ describe('cassette v2 folded preview', () => {
     expect(preview.cutouts).toHaveLength(1);
   });
 
-  it('carries profile modifications into the folded 3D faces', async () => {
-    const { renderCassetteV2TreeToDrawing, addCassetteV2ProfileWorkpiece, updateCassetteV2WorkpieceRelation, getCassetteV2WorkpieceRelations, createCassetteV2GraphTree } =
+  it('drives the default hanger template from cassette instance parameters', async () => {
+    const { renderCassetteV2TreeToDrawing, addCassetteV2ProfileWorkpiece, updateCassetteV2Workpiece, createCassetteV2GraphTree, getCassetteV2Workpieces } =
+      await import('./cassetteV2Renderer.js');
+    const { createDefaultOccsProfileSketch, occProfileSectionChainedVertices } =
+      await import('../../occs/profiles.js');
+
+    // The default hanger: no template, no authored sketch — the
+    // parametric default, attached to the cassette tree.
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger'
+    });
+    const snapshotOf = (tree) => getCassetteV2Workpieces(tree)
+      .find(workpiece => workpiece.id === added.workpieceId).profileSnapshot;
+
+    const before = snapshotOf(added.tree);
+    expect(before.sketch.points[1]).toMatchObject({ x: 'W' });
+    expect(before.sketch.modifiers[0]).toMatchObject({ radius: 'R' });
+
+    // The owner's exact case: change R from the cassette row.
+    const updated = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
+      parameters: { R: 6 }
+    });
+    const after = snapshotOf(updated);
+    // The section re-derives: the evaluated fillet radius follows R.
+    expect(after.section.modifiers[0].radius).toBe(6);
+    const chain = occProfileSectionChainedVertices(after.section);
+    expect(chain.length).toBeGreaterThan(4);
+    const baseline = occProfileSectionChainedVertices(before.section);
+    expect(chain.length).toBeGreaterThan(baseline.length);
+
+    // And the drawing's cut follows the parameter too (point-mode
+    // placement cuts at the snap point).
+    const drawAt = async (tree) => (await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece' }))
+      .layers.find(layer => layer.standardCode === 'cut.inner')?.paths[0]?.d ?? '';
+    expect((await drawAt(added.tree)).length).toBeGreaterThan(0);
+    expect((await drawAt(updated)).length).toBeGreaterThan((await drawAt(added.tree)).length);
+  });
+
+  it('carries profile modifications into the folded 3D faces', async () => {    const { renderCassetteV2TreeToDrawing, addCassetteV2ProfileWorkpiece, updateCassetteV2WorkpieceRelation, getCassetteV2WorkpieceRelations, createCassetteV2GraphTree } =
       await import('./cassetteV2Renderer.js');
     const { createDefaultOccsProfileSketch, occsProfileFromSketch, setOccsProfileSketchClosed } =
       await import('../../occs/profiles.js');
