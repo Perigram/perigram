@@ -322,7 +322,9 @@ export default function createSketchEditor({ vue, components, locale }) {
           { command: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo' }
         ],
         [
-          { labelKey: 'cassette.v2.profileEditor.actions.basis', isOn: () => basisPick.value, onActivate: toggleBasisPick },
+          // The basis anchor is a closed-shape construct — on an open
+          // sketch the toggle is disabled, never a silent no-op.
+          { labelKey: 'cassette.v2.profileEditor.actions.basis', isOn: () => basisPick.value, onActivate: toggleBasisPick, isDisabled: () => !normalizeOccsProfileSketch(props.modelValue || {}).closed },
           { labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
           { labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
           {
@@ -965,6 +967,7 @@ export default function createSketchEditor({ vue, components, locale }) {
                 key: labelKey,
                 label: t(labelKey),
                 severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
+                disabled: tool.isDisabled?.() || false,
                 size: 'small',
                 'aria-label': t(labelKey),
                 onClick: () => runCommand(tool)

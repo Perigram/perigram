@@ -1946,6 +1946,43 @@ into M5.
   canvas, endpoint/midpoint snap markers while drawing, popup edits
   commit, stray geometry blocks save, profiles spec green.
 
+- [ ] profiles in production (owner declarations 2026-10-15): the
+  plugin's built-in layer standards carry the full registry of record —
+  production layer names with their parametric suffixes (tool diameter
+  on cut.outer, hole diameter, fold angle) as the pre-plugin seeding
+  had (`server/scripts/seed-layer-standards.js` and the old
+  `docs/specs/layers.md` in git history) — and every production surface
+  (DXF export, nesting redraw, baked layerData) names layers through
+  that table, never bare codes. Profile workpieces produce their full
+  production effect: edge-array arrangement (edge binding, margins from
+  the edge ends, count/spacing) places them and their cut geometry
+  lands on the correct layers — restore parity with the pre-plugin
+  pack. Open profiles position by array settings only (their two
+  anchors snap onto the host face's dashed edge points — no
+  perpendicular offset) and the host contour rips at those points,
+  embedding the chain. Check: a cassette with an attached profile
+  bakes/nests with named production layers; an open profile visibly
+  splits the host contour at its anchors; the Basis toggle is disabled
+  on open sketches.
+
+### Agent Notes (2026-10-15, snapping verified live + Basis fix)
+
+Live-app probe (real e2e stack, `.playwright/probe-*.png`, spec since
+removed): the editor fix IS deployed (`osnapModes` 567 asserted over a
+poisoned localStorage) and realtime osnap works in the real app dialog
+at device scale factors 1 and 1.5 — hover on a drawn endpoint creates
+the visible `ml-marker-rect` at the exact endpoint (position, color
+`#409eff`, visibility all verified DOM-side), pick and the osnap
+resolver both return the snap. The owner's "still no snapping" report
+matched the pre-fix surface still live in an open tab — reload the
+designer page before retesting. A touch-screen device remains the one
+documented case with no cursor osnap: the engine switches to its touch
+profile (snap loupe) by design.
+
+Basis dead-button: the toggle armed a modal pick that silently disarmed
+on the first canvas click for open sketches (basis is closed-only).
+Fixed by disabling the button while the sketch is open.
+
 ### Agent Notes (2026-10-14, anchors/origin/osnap/popup shipped)
 
 Session `agent/profile-anchors-osnap-20261014`. Root causes found by a
