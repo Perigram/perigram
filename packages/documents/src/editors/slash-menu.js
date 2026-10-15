@@ -18,10 +18,11 @@ export function slashQuery(text) {
 
 export function createSlashMenu({ items, onPick }) {
   const element = document.createElement('div');
-  // Visual chrome rides the host's semantic utilities (the tailwind
-  // scan covers pack editor modules); this stylesheet owns only the
-  // mechanical position/visibility.
-  element.className = 'md-slash-menu rounded-ui shadow-overlay bg-chrome-background border border-chrome-border';
+  // Host UI, host chrome: the menu composes from the app's overlay
+  // vocabulary (bg-content, shadow-overlay — the same surface the
+  // designer panels and floating windows use), and the module's
+  // stylesheet owns only position/visibility mechanics.
+  element.className = 'md-slash-menu p-1 min-w-48 max-h-72 overflow-y-auto rounded-ui border border-content-border bg-content shadow-overlay';
   element.dataset.show = 'false';
 
   let view = null;
@@ -31,6 +32,11 @@ export function createSlashMenu({ items, onPick }) {
   const provider = new SlashProvider({
     content: element,
     debounce: 0,
+    // The menu is host UI, not part of the document engine: appended to
+    // the page root (crepe's reset governs everything inside .milkdown
+    // — `.milkdown *` zeroes padding and `.milkdown button` strips
+    // backgrounds, so a menu mounted there loses the host utilities).
+    root: document.body,
     floatingUIOptions: { strategy: 'fixed' },
     shouldShow: current => slashQuery(provider.getContent(current)) !== null
   });

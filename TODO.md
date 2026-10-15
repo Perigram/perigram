@@ -562,6 +562,16 @@ restores the shadow variables from the popover-overlay token and the
 code block declares the UI voice, which its controls inherit while the
 code content keeps the mono voice from the CodeMirror theme.
 
+Round 7 (owner review, same day): the slash menu "looks bad". It was
+mounted inside `.milkdown`, where crepe's reset governs — `.milkdown *`
+zeroes padding and `.milkdown button` strips border/background/box-shadow
+from every button, so the host utilities never landed (the menu rendered
+transparent, serif, unpadded). It now mounts on the page root
+(`SlashProvider` `root`) and composes from the app's overlay vocabulary
+(`rounded-ui border-content-border bg-content shadow-overlay`), the same
+surface the designer panels and floating windows use; the stylesheet
+keeps only position, stacking, and visibility mechanics.
+
 ## Markdown editor: toggling format controls and the focused block's source (owner direction 2026-10-15)
 
 The toolbar format controls toggle (SPEC UI): an active heading, list,
