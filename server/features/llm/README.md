@@ -106,8 +106,9 @@ throwing.
   provider per organization, no per-feature model configuration (the
   retired `MEETINGS_LLM_*` env and per-feature baseUrl/model/apiKey
   settings moved here in the same change).
-- The organization bots screen: provider administration and the
-  connection test (see Administration above).
+- The organization models screen: provider administration and the
+  connection test (see Administration above); per-bot brains are set on
+  the team surface's member rows.
 - `GET /api/llm/config` reports `{ available }` for the caller's
   organization so clients render bot affordances only when a provider is
   actually configured.

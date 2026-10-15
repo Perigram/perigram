@@ -11,9 +11,9 @@ overrides: **wake rule → conversation subscription → bot → org `chat`
 route → environment**. The bot sheet carries a per-conversation model
 select beside each subscribed bot and an optional model on each wake
 rule (`POST /api/agent-bots/subscriptions` accepts `profile` on the body
-and on `wakeOn` rules, validated against the org model table); the org
-bots page sets each bot's own default (`PATCH
-/api/agent-bots/:id/profile`). Stale stored ids degrade to the next
+and on `wakeOn` rules, validated against the org model table); each
+bot's own default is set on the team surface's member row
+(`PATCH /api/agent-bots/:id/profile`). Stale stored ids degrade to the next
 level instead of breaking the run.
 
 Three pieces share one tool catalog:
@@ -41,7 +41,10 @@ Three pieces share one tool catalog:
   persisted message and drives a bounded tool-calling loop (max 8 rounds)
   over the [LLM capability module](../llm/README.md) on the `chat`
   capability route. Replies re-enter the
-  auth-checked support send path as the bot user.
+  auth-checked support send path as the bot user. While a run is in
+  flight it publishes the conversation's typing signal (the same
+  ephemeral beat the human composer rides) so the room sees the bot
+  working.
 
 ## Conversation membership
 
@@ -120,12 +123,12 @@ wake scanner turns matching status transitions into proactive agent runs:
   is the member-visible twin of the listing (ensures the org assistant,
   no admin gate).
 Bot joins are participant-level; bot administration (create, token
-rotation, delete) is an organization-settings concern — the
-`/organization/bots` system screen (`users:admin` gated), with the
-one-time token reveal and copy there. The chat sheet stays join/wake
+rotation, delete, per-bot brain) lives on the org team surface — bot
+rows are member rows (`users:admin` gated actions there, one-time token
+reveal and copy included). The chat sheet stays join/wake
 only. Bot membership carries only the narrow `organizations` recovery
 grant that opens process definition management, and process roles
-("lanes") are assigned like any member's — on the org team surface,
+("lanes") are assigned like any member's — on the same team surface,
 where bot rows carry the badge and single-seat roles say so in the
 picker.
 

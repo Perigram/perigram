@@ -195,6 +195,7 @@
             "toggleInConversation": "In this chat",
             "rotateToken": "New token",
             "empty": "No bots yet",
+            "addBot": "Add bot",
             "deleteConfirm": "Delete bot {name}?",
             "wakes": "Wakes",
             "botPlaceholder": "Bot",
@@ -2436,8 +2437,6 @@
         "openTeam": "Open team",
         "openProcessDesigner": "Open designer",
         "details": "Details",
-        "botsManagement": "Bots",
-        "botsManagementHint": "Agent members, access tokens",
         "singleSeat": "single seat",
         "modelsManagement": "AI models",
         "modelsManagementHint": "Model profiles and capability routing"

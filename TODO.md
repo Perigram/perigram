@@ -1,5 +1,36 @@
 # TODO
 
+## Agent presence in the chat room; bots on the team surface (owner direction 2026-10-15)
+
+Two directions from the owner: the room should see an agent working —
+typing while it thinks, the answer streaming as it is produced — and bot
+administration moves off its own screen onto the team surface, where bot
+rows already live as members.
+
+- [ ] WAITING — owner verification on the live stack: while a bot run is
+  in flight the room shows the typing signal (server-published beats on
+  the conversation topic, cleared when the run ends).
+- [ ] WAITING — owner verification on the live stack: bot administration
+  (create, brain, token rotation, delete) happens on the team surface's
+  bot member rows; the dedicated bots screen is gone from navigation.
+- [ ] The bot's final answer streams token-by-token into the chat
+  (provider SSE through the neutral LLM contract, published as stream
+  events on the conversation topic, rendered as a growing bubble).
+
+#### Agent Notes (2026-10-15)
+
+Session `agent/bots-team-presence-20261015`. Typing beats ship here: the
+runtime publishes the support service's ephemeral typing payload on the
+conversation topic while a run works (2s interval under the client's 3s
+auto-clear, in `runBotReply` and `runBotWake`), so the client renders it
+with no changes. Bot admin moved onto the team surface's member rows: the
+brain select occupies the (email-less) bot row cell, token rotation and bot
+delete join the row actions, and create sits in the page header; the
+`organization_bots` system screen, its generated page registry entry, and
+`pages/organization/bots.vue` are removed. Token streaming remains open —
+it needs the LLM contract to expose a streaming read and the runtime to
+publish partial text.
+
 ## Agent chat runtime: instance attach + decisive loop (owner direction 2026-10-15)
 
 Live-stack transcripts: the bot answers (observer fixed) and knows the

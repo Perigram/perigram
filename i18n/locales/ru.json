@@ -195,6 +195,7 @@
             "toggleInConversation": "В этом чате",
             "rotateToken": "Новый токен",
             "empty": "Ботов пока нет",
+            "addBot": "Добавить бота",
             "deleteConfirm": "Удалить бота {name}?",
             "wakes": "Пробуждения",
             "botPlaceholder": "Бот",
@@ -2436,8 +2437,6 @@
         "openTeam": "Открыть команду",
         "openProcessDesigner": "Открыть дизайнер",
         "details": "Детали",
-        "botsManagement": "Боты",
-        "botsManagementHint": "Боты-участники и токены доступа",
         "singleSeat": "одно место",
         "modelsManagement": "ИИ-модели",
         "modelsManagementHint": "Профили моделей и маршрутизация"

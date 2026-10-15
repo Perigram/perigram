@@ -13,7 +13,6 @@ const ChatSupport = defineAsyncComponent(() => import('~/components/ChatSupport.
 const CallWorkspacePage = defineAsyncComponent(() => import('~/components/calls/CallWorkspacePage.vue'));
 const DirectoryDetailSurface = defineAsyncComponent(() => import('~/components/directory/DirectoryDetailSurface.vue'));
 const OrganizationTeamPage = defineAsyncComponent(() => import('~/pages/organization/users.vue'));
-const OrganizationBotsPage = defineAsyncComponent(() => import('~/pages/organization/bots.vue'));
 const OrganizationModelsPage = defineAsyncComponent(() => import('~/pages/organization/models.vue'));
 const OrganizationPartnersPage = defineAsyncComponent(() => import('~/pages/organization/partners.vue'));
 const OrganizationBillingPage = defineAsyncComponent(() => import('~/pages/organization/billing.vue'));
@@ -73,13 +72,6 @@ export const fixedWorkspacePages = [
     icon: 'pi pi-sparkles',
     component: OrganizationModelsPage,
     route: '/organization/models'
-  },
-  {
-    id: 'organizationBots',
-    labelKey: 'organization.botsManagement',
-    icon: 'pi pi-comment',
-    component: OrganizationBotsPage,
-    route: '/organization/bots'
   },
   {
     id: 'organizationPartners',

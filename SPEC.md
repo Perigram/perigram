@@ -67,6 +67,10 @@ ships) — never a defaulted cloud endpoint. Model selection happens at the
 execution points and composes: wake rule, conversation, bot, org chat
 route — each optional, each falling back to the next.
 
+An agent run is visible in its room: the typing signal rides the
+conversation while the bot works, and its final answer streams into the
+chat as it is produced.
+
 Lifecycle wakes: a bot subscribed to a conversation may be woken by status
 transitions — assignment-side wake rules on the subscription (type +
 target state; instance-scoped when the subscription is an instance chat)
@@ -81,9 +85,11 @@ and any participant may join a bot into a group or organization chat.
 Assigning agents to process roles ("lanes") happens on the team surface
 where every member's roles are assigned — bots are members, badged as
 bots, never authored into process definitions. Bot administration
-(creating bots, rotating tokens) lives in organization settings, not in
-chats. The provider a bot thinks with is administered on the same
-settings surface, with a connection test — tokens are MCP-only wiring.
+(creating bots, rotating tokens, per-bot brains) lives on the team
+surface beside member administration — bots are members — never in
+chats. The provider a bot thinks with is administered on the
+organization's models screen, with a connection test — tokens are
+MCP-only wiring.
 Some roles are single-seat: exactly one member — human or agent —
 holds the role at a time, and assigning it moves the seat, so a lane can
 be handed to an agent outright and taken back the same way.
