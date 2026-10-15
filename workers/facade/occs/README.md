@@ -96,7 +96,12 @@ modules — no platform imports.
   larger than the corner's adjacent segments allow renders as the largest
   tangent fillet that fits — the emitted arc is derived from the trimmed
   tangent points, so it round-trips back through extraction instead of
-  degenerating into chords. A sketch is authored
+  degenerating into chords. The stored section keeps the theoretical
+  sharp corners and its fillet modifiers;
+  `occProfileSectionChainedVertices` resolves them to arc points (same
+  trim/bisector math, same clamp, same chord tolerance) — the walk every
+  cassette consumer draws: the open-profile edge embedding, the
+  closed-section cut polygons, and the 3D preview bodies. A sketch is authored
   closed or open (the editor's toggle; drawn chains keep their extracted
   closure — closed boundaries with three or more points save closed, open
   chains with two or more save open). An open profile saves as a
@@ -197,6 +202,12 @@ modules — no platform imports.
   per-face paths.
 - `folded-3d.js` prepares canonical folded preview payloads for the Three.js
   preview component, including optional non-sheet hardware body descriptors.
+  Closed profile sections ride the same body channel: their fillet-resolved
+  section (holes included) extrudes along the sweep length at every
+  array/point placement — profiles are physical parts in the 3D preview,
+  placed by the same relation settings production uses. Profile relations
+  carry no source face, so they never enter the face-joint diagnostics
+  (their placement IS the body channel — no unresolved noise).
 - `templates.js` provides the default OCCS cassette fixture template.
 
 ## Conventions
