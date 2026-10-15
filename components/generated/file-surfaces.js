@@ -121,6 +121,20 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
   const notify = (snapshot, reason) => {
     useInstancesStore().notifyMutated(typeId, instanceId, { snapshot, reason, origin });
   };
+  // Payload resolves store-first: every save writes a NEW payload file
+  // (revisions are immutable), so the mount-time reference goes stale —
+  // a reload that reads it serves the previous revision forever. The
+  // store record carries the fresh payload (the save event's snapshot
+  // lands there synchronously before any reload runs).
+  const currentPayload = () => {
+    try {
+      const instances = useInstancesStore();
+      return instances.dtoFor(instances.canonicalTypeKey(typeId), instanceId)?.payload || record.payload;
+    } catch {
+      // No active Pinia/app context (module scope, unit specs).
+      return record.payload;
+    }
+  };
   return {
     typeId,
     instanceId,
@@ -128,7 +142,7 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
     title: record.name || '',
     load: async () => {
       if (!instanceId) return '';
-      const payloadUrl = instancePayloadFileUrl(record.payload);
+      const payloadUrl = instancePayloadFileUrl(currentPayload());
       if (!payloadUrl) return '';
       const response = await fetch(payloadUrl);
       if (!response.ok) return '';
@@ -144,6 +158,7 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       const form = new FormData();
       form.append('file', new File([text], filename, { type: mimeType }));
       const updated = await $fetch(`/api/instances/${encodeURIComponent(typeId)}/${encodeURIComponent(instanceId)}/payload`, { method: 'PUT', body: form });
+      if (updated?.payload) record.payload = updated.payload;
       // Editor saves owe the shared emission contract (stores README):
       // the browser-local event reconciles every other open pane, the
       // typed invalidation reaches other sessions through the realtime

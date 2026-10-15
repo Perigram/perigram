@@ -8,10 +8,13 @@ import { onInstanceChanged } from '#utils/instance-events.js';
 // holds its edits and raises the refresh affordance (pre-CRDT conflict
 // posture: last writer wins per revisioned save, divergence is never
 // silent). The acting editor's own publications are skipped through the
-// persistence `origin` token.
+// persistence `origin` token; renames never reload content (they change
+// no payload — the name surfaces re-derive from the instance record).
+// `reloading` is exposed so the editor can keep its document program
+// reloads out of its dirty tracking.
 export function useRemoteDocumentSync(persistence, { dirty, reload }) {
   const remoteChanged = ref(false);
-  let reloading = false;
+  const reloading = ref(false);
 
   function matches(detail = {}) {
     if (!persistence?.instanceId) return false;
@@ -24,29 +27,24 @@ export function useRemoteDocumentSync(persistence, { dirty, reload }) {
     ? onInstanceChanged(async detail => {
       if (!matches(detail) || detail.change === 'deleted') return;
       if (detail.origin && detail.origin === persistence.origin) return;
+      if (String(detail.reason || '').startsWith('editor-rename')) return;
       if (dirty.value) {
         remoteChanged.value = true;
         return;
       }
-      reloading = true;
-      try {
-        await reload();
-      } finally {
-        reloading = false;
-        remoteChanged.value = false;
-      }
+      await reloadFromRemote();
     })
     : null;
 
   onBeforeUnmount(() => unsubscribe?.());
 
   async function reloadFromRemote() {
-    reloading = true;
+    reloading.value = true;
     try {
       await reload();
       remoteChanged.value = false;
     } finally {
-      reloading = false;
+      reloading.value = false;
     }
   }
 

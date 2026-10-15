@@ -76,7 +76,7 @@ const { displayName, nameDraft, editingName, nameDirty, commitName } = useDocume
 
 // Remote saves/renames reconcile this surface: clean reloads the text,
 // dirty raises the refresh affordance.
-const { remoteChanged, reloadFromRemote } = useRemoteDocumentSync(props.persistence, {
+const { remoteChanged, reloadFromRemote, reloading } = useRemoteDocumentSync(props.persistence, {
   dirty,
   reload: async () => {
     if (!crepe) return;
@@ -195,8 +195,9 @@ onMounted(async () => {
   })));
   crepe.on(api => api.markdownUpdated(() => {
     // The framework reports every doc change; only post-load changes
-    // are edits.
-    if (loaded) dirty.value = true;
+    // are edits — a programmatic remote reload is reconciliation, not
+    // an edit, and must not arm the save button.
+    if (loaded && !reloading.value) dirty.value = true;
   }));
   await crepe.create();
   loaded = true;
