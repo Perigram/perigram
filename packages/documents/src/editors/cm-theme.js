@@ -11,13 +11,13 @@ export const codeMirrorTheme = [
   EditorView.theme({
     '&': {
       color: 'var(--ck-chrome-foreground)',
-      font-family: 'var(--ck-font-mono)'
+      fontFamily: 'var(--ck-font-mono)'
     },
     '&.cm-focused': { outline: 'none' },
     '.cm-scroller': {
-      font-family: 'var(--ck-font-mono)',
-      font-size: '0.875rem',
-      line-height: '1.5'
+      fontFamily: 'var(--ck-font-mono)',
+      fontSize: '0.875rem',
+      lineHeight: '1.5'
     },
     '.cm-gutters': {
       backgroundColor: 'transparent',
@@ -39,7 +39,7 @@ export const codeMirrorTheme = [
     { tag: [t.string, t.special(t.string), t.character], color: 'var(--ck-status-success)' },
     { tag: [t.number, t.atom, t.bool], color: 'var(--ck-status-warning)' },
     { tag: [t.comment, t.meta, t.processingInstruction], color: 'var(--ck-chrome-muted)' },
-    { tag: [t.function(t.variableName), t.label], color: 'var(--ck-accent-500)' },
+    { tag: [t.function(t.variableName)], color: 'var(--ck-accent-500)' },
     { tag: [t.typeName, t.className, t.namespace], color: 'var(--ck-status-info)' },
     { tag: t.link, color: 'var(--ck-status-info)', textDecoration: 'underline' },
     { tag: t.heading, fontWeight: '700' },
