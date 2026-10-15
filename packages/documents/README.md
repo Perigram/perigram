@@ -156,10 +156,12 @@ TODO.md; no overlay ships.
 (`src/editors/text-document-editor.css`): crepe's variables map to the
 app's tokens (fonts, colors, shadows; fenced code blocks inherit the UI
 voice for their controls and declare the mono voice for their content),
-the document reads in the prose voice on a readable measure (~72ch)
-centered in the pane, and the slash menu carries the host's semantic
-utilities. No element-level chrome exists on this surface — the visual
-ownership contract
+and the document reads in the prose voice on a readable measure (~72ch)
+centered in the pane. The slash menu is host UI: it mounts on the page
+root — outside crepe's reset, which governs everything inside
+`.milkdown` — and carries the app's overlay vocabulary (`bg-content`,
+`shadow-overlay`). No element-level chrome exists on this surface — the
+visual ownership contract
 ([docs/UI_COMPONENT_AUDIT.md](../../docs/UI_COMPONENT_AUDIT.md))
 governs it.
 
