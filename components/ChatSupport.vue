@@ -796,19 +796,20 @@
                     >
                         {{ $t('support.typing', { name: typingName }) }}
                     </div>
-                    <!-- The conversation is an execution point: its bots run
-                         on this model (blank = each bot's own brain). -->
+                    <!-- The conversation is an execution point: its bots
+                         run on the chosen model off the served endpoints
+                         (blank = each bot's own brain). -->
                     <div v-if="conversationBots.length" class="flex items-center justify-end px-1">
                         <PrimeSelect
-                            :model-value="conversationProfile"
-                            :options="conversationProfileOptions"
+                            :model-value="conversationModel"
+                            :options="conversationModelOptions"
                             option-label="label"
                             option-value="value"
                             size="small"
-                            class="w-40"
+                            class="max-w-52"
                             :aria-label="$t('llm.profile')"
                             data-testid="chat-conversation-model"
-                            @update:model-value="setConversationProfile"
+                            @update:model-value="setConversationModel"
                         />
                     </div>
                     <!-- Reply quote bar: the next send carries the parent id.

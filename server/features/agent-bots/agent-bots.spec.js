@@ -109,7 +109,7 @@ describe('resolveTargetBots', () => {
     it('answers a direct chat when exactly one participant is a bot', async () => {
         mockedBotsService.isBotUser.mockImplementation(async (userId) => userId === BOT_A);
         const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, BOT_A] };
-        expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, BOT_A] }, message)).toEqual([{ botUserId: BOT_A, profile: '' }]);
+        expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, BOT_A] }, message)).toEqual([{ botUserId: BOT_A, profile: '', model: '' }]);
     });
 
     it('resolves a direct chat profile from its profile-only subscription row', async () => {
@@ -117,7 +117,7 @@ describe('resolveTargetBots', () => {
         mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: BOT_A, profile: 'cloud-big' }]);
         const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, BOT_A] };
         expect(await resolveTargetBots({ kind: 'direct', conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, BOT_A] }, message))
-            .toEqual([{ botUserId: BOT_A, profile: 'cloud-big' }]);
+            .toEqual([{ botUserId: BOT_A, profile: 'cloud-big', model: '' }]);
     });
 
     it('stays silent when both direct participants are bots', async () => {
@@ -131,10 +131,19 @@ describe('resolveTargetBots', () => {
         expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, 'user-other'] }, message)).toEqual([]);
     });
 
+    it('carries the conversation model override beside the profile', async () => {
+        mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([
+            { botUserId: BOT_A, profile: 'cloud-big', model: 'qwen3:30b-a3b' }
+        ]);
+        const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'group:g1' };
+        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g1' }, message))
+            .toEqual([{ botUserId: BOT_A, profile: 'cloud-big', model: 'qwen3:30b-a3b' }]);
+    });
+
     it('triggers group bots through subscriptions, carrying the conversation profile', async () => {
         mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: BOT_A, profile: 'cloud-big' }]);
         const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'group:g' };
-        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g' }, message)).toEqual([{ botUserId: BOT_A, profile: 'cloud-big' }]);
+        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g' }, message)).toEqual([{ botUserId: BOT_A, profile: 'cloud-big', model: '' }]);
     });
 
     it('triggers an instance bot subscribed to any ancestor on the message path', async () => {
@@ -152,7 +161,7 @@ describe('resolveTargetBots', () => {
                 { type: 'cassette', id: 'c1' }
             ]
         };
-        expect(await resolveTargetBots(context, message)).toEqual([{ botUserId: BOT_A, profile: '' }]);
+        expect(await resolveTargetBots(context, message)).toEqual([{ botUserId: BOT_A, profile: '', model: '' }]);
     });
 });
 
@@ -196,6 +205,13 @@ describe('runBotReply', () => {
             payload: { type: 'bot_stream', conversationKey: context.conversationKey, userId: BOT_A, name: 'Bot', text: 'the answer' }
         });
         expect(publishes.some(({ payload }) => payload?.type === 'bot_stream_end')).toBe(true);
+    });
+
+    it('runs the loop on the conversation model override', async () => {
+        mockedLlm.chatCompletion.mockResolvedValue({ content: 'done', toolCalls: [] });
+        await runBotReply(BOT_A, context, message, 'cloud-big', 'qwen3:30b-a3b');
+        expect(mockedLlm.chatCompletion.mock.calls[0][0].model).toBe('qwen3:30b-a3b');
+        expect(mockedLlm.chatCompletion.mock.calls[0][0].profileId).toBe('cloud-big');
     });
 
     it('publishes thinking and tool activity while the loop works', async () => {

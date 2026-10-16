@@ -195,6 +195,17 @@ describe('chatCompletion: openai-shaped local servers', () => {
 });
 
 describe('chatCompletion: failure modes', () => {
+    it('overrides the served model at the execution point', async () => {
+        process.env.LLM_PROVIDER = 'openai';
+        process.env.LLM_BASE_URL = 'http://llm.internal';
+        process.env.LLM_MODEL = 'model-x';
+        fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ choices: [{ message: { content: 'hi' } }] }) });
+        const result = await chatCompletion({ organizationId: null, model: 'qwen3:30b-a3b' });
+        const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+        expect(request.model).toBe('qwen3:30b-a3b');
+        expect(result.content).toBe('hi');
+    });
+
     it('throws 503 when no provider resolves', async () => {
         await expect(chatCompletion({ organizationId: null })).rejects.toMatchObject({ statusCode: 503 });
     });
