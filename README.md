@@ -149,6 +149,10 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
   dependencies, reinstall inside the container
   (`docker compose -f docker-compose.dev.yml run --rm app npm install`) or
   recreate the stack so the volume rebuilds.
+- Both compose files cap mongo's WiredTiger cache at 0.5 GB
+  (`--wiredTigerCacheSizeGB`): an unlimited container sizes the cache to
+  host RAM (50% of visible − 1 GB ≈ 6.9 GB here) and slowly starves the
+  machine, while the dev database is well under that.
 - The container writes `.nuxt` as root. Host-side tooling that needs it
   (the SSR smoke's `.nuxt/tsconfig.json`, `npx nuxi prepare` in agent
   worktrees) fails on root-owned files — fix ownership once with
@@ -163,11 +167,15 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
   app` to migrate the services onto it; mongo keeps its named volume across
   the recreate.
 Agent session worktrees are nested under `.agent-worktrees/` (plus scratch
-dirs `.agent-wt*`) in the project root. Nuxt scanning and the dev watchers
-ignore that tree via a path predicate in `nuxt.config.js`: chokidar v4
-leaks glob-ignored nested file events, and worktree `tsconfig.json`
-checkouts would otherwise trip Vite's tsconfig reload loop and stall the
-vite-node SSR module bridge past its request timeout. The per-environment
+dirs `.agent-wt*`) in the project root; a worktree is removed once its
+branch merges — 21 stale September worktrees inflated the dev watch
+surface ~35× before the 2026-10-16 cleanup. Nuxt scanning and the dev
+watchers ignore that tree — plus the equally dev-foreign `.opencode/`
+agent tooling state and the `video/` renderer tree — via a path predicate
+in `nuxt.config.js`: chokidar v4 leaks glob-ignored nested file events,
+and worktree `tsconfig.json` checkouts would otherwise trip Vite's
+tsconfig reload loop and stall the vite-node SSR module bridge past its
+request timeout. The per-environment
 `vite.environments.*` watcher ignores are attached only in development —
 a user-level `environments` object in a production build deroutes the
 vite 7 SSR build output, and nitro fails with `Could not load
