@@ -189,8 +189,11 @@ broadcast items wire in without the packArray boundary), and an output
 `ref` field projects as a typed entityRef socket. Input signatures carry
 no `ref` fields — `Ref` is a value (SPEC §2), but dereferencing is the
 projection's job, never a service's (SPEC §8 purity). Signature ports
-resolve from the projected domain's
-`serviceContracts`; an unknown operator is a compile-time diagnostic.
+resolve from the projected domain's `serviceContracts`, read from the
+contract on every sync pass rather than captured at setup: the designer
+replaces its domain when the served organization projection (mounted packs
+plus installed plugins) arrives, and a service node loaded before it
+re-resolves its ports. An unknown operator is a compile-time diagnostic.
 Palette translations are presentation only; generated action captions
 derive from typed declarations. Callers provide the current semantic
 graph directly; normalization never infers a missing protocol version.

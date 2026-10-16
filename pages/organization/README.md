@@ -205,7 +205,11 @@ detached entity profiles when a command is selected; command entity outputs are
 owned by their emitting process node.
 On load, the route fetches the active process and the current process list,
 selects the active process first, and falls back to the newest usable draft or
-saved definition only when active is unavailable. Empty canvases show a passive
+saved definition only when active is unavailable. The served organization
+domain, capabilities, and CTS type view load beside it; each arrival re-seats
+the designer's projected domain and re-runs the canvas node sync, so nodes
+loaded before the installed packs and plugins were projected re-resolve their
+ports. Empty canvases show a passive
 current-process state; they do not propose starter action buttons over the
 workspace.
 The screens tab authors the generated UI manifest for operational user screens:
