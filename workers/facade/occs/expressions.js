@@ -174,3 +174,18 @@ export const collectOccsExpressionIdentifiers = (value) => {
     ))
     .map(token => token.value);
 };
+
+const escapeOccsIdentifierPattern = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Rewrites whole identifier tokens by name — a rename refactors every
+// reference; substring matches never count, and the authored text's
+// spacing and number formatting survive untouched.
+export const rewriteOccsExpressionIdentifiers = (value, renames = {}) => {
+  if (typeof value !== 'string' || !value || value === 'inherit') return value;
+  const names = Object.keys(renames).filter(name => name !== renames[name]);
+  if (!names.length) return value;
+  return value.replace(
+    new RegExp(`(?<![A-Za-z0-9_])(?:${names.map(escapeOccsIdentifierPattern).join('|')})(?![A-Za-z0-9_])`, 'g'),
+    name => renames[name]
+  );
+};

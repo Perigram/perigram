@@ -15,7 +15,8 @@ import {
 import {
   collectOccsExpressionIdentifiers,
   resolveOccsAngleExpression,
-  resolveOccsExpression
+  resolveOccsExpression,
+  rewriteOccsExpressionIdentifiers
 } from '../../occs/expressions.js';
 import {
   buildOccsDrawingFromFaceCurves,
@@ -50,7 +51,8 @@ import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
   occProfileSectionChainedVertices,
-  occsProfileFromSketch
+  occsProfileFromSketch,
+  rewriteOccsProfileSketchExpressions
 } from '../../occs/profiles.js';
 
 const BOUNDARY_LAYER = OCCS_LAYER_CONTOUR_FLAT_PATTERN;
@@ -154,6 +156,7 @@ const numeric = (value, fallback) => {
 export const resolveCassetteV2Expression = resolveOccsExpression;
 export const resolveCassetteV2AngleExpression = resolveOccsAngleExpression;
 export const collectCassetteV2ExpressionIdentifiers = collectOccsExpressionIdentifiers;
+export const rewriteCassetteV2ExpressionIdentifiers = rewriteOccsExpressionIdentifiers;
 
 const anchor = (value, fallback, parameters = {}) => {
   const next = Math.round(resolveCassetteV2Expression(value, parameters, fallback));
@@ -255,22 +258,31 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   const sketchTable = rawSketch ? normalizeOccsProfileSketch(rawSketch).parameters : {};
   const instance = workpiece.parameters || {};
   const table = { ...sketchTable, ...instance };
-  // Instance values resolve in the joined scope — the sketch's own table,
-  // the workpiece's other instance values, and the cassette's globals: a
-  // chip value naming a global reads that global, a compound resolves its
-  // identifiers against the instance table. The authored expression stays
-  // stored raw — globals never bake into the table (they would go stale
-  // when the cassette's own parameters change) — and an expression naming
-  // nothing known stays raw too (the transient-invalid law holds the last
-  // good section while the author types).
-  const instanceScope = { ...sketchTable, ...scope, ...instance };
+  // Instance values resolve in the joined scope with the profile's own
+  // table shadowing the cassette's globals (inner over outer — a local
+  // parameter never gets silently overridden by a same-named global):
+  // the sketch's own table, the workpiece's other instance values, then
+  // the globals. A chip value naming a parameter reads the local one
+  // first, the global only when no local exists. The authored
+  // expression stays stored raw — globals never bake into the table
+  // (they would go stale when the cassette's own parameters change) —
+  // and an expression naming nothing known stays raw too (the
+  // transient-invalid law holds the last good section while the author
+  // types).
+  const instanceScope = { ...scope, ...sketchTable, ...instance };
   const resolveInstanceValue = (value) => {
     if (typeof value !== 'string' || !value.trim()) return value;
     try {
       const trimmed = value.trim();
-      // A bare identifier naming a global reads the global — not itself.
-      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed) && Object.prototype.hasOwnProperty.call(scope, trimmed)) {
-        return resolveCassetteV2Expression(value, scope);
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed)) {
+        // A bare identifier reads its innermost binding — not itself.
+        if (Object.prototype.hasOwnProperty.call(sketchTable, trimmed)) {
+          return resolveCassetteV2Expression(trimmed, { ...scope, ...sketchTable });
+        }
+        if (Object.prototype.hasOwnProperty.call(scope, trimmed)) {
+          return resolveCassetteV2Expression(trimmed, scope);
+        }
+        return value;
       }
       const identifiers = collectCassetteV2ExpressionIdentifiers(value);
       const known = identifiers.every(name => Object.prototype.hasOwnProperty.call(instanceScope, name));
@@ -1261,6 +1273,80 @@ export const updateCassetteV2GraphNode = (tree, nodeId, patch = {}) => {
     ...(node.parameters || {}),
     ...patch
   };
+  return nextTree;
+};
+
+// Renames a cassette global in place: the key moves in the tree's table
+// and every expression referencing it rewrites as whole identifiers —
+// node parameters and fold angles (the deg suffix survives), workpiece
+// instance values, profile sketches (a sketch field referencing the
+// global rebinds; a sketch's own same-named parameter is its local and
+// stays), and joint placements with their array values. Invalid or
+// colliding names refuse (the row re-renders with the old name).
+export const renameCassetteV2TreeParameter = (tree = createCassetteV2GraphTree(), from = '', to = '') => {
+  const source = String(from || '').trim();
+  const next = String(to || '').trim();
+  if (!source || !next || source === next) return tree;
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(next)) return tree;
+  const parameters = tree.parameters || {};
+  if (!Object.prototype.hasOwnProperty.call(parameters, source)) return tree;
+  if (Object.prototype.hasOwnProperty.call(parameters, next)) return tree;
+
+  const renames = { [source]: next };
+  const rewrite = (value) => rewriteCassetteV2ExpressionIdentifiers(value, renames);
+  const rewriteAngle = (value) => {
+    const match = typeof value === 'string' ? value.match(/^(.*?)(\s*deg)$/i) : null;
+    return match ? `${rewrite(match[1])}${match[2]}` : rewrite(value);
+  };
+  const rewriteSketch = (sketch) => (
+    sketch && typeof sketch === 'object' && !Object.prototype.hasOwnProperty.call(sketch.parameters || {}, source)
+      ? rewriteOccsProfileSketchExpressions(sketch, renames)
+      : sketch
+  );
+
+  const nextTree = cloneCassetteV2Tree(tree);
+  nextTree.parameters = Object.fromEntries(
+    Object.entries(nextTree.parameters || {}).map(([key, value]) => [key === source ? next : key, rewrite(value)])
+  );
+  nextTree.nodes = nextTree.nodes.map(node => ({
+    ...node,
+    ...(node.foldAngle !== undefined ? { foldAngle: rewriteAngle(node.foldAngle) } : {}),
+    parameters: Object.fromEntries(
+      Object.entries(node.parameters || {}).map(([key, value]) => [key, rewriteAngle(value)])
+    )
+  }));
+  nextTree.workpieces = nextTree.workpieces.map(workpiece => ({
+    ...workpiece,
+    parameters: Object.fromEntries(
+      Object.entries(workpiece.parameters || {}).map(([key, value]) => [key, rewrite(value)])
+    ),
+    ...(workpiece.sketch ? { sketch: rewriteSketch(workpiece.sketch) } : {}),
+    ...(workpiece.profileSnapshot ? {
+      profileSnapshot: {
+        ...workpiece.profileSnapshot,
+        ...(workpiece.profileSnapshot.sketch ? { sketch: rewriteSketch(workpiece.profileSnapshot.sketch) } : {})
+      }
+    } : {})
+  }));
+  nextTree.joints = nextTree.joints.map(joint => {
+    const placement = joint.placement || {};
+    const pattern = placement.pattern;
+    return {
+      ...joint,
+      placement: {
+        ...placement,
+        ...(Array.isArray(placement.origin) ? { origin: placement.origin.map(rewrite) } : {}),
+        ...(placement.rotation !== undefined ? { rotation: rewriteAngle(placement.rotation) } : {}),
+        ...(pattern ? {
+          pattern: {
+            ...pattern,
+            ...(pattern.count !== undefined ? { count: rewrite(pattern.count) } : {}),
+            ...(pattern.spacing !== undefined ? { spacing: rewrite(pattern.spacing) } : {})
+          }
+        } : {})
+      }
+    };
+  });
   return nextTree;
 };
 

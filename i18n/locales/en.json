@@ -536,6 +536,7 @@
                 },
                 "filletRadius": "Fillet radius",
                 "addParameter": "Add parameter",
+                "parameterName": "Parameter name",
                 "closedShape": "Closed shape",
                 "openShape": "Open shape",
                 "start": "start",

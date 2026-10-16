@@ -536,6 +536,7 @@
                 },
                 "filletRadius": "Радиус скругления",
                 "addParameter": "Добавить параметр",
+                "parameterName": "Имя параметра",
                 "closedShape": "Замкнутый контур",
                 "openShape": "Разомкнутый контур",
                 "start": "начало",

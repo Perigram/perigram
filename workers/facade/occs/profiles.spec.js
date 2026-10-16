@@ -8,6 +8,7 @@ import {
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
   adoptOccsProfileBindingParameter,
+  renameOccsProfileSketchParameter,
   occProfileEntitiesFromSketch,
   occProfileSectionChainedVertices,
   occProfileSketchFromEntities,
@@ -382,6 +383,25 @@ describe('OCCS profile helpers', () => {
     // globals) reads that scope — never minted here.
     expect(adoptOccsProfileBindingParameter({ parameters: {} }, 'A', 12, { A: 500 }))
       .toEqual({});
+  });
+
+  it('renames a sketch parameter in place, rewriting whole-identifier references', () => {
+    const sketch = {
+      parameters: { W: 90, R: 3, H: 'R * 2' },
+      points: [{ id: 'p0', x: 'W/2', y: 'ROAD' }, { id: 'p1', x: 1, y: 2 }],
+      holes: [{ id: 'h0', type: 'circle', center: ['R', 'W'], diameter: 'R' }],
+      modifiers: [{ type: 'fillet', vertexId: 'p0', radius: 'R' }]
+    };
+    const renamed = renameOccsProfileSketchParameter(sketch, 'R', 'RAD');
+    // Order preserved, values and spacing rewritten as whole identifiers.
+    expect(Object.keys(renamed.parameters)).toEqual(['W', 'RAD', 'H']);
+    expect(renamed.parameters.H).toBe('RAD * 2');
+    expect(renamed.points[0]).toMatchObject({ x: 'W/2', y: 'ROAD' });
+    expect(renamed.holes[0]).toMatchObject({ center: ['RAD', 'W'], diameter: 'RAD' });
+    expect(renamed.modifiers[0]).toMatchObject({ radius: 'RAD' });
+    // Colliding and invalid names refuse.
+    expect(renameOccsProfileSketchParameter(renamed, 'RAD', 'W').parameters.RAD).toBe(3);
+    expect(renameOccsProfileSketchParameter(renamed, 'RAD', '1X')).toBe(renamed);
   });
 
   it('resolves authored fillet corners into the drawable section chain', () => {    // A 6mm fillet on the p1 corner of a 42x28 rectangle: the sharp

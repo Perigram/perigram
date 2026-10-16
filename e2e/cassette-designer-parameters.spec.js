@@ -8,7 +8,10 @@ import { test, expect } from './fixtures.js';
 // selected profile previews the assembly it is placed in, never a blank
 // workpiece pane). The chips are the shared expression editor over the
 // cassette's variables: a value naming a global reads it live (the tree
-// carries A=500), and naming one never mints a new chip. Artifacts:
+// carries A=500), and naming one never mints a new chip. Parameter names
+// rename in place — a global's rename rebinds every tree reference, a
+// profile parameter's rename moves its key and bindings — and a
+// profile-local parameter shadows a same-named global. Artifacts:
 // .playwright/cassette-designer-parameters.png
 //
 // A fillet bound on a DRAWN corner must drive the placed profile too: the
@@ -147,13 +150,35 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await expect.poll(() => chipText(chipW)).toBe('A');
   expect(await chipCount(), 'Expected no new chip from naming a global').toBe(chipsBefore);
 
-  // The instance value reached the profile's own table — the raw
-  // expression, exactly as authored in the chip.
+  // Renaming a global in place rebinds every reference: the field keeps
+  // the tree's value and the chip's expression follows the new name.
+  const globalNameA = page.locator('aside input[aria-label="Parameter name A"]');
+  await expect(globalNameA).toBeVisible();
+  await globalNameA.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('LENGTH', { delay: 40 });
+  await globalNameA.press('Enter');
+  await page.waitForTimeout(1200);
+  await expect(page.locator('aside input[aria-label="Parameter name LENGTH"]')).toBeVisible();
+  await expect.poll(() => chipText(chipField(page, 'W'))).toBe('LENGTH');
+
+  // The renamed global reached the profile's own table — the raw
+  // expression, exactly as the rename rewrote it.
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  await expect(dialog.locator('input[aria-label="W"]').first()).toHaveValue('A');
-  await dialog.getByRole('button', { name: 'Cancel', exact: true }).first().click();
+  await expect(dialog.locator('input[aria-label="W"]').first()).toHaveValue('LENGTH');
+
+  // Renaming a profile parameter in place moves the key and its
+  // bindings: the row's field follows the new name.
+  const nameW = dialog.locator('input[aria-label="Parameter name W"]').first();
+  await nameW.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('WIDTH', { delay: 40 });
+  await nameW.press('Enter');
+  await page.waitForTimeout(600);
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('LENGTH');
 
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-designer-parameters.png'
