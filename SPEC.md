@@ -67,15 +67,18 @@ ships) — never a defaulted cloud endpoint. Model selection happens at the
 execution points and composes: wake rule, conversation, bot, org chat
 route — each optional, each falling back to the next. The conversation
 point is picked in the chat itself, never on the models screen: the
-picker lists the models the endpoints actually serve, and the choice
-overrides the served model at request time. The models screen
-administers providers and endpoints only.
+picker lists the models the endpoints actually serve, is never blank
+(it shows the room's effective model), and the choice overrides the
+served model at request time. The models screen administers providers
+and endpoints only.
 
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool
 invocation appears as it starts and settles; the final answer streams as
-it is produced and renders as markdown; the run's reasoning and tool
-history persist attached to the answer. Bots never ride the human typing
+it is produced and renders as markdown, as room content rather than a
+chat bubble; the run's reasoning and tool history persist attached to
+the answer. The room can stop a run in flight — generation ends and the
+answer produced so far is what stays. Bots never ride the human typing
 line — the run's own activity is its presence.
 
 Lifecycle wakes: a bot subscribed to a conversation may be woken by status

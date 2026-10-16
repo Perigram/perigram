@@ -668,17 +668,19 @@ from their own chrome.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
-`{{entity:type:id}}` tokens render as inline `InstanceInlineRef` chips. The
-component also renders structured `message.entityRefs[]` entries that were not
+`{{instance:type:id}}` tokens render as inline `InstanceInlineRef` chips. The
+component also renders structured `message.instanceRefs[]` entries that were not
 embedded as tokens, so structured attachments remain visible without polluting
 the text body. With the `markdown` prop (agent answers), text parts render
 through the shared sanitized markdown pipeline
 ([shared/markdown.js](../../shared/markdown.js)) instead of plain spans —
 instance-token chips still split out first, and the pipeline renders plain
-text on SSR, formatting on hydration. Text parts wrap with
-`overflow-wrap: anywhere` and the whole
-inline-flex chain keeps `min-w-0`/`max-w-full`, so unbroken strings (urls,
-serials) wrap inside the bubble instead of overflowing the chat bounds.
+text on SSR, formatting on hydration. Markdown mode also lays the root out as
+a full-width block column, not the inline-flex chip row, so lists, headings,
+and code blocks render as document content. Text parts wrap with
+`overflow-wrap: anywhere` and the `min-w-0`/`max-w-full` chain keeps unbroken
+strings (urls,
+serials) inside the chat bounds instead of overflowing it.
 Messages carrying `attachment.kind === 'audio'` render a leading voice-message
 chip, which is the inbox preview for attachment-only voice messages. The
 `singleLine` prop is the inbox preview mode: the chip row never wraps and

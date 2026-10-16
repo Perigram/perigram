@@ -30,6 +30,15 @@ rows already live as members.
   participant of a direct chat; blank falls back to each bot's brain).
 - [ ] WAITING — owner verification on the live stack: `LLM_TIMEOUT_MS`
   overrides the request idle guard.
+- [ ] WAITING — owner verification on the live stack: the composer stops
+  an in-flight bot run (generation ends; the answer produced so far is
+  what stays, and the live activity clears).
+- [ ] WAITING — owner verification on the live stack: the bot's answer
+  renders markdown as room content, not inside a chat bubble.
+- [ ] WAITING — owner verification on the live stack: the conversation
+  model select is never blank — it shows the room's effective model.
+- [ ] WAITING — owner verification on the live stack: the transcript does
+  not jump to the bottom while a bot run is thinking.
 
 #### Agent Notes (2026-10-15)
 
