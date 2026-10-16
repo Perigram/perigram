@@ -616,6 +616,15 @@ parameters on a profile workpiece drive only the identifiers its sketch
 references — a numeric sketch (drawn or imported without bindings) has
 no driving parameters and shows none.
 
+Owner declaration (2026-10-16, profiles never ride folds): a fold edge —
+an edge where a face bends to another — never carries a profile. The
+attachment edge chooser offers only the face's arrangeable edges (folds
+and profile-arranged edges excluded), and an arrangement authored on a
+fold is refused by evaluation (a visible refusal, never a splice into
+the bend line). Clearing the profile canvas starts the blank authoring
+session: the parameter table empties with the canvas, so one session's
+parameters never ride the next hand-drawn profile.
+
 Owner declarations (2026-10-15, profile parameter rows, array spacing,
 authoring fields — owner review round 10): the parameters a profile
 workpiece's row shows drive its geometry — editing one re-evaluates the

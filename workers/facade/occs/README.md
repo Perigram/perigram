@@ -70,7 +70,9 @@ modules — no platform imports.
   authored them and carry no table for the expressions to resolve against.
   A blank authoring session starts with an empty
   table — parameters are added when a sketch
-  needs them, nothing is pre-seeded there. Every authoring field (point
+  needs them, nothing is pre-seeded there, and clearing the canvas
+  starts that blank session (the previous session's table dies with its
+  geometry, never riding the next hand-drawn profile). Every authoring field (point
   coordinates, hole centers and diameters, fillet radii, parameter
   values) carries a number or an expression string evaluated
   against the parameter table through `expressions.js` — the same
@@ -228,7 +230,14 @@ modules — no platform imports.
   `cut.inner` in the evaluated layerData and the designer drawing
   (a dedicated registry row awaits an owner-named production name; the
   inner-cut layer is the existing production home of exactly this
-  operation).
+  operation). A fold edge never carries a profile (owner law
+  2026-10-16): `profileFoldEdgeRefusalsForTree` refuses the arrangement
+  — both profile passes skip it and the designer drawing surfaces the
+  refusal through `profileEmbeddingErrors` — and the attachment popup's
+  edge chooser lists only `cassetteV2AttachableProfileEdgesForTree`'s
+  arrangeable edges (the trapezoid's four authored edges less folds and
+  profile-arranged ones), snapping a stale illegal default to the first
+  arrangeable edge on the write path.
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
   codes, including generated dimension annotation layers and caller-provided
