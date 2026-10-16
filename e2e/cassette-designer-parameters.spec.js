@@ -209,35 +209,35 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await expect(fillet).toBeVisible({ timeout: 10_000 });
   await fillet.click();
   await page.keyboard.press('ControlOrMeta+a');
-  await fillet.pressSequentially('A', { delay: 80 });
+  await fillet.pressSequentially('K', { delay: 80 });
   await fillet.press('Enter');
   await page.waitForTimeout(600);
 
-  const paramA = dialog.locator('input[aria-label="A"]').first();
-  await paramA.click();
+  const paramK = dialog.locator('input[aria-label="K"]').first();
+  await paramK.click();
   await page.keyboard.press('ControlOrMeta+a');
-  await paramA.pressSequentially('1', { delay: 80 });
-  await paramA.press('Enter');
+  await paramK.pressSequentially('1', { delay: 80 });
+  await paramK.press('Enter');
   await page.waitForTimeout(600);
 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
-  const chipA = page.locator('div[aria-label^="Parameters A "] div[contenteditable]').first();
-  await expect(chipA).toBeVisible({ timeout: 20_000 });
-  await expect.poll(() => chipText(chipA)).toBe('1');
+  const chipK = page.locator('div[aria-label^="Parameters K "] div[contenteditable]').first();
+  await expect(chipK).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => chipText(chipK)).toBe('1');
   await page.waitForTimeout(1200);
 
   // Driving the chip re-rounds the drawn corner.
   const before = await assemblyGeometry(page);
   expect(before, 'Expected the placed drawn profile to show geometry').not.toBe('');
-  await chipA.click();
+  await chipK.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('2.5', { delay: 60 });
   await page.waitForTimeout(1500);
   const after = await assemblyGeometry(page);
   expect(after, 'Expected the fillet chip to re-round the drawn profile').not.toBe(before);
-  await expect.poll(() => chipText(chipA)).toBe('2.5');
+  await expect.poll(() => chipText(chipK)).toBe('2.5');
 
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-designer-parameters-fillet.png'
