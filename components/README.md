@@ -1053,7 +1053,7 @@ jump to the bottom while the run works. The composer's trailing control
 becomes a stop button for the live run; stopping aborts the request and
 the answer produced so far stays. When the reply lands, the same
 activity persists on the message (`agent` provenance) and renders
-attached above it, collapsed — thinking and tool history stay with the
+attached above it, open — thinking and tool history stay visible with the
 answer in the transcript, and an agent answer renders markdown as room
 content (no bubble) in the prose document voice through the shared
 sanitized pipeline (plain text on SSR, formatted on hydration). Bots
