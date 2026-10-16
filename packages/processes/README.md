@@ -139,6 +139,12 @@ declarations, then re-seat the seam on the overlaid domain
 composables are a presentation adapter over this seam; everything
 authorable in the browser is authorable without one, and a headlessly
 composed definition loads in the designer as a first-class draft. A
+headless drop has no mouse: every drop and declaration takes the next slot
+of a default grid, so a composed definition renders readably instead of
+piling onto the origin. `graphIntegrityProblems(graph)` is the package's
+structural floor (nodes carry a unique id, a type, and a numeric
+position; edges address existing nodes) — the save seam rejects what it
+flags, while semantic validity stays the validator's job. A
 palette item whose record cannot be dropped, configured, and
 round-tripped through the seam headlessly is a defect — pinned by
 `authoring.spec.js`, which walks every palette item and the canvas

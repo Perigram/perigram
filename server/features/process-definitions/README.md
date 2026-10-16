@@ -268,7 +268,13 @@ access.
 The compiled runtime contract is not a design source. Stored definitions that
 only contain `data.compiled` without semantic records are rejected during
 validation and activation so operators do not edit a guessed reconstruction.
-Edits save in place; an identity-only PATCH never touches data. Each
+Edits save in place; an identity-only PATCH never touches data. A save
+carries a structural floor — every graph node needs a unique id, a type,
+and a numeric position, and every edge must address existing nodes
+(`graphIntegrityProblems` from the
+[processes package](../../../packages/processes/README.md)) — while
+semantic validity stays the validator's job, so drafts may fail
+validation mid-edit but never persist as corruption. Each
 activation writes the activated snapshot to `data.activated` — the
 runtime compiles `data.activated ?? data` for every active-set member,
 never live draft data. Re-activation records the superseded snapshot in
