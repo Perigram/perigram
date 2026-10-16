@@ -17,46 +17,44 @@
                 class="chat-inbox flex min-h-0 flex-1 flex-col overflow-hidden"
                 :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : ''"
             >
-                <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
-                    <Button
-                        v-if="showArchived"
-                        icon="pi pi-arrow-left"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        class="mr-auto"
-                        :aria-label="$t('support.backToChats')"
-                        @click="showArchived = false"
-                    />
+                <div class="flex shrink-0 items-center gap-2 px-2 pt-2">
+                    <!-- The rail header is exactly three controls (SPEC):
+                         the archive toggle (the same control leaves the
+                         archived view), the search field, and one + whose
+                         menu owns every conversation start. -->
                     <Button
                         icon="pi pi-inbox"
                         :severity="showArchived ? 'primary' : 'secondary'"
                         text
                         rounded
                         size="small"
+                        class="shrink-0"
                         :aria-label="$t('support.archivedConversations')"
                         :aria-pressed="showArchived"
                         @click="showArchived = !showArchived"
                     />
+                    <IconField class="min-w-0 flex-1">
+                        <InputIcon class="pi pi-search" />
+                        <InputText
+                            v-model="inboxSearch"
+                            type="text"
+                            class="w-full"
+                            :placeholder="$t('support.searchChats')"
+                            data-testid="chats-search"
+                        />
+                    </IconField>
                     <Button
-                        icon="pi pi-user-plus"
+                        icon="pi pi-plus"
                         severity="secondary"
                         text
                         rounded
                         size="small"
-                        :aria-label="$t('support.openChat')"
-                        @click="openNewChatDialog"
+                        class="shrink-0"
+                        :aria-label="$t('support.newChat')"
+                        data-testid="chats-new-menu"
+                        @click="toggleNewChatMenu"
                     />
-                    <Button
-                        icon="pi pi-users"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="$t('support.newGroup')"
-                        @click="openGroupDialog"
-                    />
+                    <Menu ref="newChatMenuRef" :model="newChatMenuItems" :popup="true" />
                     <!-- The drawer's inbox view needs its own close: the
                          thread header's close vanishes with the thread, and
                          nothing else dismisses the drawer from here. -->
@@ -67,6 +65,7 @@
                         text
                         rounded
                         size="small"
+                        class="shrink-0"
                         :aria-label="$t('common.close')"
                         @click="closeChat"
                     />
@@ -374,13 +373,13 @@
                                 @click="includeChildren = !includeChildren"
                             />
                         </div>
-                        <!-- Instance threads carry their lineage breadcrumbs
-                             under the title (TraceChain: org root first,
-                             links open the ancestor surfaces); group threads
-                             carry an overlapping member avatar stack that
-                             opens the full member list as a popup; AI
-                             threads carry the assistant's own avatar — a
-                             1:1 chat, never a member list. -->
+                         <!-- Instance threads carry their lineage breadcrumbs
+                              under the title (TraceChain: org root first,
+                              links open the ancestor surfaces); group threads
+                              carry an overlapping member avatar stack that
+                              opens the full member list as a popup. AI
+                              threads carry nothing here — a 1:1 chat is the
+                              title and the badge alone. -->
                         <TraceChain
                             v-if="activeConversation.conversationKind === 'instance'"
                             :entity="chatInstanceRecord"
@@ -412,13 +411,6 @@
                                 />
                             </AvatarGroup>
                         </button>
-                        <Avatar
-                            v-else-if="isAiOnlyRoom"
-                            :image="agentBots.ai?.avatarUrl || null"
-                            :label="!agentBots.ai?.avatarUrl ? (agentBots.ai?.name || 'A').charAt(0).toUpperCase() : null"
-                            shape="circle"
-                            class="h-6 w-6 shrink-0 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-                        />
                         <small v-else-if="conversationSubtitle" class="block truncate text-muted text-supporting">
                             {{ conversationSubtitle }}
                         </small>
@@ -434,8 +426,12 @@
                         </Popover>
                     </div>
                     <div class="flex shrink-0 items-center gap-1">
+                        <!-- Seating the AI is a group/instance-room action
+                             (join/leave, model pin, wake rules); a 1:1 AI
+                             thread needs none of it — the model select
+                             above the composer pins the room. -->
                         <Button
-                            v-if="['group', 'instance'].includes(activeConversation.conversationKind) && !activeConversation.agentDraft"
+                            v-if="['group', 'instance'].includes(activeConversation.conversationKind) && !activeConversation.agentDraft && !isAiOnlyRoom"
                             icon="pi pi-sparkles"
                             severity="secondary"
                             text
@@ -1787,12 +1783,23 @@ const chatRowIndentClass = (conversation) => {
 // list hides them.
 const showArchived = ref(false)
 
+// The header search: a plain client-side filter over the rail's rows —
+// title and last message, case-insensitive.
+const inboxSearch = ref('')
+const searchHit = (conversation) => {
+    const query = inboxSearch.value.trim().toLowerCase()
+    if (!query) return true
+    return conversationLabel(conversation).toLowerCase().includes(query)
+        || String(conversation.lastMessage || '').toLowerCase().includes(query)
+}
+
 const displayConversations = computed(() => supportChatStore.conversations
     .filter(conversation => {
         if (Boolean(conversation.archived) !== showArchived.value) return false
         return ['direct', 'group'].includes(conversation.conversationKind)
             || conversation.conversationKind === 'instance'
-    }))
+    })
+    .filter(searchHit))
 
 // One unified inbox: person, group, and instance chats share a single
 // list; pinned rows lead, everything else follows the latest activity, and
@@ -3667,6 +3674,20 @@ const openNewChatDialog = async () => {
     await loadNewChatUsers()
 }
 
+// The + control's menu (SPEC): every conversation start in one place —
+// a person chat, a group, an AI chat (capability-gated).
+const newChatMenuRef = ref(null)
+const toggleNewChatMenu = (event) => {
+    newChatMenuRef.value?.toggle(event)
+}
+const newChatMenuItems = computed(() => [
+    { label: t('support.newChat'), icon: 'pi pi-user-plus', command: () => { openNewChatDialog() } },
+    { label: t('support.newGroup'), icon: 'pi pi-users', command: () => { openGroupDialog() } },
+    ...(agentBots.canChat
+        ? [{ label: t('support.newAgentChat'), icon: 'pi pi-sparkles', command: () => { openNewAgentChat() } }]
+        : [])
+])
+
 const openNewChatUser = (userId) => {
     if (!userId) return
     const option = newChatOptions.value.find(item => item.value === userId)
@@ -3695,20 +3716,22 @@ const openNewChatUser = (userId) => {
 // conversation key (nothing subscribes or loads yet) that materializes
 // into a real room — titled by the first message — when that message is
 // sent. Cancelling the draft creates nothing.
-const openNewAgentChat = (option) => {
+const openNewAgentChat = (option = null) => {
     const contact = agentBots.ai
-    const assistantId = String(contact?.id || option?.value || '')
+    if (!contact) return
+    const assistantId = String(contact.id)
+    const name = option?.label || contact.name || ''
     activeConversation.value = {
         conversationKey: null,
         conversationKind: 'group',
-        groupName: option?.label || contact?.name || '',
+        groupName: name,
         participants: [currentUserId.value, assistantId].filter(Boolean),
         lastMessage: '',
         instanceRefs: [],
         participant: {
             _id: assistantId,
-            identity: { name: option?.label || contact?.name || '' },
-            data: { bot: { createdAt: null }, avatarUrl: contact?.avatarUrl }
+            identity: { name },
+            data: { bot: { createdAt: null }, avatarUrl: contact.avatarUrl }
         },
         agentDraft: true
     }
