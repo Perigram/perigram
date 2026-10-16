@@ -1053,11 +1053,11 @@ attached above it, collapsed — thinking and tool history stay with the
 answer in the transcript, and agent answers render markdown through the
 shared sanitized pipeline (plain text on SSR, formatted on hydration).
 Bots never ride the human typing line. Conversations with bots carry a
-model select above the composer setting the room's execution-point
-profile — subscribed bots in group/instance threads, the bot participant
-in a direct chat (a profile-only row) — with rows labeled by the model
-each profile routes to; blank falls back to each bot's own brain, and
-the bot sheet edits per bot in group threads.
+model select above the composer: it lists the models the org's chat
+endpoints actually serve (not the profiles — the endpoint's own model
+listing) and pins the choice on the room for its subscribed bots, or
+the bot participant of a direct chat; blank falls back to each bot's
+own brain.
 Conversation history is lazy: the thread loads the newest
 message page and prepends older pages on scroll-to-top through the
 `limit`/`before` cursor contract, preserving the scroll anchor. Voice messages

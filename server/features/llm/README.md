@@ -92,7 +92,8 @@ throwing.
 
 ## Service Contract
 
-- `resolveLlmConfig(organizationId)` → `{ provider, baseUrl?, apiKey?, model? }`; `{ provider: 'none' }` when disabled or unusable.
+- `resolveLlmConfig(organizationId, capability, { profileId, model })` → `{ provider, baseUrl?, apiKey?, model? }`; `{ provider: 'none' }` when disabled or unusable. The profile owns the endpoint; a `model` override (the execution point's choice off that endpoint) replaces the served model on the resolved config.
+- `chatModels(organizationId)` → `[{ profile, model }]` — the models each chat profile's endpoint actually serves, probed live (both listing shapes) with a short cache; a down endpoint contributes no rows. This is the picker list for chat execution points.
 - `isLlmAvailable(organizationId)` → boolean shorthand.
 - `chatCompletion({ organizationId, system, messages, tools })` → the
   neutral assistant message `{ content, thinking, toolCalls: [{ id, name,

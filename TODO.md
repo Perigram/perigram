@@ -24,10 +24,10 @@ rows already live as members.
   the run's reasoning and tool history persist attached to the reply
   (`agent` provenance on the message), and the answer renders markdown.
 - [ ] WAITING — owner verification on the live stack: the conversation's
-  model is picked in the chat itself (select above the composer, rows
-  labeled by the model each profile routes to: the room's subscribed
-  bots, or the bot participant of a direct chat; blank falls back to
-  each bot's brain).
+  model is picked in the chat itself (select above the composer listing
+  the models the org's chat endpoints serve — profile pins the endpoint,
+  the row stores both — for the room's subscribed bots or the bot
+  participant of a direct chat; blank falls back to each bot's brain).
 - [ ] WAITING — owner verification on the live stack: `LLM_TIMEOUT_MS`
   overrides the request idle guard.
 
@@ -53,6 +53,19 @@ through `botStreamSink` (full text so far, so the client just replaces the
 draft), retracting a tool round's text; the chat renders the draft bubble
 and hides the typing line while it is up. New specs: the three stream
 readers and a runtime publish assertion.
+
+Session `agent/endpoint-models-20261016` moved the model choice to the
+execution point over served models. `chatModels` lists what each chat
+profile's endpoint actually serves (probe shared with the models screen,
+short cache); the chat picker offers exactly that list and pins profile
+and model on the subscription row; `resolveLlmConfig` applies the model
+override over the profile's endpoint, and both reply and wake runs
+inherit the row. The bot's action manifest was verified populated (three
+roles) — the tool catalog could always create and mutate instances
+through `list_actions`/`run_action`; the "can't do anything" transcripts
+show qwen3:4b never invoking a single tool, and its pool was wedged
+solid during probing. The system prompt now points instance work at the
+action manifest and forbids claiming missing abilities before listing.
 
 Session `agent/agent-run-ux-20261016` reshaped the run to the standard AI
 chat pattern. The run's provenance (`agent: { thinking, tools }`) now
