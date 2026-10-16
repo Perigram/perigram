@@ -23,6 +23,7 @@ import {
   getCassetteV2FoldEdges,
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
+  normalizeCassetteV2Profile,
   normalizeCassetteV2Trapezoid,
   profileTerminalEdgesForTree,
   renderCassetteV2ToDrawing,
@@ -650,6 +651,32 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const held = getCassetteV2Workpieces(broken).find(item => item.id === added.workpieceId);
     expect(held.profileSnapshot.section.vertices).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
+  });
+
+  it('reads a chip value that names a cassette global', () => {
+    const sketch = createDefaultOccsProfileSketch();
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger',
+      parameters: sketch.parameters,
+      occsProfile: occsProfileFromSketch(sketch),
+      sketch
+    });
+    // The default tree carries A=500: the W chip naming it reads it, and
+    // the stored table keeps the raw expression.
+    const driven = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
+      parameters: { ...sketch.parameters, W: 'A' }
+    });
+    const workpiece = getCassetteV2Workpieces(driven).find(item => item.id === added.workpieceId);
+    expect(workpiece.profileSnapshot.section.vertices).toEqual([['0', '0'], ['500', '0'], ['500', '28'], ['0', '28']]);
+    expect(workpiece.parameters.W).toBe('A');
+
+    // The global stays live: the next derivation (what every render
+    // runs) reads the changed value — the stored table never baked it.
+    const reDerived = normalizeCassetteV2Profile(workpiece, { A: '600' });
+    expect(reDerived.section.vertices).toEqual([['0', '0'], ['600', '0'], ['600', '28'], ['0', '28']]);
+    expect(reDerived.parameters.W).toBe('A');
   });
 
   it('drives a drawn fillet chip whose point id is not its index', () => {

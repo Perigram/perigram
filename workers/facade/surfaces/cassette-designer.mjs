@@ -41,7 +41,6 @@ import {
   occsProfileFromSketch
 } from '../occs/profiles.js';
 import createExpressionEditor from './lib/components/expressionEditor.mjs';
-import createFieldDraft from './lib/components/fieldDraft.mjs';
 import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
@@ -258,7 +257,6 @@ export default function createSurface({ vue, components, locale, queries, notify
       const onboardingDismissed = ref(false);
       const inlineEditorDrag = ref(null);
       // The focused profile-parameter chip's raw text (see fieldDraft).
-      const parameterDraft = createFieldDraft({ vue });
       const profileDialogVisible = ref(false);
       const editingProfileWorkpieceId = ref('');
       const profileDraft = ref({
@@ -273,7 +271,10 @@ export default function createSurface({ vue, components, locale, queries, notify
         profileDraft.value.parameters || {}
       ));
       const profileDraftReady = computed(() => isOccsProfileSketchSavable(
-        profileDraftSketch.value, profileDraft.value.parameters || {}
+        profileDraftSketch.value,
+        // Global-bound fields read the cassette's variables — the save
+        // gate resolves against them too.
+        { ...(profileDraft.value.parameters || {}), ...globalParameters.value }
       ));
       const preparedProfileDraftSketch = computed(() => {
         const sketch = profileDraftSketch.value;
@@ -959,8 +960,6 @@ export default function createSurface({ vue, components, locale, queries, notify
       }, { immediate: true });
 
       // A chip's draft dies with the workpiece selection that owns it.
-      watch(selectedWorkpieceId, () => { parameterDraft.clear(); });
-
       watch([selectedWorkpieceId, workpieceRelations], () => {
         const selectedIncoming = selectedWorkpieceRelations.value.find(relation => relation.driver) ||
           selectedWorkpieceRelations.value[0] ||
@@ -1414,20 +1413,19 @@ export default function createSurface({ vue, components, locale, queries, notify
         });
       };
 
-      // The chip holds its typed text while focused and commits it on
-      // blur/Enter (see fieldDraft).
-      const profileParameterField = (row, key, value) => {
-        const draftKey = `${row.id}:${key}`;
-        return h(InputText, {
-          modelValue: parameterDraft.text(draftKey, value),
-          ...parameterDraft.handlers(draftKey, value, next => {
-            updateProfileWorkpieceParameter(row.id, key, next);
-          }),
-          size: 'small',
-          class: 'w-16 font-mono text-xs',
-          'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`
-        });
-      };
+      // A chip is an expression field over the cassette's variables (the
+      // same component every expression field rides): its value may name
+      // a global and reads it live.
+      const profileParameterField = (row, key, value) => h(CassetteExpressionEditor, {
+        modelValue: value,
+        parameters: globalParameters.value,
+        parameterNames: globalParameterNames.value,
+        class: 'w-28',
+        'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`,
+        'onUpdate:modelValue': next => {
+          updateProfileWorkpieceParameter(row.id, key, next);
+        }
+      });
 
       const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '') => {
         closeInlineEditor();
@@ -2127,7 +2125,7 @@ export default function createSurface({ vue, components, locale, queries, notify
                       .filter(([key]) => row.boundParameterKeys?.has(key))
                       .map(([key, value]) => h('div', {
                         key: `${row.id}-${key}`,
-                        class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
+                        class: 'flex items-center gap-1'
                       }, [
                         h('span', { class: 'font-mono text-xs text-muted-color' }, key),
                         profileParameterField(row, key, value)
@@ -2392,6 +2390,7 @@ export default function createSurface({ vue, components, locale, queries, notify
             ]),
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
+              externalParameters: globalParameters.value,
               'onUpdate:modelValue': value => { profileDraft.value.sketch = value; },
               onProfile: value => { profileDraft.value.occsProfile = value; }
             })

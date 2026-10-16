@@ -41,7 +41,11 @@ export default function createSketchEditor({ vue, components, locale }) {
   return defineComponent({
     name: 'ProfileSketchEditor',
     props: {
-      modelValue: { type: Object, default: null }
+      modelValue: { type: Object, default: null },
+      // The surrounding scope's parameters (the cassette's globals): a
+      // field expression naming one of them reads it — evaluation joins
+      // the scope, adopt-on-bind never mints it (occs/README.md).
+      externalParameters: { type: Object, default: () => ({}) }
     },
     emits: ['update:modelValue', 'profile'],
     setup(props, { emit }) {
@@ -194,7 +198,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!view) return null;
         let evaluated = null;
         try {
-          evaluated = evaluateOccsProfileSketch(props.modelValue || {});
+          evaluated = evaluateOccsProfileSketch(props.modelValue || {}, externalScope());
         } catch {
           return null;
         }
@@ -214,7 +218,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!authored) return null;
         let evaluated = null;
         try {
-          evaluated = evaluateOccsProfileSketch(sketch);
+          evaluated = evaluateOccsProfileSketch(sketch, externalScope());
         } catch {
           return null;
         }
@@ -253,7 +257,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!view || !rect) return null;
         let evaluated = null;
         try {
-          evaluated = evaluateOccsProfileSketch(props.modelValue || {});
+          evaluated = evaluateOccsProfileSketch(props.modelValue || {}, externalScope());
         } catch {
           return null;
         }
@@ -392,6 +396,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
         return records;
       };
+
+      const externalScope = () => props.externalParameters || {};
 
       const emitSketch = () => {
         if (!manager || disposed) return;
@@ -620,7 +626,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         emit('update:modelValue', normalized);
         let profile = null;
         try {
-          profile = occsProfileFromSketch(normalized, { parameters: normalized.parameters });
+          profile = occsProfileFromSketch(normalized, { parameters: externalScope() });
         } catch {
           // Save gates on the savable check; nothing to emit while invalid.
         }
@@ -647,7 +653,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const radius = value === '' || value === null || value === undefined
           ? 0
           : Number.isFinite(numeric) ? Math.max(0, numeric) : String(value).trim();
-        const parameters = adoptOccsProfileBindingParameter(normalized, radius, filletRadiusOf(normalized, vertexId) ?? 0);
+        const parameters = adoptOccsProfileBindingParameter(normalized, radius, filletRadiusOf(normalized, vertexId) ?? 0, externalScope());
         const modifiers = normalized.modifiers.filter(modifier => !(
           modifier.type === 'fillet' && modifier.vertexId === vertexId
         ));
@@ -659,7 +665,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // unresolvable model adopts nothing (the save gate reports).
       const evaluatedFieldValue = (read) => {
         try {
-          return read(evaluateOccsProfileSketch(normalizeOccsProfileSketch(props.modelValue || {})));
+          return read(evaluateOccsProfileSketch(normalizeOccsProfileSketch(props.modelValue || {}), externalScope()));
         } catch {
           return null;
         }
@@ -670,7 +676,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         const parameters = adoptOccsProfileBindingParameter(
           normalized,
           value,
-          evaluatedFieldValue(evaluated => evaluated.points.find(point => point.id === vertexId)?.[field])
+          evaluatedFieldValue(evaluated => evaluated.points.find(point => point.id === vertexId)?.[field]),
+          externalScope()
         );
         commitSketch({
           ...normalized,
@@ -686,7 +693,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         const parameters = adoptOccsProfileBindingParameter(
           normalized,
           value,
-          evaluatedFieldValue(evaluated => evaluated.holes.find(hole => hole.id === holeId)?.center?.[index])
+          evaluatedFieldValue(evaluated => evaluated.holes.find(hole => hole.id === holeId)?.center?.[index]),
+          externalScope()
         );
         commitSketch({
           ...normalized,
@@ -704,7 +712,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         const parameters = adoptOccsProfileBindingParameter(
           normalized,
           value,
-          evaluatedFieldValue(evaluated => evaluated.holes.find(hole => hole.id === holeId)?.diameter)
+          evaluatedFieldValue(evaluated => evaluated.holes.find(hole => hole.id === holeId)?.diameter),
+          externalScope()
         );
         commitSketch({
           ...normalized,

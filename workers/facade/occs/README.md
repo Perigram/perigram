@@ -183,10 +183,19 @@ modules — no platform imports.
   the workpiece's own table is the derived table with those instance
   values on top — and
   its snapshot re-derives from the authored sketch (the stored section is
-  a last-good cache — a transient invalid parameter holds it); the
-  workpiece rows edit instance parameters in place, instance values may
-  be cassette expressions — the cassette's global parameters join the
-  evaluation scope but never bake into the stored table. Profiles live on
+  a last-good cache — a transient invalid parameter holds it);
+  the workpiece rows edit instance parameters in place, instance values may
+  be cassette expressions — they resolve in the joined scope (the sketch's
+  own table, the other instance values, then the cassette's globals; a
+  bare identifier naming a global reads the global) while the raw
+  expression stays stored and the cassette's globals join the evaluation
+  scope but never bake into the stored table. The row's chips are the
+  shared expression editor (`surfaces/lib/components/expressionEditor.mjs`)
+  over the cassette's variables — the token panel offers them, a value
+  naming one reads it live — and adopt-on-bind
+  (`adoptOccsProfileBindingParameter`'s `externalParameters`) never mints
+  an identifier that scope defines: the profile editor evaluates and
+  saves against the joined scope the same way. Profiles live on
   the tree: the designer's profile dialog writes profile workpieces
   (their `profileSnapshot` is the renderer's geometry source) that ride
   the cassette template's own document — there are no standalone profile

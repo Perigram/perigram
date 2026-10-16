@@ -6,7 +6,10 @@ import { test, expect } from './fixtures.js';
 // token panel's first button (a phantom parameter token), and a falsy
 // read replaced empty or zero array values with the defaults — and a
 // selected profile previews the assembly it is placed in, never a blank
-// workpiece pane). Artifacts: .playwright/cassette-designer-parameters.png
+// workpiece pane). The chips are the shared expression editor over the
+// cassette's variables: a value naming a global reads it live (the tree
+// carries A=500), and naming one never mints a new chip. Artifacts:
+// .playwright/cassette-designer-parameters.png
 //
 // A fillet bound on a DRAWN corner must drive the placed profile too: the
 // drawn sketch's point ids are identity, not position, so the fillet
@@ -36,6 +39,10 @@ const arrayValueText = (page) => page.locator('div.z-\\[120\\]').first()
     }
     return null;
   });
+
+const chipField = (page, key, label = 'Hanger profile') => page
+  .locator(`div[aria-label="Parameters ${key} ${label}"] div[contenteditable]`);
+const chipText = (locator) => locator.evaluate(el => (el.textContent || '').trim());
 
 test('profile parameter chips re-evaluate the placed profile; array position fields hold drafts', async ({ app }) => {
   test.setTimeout(240_000);
@@ -77,13 +84,14 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
-  // The saved profile row carries a live chip per bound parameter, and
-  // the pane with it selected shows the assembly it is placed in.
-  const chipW = page.locator('input[aria-label="Parameters W Hanger profile"]');
+  // The saved profile row carries a live expression chip per bound
+  // parameter, and the pane with it selected shows the assembly it is
+  // placed in.
+  const chipW = chipField(page, 'W');
   await expect(chipW).toBeVisible({ timeout: 20_000 });
-  await expect(chipW).toHaveValue('42');
+  await expect.poll(() => chipText(chipW)).toBe('42');
   for (const [key, value] of [['H', '28'], ['R', '3'], ['D', '6']]) {
-    await expect(page.locator(`input[aria-label="Parameters ${key} Hanger profile"]`)).toHaveValue(value);
+    await expect.poll(() => chipText(chipField(page, key))).toBe(value);
   }
   await page.waitForTimeout(1200);
   expect(await assemblyGeometry(page), 'Expected the placed profile pane to show geometry').not.toBe('');
@@ -120,17 +128,30 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   const before = await assemblyGeometry(page);
   await chipW.click();
   await page.keyboard.press('ControlOrMeta+a');
-  await chipW.pressSequentially('84', { delay: 80 });
-  await chipW.press('Enter');
+  await page.keyboard.type('84', { delay: 60 });
   await page.waitForTimeout(1500);
   const after = await assemblyGeometry(page);
   expect(after, 'Expected the chip edit to change the drawn profile').not.toEqual(before);
-  await expect(chipW).toHaveValue('84');
+  await expect.poll(() => chipText(chipW)).toBe('84');
 
-  // The instance value reached the profile's own table.
+  // A chip value naming a cassette variable reads that variable (the
+  // tree's A is 500) — no new chip is minted, the raw expression stays.
+  const chipCount = () => page.locator('div[aria-label^="Parameters "][aria-label$=" Hanger profile"]').count();
+  const chipsBefore = await chipCount();
+  await chipW.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('A', { delay: 60 });
+  await page.waitForTimeout(1500);
+  expect(await assemblyGeometry(page), 'Expected the global-named chip value to re-derive the profile')
+    .not.toEqual(after);
+  await expect.poll(() => chipText(chipW)).toBe('A');
+  expect(await chipCount(), 'Expected no new chip from naming a global').toBe(chipsBefore);
+
+  // The instance value reached the profile's own table — the raw
+  // expression, exactly as authored in the chip.
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  await expect(dialog.locator('input[aria-label="W"]').first()).toHaveValue('84');
+  await expect(dialog.locator('input[aria-label="W"]').first()).toHaveValue('A');
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).first().click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
@@ -202,9 +223,9 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
-  const chipA = page.locator('input[aria-label^="Parameters A "]').first();
+  const chipA = page.locator('div[aria-label^="Parameters A "] div[contenteditable]').first();
   await expect(chipA).toBeVisible({ timeout: 20_000 });
-  await expect(chipA).toHaveValue('1');
+  await expect.poll(() => chipText(chipA)).toBe('1');
   await page.waitForTimeout(1200);
 
   // Driving the chip re-rounds the drawn corner.
@@ -212,12 +233,11 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   expect(before, 'Expected the placed drawn profile to show geometry').not.toBe('');
   await chipA.click();
   await page.keyboard.press('ControlOrMeta+a');
-  await chipA.pressSequentially('2.5', { delay: 80 });
-  await chipA.press('Enter');
+  await page.keyboard.type('2.5', { delay: 60 });
   await page.waitForTimeout(1500);
   const after = await assemblyGeometry(page);
   expect(after, 'Expected the fillet chip to re-round the drawn profile').not.toBe(before);
-  await expect(chipA).toHaveValue('2.5');
+  await expect.poll(() => chipText(chipA)).toBe('2.5');
 
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-designer-parameters-fillet.png'

@@ -3181,6 +3181,35 @@ Validation: facade suites 122/122; E2E
 `cassette-designer-parameters.spec.js` 3/3 on the live stack (artifacts
 `-fillet.png`, `-edges.png`); check-arch + check-docs green.
 
+### Agent Notes (2026-10-16, owner review round 15 — chips read cassette variables)
+
+Owner: a placed profile's parameter values must read the cassette's
+variables — typing a variable minted a new chip asking for its value —
+and the chip row is an artificial layout, not the project's expression
+field.
+
+Both fixed on `agent/profile-global-chips-20261016`:
+
+- Instance values resolved against the profile's own table, so a chip
+  value naming a global self-shadowed ('A' stored under key A) and the
+  evaluation threw — the transient-hold law froze the geometry. Instance
+  values now resolve in the joined scope (sketch table, other instance
+  values, then the cassette's globals; a bare identifier naming a global
+  reads the global), the raw expression stays stored, and the next
+  derivation follows the cassette's own parameter edits.
+- The chips were bespoke `InputText`s with a private fieldDraft. They
+  are the shared `CassetteExpressionEditor` now — token panel over the
+  cassette's variables, the same component every expression field rides
+  (the dead parameterDraft is deleted). Adopt-on-bind gained
+  `externalParameters`: the profile editor receives the cassette's
+  globals, evaluates and saves against the joined scope, and never mints
+  an identifier that scope defines (the "new chip to enter its value").
+
+Pinned: renderer (W='A' with the tree's A=500 re-derives to 500, follows
+A=600, stored table keeps 'A'), profiles (adopt skips externals), E2E
+(chip 'A' re-derives the drawing, chip count unchanged, reopened editor
+shows the raw 'A').
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 

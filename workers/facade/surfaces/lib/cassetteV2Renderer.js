@@ -253,8 +253,40 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   // into the stored table (they would go stale when the cassette's own
   // parameters change).
   const sketchTable = rawSketch ? normalizeOccsProfileSketch(rawSketch).parameters : {};
-  const table = { ...sketchTable, ...(workpiece.parameters || {}) };
-  const evaluationScope = { ...table, ...scope };
+  const instance = workpiece.parameters || {};
+  const table = { ...sketchTable, ...instance };
+  // Instance values resolve in the joined scope — the sketch's own table,
+  // the workpiece's other instance values, and the cassette's globals: a
+  // chip value naming a global reads that global, a compound resolves its
+  // identifiers against the instance table. The authored expression stays
+  // stored raw — globals never bake into the table (they would go stale
+  // when the cassette's own parameters change) — and an expression naming
+  // nothing known stays raw too (the transient-invalid law holds the last
+  // good section while the author types).
+  const instanceScope = { ...sketchTable, ...scope, ...instance };
+  const resolveInstanceValue = (value) => {
+    if (typeof value !== 'string' || !value.trim()) return value;
+    try {
+      const trimmed = value.trim();
+      // A bare identifier naming a global reads the global — not itself.
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed) && Object.prototype.hasOwnProperty.call(scope, trimmed)) {
+        return resolveCassetteV2Expression(value, scope);
+      }
+      const identifiers = collectCassetteV2ExpressionIdentifiers(value);
+      const known = identifiers.every(name => Object.prototype.hasOwnProperty.call(instanceScope, name));
+      return known ? resolveCassetteV2Expression(value, instanceScope) : value;
+    } catch {
+      return value;
+    }
+  };
+  const evaluationTable = rawSketch || Object.keys(instance).length
+    ? {
+        ...sketchTable,
+        ...Object.fromEntries(Object.entries(instance)
+          .map(([key, value]) => [key, resolveInstanceValue(value)]))
+      }
+    : table;
+  const evaluationScope = { ...evaluationTable, ...scope };
   const data = createDefaultOccsProfileTemplateData({
     kind: workpiece.profileKind || workpiece.kind || source.kind,
     process: workpiece.process || workpiece.manufacturing?.process || source.process,
@@ -262,13 +294,19 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
     ...(rawSketch ? { sketch: { ...rawSketch, parameters: table } } : {})
   });
   const sketch = normalizeOccsProfileSketch(rawSketch ? { ...rawSketch, parameters: table } : data.sketch, data.parameters);
+  // The evaluation sketch carries the resolved table — the stored sketch
+  // (returned below) keeps the raw one.
+  const evaluationSketch = normalizeOccsProfileSketch(
+    rawSketch ? { ...rawSketch, parameters: evaluationTable } : data.sketch,
+    data.parameters
+  );
   const deriveFromSketch = rawSketch && sketch.points.length > 0;
   let occsProfile = null;
   if (source.section && source.sweep && !deriveFromSketch) {
     occsProfile = { section: source.section, sweep: source.sweep, sketch };
   } else {
     try {
-      occsProfile = occsProfileFromSketch(sketch, { parameters: evaluationScope });
+      occsProfile = occsProfileFromSketch(evaluationSketch, { parameters: evaluationScope });
     } catch {
       // A transient invalid instance parameter keeps the last good
       // section; there is nothing to fall back to for sketch-less
