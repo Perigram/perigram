@@ -129,7 +129,12 @@ modules — no platform imports.
   `occProfileSectionChainedVertices` resolves them to arc points (same
   trim/bisector math, same clamp, same chord tolerance) — the walk every
   cassette consumer draws: the open-profile edge embedding, the
-  closed-section cut polygons, and the 3D preview bodies. A sketch is authored
+  closed-section cut polygons, and the 3D preview bodies. A fillet
+  modifier resolves by its slot in the section's vertex walk — the
+  derivation stamps `vertexIndex` on it, because point ids are identity,
+  not position (a merged sketch mints fresh ids, so `p4` can sit first
+  and parsing the id as an index would drop or misplace the fillet);
+  sections authored without slots keep the `p<index>` id convention. A sketch is authored
   closed or open (the editor's toggle; drawn chains keep their extracted
   closure — closed boundaries with three or more points save closed, open
   chains with two or more save open). An open profile saves as a

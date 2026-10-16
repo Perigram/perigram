@@ -2947,6 +2947,30 @@ drafts, open profile placed by edge array, spacing field keeps `120` on
 focus / stays empty when cleared / keeps a typed `0`, chip drives the
 drawing, value reaches the profile's table). Diagnostic probes removed.
 
+### Agent Notes (2026-10-16, owner review round 13 — the frozen drawn fillet)
+
+Owner: the parameter drives a fillet radius; the editor and the placed
+row's chip both show the value, the placed profile never moves.
+
+Root cause (reproduced from the stored record shape, then unit-pinned):
+the drawing/merge law keeps authored point ids and mints fresh ones, so
+a drawn sketch's ids are identity, NOT position — the OCCS-draft dump of
+a hand-drawn quad reads `["p4","p1","p2","p3"]`. The chain walk
+(`occProfileSectionChainedVertices`) resolved a fillet by parsing its
+`vertexId` as `p<index>`: a fillet on the fresh-id first corner parsed
+to index 4 in a 4-vertex chain and was silently dropped (the editor
+resolves id-keyed, which is why the editor worked). The derived section
+now stamps `vertexIndex` on each fillet modifier and the walk resolves
+by it; sections authored without slots keep the id convention. Stored
+records heal on their next parameter edit (the snapshot re-derives).
+Pinned at the walk (profiles.spec.js) and through the placed-profile
+chip drive (cassetteV2Renderer.spec.js), plus an E2E test drawing a
+quad, binding the corner fillet through the vertex popup, and driving
+the chip (artifact `.playwright/cassette-designer-parameters-fillet.png`).
+Also verified beside it: an oversized radius legitimately clamps to the
+same tangent arc (two different large chip values can produce identical
+geometry — not a freeze).
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 
