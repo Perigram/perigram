@@ -114,7 +114,9 @@ one (the Z.AI GLM coding plan) asks for its key alone — the platform owns
 the endpoint and the wire dialect; custom self-hosted endpoints stay
 fully manual. An endpoint that answers an error envelope inside HTTP 200
 surfaces its own message wherever a model listing or connection test
-runs, never masked as an empty listing. The MCP endpoint serves authenticated user
+runs, never masked as an empty listing. Cloud provider egress may ride
+the deployment's proxy environment; LAN endpoints stay direct. The MCP
+endpoint serves authenticated user
 principals only.
 
 ## UI

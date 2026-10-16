@@ -30,7 +30,17 @@ surface their own message, never masked as an empty listing. The models
 screen offers known providers as login options on top of the three wire
 dialects — the Z.AI GLM coding plan stores its wire truth as provider
 `anthropic` against `https://api.z.ai/api/anthropic` (its
-Claude-Code-compatible route), with the UI owning the preset identity.
+Claude-Code-compatible route), with the UI owning the preset identity;
+model choice never lives in the preset — pickers are endpoint-fed.
+
+Outbound requests (completions and listings) share one egress seam:
+Node's built-in fetch ignores proxy env, so when `HTTP(S)_PROXY` is set
+the seam rides undici's `EnvHttpProxyAgent` (`NO_PROXY` honored, CIDR
+included — LAN endpoints stay direct); without proxy env it is the
+global fetch. The compose files pass `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`
+through to the app container, defaulting `NO_PROXY` to loopback plus the
+private ranges — set the proxy vars in `.env` to the address reachable
+FROM the container (the host's loopback proxy is not `127.0.0.1` there).
 
 There is **no default base URL** — no provider ever implies a cloud
 endpoint. `provider: 'none'` (the default) disables the LLM everywhere.

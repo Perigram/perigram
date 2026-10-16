@@ -24,6 +24,28 @@ and connection tests (SPEC: agent access).
   models screen section of `pages/organization/README.md` (replaced the
   stale `bots.vue` paragraph — that route no longer exists).
 
+### Agent Notes (2026-10-16 — egress round, owner defect report)
+
+- The unmasked listing then revealed the real blocker:
+  `unreachable (UND_ERR_CONNECT_TIMEOUT)` — the app container cannot
+  reach cloud endpoints at all. Host egress rides a loopback-bound
+  proxy (`127.0.0.1:2081`), Node 20's built-in fetch ignores proxy env,
+  and the container cannot use the host's loopback anyway.
+- One egress seam in the llm service: proxy env present → undici
+  `EnvHttpProxyAgent` (NO_PROXY honored, CIDR — LAN endpoints stay
+  direct); no proxy env → the global fetch. Decision is per-call, so
+  stubbed-fetch specs stay deterministic (both llm specs pin proxy env).
+  Verified from the host through the live proxy: the agent reaches
+  `api.z.ai` and returns its envelope.
+- Preset deslop (owner direction): no hardcoded model names, no
+  auto-pick — model choice never lives in the preset; the base URL
+  field is hidden under a preset, and pickers stay endpoint-fed.
+- Compose (dev + stack) pass `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`
+  through, defaulting NO_PROXY to loopback plus private ranges.
+  Remaining owner step: the proxy listens on host loopback only —
+  enable LAN binding on it and point `HTTP_PROXY` at the bridge
+  gateway from `.env`.
+
 ## Chats rail header: archive, search, one + (owner direction 2026-10-16)
 
 Every conversation start moves into one + control (person chat, group,
