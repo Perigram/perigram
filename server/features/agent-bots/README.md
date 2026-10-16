@@ -30,7 +30,11 @@ Three pieces share one tool catalog:
   create/update/validate/activate/deactivate, plus a graph-level save
   (`update_definition_graph` — nodes, wires, and value inputs without
   echoing the whole document), with activation gates returned as
-  structured results), the type vocabulary
+  structured results), the authoring vocabulary
+  (`get_authoring_vocabulary` — the designer's palette groups, node
+  catalog, and typed value-operation sockets served straight off the
+  [processes package](../../../packages/processes/README.md)), the type
+  vocabulary
   ([cts-types](../cts-types/README.md)), instance reads through the
   registry-resolved instance services (party types included, CTS SPEC §13),
   and compiled action listing/execution. The definition tools move
