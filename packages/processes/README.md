@@ -120,7 +120,7 @@ wire with their own membership gates and the derived `user.roles` row
 ## Headless definition authoring
 
 A process definition is data and its authoring path is one seam:
-`createDefinitionAuthoring(domain, capabilities)` (`src/authoring.js`)
+`createDefinitionAuthoring(domain, capabilities, seedData)` (`src/authoring.js`)
 composes a definition exactly the way the designer does — declaration-tree
 authoring (`declareClass`/`declareField`/`declareTypeRef` plus
 `wireDeclaration` for declares/targets/children/binds wires, gated by
@@ -149,6 +149,12 @@ palette item whose record cannot be dropped, configured, and
 round-tripped through the seam headlessly is a defect — pinned by
 `authoring.spec.js`, which walks every palette item and the canvas
 double round-trip.
+
+The seam also seeds: `seedData` (a stored authored document) re-seats the
+seam onto the existing graph — authored keys only; activation-written
+records never enter — so the same gestures edit a stored draft as compose
+a fresh one (the agent-bots tool catalog's `edit_process_definition` rides
+this path through the definition service's `editDefinition`).
 
 All entity-bound executable items are current species records (`cts.*`). Their
 ports resolve directly from the record and projected declarations; no

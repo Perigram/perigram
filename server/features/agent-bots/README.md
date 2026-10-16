@@ -31,23 +31,32 @@ Three pieces share one tool catalog:
   (`update_definition_graph` — nodes, wires, and value inputs without
   echoing the whole document), with activation gates returned as
   structured results), the authoring vocabulary
-  (`get_authoring_vocabulary` — the compose guide, the designer's palette
-  groups, node catalog, and typed value-operation sockets served straight
-  off the [processes package](../../../packages/processes/README.md),
-  plus the organization's role list — the grant vocabulary the designer's
+  (`get_authoring_vocabulary` — the compose guide, the organization's role
+  list (the grant vocabulary the designer's
   [lanes](../../../components/process-designer/README.md) author through
-  effect `access.grants`) and
-  headless composition (`compose_process_definition` — ordered designer
-  gestures through the same authoring seam the designer shell drives,
-  with the same legality gates), the type
+  effect `access.grants`), node families, and the palette's droppable item
+  ids, COMPACT by default; the node catalog and typed value-operation
+  sockets arrive on request through `detail` filters — one oversized
+  vocabulary response must never evict the tools from a small model's
+  context window), headless composition and editing
+  (`compose_process_definition` / `edit_process_definition` — ordered
+  designer gestures through the same authoring seam the designer shell
+  drives, with the same legality gates; editing seeds the seam onto the
+  stored draft, so "add a node, wire it" is two small gestures with no
+  graph echo-back), the type
   vocabulary
   ([cts-types](../cts-types/README.md)), instance reads through the
   registry-resolved instance services (party types included, CTS SPEC §13),
-  and compiled action listing/execution. The definition tools move
+  and compiled action listing/execution. `get_process_definition` serves a
+  compact digest by default (node ids/kinds/typeIds, edges with socket
+  ids, value-input keys); the full authored document only on `full: true`.
+  The definition tools move
   authored data only: the activation-written records (`compiled`,
   `history`, `activated`) are stripped on load and preserved on save —
   the stored record runs to megabytes, which no model can echo back
-  through the full-replace save. `attach_instances` is chat-run
+  through the full-replace save. Every tool result above 16 KB returns
+  truncated with a notice pointing at the narrower reads — the loop's
+  context is a shared resource, and no single call may blind the model. `attach_instances` is chat-run
   only: it validates instances through the support message-write ref seam
   ([support](../support/README.md) inline instance references) and rides
   them on the AI's reply as reference chips; the MCP listing excludes

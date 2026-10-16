@@ -307,6 +307,14 @@ management. Organizations created before the starter set exist are repaired
 by `server/scripts/station-documents-types.js` (the additive stationing
 operator).
 
+Agent authoring rides the same seam through two service entries:
+`composeDefinition` (gestures onto a fresh draft) and `editDefinition`
+(gestures onto an existing definition's stored authored document — server
+owned activation records preserved, the same step grammar and legality
+gates; the tool catalog in
+[agent-bots](../agent-bots/README.md) serves them as
+`compose_process_definition` / `edit_process_definition`).
+
 Process definitions never store role identities or user assignments. Their
 `data.roleGrants` record maps stable organization role ids to process-owned base
 feature grants; entity profiles, actions, screens, and transitions add their
