@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // cross the tool wire in either direction, and a graph-level save composes
 // over the stored document instead of replacing it.
 
-const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry } = vi.hoisted(() => ({
+const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mockedOrganizations } = vi.hoisted(() => ({
     mockedProcessDefinitions: {
         list: vi.fn(),
         getById: vi.fn(),
@@ -19,13 +19,15 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry } =
     },
     mockedSupport: { normalizeInstanceRefs: vi.fn() },
     mockedTypes: { describeOrganizationTypes: vi.fn() },
-    mockedRegistry: { getAppRegistry: vi.fn() }
+    mockedRegistry: { getAppRegistry: vi.fn() },
+    mockedOrganizations: { listRoles: vi.fn() }
 }));
 
 vi.mock('~/server/features/process-definitions/service.js', () => mockedProcessDefinitions);
 vi.mock('~/server/features/support/service.js', () => mockedSupport);
 vi.mock('~/server/features/cts-types/service.js', () => mockedTypes);
 vi.mock('~/server/runtime/app-registry.js', () => mockedRegistry);
+vi.mock('~/server/features/organizations/service.js', () => mockedOrganizations);
 
 import { executeTool, mcpToolDescriptors, chatToolDescriptors } from './tools.js';
 
@@ -104,7 +106,11 @@ describe('definition tool authoring surface', () => {
         expect(chatToolDescriptors().map(tool => tool.name)).toContain('attach_instances');
     });
 
-    it('serves the authoring vocabulary — palette, node catalog, typed sockets', async () => {
+    it('serves the authoring vocabulary — palette, node catalog, typed sockets, roles', async () => {
+        mockedOrganizations.listRoles.mockResolvedValueOnce({
+            role_admin: { id: 'role_admin', label: 'Admin' },
+            role_ops: { id: 'role_ops', label: 'Operations' }
+        });
         const vocabulary = await executeTool('get_authoring_vocabulary', {}, AUTH);
         const json = JSON.stringify(vocabulary);
         // The payload is data only: no runtime (function) members of the
@@ -119,6 +125,15 @@ describe('definition tool authoring surface', () => {
         expect(Array.isArray(firstMath?.inputs)).toBe(true);
         expect(vocabulary.guide).toContain('compose_process_definition');
         expect(vocabulary.guide).toContain('wireDeclaration');
+        // The lane/grant story: the guide teaches the access shape and the
+        // org's roles ride the same payload, so grant authoring needs no
+        // second tool call.
+        expect(vocabulary.guide).toContain('grants');
+        expect(mockedOrganizations.listRoles).toHaveBeenCalledWith(AUTH.organizationId, AUTH);
+        expect(vocabulary.roles).toEqual([
+            { id: 'role_admin', label: 'Admin' },
+            { id: 'role_ops', label: 'Operations' }
+        ]);
     });
 
     it('composes definitions through the headless seam with the caller\'s auth', async () => {
