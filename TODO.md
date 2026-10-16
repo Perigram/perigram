@@ -3322,11 +3322,24 @@ whose name matches a cassette global "doesn't work".
   the palette's and the editor's rows (fieldDraft-held, commit on
   Enter/blur).
 
-Validation: facade suites 126/126 (token-boundary rename, tree-wide
-rebind, local-shadows-global chip resolution); E2E on the live stack
-renames A→LENGTH in the palette (the chip's expression follows, the
-field keeps the tree's value) and W→WIDTH in the editor (the row's
-field follows); check-arch + check-docs green.
+Beside it, the editor's storage-side paths evaluated the authored
+sketch WITHOUT the external scope — a global-bound field made the
+canvas seed throw (empty canvas), the empty-canvas extraction then
+wiped the authoring through the merge fallback, and the save payload's
+own occsProfileFromSketch threw with the dialog stuck open. The scope
+now joins the seed (a render copy), the merge's evaluation (bindings
+survive; a genuinely unresolvable expression still falls back), and
+the saved profile's derivation — the stored sketch keeps the clean
+table throughout. Clearing also rebinds the database without
+scheduling: a deletion-fired extraction raced the parent's model
+update and rebuilt the old table onto the blank session.
+
+Validation: facade suites 127/127 (token-boundary rename, tree-wide
+rebind, local-shadows-global chip resolution, global-bound merge
+survival); E2E on the live stack renames A→LENGTH in the palette (the
+chip's expression follows, the field keeps the tree's value) and
+W→WIDTH in the editor (the row's field follows); check-arch +
+check-docs green.
 
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
