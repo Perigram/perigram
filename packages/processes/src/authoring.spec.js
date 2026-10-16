@@ -29,6 +29,46 @@ function authoring() {
   return createDefinitionAuthoring(projectedDomain());
 }
 
+// The edit path: a seam seated on an existing authored document accepts
+// the same gestures against the stored graph — original nodes and wires
+// survive, new gestures land beside them, and declaration wiring keeps
+// interpreting over the combined graph.
+describe('seeding the authoring seam from a stored document', () => {
+  it('applies gestures to the stored graph without disturbing it', () => {
+    const first = authoring();
+    first.declareClass({ id: 'cls_sheet', typeId: 'sheet', name: 'Sheet' });
+    first.drop('construct', { id: 'node_make' });
+    first.configure('node_make', { typeId: 'sheet' });
+    const stored = first.definition();
+
+    const seam = createDefinitionAuthoring(projectedDomain(), null, stored);
+    seam.drop('calculate', { id: 'node_extra' });
+    const data = seam.definition();
+
+    const ids = data.graph.nodes.map(node => node.id);
+    expect(ids).toContain('node_make');
+    expect(ids).toContain('cls_sheet');
+    expect(ids).toContain('node_extra');
+    expect(Object.keys(data.processNodes)).toContain('node_extra');
+    // Server-owned records never enter the seam through seeding.
+    expect(data.compiled).toBeUndefined();
+    expect(data.history).toBeUndefined();
+    // Existing records keep their authored bindings; the new node syncs.
+    expect(data.processNodes.node_make.typeId).toBe('sheet');
+    expect(data.processNodes.node_extra.kind).toBe('value.math');
+  });
+
+  it('wires a declaration onto a seeded declaration node', () => {
+    const first = authoring();
+    first.declareClass({ id: 'cls_sheet', typeId: 'sheet', name: 'Sheet' });
+    const seam = createDefinitionAuthoring(projectedDomain(), null, first.definition());
+    seam.declareField({ id: 'fld_width', ownerClassId: 'cls_sheet', name: 'width', descriptor: { base: 'number' } });
+    const data = seam.definition();
+    expect(data.ctsTypes.fld_width.kind).toBe('field');
+    expect(data.graph.edges.some(edge => edge.label === 'declares' && edge.source === 'fld_width' && edge.target === 'cls_sheet')).toBe(true);
+  });
+});
+
 function allPaletteItems(context) {
   return context.contract.paletteGroups.flatMap(group => group.items).filter(item => item.kind);
 }

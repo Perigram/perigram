@@ -4,7 +4,7 @@ import * as supportService from '~/server/features/support/service.js';
 import { describeOrganizationTypes } from '~/server/features/cts-types/service.js';
 import { listRoles } from '~/server/features/organizations/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY } from '~/packages/processes/src/index.js';
+import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId } from '~/packages/processes/src/index.js';
 
 /**
  * The agent tool catalog: one curated vocabulary over the existing service
@@ -77,12 +77,60 @@ const AUTHORING_GUIDE = [
     'The first illegal gesture fails with the gate message — read it, fix, retry.',
     '3. validate_process_definition: its anchored diagnostics name exactly what to fix.',
     '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass.',
-    'Editing an existing definition instead: get_process_definition, then update_definition_graph (nodes, wires, values).'
+    'Editing an existing definition: get_process_definition (compact digest: node ids, kinds, edges with socket ids) then edit_process_definition with the same gestures (drop, configure, setInputDefault, connect, declarations) — small payloads, no graph echo-back. Full document view only via get_process_definition {full: true}.'
 ].join('\n');
 
 const authoringData = (data = {}) => Object.fromEntries(
     Object.entries(data || {}).filter(([key]) => !SERVER_OWNED_DATA_KEYS.includes(key))
 );
+
+// No tool result may blind the model: one oversized payload evicts the
+// system prompt and tool schemas from a small context window, and the
+// loop degrades into confabulation. Anything above the limit is returned
+// truncated with a notice pointing at the narrower reads.
+const TOOL_RESULT_LIMIT = 16 * 1024;
+
+function boundedToolResult(result) {
+    const json = JSON.stringify(result);
+    if (json.length <= TOOL_RESULT_LIMIT) return result;
+    return {
+        notice: `Tool result truncated: ${json.length} bytes exceeds the ${TOOL_RESULT_LIMIT}-byte conversation limit. Request a narrower view (definition digest, vocabulary detail filters) instead of repeating this call.`,
+        truncated: true,
+        bytes: json.length,
+        preview: json.slice(0, 4096)
+    };
+}
+
+// The compact definition view: node ids/kinds/typeIds, edges with socket
+// ids, value-input keys — the addresses gestures and validation
+// diagnostics use, without the full authored document.
+function definitionDigest(row) {
+    const data = row?.data || {};
+    const records = data.processNodes || {};
+    const nodes = (data.graph?.nodes || []).map(node => {
+        if (node?.type === 'processNode') {
+            const record = records[node.data?.refId] || {};
+            return { id: node.id, kind: record.kind ?? null, typeId: record.typeId ?? null };
+        }
+        const declaration = (data.ctsTypes || {})[node?.data?.refId] || {};
+        return { id: node.id, declaration: node?.type ?? null, typeId: declaration.typeId ?? null, name: declaration.name ?? null };
+    });
+    const socket = (nodeId, handle) => handle ? `${nodeId}:${parseProcessSocketHandleId(handle)}` : nodeId;
+    const edges = (data.graph?.edges || []).map(edge => ({
+        from: socket(edge.source, edge.sourceHandle),
+        to: socket(edge.target, edge.targetHandle),
+        ...(edge.role === 'type' && edge.label ? { declaration: edge.label } : {})
+    }));
+    return {
+        id: row?.identity?.uid ?? row?._id ?? null,
+        name: row?.identity?.name ?? null,
+        status: row?.status?.state?.primary ?? null,
+        nodes,
+        edges,
+        valueInputs: Object.keys(data.valueInputs || {}),
+        counts: { declarations: Object.keys(data.ctsTypes || {}).length, processNodes: Object.keys(records).length }
+    };
+}
 
 /** Authored payload over the stored document, server records preserved. */
 async function saveAuthoring(definitionId, { name = '', data: patch = {} } = {}, auth) {
@@ -114,16 +162,17 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_process_definition',
-        description: 'Loads one definition\'s authored document — the graph (nodes and wired edges), value inputs, declarations. Server-owned activation records (history, snapshots) stay off the wire.',
+        description: 'Loads one definition as a COMPACT DIGEST by default — node ids/kinds/typeIds, edges with socket ids, value-input keys — the addresses edit gestures and diagnostics use. full: true returns the whole authored document instead (large; only needed for whole-document replaces through update_process_definition).',
         inputSchema: {
             type: 'object',
-            properties: { definitionId: { type: 'string' } },
+            properties: { definitionId: { type: 'string' }, full: { type: 'boolean' } },
             required: ['definitionId'],
             additionalProperties: false
         },
         execute: async (args, auth) => {
             const json = await processDefinitionsService.getById(requireString(args.definitionId, 'definitionId'), auth);
-            return { ...json, data: authoringData(json?.data) };
+            if (args.full === true) return { ...json, data: authoringData(json?.data) };
+            return definitionDigest(json);
         }
     },
     {
@@ -143,7 +192,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'update_process_definition',
-        description: 'Saves authored data onto a definition (full authored replace, exactly like the designer\'s save). data must carry dataflowVersion: 4 — the sole operation protocol; saves without it are rejected. Use get_process_definition first, mutate the returned data, then save it back. Server-owned activation records are preserved automatically.',
+        description: 'Saves authored data onto a definition (full authored replace, exactly like the designer\'s save). data must carry dataflowVersion: 4 — the sole operation protocol; saves without it are rejected. Load the full document first (get_process_definition {full: true}), mutate the returned data, then save it back; for targeted changes prefer edit_process_definition gestures. Server-owned activation records are preserved automatically.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -167,7 +216,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'update_definition_graph',
-        description: 'Replaces the definition\'s graph (nodes and wired edges) and optionally its value inputs — the small authoring surface for nodes, wires, and values, without echoing the whole document back. get_process_definition carries the current graph; edge source/target must reference node ids. The rest of the authored document is kept as stored.',
+        description: 'Replaces the definition\'s graph (nodes and wired edges) and optionally its value inputs — the whole-graph authoring surface, without echoing the rest of the document. Prefer edit_process_definition gestures for targeted changes; this tool needs the full graph object ({full: true} view). The rest of the authored document is kept as stored.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -192,34 +241,54 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_authoring_vocabulary',
-        description: 'The process authoring vocabulary and guide, straight off the designer\'s palette: the compose recipe (guide), palette groups (what to drop), the node catalog (every valid node kind with family and level — a processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind), the value operations with typed input sockets and output, the declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the organization\'s roles — the grant vocabulary for effect access, the designer\'s lanes. Edge handles are \'data:<socketId>\'. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + update_definition_graph; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
-        inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+        description: 'The process authoring vocabulary, COMPACT by default: the compose/edit recipe (guide), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'nodeCatalog\' (every valid node kind with family and level) or detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind. A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Edge handles are \'data:<socketId>\'. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                detail: { type: 'string', enum: ['nodeCatalog', 'valueOperations'] },
+                family: { type: 'string' },
+                kind: { type: 'string' }
+            },
+            additionalProperties: false
+        },
         execute: async (args, auth) => {
-            const valueOperations = {};
-            for (const [kind, kindOperations] of Object.entries(PROCESS_OPERATION_REGISTRY)) {
-                valueOperations[kind] = {};
-                for (const [id, operation] of Object.entries(kindOperations)) {
-                    valueOperations[kind][id] = {
-                        inputs: (operation.inputs || []).map(socket => ({ id: socket.id, base: socket.base })),
-                        output: operation.output ? { id: operation.output.id, base: operation.output.base } : null
-                    };
-                }
-            }
-            const roles = Object.values((await listRoles(auth.organizationId, auth)) || {});
-            return {
+            const compact = () => ({
                 guide: AUTHORING_GUIDE,
-                palette: PROCESS_DESIGNER_PALETTE_GROUPS,
-                declarationNodeTypes: [...DECLARATION_NODE_TYPES],
-                nodeCatalog: PROCESS_NODE_CATALOG,
                 families: [...PROCESS_NODE_FAMILIES],
-                valueOperations,
-                roles: roles.map(role => ({ id: role.id, label: role.label || role.id }))
-            };
+                declarationNodeTypes: [...DECLARATION_NODE_TYPES],
+                palette: PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
+                    id: group.id,
+                    items: (group.items || []).map(item => ({ id: item.id, kind: item.kind || item.type || null }))
+                }))
+            });
+            const roles = async () => Object.values((await listRoles(auth.organizationId, auth)) || {})
+                .map(role => ({ id: role.id, label: role.label || role.id }));
+            if (args.detail === 'nodeCatalog') {
+                const entries = Object.values(PROCESS_NODE_CATALOG)
+                    .filter(entry => !args.family || entry.family === args.family)
+                    .filter(entry => !args.kind || entry.kind === args.kind);
+                return { ...(await compact()), roles: await roles(), nodeCatalog: entries };
+            }
+            if (args.detail === 'valueOperations') {
+                const valueOperations = {};
+                for (const [kind, kindOperations] of Object.entries(PROCESS_OPERATION_REGISTRY)) {
+                    if (args.kind && kind !== args.kind) continue;
+                    valueOperations[kind] = {};
+                    for (const [id, operation] of Object.entries(kindOperations)) {
+                        valueOperations[kind][id] = {
+                            inputs: (operation.inputs || []).map(socket => ({ id: socket.id, base: socket.base })),
+                            output: operation.output ? { id: operation.output.id, base: operation.output.base } : null
+                        };
+                    }
+                }
+                return { ...(await compact()), roles: await roles(), valueOperations };
+            }
+            return { ...(await compact()), roles: await roles() };
         }
     },
     {
         name: 'compose_process_definition',
-        description: 'Composes a NEW process definition draft through the same headless authoring seam the visual designer drives — each step is a designer gesture carrying the same legality gates, so nothing illegal can be composed. Steps run in order; the first failing step stops the compose with its gate message. Then validate_process_definition (its anchored diagnostics name what to fix), and activate_process_definition. Editing an existing definition instead: get_process_definition then update_definition_graph.',
+        description: 'Composes a NEW process definition draft through the same headless authoring seam the visual designer drives — each step is a designer gesture carrying the same legality gates, so nothing illegal can be composed. Steps run in order; the first failing step stops the compose with its gate message. Then validate_process_definition (its anchored diagnostics name what to fix), and activate_process_definition. Editing an existing definition instead: get_process_definition (digest) then edit_process_definition.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -257,6 +326,50 @@ export const TOOL_SPECS = [
         execute: async (args, auth) => {
             return await processDefinitionsService.composeDefinition(
                 { name: requireString(args.name, 'name'), steps: Array.isArray(args.steps) ? args.steps : [] },
+                auth
+            );
+        }
+    },
+    {
+        name: 'edit_process_definition',
+        description: 'Applies the same ordered designer gestures to an EXISTING definition — drop nodes, configure records, wire sockets, set input defaults, declare — with the same legality gates as the designer and no whole-graph echo-back. Get the compact digest first (get_process_definition) for current node ids and wired sockets, then edit, then validate_process_definition. Each step is small; the first failing step stops with its gate message.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                definitionId: { type: 'string' },
+                steps: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            op: { type: 'string', enum: ['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration', 'drop', 'configure', 'setInputDefault', 'connect'] },
+                            id: { type: 'string' },
+                            typeId: { type: 'string' },
+                            name: { type: 'string' },
+                            class: { type: 'string' },
+                            ownerClassId: { type: 'string' },
+                            descriptor: { type: 'object' },
+                            from: { type: 'string' },
+                            to: { type: 'string' },
+                            role: { type: 'string' },
+                            item: { type: 'string' },
+                            values: { type: 'object' },
+                            input: { type: 'string' },
+                            value: {},
+                            fromPort: { type: 'string' },
+                            toPort: { type: 'string' }
+                        },
+                        required: ['op'],
+                        additionalProperties: false
+                    }
+                }
+            },
+            required: ['definitionId', 'steps'],
+            additionalProperties: false
+        },
+        execute: async (args, auth) => {
+            return await processDefinitionsService.editDefinition(
+                { definitionId: requireString(args.definitionId, 'definitionId'), steps: Array.isArray(args.steps) ? args.steps : [] },
                 auth
             );
         }
@@ -458,5 +571,5 @@ export async function executeTool(name, args, auth) {
     const spec = SPECS_BY_NAME.get(String(name || ''));
     if (!spec) throw createError({ statusCode: 400, message: `Unknown tool: ${name}` });
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Authentication required' });
-    return await spec.execute(args && typeof args === 'object' ? args : {}, auth);
+    return boundedToolResult(await spec.execute(args && typeof args === 'object' ? args : {}, auth));
 }

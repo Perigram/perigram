@@ -430,7 +430,7 @@ function syncDeclarationRecordFromNode(record, nodeType, data) {
 // of loop semantics), configure writes record semantics (the inspector's
 // writes), connect is the port-gated wire gesture, and definition()
 // returns the authored data ready for validation/activation.
-export function createDefinitionAuthoring(domain, capabilities = null) {
+export function createDefinitionAuthoring(domain, capabilities = null, seedData = null) {
   let contract = createProcessDesignerContract(domain, capabilities);
   const defaultEntityTypeId = () => contract.entityOptions[0]?.value || '';
   let sync = createProcessRecordSync({ contract, defaultEntityTypeId });
@@ -468,6 +468,24 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
     processNodes: {}
   };
   const declarationNodes = new Map();
+
+  // Seeding (the edit path): re-seat the seam onto an existing authored
+  // document so gestures apply to the stored graph instead of a fresh one.
+  // Only authored keys seed — activation-written records (compiled,
+  // history, activated) never enter the seam.
+  const AUTHORED_DATA_KEYS = ['graph', 'roleGrants', 'producerOutputs', 'actions', 'services', 'sockets', 'screens', 'ctsTypes', 'processNodes', 'valueInputs'];
+  if (seedData && typeof seedData === 'object') {
+    for (const key of AUTHORED_DATA_KEYS) {
+      if (seedData[key] !== undefined) data[key] = structuredClone(seedData[key]);
+    }
+    if (!Array.isArray(data.graph?.nodes) || !Array.isArray(data.graph?.edges)) {
+      data.graph = { nodes: [], edges: [] };
+    }
+    for (const node of data.graph.nodes) {
+      if (node && DECLARATION_NODE_KINDS[node.type]) declarationNodes.set(node.data?.refId || node.id, node);
+    }
+    layoutCursor = data.graph.nodes.length;
+  }
 
   function declarationNodeOf(recordId) {
     return declarationNodes.get(recordId) || null;

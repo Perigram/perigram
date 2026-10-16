@@ -15,7 +15,8 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mo
         activate: vi.fn(),
         deactivate: vi.fn(),
         executeActiveProcessAction: vi.fn(),
-        composeDefinition: vi.fn()
+        composeDefinition: vi.fn(),
+        editDefinition: vi.fn()
     },
     mockedSupport: { normalizeInstanceRefs: vi.fn() },
     mockedTypes: { describeOrganizationTypes: vi.fn() },
@@ -33,7 +34,9 @@ import { executeTool, mcpToolDescriptors, chatToolDescriptors } from './tools.js
 
 const AUTH = { userId: 'user-1', organizationId: 'org-1' };
 const STORED = {
-    identity: { name: 'Organization process' },
+    _id: 'd1',
+    identity: { uid: 'process-d1', name: 'Organization process' },
+    status: { state: { primary: 'DRAFT' } },
     data: {
         dataflowVersion: 4,
         graph: { nodes: [{ id: 'n1' }], edges: [] },
@@ -52,13 +55,21 @@ beforeEach(() => {
 });
 
 describe('definition tool authoring surface', () => {
-    it('get strips the activation-written records from data', async () => {
-        const row = await executeTool('get_process_definition', { definitionId: 'd1' }, AUTH);
-        expect(row.data.compiled).toBeUndefined();
-        expect(row.data.history).toBeUndefined();
-        expect(row.data.activated).toBeUndefined();
-        expect(row.data.graph).toEqual(STORED.data.graph);
-        expect(row.data.valueInputs).toEqual(STORED.data.valueInputs);
+    it('get serves the compact digest by default and the stripped full document on request', async () => {
+        const digest = await executeTool('get_process_definition', { definitionId: 'd1' }, AUTH);
+        expect(digest.id).toBe('process-d1');
+        expect(digest.name).toBe('Organization process');
+        expect(digest.status).toBe('DRAFT');
+        expect(digest.valueInputs).toEqual(['a']);
+        expect(digest.data).toBeUndefined();
+        expect(JSON.stringify(digest).length).toBeLessThan(2048);
+
+        const full = await executeTool('get_process_definition', { definitionId: 'd1', full: true }, AUTH);
+        expect(full.data.compiled).toBeUndefined();
+        expect(full.data.history).toBeUndefined();
+        expect(full.data.activated).toBeUndefined();
+        expect(full.data.graph).toEqual(STORED.data.graph);
+        expect(full.data.valueInputs).toEqual(STORED.data.valueInputs);
     });
 
     it('update keeps the stored activation records and drops client-injected ones', async () => {
@@ -106,34 +117,42 @@ describe('definition tool authoring surface', () => {
         expect(chatToolDescriptors().map(tool => tool.name)).toContain('attach_instances');
     });
 
-    it('serves the authoring vocabulary — palette, node catalog, typed sockets, roles', async () => {
-        mockedOrganizations.listRoles.mockResolvedValueOnce({
+    it('serves the authoring vocabulary compact by default; details arrive on request', async () => {
+        mockedOrganizations.listRoles.mockResolvedValue({
             role_admin: { id: 'role_admin', label: 'Admin' },
             role_ops: { id: 'role_ops', label: 'Operations' }
         });
         const vocabulary = await executeTool('get_authoring_vocabulary', {}, AUTH);
-        const json = JSON.stringify(vocabulary);
-        // The payload is data only: no runtime (function) members of the
-        // operation registry may cross the wire.
-        expect(json).not.toContain('"run"');
-        expect(vocabulary.palette.some(group => group.items.some(item => item.type === 'processNode' && item.kind))).toBe(true);
+        // Compact by default: no catalog or socket tables, palette items
+        // are id/kind pairs — one oversized vocabulary response must never
+        // evict the tools from a small context window.
+        expect(vocabulary.nodeCatalog).toBeUndefined();
+        expect(vocabulary.valueOperations).toBeUndefined();
+        expect(vocabulary.palette.some(group => group.items.some(item => item.kind))).toBe(true);
+        expect(vocabulary.palette.every(group => group.items.every(item => Object.keys(item).length <= 2))).toBe(true);
         expect(vocabulary.declarationNodeTypes).toEqual(['ctsClass', 'ctsType', 'ctsField', 'ctsState']);
-        expect(vocabulary.nodeCatalog.length).toBeGreaterThan(50);
-        expect(vocabulary.nodeCatalog.some(node => node.kind === 'cts.construct')).toBe(true);
-        const math = vocabulary.valueOperations['value.math'] || {};
-        const firstMath = math[Object.keys(math)[0]];
-        expect(Array.isArray(firstMath?.inputs)).toBe(true);
         expect(vocabulary.guide).toContain('compose_process_definition');
         expect(vocabulary.guide).toContain('wireDeclaration');
-        // The lane/grant story: the guide teaches the access shape and the
-        // org's roles ride the same payload, so grant authoring needs no
-        // second tool call.
         expect(vocabulary.guide).toContain('grants');
+        expect(vocabulary.guide).toContain('edit_process_definition');
         expect(mockedOrganizations.listRoles).toHaveBeenCalledWith(AUTH.organizationId, AUTH);
         expect(vocabulary.roles).toEqual([
             { id: 'role_admin', label: 'Admin' },
             { id: 'role_ops', label: 'Operations' }
         ]);
+        expect(JSON.stringify(vocabulary).length).toBeLessThan(12 * 1024);
+
+        const catalog = await executeTool('get_authoring_vocabulary', { detail: 'nodeCatalog', family: 'values' }, AUTH);
+        expect(catalog.nodeCatalog.length).toBeGreaterThan(0);
+        expect(catalog.nodeCatalog.every(node => node.family === 'values')).toBe(true);
+
+        const sockets = await executeTool('get_authoring_vocabulary', { detail: 'valueOperations', kind: 'value.math' }, AUTH);
+        const math = sockets.valueOperations['value.math'] || {};
+        const firstMath = math[Object.keys(math)[0]];
+        expect(Array.isArray(firstMath?.inputs)).toBe(true);
+        // The payload is data only: no runtime (function) members of the
+        // operation registry may cross the wire.
+        expect(JSON.stringify(sockets)).not.toContain('"run"');
     });
 
     it('composes definitions through the headless seam with the caller\'s auth', async () => {
@@ -153,5 +172,36 @@ describe('definition tool authoring surface', () => {
             ]
         }, AUTH);
         expect(result._id).toBe('process-new');
+    });
+
+    it('edits an existing definition through gestures with the caller\'s auth', async () => {
+        mockedProcessDefinitions.editDefinition.mockResolvedValueOnce({ _id: 'd1', states: { main: 'DRAFT' } });
+        const result = await executeTool('edit_process_definition', {
+            definitionId: 'd1',
+            steps: [
+                { op: 'drop', item: 'construct', id: 'node_c' },
+                { op: 'configure', id: 'node_c', values: { typeId: 'cassette' } }
+            ]
+        }, AUTH);
+        expect(mockedProcessDefinitions.editDefinition).toHaveBeenCalledWith({
+            definitionId: 'd1',
+            steps: [
+                { op: 'drop', item: 'construct', id: 'node_c' },
+                { op: 'configure', id: 'node_c', values: { typeId: 'cassette' } }
+            ]
+        }, AUTH);
+        expect(result._id).toBe('d1');
+        expect(mcpToolDescriptors().map(tool => tool.name)).toContain('edit_process_definition');
+    });
+
+    it('truncates oversized tool results instead of blinding the model', async () => {
+        mockedProcessDefinitions.list.mockResolvedValueOnce(
+            Array.from({ length: 900 }, (_, index) => ({ id: `process-${index}`, name: `Definition ${index}`, status: 'ACTIVE' }))
+        );
+        const result = await executeTool('list_process_definitions', {}, AUTH);
+        expect(result.truncated).toBe(true);
+        expect(result.notice).toContain('truncated');
+        expect(result.bytes).toBeGreaterThan(16 * 1024);
+        expect(result.preview.length).toBeLessThanOrEqual(4096);
     });
 });

@@ -2126,18 +2126,12 @@ function getDomain() {
 }
 
 /**
- * Headless composition (agent authoring): applies the designer's own
- * gestures — the same seam the designer shell drives, with the same
- * legality gates — in order onto a fresh document and persists the
- * draft. The first failing gesture stops the compose with its gate
- * message; the step grammar mirrors the seam one-to-one.
+ * The shared gesture grammar for headless composition and editing: applies
+ * designer gestures — the same seam the designer shell drives, with the
+ * same legality gates — in order. The first failing gesture stops with its
+ * gate message; the grammar mirrors the seam one-to-one.
  */
-export async function composeDefinition({ name = '', steps = [] } = {}, auth) {
-  const organizationId = resolveOrganizationId(auth);
-  await assertOrgAccess(auth, organizationId, 'write');
-  const domain = await getProjectedDomain(organizationId);
-  const authoring = createDefinitionAuthoring(domain);
-  const applied = [];
+function applyAuthoringSteps(authoring, steps = []) {
   const list = Array.isArray(steps) ? steps : [];
   for (const [index, step] of list.entries()) {
     const op = String(step?.op || '');
@@ -2165,9 +2159,45 @@ export async function composeDefinition({ name = '', steps = [] } = {}, auth) {
     } catch (error) {
       throw createError({ statusCode: 400, message: `Step ${index + 1} (${op}) failed: ${error?.message || error}` });
     }
-    applied.push(op);
   }
+}
+
+/**
+ * Headless composition (agent authoring): applies the designer's own
+ * gestures — the same seam the designer shell drives, with the same
+ * legality gates — in order onto a fresh document and persists the
+ * draft.
+ */
+export async function composeDefinition({ name = '', steps = [] } = {}, auth) {
+  const organizationId = resolveOrganizationId(auth);
+  await assertOrgAccess(auth, organizationId, 'write');
+  const domain = await getProjectedDomain(organizationId);
+  const authoring = createDefinitionAuthoring(domain);
+  applyAuthoringSteps(authoring, steps);
   return await create({ name, data: authoring.definition() }, auth);
+}
+
+/**
+ * Headless editing (agent authoring): the same gesture grammar as
+ * composeDefinition, applied to an EXISTING definition's stored authored
+ * document. Small payloads in, legality gates enforced, no whole-graph
+ * echo from the caller. Server-owned activation records (history,
+ * activated) are preserved; `compiled` is dropped by the update seam as
+ * on every save.
+ */
+export async function editDefinition({ definitionId = '', steps = [] } = {}, auth) {
+  const id = String(definitionId || '');
+  const stored = await getById(id, auth);
+  const organizationId = resolveOrganizationId(auth);
+  await assertOrgAccess(auth, organizationId, 'write');
+  const domain = await getProjectedDomain(organizationId);
+  const authoring = createDefinitionAuthoring(domain, null, stored?.data || null);
+  applyAuthoringSteps(authoring, steps);
+  const data = authoring.definition();
+  for (const key of ['history', 'activated']) {
+    if (stored?.data?.[key] !== undefined) data[key] = stored.data[key];
+  }
+  return await update(id, { data }, auth);
 }
 
 // The compiler consumes the CTS-projected domain: strangler-converted system
