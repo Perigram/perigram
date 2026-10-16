@@ -34,6 +34,19 @@ subscription rows (`onGroupDeleted` composed in the delete route), and
 the one-shot migration also sweeps rows of groups deleted before that
 cleanup existed.
 
+Session `agent/ai-chat-polish-20261016`, two owner reports. (1) "LLM
+provider is not configured" while the models screen showed a profile:
+the org had one chat profile and an EMPTY `routes` table — resolution
+fell to the environment (`provider: none`). Fixed in
+`resolveLlmConfig`: an unrouted org with exactly one chat profile serves
+it for every chat capability; two or more unrouted stay ambiguous
+(env), and a stale non-chat route target never falls through. (2)
+Group chrome on AI threads (members count, members list, sender
+stamps): AI rooms now present as 1:1 person chats — the client detects
+two-participant assistant rooms and drops the group chrome, rendering
+the assistant's own avatar; the AI contact loads beside the inbox so
+rows resolve immediately.
+
 ## Children wires land child-first; auth hydration bypass net actually catches (owner direction 2026-10-16)
 
 Two owner reports in one session. (1) Class containment wires were landed

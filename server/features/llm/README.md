@@ -49,7 +49,10 @@ Organizations declare **named model profiles** (owner direction
 chain — an explicit profile (a pinned execution-point choice) first, then
 the exact capability route, the `chat` family default, the environment —
 and only a chat-kind profile ever serves a conversation (stale or non-chat
-explicit ids degrade to the route chain).
+explicit ids degrade to the route chain). An unrouted org with **exactly
+one** chat profile serves it for every chat capability — a configured
+model is the chat model unless routing says otherwise; two or more
+unrouted profiles stay ambiguous and degrade to the environment.
 Image-kind profiles are declarable today (endpoint, model, key) and
 consumed when an image capability ships; speech-to-text is not part of
 this module ([transcription](../transcription/README.md) owns its own

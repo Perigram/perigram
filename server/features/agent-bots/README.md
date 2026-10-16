@@ -93,6 +93,10 @@ group shape is what makes any number of threads per member possible; AI
 chats are ordinary group rooms, so their history, read marks, model pins,
 wake rules, and deletion all ride the group contract — deleting the room
 drops its subscription rows (the delete route composes `onGroupDeleted`).
+Presentation is person-chat, not group-chat: the client detects the
+two-participant assistant rooms and renders them without group chrome —
+no member count, no members list, no sender stamps — under the
+assistant's own avatar.
 
 The conversation is a model execution point in every kind: group and
 instance rows carry the pin (`profile`, `model`) on the subscription, a
