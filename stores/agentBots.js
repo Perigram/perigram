@@ -51,12 +51,13 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
     /**
      * A fresh AI chat thread: the room is created server-side with the
      * caller and the assistant, titled by the first message (the caller
-     * passes it; empty falls back to the assistant's name).
+     * passes it; empty falls back to the assistant's name). An optional
+     * profile/model pin rides the created room.
      */
-    async function createChat(name = '') {
+    async function createChat(name = '', profile = '', model = '') {
         return await $fetch('/api/agent-bots/chats', {
             method: 'POST',
-            body: { name }
+            body: { name, profile, model }
         });
     }
 

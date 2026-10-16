@@ -306,6 +306,19 @@ describe('createAgentChat', () => {
             participantIds: ['bot-a']
         });
     });
+
+    it('carries the draft\'s model pin onto the created room and refuses unknown profiles', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
+        mockedSupport.createGroup.mockResolvedValue({ _id: 'g7' });
+        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
+        await createAgentChat(AUTH, { name: 'Queue check', profile: 'cloud-big', model: 'glm-4.7' });
+        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
+            conversationKey: 'group:g7',
+            profile: 'cloud-big',
+            model: 'glm-4.7'
+        }));
+        await expect(createAgentChat(AUTH, { profile: 'nope' })).rejects.toMatchObject({ statusCode: 400 });
+    });
 });
 
 describe('onGroupDeleted', () => {

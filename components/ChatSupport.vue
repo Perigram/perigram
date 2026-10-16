@@ -17,43 +17,40 @@
                 class="chat-inbox flex min-h-0 flex-1 flex-col overflow-hidden"
                 :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : ''"
             >
-                <div class="flex shrink-0 items-center gap-2 px-2 pt-2">
-                    <!-- The rail header is exactly three controls (SPEC):
-                         the archive toggle (the same control leaves the
-                         archived view), the search field, and one + whose
-                         menu owns every conversation start. -->
-                    <Button
-                        icon="pi pi-inbox"
-                        :severity="showArchived ? 'primary' : 'secondary'"
-                        text
-                        rounded
-                        size="small"
-                        class="shrink-0"
-                        :aria-label="$t('support.archivedConversations')"
-                        :aria-pressed="showArchived"
-                        @click="showArchived = !showArchived"
-                    />
-                    <IconField class="min-w-0 flex-1">
-                        <InputIcon class="pi pi-search" />
+                <div class="mb-2 flex shrink-0 items-center gap-1 px-2 pt-2">
+                    <!-- The rail header is exactly three controls in one
+                         joined input group (SPEC): the archive toggle (the
+                         same control leaves the archived view), the search
+                         field, and one + whose menu owns every conversation
+                         start. -->
+                    <InputGroup class="min-w-0 flex-1">
+                        <Button
+                            icon="pi pi-inbox"
+                            :severity="showArchived ? 'primary' : 'secondary'"
+                            text
+                            rounded
+                            :aria-label="$t('support.archivedConversations')"
+                            :aria-pressed="showArchived"
+                            data-testid="chats-archive-toggle"
+                            @click="showArchived = !showArchived"
+                        />
                         <InputText
                             v-model="inboxSearch"
                             type="text"
-                            class="w-full"
+                            fluid
                             :placeholder="$t('support.searchChats')"
                             data-testid="chats-search"
                         />
-                    </IconField>
-                    <Button
-                        icon="pi pi-plus"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        class="shrink-0"
-                        :aria-label="$t('support.newChat')"
-                        data-testid="chats-new-menu"
-                        @click="toggleNewChatMenu"
-                    />
+                        <Button
+                            icon="pi pi-plus"
+                            severity="secondary"
+                            text
+                            rounded
+                            :aria-label="$t('support.newChat')"
+                            data-testid="chats-new-menu"
+                            @click="toggleNewChatMenu"
+                        />
+                    </InputGroup>
                     <Menu ref="newChatMenuRef" :model="newChatMenuItems" :popup="true" />
                     <!-- The drawer's inbox view needs its own close: the
                          thread header's close vanishes with the thread, and
@@ -1406,6 +1403,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
+import InputGroup from 'primevue/inputgroup'
 import Select from '~/components/shared/InstanceSelect.vue'
 import PrimeSelect from 'primevue/select'
 import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue'
@@ -1644,6 +1642,11 @@ const startCall = async () => {
 const roomAI = computed(() => {
     const conversation = activeConversation.value;
     if (!conversation || !agentBots.canChat || !agentBots.ai) return null;
+    // A draft carries the model choice on the conversation object itself;
+    // it travels to the room when the first send materializes it.
+    if (conversation.agentDraft) {
+        return { ...agentBots.ai, subscribed: true, profile: conversation.profile || '', model: conversation.model || '' };
+    }
     if (['group', 'instance'].includes(conversation.conversationKind)) {
         return agentBots.ai.subscribed ? agentBots.ai : null;
     }
@@ -1690,10 +1693,17 @@ const conversationModel = computed(() => {
     return effective ? modelRowValue(effective.profile, effective.model) : '';
 });
 const setConversationModel = async (pin) => {
-    const key = activeConversation.value?.conversationKey
-    if (!key || !roomAI.value) return
+    const conversation = activeConversation.value
+    if (!conversation) return
     const [profile, model] = String(pin || '').split(MODEL_ROW_SEPARATOR)
-    await agentBots.setConversationProfile(key, profile || '', model || '')
+    // A draft's model choice is local state until the room exists; the
+    // first send carries it into the created room.
+    if (conversation.agentDraft) {
+        activeConversation.value = { ...conversation, profile: profile || '', model: model || '' }
+        return
+    }
+    if (!conversation.conversationKey || !roomAI.value) return
+    await agentBots.setConversationProfile(conversation.conversationKey, profile || '', model || '')
 }
 
 // Pane-hosted chats open calls as workspace tabs; mobile surfaces keep the
@@ -2212,7 +2222,11 @@ const sendMessage = () => {
         let groupKey = conversation.conversationKind === 'group' ? conversation.conversationKey : null
         let createdAgentChat = null
         if (conversation.agentDraft) {
-            createdAgentChat = await agentBots.createChat(agentChatTitle(sendingText))
+            createdAgentChat = await agentBots.createChat(
+                agentChatTitle(sendingText),
+                conversation.profile || '',
+                conversation.model || ''
+            )
             groupKey = createdAgentChat.conversationKey
         }
         await $fetch('/api/support/messages', {
@@ -2398,7 +2412,11 @@ const stopAndSendVoiceRecording = () => {
             let groupKey = conversation.conversationKind === 'group' ? conversation.conversationKey : null
             let createdAgentChat = null
             if (conversation.agentDraft) {
-                createdAgentChat = await agentBots.createChat(agentChatTitle(sendingText))
+                createdAgentChat = await agentBots.createChat(
+                    agentChatTitle(sendingText),
+                    conversation.profile || '',
+                    conversation.model || ''
+                )
                 groupKey = createdAgentChat.conversationKey
             }
             await $fetch('/api/support/messages', {

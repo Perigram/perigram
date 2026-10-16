@@ -236,13 +236,23 @@ export async function createAgentChat(auth, body = {}) {
     const assistant = await ensureOrganizationAssistant(auth.organizationId);
     if (!assistant) throw createError({ statusCode: 404, message: 'Assistant not found' });
     const name = String(body?.name || '').trim() || (assistant.identity?.name || ASSISTANT_NAME);
+    // The room's model pin may ride the creation (a draft thread's pick,
+    // made before the first message materializes the room).
+    const allowedProfiles = await llmService.chatProfileIds(auth.organizationId);
+    const profile = String(body?.profile || '').trim();
+    if (profile && !allowedProfiles.includes(profile)) {
+        throw createError({ statusCode: 400, message: `Unknown chat profile: ${profile}` });
+    }
+    const model = String(body?.model || '').trim();
     const group = await supportService.createGroup(auth, { name, participantIds: [assistant.id] });
     const conversationKey = supportService.groupConversationKey(group._id);
     await repository.upsertSubscription({
         botUserId: assistant.id,
         conversationKey,
         conversationKind: 'group',
-        organizationId: auth.organizationId
+        organizationId: auth.organizationId,
+        profile,
+        model
     });
     return { conversationKey, group };
 }
