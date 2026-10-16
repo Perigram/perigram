@@ -29,6 +29,7 @@
                             size="small"
                             :severity="showArchived ? 'primary' : 'secondary'"
                             outlined
+                            :pt="showArchived ? undefined : headerGroupButtonPt"
                             :aria-label="$t('support.archivedConversations')"
                             :aria-pressed="showArchived"
                             data-testid="chats-archive-toggle"
@@ -46,6 +47,7 @@
                             size="small"
                             severity="secondary"
                             outlined
+                            :pt="headerGroupButtonPt"
                             :aria-label="$t('support.newChat')"
                             data-testid="chats-new-menu"
                             @click="toggleNewChatMenu"
@@ -3695,6 +3697,12 @@ const openNewChatDialog = async () => {
 // The + control's menu (SPEC): every conversation start in one place —
 // a person chat, a group, an AI chat (capability-gated).
 const newChatMenuRef = ref(null)
+// The joined header bar reads as one control: Aura draws outlined
+// buttons one surface step lighter than inputs, so the group's outlined
+// actions borrow the input's border token. The archive toggle's active
+// state keeps its primary ink.
+const headerGroupButtonPt = { root: { style: { borderColor: 'var(--p-inputtext-border-color)' } } };
+
 const toggleNewChatMenu = (event) => {
     newChatMenuRef.value?.toggle(event)
 }
