@@ -637,6 +637,11 @@
                                         {{ $t('support.forwardedFrom', { name: messageItem.forwardedFrom.senderName || $t('common.user') }) }}
                                     </span>
                                 </span>
+                                <AgentActivity
+                                    v-if="messageItem.agent"
+                                    :activity="messageItem.agent"
+                                    class="px-1"
+                                />
                                 <div
                                     v-if="messageBubbleText(messageItem) || (messageItem.instanceRefs || []).length"
                                     class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
@@ -653,7 +658,11 @@
                                     ]"
                                 >
                                     <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
-                                        <SupportMessageContent :message="bubbleContentMessage(messageItem)" :viewer-user-id="currentUserId" />
+                                        <SupportMessageContent
+                                            :message="bubbleContentMessage(messageItem)"
+                                            :viewer-user-id="currentUserId"
+                                            :markdown="Boolean(messageItem.agent)"
+                                        />
                                     </p>
                                     <!-- Plain wrapper owns hover visibility: PrimeVue's runtime
                                          .p-button display rule would defeat utility classes on the
@@ -756,38 +765,22 @@
                         </div>
                     </template>
 
-                    <!-- The agent's live run: reasoning (collapsible),
-                         tool activity, and the answer as it is produced.
-                         Chromeless trace of work, not a message — the
-                         persisted message replaces it. -->
+                    <!-- The agent's live run: reasoning, tool activity,
+                         and the answer as it is produced — the same shape
+                         that persists on the reply, which replaces it. -->
                     <div
                         v-if="agentActivity"
                         class="mr-auto flex min-w-0 max-w-support-chat-message flex-col gap-2"
                         data-testid="chat-agent-activity"
                     >
-                        <details
-                            v-if="agentActivity.thinking"
-                            open
-                            class="px-1 text-muted text-supporting"
-                            data-testid="chat-agent-thinking"
-                        >
-                            <summary class="cursor-pointer select-none">{{ $t('support.thinking') }}</summary>
-                            <p class="m-0 mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ agentActivity.thinking }}</p>
-                        </details>
-                        <div
-                            v-for="tool in agentActivity.tools"
-                            :key="tool.id"
-                            class="flex min-w-0 items-center gap-2 px-1 text-muted text-supporting"
-                            data-testid="chat-agent-tool"
-                        >
-                            <i :class="toolStatusIcon(tool.status)" aria-hidden="true" />
-                            <span class="min-w-0 truncate">{{ tool.name }}</span>
-                        </div>
+                        <AgentActivity :activity="agentActivity" live />
                         <div
                             v-if="agentActivity.answer"
                             class="max-w-full min-w-0 self-start rounded-ui bg-subtle px-4 py-2"
                         >
-                            <p class="m-0 whitespace-pre-wrap break-words text-body [overflow-wrap:anywhere]">{{ agentActivity.answer }}</p>
+                            <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
+                                <SupportMessageContent :message="{ message: agentActivity.answer }" markdown />
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -797,7 +790,7 @@
                     :class="fullPage ? '' : 'max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]'"
                 >
                     <div
-                        v-show="typingName && !agentActivity"
+                        v-show="typingName"
                         ref="typingIndicatorRef"
                         class="px-1 text-muted text-supporting opacity-0"
                     >
@@ -1402,6 +1395,7 @@ import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
+import AgentActivity from '~/components/shared/AgentActivity.vue'
 import ChatAttachments from '~/components/shared/ChatAttachments.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
@@ -1544,7 +1538,6 @@ const receiveAgentActivity = (payload, mutate) => {
     mutate(agentActivity.value)
     nextTick().then(scrollToBottom)
 }
-const toolStatusIcon = (status) => (status === 'done' ? 'pi pi-check' : status === 'error' ? 'pi pi-exclamation-triangle' : 'pi pi-spin pi-spinner')
 let typingResetTimer = null
 let typingSendTimer = null
 

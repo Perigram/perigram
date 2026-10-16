@@ -8,5 +8,8 @@ export default defineEventHandler(async (event) => {
     }
 
     const body = await readBody(event)
+    // Agent run provenance (thinking, tool calls) is server-authored by the
+    // bot runtime through the service seam — never client-postable.
+    delete body.agent
     return await supportService.sendUserMessage(auth, body)
 })

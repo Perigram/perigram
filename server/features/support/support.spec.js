@@ -450,6 +450,25 @@ describe('support communication service', () => {
     );
   });
 
+  it('persists agent run provenance on the reply (server-authored only)', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+
+    const message = await supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      message: 'done',
+      agent: { thinking: 'need the types', tools: [{ id: 't1', name: 'list_types', status: 'done' }] }
+    });
+
+    expect(message.agent).toEqual({
+      thinking: 'need the types',
+      tools: [{ id: 't1', name: 'list_types', status: 'done' }]
+    });
+  });
+
   it('sends voice messages as attachment-only payloads referencing uploaded files', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     mocks.usersService.getById.mockResolvedValue({

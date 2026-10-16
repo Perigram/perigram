@@ -118,6 +118,18 @@ export async function chatProfileIds(organizationId = null) {
         .map(([id]) => String(id));
 }
 
+/**
+ * Chat profiles with the model each routes to — the picker rows for chat
+ * execution points, where the model is what the user is choosing.
+ */
+export async function chatProfiles(organizationId = null) {
+    const setting = await orgLlmSetting(organizationId);
+    const profiles = setting?.profiles && typeof setting.profiles === 'object' ? setting.profiles : {};
+    return Object.entries(profiles)
+        .filter(([, profile]) => profile?.kind === 'chat')
+        .map(([id, profile]) => ({ id: String(id), model: String(profile?.model || '') }));
+}
+
 export async function isLlmAvailable(organizationId = null, capability = CHAT_CAPABILITY, options = {}) {
     return (await resolveLlmConfig(organizationId, capability, options)).provider !== 'none';
 }

@@ -24,29 +24,10 @@ const MAX_TOOL_ROUNDS = 8;
 // replies and lifecycle wakes share the lock space.
 const inFlight = new Set();
 
-const BOT_TYPING_INTERVAL_MS = 2000;
-
-/**
- * Room presence for a running bot: the same ephemeral typing signal the
- * human composer rides, published server-side while the loop works. The
- * client auto-clears between beats, so the signal repeats until the run
- * ends.
- */
-function botTypingBeats(botAuth, conversationKey) {
-    const beat = () => connectionsService.publish(`conversation:${conversationKey}`, {
-        type: 'typing',
-        conversationKey,
-        userId: botAuth.userId,
-        name: botAuth.name || ''
-    });
-    beat();
-    return setInterval(beat, BOT_TYPING_INTERVAL_MS);
-}
-
 /**
  * Room presence for a bot's run as it is produced: the runtime owns no
- * delivery channel, so the run's activity rides the conversation topic like
- * the typing beat. `bot_thinking` carries the reasoning so far (accumulated
+ * delivery channel, so the run's activity rides the conversation topic.
+ * `bot_thinking` carries the reasoning so far (accumulated
  * across rounds), `bot_tool` one tool invocation as it starts and settles,
  * `bot_stream` the answer so far, and `bot_stream_end` clears the run once
  * the persisted message supersedes it.
@@ -202,6 +183,10 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', str
     // Per-run side channel: chat-only tools accumulate state here that the
     // final reply consumes (instance refs the model attached mid-loop).
     const run = { instanceRefs: [] };
+    // The run's visible work, persisted onto the reply as provenance: every
+    // round's reasoning (concatenated) and every tool invocation.
+    let runThinking = '';
+    const agentTools = [];
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         const assistant = await streamedRound({
             organizationId,
@@ -212,24 +197,29 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', str
             onThinking: stream ? (text) => stream.thinking(text) : null,
             onText: stream ? (text) => stream.answer(text) : null
         });
+        if (assistant.thinking) runThinking += (runThinking ? '\n\n' : '') + assistant.thinking;
+        if (stream) stream.thinking(runThinking);
         const toolCalls = assistant.toolCalls || [];
         if (!toolCalls.length) {
-            return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs };
+            return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs, agent: { thinking: runThinking, tools: agentTools } };
         }
         // This round answered a tool call, not the room: drop its answer text.
         // The reasoning and the tool rows stay as the run's visible work.
         if (stream) stream.answer('');
         conversation.push({ role: 'assistant', content: assistant.content || '', toolCalls });
         for (const call of toolCalls) {
-            if (stream) stream.tool({ id: call.id, name: call.name, status: 'running' });
+            const entry = { id: call.id, name: call.name, status: 'running' };
+            agentTools.push(entry);
+            if (stream) stream.tool({ ...entry });
             let result;
             try {
                 result = await executeTool(call.name, call.arguments, botAuth, run);
-                if (stream) stream.tool({ id: call.id, name: call.name, status: 'done' });
+                entry.status = 'done';
             } catch (error) {
                 result = { error: error?.message || String(error) };
-                if (stream) stream.tool({ id: call.id, name: call.name, status: 'error' });
+                entry.status = 'error';
             }
+            if (stream) stream.tool({ ...entry });
             conversation.push({
                 role: 'tool',
                 toolCallId: call.id,
@@ -238,26 +228,27 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', str
             });
         }
     }
-    return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs };
+    return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs, agent: { thinking: runThinking, tools: agentTools } };
 }
 
-function replyBodyFor(context, message, text, botUserId, instanceRefs = []) {
+function replyBodyFor(context, message, text, botUserId, instanceRefs = [], agent = null) {
     const refs = instanceRefs.length ? { instanceRefs } : {};
+    const provenance = agent ? { agent } : {};
     if (context.kind === 'direct') {
         const other = (message.participants || context.participants || [])
             .map(item => String(item))
             .find(item => item !== String(botUserId));
-        return { recipientUserId: other, message: text, ...refs };
+        return { recipientUserId: other, message: text, ...refs, ...provenance };
     }
     if (context.kind === 'group') {
-        return { conversationKey: context.conversationKey, message: text, ...refs };
+        return { conversationKey: context.conversationKey, message: text, ...refs, ...provenance };
     }
     const link = message.instanceLink || {};
-    return { instance: { type: link.type, id: link.id }, message: text, ...refs };
+    return { instance: { type: link.type, id: link.id }, message: text, ...refs, ...provenance };
 }
 
-async function sendReply(botAuth, context, message, text, instanceRefs = []) {
-    await supportService.sendUserMessage(botAuth, replyBodyFor(context, message, text, botAuth.userId, instanceRefs));
+async function sendReply(botAuth, context, message, text, instanceRefs = [], agent = null) {
+    await supportService.sendUserMessage(botAuth, replyBodyFor(context, message, text, botAuth.userId, instanceRefs, agent));
 }
 
 async function conversationHistory(conversationKey, botUserId) {
@@ -277,26 +268,25 @@ export async function runBotReply(botUserId, context, message, conversationProfi
         return;
     }
     inFlight.add(lockKey);
-    let typing = null;
     let stream = null;
     try {
         const botAuth = await buildBotAuth(botUserId);
-        typing = botTypingBeats(botAuth, message.conversationKey);
         stream = botActivitySink(botAuth, message.conversationKey);
+        stream.thinking('');
         const organizationId = botAuth.organizationId;
         const profileId = conversationProfile || botAuth.botProfile;
         if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId }))) {
             await sendReply(botAuth, context, message, 'LLM provider is not configured for this organization.');
             return;
         }
-        const { text, instanceRefs } = await runAgentLoop({
+        const { text, instanceRefs, agent } = await runAgentLoop({
             botAuth,
             profileId,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
             conversation: await conversationHistory(message.conversationKey, botUserId),
             stream
         });
-        if (text) await sendReply(botAuth, context, message, text, instanceRefs);    } catch (error) {
+        if (text) await sendReply(botAuth, context, message, text, instanceRefs, agent);    } catch (error) {
         console.error('[AGENT-BOTS] reply failed:', error);
         try {
             const botAuth = await buildBotAuth(botUserId);
@@ -305,7 +295,6 @@ export async function runBotReply(botUserId, context, message, conversationProfi
             console.error('[AGENT-BOTS] failure notice failed:', nested);
         }
     } finally {
-        if (typing) clearInterval(typing);
         if (stream) stream.end();
         inFlight.delete(lockKey);
     }
@@ -357,12 +346,11 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         return;
     }
     inFlight.add(lockKey);
-    let typing = null;
     let stream = null;
     try {
         const botAuth = await buildBotAuth(subscription.botUserId);
-        typing = botTypingBeats(botAuth, subscription.conversationKey);
         stream = botActivitySink(botAuth, subscription.conversationKey);
+        stream.thinking('');
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the bot's own, then the org route.
         const profileId = ruleProfile || String(subscription.profile || '') || botAuth.botProfile;
@@ -380,7 +368,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
             actorLabelOf(event) ? `by ${actorLabelOf(event)}.` : '.',
             'Do the work this room expects; inspect the instance with tools if you need more than this summary.'
         ].join(' ');
-        const { text, instanceRefs } = await runAgentLoop({
+        const { text, instanceRefs, agent } = await runAgentLoop({
             botAuth,
             profileId,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
@@ -392,11 +380,14 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         });
         if (!text) return;
         const body = postingBodyForKey(subscription.conversationKey, text);
-        if (body) await supportService.sendUserMessage(botAuth, instanceRefs.length ? { ...body, instanceRefs } : body);
+        if (body) await supportService.sendUserMessage(botAuth, {
+            ...body,
+            ...(instanceRefs.length ? { instanceRefs } : {}),
+            agent
+        });
     } catch (error) {
         console.error('[AGENT-BOTS] wake failed:', error);
     } finally {
-        if (typing) clearInterval(typing);
         if (stream) stream.end();
         inFlight.delete(lockKey);
     }

@@ -28,7 +28,7 @@ const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mocke
     mockedOrganizations: { findById: vi.fn() },
     mockedProcessAuth: { resolveProcessAuth: vi.fn(async (auth) => auth) },
     mockedProcessDefinitions: { listActiveWorkflowStates: vi.fn() },
-    mockedLlm: { chatProfileIds: vi.fn(async () => []) }
+    mockedLlm: { chatProfileIds: vi.fn(async () => []), chatProfiles: vi.fn(async () => []) }
 }));
 
 vi.mock('~/server/features/users/service.js', () => mockedUsers);
@@ -234,12 +234,18 @@ describe('subscribeBot', () => {
         }));
     });
 
-    it('exposes chat profiles beside contact rows', async () => {
+    it('exposes chat profiles with their models beside contact rows', async () => {
         mockedUsers.findUserByEmail.mockResolvedValue(botModel('bot-a', 'Assistant'));
         mockedUsers.list.mockResolvedValue([botModel('bot-a', 'Assistant')]);
-        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big', 'local-fast']);
+        mockedLlm.chatProfiles.mockResolvedValue([
+            { id: 'cloud-big', model: 'glm-4.7' },
+            { id: 'local-fast', model: 'qwen3:30b-a3b' }
+        ]);
         const result = await listBotContacts(AUTH);
-        expect(result.chatProfiles).toEqual([{ id: 'cloud-big' }, { id: 'local-fast' }]);
+        expect(result.chatProfiles).toEqual([
+            { id: 'cloud-big', model: 'glm-4.7' },
+            { id: 'local-fast', model: 'qwen3:30b-a3b' }
+        ]);
     });
 
     it('rejects non-bot targets', async () => {

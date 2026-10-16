@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { renderMarkdown } from '#shared/markdown.js';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
 const TOKEN_PATTERN = /\{\{instance:([^:}]+):([^}]+)\}\}/g;
@@ -53,11 +54,19 @@ const URL_PATTERN = /\bhttps?:\/\/[^\s<>"'`]+/gi;
 // Preview mode (singleLine) keeps URLs as plain text: the preview row is
 // itself the click target that opens the conversation, so anchors there
 // would steal clicks and navigate away from the list.
-const renderParts = computed(() => (props.singleLine
-  ? parts.value
-  : parts.value.flatMap(part => (
-    part.type === 'text' ? withLinks(part.value) : [part]
-  ))));
+const renderParts = computed(() => {
+  if (props.singleLine) return parts.value;
+  return parts.value.flatMap(part => {
+    if (part.type !== 'text') return [part];
+    // Markdown rendering is client-side (the shared pipeline renders ''
+    // without a DOM); SSR paints the plain text and hydration formats it.
+    if (props.markdown) {
+      const html = renderMarkdown(part.value);
+      if (html) return [{ type: 'html', value: html }];
+    }
+    return withLinks(part.value);
+  });
+});
 
 /**
  * Text parts split into plain spans and safe http(s) anchors; trailing
@@ -124,6 +133,12 @@ const canFetchRef = (ref = {}) => {
           ? 'min-w-0 truncate'
           : 'min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]'"
       >{{ part.value }}</span>
+      <!-- eslint-disable-next-line vue/no-v-html -- sanitized by the shared markdown pipeline -->
+      <span
+        v-else-if="part.type === 'html'"
+        class="min-w-0 max-w-full break-words text-body [&_a]:underline [&_code]:text-body [&_li]:ml-4 [&_ol]:my-1 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:list-decimal"
+        v-html="part.value"
+      />
       <InstanceInlineRef
         v-else
         :type="part.typeId"

@@ -208,6 +208,9 @@ describe('runBotReply', () => {
         expect(published.some(payload => payload?.type === 'bot_thinking' && payload.text === 'need the types')).toBe(true);
         expect(published.some(payload => payload?.type === 'bot_tool' && payload.tool?.name === 'list_types' && payload.tool.status === 'running')).toBe(true);
         expect(published.some(payload => payload?.type === 'bot_tool' && payload.tool?.status === 'done')).toBe(true);
+        // The run's provenance rides the persisted reply.
+        const sent = mockedSupport.sendUserMessage.mock.calls.at(-1)[1];
+        expect(sent.agent).toEqual({ thinking: 'need the types', tools: [{ id: 't1', name: 'list_types', status: 'done' }] });
     });
 
     it('lets the conversation override the bot\'s own brain', async () => {
@@ -326,7 +329,8 @@ describe('runBotWake', () => {
         expect(trigger.content).toContain('approved → nested');
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledWith(botAuth, {
             instance: { type: 'organization', id: 'org-1' },
-            message: 'nested and accounted for'
+            message: 'nested and accounted for',
+            agent: { thinking: '', tools: [] }
         });
     });
 
@@ -336,7 +340,8 @@ describe('runBotWake', () => {
         await runBotWake({ ...subscription, conversationKey: 'group:g1' }, wakeEvent);
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledWith(botAuth, {
             conversationKey: 'group:g1',
-            message: 'ok'
+            message: 'ok',
+            agent: { thinking: '', tools: [] }
         });
     });
 

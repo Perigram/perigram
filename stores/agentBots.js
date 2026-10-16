@@ -121,13 +121,14 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
 
     /**
      * Select options over the org's chat profiles, with the leading
-     * "fall back to the bot's own brain" choice. One home for every model
-     * picker that sets a chat execution point.
+     * "fall back to the bot's own brain" choice. Rows show the model each
+     * profile routes to — the model is what is being chosen. One home for
+     * every model picker that sets a chat execution point.
      */
     function chatProfileOptions(autoLabel) {
         return [
             { label: autoLabel, value: '' },
-            ...chatProfiles.value.map(profile => ({ label: profile.id, value: profile.id }))
+            ...chatProfiles.value.map(profile => ({ label: profile.model || profile.id, value: profile.id }))
         ];
     }
 

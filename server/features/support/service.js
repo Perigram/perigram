@@ -744,6 +744,7 @@ export async function sendUserMessage(auth, body = {}) {
         instanceRefs: body.instanceRefs,
         attachments: body.attachments,
         parentMessageId: body.parentMessageId,
+        agent: body.agent || null,
         auth,
         recipientUserId: context.kind === 'direct'
             ? context.participants.find(participant => participant !== auth.userId)
@@ -893,7 +894,7 @@ export async function forwardMessage(auth, messageId = '', body = {}) {
     });
 }
 
-async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, recipientUserId = null, forwardedFrom = null }) {
+async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, recipientUserId = null, forwardedFrom = null, agent = null }) {
     const normalizedAttachments = normalizeAttachments(attachments);
     const materialized = context.kind === 'instance' && normalizedAttachments
         ? await materializeInstanceAttachments(auth, context, normalizedAttachments)
@@ -916,6 +917,7 @@ async function insertMessage({ context, sender, senderUserId, message, instanceR
         ...(materialized.attachments?.length ? { attachments: materialized.attachments } : {}),
         ...(parent ? { parent } : {}),
         ...(forwardedFrom ? { forwardedFrom } : {}),
+        ...(agent ? { agent } : {}),
         ...instanceFields,
         timestamp: new Date()
     }, messageProjection());
@@ -1831,6 +1833,7 @@ function messageProjection() {
         instancePath: 1,
         parent: 1,
         forwardedFrom: 1,
+        agent: 1,
         organizationId: 1
     };
 }

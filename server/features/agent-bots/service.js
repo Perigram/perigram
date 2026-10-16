@@ -326,7 +326,7 @@ export async function listBotContacts(auth, conversationKey = '') {
         subscriptions = await repository.findSubscriptionsByConversation([context.conversationKey]);
     }
     const byBot = new Map(subscriptions.map(row => [String(row.botUserId), row]));
-    const chatProfiles = (await llmService.chatProfileIds(auth.organizationId)).map(id => ({ id }));
+    const chatProfiles = await llmService.chatProfiles(auth.organizationId);
     return {
         assistantId: assistant?.id || null,
         chatProfiles,
