@@ -73,12 +73,13 @@ org `lineage`, plus a `participants` user-id list) and owns the derived
   lineage. Creation pings every participant's inbox topic. Membership
   edits on an existing group go through the service seams
   (`addGroupParticipant`/`removeGroupParticipant`, creator-or-admin gated,
-  the creator irremovable) — and bot membership through the
+  the creator irremovable) — and assistant membership through the
   participant-gated twins (`addBotGroupParticipant`/
-  `removeBotGroupParticipant`: any participant may add or remove a bot,
-  and only bot members are valid targets) — driven by the
-  [agent bots](../agent-bots/README.md) subscription endpoint when a bot
-  joins or leaves a group chat.
+  `removeBotGroupParticipant`: any participant holding the agent-chat
+  capability may seat or remove the AI, and the assistant is the only
+  valid target) — driven by the
+  [agent bots](../agent-bots/README.md) subscription endpoint when the
+  AI joins or leaves a group chat.
 - `DELETE /api/support/groups/:id` removes one; the creating member or an
   admin may delete.
 - Group conversations appear in the user's inbox through
@@ -354,16 +355,17 @@ promises the seam tracks. The [agent bots](../agent-bots/README.md)
 runtime registers the chat-bot trigger this way — the support feature
 stays bot-agnostic.
 
-## Bot members in chats
+## The AI member in chats
 
-Bots (users carrying the `data.bot` marker — see
-[agent bots](../agent-bots/README.md)) participate in conversations like
-any member: direct threads with a bot are ordinary direct conversations
-(every organization's assistant floats first in the new-chat picker),
-group membership rides the participants list, and instance (organization)
-chats admit them through org-scoped reads. Bot replies re-enter
-`sendUserMessage` with the bot's own auth context; there is no separate
-bot delivery channel.
+The organization's assistant (the user carrying the `data.bot` marker —
+see [agent bots](../agent-bots/README.md)) is the AI's attribution
+identity: direct threads with it are ordinary direct conversations (it
+floats first in the new-chat picker, capability-gated), group membership
+rides the participants list, and instance (organization) chats admit it
+through org-scoped reads. AI replies re-enter `sendUserMessage` with the
+assistant's auth context but execute with the triggering user's access
+(delegation, SPEC: agent access); there is no separate bot delivery
+channel.
 
 ## API
 

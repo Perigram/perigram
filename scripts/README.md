@@ -53,6 +53,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   capability routing (`{ provider, baseUrl, model, apiKey? }` becomes
   profile `default` routed to `chat`; orgs already on profiles are
   skipped). Run once after deploying the profiles contract.
+- `migrate-retire-custom-bots.js`: one-way retirement of the created-bots
+  scheme (owner direction 2026-10-16) — deletes custom bot members and
+  their subscriptions, removes them from role assignments and group
+  participants, and strips the retired `tokenHash`/`profile` bot-marker
+  fields from the remaining per-org assistants. Run once after deploying
+  the delegation scheme.
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks

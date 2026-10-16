@@ -24,16 +24,18 @@ process-mutable; the feature routes below own every mutation.
 
 Key fields:
 - `processTemplateId`: Starter process id used at creation time.
-- `roles`: Stable role identity record `{ [roleId]: { id, label, exclusive? } }`.
-  A role marked `exclusive` is single-seat: exactly one member (human or
-  bot) holds it at a time, and assigning it MOVES the seat — the previous
-  holder keeps their other roles, and an emptied assignment row
-  disappears. The move runs at the one assignment write seam
-  (`repository.setRoleAssignment`), so every path (signup, bots,
-  invitations, the org API) enforces it identically. Turning exclusivity
-  on is refused with the holder list while more than one member holds
-  the role; turning it off is free. Single seats are the natural shape
-  for handing a whole lane to one agent.
+- `roles`: Stable role identity record `{ [roleId]: { id, label, exclusive?, agentChat? } }`.
+  A role marked `exclusive` is single-seat: exactly one member holds it
+  at a time, and assigning it MOVES the seat — the previous holder keeps
+  their other roles, and an emptied assignment row disappears. The move
+  runs at the one assignment write seam (`repository.setRoleAssignment`),
+  so every path (signup, invitations, the org API) enforces it
+  identically. Turning exclusivity on is refused with the holder list
+  while more than one member holds the role; turning it off is free. A
+  role marked `agentChat` grants its holders the organization AI's chat
+  surfaces (see [agent bots](../agent-bots/README.md)) —
+  `canUseAgentChats(organizationId, userId)` is the one check every AI
+  gate reads; members without a flagged role see no AI at all.
 
 Activation is additive: the active definition set is queried from the
 process-definitions collection ([process-definitions](../process-definitions/README.md)).
@@ -92,10 +94,11 @@ process-definitions collection ([process-definitions](../process-definitions/REA
 
 Role identity management is immediate and independent of process draft Save or
 Apply. `GET/POST /api/organizations/:id/roles` lists and creates identities
-(creation accepts `exclusive: true` for a single-seat role);
+(creation accepts `exclusive: true` for a single-seat role and
+`agentChat: true` for the AI-chat capability);
 `PATCH /api/organizations/:id/roles/:roleId` renames and/or flips the
-`exclusive` flag (on is refused with holder data while multiple members hold
-the role); `DELETE /api/organizations/:id/roles/:roleId` deletes them.
+`exclusive` or `agentChat` flags (on is refused with holder data while
+multiple members hold the role); `DELETE /api/organizations/:id/roles/:roleId` deletes them.
 Role ids are immutable and generated server-side. Deletion is rejected while a
 role is referenced by an organization assignment, active invitation, active
 process, or draft process. Archived compiled process history does not block it.

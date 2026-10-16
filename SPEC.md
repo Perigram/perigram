@@ -47,30 +47,40 @@ and a write accepts, only instances inside the declared domain. One
 declaration, one evaluator, every surface: pickers project it, the write
 boundary enforces it.
 
-## Agent access and chat bots (owner direction 2026-10-15)
+## Agent access and the organization AI (owner direction 2026-10-16)
 
 Agents operate the platform programmatically through the same boundaries as
 every other client: one curated tool catalog over the existing service seams
 (process definition lifecycle, registry instance reads, compiled action
-execution) exposed through an MCP endpoint and consumed by in-app chat bots.
-Bots are ordinary organization members carrying a bot marker and their own
-token; they act with their own grants, never borrowed user identity. Bots
-join group and instance (organization) chats by subscription and answer
-direct chats; a bot in chat authors process definitions and operates
-instances through the same tool catalog, with validate-before-activate and
-the migration/type-death gates as explicit steps. A bot attaches instances
-to its chat replies as inline reference chips — the same validated
-instance refs human sends carry. Bot brains run on the
-organization's named model profiles — local or cloud, per capability
-(chat, call summaries, and image endpoints when an image capability
-ships) — never a defaulted cloud endpoint. Model selection happens at the
-execution points and composes: wake rule, conversation, bot, org chat
-route — each optional, each falling back to the next. The conversation
-point is picked in the chat itself, never on the models screen: the
-picker lists the models the endpoints actually serve, is never blank
-(it shows the room's effective model), and the choice overrides the
-served model at request time. The models screen administers providers
-and endpoints only.
+execution) exposed through an MCP endpoint and consumed by the
+organization's single AI. There are no created bots: every organization has
+exactly one AI — the assistant, a member-shaped attribution identity with no
+operational grants of its own — present in the new-chat pickers without any
+setup.
+
+AI chats are role-gated: an organization role may carry the agent-chat
+capability, and only members holding at least one such role see the AI or
+bring it into rooms. Everyone else gets no AI surface at all.
+
+Delegation is the access contract: an AI run executes with the rights of the
+user whose message triggered it — the run reads, authors, and operates
+exactly as that user could, no more — while replies are attributed to the
+AI identity. In group and instance (organization) chats the triggering
+message's sender is the principal; a sender who loses the capability or
+their grants leaves the AI silent. The AI authors process definitions and
+operates instances through the same tool catalog, with
+validate-before-activate and the migration/type-death gates as explicit
+steps, and attaches instances to its replies as inline reference chips —
+the same validated instance refs human sends carry. The AI thinks on the
+organization's named model profiles — local or cloud, per capability (chat,
+call summaries, and image endpoints when an image capability ships) — never
+a defaulted cloud endpoint. Model selection happens at the execution points
+and composes: wake rule, conversation, org chat route — each optional, each
+falling back to the next. The conversation point is picked in the chat
+itself, never on the models screen: the picker lists the models the
+endpoints actually serve, is never blank (it shows the room's effective
+model), and the choice overrides the served model at request time. The
+models screen administers providers and endpoints only.
 
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool
@@ -81,28 +91,23 @@ and tool history persist attached to the answer. The room can stop a run in flig
 answer produced so far is what stays. Bots never ride the human typing
 line — the run's own activity is its presence.
 
-Lifecycle wakes: a bot subscribed to a conversation may be woken by status
-transitions — assignment-side wake rules on the subscription (type +
-target state; instance-scoped when the subscription is an instance chat)
-drive the same tool loop with the bot's own grants, and the result lands
-in the subscribed conversation. The state machine stays process
-vocabulary: in-graph agent nodes remain out of contract, bot actors never
-re-wake bots, and creation (initialize) events do not trigger.
+Lifecycle wakes: the AI brought into a conversation may be woken by status
+transitions — assignment-side wake rules on the subscription (type + target
+state; instance-scoped when the subscription is an instance chat) drive the
+same tool loop delegated to the user who authored the wake rule, and the
+result lands in the subscribed conversation. The state machine stays process
+vocabulary: in-graph agent nodes remain out of contract, AI actors never
+re-wake the AI, and creation (initialize) events do not trigger.
 
-Talking to agents is starting a chat: every organization has one
-assistant bot contact, present in the new-chat pickers without any setup,
-and any participant may join a bot into a group or organization chat.
-Assigning agents to process roles ("lanes") happens on the team surface
-where every member's roles are assigned — bots are members, badged as
-bots, never authored into process definitions. Bot administration
-(creating bots, rotating tokens, per-bot brains) lives on the team
-surface beside member administration — bots are members — never in
-chats. The provider a bot thinks with is administered on the
-organization's models screen, with a connection test — tokens are
-MCP-only wiring.
-Some roles are single-seat: exactly one member — human or agent —
-holds the role at a time, and assigning it moves the seat, so a lane can
-be handed to an agent outright and taken back the same way.
+Talking to the AI is starting a chat: the assistant floats first in the
+new-chat pickers, and any participant holding the agent-chat capability may
+bring the AI into a group or organization chat. The AI never holds process
+roles ("lanes") — access follows the chatting user, so lanes stay human
+seats and single-seat roles remain exactly what they were. Bot
+administration is retired: no bot members to create, no tokens to rotate —
+the assistant is bootstrapped per organization. The provider the AI thinks
+with is administered on the organization's models screen, with a connection
+test. The MCP endpoint serves authenticated user principals only.
 
 ## UI
 
