@@ -218,16 +218,31 @@ export async function saveLlmSettings(auth = {}, payload = {}) {
             throw createError({ statusCode: 400, message: `Profile ${id}: provider must be ollama, anthropic, or openai` });
         }
         const baseUrl = String(row?.baseUrl || '').trim();
-        const model = String(row?.model || '').trim();
-        if (!baseUrl || !model) {
-            throw createError({ statusCode: 400, message: `Profile ${id}: base URL and model are required` });
+        if (!baseUrl) {
+            throw createError({ statusCode: 400, message: `Profile ${id}: base URL is required` });
         }
-        const profile = { kind, provider, baseUrl, model };
-        if (row?.apiKey === undefined || row?.apiKey === null) {
-            if (previousProfiles[id]?.apiKey) profile.apiKey = previousProfiles[id].apiKey;
-        } else {
-            const apiKey = String(row.apiKey).trim();
-            if (apiKey) profile.apiKey = apiKey;
+        const apiKey = row?.apiKey === undefined || row?.apiKey === null
+            ? String(previousProfiles[id]?.apiKey || '').trim()
+            : String(row.apiKey).trim();
+        const profile = { kind, provider, baseUrl };
+        if (apiKey) profile.apiKey = apiKey;
+        // The model is derived data, never picked in profile setup: a login
+        // keeps the endpoint's stored default while endpoint and key stand,
+        // and a new (or re-pointed) login takes the first model its own
+        // listing serves. Unreachable endpoints save without one and stay
+        // unusable (resolution yields none) until a re-save or test reaches
+        // them.
+        profile.model = String(row?.model || '').trim();
+        if (!profile.model) {
+            const sameEndpoint = previousProfiles[id]?.baseUrl === baseUrl && previousProfiles[id]?.provider === provider;
+            profile.model = sameEndpoint ? String(previousProfiles[id]?.model || '').trim() : '';
+        }
+        if (!profile.model) {
+            try {
+                profile.model = (await probeEndpointModels(provider, baseUrl, apiKey)).models[0] || '';
+            } catch {
+                profile.model = '';
+            }
         }
         profiles[id] = profile;
     }

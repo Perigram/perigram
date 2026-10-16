@@ -178,6 +178,48 @@ describe('saveLlmSettings', () => {
         expect(mockedOrganizations.updateSettingsSection.mock.calls[2][2].profiles.p1.apiKey).toBe('fresh');
     });
 
+    it('derives the model — a new login backfills the first model its endpoint serves', async () => {
+        withSetting({ profiles: {}, routes: {} });
+        const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: [{ id: 'served-first' }] }) }));
+        vi.stubGlobal('fetch', fetchMock);
+        try {
+            await saveLlmSettings(AUTH, { profiles: [{ id: 'p1', kind: 'chat', provider: 'openai', baseUrl: 'http://e' }] });
+        } finally {
+            vi.unstubAllGlobals();
+        }
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2].profiles.p1.model).toBe('served-first');
+    });
+
+    it('keeps the stored default while the endpoint stands; a re-pointed login re-derives', async () => {
+        withSetting({
+            profiles: { p1: { kind: 'chat', provider: 'ollama', baseUrl: 'http://a', model: 'stored-default', apiKey: 'k' } },
+            routes: {}
+        });
+        await saveLlmSettings(AUTH, { profiles: [{ id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'http://a' }] });
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2].profiles.p1.model).toBe('stored-default');
+
+        const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ models: [{ name: 're-pointed-default' }] }) }));
+        vi.stubGlobal('fetch', fetchMock);
+        try {
+            await saveLlmSettings(AUTH, { profiles: [{ id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'http://b' }] });
+        } finally {
+            vi.unstubAllGlobals();
+        }
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[1][2].profiles.p1.model).toBe('re-pointed-default');
+    });
+
+    it('saves an unreachable login without a model — the route stays unusable until it answers', async () => {
+        withSetting({ profiles: {}, routes: {} });
+        const fetchMock = vi.fn(async () => { throw new Error('endpoint down'); });
+        vi.stubGlobal('fetch', fetchMock);
+        try {
+            await saveLlmSettings(AUTH, { profiles: [{ id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'http://down' }] });
+        } finally {
+            vi.unstubAllGlobals();
+        }
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2].profiles.p1.model).toBe('');
+    });
+
     it('rejects routes naming unknown or non-chat profiles', async () => {
         const row = { id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm' };
         await expect(saveLlmSettings(AUTH, { profiles: [row], routes: { chat: 'nope' } }))

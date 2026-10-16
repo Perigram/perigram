@@ -121,29 +121,6 @@
           :aria-label="$t('llm.baseUrl')"
           data-testid="llm-profile-baseurl"
         />
-        <div class="flex items-center gap-2">
-          <Select
-            v-model="profileForm.model"
-            :options="endpointModels"
-            editable
-            option-label="id"
-            option-value="id"
-            class="min-w-0 flex-1"
-            :placeholder="$t('llm.model')"
-            :aria-label="$t('llm.model')"
-            data-testid="llm-profile-model"
-          />
-          <Button
-            icon="pi pi-search"
-            severity="secondary"
-            outlined
-            :aria-label="$t('llm.loadModels')"
-            :loading="loadingModels"
-            :disabled="!profileForm.baseUrl.trim()"
-            data-testid="llm-load-models"
-            @click="loadEndpointModels"
-          />
-        </div>
         <Password
           v-model="profileForm.apiKey"
           :feedback="false"
@@ -156,7 +133,7 @@
             :label="$t('common.save')"
             icon="pi pi-check"
             :loading="savingProvider"
-            :disabled="!profileForm.id.trim() || !profileForm.baseUrl.trim() || !profileForm.model.trim()"
+            :disabled="!profileForm.id.trim() || !profileForm.baseUrl.trim()"
             data-testid="llm-profile-save"
             @click="saveProfile"
           />
@@ -203,11 +180,9 @@ const profiles = ref([]);
 const routes = reactive({ chat: '', 'chat.summaries': '' });
 const profileVisible = ref(false);
 const profileEditingExisting = ref(false);
-const profileForm = reactive({ id: '', kind: 'chat', provider: 'ollama', baseUrl: '', model: '', apiKey: '', apiKeySet: false });
+const profileForm = reactive({ id: '', kind: 'chat', provider: 'ollama', baseUrl: '', apiKey: '', apiKeySet: false });
 const savingProvider = ref(false);
 const testingId = ref('');
-const endpointModels = ref([]);
-const loadingModels = ref(false);
 
 const kindOptions = computed(() => ([
     { label: t('llm.kindChat'), value: 'chat' },
@@ -262,7 +237,6 @@ function editProfile(profile) {
         kind: profile.kind,
         provider: presetOf(profile),
         baseUrl: profile.baseUrl,
-        model: profile.model,
         apiKey: '',
         apiKeySet: profile.apiKeySet
     } : {
@@ -332,25 +306,6 @@ async function testProfile(profile) {
     }
 }
 
-async function loadEndpointModels() {
-    loadingModels.value = true;
-    try {
-        const response = await $fetch('/api/llm/models', {
-            method: 'POST',
-            body: {
-                provider: wireProvider(profileForm.provider),
-                baseUrl: profileForm.baseUrl,
-                ...(profileForm.apiKey ? { apiKey: profileForm.apiKey } : {}),
-                ...(profileEditingExisting.value ? { profileId: profileForm.id } : {})
-            }
-        });
-        endpointModels.value = (response?.models || []).map(id => ({ id }));
-    } catch (error) {
-        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
-    } finally {
-        loadingModels.value = false;
-    }
-}
 
 onMounted(loadSettings);
 </script>
