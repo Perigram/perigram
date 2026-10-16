@@ -72,7 +72,8 @@ Three pieces share one tool catalog:
   activity block the chat renders attached to the answer. While the
   run is in flight it publishes the same activity onto the conversation
   topic — `bot_activity` with the chronology so far (one reasoning
-  segment per round, tool invocations as they start and settle, always
+  segment per round, tool invocations as they start and settle carrying
+  the failure message when one was rejected, always
   a snapshot), `bot_stream` with the answer so far, and
   `bot_stream_end` when the
   persisted message supersedes the live view. The activity itself is the
