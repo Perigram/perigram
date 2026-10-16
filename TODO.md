@@ -3210,6 +3210,17 @@ A=600, stored table keeps 'A'), profiles (adopt skips externals), E2E
 (chip 'A' re-derives the drawing, chip count unchanged, reopened editor
 shows the raw 'A').
 
+Layout correction (owner review, same day): the first cut crammed the
+editors into fixed-width chip boxes with hand-rolled font spans — the
+bound parameters now lay out as captioned expression fields in the
+palette's field grid, the attachment popup's caption pattern (grid
+grid-cols-2, text-muted text-label captions, full-cell fields), per the
+components style guide's no-bespoke-chrome law. Verified live again:
+binding a drawn corner's fillet to the global 'A' mints no parameter
+row (the served module checked fresh); a tab that still mints is running
+the pre-fix surface module — the SPA keeps imported plugin modules, a
+full reload picks the fixed one.
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 

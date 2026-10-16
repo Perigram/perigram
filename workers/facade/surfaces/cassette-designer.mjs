@@ -1413,14 +1413,13 @@ export default function createSurface({ vue, components, locale, queries, notify
         });
       };
 
-      // A chip is an expression field over the cassette's variables (the
-      // same component every expression field rides): its value may name
-      // a global and reads it live.
+      // A parameter field is the shared expression editor over the
+      // cassette's variables (the same component every expression field
+      // rides): its value may name a global and reads it live.
       const profileParameterField = (row, key, value) => h(CassetteExpressionEditor, {
         modelValue: value,
         parameters: globalParameters.value,
         parameterNames: globalParameterNames.value,
-        class: 'w-28',
         'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`,
         'onUpdate:modelValue': next => {
           updateProfileWorkpieceParameter(row.id, key, next);
@@ -2120,14 +2119,17 @@ export default function createSurface({ vue, components, locale, queries, notify
                     : null
                 ]),
                 row.id === selectedWorkpieceId.value && row.isProfile
-                  ? h('div', { class: 'mt-2 flex flex-wrap items-center gap-1 pl-4' },
+                  // The bound parameters lay out as captioned expression
+                  // fields in the palette's field grid — the attachment
+                  // popup's caption pattern, never bespoke chip chrome.
+                  ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' },
                     Object.entries(row.parameters || {})
                       .filter(([key]) => row.boundParameterKeys?.has(key))
                       .map(([key, value]) => h('div', {
                         key: `${row.id}-${key}`,
-                        class: 'flex items-center gap-1'
+                        class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
                       }, [
-                        h('span', { class: 'font-mono text-xs text-muted-color' }, key),
+                        h('span', { class: 'truncate' }, key),
                         profileParameterField(row, key, value)
                       ])))
                   : null,
