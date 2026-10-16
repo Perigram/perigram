@@ -1,10 +1,12 @@
 import { test, expect } from './fixtures.js';
 
 // The profile parameter round (regression: the workpiece row's parameter
-// chips must re-evaluate the profile they instantiate, and the authoring
-// fields must hold the typed text while focused — the per-keystroke
-// normalization used to rewrite drafts under the caret). Artifacts:
-// .playwright/cassette-designer-parameters.png
+// chips must re-evaluate the placed profile, the array position fields
+// must hold the typed text — the browser forwarded label clicks onto the
+// token panel's first button (a phantom parameter token), and a falsy
+// read replaced empty or zero array values with the defaults — and a
+// selected profile previews the assembly it is placed in, never a blank
+// workpiece pane). Artifacts: .playwright/cassette-designer-parameters.png
 
 const assemblyGeometry = (page) => page.locator('.designer-workspace__canvas').first()
   .evaluate(el => Array.from(el.querySelectorAll('path, line, polyline, circle, rect'))
@@ -13,7 +15,18 @@ const assemblyGeometry = (page) => page.locator('.designer-workspace__canvas').f
       `${node.getAttribute('cx')},${node.getAttribute('cy')},${node.getAttribute('r')}`)
     .join(';'));
 
-test('profile parameter chips re-evaluate the profile; authoring fields hold drafts', async ({ app }) => {
+const arrayValueText = (page) => page.locator('div.z-\\[120\\]').first()
+  .evaluate(root => {
+    for (const span of root.querySelectorAll('span')) {
+      const text = (span.textContent || '').trim();
+      if (text === 'Array spacing' || text === 'Array count') {
+        return span.parentElement.querySelector('div[contenteditable]')?.textContent ?? null;
+      }
+    }
+    return null;
+  });
+
+test('profile parameter chips re-evaluate the placed profile; array position fields hold drafts', async ({ app }) => {
   test.setTimeout(240_000);
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
@@ -27,8 +40,8 @@ test('profile parameter chips re-evaluate the profile; authoring fields hold dra
   await newButton.click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
 
-  // A profile authored through the dialog opens on the parametric hanger:
-  // its parameter chips (W/H/R/D) exist to be driven.
+  // A profile authored through the dialog opens on the parametric hanger;
+  // an open chain edge-embeds when placed by array.
   await page.getByRole('button', { name: 'Add profile' }).click();
   const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
@@ -49,21 +62,50 @@ test('profile parameter chips re-evaluate the profile; authoring fields hold dra
   await fxW.pressSequentially('42', { delay: 60 });
   await fxW.press('Enter');
 
+  await dialog.getByRole('button', { name: 'Closed shape', exact: true }).first().click();
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
-  // The saved profile row carries a live chip per bound parameter.
+  // The saved profile row carries a live chip per bound parameter, and
+  // the pane with it selected shows the assembly it is placed in.
   const chipW = page.locator('input[aria-label="Parameters W Hanger profile"]');
   await expect(chipW).toBeVisible({ timeout: 20_000 });
   await expect(chipW).toHaveValue('42');
   for (const [key, value] of [['H', '28'], ['R', '3'], ['D', '6']]) {
     await expect(page.locator(`input[aria-label="Parameters ${key} Hanger profile"]`)).toHaveValue(value);
   }
+  await page.waitForTimeout(1200);
+  expect(await assemblyGeometry(page), 'Expected the placed profile pane to show geometry').not.toBe('');
 
-  // Selecting the row shows the assembly; driving the chip re-evaluates
-  // the profile geometry in it.
-  await page.locator('aside button:has(span.h-2\\.5)').filter({ hasText: 'Hanger profile' }).first().click();
-  await page.waitForTimeout(1500);
+  // Array position settings: the fields are the author's text.
+  await page.locator('aside button').filter({ hasText: /→|<-/ }).first().click();
+  const popup = page.locator('div.z-\\[120\\]').first();
+  await expect(popup).toBeVisible({ timeout: 15_000 });
+  await popup.locator('[aria-label="Placement"]').click();
+  await page.getByRole('option', { name: 'Edge array', exact: true }).click();
+  await page.waitForTimeout(400);
+  await popup.locator('[aria-label="Array rule"]').click();
+  await page.getByRole('option', { name: 'By spacing', exact: true }).click();
+  await page.waitForTimeout(600);
+
+  // Focusing a position field must not insert a token (label forwarding).
+  const spacingField = popup.locator('div[contenteditable]').filter({ hasText: '120' });
+  await spacingField.click();
+  await page.waitForTimeout(400);
+  expect(await arrayValueText(page), 'Expected the spacing field to keep its value on focus').toBe('120');
+
+  // Clearing and typing a zero stays the author's text.
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.press('Delete');
+  await page.waitForTimeout(300);
+  expect(await arrayValueText(page), 'Expected the cleared field to stay empty').toBe('');
+  await page.keyboard.type('0', { delay: 100 });
+  await page.waitForTimeout(300);
+  expect(await arrayValueText(page), 'Expected a typed zero to stay zero').toBe('0');
+  await popup.locator('button[aria-label="Close"]').click();
+  await page.waitForTimeout(800);
+
+  // Driving the chip re-evaluates the placed profile's geometry.
   const before = await assemblyGeometry(page);
   await chipW.click();
   await page.keyboard.press('ControlOrMeta+a');

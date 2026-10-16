@@ -336,6 +336,30 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(edgeIndexes).toEqual([0, 1, 3]);
   });
 
+  it('keeps authored array values untouched on the relation read', () => {
+    // An empty string or a zero is the author's text while typing, never
+    // a missing value: a falsy read rewrote the field with the default
+    // under the caret.
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      parameters: {},
+      sketch: createDefaultOccsProfileSketch()
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const edited = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayMode: 'spacing',
+      arraySpacing: '',
+      arrayEdge: 'E1'
+    });
+    const cleared = getCassetteV2WorkpieceRelations(edited)[0];
+    expect(cleared.arraySpacing).toBe('');
+    expect(cleared.arrayEdge).toBe('E1');
+    const zeroed = updateCassetteV2WorkpieceRelation(edited, relation.id, { arraySpacing: '0' });
+    expect(getCassetteV2WorkpieceRelations(zeroed)[0].arraySpacing).toBe('0');
+    expect(getCassetteV2WorkpieceRelations(zeroed)[0].arrayCount).toBe('1');
+  });
+
   it('rounds authored fillet corners in the cassette cut and the embedded boundary', async () => {
     // The default template carries its own corner fillets — a true
     // sharp baseline clears them.
