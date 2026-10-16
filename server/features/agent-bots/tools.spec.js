@@ -211,4 +211,21 @@ describe('definition tool authoring surface', () => {
         expect(result.bytes).toBeGreaterThan(16 * 1024);
         expect(result.preview.length).toBeLessThanOrEqual(4096);
     });
+
+    it('forwards the chat-run side channel — attach_instances accumulates refs inside a run', async () => {
+        mockedSupport.normalizeInstanceRefs.mockResolvedValue([
+            { type: 'cassette', id: 'c1', label: 'Cassette One' },
+            { type: 'sheet', id: 's1', label: 'Sheet One' }
+        ]);
+        const run = { instanceRefs: [] };
+        const result = await executeTool('attach_instances', { instances: [{ type: 'cassette', id: 'c1' }] }, AUTH, run);
+        expect(result).toEqual([
+            { type: 'cassette', id: 'c1', label: 'Cassette One' },
+            { type: 'sheet', id: 's1', label: 'Sheet One' }
+        ]);
+        expect(run.instanceRefs).toHaveLength(2);
+        // Without a run the tool states its real constraint.
+        await expect(executeTool('attach_instances', { instances: [{ type: 'cassette', id: 'c1' }] }, AUTH))
+            .rejects.toMatchObject({ statusCode: 400 });
+    });
 });

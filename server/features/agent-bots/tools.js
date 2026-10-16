@@ -597,9 +597,9 @@ export function chatToolDescriptors() {
     return TOOL_SPECS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
 }
 
-export async function executeTool(name, args, auth) {
+export async function executeTool(name, args, auth, run = null) {
     const spec = SPECS_BY_NAME.get(String(name || ''));
     if (!spec) throw createError({ statusCode: 400, message: `Unknown tool: ${name}` });
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Authentication required' });
-    return boundedToolResult(await spec.execute(args && typeof args === 'object' ? args : {}, auth));
+    return boundedToolResult(await spec.execute(args && typeof args === 'object' ? args : {}, auth, run));
 }
