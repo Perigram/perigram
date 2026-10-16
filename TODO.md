@@ -28,6 +28,13 @@ title + AI badge are the whole header) and the sparkles/AI-panel button
 (seating the AI is a group/instance-room action; the composer's model
 select pins an AI thread). Dead `support.backToChats` key removed.
 
+Session `agent/header-group-20261016`. The header's three controls are
+one joined PrimeVue input group (archive toggle · search · +) with
+margin below; the drawer close stays outside it. The composer's model
+select now shows in a draft AI thread too: the pick is local draft
+state that rides `createAgentChat` (`profile`/`model` on the created
+room's subscription row) when the first send materializes the room.
+
 ## Every new AI chat is a fresh thread (owner direction 2026-10-16)
 
 Picking the AI in the new-chat picker must not reopen the one eternal
