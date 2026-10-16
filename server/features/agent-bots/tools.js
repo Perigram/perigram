@@ -4,7 +4,7 @@ import * as supportService from '~/server/features/support/service.js';
 import { describeOrganizationTypes } from '~/server/features/cts-types/service.js';
 import { listRoles } from '~/server/features/organizations/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId } from '~/packages/processes/src/index.js';
+import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId, resolveCatalogNodePorts } from '~/packages/processes/src/index.js';
 
 /**
  * The agent tool catalog: one curated vocabulary over the existing service
@@ -63,21 +63,21 @@ const SERVER_OWNED_DATA_KEYS = ['compiled', 'history', 'activated'];
 // loop over the headless seam, the edit path, and the validation teacher.
 const AUTHORING_GUIDE = [
     '## Composing a process definition',
-    '1. This payload: palette item ids, node kinds, declaration types, value sockets.',
+    "1. This payload: palette item ids (bare — 'literal', 'construct', 'calculate', 'finish', ...), the org's roles, families, declaration types. Per-kind sockets: request {detail:'sockets'} — every kind's input/output socket ids with base types. Operation sockets: {detail:'valueOperations', kind}.",
     '2. compose_process_definition with ordered designer gestures:',
     "- {op:'declareClass', id, typeId, name} — declare a CTS class in-tree;",
-    "- {op:'declareTypeRef', id, typeId} — reference a registry type;",
-    "- {op:'declareField', id, ownerClassId, name, descriptor:{base}} — field on a class;",
+    "- {op:'declareTypeRef', id, typeId} — reference a registry type (ids from list_types);",
+    "- {op:'declareField', id, ownerClassId, name, descriptor:{base}} — field on a class; the name is a label in any script (the storage key derives from it automatically);",
     "- {op:'wireDeclaration', from, to, role} — declaration wire (from = child, to = parent; roles: declares, targets, children, binds);",
-    "- {op:'drop', item, id} — drop a palette item as a process node;",
+    "- {op:'drop', item, id} — drop a palette item as a process node (item = the bare palette id);",
     "- {op:'configure', id, values} — inspector writes (typeId, construction, access...);",
     "- lanes are role grants: an effect's lane IS its access — configure {access:{grants:[{roleId,level}]}}, levels read/write/admin, roleIds from the roles list in this payload; grantless effects land in the implicit lane;",
-    "- {op:'setInputDefault', id, input, value} — literal value on an input socket;",
-    "- {op:'connect', id, fromPort, to, toPort} — wire sockets (ports are 'data:<socketId>').",
+    "- {op:'setInputDefault', id, input, value} — literal value on an input socket (input = bare socket id);",
+    "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are bare socket ids or 'data:<socketId>' handles; both work.",
     'The first illegal gesture fails with the gate message — read it, fix, retry.',
     '3. validate_process_definition: its anchored diagnostics name exactly what to fix.',
     '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass.',
-    'Editing an existing definition: get_process_definition (compact digest: node ids, kinds, edges with socket ids) then edit_process_definition with the same gestures (drop, configure, setInputDefault, connect, declarations) — small payloads, no graph echo-back. Full document view only via get_process_definition {full: true}.'
+    'Editing an existing definition: get_process_definition (compact digest: node ids, kinds, edges as node:socket) then edit_process_definition with the same gestures (drop, configure, setInputDefault, connect, declarations) — small payloads, no graph echo-back. Full document view only via get_process_definition {full: true}.'
 ].join('\n');
 
 const authoringData = (data = {}) => Object.fromEntries(
@@ -241,11 +241,11 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_authoring_vocabulary',
-        description: 'The process authoring vocabulary, COMPACT by default: the compose/edit recipe (guide), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'nodeCatalog\' (every valid node kind with family and level) or detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind. A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Edge handles are \'data:<socketId>\'. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
+        description: 'The process authoring vocabulary, COMPACT by default: the compose/edit recipe (guide), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'sockets\' (every kind\'s input/output socket ids and base types — what connect addresses), detail: \'nodeCatalog\' (every valid node kind with family and level), or detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind. A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
         inputSchema: {
             type: 'object',
             properties: {
-                detail: { type: 'string', enum: ['nodeCatalog', 'valueOperations'] },
+                detail: { type: 'string', enum: ['nodeCatalog', 'valueOperations', 'sockets'] },
                 family: { type: 'string' },
                 kind: { type: 'string' }
             },
@@ -268,6 +268,36 @@ export const TOOL_SPECS = [
                     .filter(entry => !args.family || entry.family === args.family)
                     .filter(entry => !args.kind || entry.kind === args.kind);
                 return { ...(await compact()), roles: await roles(), nodeCatalog: entries };
+            }
+            if (args.detail === 'sockets') {
+                // The per-kind socket inventory off the catalog's own port
+                // resolution — the same ports the canvas renders. Kinds
+                // whose ports resolve only against a configured record are
+                // absent; the digest shows live sockets for dropped nodes.
+                const sockets = {};
+                for (const entry of Object.values(PROCESS_NODE_CATALOG)) {
+                    if (args.family && entry.family !== args.family) continue;
+                    if (args.kind && entry.kind !== args.kind) continue;
+                    let ports;
+                    try {
+                        ports = resolveCatalogNodePorts({ kind: entry.kind });
+                    } catch {
+                        continue;
+                    }
+                    const row = list => (list || []).map(socket => ({
+                        id: socket.id,
+                        base: socket.type?.base ?? null,
+                        ...(socket.role && socket.role !== 'data' ? { role: socket.role } : {}),
+                        ...(socket.access && socket.access !== 'item' ? { access: socket.access } : {}),
+                        ...(socket.multiple === true ? { multiple: true } : {})
+                    }));
+                    const inputs = row(ports.inputs);
+                    const outputs = row(ports.outputs);
+                    if (inputs.length || outputs.length) {
+                        sockets[entry.kind] = { ...(inputs.length ? { inputs } : {}), ...(outputs.length ? { outputs } : {}) };
+                    }
+                }
+                return { ...(await compact()), roles: await roles(), sockets };
             }
             if (args.detail === 'valueOperations') {
                 const valueOperations = {};

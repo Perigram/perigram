@@ -335,17 +335,6 @@ describe('runAssistantReply', () => {
         expect(sent.message).toBe('recovered');
     });
 
-    it('stops at the round budget with an honest notice', async () => {
-        mockedLlm.chatCompletion.mockResolvedValue({
-            content: '',
-            toolCalls: [{ id: 'c', name: 'list_types', arguments: {} }]
-        });
-        mockedTools.executeTool.mockResolvedValue({});
-        await runAssistantReply(target, context, message);
-        expect(mockedTools.executeTool).toHaveBeenCalledTimes(8);
-        expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toMatch(/budget/i);
-    });
-
     it('skips duplicate concurrent runs for the same conversation', async () => {
         mockedLlm.chatCompletion.mockImplementation(async () => {
             await new Promise((resolve) => setTimeout(resolve, 20));

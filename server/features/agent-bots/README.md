@@ -35,7 +35,9 @@ Three pieces share one tool catalog:
   list (the grant vocabulary the designer's
   [lanes](../../../components/process-designer/README.md) author through
   effect `access.grants`), node families, and the palette's droppable item
-  ids, COMPACT by default; the node catalog and typed value-operation
+  ids, COMPACT by default; the per-kind socket inventory (`detail:
+  'sockets'` — every kind's input/output socket ids, what `connect`
+  addresses), the node catalog, and typed value-operation
   sockets arrive on request through `detail` filters — one oversized
   vocabulary response must never evict the tools from a small model's
   context window), headless composition and editing
@@ -70,8 +72,10 @@ Three pieces share one tool catalog:
   that principal's grants. There are no bot tokens.
 - **Chat runtime** (`runtime.js`): registered by the `agent-bots` nitro
   plugin as a support message observer, it decides when the AI answers a
-  persisted message and drives a bounded tool-calling loop (max 8 rounds)
-  over the [LLM capability module](../llm/README.md) on the `chat`
+  persisted message and drives the tool-calling loop until the model
+  answers (owner direction 2026-10-16: no round budget) — the room's stop
+  control and the provider idle guard are the only terminators — over
+  the [LLM capability module](../llm/README.md) on the `chat`
   capability route. The run executes with the **triggering sender's**
   request-shaped auth (`buildPrincipalAuth` — the same construction the
   auth middleware produces), so every tool call enforces exactly what
