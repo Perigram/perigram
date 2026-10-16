@@ -329,7 +329,13 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
       center: hole.center.map(value => String(value)),
       diameter: String(hole.diameter)
     })),
-    modifiers: normalized.modifiers.map(modifier => ({ ...modifier }))
+    // vertexIndex: the modifier's slot in the section's vertex walk. Point
+    // ids are identity, not position — a merged sketch mints fresh ids —
+    // so the chain resolver cannot recover the slot from the id string.
+    modifiers: normalized.modifiers.map(modifier => {
+      const vertexIndex = vertexIds.indexOf(modifier.vertexId);
+      return vertexIndex >= 0 ? { ...modifier, vertexIndex } : { ...modifier };
+    })
   };
   const anchorPoint = normalized.anchors?.vertexId
     ? normalized.points.find(point => point.id === normalized.anchors.vertexId) || null
@@ -475,7 +481,9 @@ export const occProfileSectionChainedVertices = (section = {}, chordTolerance = 
   const radiusByIndex = new Map();
   for (const modifier of Array.isArray(section.modifiers) ? section.modifiers : []) {
     if (modifier?.type !== 'fillet') continue;
-    const index = Number(String(modifier.vertexId ?? '').slice(1));
+    const index = Number.isInteger(modifier.vertexIndex)
+      ? modifier.vertexIndex
+      : Number(String(modifier.vertexId ?? '').slice(1));
     const radius = Number(modifier.radius);
     if (Number.isInteger(index) && index >= 0 && index < vertices.length && Number.isFinite(radius) && radius > 0) {
       radiusByIndex.set(index, radius);

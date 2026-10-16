@@ -7,6 +7,12 @@ import { test, expect } from './fixtures.js';
 // read replaced empty or zero array values with the defaults — and a
 // selected profile previews the assembly it is placed in, never a blank
 // workpiece pane). Artifacts: .playwright/cassette-designer-parameters.png
+//
+// A fillet bound on a DRAWN corner must drive the placed profile too: the
+// drawn sketch's point ids are identity, not position, so the fillet
+// resolves by its vertex slot (an id parsed as an index dropped it and
+// the chip changed nothing). Artifact:
+// .playwright/cassette-designer-parameters-fillet.png
 
 const assemblyGeometry = (page) => page.locator('.designer-workspace__canvas').first()
   .evaluate(el => Array.from(el.querySelectorAll('path, line, polyline, circle, rect'))
@@ -125,6 +131,88 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
 
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-designer-parameters.png'
+  });
+  await app.expectCleanRuntime();
+});
+
+test('a fillet bound on a drawn corner drives the placed profile', async ({ app }) => {
+  test.setTimeout(240_000);
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
+  const page = app.page;
+  await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  await app.gotoClient(list.route);
+
+  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
+
+  await page.getByRole('button', { name: 'Add profile' }).click();
+  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const canvas = dialog.locator('div[role="application"]');
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  await page.waitForTimeout(2000);
+
+  // A hand-drawn closed quad: four corners, closed on the first.
+  await dialog.getByRole('button', { name: 'Clear canvas', exact: true }).click();
+  await page.waitForTimeout(500);
+  await dialog.getByRole('button', { name: 'Line', exact: true }).click();
+  await page.waitForTimeout(300);
+  const box = await canvas.boundingBox();
+  const at = (fx, fy) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy });
+  const corners = [[0.4, 0.4], [0.62, 0.42], [0.6, 0.64], [0.38, 0.62]];
+  for (const [fx, fy] of corners) {
+    const point = at(fx, fy);
+    await page.mouse.click(point.x, point.y);
+    await page.waitForTimeout(250);
+  }
+  const first = at(corners[0][0], corners[0][1]);
+  await page.mouse.click(first.x, first.y);
+  await page.waitForTimeout(250);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(400);
+  await dialog.getByRole('button', { name: 'Select', exact: true }).click();
+  await page.waitForTimeout(500);
+
+  // Bind the first corner's fillet to a fresh parameter.
+  await page.mouse.click(first.x, first.y);
+  const fillet = dialog.locator('input[aria-label^="Fillet radius"]').first();
+  await expect(fillet).toBeVisible({ timeout: 10_000 });
+  await fillet.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await fillet.pressSequentially('A', { delay: 80 });
+  await fillet.press('Enter');
+  await page.waitForTimeout(600);
+
+  const paramA = dialog.locator('input[aria-label="A"]').first();
+  await paramA.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await paramA.pressSequentially('1', { delay: 80 });
+  await paramA.press('Enter');
+  await page.waitForTimeout(600);
+
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+
+  const chipA = page.locator('input[aria-label^="Parameters A "]').first();
+  await expect(chipA).toBeVisible({ timeout: 20_000 });
+  await expect(chipA).toHaveValue('1');
+  await page.waitForTimeout(1200);
+
+  // Driving the chip re-rounds the drawn corner.
+  const before = await assemblyGeometry(page);
+  expect(before, 'Expected the placed drawn profile to show geometry').not.toBe('');
+  await chipA.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await chipA.pressSequentially('2.5', { delay: 80 });
+  await chipA.press('Enter');
+  await page.waitForTimeout(1500);
+  const after = await assemblyGeometry(page);
+  expect(after, 'Expected the fillet chip to re-round the drawn profile').not.toBe(before);
+  await expect(chipA).toHaveValue('2.5');
+
+  await page.locator('.designer-workspace__canvas').first().screenshot({
+    path: '.playwright/cassette-designer-parameters-fillet.png'
   });
   await app.expectCleanRuntime();
 });
