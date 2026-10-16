@@ -2537,8 +2537,16 @@ const conversationQuery = (extra = {}) => {
 
 const loadConversation = async () => {
     if (!activeConversation.value) return
+    const conversation = activeConversation.value
     const token = ++conversationLoadToken
-    messages.value = []
+    // Only a conversation switch clears first; a refresh of the same room
+    // keeps the rendered page until the snapshot replaces it, so refetches
+    // (dialog toggle, hot remount, instance refresh) and failed fetches
+    // never blank the transcript.
+    if (messages.value[0]?.conversationKey !== conversation.conversationKey) {
+        messages.value = []
+        hasMoreMessages.value = false
+    }
     try {
         const snapshot = await $fetch('/api/support/messages', {
             query: conversationQuery({ limit: MESSAGES_PAGE_SIZE })
