@@ -3376,6 +3376,8 @@
     },
     "llm": {
         "provider": "ИИ-провайдер",
+        "providerZai": "Z.AI GLM (coding-план)",
+        "apiKeyZai": "API-ключ coding-плана",
         "providerOpenAiShaped": "OpenAI-совместимый (локальный)",
         "baseUrl": "Базовый URL сервера",
         "model": "Модель",

@@ -3376,6 +3376,8 @@
     },
     "llm": {
         "provider": "AI provider",
+        "providerZai": "Z.AI GLM (coding plan)",
+        "apiKeyZai": "Coding plan API key",
         "providerOpenAiShaped": "OpenAI-shaped (local)",
         "baseUrl": "Server base URL",
         "model": "Model",

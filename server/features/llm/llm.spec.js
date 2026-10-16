@@ -19,7 +19,7 @@ vi.mock('h3', () => ({
     })
 }));
 
-import { resolveLlmConfig, chatCompletion, streamChatCompletion } from './service.js';
+import { resolveLlmConfig, chatCompletion, streamChatCompletion, listEndpointModels } from './service.js';
 
 const fetchMock = vi.fn();
 
@@ -120,6 +120,19 @@ describe('resolveLlmConfig', () => {
             } } }
         });
         expect(await resolveLlmConfig('org-1')).toEqual({ provider: 'none' });
+    });
+});
+
+describe('listEndpointModels', () => {
+    it('surfaces a gateway error envelope instead of an empty listing', async () => {
+        fetchMock.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ code: 1001, msg: 'Authentication parameter not received in Header, unable to authenticate', success: false })
+        });
+        await expect(listEndpointModels({ organizationId: 'org-1' }, {
+            provider: 'anthropic',
+            baseUrl: 'https://api.z.ai/api/anthropic'
+        })).rejects.toThrow('Authentication parameter not received');
     });
 });
 

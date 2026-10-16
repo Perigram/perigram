@@ -118,6 +118,8 @@
           class="w-full"
           :placeholder="$t('llm.baseUrl')"
           :aria-label="$t('llm.baseUrl')"
+          data-testid="llm-profile-baseurl"
+          :disabled="Boolean(PRESETS[profileForm.provider])"
         />
         <div class="flex items-center gap-2">
           <Select
@@ -145,7 +147,7 @@
         <Password
           v-model="profileForm.apiKey"
           :feedback="false"
-          :placeholder="profileForm.apiKeySet ? $t('llm.apiKeySet') : $t('llm.apiKey')"
+          :placeholder="profileForm.apiKeySet ? $t('llm.apiKeySet') : (PRESETS[profileForm.provider] ? $t('llm.apiKeyZai') : $t('llm.apiKey'))"
           :aria-label="$t('llm.apiKey')"
           input-class="w-full"
         />
@@ -165,7 +167,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
@@ -211,11 +213,28 @@ const kindOptions = computed(() => ([
     { label: t('llm.kindChat'), value: 'chat' },
     { label: t('llm.kindImage'), value: 'image' }
 ]));
+// Known providers are login options: the platform owns their endpoint and
+// dialect, the admin pastes only a key. The stored profile keeps the wire
+// truth (provider dialect + baseUrl); the preset is a UI-level identity.
+const ZAI_PRESET = { provider: 'anthropic', baseUrl: 'https://api.z.ai/api/anthropic', models: ['glm-4.7', 'glm-4.6'] };
+const PRESETS = { zai: ZAI_PRESET };
+const wireProvider = (provider) => PRESETS[provider]?.provider || provider;
+const presetOf = (profile) => Object.entries(PRESETS)
+    .find(([, preset]) => profile.provider === preset.provider && profile.baseUrl === preset.baseUrl)?.[0] || profile.provider;
 const providerOptions = computed(() => ([
+    { label: t('llm.providerZai'), value: 'zai' },
     { label: 'Ollama', value: 'ollama' },
     { label: 'Anthropic Messages', value: 'anthropic' },
     { label: t('llm.providerOpenAiShaped'), value: 'openai' }
 ]));
+watch(() => profileForm.provider, (provider) => {
+    const preset = PRESETS[provider];
+    if (preset) {
+        profileForm.baseUrl = preset.baseUrl;
+        endpointModels.value = preset.models.map(id => ({ id }));
+        if (!profileForm.model) profileForm.model = preset.models[0];
+    }
+});
 const chatRouteOptions = computed(() => ([
     { label: t('llm.envDefault'), value: '' },
     ...profiles.value.filter(profile => profile.kind === 'chat').map(profile => ({ label: profile.id, value: profile.id }))
@@ -243,7 +262,7 @@ function editProfile(profile) {
     Object.assign(profileForm, profile ? {
         id: profile.id,
         kind: profile.kind,
-        provider: profile.provider,
+        provider: presetOf(profile),
         baseUrl: profile.baseUrl,
         model: profile.model,
         apiKey: '',
@@ -264,9 +283,10 @@ function removeProfile(profile) {
 async function saveProfile() {
     savingProvider.value = true;
     try {
+        const form = { ...profileForm, provider: wireProvider(profileForm.provider) };
         const next = profileEditingExisting.value
-            ? profiles.value.map(item => (item.id === profileForm.id ? { ...item, ...profileForm } : item))
-            : [...profiles.value, { ...profileForm }];
+            ? profiles.value.map(item => (item.id === form.id ? { ...item, ...form } : item))
+            : [...profiles.value, form];
         settings.value = await $fetch('/api/llm/settings', {
             method: 'PUT',
             body: { profiles: next, routes }
@@ -320,7 +340,7 @@ async function loadEndpointModels() {
         const response = await $fetch('/api/llm/models', {
             method: 'POST',
             body: {
-                provider: profileForm.provider,
+                provider: wireProvider(profileForm.provider),
                 baseUrl: profileForm.baseUrl,
                 ...(profileForm.apiKey ? { apiKey: profileForm.apiKey } : {}),
                 ...(profileEditingExisting.value ? { profileId: profileForm.id } : {})

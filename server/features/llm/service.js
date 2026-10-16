@@ -326,6 +326,13 @@ async function probeEndpointModels(provider, baseUrl, apiKey) {
                 continue;
             }
             const payload = await response.json().catch(() => null);
+            // Gateways that answer errors with HTTP 200 envelopes (Z.AI's
+            // {success:false, code, msg}) surface their own message — a
+            // masked auth failure must not read as an empty listing.
+            if (payload && payload.success === false && typeof payload.msg === 'string') {
+                attempts.push(`${url}: ${payload.msg}`);
+                continue;
+            }
             const models = endpointModelIds(payload);
             if (models.length) return { models, endpoint: url };
             attempts.push(`${url}: empty`);
