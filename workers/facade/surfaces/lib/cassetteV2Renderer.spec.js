@@ -11,6 +11,7 @@ import {
   buildCassetteV2IncrementalDrawing,
   buildCassetteV2TrapezoidTreeCurves,
   buildCassetteV2WorkpieceTopology,
+  cassetteV2AttachableProfileEdgesForTree,
   cassetteV2LayerPanelRows,
   collectCassetteV2ExpressionIdentifiers,
   composeCassetteV2NodiGraph,
@@ -334,6 +335,89 @@ describe('cassette v2 trapezoid renderer', () => {
       .filter(edge => edge.nodeId === 'face_1')
       .map(edge => edge.edgeIndex);
     expect(edgeIndexes).toEqual([0, 1, 3]);
+  });
+
+  it('offers only arrangeable edges: folds and profile-arranged edges are excluded', () => {
+    // A face grown on E0 folds there; a profile arranged on E2 consumes
+    // it. Only E1 and E3 may carry a profile.
+    const initialTree = createCassetteV2GraphTree();
+    const grown = addCassetteV2GraphChild(initialTree, 'face_1', 0).tree;
+    expect(cassetteV2AttachableProfileEdgesForTree(grown, 'face_1')).toEqual(['E1', 'E2', 'E3']);
+
+    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const added = addCassetteV2ProfileWorkpiece(grown, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Open strip',
+      parameters: open.parameters,
+      occsProfile: occsProfileFromSketch(open),
+      sketch: open
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const arranged = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E2',
+      arrayMode: 'count',
+      arrayCount: '1'
+    });
+    expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_1')).toEqual(['E1', 'E3']);
+    // The fold eats an edge on both faces (the existing folded-edge law):
+    // the child's attach edge is not arrangeable either.
+    expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_2')).toEqual(['E1', 'E2', 'E3']);
+  });
+
+  it('refuses a profile arranged on a fold edge instead of embedding or cutting', async () => {
+    const initialTree = createCassetteV2GraphTree();
+    const grown = addCassetteV2GraphChild(initialTree, 'face_1', 0).tree;
+    const cleanFace = (await renderCassetteV2TreeToDrawing(grown, { mode: 'assembly' }))
+      .designerFaces.find(face => face.nodeId === 'face_1');
+
+    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const added = addCassetteV2ProfileWorkpiece(grown, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Open strip',
+      parameters: open.parameters,
+      occsProfile: occsProfileFromSketch(open),
+      sketch: open
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const onFold = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E0',
+      arrayMode: 'count',
+      arrayCount: '1'
+    });
+    const drawing = await renderCassetteV2TreeToDrawing(onFold, { mode: 'assembly' });
+    expect(drawing.profileEmbeddingErrors).toEqual([
+      { relationId: expect.any(String), reason: 'fold-edge' }
+    ]);
+    // The fold edge is never spliced: the outline stays the authored one.
+    const face = drawing.designerFaces.find(item => item.nodeId === 'face_1');
+    expect(face.d).toBe(cleanFace.d);
+
+    // A closed section arranged on the fold is refused the same way —
+    // no cut entity lands on the fold line.
+    const closed = addCassetteV2ProfileWorkpiece(grown, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger cut',
+      sketch: createDefaultOccsProfileSketch()
+    });
+    const closedRelation = getCassetteV2WorkpieceRelations(closed.tree)
+      .find(item => item.sourceWorkpieceId === closed.workpieceId);
+    const cutOnFold = updateCassetteV2WorkpieceRelation(closed.tree, closedRelation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E0',
+      arrayMode: 'count',
+      arrayCount: '1'
+    });
+    const cutDrawing = await renderCassetteV2TreeToDrawing(cutOnFold, { mode: 'assembly' });
+    expect(cutDrawing.profileEmbeddingErrors).toEqual([
+      { relationId: expect.any(String), reason: 'fold-edge' }
+    ]);
+    const cutInner = cutDrawing.layers.find(layer => layer.name === 'cut.inner');
+    expect(cutInner?.paths.length || 0).toBe(0);
   });
 
   it('keeps authored array values untouched on the relation read', () => {
