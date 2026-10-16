@@ -24,7 +24,8 @@ New writes always persist
 `message`, `instanceRefs`, `timestamp`, and optionally `attachments` (see
 [Message Attachments](#message-attachments)), `forwardedFrom` (see
 [Forwarding](#forwarding)), or `agent` — the bot runtime's run
-provenance (`{ thinking, tools }`), server-authored through the service
+provenance (`{ steps }` — the run's chronology of reasoning segments and
+tool invocations), server-authored through the service
 seam and stripped from client-posted bodies.
 
 ### Inbox Preferences and Read Marks
