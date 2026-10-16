@@ -58,6 +58,26 @@ function instanceRow(dto) {
 // megabytes, which no model can echo back through a full-replace save.
 const SERVER_OWNED_DATA_KEYS = ['compiled', 'history', 'activated'];
 
+// The bot-facing authoring recipe served with the vocabulary: the compose
+// loop over the headless seam, the edit path, and the validation teacher.
+const AUTHORING_GUIDE = [
+    '## Composing a process definition',
+    '1. This payload: palette item ids, node kinds, declaration types, value sockets.',
+    '2. compose_process_definition with ordered designer gestures:',
+    "- {op:'declareClass', id, typeId, name} — declare a CTS class in-tree;",
+    "- {op:'declareTypeRef', id, typeId} — reference a registry type;",
+    "- {op:'declareField', id, ownerClassId, name, descriptor:{base}} — field on a class;",
+    "- {op:'wireDeclaration', from, to, role} — declaration wire (from = child, to = parent; roles: declares, targets, children, binds);",
+    "- {op:'drop', item, id} — drop a palette item as a process node;",
+    "- {op:'configure', id, values} — inspector writes (typeId, construction, access...);",
+    "- {op:'setInputDefault', id, input, value} — literal value on an input socket;",
+    "- {op:'connect', id, fromPort, to, toPort} — wire sockets (ports are 'data:<socketId>').",
+    'The first illegal gesture fails with the gate message — read it, fix, retry.',
+    '3. validate_process_definition: its anchored diagnostics name exactly what to fix.',
+    '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass.',
+    'Editing an existing definition instead: get_process_definition, then update_definition_graph (nodes, wires, values).'
+].join('\n');
+
 const authoringData = (data = {}) => Object.fromEntries(
     Object.entries(data || {}).filter(([key]) => !SERVER_OWNED_DATA_KEYS.includes(key))
 );
@@ -170,7 +190,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_authoring_vocabulary',
-        description: 'The process authoring vocabulary, straight off the designer\'s palette: palette groups (what to drop), the node catalog (every valid node kind with family and level — a processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind), the value operations with typed input sockets and output, and the declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners). Edge handles are \'data:<socketId>\'. Compose by mimicking get_process_definition\'s node, record, and edge shapes; validate_process_definition\'s anchored diagnostics are the authoring teacher — validate, fix, repeat, then activate.',
+        description: 'The process authoring vocabulary and guide, straight off the designer\'s palette: the compose recipe (guide), palette groups (what to drop), the node catalog (every valid node kind with family and level — a processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind), the value operations with typed input sockets and output, and the declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners). Edge handles are \'data:<socketId>\'. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + update_definition_graph; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
         execute: async () => {
             const valueOperations = {};
@@ -184,12 +204,57 @@ export const TOOL_SPECS = [
                 }
             }
             return {
+                guide: AUTHORING_GUIDE,
                 palette: PROCESS_DESIGNER_PALETTE_GROUPS,
                 declarationNodeTypes: [...DECLARATION_NODE_TYPES],
                 nodeCatalog: PROCESS_NODE_CATALOG,
                 families: [...PROCESS_NODE_FAMILIES],
                 valueOperations
             };
+        }
+    },
+    {
+        name: 'compose_process_definition',
+        description: 'Composes a NEW process definition draft through the same headless authoring seam the visual designer drives — each step is a designer gesture carrying the same legality gates, so nothing illegal can be composed. Steps run in order; the first failing step stops the compose with its gate message. Then validate_process_definition (its anchored diagnostics name what to fix), and activate_process_definition. Editing an existing definition instead: get_process_definition then update_definition_graph.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                name: { type: 'string' },
+                steps: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            op: { type: 'string', enum: ['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration', 'drop', 'configure', 'setInputDefault', 'connect'] },
+                            id: { type: 'string' },
+                            typeId: { type: 'string' },
+                            name: { type: 'string' },
+                            class: { type: 'string' },
+                            ownerClassId: { type: 'string' },
+                            descriptor: { type: 'object' },
+                            from: { type: 'string' },
+                            to: { type: 'string' },
+                            role: { type: 'string' },
+                            item: { type: 'string' },
+                            values: { type: 'object' },
+                            input: { type: 'string' },
+                            value: {},
+                            fromPort: { type: 'string' },
+                            toPort: { type: 'string' }
+                        },
+                        required: ['op'],
+                        additionalProperties: false
+                    }
+                }
+            },
+            required: ['name', 'steps'],
+            additionalProperties: false
+        },
+        execute: async (args, auth) => {
+            return await processDefinitionsService.composeDefinition(
+                { name: requireString(args.name, 'name'), steps: Array.isArray(args.steps) ? args.steps : [] },
+                auth
+            );
         }
     },
     {

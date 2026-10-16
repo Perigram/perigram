@@ -14,7 +14,8 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry } =
         validate: vi.fn(),
         activate: vi.fn(),
         deactivate: vi.fn(),
-        executeActiveProcessAction: vi.fn()
+        executeActiveProcessAction: vi.fn(),
+        composeDefinition: vi.fn()
     },
     mockedSupport: { normalizeInstanceRefs: vi.fn() },
     mockedTypes: { describeOrganizationTypes: vi.fn() },
@@ -116,5 +117,26 @@ describe('definition tool authoring surface', () => {
         const math = vocabulary.valueOperations['value.math'] || {};
         const firstMath = math[Object.keys(math)[0]];
         expect(Array.isArray(firstMath?.inputs)).toBe(true);
+        expect(vocabulary.guide).toContain('compose_process_definition');
+        expect(vocabulary.guide).toContain('wireDeclaration');
+    });
+
+    it('composes definitions through the headless seam with the caller\'s auth', async () => {
+        mockedProcessDefinitions.composeDefinition.mockResolvedValueOnce({ _id: 'process-new', states: { main: 'DRAFT' } });
+        const result = await executeTool('compose_process_definition', {
+            name: 'Composed',
+            steps: [
+                { op: 'declareClass', id: 'cls_a', typeId: 't-x', name: 'A' },
+                { op: 'drop', item: 'construct', id: 'node_b' }
+            ]
+        }, AUTH);
+        expect(mockedProcessDefinitions.composeDefinition).toHaveBeenCalledWith({
+            name: 'Composed',
+            steps: [
+                { op: 'declareClass', id: 'cls_a', typeId: 't-x', name: 'A' },
+                { op: 'drop', item: 'construct', id: 'node_b' }
+            ]
+        }, AUTH);
+        expect(result._id).toBe('process-new');
     });
 });

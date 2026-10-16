@@ -2111,6 +2111,51 @@ function getDomain() {
   return composePackDomains();
 }
 
+/**
+ * Headless composition (agent authoring): applies the designer's own
+ * gestures — the same seam the designer shell drives, with the same
+ * legality gates — in order onto a fresh document and persists the
+ * draft. The first failing gesture stops the compose with its gate
+ * message; the step grammar mirrors the seam one-to-one.
+ */
+export async function composeDefinition({ name = '', steps = [] } = {}, auth) {
+  const organizationId = resolveOrganizationId(auth);
+  await assertOrgAccess(auth, organizationId, 'write');
+  const domain = await getProjectedDomain(organizationId);
+  const authoring = createDefinitionAuthoring(domain);
+  const applied = [];
+  const list = Array.isArray(steps) ? steps : [];
+  for (const [index, step] of list.entries()) {
+    const op = String(step?.op || '');
+    const id = String(step?.id || '');
+    try {
+      if (op === 'declareClass') {
+        authoring.declareClass({ id, typeId: String(step.typeId || ''), name: step.name, class: step.class });
+      } else if (op === 'declareTypeRef') {
+        authoring.declareTypeRef({ id, typeId: String(step.typeId || '') });
+      } else if (op === 'declareField') {
+        authoring.declareField({ id, ownerClassId: String(step.ownerClassId || ''), name: step.name, descriptor: step.descriptor });
+      } else if (op === 'wireDeclaration') {
+        authoring.wireDeclaration(String(step.from || ''), String(step.to || ''), String(step.role || ''));
+      } else if (op === 'drop') {
+        authoring.drop(String(step.item || ''), { id });
+      } else if (op === 'configure') {
+        authoring.configure(id, step.values && typeof step.values === 'object' ? step.values : {});
+      } else if (op === 'setInputDefault') {
+        authoring.setInputDefault(id, String(step.input || ''), step.value ?? null);
+      } else if (op === 'connect') {
+        authoring.connect(id, String(step.fromPort || ''), String(step.to || ''), String(step.toPort || ''));
+      } else {
+        throw new Error(`Unknown authoring step: ${op || '(none)'}`);
+      }
+    } catch (error) {
+      throw createError({ statusCode: 400, message: `Step ${index + 1} (${op}) failed: ${error?.message || error}` });
+    }
+    applied.push(op);
+  }
+  return await create({ name, data: authoring.definition() }, auth);
+}
+
 // The compiler consumes the CTS-projected domain: strangler-converted system
 // declarations plus the organization's authored types (cts_types). A broken
 // stored type fails loudly here rather than silently compiling without it.
