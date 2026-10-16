@@ -1,5 +1,50 @@
 # TODO
 
+## Children wires land child-first; auth hydration bypass net actually catches (owner direction 2026-10-16)
+
+Two owner reports in one session. (1) Class containment wires were landed
+parent-first (a containment wire always left the parent's output into the
+child's declare input); the owner's contract is the opposite — the child
+sits left, its output wires into the parent's input. (2) The live org was
+bricked: every authenticated request 500ed with `Edge … references
+missing input data:fields.alias` — a field renamed in the registry while
+the definition's activated snapshot still wired it, and the auth
+hydration bypass net (`getActiveCompiledProcess`) called its async
+compile without `await`, so the rejection escaped the catch that existed
+to swallow exactly this.
+
+- [ ] WAITING — owner verification on the live stack: dragging a class or
+  type card onto/into a parenting class lands one wire leaving the
+  CHILD's right-side output into the PARENT's left-side input, either
+  drag direction; a stored pre-flip draft loads already flipped.
+- [ ] WAITING — owner verification on the live stack: Apply re-activated
+  the poisoned org definition (the operator ran the activation through
+  the real API); auth hydration serves the process contract again and
+  the app loads.
+
+#### Agent Notes (2026-10-16)
+
+Session `agent/children-wire-child-first-20261016`. The direction flip is
+one contract across every reader: `orientChildrenWire` (both-can-parent
+now means the dragged source is the child), `declarationWireLegality`
+(source = child class/type card, target = parent class),
+`declarationsFromCtsRecords` (parent from `edge.target`), the onConnect
+landing in `pages/organization/process.vue`, and the authoring seam
+(`wireDeclaration(childId, parentId, 'children')` — e2e fixtures and
+test-data callers flipped with it). Stored graphs heal through
+`orientChildrenEdgesChildFirst` (packages/cts graph-protocol, same family
+as `rewriteRetiredWirePaths`): the edge's `data.key` names the child
+type, so the flip is deterministic and idempotent; it runs at the
+acceptance seam (`resolveCtsDefinition`), the save boundary
+(`persistedRewrites`), the draft overlay, and the designer's load
+projection (`definitionToCanvas`). The cts README's
+`rewriteRetiredNameInputs` mention was stale (the surgery generalized
+into `rewriteRetiredWirePaths`) — corrected in the same doc pass. The
+auth net fix is one `await`; pinned by a runtime spec that would reject
+(before the fix) exactly like the live brick. Pre-existing red suites
+(process-definitions 26, incl. retired `effect.createEntity` fixtures and
+mongo-connect specs) verified byte-identical against the baseline.
+
 ## The organization AI replaces created bots (owner direction 2026-10-16)
 
 No more chatting with admin-created bot members. The organization has one

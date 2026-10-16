@@ -9,7 +9,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { prepareAuthoredDefinition } from '~/packages/processes/src/index.js';
-import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, projectDomainFromView } from '~/packages/cts/src/index.js';
+import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, orientChildrenEdgesChildFirst, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 
 // A draft carries its own declarations: `ctsTypes` records author types
@@ -25,10 +25,11 @@ export function declarationOverlayDomain(data = {}, domain = {}) {
   // Transition-node-declared target statuses ride the process records:
   // the overlay must know them or a draft binding check would refuse the
   // very target the transition node authors.
+  const healed = orientChildrenEdgesChildFirst(data);
   const declarations = declarationsFromCtsRecords(
-    data?.ctsTypes || {},
-    data?.processNodes || {},
-    data?.graph || {}
+    healed?.ctsTypes || {},
+    healed?.processNodes || {},
+    healed?.graph || {}
   );
   if (!declarations.length) return domain;
   // The overlay projects the draft's declarations TOGETHER with the

@@ -192,11 +192,16 @@ module layout and how the code maps to the spec's build-order tiers.
   answers the record's own kind — classification never translates between
   vocabularies (the v4 twin table is gone with the retired kinds).
   `declarationsFromCtsRecords` receives the declaration graph as well as
-  records, so nested state and edge acceptance matches what APPLY posts.
-  `rewriteRetiredNameInputs` is the one-way surgery for the retired
-  hardcoded Name construction input: persisted drafts lose their `name`
-  input entries, `name` socket defaults, and edges into the retired
-  `data:name` handle here (and at the save-boundary persisted rewrites).
+  records, so nested state and edge acceptance matches what APPLY posts:
+  a children wire is child-first — its source is the child (an in-tree
+  class or a type-reference card), its target the parent class record.
+  `rewriteRetiredWirePaths` is the one-way seam rewrite for retired wire
+  vocabulary: persisted drafts adopt current row paths, edge handles,
+  and input-default keys here (and at the save-boundary persisted
+  rewrites). `orientChildrenEdgesChildFirst` is the same-family heal for
+  the children-wire direction: graphs persisted before the child-first
+  contract flip at the same seams (acceptance, save, and the designer's
+  load projection), keyed by the edge's `data.key` (`${childTypeId}s`).
   Authored definitions speak the current species vocabulary only: there is
   no v4 rewrite at any seam and no runtime fallback vocabulary.
   `renameLegacyTypeKeys` remains a pure key rewriter exported for the

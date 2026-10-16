@@ -1,3 +1,5 @@
+import { orientChildrenEdgesChildFirst } from '../../cts/src/index.js';
+
 const CANVAS_RECORD_KEYS = {
   entity: 'producerOutputs',
   action: 'actions',
@@ -41,7 +43,10 @@ export function hasCanonicalProcessSource(definition = {}) {
 }
 
 export function definitionToCanvas(definition = {}) {
-  const process = normalizeProcessLike(definition);
+  // Stored children edges heal to the child-first direction at the load
+  // projection, so the canvas never displays the retired parent-first
+  // wire (the same heal the acceptance and save seams apply).
+  const process = orientChildrenEdgesChildFirst(normalizeProcessLike(definition));
   assertEditableSource(process);
 
   const projectedNodes = projectRecordNodes(process);

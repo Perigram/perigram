@@ -45,7 +45,9 @@ export async function getActiveCompiledProcess(organizationId) {
   // degrade to "no active process" with a loud log — the organization
   // re-activates processes authored against the current view.
   try {
-    return compileActiveProcessRuntime(data, organization?.roles || {}, organizationId);
+    // Awaited: an un-awaited async rejection escapes this catch — the exact
+    // auth brick this net exists to prevent.
+    return await compileActiveProcessRuntime(data, organization?.roles || {}, organizationId);
   } catch (error) {
     console.warn(`[process-definitions] active process for ${organizationId} no longer compiles and was bypassed: ${error?.message || error}`);
     return null;

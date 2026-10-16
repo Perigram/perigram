@@ -212,11 +212,11 @@ export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'cts
 
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
-  // Children edges accept type-reference targets beside in-tree classes:
-  // an org type's containment may name pack and other registry types
-  // (SPEC §6 — the child edge's type list is not restricted to in-tree
-  // declarations), the same freedom ref-field targets already have.
-  if (sourceType === 'ctsClass' && (targetType === 'ctsClass' || targetType === 'ctsType')) return 'children';  // A state wired into a state input becomes that state's child: the wire's
+  // Children edges land child-first: the source is the child (an in-tree
+  // class or a type-reference card naming a registry type — SPEC §6, the
+  // child edge's type list is not restricted to in-tree declarations),
+  // the target the parent class.
+  if ((sourceType === 'ctsClass' || sourceType === 'ctsType') && targetType === 'ctsClass') return 'children';  // A state wired into a state input becomes that state's child: the wire's
   // source is the parent, the target (receiving state) the child (SPEC §7).
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'nested';
   // A state wires into a status-bearing operation's state socket: the
@@ -253,12 +253,13 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
 // declare children (SPEC §5 — type-reference cards and file/party classes
 // never parent). When exactly one end can parent, the wire orients itself
 // there — the drag direction is ceremony, not meaning; when both ends
-// could parent, the drag direction is the author's choice (source =
-// parent). `ok: false` means no orientation is legal.
+// could parent, the drag direction is the author's choice (target =
+// parent, the wire leaves the dragged child). `ok: false` means no
+// orientation is legal.
 export function orientChildrenWire({ source = {}, target = {} } = {}) {
   const sourceCanParent = source.type === 'ctsClass' && classMayDeclareChildren(source.class);
   const targetCanParent = target.type === 'ctsClass' && classMayDeclareChildren(target.class);
-  if (targetCanParent && !sourceCanParent) return { ok: true, parent: 'target' };
+  if (targetCanParent) return { ok: true, parent: 'target' };
   if (sourceCanParent) return { ok: true, parent: 'source' };
   return { ok: false };
 }
@@ -267,7 +268,8 @@ export function orientChildrenWire({ source = {}, target = {} } = {}) {
 // tree): class nodes with wired field/state nodes become registry
 // declarations; a state wired into a state nests under its parent
 // (`parent.child`, nested machines); class-to-class wires are children
-// edges with onRemove; transitions are declared by transition nodes
+// edges with onRemove, landing child-first (source = child); transitions
+// are declared by transition nodes
 // only. Pure over the
 // canvas arrays and the bound process-node records — the page supplies
 // nodes/edges/records, the server re-validates through the real registry.
@@ -351,8 +353,8 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
       if (source.id === target.id) diagnostics.push(`state ${labelOf(source)} cannot nest under itself`);
     }
     if (edge.label === 'children' && source.type === 'ctsClass' && target.type === 'ctsClass'
-      && !classMayDeclareChildren(source.data?.class)) {
-      diagnostics.push(`class ${labelOf(source)} (${source.data.class}): ${source.data.class} classes may not declare lineage children — containment belongs to item, group, or process classes`);
+      && !classMayDeclareChildren(target.data?.class)) {
+      diagnostics.push(`class ${labelOf(target)} (${target.data.class}): ${target.data.class} classes may not declare lineage children — containment belongs to item, group, or process classes`);
     }
   }
 
@@ -476,7 +478,7 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
 }
 
 // Declarations post in dependency order: a declaration referencing another
-// in-tree type (children edge target, ref-field accepts) comes AFTER its
+// in-tree type (children edge source, ref-field accepts) comes AFTER its
 // references, so one apply can introduce a parent and its child together —
 // the registry compiles cross-references only against stored and already
 // posted types. Cycles fall back to node order; the registry's own compile

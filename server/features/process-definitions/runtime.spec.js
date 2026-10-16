@@ -199,4 +199,27 @@ describe('process runtime auth hydration', () => {
     expect(auth.roleAssignments.roleIds).toEqual([]);
     expect(auth.effectivePermissions).toEqual({});
   });
+
+  it('bypasses an active set that no longer compiles instead of throwing', async () => {
+    // Regression: the bypass net called the async compile without await,
+    // so the rejection escaped the catch and bricked every authenticated
+    // request of the organization (live incident: a dangling data edge in
+    // an activated snapshot, field since renamed).
+    const fixture = createPersistedAcceptanceFixture();
+    const poisoned = {
+      ...fixture.processDefinition,
+      data: {
+        ...structuredClone(fixture.processDefinition.data),
+        processNodes: {
+          ...fixture.processDefinition.data.processNodes,
+          broken_command: { id: 'broken_command', kind: 'cts.command', commandId: 'nope' }
+        }
+      }
+    };
+    repository.findActiveByOrganization.mockResolvedValue(poisoned);
+    repository.findActiveSetByOrganization.mockResolvedValue([poisoned]);
+    mocks.organizationService.getProcessConfiguration.mockResolvedValue({ roles: fixture.roles, roleAssignments: {} });
+
+    await expect(resolveProcessAuth({ userId: 'user_1', organizationId: 'org_1', memberships: [{ organizationId: 'org_1', status: 'active', permissions: {} }] })).resolves.toBeTruthy();
+  });
 });
