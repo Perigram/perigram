@@ -278,6 +278,40 @@ describe('OCCS profile helpers', () => {
     expect(section.breakPoints).toHaveLength(2);
   });
 
+  it('keeps global-bound authoring through the extraction merge', () => {
+    // The sketch's fields read an identifier the surrounding scope
+    // defines (a cassette global): the merge's evaluation joins that
+    // scope, so the bindings survive — without it the fallback replaced
+    // the whole authoring with the plain numeric extraction.
+    const authored = normalizeOccsProfileSketch({
+      parameters: { G: 'LEN' },
+      points: [
+        { id: 'a0', x: 0, y: 0 },
+        { id: 'a1', x: 'G', y: 0 },
+        { id: 'a2', x: 'G', y: 20 }
+      ],
+      edges: [
+        { from: 'a0', to: 'a1' },
+        { from: 'a1', to: 'a2' }
+      ],
+      closed: false
+    });
+    const extracted = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 60, y: 0 } },
+      { type: 'LINE', start: { x: 60, y: 0 }, end: { x: 60, y: 20 } }
+    ], { G: 'LEN' });
+
+    const merged = mergeOccsProfileSketchGeometry(extracted, authored, { LEN: 60 });
+    expect(merged.points[1]).toMatchObject({ id: 'a1', x: 'G' });
+    expect(merged.points[2]).toMatchObject({ id: 'a2', x: 'G', y: 20 });
+
+    // Without the scope the same sketch still falls back to the plain
+    // extraction — a genuinely unresolvable expression is the author's
+    // to fix.
+    const fallback = mergeOccsProfileSketchGeometry(extracted, authored);
+    expect(fallback.points[1].x).not.toBe('G');
+  });
+
   it('merges extraction into authored expressions — drawing never destroys parametrics', () => {
     const authored = normalizeOccsProfileSketch({
       parameters: { W: 100 },

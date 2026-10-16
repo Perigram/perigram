@@ -915,10 +915,14 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
 // resolve falls back to the plain extraction (the save gate reports it).
 const MERGE_EPSILON_MM = 1e-3;
 
-export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}) => {
+export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, externalParameters = {}) => {
   let source = null;
   try {
-    source = evaluateOccsProfileSketch(authored);
+    // The external scope joins the evaluation: a sketch whose fields
+    // read the cassette's globals keeps its bindings through the merge
+    // (without it the evaluation threw and the fallback wiped the
+    // authoring into plain extraction). The scope never stores.
+    source = evaluateOccsProfileSketch(authored, externalParameters);
   } catch {
     return extracted;
   }

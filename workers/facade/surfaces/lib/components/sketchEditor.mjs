@@ -408,9 +408,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         // keep their authored expressions, ids, and fillet radii; only
         // moved or new geometry goes numeric. Anchors are model state,
         // not derivable from geometry (normalize drops the anchor when
-        // its vertex died).
+        // its vertex died). The external scope joins the merge's
+        // evaluation so global-bound fields resolve; the stored sketch
+        // keeps the clean table.
         const sketch = normalizeOccsProfileSketch({
-          ...mergeOccsProfileSketchGeometry(extracted, props.modelValue || {}),
+          ...mergeOccsProfileSketchGeometry(extracted, props.modelValue || {}, externalScope()),
           anchors: props.modelValue?.anchors ?? null
         }, context.parameters);
         const fingerprint = JSON.stringify(sketch);
@@ -560,8 +562,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!manager || disposed) return;
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         if (JSON.stringify(normalized) === lastEmitted) return;
+        // The seed evaluates a render copy with the external scope
+        // joined — global-bound coordinates render; the stored sketch
+        // keeps the clean table.
         const entities = normalized.points.length
-          ? occProfileEntitiesFromSketch(normalized)
+          ? occProfileEntitiesFromSketch(normalizeOccsProfileSketch(normalized, externalScope()))
           : [];
         clearDrawingEntities();
         importedFileName.value = '';
@@ -638,7 +643,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         unbindDatabase();
         clearDrawingEntities();
         try {
-          seedEntities({ entities: occProfileEntitiesFromSketch(normalized) });
+          seedEntities({ entities: occProfileEntitiesFromSketch(normalizeOccsProfileSketch(normalized, externalScope())) });
         } catch {
           // Unresolvable expressions: no drawable geometry this pass.
         }
