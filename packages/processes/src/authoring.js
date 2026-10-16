@@ -117,8 +117,10 @@ export function createProcessNodeRecord(id, kind = 'source.literalItem', { defau
 // presentation hook (the page decorates i18n labels; headless authoring
 // keeps raw labels).
 export function createProcessRecordSync({ contract, defaultEntityTypeId = () => '', portLabel = null }) {
-  const domain = contract.domain;
-
+  // The domain is read per call, never captured: the designer rescaffolds its
+  // projected domain when the served organization projection arrives (mounted
+  // packs plus installed plugins), and every later sync — a drop, a reload, a
+  // connect — must resolve ports against that current domain.
   function catalogContext(node = {}) {
     const bound = typeIdOf(node);
     const fields = node.kind === 'cts.field' || bound
@@ -130,8 +132,8 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       // exactly the pair the catalog's field ports read.
       fieldSchema: fields.find(field => field.path === node.path) || null,
       fieldSchemas: fields,
-      command: domain.commands?.[node.commandId] || null,
-      domain
+      command: contract.domain?.commands?.[node.commandId] || null,
+      domain: contract.domain
     };
   }
 
@@ -212,7 +214,7 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
   }
 
   function relationKeysForEntity(typeId = '') {
-    return (domain.relations || []).filter(relation => relation.ownerType === typeId);
+    return (contract.domain?.relations || []).filter(relation => relation.ownerType === typeId);
   }
 
   // Get Field default: the first declared row field, else the identity

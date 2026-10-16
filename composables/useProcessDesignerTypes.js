@@ -184,7 +184,9 @@ export function useProcessDesignerTypes({
   // The org's stored declarations overlay the pack-seeded system types
   // (defining a bundle-shaped system record over the pack would drift the
   // client view from the server registry); the designer keeps compiling
-  // without the type store when the fetch fails.
+  // without the type store when the fetch fails. A refresh re-seats the
+  // designer's contract, so nodes already on the canvas re-sync against the
+  // new vocabulary (their ports may only resolve once these arrive).
   function loadOrgTypes() {
     return $fetch('/api/admin/cts/types')
       .then(response => {
@@ -193,6 +195,7 @@ export function useProcessDesignerTypes({
         servedEditors.value = response.editors || [];
         resetCtsRegistry();
         refreshDesignerFromTypes();
+        syncNow();
       })
       .catch(() => {});
   }
@@ -210,6 +213,9 @@ export function useProcessDesignerTypes({
         servedCommands.value = response.commands || [];
         resetCtsRegistry();
         refreshDesignerFromTypes();
+        // The served domain carries the installed plugins' services: a graph
+        // loaded before this fetch must re-resolve its service node ports.
+        syncNow();
       })
       .catch(() => {
         // keep the domain-derived options when the projection cannot be loaded

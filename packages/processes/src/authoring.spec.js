@@ -5,7 +5,8 @@
 // definition authoring").
 import { describe, expect, it } from 'vitest';
 import {
-  createDefinitionAuthoring
+  createDefinitionAuthoring,
+  createProcessRecordSync
 } from './authoring.js';
 import { validateRoundTrip } from './transpiler.js';
 import { compileTreeDeclarations } from './designer.js';
@@ -29,6 +30,14 @@ function authoring() {
 
 function allPaletteItems(context) {
   return context.contract.paletteGroups.flatMap(group => group.items).filter(item => item.kind);
+}
+
+function domainWithPackServices(packServices = [], registryId = 'sync-domain') {
+  const registry = createTypeRegistry({ id: registryId });
+  for (const declaration of [...frameworkTypes, ...cncTypePack]) {
+    registry.defineType(declaration);
+  }
+  return projectDomainFromView(registry, 'org-1', facadeDomain, { packServices });
 }
 
 describe('headless definition authoring', () => {
@@ -212,5 +221,25 @@ describe('headless definition authoring', () => {
       expect(['fields.name', 'fields.roles', 'fields.email']).toContain(record.path);
       expect(record.outputs.find(port => port.id === 'value')?.type?.base).not.toBe('json');
     }
+  });
+
+  it('resolves service ports against the current domain, not the one captured at construction', () => {
+    // The designer replaces its projected domain when the served
+    // organization projection (mounted packs plus installed plugins)
+    // arrives, then re-runs the sync pass. A service node loaded before it
+    // must gain its signature sockets on that pass; capturing the domain
+    // when the sync was built left it with only its event contract.
+    const contract = { domain: domainWithPackServices([], 'sync-bare'), fieldsForEntity: () => [] };
+    const sync = createProcessRecordSync({ contract });
+    const record = { id: 'nest', kind: 'cts.service', operator: 'plugin.facade.nesting-solve' };
+
+    sync.syncProcessNode(record);
+    expect(record.inputs.map(port => port.id)).toEqual(['in']);
+    expect(record.outputs.map(port => port.id)).toEqual(['completed']);
+
+    contract.domain = domainWithPackServices(facadeServices, 'sync-served');
+    sync.syncProcessNode(record);
+    expect(record.inputs.map(port => port.id)).toEqual(['in', 'items', 'sheetWidth', 'sheetHeight', 'space', 'sheetCount']);
+    expect(record.outputs.map(port => port.id)).toEqual(['completed', 'result']);
   });
 });
