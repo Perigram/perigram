@@ -380,4 +380,31 @@ describe('streamChatCompletion', () => {
             for await (const _ of streamChatCompletion({ organizationId: null })) { /* drain */ }
         })()).rejects.toMatchObject({ statusCode: 503 });
     });
+
+    it('aborts the request when the caller cancels', async () => {
+        process.env.LLM_PROVIDER = 'openai';
+        process.env.LLM_BASE_URL = 'http://llm.internal';
+        process.env.LLM_MODEL = 'model-x';
+        const controller = new AbortController();
+        let requestSignal = null;
+        fetchMock.mockImplementationOnce(async (url, init) => {
+            requestSignal = init.signal;
+            return {
+                ok: true,
+                body: new ReadableStream({
+                    start(stream) {
+                        stream.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'));
+                        init.signal.addEventListener('abort', () => stream.error(Object.assign(new Error('aborted'), { name: 'AbortError' })), { once: true });
+                    }
+                })
+            };
+        });
+        const drain = (async () => {
+            for await (const _ of streamChatCompletion({ organizationId: null, messages: [], signal: controller.signal })) { /* consume */ }
+        })();
+        await vi.waitFor(() => expect(requestSignal).toBeTruthy());
+        controller.abort();
+        await expect(drain).rejects.toBeTruthy();
+        expect(requestSignal.aborted).toBe(true);
+    });
 });

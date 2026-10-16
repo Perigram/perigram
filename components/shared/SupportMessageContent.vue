@@ -111,11 +111,15 @@ const canFetchRef = (ref = {}) => {
 <template>
   <!-- min-w-0/[overflow-wrap:anywhere] chain: the inline-flex root and its
        text items must shrink below their longest word, otherwise unbroken
-       strings (urls, serials) push bubbles past the chat bounds. -->
+       strings (urls, serials) push bubbles past the chat bounds. Markdown
+       answers are document content, not inline chips: they render as a
+       full-width block column so lists and headings lay out properly. -->
   <span
     :class="singleLine
       ? 'inline-flex max-w-full min-w-0 flex-nowrap items-center gap-1 overflow-hidden align-middle'
-      : 'inline-flex max-w-full min-w-0 flex-wrap items-center gap-1 align-middle'"
+      : markdown
+        ? 'flex w-full min-w-0 flex-col items-start gap-1 text-body'
+        : 'inline-flex max-w-full min-w-0 flex-wrap items-center gap-1 align-middle'"
   >
     <template v-for="(part, index) in renderParts" :key="`${part.type}-${index}-${part.id || part.value}`">
       <a
@@ -136,7 +140,7 @@ const canFetchRef = (ref = {}) => {
       <!-- eslint-disable-next-line vue/no-v-html -- sanitized by the shared markdown pipeline -->
       <span
         v-else-if="part.type === 'html'"
-        class="min-w-0 max-w-full break-words text-body [&_a]:underline [&_code]:text-body [&_li]:ml-4 [&_ol]:my-1 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:list-decimal"
+        class="block w-full min-w-0 max-w-full break-words text-body [&_a]:underline [&_code]:text-body [&_li]:ml-4 [&_ol]:my-1 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:list-decimal"
         v-html="part.value"
       />
       <InstanceInlineRef

@@ -644,26 +644,33 @@
                                 />
                                 <div
                                     v-if="messageBubbleText(messageItem) || (messageItem.instanceRefs || []).length"
-                                    class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
+                                    class="group relative max-w-full min-w-0 text-body"
                                     :class="[
+                                        // An agent answer is room content, not a
+                                        // chat bubble: markdown in document flow.
                                         // A voice message's transcript is caption
                                         // chrome on the lower surface — never the
                                         // sender's primary bubble (SPEC: chat); it
                                         // is the viewer's private transcript, so
                                         // only transcribing viewers see text here.
-                                        isAudioOnlyMessage(messageItem) ? 'bg-subtle' : isOwnMessage(messageItem)
-                                            ? 'bg-primary text-primary-contrast'
-                                            : 'bg-subtle',
+                                        messageItem.agent
+                                            ? 'py-0.5'
+                                            : [
+                                                'rounded-ui px-4 py-2',
+                                                isAudioOnlyMessage(messageItem) ? 'bg-subtle' : isOwnMessage(messageItem)
+                                                    ? 'bg-primary text-primary-contrast'
+                                                    : 'bg-subtle'
+                                            ],
                                         isAudioOnlyMessage(messageItem) ? 'order-last' : ''
                                     ]"
                                 >
-                                    <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
+                                    <div class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
                                         <SupportMessageContent
                                             :message="bubbleContentMessage(messageItem)"
                                             :viewer-user-id="currentUserId"
                                             :markdown="Boolean(messageItem.agent)"
                                         />
-                                    </p>
+                                    </div>
                                     <!-- Plain wrapper owns hover visibility: PrimeVue's runtime
                                          .p-button display rule would defeat utility classes on the
                                          button itself. The menu aligns with the bubble's vertical
@@ -776,11 +783,11 @@
                         <AgentActivity :activity="agentActivity" live />
                         <div
                             v-if="agentActivity.answer"
-                            class="max-w-full min-w-0 self-start rounded-ui bg-subtle px-4 py-2"
+                            class="max-w-full min-w-0 self-start py-0.5 text-body"
                         >
-                            <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
+                            <div class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
                                 <SupportMessageContent :message="{ message: agentActivity.answer }" markdown />
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -799,7 +806,7 @@
                     <!-- The conversation is an execution point: its bots
                          run on the chosen model off the served endpoints
                          (blank = each bot's own brain). -->
-                    <div v-if="conversationBots.length" class="flex items-center justify-end px-1">
+                    <div v-if="conversationBots.length && conversationModelOptions.length" class="flex items-center justify-end px-1">
                         <PrimeSelect
                             :model-value="conversationModel"
                             :options="conversationModelOptions"
@@ -1083,7 +1090,17 @@
                             autoResize
                         />
                         <Button
-                            v-if="!canSendComposerDraft && voiceRecordingSupported && voiceRecordingAllowed"
+                            v-if="agentRunLive"
+                            icon="pi pi-stop-circle"
+                            severity="secondary"
+                            rounded
+                            class="shrink-0"
+                            :aria-label="$t('support.stopRun')"
+                            data-testid="chat-stop-run"
+                            @click="stopAgentRun"
+                        />
+                        <Button
+                            v-else-if="!canSendComposerDraft && voiceRecordingSupported && voiceRecordingAllowed"
                             icon="pi pi-microphone"
                             severity="secondary"
                             text
@@ -1537,7 +1554,17 @@ const receiveAgentActivity = (payload, mutate) => {
         agentActivity.value = { userId: payload.userId, name: payload.name || '', thinking: '', tools: [], answer: '' }
     }
     mutate(agentActivity.value)
-    nextTick().then(scrollToBottom)
+    // A live run never yanks the transcript to the bottom while it works:
+    // the room reads at its own pace until the reply lands.
+}
+// The composer's stop control: a run live in this room can be ended early;
+// the answer produced so far is what stays.
+const agentRunLive = computed(() => Boolean(agentActivity.value))
+const stopAgentRun = async () => {
+    const key = activeConversation.value?.conversationKey
+    if (!key) return
+    agentActivity.value = null
+    await $fetch('/api/agent-bots/stop', { method: 'POST', body: { conversationKey: key } }).catch(() => {})
 }
 let typingResetTimer = null
 let typingSendTimer = null
@@ -1606,16 +1633,42 @@ const conversationBots = computed(() => {
 // Rows pair profile+model; the NUL separator keeps one primitive value for
 // the select while both travel to the row.
 const MODEL_ROW_SEPARATOR = '\u0000';
-const conversationModel = computed(() => {
-    const pins = new Set(conversationBots.value.map(bot => `${bot.profile || ''}${MODEL_ROW_SEPARATOR}${bot.model || ''}`));
-    if (pins.size !== 1) return '';
-    const [pin] = [...pins];
-    return pin.endsWith(MODEL_ROW_SEPARATOR) ? '' : pin;
+const modelRowValue = (profile, model) => `${profile || ''}${MODEL_ROW_SEPARATOR}${model || ''}`;
+// The room's model rows: what the chat endpoints actually serve, or each
+// profile's own configured model when the listing is unavailable. A row
+// stored on the subscription that the listing no longer carries stays
+// offered, so a pin never renders blank.
+const conversationModelRows = computed(() => {
+    const base = agentBots.chatModels.length
+        ? agentBots.chatModels
+        : agentBots.chatProfiles.filter(row => row.model).map(row => ({ profile: row.id, model: row.model }));
+    const rows = [...base];
+    for (const bot of conversationBots.value) {
+        if (bot.model && !rows.some(row => row.profile === (bot.profile || '') && row.model === bot.model)) {
+            rows.push({ profile: bot.profile || '', model: bot.model });
+        }
+    }
+    return rows.map(row => ({
+        label: row.model,
+        value: modelRowValue(row.profile, row.model),
+        model: row.model,
+        profile: row.profile || ''
+    }));
 });
-const conversationModelOptions = computed(() => ([
-    { label: t('llm.auto'), value: '' },
-    ...agentBots.chatModels.map(row => ({ label: row.model, value: `${row.profile}${MODEL_ROW_SEPARATOR}${row.model}` }))
-]));
+const conversationModelOptions = computed(() => conversationModelRows.value);
+// The select never sits blank: the room's pin when its bots agree, else the
+// model the run would actually use — the bot's own brain, else the first
+// served row.
+const conversationModel = computed(() => {
+    const pins = new Set(conversationBots.value.map(bot => modelRowValue(bot.profile, bot.model)));
+    const pinned = pins.size === 1 ? [...pins][0] : '';
+    if (pinned && !pinned.endsWith(MODEL_ROW_SEPARATOR)) return pinned;
+    const bot = conversationBots.value[0] || {};
+    const profileRow = agentBots.chatProfiles.find(row => row.id === (bot.profile || bot.brain || '')) || agentBots.chatProfiles[0];
+    const rows = conversationModelRows.value;
+    const effective = rows.find(row => row.model === profileRow?.model) || rows[0];
+    return effective?.value || '';
+});
 const setConversationModel = async (pin) => {
     const key = activeConversation.value?.conversationKey
     if (!key) return

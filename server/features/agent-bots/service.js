@@ -306,6 +306,10 @@ function contactRow(bot, subscription, assistantId) {
         assistant: String(id) === String(assistantId),
         subscribed: Boolean(subscription),
         profile: subscription?.profile || '',
+        model: subscription?.model || '',
+        // The bot's own brain (a chat profile id): the room's model select
+        // falls back to it when no conversation pin exists.
+        brain: dto.data?.bot?.profile || '',
         wakeOn: subscription?.wakeOn || []
     };
 }

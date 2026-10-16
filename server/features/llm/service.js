@@ -704,7 +704,7 @@ const resolvedCompletionPaths = new Map();
  * per chunk so a long generation is never killed mid-flight while bytes
  * keep arriving), `release` drops it.
  */
-async function openCompletion(config, requestBodyJson) {
+async function openCompletion(config, requestBodyJson, signal = null) {
     const paths = completionPaths(config.provider, config.baseUrl);
     const cacheKey = `${config.provider}::${String(config.baseUrl || '').replace(/\/+$/, '').replace(/\/v1$/, '')}`;
     const ordered = resolvedCompletionPaths.has(cacheKey)
@@ -714,12 +714,23 @@ async function openCompletion(config, requestBodyJson) {
     let lastDetail = '';
     for (const url of ordered) {
         const controller = new AbortController();
+        // Caller cancellation rides the same controller as the idle guard;
+        // an aborted caller is not an unreachable endpoint and must not
+        // fall through to the next candidate.
+        const abortFromCaller = () => controller.abort();
+        if (signal) {
+            if (signal.aborted) controller.abort();
+            else signal.addEventListener('abort', abortFromCaller, { once: true });
+        }
         let timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
         const keepAlive = () => {
             clearTimeout(timer);
             timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
         };
-        const release = () => clearTimeout(timer);
+        const release = () => {
+            clearTimeout(timer);
+            signal?.removeEventListener('abort', abortFromCaller);
+        };
         let response;
         try {
             response = await fetch(url, {
@@ -730,6 +741,7 @@ async function openCompletion(config, requestBodyJson) {
             });
         } catch (error) {
             release();
+            if (signal?.aborted) throw error;
             throw createError({ statusCode: 502, message: `LLM service is unreachable (${error?.cause?.code || error?.name || error?.message || 'unknown'})` });
         }
         if (response.ok) {
@@ -948,14 +960,15 @@ async function* streamAnthropic(response, keepAlive, options = {}) {
  * render partial output use `chatCompletion`; the agent loop streams only
  * what it will keep.
  */
-export async function* streamChatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', model = '', system = '', messages = [], tools = [] }) {
+export async function* streamChatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', model = '', system = '', messages = [], tools = [], signal = null }) {
     const config = await resolveLlmConfig(organizationId, capability, { profileId, model });
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
     }
     const { response, keepAlive, release } = await openCompletion(
         config,
-        JSON.stringify(wireRequest(config.provider, config, system, messages, tools, { stream: true }))
+        JSON.stringify(wireRequest(config.provider, config, system, messages, tools, { stream: true })),
+        signal
     );
     const reader = config.provider === 'ollama' ? streamOllama(response, keepAlive)
         : config.provider === 'anthropic' ? streamAnthropic(response, keepAlive)
