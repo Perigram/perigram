@@ -370,15 +370,16 @@ describe('Design system manifest', () => {
     expect(fontsCss).not.toContain('.ck-prose');
     expect(dataBlock).toContain('text-technical');
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
-    // Document previews read in the app's prose voice (serif), not the
-    // technical mono role; the markdown editor is a single-surface live
-    // editor — the document voice is prose while writing and reading
-    // (the technical mono role stays with data surfaces like the csv
-    // table and DataBlock).
+    // Document surfaces read in the app's prose voice (serif), not the
+    // technical mono role: artifact previews, the single-surface live
+    // markdown editor, and agent chat answers — an agent answer is a
+    // markdown room document (human chat text stays in the UI voice; the
+    // technical mono role stays with data surfaces like the csv table
+    // and DataBlock).
     expect(artifactViewer).toContain('text-prose');
     expect(artifactViewer).not.toContain('text-technical');
     expect(textDocumentEditor).toContain('text-prose');
-    expect(supportMessageContent).not.toContain('text-prose');
+    expect(supportMessageContent).toContain('text-prose');
   });
 
   it('keeps shared instance accents inside the token system', () => {
