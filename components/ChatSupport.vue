@@ -26,9 +26,9 @@
                     <InputGroup class="min-w-0 flex-1">
                         <Button
                             icon="pi pi-inbox"
+                            size="small"
                             :severity="showArchived ? 'primary' : 'secondary'"
-                            text
-                            rounded
+                            outlined
                             :aria-label="$t('support.archivedConversations')"
                             :aria-pressed="showArchived"
                             data-testid="chats-archive-toggle"
@@ -37,15 +37,15 @@
                         <InputText
                             v-model="inboxSearch"
                             type="text"
-                            fluid
+                            size="small"
                             :placeholder="$t('support.searchChats')"
                             data-testid="chats-search"
                         />
                         <Button
                             icon="pi pi-plus"
+                            size="small"
                             severity="secondary"
-                            text
-                            rounded
+                            outlined
                             :aria-label="$t('support.newChat')"
                             data-testid="chats-new-menu"
                             @click="toggleNewChatMenu"
