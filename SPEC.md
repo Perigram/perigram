@@ -630,6 +630,15 @@ the bend line). Clearing the profile canvas starts the blank authoring
 session: the parameter table empties with the canvas, so one session's
 parameters never ride the next hand-drawn profile.
 
+Owner declaration (2026-10-16, chips read cassette variables): a placed
+profile's parameter chips are the same expression fields every other
+expression point rides (token panel over the cassette's variables), not
+a bespoke input row. A chip value naming a cassette variable reads that
+variable — live, following the cassette's own parameter edits — and the
+raw expression stays stored (globals never bake into a profile's
+table); binding a field to an identifier the cassette defines never
+mints a profile-local parameter.
+
 Owner declarations (2026-10-15, profile parameter rows, array spacing,
 authoring fields — owner review round 10): the parameters a profile
 workpiece's row shows drive its geometry — editing one re-evaluates the
