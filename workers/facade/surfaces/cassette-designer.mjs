@@ -12,6 +12,7 @@ import {
   addCassetteV2Workpiece,
   CASSETTE_V2_HANGER_PRODUCTION_MODES,
   CASSETTE_V2_HARDWARE_FAMILIES,
+  cassetteV2AttachableProfileEdgesForTree,
   collectCassetteV2ExpressionIdentifiers,
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument,
@@ -469,10 +470,11 @@ export default function createSurface({ vue, components, locale, queries, notify
         placementMode: 'edgeArray',
         [relation.arrayMode === 'spacing' ? 'arraySpacing' : 'arrayCount']: value
       });
-      const edgeOptions = computed(() => [0, 1, 2, 3].map(index => ({
-        label: `E${index}`,
-        value: `E${index}`
-      })));
+      // Owner law (2026-10-16): a profile never arranges on a fold edge
+      // (or a profile-arranged one) — the chooser offers only the face's
+      // arrangeable edges.
+      const attachableEdgeOptions = (faceId) => cassetteV2AttachableProfileEdgesForTree(cassetteTree.value, faceId)
+        .map(edge => ({ label: edge, value: edge }));
       const anchorOptions = computed(() => [
         { label: t('cassette.v2.anchors.start'), value: 0 },
         { label: t('cassette.v2.anchors.end'), value: 1 }
@@ -1239,7 +1241,20 @@ export default function createSurface({ vue, components, locale, queries, notify
       const updateInlineAttachmentRelation = (patch) => {
         const relationId = inlineEditorRelation.value?.id || selectedWorkpieceRelation.value?.id;
         if (!relationId) return;
-        cassetteTree.value = updateCassetteV2WorkpieceRelation(cassetteTree.value, relationId, patch);
+        const relation = getCassetteV2WorkpieceRelations(cassetteTree.value)
+          .find(item => item.id === relationId);
+        if (!relation) return;
+        const nextPatch = { ...patch };
+        // A patch that lands in edge-array placement must sit on an
+        // arrangeable edge: a stale default ('E0') on a face whose E0 is
+        // a fold snaps to the first arrangeable edge — folds and
+        // profile-arranged edges are prohibited (owner law 2026-10-16).
+        if ((nextPatch.placementMode || relation.placementMode) === 'edgeArray') {
+          const attachable = cassetteV2AttachableProfileEdgesForTree(cassetteTree.value, nextPatch.targetFaceId || relation.targetFaceId);
+          const edge = nextPatch.arrayEdge ?? relation.arrayEdge;
+          if (attachable.length && !attachable.includes(edge)) nextPatch.arrayEdge = attachable[0];
+        }
+        cassetteTree.value = updateCassetteV2WorkpieceRelation(cassetteTree.value, relationId, nextPatch);
       };
 
       const deleteWorkpieceRelation = (relationId) => {
@@ -1857,7 +1872,7 @@ export default function createSurface({ vue, components, locale, queries, notify
               relation.placementMode === 'edgeArray'
                 ? h(Select, {
                     modelValue: relation.arrayEdge,
-                    options: edgeOptions.value,
+                    options: attachableEdgeOptions(relation.targetFaceId),
                     optionLabel: 'label',
                     optionValue: 'value',
                     class: 'w-full',

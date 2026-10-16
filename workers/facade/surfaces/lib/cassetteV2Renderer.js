@@ -2351,11 +2351,13 @@ const splitContourAtBreaks = (vertices = [], first = [0, 0], second = [0, 0]) =>
 export const profileEdgeEmbeddingsForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
+  const foldRefusals = profileFoldEdgeRefusalsForTree(sourceTree);
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
   const results = [];
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
     const workpiece = relationProfileWorkpiece(sourceTree, relation);
     if (!workpiece) continue;
+    if (foldRefusals.has(relation.id)) continue; // fold edge: refused
     const targetCurve = curveById.get(relation.targetFaceId);
     if (!targetCurve) continue;
     const profile = normalizeCassetteV2Profile(workpiece, parameters);
@@ -2394,6 +2396,13 @@ export const profileEdgeEmbeddingsForTree = (curves = [], tree = createCassetteV
 // `${faceId}:${edgeIndex}` over every edge-array profile relation; an
 // open profile without an explicit pattern embeds on E0 (the embedding
 // default) and terminates that edge too.
+const profileArrangementEdgeIndex = (relation, workpiece, parameters) => {
+  if (relation.pattern?.type === 'edgeArray') return edgeIndexFromLabel(relation.pattern.edge, 0);
+  const profile = normalizeCassetteV2Profile(workpiece, parameters);
+  const open = profile.section?.open || profile.section?.type === 'polyline';
+  return open ? 0 : null; // closed profiles without a pattern place by point
+};
+
 export const profileTerminalEdgesForTree = (tree = createCassetteV2GraphTree()) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
@@ -2401,18 +2410,42 @@ export const profileTerminalEdgesForTree = (tree = createCassetteV2GraphTree()) 
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
     const workpiece = relationProfileWorkpiece(sourceTree, relation);
     if (!workpiece) continue;
-    let edge = relation.pattern?.type === 'edgeArray' ? relation.pattern.edge : null;
-    if (!edge) {
-      const profile = normalizeCassetteV2Profile(workpiece, parameters);
-      const open = profile.section?.open || profile.section?.type === 'polyline';
-      if (!open) continue; // closed profiles place by point without a pattern
-      edge = 'E0';
-    }
-    const match = String(edge).match(/\d+/);
-    if (!match) continue;
-    terminal.add(`${relation.targetFaceId}:${Math.max(0, Math.round(numeric(match[0], 0)))}`);
+    const edgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
+    if (edgeIndex === null) continue;
+    terminal.add(`${relation.targetFaceId}:${edgeIndex}`);
   }
   return terminal;
+};
+
+// Owner law (2026-10-16): a profile never arranges on a fold edge — the
+// edge where a face folds is the bend line. Every profile pass refuses
+// the arrangement; the designer drawing surfaces the refusal through
+// profileEmbeddingErrors. Keyed relation id -> target face id.
+export const profileFoldEdgeRefusalsForTree = (tree = createCassetteV2GraphTree()) => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const parameters = treeParameters(sourceTree);
+  const folds = getCassetteV2FoldEdges(sourceTree);
+  const refusals = new Map();
+  for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
+    const workpiece = relationProfileWorkpiece(sourceTree, relation);
+    if (!workpiece) continue;
+    const edgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
+    if (edgeIndex === null) continue;
+    if (folds.has(`${relation.targetFaceId}:E${edgeIndex}`)) refusals.set(relation.id, relation.targetFaceId);
+  }
+  return refusals;
+};
+
+// The edges of a face a profile may arrange on, as E labels: faces are
+// trapezoids (four authored edges), less the folds (a child face bends
+// there) and the profile-arranged edges (terminal).
+export const cassetteV2AttachableProfileEdgesForTree = (tree = createCassetteV2GraphTree(), faceId = '') => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const folds = getCassetteV2FoldEdges(sourceTree);
+  const terminal = profileTerminalEdgesForTree(sourceTree);
+  return Array.from({ length: 4 }, (_, edgeIndex) => edgeIndex)
+    .filter(edgeIndex => !folds.has(`${faceId}:E${edgeIndex}`) && !terminal.has(`${faceId}:${edgeIndex}`))
+    .map(edgeIndex => `E${edgeIndex}`);
 };
 
 // Closed profile sections arranged on a face produce their production
@@ -2424,11 +2457,13 @@ export const profileTerminalEdgesForTree = (tree = createCassetteV2GraphTree()) 
 export const profileCutEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
+  const foldRefusals = profileFoldEdgeRefusalsForTree(sourceTree);
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
   const entities = [];
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
     const workpiece = relationProfileWorkpiece(sourceTree, relation);
     if (!workpiece) continue;
+    if (foldRefusals.has(relation.id)) continue; // fold edge: refused
     if (options.contextWorkpieceId && ![relation.sourceWorkpieceId, relation.targetWorkpieceId].includes(options.contextWorkpieceId)) {
       continue;
     }
@@ -3148,6 +3183,9 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     });
   };
   const profileEmbeddingErrors = [];
+  profileFoldEdgeRefusalsForTree(tree).forEach((faceId, relationId) => {
+    profileEmbeddingErrors.push({ relationId, reason: 'fold-edge' });
+  });
   const embeddedCurves = spliceProfileEmbeddings(curves, profileEmbeddingErrors);
   const terminalEdges = profileTerminalEdgesForTree(tree);
   const productionEntities = [

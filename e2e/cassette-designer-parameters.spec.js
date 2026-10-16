@@ -11,8 +11,13 @@ import { test, expect } from './fixtures.js';
 // A fillet bound on a DRAWN corner must drive the placed profile too: the
 // drawn sketch's point ids are identity, not position, so the fillet
 // resolves by its vertex slot (an id parsed as an index dropped it and
-// the chip changed nothing). Artifact:
-// .playwright/cassette-designer-parameters-fillet.png
+// the chip changed nothing). Clearing the canvas starts the blank
+// authoring session — the parameter table empties with the canvas, so
+// the template's W/H/R/D/L never ride a hand-drawn profile. Artifacts:
+// .playwright/cassette-designer-parameters-fillet.png,
+// .playwright/cassette-designer-parameters-edges.png (the profile edge
+// chooser offers only arrangeable edges — a fold never carries a
+// profile, owner law 2026-10-16).
 
 const assemblyGeometry = (page) => page.locator('.designer-workspace__canvas').first()
   .evaluate(el => Array.from(el.querySelectorAll('path, line, polyline, circle, rect'))
@@ -156,6 +161,9 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   // A hand-drawn closed quad: four corners, closed on the first.
   await dialog.getByRole('button', { name: 'Clear canvas', exact: true }).click();
   await page.waitForTimeout(500);
+  // Clearing starts the blank session: the previous session's parameter
+  // rows die with the canvas — nothing pre-seeds the next drawn profile.
+  await expect(dialog.locator('input[aria-label="W"]')).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Line', exact: true }).click();
   await page.waitForTimeout(300);
   const box = await canvas.boundingBox();
@@ -214,5 +222,58 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-designer-parameters-fillet.png'
   });
+  await app.expectCleanRuntime();
+});
+
+test('the profile edge chooser never offers a fold edge', async ({ app }) => {
+  test.setTimeout(240_000);
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
+  const page = app.page;
+  await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  await app.gotoClient(list.route);
+
+  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  const canvas = page.locator('.designer-workspace__canvas').first();
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  await page.waitForTimeout(1500);
+
+  // Grow a face on E0: the fold consumes that edge.
+  await canvas.locator('g line.cursor-pointer').first().dispatchEvent('mouseenter');
+  await page.waitForTimeout(600);
+  await canvas.locator('g.cursor-pointer', { hasText: '+' }).first().click();
+  await page.waitForTimeout(1200);
+
+  // Place the default hanger and open its attachment popup.
+  await page.getByRole('button', { name: 'Add profile' }).click();
+  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await dialog.getByRole('button', { name: 'Closed shape', exact: true }).first().click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await page.waitForTimeout(1200);
+
+  await page.locator('aside button').filter({ hasText: /→|<-/ }).first().click();
+  const popup = page.locator('div.z-\\[120\\]').first();
+  await expect(popup).toBeVisible({ timeout: 15_000 });
+  await popup.locator('[aria-label="Placement"]').click();
+  await page.getByRole('option', { name: 'Edge array', exact: true }).click();
+  await page.waitForTimeout(600);
+
+  // The chooser offers only arrangeable edges: the fold (E0) is absent,
+  // and the stale E0 default snapped to the first arrangeable edge.
+  const edgeSelect = popup.locator('[aria-label="Array edge"]');
+  await expect(edgeSelect).toBeVisible();
+  await expect.poll(() => edgeSelect.evaluate(el => el.querySelector('input')?.value || el.textContent?.trim()))
+    .toBe('E1');
+  await edgeSelect.click();
+  await expect(page.getByRole('option', { name: 'E0', exact: true })).toHaveCount(0);
+  for (const edge of ['E1', 'E2', 'E3']) {
+    await expect(page.getByRole('option', { name: edge, exact: true })).toBeVisible();
+  }
+  await page.getByRole('option', { name: 'E2', exact: true }).click();
+  await page.waitForTimeout(1000);
+
+  await canvas.screenshot({ path: '.playwright/cassette-designer-parameters-edges.png' });
   await app.expectCleanRuntime();
 });

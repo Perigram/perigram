@@ -3114,6 +3114,38 @@ Also verified beside it: an oversized radius legitimately clamps to the
 same tangent arc (two different large chip values can produce identical
 geometry — not a freeze).
 
+### Agent Notes (2026-10-16, owner review round 14 — fold-edge profiles, the edge chooser, the pre-seeded table)
+
+Owner: a profile can be placed on an edge that is a fold (prohibited),
+and choosing an edge at all is broken; separately, the profile editor
+pre-defines parameters (W/H/R/D/L) nobody authored.
+
+All three reproduced on the live stack:
+
+- The attachment popup's edge list was a hardcoded `E0..E3` with no
+  relation to the face: a fold edge (a child face bends there) was
+  offered AND was the default (`arrayEdge` normalizes to `E0`), so a
+  face grown on E0 got every new edge-array profile spliced into its
+  bend line. Owner law recorded in SPEC (profiles never ride folds):
+  `profileFoldEdgeRefusalsForTree` refuses the arrangement (both
+  profile passes skip it, the drawing surfaces the refusal through
+  `profileEmbeddingErrors`), and the chooser lists only
+  `cassetteV2AttachableProfileEdgesForTree` (the four authored edges
+  less folds and profile-arranged ones), with the write path snapping a
+  stale illegal default to the first arrangeable edge. The fold eats an
+  edge on BOTH faces (the existing folded-edge law) — the child's
+  attach edge is not arrangeable either.
+- The dialog drafts new profiles on the parametric hanger template
+  (round 10, "'add hanger' is the hanger") — but Clear canvas kept the
+  template's W/H/R/D/L table alive through the extraction merge, so a
+  hand-drawn profile carried five dead parameters into its saved table.
+  Clearing now starts the blank authoring session (`createEmptyOccsProfileSketch`,
+  empty table) per the existing blank-session law.
+
+Validation: facade suites 122/122; E2E
+`cassette-designer-parameters.spec.js` 3/3 on the live stack (artifacts
+`-fillet.png`, `-edges.png`); check-arch + check-docs green.
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 

@@ -5,6 +5,7 @@
 // model normalize through occs/profiles.js.
 import {
   adoptOccsProfileBindingParameter,
+  createEmptyOccsProfileSketch,
   evaluateOccsProfileSketch,
   mergeOccsProfileSketchGeometry,
   normalizeOccsProfileSketch,
@@ -538,7 +539,14 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!manager) return;
         clearDrawingEntities();
         importedFileName.value = '';
-        scheduleExtraction();
+        // Clearing starts the blank authoring session: the parameter
+        // table empties with the canvas (occs/README.md owns the
+        // blank-session law), so a cleared session's parameters never
+        // ride the next hand-drawn profile.
+        const sketch = createEmptyOccsProfileSketch();
+        lastEmitted = JSON.stringify(normalizeOccsProfileSketch(sketch));
+        emit('update:modelValue', sketch);
+        emit('profile', null);
       };
 
       const reseedFromModel = () => {
