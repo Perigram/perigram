@@ -54,6 +54,12 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   expect(list?.route, 'Expected a compiled cassette list screen').toBeTruthy();
   const page = app.page;
   await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  // The onboarding tour pops over the palette after a delay — this test
+  // runs long enough to hit it; it stays dismissed.
+  await page.addInitScript(() => window.localStorage.setItem(
+    'perigram:onboarding:cassette-designer-v2',
+    JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
+  ));
   await app.gotoClient(list.route);
 
   const newButton = page.locator('main').getByRole('button', { name: 'New', exact: true });
