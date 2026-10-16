@@ -80,6 +80,47 @@ describe('resolveLlmConfig', () => {
         const config = await resolveLlmConfig('org-1');
         expect(config).toEqual({ provider: 'anthropic', baseUrl: 'https://llm.internal', apiKey: '', model: 'glm-4.6' });
     });
+
+    it('serves the only chat profile when no route is set', async () => {
+        mockedOrganizations.getById.mockResolvedValue({
+            data: { settings: { llm: {
+                profiles: { Chat: { kind: 'chat', provider: 'openai', baseUrl: 'http://10.0.0.2:8080', model: 'qwen3:4b' } },
+                routes: {}
+            } } }
+        });
+        const config = await resolveLlmConfig('org-1');
+        expect(config).toEqual({ provider: 'openai', baseUrl: 'http://10.0.0.2:8080', apiKey: '', model: 'qwen3:4b' });
+        expect(await resolveLlmConfig('org-1', 'chat.summaries')).toEqual(config);
+    });
+
+    it('keeps two unrouted chat profiles ambiguous (env default)', async () => {
+        process.env.LLM_PROVIDER = 'ollama';
+        process.env.LLM_BASE_URL = 'http://env-host:11434';
+        process.env.LLM_MODEL = 'env-model';
+        mockedOrganizations.getById.mockResolvedValue({
+            data: { settings: { llm: {
+                profiles: {
+                    a: { kind: 'chat', provider: 'ollama', baseUrl: 'http://a:11434', model: 'a' },
+                    b: { kind: 'chat', provider: 'ollama', baseUrl: 'http://b:11434', model: 'b' }
+                },
+                routes: {}
+            } } }
+        });
+        expect(await resolveLlmConfig('org-1')).toEqual({ provider: 'ollama', baseUrl: 'http://env-host:11434', apiKey: '', model: 'env-model' });
+    });
+
+    it('never falls back through a stale non-chat route target', async () => {
+        mockedOrganizations.getById.mockResolvedValue({
+            data: { settings: { llm: {
+                profiles: {
+                    img: { kind: 'image', provider: 'openai', baseUrl: 'http://img:8080', model: 'sd-xl' },
+                    sole: { kind: 'chat', provider: 'ollama', baseUrl: 'http://llm:11434', model: 'm' }
+                },
+                routes: { chat: 'img' }
+            } } }
+        });
+        expect(await resolveLlmConfig('org-1')).toEqual({ provider: 'none' });
+    });
 });
 
 const TOOLS = [{ name: 'list_types', description: 'lists types', inputSchema: { type: 'object', properties: {} } }];
