@@ -18,11 +18,14 @@ const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mocke
     mockedSupport: {
         getConversationContextByKey: vi.fn(),
         addBotGroupParticipant: vi.fn(),
-        removeBotGroupParticipant: vi.fn()
+        removeBotGroupParticipant: vi.fn(),
+        createGroup: vi.fn(),
+        groupConversationKey: (groupId) => `group:${groupId}`
     },
     mockedRepository: {
         upsertSubscription: vi.fn(),
         removeSubscription: vi.fn(),
+        removeSubscriptionsByConversation: vi.fn(),
         findSubscriptionsByConversation: vi.fn()
     },
     mockedOrganizations: { findById: vi.fn() },
@@ -52,7 +55,7 @@ vi.mock('h3', () => ({
     })
 }));
 
-import { ensureOrganizationAssistant, listAssistantContact, subscribeAssistant, unsubscribeAssistant, listWakeOptions, buildPrincipalAuth } from './service.js';
+import { ensureOrganizationAssistant, listAssistantContact, subscribeAssistant, unsubscribeAssistant, listWakeOptions, buildPrincipalAuth, createAgentChat, onGroupDeleted } from './service.js';
 
 const AUTH = { userId: 'user-human', organizationId: 'org-1' };
 
@@ -268,6 +271,47 @@ describe('unsubscribeAssistant', () => {
         expect(mockedSupport.removeBotGroupParticipant).toHaveBeenCalledWith(AUTH, 'g1', 'bot-a');
         expect(mockedRepository.removeSubscription).toHaveBeenCalledWith('bot-a', 'group:g1');
         expect(result.subscribed).toBe(false);
+    });
+});
+
+describe('createAgentChat', () => {
+    it('refuses members without the agent-chat capability', async () => {
+        mockedOrganizationsService.canUseAgentChats.mockResolvedValue(false);
+        await expect(createAgentChat(AUTH, {})).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it('creates a fresh subscribed room with exactly the caller and the assistant', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
+        mockedSupport.createGroup.mockResolvedValue({ _id: 'g9' });
+        const result = await createAgentChat(AUTH, { name: 'Nested queue check' });
+        expect(mockedSupport.createGroup).toHaveBeenCalledWith(AUTH, {
+            name: 'Nested queue check',
+            participantIds: ['bot-a']
+        });
+        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
+            botUserId: 'bot-a',
+            conversationKey: 'group:g9',
+            conversationKind: 'group',
+            organizationId: 'org-1'
+        }));
+        expect(result.conversationKey).toBe('group:g9');
+    });
+
+    it('falls back to the assistant\'s own name on an empty title', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
+        mockedSupport.createGroup.mockResolvedValue({ _id: 'g1' });
+        await createAgentChat(AUTH, { name: '   ' });
+        expect(mockedSupport.createGroup).toHaveBeenCalledWith(AUTH, {
+            name: 'Assistant',
+            participantIds: ['bot-a']
+        });
+    });
+});
+
+describe('onGroupDeleted', () => {
+    it('drops the room\'s subscription rows', async () => {
+        await onGroupDeleted('g9');
+        expect(mockedRepository.removeSubscriptionsByConversation).toHaveBeenCalledWith('group:g9');
     });
 });
 

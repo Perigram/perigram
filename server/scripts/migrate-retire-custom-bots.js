@@ -6,6 +6,7 @@
 // once after deploying the delegation scheme:
 //   node server/scripts/migrate-retire-custom-bots.js
 import { connectDB } from '../db/mongo.js';
+import { ObjectId } from 'mongodb';
 
 const assistantEmailFor = (organizationId) => `assistant-${organizationId}@bots.perigram.internal`;
 
@@ -48,11 +49,33 @@ async function main() {
         { $unset: { 'data.bot.tokenHash': '', 'data.bot.profile': '' } }
     );
 
+    // Subscription rows for groups deleted before deletion cleaned up
+    // after itself (rooms the old scheme left behind).
+    const groupRows = await subscriptions.find({ conversationKey: /^group:/ }).toArray();
+    let orphanedRows = 0;
+    for (const row of groupRows) {
+        const groupId = row.conversationKey.slice('group:'.length);
+        const group = await chatGroups.findOne({ _id: toFlexibleGroupId(groupId) });
+        if (!group) {
+            await subscriptions.deleteOne({ _id: row._id });
+            orphanedRows += 1;
+        }
+    }
+
     console.log([
         removed.length ? `deleted custom bots:\n  ${removed.join('\n  ')}` : 'no custom bots to delete',
-        `stripped retired bot fields on ${stripped.modifiedCount} bot member(s)`
+        `stripped retired bot fields on ${stripped.modifiedCount} bot member(s)`,
+        orphanedRows ? `deleted ${orphanedRows} subscription row(s) of removed group rooms` : 'no orphaned group subscriptions'
     ].join('\n'));
     process.exit(0);
+}
+
+function toFlexibleGroupId(id) {
+    try {
+        return new ObjectId(String(id));
+    } catch {
+        return String(id);
+    }
 }
 
 main().catch((error) => {

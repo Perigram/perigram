@@ -426,7 +426,7 @@
                     </div>
                     <div class="flex shrink-0 items-center gap-1">
                         <Button
-                            v-if="['group', 'instance'].includes(activeConversation.conversationKind)"
+                            v-if="['group', 'instance'].includes(activeConversation.conversationKind) && !activeConversation.agentDraft"
                             icon="pi pi-sparkles"
                             severity="secondary"
                             text
@@ -437,7 +437,7 @@
                             @click="botPanelVisible = true"
                         />
                         <Button
-                            v-if="activeConversation.conversationKind !== 'support'"
+                            v-if="activeConversation.conversationKind !== 'support' && !isAiOnlyRoom"
                             icon="pi pi-phone"
                             severity="secondary"
                             text
@@ -1520,6 +1520,17 @@ const isDirectWithBot = computed(() => {
     const conversation = activeConversation.value
     return conversation?.conversationKind === 'direct' && Boolean(conversation.participant?.data?.bot)
 })
+// A room whose only counterpart is the AI (a fresh AI thread, a resolved
+// one, or a legacy direct thread): nothing to call, so the call control
+// stays off it.
+const isAiOnlyRoom = computed(() => {
+    const conversation = activeConversation.value
+    if (!conversation) return false
+    if (conversation.agentDraft || isDirectWithBot.value) return true
+    if (conversation.conversationKind !== 'group') return false
+    const participants = (conversation.participants || []).map(String)
+    return participants.length === 2 && participants.includes(String(agentBots.ai?.id))
+})
 // Instance thread view: the children toggle beside the title switches
 // between messages linked to the instance itself and the composed subtree
 // view (the server default). The composer link target is the latest child
@@ -1864,7 +1875,7 @@ const conversationSubtitle = computed(() => {
 
 const canDeleteActiveGroup = computed(() => {
     const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'group') return false
+    if (conversation?.conversationKind !== 'group' || !conversation?.conversationKey) return false
     if (conversation.groupCreatorId && String(conversation.groupCreatorId) === String(currentUserId.value)) return true
     const organizationId = String(authStore.organizationData?._id || authStore.userData?.organizationId || '')
     return (authStore.userData?.memberships || []).some(membership => (
@@ -2122,6 +2133,25 @@ const { uploadChatFile } = useChatFileUpload()
 // still land in send order. A failed send restores exactly what it took.
 let sendChain = Promise.resolve()
 
+// The room a fresh AI thread takes its title from: the first message,
+// whitespace-collapsed and clipped (an attachment-only opener keeps the
+// assistant's own name — the server's fallback).
+const agentChatTitle = (text) => String(text || '').replace(/\s+/g, ' ').trim().slice(0, 48)
+
+// Resolve a materialized draft into the real room: the key change drives
+// the topic subscription, history load, and AI contact decoration — the
+// same path an inbox row open takes. Callers pass the draft snapshot so a
+// user who navigated away mid-send is never yanked back.
+const resolveAgentDraft = async (draft, groupKey) => {
+    if (activeConversation.value !== draft) return
+    await supportChatStore.refresh()
+    const summary = supportChatStore.conversations.find(item => item.conversationKey === groupKey)
+    if (summary) {
+        activeConversation.value = { ...summary, resolved: true }
+        supportChatStore.markRead(groupKey)
+    }
+}
+
 const sendMessage = () => {
     if (!canSendComposerDraft.value || !activeConversation.value) return
 
@@ -2149,17 +2179,25 @@ const sendMessage = () => {
 
     sendChain = sendChain.then(async () => {
         // Files upload first; a failed upload keeps the staged set intact
-        // for retry.
+        // for retry. A draft AI thread materializes only after its
+        // payload is real: the room is created with the first message as
+        // its title, and the message lands in it.
         const attachments = []
         for (const pending of sendingFiles) {
             attachments.push(await uploadPendingFile(pending))
+        }
+        let groupKey = conversation.conversationKind === 'group' ? conversation.conversationKey : null
+        let createdAgentChat = null
+        if (conversation.agentDraft) {
+            createdAgentChat = await agentBots.createChat(agentChatTitle(sendingText))
+            groupKey = createdAgentChat.conversationKey
         }
         await $fetch('/api/support/messages', {
             method: 'POST',
             body: {
                 message: sendingText,
                 recipientUserId: conversation.conversationKind === 'direct' ? participantUserId(conversation) : null,
-                conversationKey: conversation.conversationKind === 'group' ? conversation.conversationKey : null,
+                conversationKey: groupKey,
                 instance: conversation.conversationKind === 'instance'
                     ? (sendingComposerInstance || {
                         type: conversation.typeId,
@@ -2179,6 +2217,7 @@ const sendMessage = () => {
             if (pending.url) URL.revokeObjectURL(pending.url)
         }
         outgoingFiles.value = outgoingFiles.value.filter(item => !sendingFiles.some(sent => sent.key === item.key))
+        if (createdAgentChat) await resolveAgentDraft(conversation, groupKey)
     }).catch(error => {
         settleFailure()
         console.error('Failed to send message:', error)
@@ -2330,12 +2369,21 @@ const stopAndSendVoiceRecording = () => {
                 { type: mimeType }
             )
             const uploaded = await uploadChatFile(recorded)
+            // A draft AI thread materializes on its first send, like the
+            // text composer's path (an empty title falls back to the
+            // assistant's own name server-side).
+            let groupKey = conversation.conversationKind === 'group' ? conversation.conversationKey : null
+            let createdAgentChat = null
+            if (conversation.agentDraft) {
+                createdAgentChat = await agentBots.createChat(agentChatTitle(sendingText))
+                groupKey = createdAgentChat.conversationKey
+            }
             await $fetch('/api/support/messages', {
                 method: 'POST',
                 body: {
                     message: sendingText,
                     recipientUserId: conversation.conversationKind === 'direct' ? participantUserId(conversation) : null,
-                    conversationKey: conversation.conversationKind === 'group' ? conversation.conversationKey : null,
+                    conversationKey: groupKey,
                     instance: conversation.conversationKind === 'instance'
                         ? (sendingComposerInstance || {
                             type: conversation.typeId,
@@ -2352,6 +2400,7 @@ const stopAndSendVoiceRecording = () => {
                     }]
                 }
             })
+            if (createdAgentChat) await resolveAgentDraft(conversation, groupKey)
         } catch (error) {
             if (!message.value.trim()) message.value = sendingText
             replyTo.value = replyTo.value || sendingReply
@@ -3599,6 +3648,12 @@ const openNewChatDialog = async () => {
 const openNewChatUser = (userId) => {
     if (!userId) return
     const option = newChatOptions.value.find(item => item.value === userId)
+    // Picking the AI opens a fresh thread, never the one eternal direct
+    // chat: the room materializes when the first message is sent.
+    if (option?.instance?.data?.bot) {
+        openNewAgentChat(option)
+        return
+    }
     activeConversation.value = {
         conversationKey: directConversationKey(currentUserId.value, userId),
         conversationKind: 'direct',
@@ -3611,6 +3666,32 @@ const openNewChatUser = (userId) => {
             data: {}
         }
     }
+    newChatDialog.value = false
+}
+
+// A fresh AI thread before its first message: an unsent draft with no
+// conversation key (nothing subscribes or loads yet) that materializes
+// into a real room — titled by the first message — when that message is
+// sent. Cancelling the draft creates nothing.
+const openNewAgentChat = (option) => {
+    const contact = agentBots.ai
+    const assistantId = String(contact?.id || option?.value || '')
+    activeConversation.value = {
+        conversationKey: null,
+        conversationKind: 'group',
+        groupName: option?.label || contact?.name || '',
+        participants: [currentUserId.value, assistantId].filter(Boolean),
+        lastMessage: '',
+        instanceRefs: [],
+        participant: {
+            _id: assistantId,
+            identity: { name: option?.label || contact?.name || '' },
+            data: { bot: { createdAt: null }, avatarUrl: contact?.avatarUrl }
+        },
+        agentDraft: true
+    }
+    messages.value = []
+    hasMoreMessages.value = false
     newChatDialog.value = false
 }
 

@@ -223,6 +223,35 @@ export async function unsubscribeAssistant(auth, body = {}) {
     return { assistantId, conversationKey: context.conversationKey, subscribed: false };
 }
 
+/**
+ * A fresh AI chat (SPEC: agent access): a persisted room with exactly the
+ * caller and the assistant — the group shape is the only conversation
+ * kind that supports any number of threads per member — subscribed like
+ * any group room so the AI answers there. The room is created when the
+ * first message is on its way (the client titles it from that message);
+ * an empty name falls back to the assistant's own name.
+ */
+export async function createAgentChat(auth, body = {}) {
+    await assertAgentChatAccess(auth);
+    const assistant = await ensureOrganizationAssistant(auth.organizationId);
+    if (!assistant) throw createError({ statusCode: 404, message: 'Assistant not found' });
+    const name = String(body?.name || '').trim() || (assistant.identity?.name || ASSISTANT_NAME);
+    const group = await supportService.createGroup(auth, { name, participantIds: [assistant.id] });
+    const conversationKey = supportService.groupConversationKey(group._id);
+    await repository.upsertSubscription({
+        botUserId: assistant.id,
+        conversationKey,
+        conversationKind: 'group',
+        organizationId: auth.organizationId
+    });
+    return { conversationKey, group };
+}
+
+/** Group deletion cleanup: the room's subscription rows die with it. */
+export async function onGroupDeleted(groupId) {
+    await repository.removeSubscriptionsByConversation(supportService.groupConversationKey(groupId));
+}
+
 // --- The member-visible AI contact -------------------------------------------
 
 function assistantContactRow(assistant, subscription) {
