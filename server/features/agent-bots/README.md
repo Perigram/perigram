@@ -59,12 +59,15 @@ Three pieces share one tool catalog:
   that user may do; a sender without the agent-chat capability is
   skipped silently. Replies re-enter the auth-checked support send path
   as the assistant user, carrying the run's provenance
-  (`agent: { thinking, tools }`) onto the persisted message — the
+  (`agent: { steps }` — the run's chronology: per-round reasoning
+  segments interleaved with tool invocations, in the order they happened)
+  onto the persisted message — the
   activity block the chat renders attached to the answer. While the
   run is in flight it publishes the same activity onto the conversation
-  topic — `bot_thinking` with the reasoning so far (accumulated across
-  rounds), `bot_tool` per tool invocation as it starts and settles,
-  `bot_stream` with the answer so far, and `bot_stream_end` when the
+  topic — `bot_activity` with the chronology so far (one reasoning
+  segment per round, tool invocations as they start and settle, always
+  a snapshot), `bot_stream` with the answer so far, and
+  `bot_stream_end` when the
   persisted message supersedes the live view. The activity itself is the
   run's presence signal (the AI never rides the human typing line); a
   tool round retracts only its answer text, and each round reconciles

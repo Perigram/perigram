@@ -47,24 +47,22 @@ export function stopConversationRuns(organizationId, conversationKey) {
 /**
  * Room presence for the AI's run as it is produced: the runtime owns no
  * delivery channel, so the run's activity rides the conversation topic.
- * `bot_thinking` carries the reasoning so far (accumulated across
- * rounds), `bot_tool` one tool invocation as it starts and settles,
- * `bot_stream` the answer so far, and `bot_stream_end` clears the run once
- * the persisted message supersedes it.
+ * `bot_activity` carries the run's chronology so far (per-round reasoning
+ * segments interleaved with tool invocations, in the order they happened),
+ * `bot_stream` the answer so far, and `bot_stream_end` clears the run
+ * once the persisted message supersedes it.
  */
 function botActivitySink(assistantAuth, conversationKey) {
     const topic = `conversation:${conversationKey}`;
     const base = { conversationKey, userId: assistantAuth.userId, name: assistantAuth.name || '' };
     return {
-        // Absolute state, not deltas: the round publishes reasoning so far
-        // and reconciles with the assembled message at stream end, so a
-        // reasoning-first stream that turns out to be a plain answer can
-        // reclassify without the client accumulating garbage.
-        thinking(text) {
-            connectionsService.publish(topic, { ...base, type: 'bot_thinking', text });
-        },
-        tool(tool) {
-            connectionsService.publish(topic, { ...base, type: 'bot_tool', tool });
+        // Absolute state, not deltas: each publish carries the whole
+        // chronology so far, and each round reconciles with the assembled
+        // message, so a reasoning-first stream that turns out to be a
+        // plain answer can reclassify without the client accumulating
+        // garbage.
+        activity(steps) {
+            connectionsService.publish(topic, { ...base, type: 'bot_activity', steps });
         },
         answer(text) {
             connectionsService.publish(topic, { ...base, type: 'bot_stream', text });
@@ -211,11 +209,21 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
     // Per-run side channel: chat-only tools accumulate state here that the
     // final reply consumes (instance refs the model attached mid-loop).
     const run = { instanceRefs: [] };
-    // The run's visible work, persisted onto the reply as provenance: every
-    // round's reasoning (concatenated) and every tool invocation.
-    let runThinking = '';
-    const agentTools = [];
+    // The run's visible work as one chronology, persisted onto the reply as
+    // provenance: per-round reasoning segments interleaved with tool
+    // invocations in the order they happened. Empty reasoning segments
+    // (a reclassified reasoning-first stream) drop out.
+    const steps = [];
+    let segment = null;
+    const visibleSteps = () => steps.filter(step => step.kind !== 'thinking' || String(step.text || '').trim());
+    const publish = () => {
+        // Snapshot, never live references: a published chronology must not
+        // mutate under the client while the run continues.
+        if (stream) stream.activity(visibleSteps().map(step => (step.kind === 'tool' ? { ...step } : { kind: 'thinking', text: step.text })));
+    };
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+        segment = { kind: 'thinking', text: '' };
+        steps.push(segment);
         const assistant = await streamedRound({
             organizationId,
             profileId,
@@ -224,28 +232,33 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
             messages: conversation,
             tools,
             signal,
-            onThinking: stream ? (text) => stream.thinking(text) : null,
+            onThinking: stream ? (text) => {
+                segment.text = text;
+                publish();
+            } : null,
             onText: stream ? (text) => stream.answer(text) : null
         });
-        if (assistant.thinking) runThinking += (runThinking ? '\n\n' : '') + assistant.thinking;
-        if (stream) stream.thinking(runThinking);
+        // Without a live sink nothing streamed; the round's reasoning
+        // arrives only as the assembled message.
+        if (!stream) segment.text = assistant.thinking || '';
+        publish();
         // A stopped run keeps whatever answer it had produced; a tool round
         // that was cancelled mid-call simply has no answer to keep.
         if (assistant.aborted) {
-            return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs, agent: { thinking: runThinking, tools: agentTools }, aborted: true };
+            return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs, agent: { steps: visibleSteps() }, aborted: true };
         }
         const toolCalls = assistant.toolCalls || [];
         if (!toolCalls.length) {
-            return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs, agent: { thinking: runThinking, tools: agentTools } };
+            return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs, agent: { steps: visibleSteps() } };
         }
         // This round answered a tool call, not the room: drop its answer text.
         // The reasoning and the tool rows stay as the run's visible work.
         if (stream) stream.answer('');
         conversation.push({ role: 'assistant', content: assistant.content || '', toolCalls });
         for (const call of toolCalls) {
-            const entry = { id: call.id, name: call.name, status: 'running' };
-            agentTools.push(entry);
-            if (stream) stream.tool({ ...entry });
+            const entry = { kind: 'tool', id: call.id, name: call.name, status: 'running' };
+            steps.push(entry);
+            publish();
             let result;
             try {
                 result = await executeTool(call.name, call.arguments, execAuth, run);
@@ -254,7 +267,7 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
                 result = { error: error?.message || String(error) };
                 entry.status = 'error';
             }
-            if (stream) stream.tool({ ...entry });
+            publish();
             conversation.push({
                 role: 'tool',
                 toolCallId: call.id,
@@ -263,7 +276,7 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
             });
         }
     }
-    return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs, agent: { thinking: runThinking, tools: agentTools } };
+    return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs, agent: { steps: visibleSteps() } };
 }
 
 function replyBodyFor(context, message, text, assistantUserId, instanceRefs = [], agent = null) {
@@ -330,7 +343,7 @@ export async function runAssistantReply(target, context, message) {
         const assistantAuth = await buildPrincipalAuth(target.assistantId);
         inFlight.get(lockKey).organizationId = assistantAuth.organizationId || execAuth.organizationId;
         stream = botActivitySink(assistantAuth, message.conversationKey);
-        stream.thinking('');
+        stream.activity([]);
         const organizationId = execAuth.organizationId;
         // Execution-point precedence: the conversation's pin, then the org
         // chat route (no per-bot brain — one AI, the org's models).
@@ -426,7 +439,7 @@ export async function runAssistantWake(subscription, event, rule = {}) {
         const assistantAuth = await buildPrincipalAuth(assistant.id);
         inFlight.get(lockKey).organizationId = subscription.organizationId?.toString?.() || null;
         stream = botActivitySink(assistantAuth, subscription.conversationKey);
-        stream.thinking('');
+        stream.activity([]);
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the org chat route.
         const profileId = String(rule.profile || '') || String(subscription.profile || '');

@@ -260,19 +260,26 @@ describe('runAssistantReply', () => {
         expect(mockedLlm.chatCompletion.mock.calls[0][0].profileId).toBe('cloud-big');
     });
 
-    it('publishes thinking and tool activity while the loop works', async () => {
+    it('publishes the run chronology — thinking segments and tool invocations in order', async () => {
         mockedLlm.chatCompletion
             .mockResolvedValueOnce({ content: '', thinking: 'need the types', toolCalls: [{ id: 't1', name: 'list_types', arguments: {} }] })
-            .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
+            .mockResolvedValueOnce({ content: 'done', thinking: 'now the answer', toolCalls: [] });
         mockedTools.executeTool.mockResolvedValue({ types: [] });
         await runAssistantReply(target, context, message);
         const published = mockedConnections.publish.mock.calls.map(([, payload]) => payload);
-        expect(published.some(payload => payload?.type === 'bot_thinking' && payload.text === 'need the types')).toBe(true);
-        expect(published.some(payload => payload?.type === 'bot_tool' && payload.tool?.name === 'list_types' && payload.tool.status === 'running')).toBe(true);
-        expect(published.some(payload => payload?.type === 'bot_tool' && payload.tool?.status === 'done')).toBe(true);
-        // The run's provenance rides the persisted reply.
+        expect(published.some(payload => payload?.type === 'bot_activity'
+            && payload.steps?.some(step => step.kind === 'thinking' && step.text === 'need the types'))).toBe(true);
+        expect(published.some(payload => payload?.type === 'bot_activity'
+            && payload.steps?.some(step => step.kind === 'tool' && step.name === 'list_types' && step.status === 'running'))).toBe(true);
+        expect(published.some(payload => payload?.type === 'bot_activity'
+            && payload.steps?.some(step => step.kind === 'tool' && step.status === 'done'))).toBe(true);
+        // The run's provenance rides the persisted reply as one chronology.
         const sent = mockedSupport.sendUserMessage.mock.calls.at(-1)[1];
-        expect(sent.agent).toEqual({ thinking: 'need the types', tools: [{ id: 't1', name: 'list_types', status: 'done' }] });
+        expect(sent.agent).toEqual({ steps: [
+            { kind: 'thinking', text: 'need the types' },
+            { kind: 'tool', id: 't1', name: 'list_types', status: 'done' },
+            { kind: 'thinking', text: 'now the answer' }
+        ] });
     });
 
     it('executes tool calls with the sender\'s auth (delegation) and feeds results back', async () => {
@@ -396,7 +403,7 @@ describe('runAssistantWake', () => {
         expect(body).toEqual({
             instance: { type: 'organization', id: 'org-1' },
             message: 'nested and accounted for',
-            agent: { thinking: '', tools: [] }
+            agent: { steps: [] }
         });
     });
 
@@ -409,7 +416,7 @@ describe('runAssistantWake', () => {
         expect(body).toEqual({
             conversationKey: 'group:g1',
             message: 'ok',
-            agent: { thinking: '', tools: [] }
+            agent: { steps: [] }
         });
     });
 
@@ -539,7 +546,7 @@ describe('stopConversationRuns', () => {
 
         const body = mockedSupport.sendUserMessage.mock.calls[0][1];
         expect(body.message).toBe('Half an answer');
-        expect(body.agent).toEqual({ thinking: '', tools: [] });
+        expect(body.agent).toEqual({ steps: [] });
     });
 
     it('ignores runs in other conversations', () => {

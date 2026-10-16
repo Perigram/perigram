@@ -1045,8 +1045,9 @@ own messages). Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
-chrome, no sender chip): the model's reasoning in a collapsible native
-`details` disclosure, one status-iconed row per tool invocation, and the
+chrome, no sender chip): the run's chronology in order — the model's
+reasoning in per-round collapsible native `details` disclosures and one
+status-iconed row per tool invocation between them — and the
 answer growing as markdown in the room's flow. The transcript does not
 jump to the bottom while the run works. The composer's trailing control
 becomes a stop button for the live run; stopping aborts the request and
