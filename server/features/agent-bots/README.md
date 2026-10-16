@@ -33,7 +33,10 @@ Three pieces share one tool catalog:
   structured results), the authoring vocabulary
   (`get_authoring_vocabulary` — the compose guide, the designer's palette
   groups, node catalog, and typed value-operation sockets served straight
-  off the [processes package](../../../packages/processes/README.md)) and
+  off the [processes package](../../../packages/processes/README.md),
+  plus the organization's role list — the grant vocabulary the designer's
+  [lanes](../../../components/process-designer/README.md) author through
+  effect `access.grants`) and
   headless composition (`compose_process_definition` — ordered designer
   gestures through the same authoring seam the designer shell drives,
   with the same legality gates), the type

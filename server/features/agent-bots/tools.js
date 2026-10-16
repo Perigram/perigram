@@ -2,6 +2,7 @@ import { createError } from 'h3';
 import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
 import * as supportService from '~/server/features/support/service.js';
 import { describeOrganizationTypes } from '~/server/features/cts-types/service.js';
+import { listRoles } from '~/server/features/organizations/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY } from '~/packages/processes/src/index.js';
 
@@ -70,6 +71,7 @@ const AUTHORING_GUIDE = [
     "- {op:'wireDeclaration', from, to, role} — declaration wire (from = child, to = parent; roles: declares, targets, children, binds);",
     "- {op:'drop', item, id} — drop a palette item as a process node;",
     "- {op:'configure', id, values} — inspector writes (typeId, construction, access...);",
+    "- lanes are role grants: an effect's lane IS its access — configure {access:{grants:[{roleId,level}]}}, levels read/write/admin, roleIds from the roles list in this payload; grantless effects land in the implicit lane;",
     "- {op:'setInputDefault', id, input, value} — literal value on an input socket;",
     "- {op:'connect', id, fromPort, to, toPort} — wire sockets (ports are 'data:<socketId>').",
     'The first illegal gesture fails with the gate message — read it, fix, retry.',
@@ -190,9 +192,9 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_authoring_vocabulary',
-        description: 'The process authoring vocabulary and guide, straight off the designer\'s palette: the compose recipe (guide), palette groups (what to drop), the node catalog (every valid node kind with family and level — a processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind), the value operations with typed input sockets and output, and the declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners). Edge handles are \'data:<socketId>\'. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + update_definition_graph; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
+        description: 'The process authoring vocabulary and guide, straight off the designer\'s palette: the compose recipe (guide), palette groups (what to drop), the node catalog (every valid node kind with family and level — a processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind), the value operations with typed input sockets and output, the declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the organization\'s roles — the grant vocabulary for effect access, the designer\'s lanes. Edge handles are \'data:<socketId>\'. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + update_definition_graph; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-        execute: async () => {
+        execute: async (args, auth) => {
             const valueOperations = {};
             for (const [kind, kindOperations] of Object.entries(PROCESS_OPERATION_REGISTRY)) {
                 valueOperations[kind] = {};
@@ -203,13 +205,15 @@ export const TOOL_SPECS = [
                     };
                 }
             }
+            const roles = Object.values((await listRoles(auth.organizationId, auth)) || {});
             return {
                 guide: AUTHORING_GUIDE,
                 palette: PROCESS_DESIGNER_PALETTE_GROUPS,
                 declarationNodeTypes: [...DECLARATION_NODE_TYPES],
                 nodeCatalog: PROCESS_NODE_CATALOG,
                 families: [...PROCESS_NODE_FAMILIES],
-                valueOperations
+                valueOperations,
+                roles: roles.map(role => ({ id: role.id, label: role.label || role.id }))
             };
         }
     },
