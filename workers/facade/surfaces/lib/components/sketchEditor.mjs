@@ -546,6 +546,10 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const clearDrawing = async () => {
         if (!manager) return;
+        // The entity deletions never schedule an extraction: one racing
+        // the parent's model update read the OLD sketch's table and
+        // rebuilt it onto the blank session.
+        unbindDatabase();
         clearDrawingEntities();
         importedFileName.value = '';
         // Clearing starts the blank authoring session: the parameter
@@ -556,6 +560,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         lastEmitted = JSON.stringify(normalizeOccsProfileSketch(sketch));
         emit('update:modelValue', sketch);
         emit('profile', null);
+        bindDatabase({ schedule: false });
       };
 
       const reseedFromModel = () => {
