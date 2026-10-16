@@ -102,4 +102,19 @@ describe('definition tool authoring surface', () => {
         expect(mcp).not.toContain('attach_instances');
         expect(chatToolDescriptors().map(tool => tool.name)).toContain('attach_instances');
     });
+
+    it('serves the authoring vocabulary — palette, node catalog, typed sockets', async () => {
+        const vocabulary = await executeTool('get_authoring_vocabulary', {}, AUTH);
+        const json = JSON.stringify(vocabulary);
+        // The payload is data only: no runtime (function) members of the
+        // operation registry may cross the wire.
+        expect(json).not.toContain('"run"');
+        expect(vocabulary.palette.some(group => group.items.some(item => item.type === 'processNode' && item.kind))).toBe(true);
+        expect(vocabulary.declarationNodeTypes).toEqual(['ctsClass', 'ctsType', 'ctsField', 'ctsState']);
+        expect(vocabulary.nodeCatalog.length).toBeGreaterThan(50);
+        expect(vocabulary.nodeCatalog.some(node => node.kind === 'cts.construct')).toBe(true);
+        const math = vocabulary.valueOperations['value.math'] || {};
+        const firstMath = math[Object.keys(math)[0]];
+        expect(Array.isArray(firstMath?.inputs)).toBe(true);
+    });
 });

@@ -3,6 +3,7 @@ import * as processDefinitionsService from '~/server/features/process-definition
 import * as supportService from '~/server/features/support/service.js';
 import { describeOrganizationTypes } from '~/server/features/cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY } from '~/packages/processes/src/index.js';
 
 /**
  * The agent tool catalog: one curated vocabulary over the existing service
@@ -165,6 +166,30 @@ export const TOOL_SPECS = [
                     ...(args.valueInputs && typeof args.valueInputs === 'object' ? { valueInputs: args.valueInputs } : {})
                 }
             }, auth);
+        }
+    },
+    {
+        name: 'get_authoring_vocabulary',
+        description: 'The process authoring vocabulary, straight off the designer\'s palette: palette groups (what to drop), the node catalog (every valid node kind with family and level — a processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind), the value operations with typed input sockets and output, and the declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners). Edge handles are \'data:<socketId>\'. Compose by mimicking get_process_definition\'s node, record, and edge shapes; validate_process_definition\'s anchored diagnostics are the authoring teacher — validate, fix, repeat, then activate.',
+        inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+        execute: async () => {
+            const valueOperations = {};
+            for (const [kind, kindOperations] of Object.entries(PROCESS_OPERATION_REGISTRY)) {
+                valueOperations[kind] = {};
+                for (const [id, operation] of Object.entries(kindOperations)) {
+                    valueOperations[kind][id] = {
+                        inputs: (operation.inputs || []).map(socket => ({ id: socket.id, base: socket.base })),
+                        output: operation.output ? { id: operation.output.id, base: operation.output.base } : null
+                    };
+                }
+            }
+            return {
+                palette: PROCESS_DESIGNER_PALETTE_GROUPS,
+                declarationNodeTypes: [...DECLARATION_NODE_TYPES],
+                nodeCatalog: PROCESS_NODE_CATALOG,
+                families: [...PROCESS_NODE_FAMILIES],
+                valueOperations
+            };
         }
     },
     {
