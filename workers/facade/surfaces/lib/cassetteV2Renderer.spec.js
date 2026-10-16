@@ -361,6 +361,9 @@ describe('cassette v2 trapezoid renderer', () => {
       arrayCount: '1'
     });
     expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_1')).toEqual(['E1', 'E3']);
+    // The asking relation's own edge stays listed — its value must remain
+    // in its own chooser.
+    expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_1', relation.id)).toEqual(['E1', 'E2', 'E3']);
     // The fold eats an edge on both faces (the existing folded-edge law):
     // the child's attach edge is not arrangeable either.
     expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_2')).toEqual(['E1', 'E2', 'E3']);

@@ -471,9 +471,9 @@ export default function createSurface({ vue, components, locale, queries, notify
         [relation.arrayMode === 'spacing' ? 'arraySpacing' : 'arrayCount']: value
       });
       // Owner law (2026-10-16): a profile never arranges on a fold edge
-      // (or a profile-arranged one) — the chooser offers only the face's
-      // arrangeable edges.
-      const attachableEdgeOptions = (faceId) => cassetteV2AttachableProfileEdgesForTree(cassetteTree.value, faceId)
+      // (or one consumed by another profile) — the chooser offers only
+      // the face's arrangeable edges, keeping the relation's own.
+      const attachableEdgeOptions = (faceId, relationId) => cassetteV2AttachableProfileEdgesForTree(cassetteTree.value, faceId, relationId)
         .map(edge => ({ label: edge, value: edge }));
       const anchorOptions = computed(() => [
         { label: t('cassette.v2.anchors.start'), value: 0 },
@@ -1250,7 +1250,11 @@ export default function createSurface({ vue, components, locale, queries, notify
         // a fold snaps to the first arrangeable edge — folds and
         // profile-arranged edges are prohibited (owner law 2026-10-16).
         if ((nextPatch.placementMode || relation.placementMode) === 'edgeArray') {
-          const attachable = cassetteV2AttachableProfileEdgesForTree(cassetteTree.value, nextPatch.targetFaceId || relation.targetFaceId);
+          const attachable = cassetteV2AttachableProfileEdgesForTree(
+            cassetteTree.value,
+            nextPatch.targetFaceId || relation.targetFaceId,
+            relationId
+          );
           const edge = nextPatch.arrayEdge ?? relation.arrayEdge;
           if (attachable.length && !attachable.includes(edge)) nextPatch.arrayEdge = attachable[0];
         }
@@ -1872,7 +1876,7 @@ export default function createSurface({ vue, components, locale, queries, notify
               relation.placementMode === 'edgeArray'
                 ? h(Select, {
                     modelValue: relation.arrayEdge,
-                    options: attachableEdgeOptions(relation.targetFaceId),
+                    options: attachableEdgeOptions(relation.targetFaceId, relation.id),
                     optionLabel: 'label',
                     optionValue: 'value',
                     class: 'w-full',

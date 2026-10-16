@@ -2438,11 +2438,26 @@ export const profileFoldEdgeRefusalsForTree = (tree = createCassetteV2GraphTree(
 
 // The edges of a face a profile may arrange on, as E labels: faces are
 // trapezoids (four authored edges), less the folds (a child face bends
-// there) and the profile-arranged edges (terminal).
-export const cassetteV2AttachableProfileEdgesForTree = (tree = createCassetteV2GraphTree(), faceId = '') => {
+// there) and the edges consumed by OTHER profile relations — the asking
+// relation's own edge stays listed, or its value would fall out of its
+// own chooser.
+export const cassetteV2AttachableProfileEdgesForTree = (
+  tree = createCassetteV2GraphTree(),
+  faceId = '',
+  relationId = ''
+) => {
   const sourceTree = cloneCassetteV2Tree(tree);
+  const parameters = treeParameters(sourceTree);
   const folds = getCassetteV2FoldEdges(sourceTree);
-  const terminal = profileTerminalEdgesForTree(sourceTree);
+  const terminal = new Set();
+  for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
+    if (relation.id === relationId) continue;
+    const workpiece = relationProfileWorkpiece(sourceTree, relation);
+    if (!workpiece) continue;
+    const edgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
+    if (edgeIndex === null) continue;
+    terminal.add(`${relation.targetFaceId}:${edgeIndex}`);
+  }
   return Array.from({ length: 4 }, (_, edgeIndex) => edgeIndex)
     .filter(edgeIndex => !folds.has(`${faceId}:E${edgeIndex}`) && !terminal.has(`${faceId}:${edgeIndex}`))
     .map(edgeIndex => `E${edgeIndex}`);

@@ -236,7 +236,8 @@ modules — no platform imports.
   refusal through `profileEmbeddingErrors` — and the attachment popup's
   edge chooser lists only `cassetteV2AttachableProfileEdgesForTree`'s
   arrangeable edges (the trapezoid's four authored edges less folds and
-  profile-arranged ones), snapping a stale illegal default to the first
+  the edges consumed by other profiles — the asking relation's own edge
+  stays listed), snapping a stale illegal default to the first
   arrangeable edge on the write path.
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
