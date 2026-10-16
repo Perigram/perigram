@@ -41,17 +41,18 @@ Three pieces share one tool catalog:
   persisted message and drives a bounded tool-calling loop (max 8 rounds)
   over the [LLM capability module](../llm/README.md) on the `chat`
   capability route. Replies re-enter the
-  auth-checked support send path as the bot user. While a run is in
-  flight it publishes the conversation's ephemeral signals: the typing
-  beat the human composer rides, plus the run's activity — `bot_thinking`
-  with the reasoning so far (accumulated across rounds), `bot_tool` per
-  tool invocation as it starts and settles, `bot_stream` with the answer
-  so far, and `bot_stream_end` to clear the run. Only the final answer
-  persists: a tool round retracts only its answer text (reasoning and
-  tool rows stay as the run's visible work), each round reconciles the
+  auth-checked support send path as the bot user, carrying the run's
+  provenance (`agent: { thinking, tools }`) onto the persisted message —
+  the activity block the chat renders attached to the answer. While the
+  run is in flight it publishes the same activity onto the conversation
+  topic — `bot_thinking` with the reasoning so far (accumulated across
+  rounds), `bot_tool` per tool invocation as it starts and settles,
+  `bot_stream` with the answer so far, and `bot_stream_end` when the
+  persisted message supersedes the live view. The activity itself is the
+  run's presence signal (bots never ride the human typing line); a tool
+  round retracts only its answer text, and each round reconciles the
   sink with the assembled neutral message (a reasoning-first stream that
-  ends tagless was a plain answer), and the persisted message supersedes
-  the live activity.
+  ends tagless was a plain answer).
 
 ## Conversation membership
 

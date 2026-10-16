@@ -68,11 +68,12 @@ execution points and composes: wake rule, conversation, bot, org chat
 route — each optional, each falling back to the next; the conversation
 point is picked in the chat itself, never on the models screen.
 
-An agent run is visible in its room: the typing signal rides the
-conversation while the bot works, the model's reasoning streams as a
-collapsible thinking block (ephemeral — never persisted, never part of
-the answer), each tool invocation appears as it starts and settles, and
-the final answer streams into the chat as it is produced.
+An agent run is visible in its room and stays with its answer: the
+model's reasoning streams as a collapsible thinking block and each tool
+invocation appears as it starts and settles; the final answer streams as
+it is produced and renders as markdown; the run's reasoning and tool
+history persist attached to the answer. Bots never ride the human typing
+line — the run's own activity is its presence.
 
 Lifecycle wakes: a bot subscribed to a conversation may be woken by status
 transitions — assignment-side wake rules on the subscription (type +

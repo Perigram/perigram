@@ -547,6 +547,14 @@ shared entity popup (`useEntityPopup` → the user's directory profile).
 Keep person identity displays on this chip; keep entity refs on
 `InstanceInlineRef`.
 
+### `AgentActivity.vue`
+An agent run's visible work — the model's reasoning in a collapsible
+`details` disclosure and one status-iconed row per tool invocation —
+rendered both for a live run (open, with a spinner-only pending state
+before the first token) and for the `agent` provenance persisted on a
+bot's reply (collapsed). The answer is never rendered here: it is the
+message body at both sites.
+
 ### `ChatBotPanel.vue`
 The chat bot panel (`StandardDialog`): org bot rows with per-conversation
 join switches (group/instance threads only — direct chats need no
@@ -663,7 +671,12 @@ Renders support-chat message bodies. Plain text remains text, while
 `{{entity:type:id}}` tokens render as inline `InstanceInlineRef` chips. The
 component also renders structured `message.entityRefs[]` entries that were not
 embedded as tokens, so structured attachments remain visible without polluting
-the text body. Text parts wrap with `overflow-wrap: anywhere` and the whole
+the text body. With the `markdown` prop (agent answers), text parts render
+through the shared sanitized markdown pipeline
+([shared/markdown.js](../../shared/markdown.js)) instead of plain spans —
+instance-token chips still split out first, and the pipeline renders plain
+text on SSR, formatting on hydration. Text parts wrap with
+`overflow-wrap: anywhere` and the whole
 inline-flex chain keeps `min-w-0`/`max-w-full`, so unbroken strings (urls,
 serials) wrap inside the bubble instead of overflowing the chat bounds.
 Messages carrying `attachment.kind === 'audio'` render a leading voice-message

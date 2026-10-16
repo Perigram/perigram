@@ -22,8 +22,10 @@ Messages have a deterministic `conversationKey`:
 New writes always persist
 `conversationKey`, `conversationKind`, `participants`, `senderUserId`,
 `message`, `instanceRefs`, `timestamp`, and optionally `attachments` (see
-[Message Attachments](#message-attachments)) or `forwardedFrom` (see
-[Forwarding](#forwarding)).
+[Message Attachments](#message-attachments)), `forwardedFrom` (see
+[Forwarding](#forwarding)), or `agent` — the bot runtime's run
+provenance (`{ thinking, tools }`), server-authored through the service
+seam and stripped from client-posted bodies.
 
 ### Inbox Preferences and Read Marks
 

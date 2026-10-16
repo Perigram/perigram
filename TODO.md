@@ -8,8 +8,8 @@ administration moves off its own screen onto the team surface, where bot
 rows already live as members.
 
 - [ ] WAITING — owner verification on the live stack: while a bot run is
-  in flight the room shows the typing signal (server-published beats on
-  the conversation topic, cleared when the run ends).
+  in flight the room shows the run's own activity (spinner before the
+  first token; bots never ride the human typing line).
 - [ ] WAITING — owner verification on the live stack: bot administration
   (create, brain, token rotation, delete) happens on the team surface's
   bot member rows; the dedicated bots screen is gone from navigation.
@@ -19,13 +19,15 @@ rows already live as members.
   conversation topic, rendered as a growing bubble the persisted message
   replaces).
 - [ ] WAITING — owner verification on the live stack: the bot's reasoning
-  streams as a collapsible chromeless thinking block (`bot_thinking`,
-  split out of the content stream so only the answer persists) and every
-  tool invocation appears as it starts and settles (`bot_tool`).
+  streams as a collapsible chromeless thinking block and every tool
+  invocation appears as it starts and settles (`bot_thinking`/`bot_tool`);
+  the run's reasoning and tool history persist attached to the reply
+  (`agent` provenance on the message), and the answer renders markdown.
 - [ ] WAITING — owner verification on the live stack: the conversation's
-  model is picked in the chat itself (select above the composer: the
-  room's subscribed bots, or the bot participant of a direct chat; blank
-  falls back to each bot's brain).
+  model is picked in the chat itself (select above the composer, rows
+  labeled by the model each profile routes to: the room's subscribed
+  bots, or the bot participant of a direct chat; blank falls back to
+  each bot's brain).
 - [ ] WAITING — owner verification on the live stack: `LLM_TIMEOUT_MS`
   overrides the request idle guard.
 
@@ -51,6 +53,18 @@ through `botStreamSink` (full text so far, so the client just replaces the
 draft), retracting a tool round's text; the chat renders the draft bubble
 and hides the typing line while it is up. New specs: the three stream
 readers and a runtime publish assertion.
+
+Session `agent/agent-run-ux-20261016` reshaped the run to the standard AI
+chat pattern. The run's provenance (`agent: { thinking, tools }`) now
+persists on the reply through the support seam (server-authored only —
+the HTTP route strips it) and renders attached to the answer, collapsed,
+through a new shared `AgentActivity` used live and persisted; the
+answer renders markdown via the existing shared sanitized pipeline
+(composes with instance-token chips; plain text on SSR). Typing beats are
+gone — the activity block (with a spinner-only pending state) is the
+bot's presence, and the human typing line stays human-only. Picker rows
+label the model each profile routes to (contacts carry `{ id, model }`
+through a new `chatProfiles` lister).
 
 Session `agent/chat-activity-fix-20261015` corrected that session's split
 against the live wire and unblocked the picker for direct chats. The
