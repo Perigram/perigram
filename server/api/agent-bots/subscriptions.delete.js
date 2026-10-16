@@ -4,5 +4,5 @@ import * as service from '~/server/features/agent-bots/service.js';
 
 export default defineEventHandler(async (event) => {
     const auth = requireAuth(event);
-    return await service.unsubscribeBot(auth, await readBody(event));
+    return await service.unsubscribeAssistant(auth, await readBody(event));
 });

@@ -1,19 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// The contacts contract's failure modes, pinned: the org assistant is
-// idempotent (deterministic address, no duplicate on collision), member
-// visibility needs no admin grants, conversation decoration rides
-// admission, direct keys are refused, and group joins use the
-// participant-gated bot seam — never the human membership gate.
+// The AI contact contract's failure modes, pinned: the org assistant is
+// idempotent (deterministic address, no duplicate on collision), the
+// agent-chat capability gates every surface (no capability, no AI row),
+// conversation decoration rides admission, direct keys are served
+// through profile-only rows, and group joins use the participant-gated
+// bot seam — never the human membership gate. Wake rules carry their
+// author (the delegation principal when they fire).
 
-const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mockedProcessAuth, mockedProcessDefinitions, mockedLlm } = vi.hoisted(() => ({
+const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mockedOrganizationsService, mockedProcessDefinitions, mockedLlm } = vi.hoisted(() => ({
     mockedUsers: {
-        list: vi.fn(),
         getById: vi.fn(),
         findUserByEmail: vi.fn(),
         registerBot: vi.fn(),
-        updateBotProfile: vi.fn(),
-        canManageUsersInOrganization: vi.fn()
+        buildAuthContext: vi.fn()
     },
     mockedSupport: {
         getConversationContextByKey: vi.fn(),
@@ -26,17 +26,23 @@ const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mocke
         findSubscriptionsByConversation: vi.fn()
     },
     mockedOrganizations: { findById: vi.fn() },
-    mockedProcessAuth: { resolveProcessAuth: vi.fn(async (auth) => auth) },
+    mockedOrganizationsService: { canUseAgentChats: vi.fn() },
     mockedProcessDefinitions: { listActiveWorkflowStates: vi.fn() },
-    mockedLlm: { chatProfileIds: vi.fn(async () => []), chatProfiles: vi.fn(async () => []), chatModels: vi.fn(async () => []) }
+    mockedLlm: {
+        chatProfileIds: vi.fn(async () => []),
+        chatProfiles: vi.fn(async () => []),
+        chatModels: vi.fn(async () => []),
+        resolveLlmConfig: vi.fn(async () => ({ provider: 'none' }))
+    }
 }));
 
 vi.mock('~/server/features/users/service.js', () => mockedUsers);
 vi.mock('~/server/features/support/service.js', () => mockedSupport);
 vi.mock('~/server/features/organizations/repository.js', () => mockedOrganizations);
+vi.mock('~/server/features/organizations/service.js', () => mockedOrganizationsService);
 vi.mock('~/server/features/process-definitions/service.js', () => mockedProcessDefinitions);
 vi.mock('~/server/features/llm/service.js', () => mockedLlm);
-vi.mock('~/server/features/process-definitions/runtime.js', () => mockedProcessAuth);
+vi.mock('~/server/features/process-definitions/runtime.js', () => ({ resolveProcessAuth: vi.fn(async (auth) => auth) }));
 vi.mock('./repository.js', () => mockedRepository);
 vi.mock('h3', () => ({
     createError: vi.fn((err) => {
@@ -46,7 +52,7 @@ vi.mock('h3', () => ({
     })
 }));
 
-import { ensureOrganizationAssistant, listBotContacts, subscribeBot, setBotProfile } from './service.js';
+import { ensureOrganizationAssistant, listAssistantContact, subscribeAssistant, unsubscribeAssistant, listWakeOptions, buildPrincipalAuth } from './service.js';
 
 const AUTH = { userId: 'user-human', organizationId: 'org-1' };
 
@@ -66,9 +72,11 @@ const humanModel = (id, name) => ({
     toJSON: () => ({ _id: id, identity: { name }, data: {} })
 });
 
+const ASSISTANT = botModel('bot-a', 'Assistant');
+
 beforeEach(() => {
     vi.clearAllMocks();
-    mockedUsers.canManageUsersInOrganization.mockReturnValue(true);
+    mockedOrganizationsService.canUseAgentChats.mockResolvedValue(true);
     mockedRepository.findSubscriptionsByConversation.mockResolvedValue([]);
 });
 
@@ -78,7 +86,7 @@ describe('ensureOrganizationAssistant', () => {
         mockedUsers.findUserByEmail
             .mockResolvedValueOnce(null)
             .mockResolvedValueOnce(created);
-        mockedUsers.registerBot.mockResolvedValue({ user: created, token: 'pb_x' });
+        mockedUsers.registerBot.mockResolvedValue({ user: created });
         const first = await ensureOrganizationAssistant('org-1');
         expect(mockedUsers.registerBot).toHaveBeenCalledWith({
             name: 'Assistant',
@@ -108,135 +116,46 @@ describe('ensureOrganizationAssistant', () => {
     });
 });
 
-describe('listBotContacts', () => {
-    it('needs an organization and sorts the assistant first', async () => {
-        await expect(listBotContacts({ userId: 'u' })).resolves.toEqual({ assistantId: null, contacts: [] });
+describe('listAssistantContact', () => {
+    it('returns no AI without an organization or the capability', async () => {
+        await expect(listAssistantContact({ userId: 'u' })).resolves.toEqual({ canChat: false, assistant: null, chatProfiles: [], chatModels: [] });
 
-        mockedUsers.findUserByEmail.mockResolvedValue(botModel('bot-a', 'Assistant'));
-        mockedUsers.list.mockResolvedValue([
-            botModel('bot-z', 'Zeta'),
-            botModel('bot-a', 'Assistant'),
-            humanModel('u1', 'Human')
-        ]);
-        const result = await listBotContacts(AUTH);
-        expect(result.contacts.map(row => row.name)).toEqual(['Assistant', 'Zeta']);
-        expect(result.contacts[0]).toMatchObject({ assistant: true, subscribed: false, wakeOn: [] });
-        expect(result.contacts[1].assistant).toBe(false);
+        mockedOrganizationsService.canUseAgentChats.mockResolvedValue(false);
+        await expect(listAssistantContact(AUTH)).resolves.toMatchObject({ canChat: false, assistant: null });
+        expect(mockedUsers.findUserByEmail).not.toHaveBeenCalled();
     });
 
-    it('decorates rows with the conversation subscription and serves direct keys', async () => {
-        mockedUsers.findUserByEmail.mockResolvedValue(botModel('bot-a', 'Assistant'));
-        mockedUsers.list.mockResolvedValue([botModel('bot-a', 'Assistant')]);
+    it('serves the ensured assistant row', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
+        const result = await listAssistantContact(AUTH);
+        expect(result.canChat).toBe(true);
+        expect(result.assistant).toMatchObject({ id: 'bot-a', name: 'Assistant', subscribed: false, wakeOn: [] });
+    });
+
+    it('decorates the row with the conversation subscription and serves direct keys', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
         mockedSupport.getConversationContextByKey.mockResolvedValue({
             kind: 'group', conversationKey: 'group:g1', groupId: 'g1'
         });
         mockedRepository.findSubscriptionsByConversation.mockResolvedValue([
-            { botUserId: 'bot-a', wakeOn: [{ type: 'queue', state: 'nested' }] }
+            { botUserId: 'bot-a', wakeOn: [{ type: 'queue', state: 'nested', createdBy: 'user-human' }] }
         ]);
-        const result = await listBotContacts(AUTH, 'group:g1');
-        expect(result.contacts[0]).toMatchObject({
+        const result = await listAssistantContact(AUTH, 'group:g1');
+        expect(result.assistant).toMatchObject({
             subscribed: true,
-            wakeOn: [{ type: 'queue', state: 'nested' }]
+            wakeOn: [{ type: 'queue', state: 'nested', createdBy: 'user-human' }]
         });
 
         mockedSupport.getConversationContextByKey.mockResolvedValue({ kind: 'direct', conversationKey: 'direct:a:b' });
         // Direct keys are the same execution point through a profile-only
         // row: they decorate instead of rejecting (no membership semantics).
-        await expect(listBotContacts(AUTH, 'direct:a:b')).resolves.toMatchObject({
-            contacts: [{ id: 'bot-a', subscribed: true, wakeOn: [{ type: 'queue', state: 'nested' }] }]
+        await expect(listAssistantContact(AUTH, 'direct:a:b')).resolves.toMatchObject({
+            assistant: { id: 'bot-a', subscribed: true, wakeOn: [{ type: 'queue', state: 'nested', createdBy: 'user-human' }] }
         });
     });
-});
 
-describe('setBotProfile', () => {
-    it('accepts a chat profile from the org model table and clears on empty', async () => {
-        mockedUsers.getById.mockResolvedValue(botModel('bot-a', 'Assistant'));
-        mockedUsers.updateBotProfile.mockResolvedValue({});
-        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
-        await expect(setBotProfile(AUTH, 'bot-a', 'cloud-big')).resolves.toEqual({ id: 'bot-a', profile: 'cloud-big' });
-        expect(mockedUsers.updateBotProfile).toHaveBeenCalledWith('bot-a', 'cloud-big');
-        await expect(setBotProfile(AUTH, 'bot-a', '')).resolves.toEqual({ id: 'bot-a', profile: '' });
-        expect(mockedUsers.updateBotProfile).toHaveBeenLastCalledWith('bot-a', '');
-    });
-
-    it('refuses unknown or non-chat profiles and non-bots', async () => {
-        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
-        await expect(setBotProfile(AUTH, 'bot-a', 'images')).rejects.toMatchObject({ statusCode: 400 });
-        mockedUsers.getById.mockResolvedValue(humanModel('u1', 'Human'));
-        await expect(setBotProfile(AUTH, 'u1', 'cloud-big')).rejects.toMatchObject({ statusCode: 404 });
-    });
-});
-
-describe('subscribeBot', () => {
-    it('joins groups through the participant-gated bot seam', async () => {
-        mockedUsers.getById.mockResolvedValue(botModel('bot-a', 'Assistant'));
-        mockedSupport.getConversationContextByKey.mockResolvedValue({
-            kind: 'group', conversationKey: 'group:g1', groupId: 'g1'
-        });
-        mockedSupport.addBotGroupParticipant.mockResolvedValue({});
-        const result = await subscribeBot(AUTH, {
-            botId: 'bot-a',
-            conversationKey: 'group:g1',
-            wakeOn: [{ type: 'queue', state: 'nested' }]
-        });
-        expect(mockedSupport.addBotGroupParticipant).toHaveBeenCalledWith(AUTH, 'g1', 'bot-a');
-        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
-            botUserId: 'bot-a',
-            conversationKey: 'group:g1',
-            wakeOn: [{ type: 'queue', state: 'nested' }]
-        }));
-        expect(result.subscribed).toBe(true);
-    });
-
-    it('stores a profile-only row for a direct chat with its bot participant', async () => {
-        mockedUsers.getById.mockResolvedValue(botModel('bot-a', 'Assistant'));
-        mockedSupport.getConversationContextByKey.mockResolvedValue({
-            kind: 'direct', conversationKey: 'direct:user-human:bot-a', participants: ['user-human', 'bot-a']
-        });
-        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
-        const result = await subscribeBot(AUTH, {
-            botId: 'bot-a', conversationKey: 'direct:user-human:bot-a', profile: 'cloud-big'
-        });
-        expect(mockedSupport.addBotGroupParticipant).not.toHaveBeenCalled();
-        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
-            botUserId: 'bot-a',
-            conversationKey: 'direct:user-human:bot-a',
-            conversationKind: 'direct',
-            profile: 'cloud-big'
-        }));
-        expect(result.subscribed).toBe(true);
-        await expect(subscribeBot(AUTH, {
-            botId: 'bot-a', conversationKey: 'direct:user-human:bot-a', wakeOn: [{ type: 'queue', state: 'nested' }]
-        })).rejects.toMatchObject({ statusCode: 400 });
-    });
-
-    it('validates the conversation and rule model overrides', async () => {
-        mockedUsers.getById.mockResolvedValue(botModel('bot-a', 'Assistant'));
-        mockedSupport.getConversationContextByKey.mockResolvedValue({
-            kind: 'group', conversationKey: 'group:g1', groupId: 'g1'
-        });
-        mockedSupport.addBotGroupParticipant.mockResolvedValue({});
-        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
-        await expect(subscribeBot(AUTH, { botId: 'bot-a', conversationKey: 'group:g1', profile: 'nope' }))
-            .rejects.toMatchObject({ statusCode: 400 });
-        await expect(subscribeBot(AUTH, {
-            botId: 'bot-a', conversationKey: 'group:g1',
-            wakeOn: [{ type: 'queue', state: 'nested', profile: 'nope' }]
-        })).rejects.toMatchObject({ statusCode: 400 });
-        const result = await subscribeBot(AUTH, {
-            botId: 'bot-a', conversationKey: 'group:g1', profile: 'cloud-big',
-            wakeOn: [{ type: 'queue', state: 'nested', profile: 'cloud-big' }]
-        });
-        expect(result.profile).toBe('cloud-big');
-        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
-            profile: 'cloud-big',
-            wakeOn: [{ type: 'queue', state: 'nested', profile: 'cloud-big' }]
-        }));
-    });
-
-    it('exposes chat profiles with their models beside contact rows', async () => {
-        mockedUsers.findUserByEmail.mockResolvedValue(botModel('bot-a', 'Assistant'));
-        mockedUsers.list.mockResolvedValue([botModel('bot-a', 'Assistant')]);
+    it('exposes chat profiles with their models beside the AI row', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
         mockedLlm.chatProfiles.mockResolvedValue([
             { id: 'cloud-big', model: 'glm-4.7' },
             { id: 'local-fast', model: 'qwen3:30b-a3b' }
@@ -245,7 +164,7 @@ describe('subscribeBot', () => {
             { profile: 'local-fast', model: 'qwen3:4b' },
             { profile: 'local-fast', model: 'qwen3:30b-a3b' }
         ]);
-        const result = await listBotContacts(AUTH);
+        const result = await listAssistantContact(AUTH);
         expect(result.chatProfiles).toEqual([
             { id: 'cloud-big', model: 'glm-4.7' },
             { id: 'local-fast', model: 'qwen3:30b-a3b' }
@@ -255,10 +174,124 @@ describe('subscribeBot', () => {
             { profile: 'local-fast', model: 'qwen3:30b-a3b' }
         ]);
     });
+});
 
-    it('rejects non-bot targets', async () => {
-        mockedUsers.getById.mockResolvedValue({ toJSON: () => ({ _id: 'u1', data: {} }) });
-        await expect(subscribeBot(AUTH, { botId: 'u1', conversationKey: 'group:g1' }))
-            .rejects.toMatchObject({ statusCode: 404 });
+describe('subscribeAssistant', () => {
+    it('refuses members without the agent-chat capability', async () => {
+        mockedOrganizationsService.canUseAgentChats.mockResolvedValue(false);
+        await expect(subscribeAssistant(AUTH, { conversationKey: 'group:g1' }))
+            .rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it('joins groups through the participant-gated bot seam, authoring wake rules to the caller', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
+        mockedSupport.getConversationContextByKey.mockResolvedValue({
+            kind: 'group', conversationKey: 'group:g1', groupId: 'g1'
+        });
+        mockedSupport.addBotGroupParticipant.mockResolvedValue({});
+        const result = await subscribeAssistant(AUTH, {
+            conversationKey: 'group:g1',
+            wakeOn: [{ type: 'queue', state: 'nested' }]
+        });
+        expect(mockedSupport.addBotGroupParticipant).toHaveBeenCalledWith(AUTH, 'g1', 'bot-a');
+        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
+            botUserId: 'bot-a',
+            conversationKey: 'group:g1',
+            wakeOn: [{ type: 'queue', state: 'nested', createdBy: 'user-human' }]
+        }));
+        expect(result.subscribed).toBe(true);
+    });
+
+    it('stores a profile-only row for a direct chat with the assistant participant', async () => {
+        mockedUsers.getById.mockImplementation(async (id) => (String(id) === 'bot-a' ? ASSISTANT : null));
+        mockedSupport.getConversationContextByKey.mockResolvedValue({
+            kind: 'direct', conversationKey: 'direct:user-human:bot-a', participants: ['user-human', 'bot-a']
+        });
+        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
+        const result = await subscribeAssistant(AUTH, {
+            conversationKey: 'direct:user-human:bot-a', profile: 'cloud-big'
+        });
+        expect(mockedSupport.addBotGroupParticipant).not.toHaveBeenCalled();
+        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
+            botUserId: 'bot-a',
+            conversationKey: 'direct:user-human:bot-a',
+            conversationKind: 'direct',
+            profile: 'cloud-big'
+        }));
+        expect(result.subscribed).toBe(true);
+        await expect(subscribeAssistant(AUTH, {
+            conversationKey: 'direct:user-human:bot-a', wakeOn: [{ type: 'queue', state: 'nested' }]
+        })).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('refuses direct chats whose only bot participant is gone', async () => {
+        mockedUsers.getById.mockImplementation(async (id) => (String(id) === 'bot-x' ? humanModel('bot-x', 'Not a bot') : null));
+        mockedSupport.getConversationContextByKey.mockResolvedValue({
+            kind: 'direct', conversationKey: 'direct:user-human:bot-x', participants: ['user-human', 'bot-x']
+        });
+        await expect(subscribeAssistant(AUTH, { conversationKey: 'direct:user-human:bot-x' }))
+            .rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('validates the conversation and rule model overrides', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
+        mockedSupport.getConversationContextByKey.mockResolvedValue({
+            kind: 'group', conversationKey: 'group:g1', groupId: 'g1'
+        });
+        mockedSupport.addBotGroupParticipant.mockResolvedValue({});
+        mockedLlm.chatProfileIds.mockResolvedValue(['cloud-big']);
+        await expect(subscribeAssistant(AUTH, { conversationKey: 'group:g1', profile: 'nope' }))
+            .rejects.toMatchObject({ statusCode: 400 });
+        await expect(subscribeAssistant(AUTH, {
+            conversationKey: 'group:g1',
+            wakeOn: [{ type: 'queue', state: 'nested', profile: 'nope' }]
+        })).rejects.toMatchObject({ statusCode: 400 });
+        const result = await subscribeAssistant(AUTH, {
+            conversationKey: 'group:g1', profile: 'cloud-big',
+            wakeOn: [{ type: 'queue', state: 'nested', profile: 'cloud-big' }]
+        });
+        expect(result.profile).toBe('cloud-big');
+        expect(mockedRepository.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
+            profile: 'cloud-big',
+            wakeOn: [{ type: 'queue', state: 'nested', profile: 'cloud-big', createdBy: 'user-human' }]
+        }));
+    });
+});
+
+describe('unsubscribeAssistant', () => {
+    it('leaves groups through the participant-gated seam and drops the row', async () => {
+        mockedUsers.findUserByEmail.mockResolvedValue(ASSISTANT);
+        mockedSupport.getConversationContextByKey.mockResolvedValue({
+            kind: 'group', conversationKey: 'group:g1', groupId: 'g1'
+        });
+        const result = await unsubscribeAssistant(AUTH, { conversationKey: 'group:g1' });
+        expect(mockedSupport.removeBotGroupParticipant).toHaveBeenCalledWith(AUTH, 'g1', 'bot-a');
+        expect(mockedRepository.removeSubscription).toHaveBeenCalledWith('bot-a', 'group:g1');
+        expect(result.subscribed).toBe(false);
+    });
+});
+
+describe('listWakeOptions', () => {
+    it('is capability-gated and lists active workflow states', async () => {
+        mockedProcessDefinitions.listActiveWorkflowStates.mockResolvedValue([{ typeId: 'queue', states: ['nested'] }]);
+        await expect(listWakeOptions(AUTH)).resolves.toEqual([{ typeId: 'queue', states: ['nested'] }]);
+        mockedOrganizationsService.canUseAgentChats.mockResolvedValue(false);
+        await expect(listWakeOptions(AUTH)).rejects.toMatchObject({ statusCode: 403 });
+    });
+});
+
+describe('buildPrincipalAuth', () => {
+    it('builds any member\'s request-shaped auth', async () => {
+        const user = humanModel('user-human', 'Human');
+        mockedUsers.getById.mockResolvedValue(user);
+        mockedUsers.buildAuthContext.mockReturnValue({ userId: 'user-human', name: 'Human' });
+        const auth = await buildPrincipalAuth('user-human');
+        expect(mockedUsers.buildAuthContext).toHaveBeenCalledWith(user);
+        expect(auth).toMatchObject({ userId: 'user-human', name: 'Human' });
+    });
+
+    it('throws 404 for a missing user', async () => {
+        mockedUsers.getById.mockResolvedValue(null);
+        await expect(buildPrincipalAuth('nobody')).rejects.toMatchObject({ statusCode: 404 });
     });
 });

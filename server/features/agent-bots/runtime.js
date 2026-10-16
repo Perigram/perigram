@@ -1,27 +1,29 @@
 import * as llmService from '~/server/features/llm/service.js';
 import * as supportService from '~/server/features/support/service.js';
 import * as connectionsService from '~/server/features/connections/service.js';
+import * as organizationsService from '~/server/features/organizations/service.js';
 import { MESSAGE_SENDER } from '~/server/features/support/const.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { buildBotAuth, isBotUser } from './service.js';
+import { buildPrincipalAuth, ensureOrganizationAssistant, isBotUser } from './service.js';
 import * as botRepository from './repository.js';
 import { executeTool, chatToolDescriptors } from './tools.js';
 
 /**
- * The chat bot runtime: registered (by the agent-bots nitro plugin) as a
- * support message observer, it decides which bots answer a persisted
- * message and drives their tool-calling loop. Replies re-enter the
- * auth-checked support send path as the bot user — the runtime holds no
- * separate delivery channel. The wake scanner drives the same loop from
- * status transitions (see wake-scanner.js).
+ * The organization AI's chat runtime: registered (by the agent-bots
+ * nitro plugin) as a support message observer, it decides when the AI
+ * answers a persisted message and drives its tool-calling loop. Delegation
+ * is the access contract (SPEC: agent access): a run executes with the
+ * triggering sender's rights while replies are attributed to the
+ * assistant. The wake scanner drives the same loop from status
+ * transitions, delegated to the wake rule's author (see wake-scanner.js).
  */
 
 const HISTORY_LIMIT = 30;
 const MAX_TOOL_ROUNDS = 8;
 
-// One in-flight reply per bot and conversation: bursts (or a subscriber's
-// own sends racing the reply) must not stack duplicate answers. Chat
-// replies and lifecycle wakes share the lock space. Each entry carries the
+// One in-flight reply per conversation: bursts (or a subscriber's own
+// sends racing the reply) must not stack duplicate answers. Chat replies
+// and lifecycle wakes share the lock space. Each entry carries the
 // run's cancellation handle so the room can stop it in flight.
 const inFlight = new Map();
 
@@ -43,16 +45,16 @@ export function stopConversationRuns(organizationId, conversationKey) {
 }
 
 /**
- * Room presence for a bot's run as it is produced: the runtime owns no
+ * Room presence for the AI's run as it is produced: the runtime owns no
  * delivery channel, so the run's activity rides the conversation topic.
- * `bot_thinking` carries the reasoning so far (accumulated
- * across rounds), `bot_tool` one tool invocation as it starts and settles,
+ * `bot_thinking` carries the reasoning so far (accumulated across
+ * rounds), `bot_tool` one tool invocation as it starts and settles,
  * `bot_stream` the answer so far, and `bot_stream_end` clears the run once
  * the persisted message supersedes it.
  */
-function botActivitySink(botAuth, conversationKey) {
+function botActivitySink(assistantAuth, conversationKey) {
     const topic = `conversation:${conversationKey}`;
-    const base = { conversationKey, userId: botAuth.userId, name: botAuth.name || '' };
+    const base = { conversationKey, userId: assistantAuth.userId, name: assistantAuth.name || '' };
     return {
         // Absolute state, not deltas: the round publishes reasoning so far
         // and reconciles with the assembled message at stream end, so a
@@ -88,7 +90,7 @@ async function senderIsBot(userId) {
 
 /**
  * Conversation keys a message belongs to: its own thread plus, for instance
- * messages, every ancestor along the stored instance path — a bot
+ * messages, every ancestor along the stored instance path — the AI
  * subscribed to a composed ancestor view answers messages landing on any
  * descendant instance chat.
  */
@@ -101,46 +103,46 @@ function candidateConversationKeys(context, message) {
 }
 
 /**
- * Trigger rules: support-channel messages never trigger; bot senders never
- * trigger (no bot-to-bot loops); direct conversations answer implicitly
- * when exactly one participant is a bot; group and instance conversations
- * answer through subscriptions.
+ * Trigger rules: support-channel messages never trigger; the AI never
+ * triggers itself (no loops); direct conversations answer implicitly when
+ * the assistant is a participant; group and instance conversations answer
+ * through subscriptions. The sender's agent-chat capability is checked at
+ * run time, not here — resolution stays purely structural.
  */
-export async function resolveTargetBots(context, message) {
-    if (!message || context.kind === 'support') return [];
-    if (message.sender && message.sender !== MESSAGE_SENDER.USER) return [];
-    if (await senderIsBot(message.senderUserId)) return [];
+export async function resolveAssistantTarget(context, message) {
+    if (!message || context.kind === 'support') return null;
+    if (message.sender && message.sender !== MESSAGE_SENDER.USER) return null;
+    if (await senderIsBot(message.senderUserId)) return null;
 
     if (context.kind === 'direct') {
         const participants = (message.participants || context.participants || []).map(item => String(item));
         const bots = [];
         for (const participant of participants) {
-            if (await senderIsBot(participant)) bots.push({ botUserId: participant, profile: '' });
+            if (await senderIsBot(participant)) bots.push(participant);
         }
-        if (bots.length !== 1) return [];
+        if (bots.length !== 1) return null;
         // Direct chats need no membership, but the conversation is still a
-        // model execution point: a profile-only subscription row may
-        // override the bot's own brain.
+        // model execution point: a profile-only subscription row may pin
+        // the room's model.
         const [row] = await botRepository.findSubscriptionsByConversation([
             String(message.conversationKey || context.conversationKey || '')
         ]);
-        return [{ ...bots[0], profile: String(row?.profile || ''), model: String(row?.model || '') }];
+        return { assistantId: bots[0], profile: String(row?.profile || ''), model: String(row?.model || '') };
     }
 
     const subscriptions = await botRepository.findSubscriptionsByConversation(candidateConversationKeys(context, message));
-    // Deduplicated by bot, keeping the subscription row: the conversation
-    // is an execution point and its profile overrides the bot's own brain.
-    const byBot = new Map();
-    for (const row of subscriptions) {
-        const botUserId = String(row.botUserId);
-        if (!byBot.has(botUserId)) byBot.set(botUserId, { botUserId, profile: String(row.profile || ''), model: String(row.model || '') });
-    }
-    return [...byBot.values()];
+    if (!subscriptions.length) return null;
+    // One AI, one room: the first row is the room's membership (the key
+    // stays bot+conversation from the multi-bot era; only the assistant's
+    // rows exist).
+    const row = subscriptions[0];
+    return { assistantId: String(row.botUserId), profile: String(row.profile || ''), model: String(row.model || '') };
 }
 
-function systemPrompt(botName, organizationName) {
+function systemPrompt(assistantName, organizationName, principalName) {
     return [
-        `You are ${botName}, an agent operating inside Perigram — a process programming platform — for the organization "${organizationName}".`,
+        `You are ${assistantName}, the organization AI operating inside Perigram — a process programming platform — for the organization "${organizationName}".`,
+        `You are acting for ${principalName}: every tool call runs with exactly their access rights — you can read and do what they may, and nothing beyond it.`,
         'You manipulate process definitions and instances through the provided tools, which enforce the same access rules as every other client.',
         'Act on the user\'s declared intent without asking permission first — do the work, then report what happened. Activation gates are the only confirmations.',
         'The authored process protocol is fixed: dataflowVersion 4. Never ask about versions.',
@@ -152,11 +154,11 @@ function systemPrompt(botName, organizationName) {
     ].join(' ');
 }
 
-function historyMessages(messages = [], botUserId) {
+function historyMessages(messages = [], assistantUserId) {
     return messages
         .filter(item => item && typeof item.message === 'string' && item.message.trim())
         .map(item => ({
-            role: String(item.senderUserId) === String(botUserId) ? 'assistant' : 'user',
+            role: String(item.senderUserId) === String(assistantUserId) ? 'assistant' : 'user',
             content: item.message.trim()
         }));
 }
@@ -199,12 +201,12 @@ async function streamedRound({ organizationId, profileId, model = '', system, me
  * The shared bounded tool-calling loop: neutral conversation in, final
  * assistant text plus any attached instance refs out (text null when the
  * model produced nothing). Tool failures become tool-result errors the
- * model can read and adjust around. The run's reasoning and tool activity
+ * model can read and adjust around. Every tool executes with `execAuth` —
+ * the delegated principal's auth. The run's reasoning and tool activity
  * stay visible through `stream`; a round that ends in tool calls retracts
  * only its own answer text (only the final answer persists).
  */
-async function runAgentLoop({ botAuth, system, conversation, profileId = '', model = '', signal = null, stream = null }) {
-    const organizationId = botAuth.organizationId;
+async function runAgentLoop({ organizationId, execAuth, system, conversation, profileId = '', model = '', signal = null, stream = null }) {
     const tools = chatToolDescriptors();
     // Per-run side channel: chat-only tools accumulate state here that the
     // final reply consumes (instance refs the model attached mid-loop).
@@ -246,7 +248,7 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', mod
             if (stream) stream.tool({ ...entry });
             let result;
             try {
-                result = await executeTool(call.name, call.arguments, botAuth, run);
+                result = await executeTool(call.name, call.arguments, execAuth, run);
                 entry.status = 'done';
             } catch (error) {
                 result = { error: error?.message || String(error) };
@@ -264,13 +266,13 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', mod
     return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs, agent: { thinking: runThinking, tools: agentTools } };
 }
 
-function replyBodyFor(context, message, text, botUserId, instanceRefs = [], agent = null) {
+function replyBodyFor(context, message, text, assistantUserId, instanceRefs = [], agent = null) {
     const refs = instanceRefs.length ? { instanceRefs } : {};
     const provenance = agent ? { agent } : {};
     if (context.kind === 'direct') {
         const other = (message.participants || context.participants || [])
             .map(item => String(item))
-            .find(item => item !== String(botUserId));
+            .find(item => item !== String(assistantUserId));
         return { recipientUserId: other, message: text, ...refs, ...provenance };
     }
     if (context.kind === 'group') {
@@ -280,22 +282,41 @@ function replyBodyFor(context, message, text, botUserId, instanceRefs = [], agen
     return { instance: { type: link.type, id: link.id }, message: text, ...refs, ...provenance };
 }
 
-async function sendReply(botAuth, context, message, text, instanceRefs = [], agent = null) {
-    await supportService.sendUserMessage(botAuth, replyBodyFor(context, message, text, botAuth.userId, instanceRefs, agent));
+async function sendReply(assistantAuth, context, message, text, instanceRefs = [], agent = null) {
+    await supportService.sendUserMessage(assistantAuth, replyBodyFor(context, message, text, assistantAuth.userId, instanceRefs, agent));
 }
 
-async function conversationHistory(conversationKey, botUserId) {
+async function conversationHistory(conversationKey, assistantUserId) {
     const history = await supportService.listMessages({ conversationKey }, { limit: HISTORY_LIMIT });
-    return historyMessages(history, botUserId);
+    return historyMessages(history, assistantUserId);
 }
 
 /**
- * One bot's chat answer: bounded tool loop over the shared catalog, final
- * assistant text posted through the auth-checked send path. Loop-level
+ * Resolves the run's delegation principal: the sender's auth plus the
+ * agent-chat capability. A missing user or a member whose roles no longer
+ * carry the capability yields null — the AI stays silent, exactly as a
+ * member without the surface sees no AI.
+ */
+async function resolveDelegatedPrincipal(organizationId, userId) {
+    let execAuth;
+    try {
+        execAuth = await buildPrincipalAuth(userId);
+    } catch {
+        return null;
+    }
+    if (!organizationId && execAuth) organizationId = execAuth.organizationId;
+    if (!organizationId || !(await organizationsService.canUseAgentChats(organizationId, userId))) return null;
+    return execAuth;
+}
+
+/**
+ * The AI's chat answer: bounded tool loop over the shared catalog,
+ * executing with the triggering sender's rights, the final assistant text
+ * posted through the auth-checked send path as the assistant. Loop-level
  * failures surface as a short reply so the room never stares at silence.
  */
-export async function runBotReply(botUserId, context, message, conversationProfile = '', conversationModel = '') {
-    const lockKey = `${botUserId}:${message.conversationKey}`;
+export async function runAssistantReply(target, context, message) {
+    const lockKey = `${target.assistantId}:${message.conversationKey}`;
     if (inFlight.has(lockKey)) {
         console.warn('[AGENT-BOTS] reply skipped, another run already in flight:', lockKey);
         return;
@@ -304,34 +325,39 @@ export async function runBotReply(botUserId, context, message, conversationProfi
     inFlight.set(lockKey, { conversationKey: message.conversationKey, organizationId: null, controller });
     let stream = null;
     try {
-        const botAuth = await buildBotAuth(botUserId);
-        inFlight.get(lockKey).organizationId = botAuth.organizationId;
-        stream = botActivitySink(botAuth, message.conversationKey);
+        const execAuth = await resolveDelegatedPrincipal(message.organizationId || context.organizationId, message.senderUserId);
+        if (!execAuth) return;
+        const assistantAuth = await buildPrincipalAuth(target.assistantId);
+        inFlight.get(lockKey).organizationId = assistantAuth.organizationId || execAuth.organizationId;
+        stream = botActivitySink(assistantAuth, message.conversationKey);
         stream.thinking('');
-        const organizationId = botAuth.organizationId;
-        const profileId = conversationProfile || botAuth.botProfile;
-        const model = conversationModel || '';
+        const organizationId = execAuth.organizationId;
+        // Execution-point precedence: the conversation's pin, then the org
+        // chat route (no per-bot brain — one AI, the org's models).
+        const profileId = target.profile || '';
+        const model = target.model || '';
         if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId, model }))) {
-            await sendReply(botAuth, context, message, 'LLM provider is not configured for this organization.');
+            await sendReply(assistantAuth, context, message, 'LLM provider is not configured for this organization.');
             return;
         }
         const { text, instanceRefs, agent } = await runAgentLoop({
-            botAuth,
+            organizationId,
+            execAuth,
             profileId,
             model,
-            system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
-            conversation: await conversationHistory(message.conversationKey, botUserId),
+            system: systemPrompt(assistantAuth.name, assistantAuth.organizationData?.name || execAuth.organizationData?.name || '', execAuth.name || 'the sender'),
+            conversation: await conversationHistory(message.conversationKey, target.assistantId),
             signal: controller.signal,
             stream
         });
-        if (text) await sendReply(botAuth, context, message, text, instanceRefs, agent);
+        if (text) await sendReply(assistantAuth, context, message, text, instanceRefs, agent);
     } catch (error) {
         // A stopped run is silent: the room asked it to end.
         if (!controller.signal.aborted) {
             console.error('[AGENT-BOTS] reply failed:', error);
             try {
-                const botAuth = await buildBotAuth(botUserId);
-                await sendReply(botAuth, context, message, 'The agent failed to answer; try again.');
+                const assistantAuth = await buildPrincipalAuth(target.assistantId);
+                await sendReply(assistantAuth, context, message, 'The agent failed to answer; try again.');
             } catch (nested) {
                 console.error('[AGENT-BOTS] failure notice failed:', nested);
             }
@@ -347,8 +373,8 @@ export async function runBotReply(botUserId, context, message, conversationProfi
  * message persistence never awaits an LLM.
  */
 export function handleMessageInserted(context, message) {
-    resolveTargetBots(context, message)
-        .then(entries => Promise.all(entries.map(({ botUserId, profile }) => runBotReply(botUserId, context, message, profile))))
+    resolveAssistantTarget(context, message)
+        .then(target => (target ? runAssistantReply(target, context, message) : null))
         .catch(error => console.error('[AGENT-BOTS] trigger failed:', error));
 }
 
@@ -376,12 +402,14 @@ function actorLabelOf(event) {
 
 /**
  * One lifecycle wake (SPEC: agent wakes): the transition event becomes a
- * trigger message — the target instance is resolved through the bot's own
- * access-checked read, so a bot only wakes on instances it may see — and
- * the loop's answer lands in the subscribed conversation. No provider or
- * a failing wake logs and stays silent: nobody is waiting in the room.
+ * trigger message and the loop's answer lands in the subscribed
+ * conversation. The run executes delegated to the matched rule's author —
+ * the target instance is resolved through their access-checked read, so a
+ * wake the author may not see skips, as does a missing author or one who
+ * lost the capability. No provider or a failing wake logs and stays
+ * silent: nobody is waiting in the room.
  */
-export async function runBotWake(subscription, event, ruleProfile = '') {
+export async function runAssistantWake(subscription, event, rule = {}) {
     const lockKey = `${subscription.botUserId}:${subscription.conversationKey}`;
     if (inFlight.has(lockKey)) {
         console.warn('[AGENT-BOTS] wake skipped, reply already in flight:', lockKey);
@@ -391,20 +419,23 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
     inFlight.set(lockKey, { conversationKey: subscription.conversationKey, organizationId: null, controller });
     let stream = null;
     try {
-        const botAuth = await buildBotAuth(subscription.botUserId);
-        inFlight.get(lockKey).organizationId = botAuth.organizationId;
-        stream = botActivitySink(botAuth, subscription.conversationKey);
+        const execAuth = await resolveDelegatedPrincipal(subscription.organizationId, rule.createdBy);
+        if (!execAuth) return;
+        const assistant = await ensureOrganizationAssistant(subscription.organizationId);
+        if (!assistant) return;
+        const assistantAuth = await buildPrincipalAuth(assistant.id);
+        inFlight.get(lockKey).organizationId = subscription.organizationId?.toString?.() || null;
+        stream = botActivitySink(assistantAuth, subscription.conversationKey);
         stream.thinking('');
         // Execution-point precedence: the wake rule's model, then this
-        // conversation's, then the bot's own, then the org route.
-        const profileId = ruleProfile || String(subscription.profile || '') || botAuth.botProfile;
+        // conversation's, then the org chat route.
+        const profileId = String(rule.profile || '') || String(subscription.profile || '');
         const model = String(subscription.model || '');
-        if (!(await llmService.isLlmAvailable(botAuth.organizationId, 'chat', { profileId, model }))) return;
+        if (!(await llmService.isLlmAvailable(subscription.organizationId, 'chat', { profileId, model }))) return;
         const service = getAppRegistry().getInstanceService(String(event.targetType || ''));
-        const instance = await service?.processGetById?.(String(event.targetId || ''), botAuth).catch(() => null);
-        // An unreadable or missing target skips the wake: this is the
-        // org-isolation boundary (the bot may not see other tenants'
-        // instances), not a degraded prompt.
+        const instance = await service?.processGetById?.(String(event.targetId || ''), execAuth).catch(() => null);
+        // An unreadable or missing target skips the wake: the delegation
+        // boundary — the author may not see this instance.
         if (!instance) return;
         const instanceName = instance.name || instance.identity?.name || String(event.targetId || '');
         const trigger = [
@@ -414,12 +445,13 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
             'Do the work this room expects; inspect the instance with tools if you need more than this summary.'
         ].join(' ');
         const { text, instanceRefs, agent } = await runAgentLoop({
-            botAuth,
+            organizationId: subscription.organizationId,
+            execAuth,
             profileId,
             model,
-            system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
+            system: systemPrompt(assistantAuth.name, assistantAuth.organizationData?.name || '', execAuth.name || 'the rule author'),
             conversation: [
-                ...await conversationHistory(subscription.conversationKey, subscription.botUserId),
+                ...await conversationHistory(subscription.conversationKey, assistant.id),
                 { role: 'user', content: trigger }
             ],
             signal: controller.signal,
@@ -427,7 +459,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         });
         if (!text) return;
         const body = postingBodyForKey(subscription.conversationKey, text);
-        if (body) await supportService.sendUserMessage(botAuth, {
+        if (body) await supportService.sendUserMessage(assistantAuth, {
             ...body,
             ...(instanceRefs.length ? { instanceRefs } : {}),
             agent

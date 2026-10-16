@@ -38,9 +38,9 @@ export class User extends BaseEntity {
       ...super.toJSON(),
       data: {
         ...safeData,
-        // The bot marker travels (clients badge bots); the token hash never does.
-        // The model profile id is the bot's declared brain — non-sensitive.
-        ...(bot ? { bot: { createdAt: bot.createdAt || null, profile: bot.profile || null } } : {}),
+        // The bot marker travels (clients badge the AI member) as the bare
+        // creation stamp; the marker carries nothing else.
+        ...(bot ? { bot: { createdAt: bot.createdAt || null } } : {}),
         ...(avatar?.fileId ? { avatarUrl: `/api/users/${this.id}/avatar${updatedAt ? `?v=${updatedAt}` : ''}` } : {})
       }
     };

@@ -1,20 +1,26 @@
 # COMPONENT: Agent Bots
 
-Agent bots give organizations chat-native agents and a programmatic
-platform surface. A bot is an ordinary organization member (a user with the
-`data.bot` marker — see [users](../users/README.md)) carrying its own
-hashed token; it acts with its own grants through the same boundaries as
-every other client, never with borrowed user identity.
+The organization AI gives every member a chat-native agent over the same
+boundaries as every other client. There are no created bots: one
+assistant member per organization is the AI's attribution identity (see
+[users](../users/README.md) for the bot marker) — it carries no token and
+no operational grants of its own. Every run executes **delegated**: with
+the access rights of the user whose message triggered it, replying under
+the assistant's identity.
+
+AI chats are role-gated: an organization role may carry the `agentChat`
+capability ([organizations](../organizations/README.md)), and only
+members holding at least one such role see the AI at all — the contact
+endpoint answers `canChat: false` and the pickers render no AI row.
+Senders who lose the capability leave the AI silent.
 
 Model selection lives at the execution points, composing as optional
-overrides: **wake rule → conversation subscription → bot → org `chat`
-route → environment**. The bot sheet carries a per-conversation model
-select beside each subscribed bot and an optional model on each wake
-rule (`POST /api/agent-bots/subscriptions` accepts `profile` on the body
-and on `wakeOn` rules, validated against the org model table); each
-bot's own default is set on the team surface's member row
-(`PATCH /api/agent-bots/:id/profile`). Stale stored ids degrade to the next
-level instead of breaking the run.
+overrides: **wake rule → conversation subscription → org `chat`
+route → environment**. The chat carries a per-conversation model select
+beside the AI (`POST /api/agent-bots/subscriptions` accepts `profile`
+and `model` on the body and on `wakeOn` rules, validated against the org
+model table). Stale stored ids degrade to the next level instead of
+breaking the run.
 
 Three pieces share one tool catalog:
 
@@ -34,80 +40,89 @@ Three pieces share one tool catalog:
   through the full-replace save. `attach_instances` is chat-run
   only: it validates instances through the support message-write ref seam
   ([support](../support/README.md) inline instance references) and rides
-  them on the bot's reply as reference chips; the MCP listing excludes
-  chat-only tools. Tools run with the calling principal's auth; the
-  catalog owns no business logic.
+  them on the AI's reply as reference chips; the MCP listing excludes
+  chat-only tools. Tools run with the principal's auth they are given;
+  the catalog owns no business logic.
 - **MCP transport** (`mcp.js` → `POST /api/mcp`): single-message JSON-RPC
   over streamable HTTP with `application/json` replies and stateless
   sessions (`initialize` → `tools/list` → `tools/call`/`ping`;
   notifications answer 202). Authentication is whatever the auth
-  middleware resolved — user JWT, session cookie, or bot token.
+  middleware resolved — a user JWT or session cookie; tools run with
+  that principal's grants. There are no bot tokens.
 - **Chat runtime** (`runtime.js`): registered by the `agent-bots` nitro
-  plugin as a support message observer, it decides which bots answer a
+  plugin as a support message observer, it decides when the AI answers a
   persisted message and drives a bounded tool-calling loop (max 8 rounds)
   over the [LLM capability module](../llm/README.md) on the `chat`
-  capability route. Replies re-enter the
-  auth-checked support send path as the bot user, carrying the run's
-  provenance (`agent: { thinking, tools }`) onto the persisted message —
-  the activity block the chat renders attached to the answer. While the
+  capability route. The run executes with the **triggering sender's**
+  request-shaped auth (`buildPrincipalAuth` — the same construction the
+  auth middleware produces), so every tool call enforces exactly what
+  that user may do; a sender without the agent-chat capability is
+  skipped silently. Replies re-enter the auth-checked support send path
+  as the assistant user, carrying the run's provenance
+  (`agent: { thinking, tools }`) onto the persisted message — the
+  activity block the chat renders attached to the answer. While the
   run is in flight it publishes the same activity onto the conversation
   topic — `bot_thinking` with the reasoning so far (accumulated across
   rounds), `bot_tool` per tool invocation as it starts and settles,
   `bot_stream` with the answer so far, and `bot_stream_end` when the
   persisted message supersedes the live view. The activity itself is the
-  run's presence signal (bots never ride the human typing line); a tool
-  round retracts only its answer text, and each round reconciles the
-  sink with the assembled neutral message (a reasoning-first stream that
-  ends tagless was a plain answer). A run in flight is stoppable
+  run's presence signal (the AI never rides the human typing line); a
+  tool round retracts only its answer text, and each round reconciles
+  the sink with the assembled neutral message (a reasoning-first stream
+  that ends tagless was a plain answer). A run in flight is stoppable
   (`POST /api/agent-bots/stop` with the conversation key): the room's
-  composer control aborts the request, the loop keeps the answer produced
-  so far and persists it, and a stopped wake stays silent like a failing
-  one. In-flight runs are keyed by bot and conversation and hold their
+  composer control aborts the request, the loop keeps the answer
+  produced so far and persists it, and a stopped wake stays silent like
+  a failing one. In-flight runs are keyed by conversation and hold their
   cancellation handle, so the stop reaches exactly the room's run.
 
 ## Conversation membership
 
 | Kind | Membership | Trigger |
 |---|---|---|
-| Direct with a bot | None needed — pick the bot (the assistant floats first) in the new-chat picker | Implicit: the single bot participant answers |
+| Direct with the AI | None needed — pick the assistant in the new-chat picker | Implicit: the assistant participant answers |
 | Group chat | Subscription + group participants entry (posting admission is participant-scoped) | Subscription on `group:<id>` |
 | Instance/org chat | Subscription only (instance conversations have no participant list) | Subscription on the instance key or any ancestor key on the message's stored `instancePath` |
 
 The conversation is a model execution point in every kind: group and
-instance rows carry it on the subscription, a direct chat with a bot
-through a profile-only subscription row (no membership, no wake rules —
-those rows never match the wake scanner's `wakeOn` query). The chat's
-model select lists what the org's chat endpoints actually serve
-(`chatModels` off the LLM seam) and pins both profile and model on the
-row; the run overrides the request's model with it (blank falls back to
-each bot's own brain). Wakes from that conversation inherit its row.
+instance rows carry the pin (`profile`, `model`) on the subscription, a
+direct chat with the AI through a profile-only subscription row (no
+membership, no wake rules — those rows never match the wake scanner's
+`wakeOn` query). The chat's model select lists what the org's chat
+endpoints actually serve (`chatModels` off the LLM seam) and pins both
+profile and model on the row; the run overrides the request's model
+with it (blank falls back to the org `chat` route — the contact response
+carries its resolved `chatRouteModel` so the select never sits blank).
+Wakes from that conversation inherit its row.
 
-Joining a bot to a room is participant-level (any member, through the
-thread header's bot sheet); human membership keeps the creator-or-admin
-gate. Support-channel messages never trigger; bot senders never trigger
-(no bot-to-bot loops); one in-flight reply per bot and conversation (chat
-replies and wakes share the lock space).
+Bringing the AI into a room is participant-level (any member holding
+the agent-chat capability, through the thread header's AI panel); human
+membership keeps the creator-or-admin gate. Support-channel messages
+never trigger; the AI never triggers itself (no loops); one in-flight
+run per conversation (chat replies and wakes share the lock space).
 
-## Org assistant and contacts
+## The org assistant
 
-Every organization has one assistant bot (SPEC: agent access), lazily
-bootstrapped through its deterministic address
+Every organization has exactly one AI identity (SPEC: agent access),
+lazily bootstrapped through its deterministic address
 `assistant-<orgId>@bots.perigram.internal` — collision means it exists,
 so bootstrap is idempotent across workers. `GET /api/agent-bots/contacts`
-(member-visible, optional `?conversationKey=`) ensures the assistant and
-returns every org bot decorated with the conversation's subscription flag
-and wake rules; each row also carries the room's pin (`profile`, `model`)
-and the bot's own brain (`brain`) so the chat's model select can show the
-effective model, never a blank. The assistant sorts first. The chat pickers float these
-rows above human members (the badge rides the user DTO's bot marker), so
-chatting with an agent is a new chat away — nobody creates anything
-first. Bot administration (create, token, delete) stays manager-gated in
-the same sheet.
+(member-visible, capability-gated, optional `?conversationKey=`) ensures
+the assistant and returns its single row decorated with the
+conversation's subscription flag and wake rules; the response also
+carries the org's chat profile/model tables and the resolved
+`chatRouteModel`. The chat picker floats the AI row above human members
+(the badge rides the user DTO's bot marker), so chatting with the agent
+is a new chat away — nobody creates anything first, and there is no bot
+administration anywhere: the assistant takes no process roles (delegation
+follows the chatting user), holds no token, and cannot be deleted from
+the team surface.
 
 ## Lifecycle wakes
 
-Subscription rows carry wake rules — `wakeOn: [{ type, state }]` — and the
-wake scanner turns matching status transitions into proactive agent runs:
+Subscription rows carry wake rules — `wakeOn: [{ type, state, profile?,
+createdBy }]` — and the wake scanner turns matching status transitions
+into proactive AI runs:
 
 - **Scanner** (`wake-scanner.js`, wired by the `agent-wake-scanner` nitro
   plugin; `AGENT_WAKE_SCAN_INTERVAL_MS`, default 30s, disabled at `0`):
@@ -122,55 +137,43 @@ wake scanner turns matching status transitions into proactive agent runs:
   moves do); a same-type instance-chat subscription narrows to its own
   instance, every other subscription (the organization chat included) is
   org-wide for the rule's type.
-- **Wake run** (`runBotWake`): the target instance is resolved through
-  the bot's own access-checked registry read — an unreadable target skips
-  the wake, which is the org-isolation boundary — the transition becomes
-  a trigger message beside the room's recent history, and the loop's
-  answer lands in the subscribed conversation. No provider or a failing
-  wake logs and stays silent: nobody is waiting in the room.
+- **Wake run** (`runAssistantWake`): the run executes delegated to the
+  matched rule's author (`createdBy`) — the target instance is resolved
+  through that user's access-checked registry read, and a missing author
+  or one who lost the agent-chat capability skips the wake silently,
+  which is the org-isolation boundary — the transition becomes a trigger
+  message beside the room's recent history, and the loop's answer lands
+  in the subscribed conversation attributed to the assistant. No
+  provider or a failing wake logs and stays silent: nobody is waiting in
+  the room.
 - **Authoring**: wake rules are assignment-side data on the subscription
-  (the chat bot panel's wake editor: bot + type + state), never process
+  (the chat AI panel's wake editor: type + state), never process
   vocabulary — the state machine stays authored in the designer, and
   in-graph agent nodes remain out of contract. `GET
   /api/agent-bots/wake-options` lists the org's active compiled
   primary-region states for the pickers (compiled-snapshot reads, the
   deadline-scanner law: scans and pickers only, auth always recompiles).
 
-## Bot administration
+## API
 
-- `GET/POST /api/agent-bots` (list with optional `?conversationKey=`, create
-  `{ name, roleIds? }` — creation returns the token exactly once),
-  `DELETE /api/agent-bots/:id`, `POST /api/agent-bots/:id/token` (rotation),
-  `PATCH /api/agent-bots/:id/profile` (`{ profile }` — the bot's model
-  override: a chat profile id from the org model table, empty for the
-  org's chat route; unknown or non-chat ids are refused, stale stored
-  references degrade to the route chain),
-  `POST/DELETE /api/agent-bots/subscriptions` (`{ botId, conversationKey,
-  wakeOn? }` — `wakeOn` is the subscription's lifecycle wake rule list:
-  omitted leaves stored rules, `null`/`[]` clears, a non-empty array
-  replaces), `GET /api/agent-bots/wake-options` (active compiled
-  primary states for the wake-rule pickers), and `POST
-  /api/agent-bots/stop` (`{ conversationKey }` — stop the room's
-  in-flight run). `GET /api/agent-bots/contacts`
-  is the member-visible twin of the listing (ensures the org assistant,
-  no admin gate).
-Bot joins are participant-level; bot administration (create, token
-rotation, delete, per-bot brain) lives on the org team surface — bot
-rows are member rows (`users:admin` gated actions there, one-time token
-reveal and copy included). The chat sheet stays join/wake
-only. Bot membership carries only the narrow `organizations` recovery
-grant that opens process definition management, and process roles
-("lanes") are assigned like any member's — on the same team surface,
-where bot rows carry the badge and single-seat roles say so in the
-picker.
-
-Bot tokens are `pb_…` values in the `Authorization: Bearer` header; the
-stored form is a SHA-256 hash (never in DTOs — the same strip-and-restore
-persistence contract as password hashes).
+- `POST/DELETE /api/agent-bots/subscriptions` (`{ conversationKey,
+  wakeOn?, profile?, model? }` — bring the AI into a room or remove it;
+  `wakeOn` is the subscription's lifecycle wake rule list: omitted
+  leaves stored rules, `null`/`[]` clears, a non-empty array replaces
+  with each rule authored by the caller), `GET
+  /api/agent-bots/contacts` (the capability-gated AI row and model
+  tables), `GET /api/agent-bots/wake-options` (active compiled primary
+  states for the wake-rule pickers), and `POST /api/agent-bots/stop`
+  (`{ conversationKey }` — stop the room's in-flight run). Bot
+  administration routes (create, delete, token rotation, per-bot brain)
+  are retired with the created-bots scheme; migration
+  `server/scripts/migrate-retire-custom-bots.js` removes stored custom
+  bots once at deploy.
 
 ## Related
 
 - [LLM](../llm/README.md) — provider resolution and chat completions
-- [Support chat](../support/README.md) — message observers, group participants, the send path bots re-enter
-- [Users](../users/README.md) — the bot member marker and token
+- [Support chat](../support/README.md) — message observers, group participants, the send path the AI re-enters
+- [Users](../users/README.md) — the assistant's bot marker
+- [Organizations](../organizations/README.md) — the `agentChat` role capability
 - [API routes](../../api/README.md)

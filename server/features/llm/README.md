@@ -46,9 +46,9 @@ Organizations declare **named model profiles** (owner direction
 ```
 
 `resolveLlmConfig(organizationId, capability, { profileId })` walks the
-chain — an explicit profile (a bot's declared brain) first, then the
-exact capability route, the `chat` family default, the environment — and
-only a chat-kind profile ever serves a conversation (stale or non-chat
+chain — an explicit profile (a pinned execution-point choice) first, then
+the exact capability route, the `chat` family default, the environment —
+and only a chat-kind profile ever serves a conversation (stale or non-chat
 explicit ids degrade to the route chain).
 Image-kind profiles are declarable today (endpoint, model, key) and
 consumed when an image capability ships; speech-to-text is not part of
@@ -69,8 +69,8 @@ stripped and the prefix re-applied (routers reject the root path with
 same-dialect root-mounted path, caching the winner per endpoint — never
 a cross-dialect wire guess. A route that cannot produce both `baseUrl`
 and `model` resolves to `{ provider: 'none' }`: consumers treat the
-capability as unavailable rather than failing per request. Consumers today: the agent bots loop and
-wakes (wake rule → conversation → bot → org `chat` route precedence),
+capability as unavailable rather than failing per request. Consumers today: the agent AI loop and
+wakes (wake rule → conversation → org `chat` route precedence),
 meetings call summaries (`chat.summaries`, falling back to `chat`). The retired single-provider `data.settings.llm` shape was
 migrated by `server/scripts/migrate-llm-settings-profiles.js` (profile
 `default`, route `chat`).
@@ -127,19 +127,20 @@ throwing.
 
 ## Consumers
 
-- Agent bots' chat runtime: the tool-calling loop over the shared
-  [agent tool catalog](../agent-bots/README.md).
+- The organization AI's chat runtime: the tool-calling loop over the
+  shared [agent tool catalog](../agent-bots/README.md), executing
+  delegated to the chatting user.
 - [Meetings](../meetings/README.md) call summaries: the protocol-markdown
   summarization prompt rides the same provider selection — one LLM
   provider per organization, no per-feature model configuration (the
   retired `MEETINGS_LLM_*` env and per-feature baseUrl/model/apiKey
   settings moved here in the same change).
 - The organization models screen: provider administration and the
-  connection test (see Administration above); per-bot brains are set on
-  the team surface's member rows.
+  connection test (see Administration above); the AI's model is the org
+  `chat` route, and per-conversation pins live in the chats themselves.
 - `GET /api/llm/config` reports `{ available }` for the caller's
-  organization so clients render bot affordances only when a provider is
-  actually configured.
+  organization so clients render the AI's chat affordances only when a
+  provider is actually configured.
 
 ## Related
 

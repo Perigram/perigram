@@ -2,31 +2,26 @@
 
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
-- `GET /api/agent-bots/wake-options`: the org's active compiled primary
-  states for the bot wake-rule pickers (see
-  [agent-bots feature](../features/agent-bots/README.md)).
-- `agent-bots/`: Authenticated bot administration and conversation
-  membership (`GET/POST /api/agent-bots` — the listing takes
-  `?conversationKey=` and returns subscription flags and wake rules;
-  `DELETE /api/agent-bots/:id`; `POST /api/agent-bots/:id/token` rotation;
-  `PATCH /api/agent-bots/:id/profile` for the bot's model override)
-  plus `POST/DELETE /api/agent-bots/subscriptions` (the body carries
-  optional `wakeOn` lifecycle wake rules and an optional per-conversation
-  `profile`; rules accept a `profile` too) and the member-visible
-  `GET /api/agent-bots/contacts` (org bots with the ensured assistant,
-  conversation subscription flags, and the room's model pin) and
-  `POST /api/agent-bots/stop` (stop the room's in-flight run). Admin
-  routes are gated by user management access; bot joins are
-  participant-level. See
+- `agent-bots/`: The organization AI's conversation membership —
+  `POST/DELETE /api/agent-bots/subscriptions` (the body carries
+  `conversationKey` with optional `wakeOn` lifecycle wake rules, each
+  authored by the caller, and the per-conversation `profile`/`model`
+  pin), the capability-gated `GET /api/agent-bots/contacts` (the ensured
+  assistant row, the caller's `canChat` flag, conversation subscription
+  state, and the org's chat model tables), `GET
+  /api/agent-bots/wake-options` (the org's active compiled primary
+  states for the wake-rule pickers), and `POST /api/agent-bots/stop`
+  (stop the room's in-flight run). Every route gates on the caller's
+  agent-chat role capability; there is no bot administration. See
   [agent-bots feature](../features/agent-bots/README.md).
 - `mcp/`: `POST /api/mcp` — the MCP streamable-HTTP endpoint over the
   shared agent tool catalog (single JSON-RPC messages, `application/json`
   replies; authenticated by whatever the auth middleware resolved — user
-  JWT, session cookie, or bot token). See
+  JWT or session cookie). See
   [agent-bots feature](../features/agent-bots/README.md).
 - `llm/`: `GET /api/llm/config` reports `{ available }` for the caller's
-  organization so clients render bot affordances only when an LLM provider
-  is configured (see [llm feature](../features/llm/README.md));
+  organization so clients render the AI's chat affordances only when an
+  LLM provider is configured (see [llm feature](../features/llm/README.md));
   `GET/PUT /api/llm/settings` administer the org's named model profiles
   and capability routes (keys never travel), and `POST /api/llm/test`
   (`{ profileId? }`) is the one-round connection test.

@@ -6,7 +6,6 @@ import * as organizationsRepository from '../features/organizations/repository.j
 import { resolveProcessAuth } from '../features/process-definitions/runtime.js';
 import { buildAuthContext } from '../features/users/service.js';
 import { User } from '../features/users/model.js';
-import { createHash } from 'node:crypto';
 
 export default defineEventHandler(async (event) => {
   let user = null;
@@ -22,15 +21,7 @@ export default defineEventHandler(async (event) => {
         if (raw) user = new User(raw);
       }
     } catch (err) {
-      // 1b. Bot tokens (`pb_…`) share the Authorization header with JWTs:
-      // a failed JWT verify on that shape is a bot-token lookup instead.
-      if (token.startsWith('pb_')) {
-        const tokenHash = createHash('sha256').update(token).digest('hex');
-        const raw = await usersRepository.findByBotTokenHash(tokenHash);
-        if (raw?.data?.bot && raw.data?.isActive) user = new User(raw);
-      } else {
-        console.warn('[AUTH] JWT failed:', err.message);
-      }
+      console.warn('[AUTH] JWT failed:', err.message);
     }
   }
 

@@ -190,17 +190,10 @@
         "messageRead": "Read",
         "newChat": "New chat",
         "bots": {
-            "title": "Bots",
-            "badge": "bot",
-            "namePlaceholder": "Bot name",
-            "token": "Access token",
+            "title": "AI",
+            "badge": "AI",
             "toggleInConversation": "In this chat",
-            "rotateToken": "New token",
-            "empty": "No bots yet",
-            "addBot": "Add bot",
-            "deleteConfirm": "Delete bot {name}?",
             "wakes": "Wakes",
-            "botPlaceholder": "Bot",
             "typePlaceholder": "Type",
             "statePlaceholder": "State",
             "assistant": "assistant"
@@ -2441,7 +2434,8 @@
         "details": "Details",
         "singleSeat": "single seat",
         "modelsManagement": "AI models",
-        "modelsManagementHint": "Model profiles and capability routing"
+        "modelsManagementHint": "Model profiles and capability routing",
+        "agentChat": "AI chats"
     },
     "sheetDesign": {
         "sheetDesigns": "Sheet designs",

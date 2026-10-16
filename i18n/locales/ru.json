@@ -158,6 +158,7 @@
         "attachmentFile": "Файл",
         "noAttachmentOptions": "Нечего прикрепить",
         "recordVoice": "Записать голосовое сообщение",
+        "stopRun": "Остановить агента",
         "recording": "Запись",
         "recordingPaused": "Пауза",
         "pauseRecording": "Приостановить запись",
@@ -189,17 +190,10 @@
         "messageRead": "Прочитано",
         "newChat": "Новый чат",
         "bots": {
-            "title": "Боты",
-            "badge": "бот",
-            "namePlaceholder": "Имя бота",
-            "token": "Токен доступа",
+            "title": "ИИ",
+            "badge": "ИИ",
             "toggleInConversation": "В этом чате",
-            "rotateToken": "Новый токен",
-            "empty": "Ботов пока нет",
-            "addBot": "Добавить бота",
-            "deleteConfirm": "Удалить бота {name}?",
             "wakes": "Пробуждения",
-            "botPlaceholder": "Бот",
             "typePlaceholder": "Тип",
             "statePlaceholder": "Статус",
             "assistant": "ассистент"
@@ -2440,7 +2434,8 @@
         "details": "Детали",
         "singleSeat": "одно место",
         "modelsManagement": "ИИ-модели",
-        "modelsManagementHint": "Профили моделей и маршрутизация"
+        "modelsManagementHint": "Профили моделей и маршрутизация",
+        "agentChat": "Чаты с ИИ"
     },
     "sheetDesign": {
         "sheetDesigns": "Дизайны листов",

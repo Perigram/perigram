@@ -3,86 +3,65 @@ import { computed, ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 
 /**
- * Org bot administration state for the chat surfaces: the picker rows for
- * one conversation (bots with their subscription flag) and the created
- * bot's one-time token reveal. Server gates everything through user
- * management access; a 403 here means the surface stays hidden.
+ * The organization AI's client state: the assistant contact row for the
+ * chat pickers and the room's AI panel (subscription flag, model pin,
+ * wake rules), plus the org's chat model tables. `canChat` is the
+ * role-capability gate — members without it see no AI anywhere.
  */
 export const useAgentBotsStore = defineStore('agentBots', () => {
     const authStore = useAuthStore();
-    const bots = ref([]);
-    const loaded = ref(false);
-    const forbidden = ref(false);
-    const contacts = ref([]);
+    const ai = ref(null);
+    const canChat = ref(false);
     const chatProfiles = ref([]);
     const chatModels = ref([]);
-    const assistantId = ref(null);
-
-    const canManageBots = computed(() => authStore.hasTenantPermission?.('users', 'admin'));
+    const chatRouteModel = ref('');
+    const loaded = ref(false);
 
     /**
-     * Member-visible bot contacts (the AI rows in chat pickers and the
-     * per-conversation bot sheet): ensures the org assistant exists and
-     * decorates rows with the conversation's subscription flag and wake
-     * rules. Administration stays manager-gated.
+     * The member-visible AI contact (the chat pickers' AI row and the
+     * room's AI panel): ensures the org assistant exists and decorates it
+     * with the conversation's subscription flag and wake rules.
      */
     async function fetchContacts(conversationKey = '') {
         if (process.server || !authStore.userIsSet) return;
         try {
             const query = conversationKey ? `?conversationKey=${encodeURIComponent(conversationKey)}` : '';
             const response = await $fetch(`/api/agent-bots/contacts${query}`);
-            contacts.value = response?.contacts || [];
+            ai.value = response?.assistant || null;
+            canChat.value = Boolean(response?.canChat);
             chatProfiles.value = response?.chatProfiles || [];
             chatModels.value = response?.chatModels || [];
-            assistantId.value = response?.assistantId || null;
+            chatRouteModel.value = response?.chatRouteModel || '';
             loaded.value = true;
         } catch (err) {
-            console.error('Failed to load bot contacts:', err);
-            contacts.value = [];
+            console.error('Failed to load the AI contact:', err);
+            ai.value = null;
+            canChat.value = false;
         }
     }
 
-    async function refresh(conversationKey = '') {
-        if (process.server || !authStore.userIsSet) return;
-        forbidden.value = false;
-        try {
-            const query = conversationKey ? `?conversationKey=${encodeURIComponent(conversationKey)}` : '';
-            bots.value = (await $fetch(`/api/agent-bots${query}`)) || [];
-            loaded.value = true;
-        } catch (err) {
-            if (err?.status === 403 || err?.statusCode === 403 || err?.response?.status === 403) {
-                forbidden.value = true;
-                bots.value = [];
-            } else {
-                console.error('Failed to load agent bots:', err);
-            }
-        }
-    }
-
-    async function createBot({ name } = {}) {
-        const created = await $fetch('/api/agent-bots', { method: 'POST', body: { name } });
-        return created;
-    }
-
-    async function deleteBot(botId) {
-        await $fetch(`/api/agent-bots/${botId}`, { method: 'DELETE' });
-    }
-
-    async function rotateBotToken(botId) {
-        return await $fetch(`/api/agent-bots/${botId}/token`, { method: 'POST' });
-    }
-
-    async function setSubscribed(botId, conversationKey, subscribed) {
+    async function setSubscribed(conversationKey, subscribed) {
         await $fetch('/api/agent-bots/subscriptions', {
             method: subscribed ? 'POST' : 'DELETE',
-            body: { botId, conversationKey }
+            body: { conversationKey }
         });
-        contacts.value = contacts.value.map(bot => (
-            String(bot.id) === String(botId) ? { ...bot, subscribed } : bot
-        ));
-        bots.value = bots.value.map(bot => (
-            String(bot.id) === String(botId) ? { ...bot, subscribed } : bot
-        ));
+        ai.value = ai.value ? { ...ai.value, subscribed } : ai.value;
+    }
+
+    async function setConversationProfile(conversationKey, profile, model = '') {
+        await $fetch('/api/agent-bots/subscriptions', {
+            method: 'POST',
+            body: { conversationKey, profile, model }
+        });
+        if (ai.value) ai.value = { ...ai.value, profile, model };
+    }
+
+    async function setSubscriptionRules(conversationKey, wakeOn) {
+        await $fetch('/api/agent-bots/subscriptions', {
+            method: 'POST',
+            body: { conversationKey, wakeOn }
+        });
+        await fetchContacts(conversationKey);
     }
 
     async function fetchWakeOptions() {
@@ -94,36 +73,18 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         }
     }
 
-    async function setSubscriptionProfile(botId, conversationKey, profile, model = '') {
-        await $fetch('/api/agent-bots/subscriptions', {
-            method: 'POST',
-            body: { botId, conversationKey, profile, model }
-        });
-        contacts.value = contacts.value.map(bot => (
-            String(bot.id) === String(botId) ? { ...bot, profile, model } : bot
-        ));
-    }
-
-    async function setSubscriptionRules(botId, conversationKey, wakeOn) {
-        await $fetch('/api/agent-bots/subscriptions', {
-            method: 'POST',
-            body: { botId, conversationKey, wakeOn }
-        });
-        await fetchContacts(conversationKey);
-    }
-
     function reset() {
-        bots.value = [];
-        loaded.value = false;
-        forbidden.value = false;
-        contacts.value = [];
+        ai.value = null;
+        canChat.value = false;
         chatProfiles.value = [];
-        assistantId.value = null;
+        chatModels.value = [];
+        chatRouteModel.value = '';
+        loaded.value = false;
     }
 
     /**
      * Select options over the org's chat profiles, with the leading
-     * "fall back to the bot's own brain" choice. Rows show the model each
+     * "fall back to the org chat route" choice. Rows show the model each
      * profile routes to — the model is what is being chosen. One home for
      * every model picker that sets a chat execution point.
      */
@@ -134,24 +95,21 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         ];
     }
 
+    const subscribedIn = computed(() => Boolean(ai.value?.subscribed));
+
     return {
-        bots,
-        loaded,
-        forbidden,
-        contacts,
+        ai,
+        canChat,
         chatProfiles,
         chatModels,
-        assistantId,
-        canManageBots,
-        refresh,
+        chatRouteModel,
+        loaded,
+        subscribedIn,
         fetchContacts,
-        createBot,
-        deleteBot,
-        rotateBotToken,
         setSubscribed,
-        setSubscriptionProfile,
-        fetchWakeOptions,
+        setConversationProfile,
         setSubscriptionRules,
+        fetchWakeOptions,
         chatProfileOptions,
         reset
     };

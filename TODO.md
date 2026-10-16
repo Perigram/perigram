@@ -1,6 +1,55 @@
 # TODO
 
+## The organization AI replaces created bots (owner direction 2026-10-16)
+
+No more chatting with admin-created bot members. The organization has one
+AI — the assistant identity — and every member whose role carries the
+agent-chat capability can open new chats with it; the AI executes every
+run with the triggering user's access rights (delegation), replying under
+its own identity. Wakes delegate to the wake-rule author.
+
+- [ ] WAITING — owner verification on the live stack: the new-chat picker
+  shows the single AI to members holding the agent-chat capability only;
+  bot administration (create, brain, token, delete) exists nowhere.
+- [ ] WAITING — owner verification on the live stack: an AI run's tool
+  calls execute with the triggering sender's access — a sender who cannot
+  read an instance cannot make the AI read it.
+- [ ] WAITING — owner verification on the live stack: group and instance
+  chats bring the AI in through the room's AI panel; the model pin and
+  wake rules live there, and wakes run delegated to the rule's author.
+- [ ] WAITING — owner verification on the live stack: role management
+  carries the agent-chat capability toggle.
+- [ ] WAITING — run `node server/scripts/migrate-retire-custom-bots.js`
+  once after deploying: deletes custom bot members and their
+  subscriptions, strips the retired token/profile bot fields.
+
+#### Agent Notes (2026-10-16)
+
+Session `agent/ai-delegation-20261016`. Delegation replaces own-grant
+bots end to end: `buildPrincipalAuth(userId)` builds any member's
+request-shaped auth (the auth middleware's construction), the chat
+runtime executes the tool loop with the triggering sender's auth and
+posts the reply as the org assistant, and wakes run delegated to the
+matched rule's author (`createdBy` rides every stored wake rule; a
+missing author or one who lost the capability skips silently). The
+agent-chat capability is a flag on the org role identity
+(`agentChat`, beside `exclusive`, togglable in the designer's roles
+tab); `canUseAgentChats` is the single check gating contacts,
+subscriptions, wake options, and every run. Bot administration is
+gone (routes, team-surface UI, tokens — the auth middleware's `pb_`
+branch too); MCP serves user principals only. Defect fixed on the
+way: `upsertSubscription` silently dropped the `model` pin and the
+rules' `profile` override — both persist now. Pre-existing missing
+`support.stopRun` ru key added. One migration to run at deploy
+(custom bots and their subscriptions deleted, assistants stripped to
+the bare marker).
+
 ## Agent presence in the chat room; bots on the team surface (owner direction 2026-10-15)
+
+Superseded 2026-10-16 by "The organization AI replaces created bots": the
+team-surface bot administration and per-bot brain items are retired with
+the created-bots scheme; the streaming/presence items carry over to the
+single AI unchanged.
 
 Two directions from the owner: the room should see an agent working —
 typing while it thinks, the answer streaming as it is produced — and bot
