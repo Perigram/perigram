@@ -46,6 +46,22 @@ and connection tests (SPEC: agent access).
   enable LAN binding on it and point `HTTP_PROXY` at the bridge
   gateway from `.env`.
 
+### Agent Notes (2026-10-16 — model picking leaves profile setup)
+
+- Owner defect report (second time): the profile dialog still carried
+  a model picker — contradicting the SPEC sentence read in this
+  session ("the models screen administers providers and endpoints
+  only"). Removed: the dialog is a pure login (name, kind, provider,
+  endpoint, key); the model Select and the endpoint-models loader are
+  gone from the page.
+- The stored `model` field is now derived data: a new (or re-pointed)
+  login backfills the first model its own endpoint listing serves;
+  an unchanged endpoint keeps its stored default through login edits;
+  an unreachable endpoint saves modelless and resolves to none until
+  a re-save or test reaches it. Pins at execution points are
+   unchanged and keep overriding. This round merges to `local` only;
+   a staging push awaits owner word.
+
 ## Chats rail header: archive, search, one + (owner direction 2026-10-16)
 
 Every conversation start moves into one + control (person chat, group,

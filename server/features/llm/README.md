@@ -50,7 +50,11 @@ endpoint. `provider: 'none'` (the default) disables the LLM everywhere.
 Organizations declare **named model profiles** (owner direction
 2026-10-15: models live on different endpoints per purpose) at
 `data.settings.llm.profiles` and **route capabilities** to them at
-`data.settings.llm.routes`:
+`data.settings.llm.routes`. A profile is a login — kind, wire provider,
+base URL, key — and nothing else: its `model` field is derived data,
+backfilled on save from the endpoint's own listing (the first model it
+serves) and kept while the endpoint stands. Model choice never happens
+in profile setup; it lives at the execution points.
 
 ```json
 {
