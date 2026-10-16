@@ -1,5 +1,39 @@
 # TODO
 
+## Every new AI chat is a fresh thread (owner direction 2026-10-16)
+
+Picking the AI in the new-chat picker must not reopen the one eternal
+direct thread: each new chat with the AI opens a fresh conversation with
+its own title, history, and model pin — the thread is created when the
+first message is sent and titled by it.
+
+- [ ] WAITING — owner verification on the live stack: picking the AI in
+  the new-chat picker opens an empty fresh thread every time (no
+  existing-thread reopen, no empty rooms piling up before the first
+  message); the thread is titled by its first message and carries its
+  own model pin.
+- [ ] WAITING — owner verification on the live stack: deleting an AI
+  chat room leaves no stale subscription rows (wake rules on deleted
+  rooms never fire).
+
+#### Agent Notes (2026-10-16)
+
+Session `agent/ai-threads-20261016`. Fresh threads ride the group shape —
+the only conversation kind with any number of threads per member:
+`POST /api/agent-bots/chats` creates a subscribed room with exactly the
+caller and the assistant (capability-gated, named by the caller or the
+assistant's own name). The picker's AI row opens an unsent draft
+(no key — nothing subscribes or loads); the room materializes on the
+first send through either composer path (text and voice share
+`agentChatTitle`/`resolveAgentDraft`), titled by that message's clipped
+text; the draft then resolves into the real room through the inbox
+summary, picking up topic subscription and history load. Call control
+and the AI panel stay off drafts; the call control stays off any room
+whose only counterpart is the AI. Group deletion now drops the room's
+subscription rows (`onGroupDeleted` composed in the delete route), and
+the one-shot migration also sweeps rows of groups deleted before that
+cleanup existed.
+
 ## Children wires land child-first; auth hydration bypass net actually catches (owner direction 2026-10-16)
 
 Two owner reports in one session. (1) Class containment wires were landed

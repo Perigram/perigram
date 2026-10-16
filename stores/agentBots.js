@@ -48,6 +48,18 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         ai.value = ai.value ? { ...ai.value, subscribed } : ai.value;
     }
 
+    /**
+     * A fresh AI chat thread: the room is created server-side with the
+     * caller and the assistant, titled by the first message (the caller
+     * passes it; empty falls back to the assistant's name).
+     */
+    async function createChat(name = '') {
+        return await $fetch('/api/agent-bots/chats', {
+            method: 'POST',
+            body: { name }
+        });
+    }
+
     async function setConversationProfile(conversationKey, profile, model = '') {
         await $fetch('/api/agent-bots/subscriptions', {
             method: 'POST',
@@ -106,6 +118,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         loaded,
         subscribedIn,
         fetchContacts,
+        createChat,
         setSubscribed,
         setConversationProfile,
         setSubscriptionRules,

@@ -80,9 +80,19 @@ Three pieces share one tool catalog:
 
 | Kind | Membership | Trigger |
 |---|---|---|
-| Direct with the AI | None needed — pick the assistant in the new-chat picker | Implicit: the assistant participant answers |
+| AI chat (fresh thread) | Created by `POST /api/agent-bots/chats` — a persisted room with exactly the caller and the assistant, subscribed like any group room | Subscription on `group:<id>` |
+| Direct with the AI | None needed — legacy threads from the created-bots era; the assistant participant answers implicitly | Implicit: the assistant participant answers |
 | Group chat | Subscription + group participants entry (posting admission is participant-scoped) | Subscription on `group:<id>` |
 | Instance/org chat | Subscription only (instance conversations have no participant list) | Subscription on the instance key or any ancestor key on the message's stored `instancePath` |
+
+Every new chat with the AI is a **fresh thread** (SPEC: agent access): the
+new-chat picker's AI row opens an empty draft — nothing is persisted until
+the first message is sent, which creates the room titled by that message
+(the assistant's own name when the opener is attachment-only). The
+group shape is what makes any number of threads per member possible; AI
+chats are ordinary group rooms, so their history, read marks, model pins,
+wake rules, and deletion all ride the group contract — deleting the room
+drops its subscription rows (the delete route composes `onGroupDeleted`).
 
 The conversation is a model execution point in every kind: group and
 instance rows carry the pin (`profile`, `model`) on the subscription, a
@@ -156,6 +166,9 @@ into proactive AI runs:
 
 ## API
 
+- `POST /api/agent-bots/chats` (`{ name? }`) — a fresh AI chat thread: a
+  subscribed room with the caller and the assistant, named by the caller
+  (the first message's clipped text) or the assistant's own name.
 - `POST/DELETE /api/agent-bots/subscriptions` (`{ conversationKey,
   wakeOn?, profile?, model? }` — bring the AI into a room or remove it;
   `wakeOn` is the subscription's lifecycle wake rule list: omitted
@@ -168,7 +181,7 @@ into proactive AI runs:
   administration routes (create, delete, token rotation, per-bot brain)
   are retired with the created-bots scheme; migration
   `server/scripts/migrate-retire-custom-bots.js` removes stored custom
-  bots once at deploy.
+  bots and group-deletion orphaned subscription rows once at deploy.
 
 ## Related
 

@@ -1,4 +1,5 @@
 import * as supportService from '~/server/features/support/service.js'
+import * as agentBotsService from '~/server/features/agent-bots/service.js'
 
 export default defineEventHandler(async (event) => {
     const auth = event.context?.auth
@@ -7,5 +8,8 @@ export default defineEventHandler(async (event) => {
         return
     }
     const groupId = getRouterParam(event, 'id')
-    return await supportService.deleteGroup(auth, groupId || '')
+    const deleted = await supportService.deleteGroup(auth, groupId || '')
+    // The AI's subscription rows die with the room (agent-bots README).
+    await agentBotsService.onGroupDeleted(groupId || '')
+    return deleted
 })

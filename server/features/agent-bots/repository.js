@@ -83,3 +83,8 @@ export async function removeSubscriptionsByBot(botUserId) {
     const col = await collection();
     await col.deleteMany({ botUserId: String(botUserId) });
 }
+
+export async function removeSubscriptionsByConversation(conversationKey) {
+    const col = await collection();
+    await col.deleteMany({ conversationKey: String(conversationKey) });
+}
