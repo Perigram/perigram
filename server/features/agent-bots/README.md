@@ -21,11 +21,17 @@ Three pieces share one tool catalog:
 - **Tool catalog** (`tools.js`): the curated vocabulary over existing
   service seams — process definition lifecycle
   ([process-definitions](../process-definitions/README.md): list/get/
-  create/update/validate/activate/deactivate, with activation gates
-  returned as structured results), the type vocabulary
+  create/update/validate/activate/deactivate, plus a graph-level save
+  (`update_definition_graph` — nodes, wires, and value inputs without
+  echoing the whole document), with activation gates returned as
+  structured results), the type vocabulary
   ([cts-types](../cts-types/README.md)), instance reads through the
   registry-resolved instance services (party types included, CTS SPEC §13),
-  and compiled action listing/execution. `attach_instances` is chat-run
+  and compiled action listing/execution. The definition tools move
+  authored data only: the activation-written records (`compiled`,
+  `history`, `activated`) are stripped on load and preserved on save —
+  the stored record runs to megabytes, which no model can echo back
+  through the full-replace save. `attach_instances` is chat-run
   only: it validates instances through the support message-write ref seam
   ([support](../support/README.md) inline instance references) and rides
   them on the bot's reply as reference chips; the MCP listing excludes
