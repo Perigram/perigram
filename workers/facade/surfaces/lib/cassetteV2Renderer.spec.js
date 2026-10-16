@@ -565,6 +565,49 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(held.profileSnapshot.section.vertices).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
   });
 
+  it('drives a drawn fillet chip whose point id is not its index', () => {
+    // The drawing/merge flow mints fresh ids (p4 lands first), so a
+    // fillet on that corner must resolve by its vertex slot — parsing the
+    // id as an index dropped it and the placed profile stayed frozen.
+    const sketch = {
+      parameters: { A: 1 },
+      points: [
+        { id: 'p4', x: 0, y: 0 },
+        { id: 'p1', x: 42, y: 0 },
+        { id: 'p2', x: 42, y: 28 },
+        { id: 'p3', x: 0, y: 28 }
+      ],
+      edges: [
+        { from: 'p4', to: 'p1' }, { from: 'p1', to: 'p2' },
+        { from: 'p2', to: 'p3' }, { from: 'p3', to: 'p4' }
+      ],
+      closed: true,
+      modifiers: [{ type: 'fillet', vertexId: 'p4', radius: 'A' }]
+    };
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Drawn hanger',
+      kind: 'hanger',
+      process: 'extruded',
+      parameters: sketch.parameters,
+      occsProfile: occsProfileFromSketch(sketch),
+      sketch
+    });
+    const workpieceOf = (tree) => getCassetteV2Workpieces(tree).find(item => item.id === added.workpieceId);
+    const chainOf = (tree) => occProfileSectionChainedVertices(workpieceOf(tree).profileSnapshot.section);
+
+    const before = chainOf(added.tree);
+    expect(before.length, 'Expected the authored fillet to round the placed chain').toBeGreaterThan(4);
+
+    const driven = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
+      parameters: { A: 2.5 }
+    });
+    expect(chainOf(driven).length).toBeGreaterThan(4);
+    expect(JSON.stringify(chainOf(driven)), 'Expected the chip edit to re-round the chain')
+      .not.toBe(JSON.stringify(before));
+  });
+
   it('builds one face graph by feeding evaluated parent vertices through a Nodi polyline input', () => {
     const initialTree = createCassetteV2GraphTree();
     const { tree } = addCassetteV2GraphChild(initialTree, 'face_1', 2);

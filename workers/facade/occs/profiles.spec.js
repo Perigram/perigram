@@ -124,7 +124,12 @@ describe('OCCS profile helpers', () => {
       { type: 'fillet', vertexId: 'a', radius: 2 },
       { type: 'fillet', vertexId: 'c', radius: 2 }
     ]);
-    expect(occsProfileFromSketch(sketch).section.modifiers).toEqual(sketch.modifiers);
+    // The derived section mirrors the authored modifiers plus each
+    // fillet's slot in the vertex walk.
+    expect(occsProfileFromSketch(sketch).section.modifiers).toEqual([
+      { type: 'fillet', vertexId: 'a', radius: 2, vertexIndex: 0 },
+      { type: 'fillet', vertexId: 'c', radius: 2, vertexIndex: 2 }
+    ]);
   });
 
   it('evaluates expression-bound geometry against the parameter table', () => {
@@ -417,6 +422,33 @@ describe('OCCS profile helpers', () => {
     // No modifiers: the chain is the plain vertex walk.
     expect(occProfileSectionChainedVertices({ vertices: [[0, 0], [5, 0]] }))
       .toEqual([[0, 0], [5, 0]]);
+  });
+
+  it('resolves a fillet by its vertex slot when point ids are not index-aligned', () => {
+    // Merged sketches mint fresh ids, so the id string is identity, not
+    // position: p4 sits first. The derived section carries the slot.
+    const sketch = {
+      points: [
+        { id: 'p4', x: 0, y: 0 },
+        { id: 'p1', x: 42, y: 0 },
+        { id: 'p2', x: 42, y: 28 },
+        { id: 'p3', x: 0, y: 28 }
+      ],
+      edges: [
+        { from: 'p4', to: 'p1' }, { from: 'p1', to: 'p2' },
+        { from: 'p2', to: 'p3' }, { from: 'p3', to: 'p4' }
+      ],
+      closed: true,
+      modifiers: [{ type: 'fillet', vertexId: 'p4', radius: 6 }]
+    };
+    const section = occsProfileFromSketch(sketch).section;
+    expect(section.modifiers).toEqual([{ type: 'fillet', vertexId: 'p4', radius: 6, vertexIndex: 0 }]);
+
+    // The arc lands on the first vertex — id 4 never indexes past the
+    // chain and drops the fillet.
+    const chain = occProfileSectionChainedVertices(section);
+    expect(chain.length).toBeGreaterThan(5);
+    expect(chain).not.toContainEqual([0, 0]);
   });
 
   it('clamps an oversized fillet to the largest arc that fits and stays tangent', () => {    // Radius 40 cannot fit a 42x28 rectangle (tangent distance would
