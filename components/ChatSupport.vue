@@ -1586,10 +1586,11 @@ const startCall = async () => {
     }
 }
 
-// The conversation is an execution point: when bots are subscribed here,
-// the room picks the model they run on — the same conversation profile the
-// bot sheet edits per bot, applied across the conversation's bots. A
-// direct chat with a bot is the same point through a profile-only row
+// The conversation is an execution point: the room picks the model its
+// bots run on, chosen from what the org's chat endpoints actually serve —
+// the profile pins the endpoint, the row stores both. A direct chat with
+// a bot is the same point through a profile-only row (no membership
+// needed); blank falls back to each bot's own brain.
 // (no membership needed).
 const conversationBots = computed(() => {
     const conversation = activeConversation.value;
@@ -1603,15 +1604,24 @@ const conversationBots = computed(() => {
     }
     return [];
 });
-const conversationProfile = computed(() => {
-    const profiles = new Set(conversationBots.value.map(bot => bot.profile || ''))
-    return profiles.size === 1 ? [...profiles][0] : ''
+// Rows pair profile+model; the NUL separator keeps one primitive value for
+// the select while both travel to the row.
+const MODEL_ROW_SEPARATOR = '\u0000';
+const conversationModel = computed(() => {
+    const pins = new Set(conversationBots.value.map(bot => `${bot.profile || ''}${MODEL_ROW_SEPARATOR}${bot.model || ''}`));
+    if (pins.size !== 1) return '';
+    const [pin] = [...pins];
+    return pin.endsWith(MODEL_ROW_SEPARATOR) ? '' : pin;
 });
-const conversationProfileOptions = computed(() => agentBots.chatProfileOptions(t('llm.auto')))
-const setConversationProfile = async (profile) => {
+const conversationModelOptions = computed(() => ([
+    { label: t('llm.auto'), value: '' },
+    ...agentBots.chatModels.map(row => ({ label: row.model, value: `${row.profile}${MODEL_ROW_SEPARATOR}${row.model}` }))
+]));
+const setConversationModel = async (pin) => {
     const key = activeConversation.value?.conversationKey
     if (!key) return
-    await Promise.all(conversationBots.value.map(bot => agentBots.setSubscriptionProfile(bot.id, key, profile || '')))
+    const [profile, model] = String(pin || '').split(MODEL_ROW_SEPARATOR)
+    await Promise.all(conversationBots.value.map(bot => agentBots.setSubscriptionProfile(bot.id, key, profile || '', model || '')))
 }
 
 // Pane-hosted chats open calls as workspace tabs; mobile surfaces keep the
