@@ -2884,6 +2884,38 @@ resolves, and one firing after the manager singleton dies is an uncaught
 error. The sketch editor's teardown now lets the engine's fonts settle
 (plus its redraw delay) before destroying the singleton.
 
+### Agent Notes (2026-10-16, owner review round 12 — the real array-position defects)
+
+Owner: the self-filling fields are the PROFILE ARRAY POSITION SETTINGS,
+not the profile parameters; and a profile with ONE parameter works in
+the profile editor but does nothing from the cassette once placed.
+
+All three reproduced on the live stack with the owner's exact flows:
+
+- The attachment popup's expression fields were wrapped in `<label>`s.
+  A label wrapping more than one control forwards a native click to its
+  first labelable control — the token panel's first parameter button —
+  so FOCUSING a field inserted a phantom `A` token (caught in the trace:
+  a trusted `click` on BUTTON "A" with no mousedown on it). The captions
+  are plain blocks now.
+- `arrayCount`/`arraySpacing`/`arrayEdge` read through falsy `||`:
+  clearing the field (or typing the zero the owner law made legal)
+  round-tripped into the defaults `1`/`120` and rewrote the field under
+  the caret. The relation read is nullish (`??`) now — pinned in
+  cassetteV2Renderer.spec.js.
+- The parameter chip always drove the placed profile (proven live: the
+  embedded chain moves with W/R edits) — but with the profile selected
+  the preview pane was BLANK: workpiece mode has no curves for a
+  profile (it owns no face), so after placing, editing the chip changed
+  nothing visible. A selected profile now previews the assembly it is
+  placed in; `isCassetteV2ProfileWorkpiece` is exported and reused where
+  the designer inlined the same check.
+
+The committed E2E spec covers the owner flow end to end (dialog authoring
+drafts, open profile placed by edge array, spacing field keeps `120` on
+focus / stays empty when cleared / keeps a typed `0`, chip drives the
+drawing, value reaches the profile's table). Diagnostic probes removed.
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 

@@ -147,12 +147,15 @@ definitions and their types die together.
   left the 3D view behind the empty-state icon).
 - `cassette-designer-parameters.spec.js`: the cassette designer's profile
   parameter round-trip — a profile authored through the dialog carries
-  live W/H/R/D chips on its workpiece row, driving a chip re-evaluates
-  the profile geometry in the assembly drawing, the same value reaches
-  the profile's own table on reopen, and the dialog's authoring fields
-  hold partially typed numbers (`1.`, `1.5`) while focused (regression
-  for the per-keystroke normalization that rewrote drafts under the
-  caret and the row chips that drove nothing).
+  live W/H/R/D chips on its workpiece row, the pane with it selected shows
+  the placed geometry, driving a chip re-evaluates the profile in the
+  drawing, the same value reaches the profile's own table on reopen, the
+  dialog's authoring fields hold partially typed numbers (`1.`, `1.5`)
+  while focused, and the array position settings keep the typed text —
+  focusing the spacing field inserts no phantom token, and a cleared or
+  zero value stays the author's text (regression for the label-forwarded
+  token insert, the falsy-default field rewrite, the blank solo pane for
+  a placed profile, and the row chips that drove nothing).
 - `pane-navigation-history.spec.js`: the home workspace's pane navigation
   contract — an in-place tab replacement (list → record) surfaces the pane
   header's Back control and Back restores the replaced content; a new tab
