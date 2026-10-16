@@ -65,8 +65,11 @@ Three pieces share one tool catalog:
 The conversation is a model execution point in every kind: group and
 instance rows carry it on the subscription, a direct chat with a bot
 through a profile-only subscription row (no membership, no wake rules —
-those rows never match the wake scanner's `wakeOn` query), edited from
-the chat's own model select.
+those rows never match the wake scanner's `wakeOn` query). The chat's
+model select lists what the org's chat endpoints actually serve
+(`chatModels` off the LLM seam) and pins both profile and model on the
+row; the run overrides the request's model with it (blank falls back to
+each bot's own brain). Wakes from that conversation inherit its row.
 
 Joining a bot to a room is participant-level (any member, through the
 thread header's bot sheet); human membership keeps the creator-or-admin

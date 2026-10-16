@@ -137,6 +137,10 @@ export async function subscribeBot(auth, body = {}) {
     if (profile && !allowedProfiles.includes(profile)) {
         throw createError({ statusCode: 400, message: `Unknown chat profile: ${profile}` });
     }
+    // The execution point's model choice off the profile's endpoint — the
+    // picker offers exactly what the endpoint serves, so no allowlist
+    // here; an unserved model fails the run with the provider's own error.
+    const model = String(body?.model || '').trim();
     for (const rule of wakeOn || []) {
         if (rule.profile && !allowedProfiles.includes(rule.profile)) {
             throw createError({ statusCode: 400, message: `Unknown chat profile on wake rule: ${rule.profile}` });
@@ -162,9 +166,10 @@ export async function subscribeBot(auth, body = {}) {
             conversationKey: context.conversationKey,
             conversationKind: 'direct',
             organizationId: context.organizationId || auth.organizationId,
-            profile
+            profile,
+            ...(model ? { model } : {})
         });
-        return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true, profile };
+        return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true, profile, ...(model ? { model } : {}) };
     }
     if (context.kind === 'group') {
         await supportService.addBotGroupParticipant(auth, context.groupId, botId);
@@ -175,9 +180,10 @@ export async function subscribeBot(auth, body = {}) {
         conversationKind: context.kind,
         organizationId: context.organizationId || auth.organizationId,
         ...(wakeOn ? { wakeOn } : {}),
-        profile
+        profile,
+        ...(model ? { model } : {})
     });
-    return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true, profile, ...(wakeOn ? { wakeOn } : {}) };
+    return { botId: bot.id, conversationKey: context.conversationKey, subscribed: true, profile, ...(model ? { model } : {}), ...(wakeOn ? { wakeOn } : {}) };
 }
 
 export async function unsubscribeBot(auth, body = {}) {
@@ -327,9 +333,11 @@ export async function listBotContacts(auth, conversationKey = '') {
     }
     const byBot = new Map(subscriptions.map(row => [String(row.botUserId), row]));
     const chatProfiles = await llmService.chatProfiles(auth.organizationId);
+    const chatModels = await llmService.chatModels(auth.organizationId);
     return {
         assistantId: assistant?.id || null,
         chatProfiles,
+        chatModels,
         contacts: bots
             .map(bot => contactRow(bot, byBot.get(String(bot.id)), assistant?.id))
             .sort((a, b) => (b.assistant ? 1 : 0) - (a.assistant ? 1 : 0) || a.name.localeCompare(b.name))

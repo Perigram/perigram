@@ -65,8 +65,11 @@ organization's named model profiles — local or cloud, per capability
 (chat, call summaries, and image endpoints when an image capability
 ships) — never a defaulted cloud endpoint. Model selection happens at the
 execution points and composes: wake rule, conversation, bot, org chat
-route — each optional, each falling back to the next; the conversation
-point is picked in the chat itself, never on the models screen.
+route — each optional, each falling back to the next. The conversation
+point is picked in the chat itself, never on the models screen: the
+picker lists the models the endpoints actually serve, and the choice
+overrides the served model at request time. The models screen
+administers providers and endpoints only.
 
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool

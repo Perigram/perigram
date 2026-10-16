@@ -28,7 +28,7 @@ const { mockedUsers, mockedSupport, mockedRepository, mockedOrganizations, mocke
     mockedOrganizations: { findById: vi.fn() },
     mockedProcessAuth: { resolveProcessAuth: vi.fn(async (auth) => auth) },
     mockedProcessDefinitions: { listActiveWorkflowStates: vi.fn() },
-    mockedLlm: { chatProfileIds: vi.fn(async () => []), chatProfiles: vi.fn(async () => []) }
+    mockedLlm: { chatProfileIds: vi.fn(async () => []), chatProfiles: vi.fn(async () => []), chatModels: vi.fn(async () => []) }
 }));
 
 vi.mock('~/server/features/users/service.js', () => mockedUsers);
@@ -241,10 +241,18 @@ describe('subscribeBot', () => {
             { id: 'cloud-big', model: 'glm-4.7' },
             { id: 'local-fast', model: 'qwen3:30b-a3b' }
         ]);
+        mockedLlm.chatModels.mockResolvedValue([
+            { profile: 'local-fast', model: 'qwen3:4b' },
+            { profile: 'local-fast', model: 'qwen3:30b-a3b' }
+        ]);
         const result = await listBotContacts(AUTH);
         expect(result.chatProfiles).toEqual([
             { id: 'cloud-big', model: 'glm-4.7' },
             { id: 'local-fast', model: 'qwen3:30b-a3b' }
+        ]);
+        expect(result.chatModels).toEqual([
+            { profile: 'local-fast', model: 'qwen3:4b' },
+            { profile: 'local-fast', model: 'qwen3:30b-a3b' }
         ]);
     });
 

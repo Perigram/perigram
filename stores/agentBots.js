@@ -15,6 +15,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
     const forbidden = ref(false);
     const contacts = ref([]);
     const chatProfiles = ref([]);
+    const chatModels = ref([]);
     const assistantId = ref(null);
 
     const canManageBots = computed(() => authStore.hasTenantPermission?.('users', 'admin'));
@@ -32,6 +33,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
             const response = await $fetch(`/api/agent-bots/contacts${query}`);
             contacts.value = response?.contacts || [];
             chatProfiles.value = response?.chatProfiles || [];
+            chatModels.value = response?.chatModels || [];
             assistantId.value = response?.assistantId || null;
             loaded.value = true;
         } catch (err) {
@@ -92,13 +94,13 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         }
     }
 
-    async function setSubscriptionProfile(botId, conversationKey, profile) {
+    async function setSubscriptionProfile(botId, conversationKey, profile, model = '') {
         await $fetch('/api/agent-bots/subscriptions', {
             method: 'POST',
-            body: { botId, conversationKey, profile }
+            body: { botId, conversationKey, profile, model }
         });
         contacts.value = contacts.value.map(bot => (
-            String(bot.id) === String(botId) ? { ...bot, profile } : bot
+            String(bot.id) === String(botId) ? { ...bot, profile, model } : bot
         ));
     }
 
@@ -138,6 +140,7 @@ export const useAgentBotsStore = defineStore('agentBots', () => {
         forbidden,
         contacts,
         chatProfiles,
+        chatModels,
         assistantId,
         canManageBots,
         refresh,

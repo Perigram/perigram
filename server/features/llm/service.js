@@ -86,7 +86,7 @@ const CHAT_CAPABILITY = 'chat';
  * default, then the environment default (an unrouted org runs on env).
  * Chat-kind profiles only — an image endpoint never serves a conversation.
  */
-export async function resolveLlmConfig(organizationId = null, capability = CHAT_CAPABILITY, { profileId = '' } = {}) {
+export async function resolveLlmConfig(organizationId = null, capability = CHAT_CAPABILITY, { profileId = '', model = '' } = {}) {
     const setting = await orgLlmSetting(organizationId);
     const profiles = setting?.profiles && typeof setting.profiles === 'object' ? setting.profiles : {};
     // An explicit profile (a bot's declared brain) wins before any route;
@@ -94,9 +94,12 @@ export async function resolveLlmConfig(organizationId = null, capability = CHAT_
     // through to the route chain so a stale reference degrades to the
     // org default instead of breaking the bot.
     const explicitId = String(profileId || '').trim();
+    // The execution point's model override: the profile still owns the
+    // endpoint; the conversation picks which served model answers.
+    const modelOverride = String(model || '').trim();
     if (explicitId && profiles[explicitId]?.kind === 'chat') {
         const config = profileWireConfig(profiles[explicitId]);
-        if (config.provider !== 'none') return config;
+        if (config.provider !== 'none') return modelOverride ? { ...config, model: modelOverride } : config;
     }
     const routes = setting?.routes && typeof setting.routes === 'object' ? setting.routes : {};
     const family = String(capability || CHAT_CAPABILITY).split('.')[0];
@@ -104,9 +107,10 @@ export async function resolveLlmConfig(organizationId = null, capability = CHAT_
     const profile = routedId ? profiles[routedId] : null;
     if (profile?.kind === 'chat') {
         const config = profileWireConfig(profile);
-        if (config.provider !== 'none') return config;
+        if (config.provider !== 'none') return modelOverride ? { ...config, model: modelOverride } : config;
     }
-    return envWireConfig();
+    const env = envWireConfig();
+    return modelOverride ? { ...env, model: modelOverride } : env;
 }
 
 /** The org's chat-kind profile ids — bot model-override validation. */
@@ -287,18 +291,25 @@ export async function listEndpointModels(auth = {}, { provider = '', baseUrl = '
         throw createError({ statusCode: 400, message: 'Provider must be ollama, anthropic, or openai' });
     }
     if (!resolvedBaseUrl) throw createError({ statusCode: 400, message: 'Base URL is required' });
-    // Dialects lie: an OpenAI-shaped router behind an "ollama" pick, a base
-    // URL that already ends in /v1, a minimal server with one listing
-    // route. Probe the candidate paths in order and accept either listing
-    // shape, so the picker fills instead of dead-ending on the first 404.
+    const { models, endpoint } = await probeEndpointModels(resolvedProvider, resolvedBaseUrl, resolvedApiKey);
+    return { models, endpoint };
+}
+
+/**
+ * Dialects lie: an OpenAI-shaped router behind an "ollama" pick, a base
+ * URL that already ends in /v1, a minimal server with one listing route.
+ * Probe the candidate paths in order and accept either listing shape, so
+ * model pickers fill instead of dead-ending on the first 404.
+ */
+async function probeEndpointModels(provider, baseUrl, apiKey) {
     const attempts = [];
-    for (const url of listingCandidates(resolvedProvider, resolvedBaseUrl)) {
+    for (const url of listingCandidates(provider, baseUrl)) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
         try {
             const response = await fetch(url, {
                 method: 'GET',
-                headers: wireHeaders(resolvedProvider, resolvedApiKey || undefined),
+                headers: wireHeaders(provider, apiKey || undefined),
                 signal: controller.signal
             });
             clearTimeout(timeout);
@@ -319,6 +330,42 @@ export async function listEndpointModels(auth = {}, { provider = '', baseUrl = '
         statusCode: 502,
         message: `No model listing found (tried ${attempts.join('; ')})`
     });
+}
+
+const CHAT_MODELS_TTL_MS = 60_000;
+const chatModelsCache = new Map();
+
+/**
+ * The models each chat profile's endpoint actually serves — the chat
+ * execution point's picker rows (the profile owns the endpoint; the
+ * conversation picks the model). Listed live with a short cache; a down
+ * endpoint simply contributes no rows.
+ */
+export async function chatModels(organizationId = null) {
+    const setting = await orgLlmSetting(organizationId);
+    const profiles = setting?.profiles && typeof setting.profiles === 'object' ? setting.profiles : {};
+    const rows = [];
+    await Promise.all(Object.entries(profiles)
+        .filter(([, profile]) => profile?.kind === 'chat')
+        .map(async ([id, profile]) => {
+            const config = profileWireConfig(profile);
+            if (config.provider === 'none' || !config.baseUrl) return;
+            const key = `${config.provider}::${config.baseUrl}::${config.apiKey ? 'keyed' : 'open'}`;
+            const cached = chatModelsCache.get(key);
+            let models;
+            if (cached && Date.now() - cached.at < CHAT_MODELS_TTL_MS) {
+                models = cached.models;
+            } else {
+                try {
+                    models = (await probeEndpointModels(config.provider, config.baseUrl, config.apiKey)).models;
+                } catch {
+                    return;
+                }
+                chatModelsCache.set(key, { at: Date.now(), models });
+            }
+            for (const model of models) rows.push({ profile: String(id), model });
+        }));
+    return rows;
 }
 
 function listingCandidates(provider, baseUrl) {
@@ -714,8 +761,8 @@ async function openCompletion(config, requestBodyJson) {
  * 502 when the endpoint is unreachable, answers non-2xx, or returns no
  * completion. The agent loop that owns rounds lives with the consumer.
  */
-export async function chatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', system = '', messages = [], tools = [] }) {
-    const config = await resolveLlmConfig(organizationId, capability, { profileId });
+export async function chatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', model = '', system = '', messages = [], tools = [] }) {
+    const config = await resolveLlmConfig(organizationId, capability, { profileId, model });
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
     }
@@ -901,8 +948,8 @@ async function* streamAnthropic(response, keepAlive, options = {}) {
  * render partial output use `chatCompletion`; the agent loop streams only
  * what it will keep.
  */
-export async function* streamChatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', system = '', messages = [], tools = [] }) {
-    const config = await resolveLlmConfig(organizationId, capability, { profileId });
+export async function* streamChatCompletion({ organizationId = null, capability = CHAT_CAPABILITY, profileId = '', model = '', system = '', messages = [], tools = [] }) {
+    const config = await resolveLlmConfig(organizationId, capability, { profileId, model });
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
     }

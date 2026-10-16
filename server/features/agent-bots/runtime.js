@@ -106,7 +106,7 @@ export async function resolveTargetBots(context, message) {
         const [row] = await botRepository.findSubscriptionsByConversation([
             String(message.conversationKey || context.conversationKey || '')
         ]);
-        return [{ ...bots[0], profile: String(row?.profile || '') }];
+        return [{ ...bots[0], profile: String(row?.profile || ''), model: String(row?.model || '') }];
     }
 
     const subscriptions = await botRepository.findSubscriptionsByConversation(candidateConversationKeys(context, message));
@@ -115,7 +115,7 @@ export async function resolveTargetBots(context, message) {
     const byBot = new Map();
     for (const row of subscriptions) {
         const botUserId = String(row.botUserId);
-        if (!byBot.has(botUserId)) byBot.set(botUserId, { botUserId, profile: String(row.profile || '') });
+        if (!byBot.has(botUserId)) byBot.set(botUserId, { botUserId, profile: String(row.profile || ''), model: String(row.model || '') });
     }
     return [...byBot.values()];
 }
@@ -129,6 +129,7 @@ function systemPrompt(botName, organizationName) {
         'Authoring discipline: read before writing (get_process_definition / list_types / list_instances), always validate_process_definition before activate_process_definition, and treat activation gates (migration plans, type death) as confirmations to surface and resolve — never to bypass.',
         'Attach instances you handled with attach_instances so the conversation shows them as reference chips.',
         'Report tools truthfully: claim an action only from its returned result, and state failures and their error as they are — never invent ids, statuses, or completions.',
+        'Instance work runs through the action manifest: list_actions to see create/update/delete/link/unlink, then run_action with the action id. Never claim an ability is missing before listing the actions.',
         'Answer the conversation directly when no tool is needed. Keep replies short and concrete.'
     ].join(' ');
 }
@@ -146,11 +147,11 @@ function historyMessages(messages = [], botUserId) {
  * One streamed round: consumes the LLM stream, forwarding reasoning and
  * answer deltas as they grow, and returns the assembled neutral message.
  */
-async function streamedRound({ organizationId, profileId, system, messages, tools, onThinking = null, onText = null }) {
+async function streamedRound({ organizationId, profileId, model = '', system, messages, tools, onThinking = null, onText = null }) {
     let thought = '';
     let full = '';
     let message = null;
-    for await (const event of llmService.streamChatCompletion({ organizationId, profileId, system, messages, tools })) {
+    for await (const event of llmService.streamChatCompletion({ organizationId, profileId, model, system, messages, tools })) {
         if (event.type === 'thinking') {
             thought += event.text;
             if (onThinking) onThinking(thought);
@@ -177,7 +178,7 @@ async function streamedRound({ organizationId, profileId, system, messages, tool
  * stay visible through `stream`; a round that ends in tool calls retracts
  * only its own answer text (only the final answer persists).
  */
-async function runAgentLoop({ botAuth, system, conversation, profileId = '', stream = null }) {
+async function runAgentLoop({ botAuth, system, conversation, profileId = '', model = '', stream = null }) {
     const organizationId = botAuth.organizationId;
     const tools = chatToolDescriptors();
     // Per-run side channel: chat-only tools accumulate state here that the
@@ -191,6 +192,7 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', str
         const assistant = await streamedRound({
             organizationId,
             profileId,
+            model,
             system,
             messages: conversation,
             tools,
@@ -261,7 +263,7 @@ async function conversationHistory(conversationKey, botUserId) {
  * assistant text posted through the auth-checked send path. Loop-level
  * failures surface as a short reply so the room never stares at silence.
  */
-export async function runBotReply(botUserId, context, message, conversationProfile = '') {
+export async function runBotReply(botUserId, context, message, conversationProfile = '', conversationModel = '') {
     const lockKey = `${botUserId}:${message.conversationKey}`;
     if (inFlight.has(lockKey)) {
         console.warn('[AGENT-BOTS] reply skipped, another run already in flight:', lockKey);
@@ -275,13 +277,15 @@ export async function runBotReply(botUserId, context, message, conversationProfi
         stream.thinking('');
         const organizationId = botAuth.organizationId;
         const profileId = conversationProfile || botAuth.botProfile;
-        if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId }))) {
+        const model = conversationModel || '';
+        if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId, model }))) {
             await sendReply(botAuth, context, message, 'LLM provider is not configured for this organization.');
             return;
         }
         const { text, instanceRefs, agent } = await runAgentLoop({
             botAuth,
             profileId,
+            model,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
             conversation: await conversationHistory(message.conversationKey, botUserId),
             stream
@@ -354,7 +358,8 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the bot's own, then the org route.
         const profileId = ruleProfile || String(subscription.profile || '') || botAuth.botProfile;
-        if (!(await llmService.isLlmAvailable(botAuth.organizationId, 'chat', { profileId }))) return;
+        const model = String(subscription.model || '');
+        if (!(await llmService.isLlmAvailable(botAuth.organizationId, 'chat', { profileId, model }))) return;
         const service = getAppRegistry().getInstanceService(String(event.targetType || ''));
         const instance = await service?.processGetById?.(String(event.targetId || ''), botAuth).catch(() => null);
         // An unreadable or missing target skips the wake: this is the
@@ -371,6 +376,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         const { text, instanceRefs, agent } = await runAgentLoop({
             botAuth,
             profileId,
+            model,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
             conversation: [
                 ...await conversationHistory(subscription.conversationKey, subscription.botUserId),
