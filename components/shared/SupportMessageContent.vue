@@ -11,7 +11,10 @@ const props = defineProps({
   viewerUserId: { type: String, default: '' },
   // Preview mode for inbox rows: everything renders on one line and crops,
   // with text spans carrying the ellipsis.
-  singleLine: { type: Boolean, default: false }
+  singleLine: { type: Boolean, default: false },
+  // Agent answers render through the shared markdown pipeline (see
+  // shared/markdown.js) instead of plain spans.
+  markdown: { type: Boolean, default: false }
 });
 
 const { t } = useI18n();
