@@ -1054,8 +1054,9 @@ the answer produced so far stays. When the reply lands, the same
 activity persists on the message (`agent` provenance) and renders
 attached above it, collapsed — thinking and tool history stay with the
 answer in the transcript, and an agent answer renders markdown as room
-content (no bubble) through the shared sanitized pipeline (plain text on
-SSR, formatted on hydration). Bots never ride the human typing line.
+content (no bubble) in the prose document voice through the shared
+sanitized pipeline (plain text on SSR, formatted on hydration). Bots
+never ride the human typing line.
 Conversations with bots carry a model select above the composer: it
 lists the models the org's chat endpoints actually serve (not the
 profiles — the endpoint's own model listing) and pins the choice on the

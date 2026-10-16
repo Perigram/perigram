@@ -75,9 +75,9 @@ and endpoints only.
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool
 invocation appears as it starts and settles; the final answer streams as
-it is produced and renders as markdown, as room content rather than a
-chat bubble; the run's reasoning and tool history persist attached to
-the answer. The room can stop a run in flight — generation ends and the
+it is produced and renders as markdown in the app's prose document
+voice, as room content rather than a chat bubble; the run's reasoning
+and tool history persist attached to the answer. The room can stop a run in flight — generation ends and the
 answer produced so far is what stays. Bots never ride the human typing
 line — the run's own activity is its presence.
 

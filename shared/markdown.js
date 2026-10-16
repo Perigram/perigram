@@ -15,7 +15,10 @@ export function isMarkdownDocument({ mimeType = '', name = '' } = {}) {
 // Markdown source to sanitized HTML. Server-side there is no DOM, so the
 // render is the empty string there — the module stays import-safe in
 // Node (the render dependencies only run behind the window guard).
+// Parsed as GFM with line breaks: a single newline is a hard break, the
+// way GitHub-flavored documents and model answers read — strict
+// CommonMark would glue those lines into one paragraph.
 export function renderMarkdown(source = '') {
   if (!source || typeof window === 'undefined') return '';
-  return DOMPurify.sanitize(marked.parse(source));
+  return DOMPurify.sanitize(marked.parse(source, { gfm: true, breaks: true }));
 }

@@ -34,7 +34,9 @@ rows already live as members.
   an in-flight bot run (generation ends; the answer produced so far is
   what stays, and the live activity clears).
 - [ ] WAITING — owner verification on the live stack: the bot's answer
-  renders markdown as room content, not inside a chat bubble.
+  renders markdown as room content, not inside a chat bubble, in the
+  prose document voice with document typography (headings, lists,
+  tables) and GFM line breaks.
 - [ ] WAITING — owner verification on the live stack: the conversation
   model select is never blank — it shows the room's effective model.
 - [ ] WAITING — owner verification on the live stack: the transcript does
