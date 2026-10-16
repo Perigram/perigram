@@ -1591,7 +1591,6 @@ const startCall = async () => {
 // the profile pins the endpoint, the row stores both. A direct chat with
 // a bot is the same point through a profile-only row (no membership
 // needed); blank falls back to each bot's own brain.
-// (no membership needed).
 const conversationBots = computed(() => {
     const conversation = activeConversation.value;
     if (!conversation) return [];
