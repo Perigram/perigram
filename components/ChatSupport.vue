@@ -1571,13 +1571,14 @@ const groupMemberIds = ref([])
 const groupSaving = ref(false)
 const typingName = ref('')
 const typingIndicatorRef = ref(null)
-// The agent's live run while it works (server `bot_thinking` / `bot_tool` /
-// `bot_stream` events): `{ userId, name, thinking, tools, answer }` or null.
-// The persisted message replaces it.
+// The agent's live run while it works (server `bot_activity` /
+// `bot_stream` events): `{ userId, name, steps, answer }` or null, the
+// steps being the run's chronology so far. The persisted message replaces
+// it.
 const agentActivity = ref(null)
 const receiveAgentActivity = (payload, mutate) => {
     if (!agentActivity.value || agentActivity.value.userId !== payload.userId) {
-        agentActivity.value = { userId: payload.userId, name: payload.name || '', thinking: '', tools: [], answer: '' }
+        agentActivity.value = { userId: payload.userId, name: payload.name || '', steps: [], answer: '' }
     }
     mutate(agentActivity.value)
     // A live run never yanks the transcript to the bottom while it works:
@@ -3144,16 +3145,9 @@ watch(
                 receiveTyping(payload)
                 return
             }
-            if (payload?.type === 'bot_thinking') {
-                receiveAgentActivity(payload, activity => { activity.thinking = payload.text || '' })
-                return
-            }
-            if (payload?.type === 'bot_tool') {
-                receiveAgentActivity(payload, (activity) => {
-                    const tool = { id: payload.tool?.id, name: payload.tool?.name || '', status: payload.tool?.status || 'running' }
-                    const index = activity.tools.findIndex(item => item.id === tool.id)
-                    if (index >= 0) activity.tools[index] = tool
-                    else activity.tools.push(tool)
+            if (payload?.type === 'bot_activity') {
+                receiveAgentActivity(payload, activity => {
+                    activity.steps = Array.isArray(payload.steps) ? payload.steps : []
                 })
                 return
             }
