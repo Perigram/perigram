@@ -26,13 +26,14 @@ const portableAliases = {
 const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')
 const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{${cssDeclarations(darkCssVariableTokens)}}`
 
-// Watch-ignore predicate for agent worktrees: chokidar v4 leaks
-// glob-ignored nested events, so the ignore must match paths, not globs.
-// Contract: Development notes in the root README.
-const WORKTREE_WATCH_IGNORE = p => /(^|[\\/])\.agent[-_]w[a-z0-9_-]*([\\/]|$)/i.test(String(p));
+// Watch-ignore predicate for dev-foreign trees — agent worktrees and
+// scratch, `.opencode` tooling state, the `video` renderer tree: chokidar
+// v4 leaks glob-ignored nested events, so the ignore must match paths,
+// not globs. Contract: Development notes in the root README.
+const DEV_WATCH_IGNORE = p => /(^|[\\/])(\.agent[-_]w[a-z0-9_-]*|\.opencode|video)([\\/]|$)/i.test(String(p));
 
 export default defineNuxtConfig({
-    ignore: ['**/.agent-worktrees/**', '**/.agent-wt*/**'],
+    ignore: ['**/.agent-worktrees/**', '**/.agent-wt*/**', '**/.opencode/**', '**/video/**'],
     compatibilityDate: '2025-07-15',
 
     // Home serves at the stable shell route '/home' — the canonical
@@ -158,16 +159,16 @@ export default defineNuxtConfig({
         ssr: {},
         server: {
             watch: {
-                ignored: [WORKTREE_WATCH_IGNORE]
+                ignored: [DEV_WATCH_IGNORE]
             }
         },
         // Dev-only: a user-level `environments` object deroutes the
         // vite 7 SSR build in production. Root README, Development.
         ...(process.env.NODE_ENV === 'development' ? {
             environments: {
-                client: { dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } } },
+                client: { dev: { watch: { ignored: [DEV_WATCH_IGNORE] } } },
                 ssr: {
-                    dev: { watch: { ignored: [WORKTREE_WATCH_IGNORE] } }
+                    dev: { watch: { ignored: [DEV_WATCH_IGNORE] } }
                 }
             }
         } : {}),
@@ -353,7 +354,7 @@ export default defineNuxtConfig({
     nitro: {
         compressPublicAssets: true,
         watchOptions: {
-            ignored: [WORKTREE_WATCH_IGNORE]
+            ignored: [DEV_WATCH_IGNORE]
         },
         alias: {
             ...perigramAliases,
