@@ -49,6 +49,32 @@ function instanceRow(dto) {
     };
 }
 
+// Activation-written records ride the stored document but never the
+// authoring surface: `compiled` (inspection-only snapshot, nulled on every
+// save), `history` (superseded graphs), `activated` (the activation
+// snapshot). The definition tools strip them on load and preserve them on
+// save so a tool loop moves only authored data — the full record runs to
+// megabytes, which no model can echo back through a full-replace save.
+const SERVER_OWNED_DATA_KEYS = ['compiled', 'history', 'activated'];
+
+const authoringData = (data = {}) => Object.fromEntries(
+    Object.entries(data || {}).filter(([key]) => !SERVER_OWNED_DATA_KEYS.includes(key))
+);
+
+/** Authored payload over the stored document, server records preserved. */
+async function saveAuthoring(definitionId, { name = '', data: patch = {} } = {}, auth) {
+    const stored = await processDefinitionsService.getById(definitionId, auth);
+    const data = { ...authoringData(stored?.data), ...authoringData(patch) };
+    for (const key of ['history', 'activated']) {
+        if (stored?.data?.[key] !== undefined) data[key] = stored.data[key];
+    }
+    return await processDefinitionsService.update(
+        definitionId,
+        { ...(name ? { name } : {}), data },
+        auth
+    );
+}
+
 export const TOOL_SPECS = [
     {
         name: 'list_process_definitions',
@@ -65,7 +91,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_process_definition',
-        description: 'Loads one process definition with its full authored semantic records (graph nodes, edges, declarations).',
+        description: 'Loads one definition\'s authored document — the graph (nodes and wired edges), value inputs, declarations. Server-owned activation records (history, snapshots) stay off the wire.',
         inputSchema: {
             type: 'object',
             properties: { definitionId: { type: 'string' } },
@@ -73,25 +99,28 @@ export const TOOL_SPECS = [
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            return await processDefinitionsService.getById(requireString(args.definitionId, 'definitionId'), auth);
+            const json = await processDefinitionsService.getById(requireString(args.definitionId, 'definitionId'), auth);
+            return { ...json, data: authoringData(json?.data) };
         }
     },
     {
         name: 'create_process_definition',
-        description: 'Creates an empty process definition draft (authored data holds only the dataflowVersion marker).',
+        description: 'Creates a process definition draft, optionally seeded with authored data — pass get_process_definition\'s data (without or with changes) to fork an existing process.',
         inputSchema: {
             type: 'object',
-            properties: { name: { type: 'string' } },
+            properties: { name: { type: 'string' }, data: { type: 'object' } },
             required: ['name'],
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            return await processDefinitionsService.create({ name: requireString(args.name, 'name') }, auth);
+            const payload = { name: requireString(args.name, 'name') };
+            if (args.data && typeof args.data === 'object') payload.data = authoringData(args.data);
+            return await processDefinitionsService.create(payload, auth);
         }
     },
     {
         name: 'update_process_definition',
-        description: 'Saves authored semantic records onto a definition (full data replace, exactly like the designer\'s save). data must carry dataflowVersion: 4 — the sole operation protocol; saves without it are rejected. Use get_process_definition first, mutate the returned data, then save it back.',
+        description: 'Saves authored data onto a definition (full authored replace, exactly like the designer\'s save). data must carry dataflowVersion: 4 — the sole operation protocol; saves without it are rejected. Use get_process_definition first, mutate the returned data, then save it back. Server-owned activation records are preserved automatically.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -106,11 +135,36 @@ export const TOOL_SPECS = [
             if (!args.data || typeof args.data !== 'object') {
                 throw createError({ statusCode: 400, message: 'data must be an object' });
             }
-            return await processDefinitionsService.update(
+            return await saveAuthoring(
                 requireString(args.definitionId, 'definitionId'),
                 { ...(args.name ? { name: args.name } : {}), data: args.data },
                 auth
             );
+        }
+    },
+    {
+        name: 'update_definition_graph',
+        description: 'Replaces the definition\'s graph (nodes and wired edges) and optionally its value inputs — the small authoring surface for nodes, wires, and values, without echoing the whole document back. get_process_definition carries the current graph; edge source/target must reference node ids. The rest of the authored document is kept as stored.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                definitionId: { type: 'string' },
+                graph: { type: 'object' },
+                valueInputs: { type: 'object' }
+            },
+            required: ['definitionId', 'graph'],
+            additionalProperties: false
+        },
+        execute: async (args, auth) => {
+            if (!args.graph || typeof args.graph !== 'object') {
+                throw createError({ statusCode: 400, message: 'graph must be an object' });
+            }
+            return await saveAuthoring(requireString(args.definitionId, 'definitionId'), {
+                data: {
+                    graph: args.graph,
+                    ...(args.valueInputs && typeof args.valueInputs === 'object' ? { valueInputs: args.valueInputs } : {})
+                }
+            }, auth);
         }
     },
     {
