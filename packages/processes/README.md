@@ -128,7 +128,9 @@ authoring (`declareClass`/`declareField`/`declareTypeRef` plus
 palette-item drops (record factory + preset), record configuration (the
 same writes the inspector performs, including socket input defaults), and
 port-gated connections (the same `processSocketsCompatible` gate the
-canvas applies, handles minted by `ports.js`). Children wires land
+canvas applies; socket handles — `data:<id>` and the legacy spellings —
+are accepted wherever a bare socket id is, and minted by `ports.js` on
+the stored edge). Children wires land
 child-first — `wireDeclaration(childId, parentId, 'children')` wires the
 child's output into the parent's declare input — and accept type-reference
 children, so an org type's containment may name pack, other registry
@@ -185,7 +187,8 @@ and edge semantics cannot differ between preview and APPLY.
 
 A class node's transient `data.migrate` carries SPEC §11 migration steps
 until the declaration post consumes and clears them. Authored field names are
-labels; `camelCaseId` derives the row key. Declaration binding edges are live
+labels; `camelCaseId` derives the row key (letters and digits in any
+script — a Cyrillic label derives a Cyrillic key). Declaration binding edges are live
 channels interpreted over the declaration graph, while process species records
 persist the resolved type and retain their executable ports.
 

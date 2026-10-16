@@ -59,8 +59,24 @@ and connection tests (SPEC: agent access).
   an unchanged endpoint keeps its stored default through login edits;
   an unreachable endpoint saves modelless and resolves to none until
   a re-save or test reaches it. Pins at execution points are
-   unchanged and keep overriding. This round merges to `local` only;
-   a staging push awaits owner word.
+  unchanged and keep overriding. This round merges to `local` only;
+  a staging push awaits owner word.
+
+### Agent Notes (2026-10-16 — budgets stripped; the guide tells the truth)
+
+- Owner order (second time): no round budget. The chat loop runs until
+  the model answers; the stop control and the provider idle guard are
+  the only terminators. The budget notice and its pinning test are
+  gone; the 16 KB result truncation stays (it protects the model's
+  context, it does not stop work).
+- Live-session defects fixed behind the same order: the seam rejected
+  the `data:<socketId>` handles the guide told agents to send (port
+  lookup is now handle-aware through the one regex home, minted as
+  before on stored edges); `camelCaseId` is Unicode-aware (Cyrillic
+  labels derive keys instead of failing as "has no name").
+- The guide is now a real manual: bare palette ids, label-in-any-script
+  fields, connect's id-is-the-from-node, and the per-kind socket table
+  (`detail:'sockets'`, served off the catalog's own port resolution).
 
 ## Chats rail header: archive, search, one + (owner direction 2026-10-16)
 
