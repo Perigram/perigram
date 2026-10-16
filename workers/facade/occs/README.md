@@ -185,11 +185,21 @@ modules — no platform imports.
   its snapshot re-derives from the authored sketch (the stored section is
   a last-good cache — a transient invalid parameter holds it);
   the workpiece rows edit instance parameters in place, instance values may
-  be cassette expressions — they resolve in the joined scope (the sketch's
-  own table, the other instance values, then the cassette's globals; a
-  bare identifier naming a global reads the global) while the raw
+  be cassette expressions — they resolve in the joined scope where the
+  profile's own table shadows the cassette's globals (inner over outer: a
+  same-named local parameter is never silently overridden by a global,
+  and a bare identifier reads its innermost binding) while the raw
   expression stays stored and the cassette's globals join the evaluation
-  scope but never bake into the stored table. The row's chips are the
+  scope but never bake into the stored table. Parameter names rename in
+  place: a profile parameter's rename moves its key (order preserved)
+  and rewrites every reference as whole identifiers
+  (`renameOccsProfileSketchParameter`), and a cassette global's rename
+  rewrites the whole tree — node parameters and fold angles (the deg
+  suffix survives), workpiece instance values, profile sketches (a
+  sketch field referencing the global rebinds; the sketch's own
+  same-named parameter is its local and stays), and joint placements
+  (`renameCassetteV2TreeParameter`). Invalid or colliding names refuse.
+  The row's chips are the
   shared expression editor (`surfaces/lib/components/expressionEditor.mjs`)
   over the cassette's variables — the token panel offers them, a value
   naming one reads it live — and adopt-on-bind

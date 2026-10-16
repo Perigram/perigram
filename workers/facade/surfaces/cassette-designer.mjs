@@ -14,6 +14,7 @@ import {
   CASSETTE_V2_HARDWARE_FAMILIES,
   cassetteV2AttachableProfileEdgesForTree,
   collectCassetteV2ExpressionIdentifiers,
+  renameCassetteV2TreeParameter,
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument,
   deleteCassetteV2Workpiece,
@@ -41,6 +42,7 @@ import {
   occsProfileFromSketch
 } from '../occs/profiles.js';
 import createExpressionEditor from './lib/components/expressionEditor.mjs';
+import createFieldDraft from './lib/components/fieldDraft.mjs';
 import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
@@ -124,6 +126,7 @@ export default function createSurface({ vue, components, locale, queries, notify
   }
 
   const CassetteExpressionEditor = createExpressionEditor({ vue, components, locale });
+  const parameterNameDraft = createFieldDraft({ vue });
   const CassetteFoldedPreview = createFoldedPreview({ vue, components, locale });
   const ProfileSketchEditor = createSketchEditor({ vue, components, locale });
   const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, InstanceSelect, Button, Checkbox, InputText, Message, ScrollPanel, Select, Tag, Textarea } = components;
@@ -1047,6 +1050,13 @@ export default function createSurface({ vue, components, locale, queries, notify
         updateGlobalParameter(nextGlobalParameterName(), '0');
       };
 
+      // Renaming refactors every reference in the tree (node parameters,
+      // instance values, profile sketches, joint placements); invalid or
+      // colliding names refuse — the row re-renders with the old name.
+      const renameGlobalParameter = (from, to) => {
+        cassetteTree.value = renameCassetteV2TreeParameter(cassetteTree.value, from, to);
+      };
+
       const deleteGlobalParameter = (key) => {
         const nextParameters = { ...globalParameters.value };
         delete nextParameters[key];
@@ -1634,10 +1644,15 @@ export default function createSurface({ vue, components, locale, queries, notify
           })
         ]),
         ...globalParameterEntries.value.map(parameter => h('div', { key: parameter.key, class: 'flex min-w-0 items-center gap-2' }, [
-          h('label', {
-            class: 'w-14 shrink-0 truncate text-technical text-muted',
-            title: parameter.key
-          }, parameter.key),
+          h(InputText, {
+            modelValue: parameterNameDraft.text(`global ${parameter.key}`, parameter.key),
+            ...parameterNameDraft.handlers(`global ${parameter.key}`, parameter.key, next => {
+              renameGlobalParameter(parameter.key, next);
+            }),
+            size: 'small',
+            class: 'w-14 shrink-0 font-mono text-xs',
+            'aria-label': `${t('cassette.v2.profileEditor.parameterName')} ${parameter.key}`
+          }),
           h(CassetteExpressionEditor, {
             class: 'min-w-0 flex-1',
             modelValue: parameter.value,

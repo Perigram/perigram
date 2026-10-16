@@ -1,4 +1,4 @@
-import { resolveOccsExpression } from './expressions.js';
+import { resolveOccsExpression, rewriteOccsExpressionIdentifiers } from './expressions.js';
 
 export const OCCS_PROFILE_KINDS = Object.freeze([
   'hanger',
@@ -393,8 +393,49 @@ export const setOccsProfileSketchClosed = (sketch = {}, closed, fallbackParamete
 // Existing parameters and non-identifier expressions pass through
 // untouched: their formula is the truth and may legitimately move the
 // geometry.
-export const adoptOccsProfileBindingParameter = (sketch = {}, value, currentValue, externalParameters = {}) => {
-  if (typeof value !== 'string') return sketch.parameters || {};
+// Rewrites every expression referencing the given names — point
+// coordinates, hole centers and diameters, fillet radii, parameter
+// values — as whole identifiers. Parameter keys stay put.
+export const rewriteOccsProfileSketchExpressions = (sketch = {}, renames = {}) => {
+  const names = Object.keys(renames || {}).filter(name => name !== renames[name]);
+  if (!names.length) return sketch;
+  const rewrite = (value) => rewriteOccsExpressionIdentifiers(value, renames);
+  return {
+    ...sketch,
+    parameters: Object.fromEntries(
+      Object.entries(sketch.parameters || {}).map(([key, value]) => [key, rewrite(value)])
+    ),
+    points: (sketch.points || []).map(point => ({ ...point, x: rewrite(point.x), y: rewrite(point.y) })),
+    holes: (sketch.holes || []).map(hole => ({
+      ...hole,
+      center: (hole.center || []).map(rewrite),
+      diameter: rewrite(hole.diameter)
+    })),
+    modifiers: (sketch.modifiers || []).map(modifier => ({ ...modifier, radius: rewrite(modifier.radius) }))
+  };
+};
+
+// Renames a sketch parameter in place: the key moves (order preserved)
+// and every expression referencing it is rewritten as whole
+// identifiers. Invalid or colliding names refuse (the caller's row
+// re-renders with the old name).
+export const renameOccsProfileSketchParameter = (sketch = {}, from = '', to = '') => {
+  const source = String(from || '').trim();
+  const next = String(to || '').trim();
+  if (!source || !next || source === next) return sketch;
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(next)) return sketch;
+  if (!Object.prototype.hasOwnProperty.call(sketch.parameters || {}, source)) return sketch;
+  if (Object.prototype.hasOwnProperty.call(sketch.parameters, next)) return sketch;
+  const rewritten = rewriteOccsProfileSketchExpressions(sketch, { [source]: next });
+  return {
+    ...rewritten,
+    parameters: Object.fromEntries(
+      Object.entries(rewritten.parameters).map(([key, value]) => [key === source ? next : key, value])
+    )
+  };
+};
+
+export const adoptOccsProfileBindingParameter = (sketch = {}, value, currentValue, externalParameters = {}) => {  if (typeof value !== 'string') return sketch.parameters || {};
   const identifier = value.trim();
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) return sketch.parameters || {};
   const parameters = sketch.parameters || {};

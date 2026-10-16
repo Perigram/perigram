@@ -3267,6 +3267,35 @@ row (the served module checked fresh); a tab that still mints is running
 the pre-fix surface module — the SPA keeps imported plugin modules, a
 full reload picks the fixed one.
 
+### Agent Notes (2026-10-16, owner review round 16 — in-place renames, inner shadows outer)
+
+Owner: parameter names should rename in place, and a profile parameter
+whose name matches a cassette global "doesn't work".
+
+- The joined scope had the merge order backwards: the cassette's globals
+  overrode the profile's own table, so a chip expression reading a
+  same-named parameter got the global (R=35 instead of the hanger's
+  local R=3). Inner shadows outer now — the profile's table, then the
+  instance values, then the globals; a bare identifier reads its
+  innermost binding.
+- In-place renames, both levels: `rewriteOccsExpressionIdentifiers`
+  (expressions.js — whole identifiers, never substrings, authored
+  spacing/formatting preserved) backs `renameOccsProfileSketchParameter`
+  (key moves order-preserved, every sketch reference rewrites) and
+  `renameCassetteV2TreeParameter` (a global's rename rewrites the tree:
+  node parameters and fold angles with the deg suffix, workpiece
+  instance values, profile sketches — a sketch's own same-named
+  parameter is its local and stays — and joint placements with array
+  count/spacing). Invalid or colliding names refuse; the name fields are
+  the palette's and the editor's rows (fieldDraft-held, commit on
+  Enter/blur).
+
+Validation: facade suites 126/126 (token-boundary rename, tree-wide
+rebind, local-shadows-global chip resolution); E2E on the live stack
+renames A→LENGTH in the palette (the chip's expression follows, the
+field keeps the tree's value) and W→WIDTH in the editor (the row's
+field follows); check-arch + check-docs green.
+
 
 ### Agent Notes (2026-10-15, owner review round 3 — arrays, silent refusals, layer names, fillets, Escape)
 

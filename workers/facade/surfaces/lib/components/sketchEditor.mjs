@@ -12,6 +12,7 @@ import {
   occProfileEntitiesFromSketch,
   occProfileSketchFromEntities,
   occsProfileFromSketch,
+  renameOccsProfileSketchParameter,
   setOccsProfileSketchClosed
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
@@ -753,6 +754,13 @@ export default function createSketchEditor({ vue, components, locale }) {
         commitSketch({ ...normalized, parameters });
       };
 
+      // Renaming refuses invalid and colliding names — the row
+      // re-renders with the old name (the draft dies on commit).
+      const renameParameter = (from, to) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        commitSketch(renameOccsProfileSketchParameter(normalized, from, to));
+      };
+
       const toggleClosed = () => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         commitSketch(setOccsProfileSketchClosed(normalized, !normalized.closed));
@@ -796,7 +804,13 @@ export default function createSketchEditor({ vue, components, locale }) {
             key,
             class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
           }, [
-            h('span', { class: 'font-mono text-xs text-muted-color' }, key),
+            h(InputText, {
+              modelValue: fieldDraft.text(`name ${key}`, key),
+              ...fieldDraft.handlers(`name ${key}`, key, next => { renameParameter(key, next); }),
+              size: 'small',
+              class: 'w-12 font-mono text-xs',
+              'aria-label': `${t('cassette.v2.profileEditor.parameterName')} ${key}`
+            }),
             expressionField(value, `${key}${resolvedHint(sketch, value)}`, next => { applyParameterValue(key, next); }, key),
             h(Button, {
               icon: 'pi pi-times',

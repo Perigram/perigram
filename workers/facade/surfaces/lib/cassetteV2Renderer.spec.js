@@ -24,6 +24,7 @@ import {
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
   normalizeCassetteV2Profile,
+  renameCassetteV2TreeParameter,
   normalizeCassetteV2Trapezoid,
   profileTerminalEdgesForTree,
   renderCassetteV2ToDrawing,
@@ -653,8 +654,66 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(held.profileSnapshot.section.vertices).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
   });
 
-  it('reads a chip value that names a cassette global', () => {
+  it('shadows a profile-local parameter over a same-named global', () => {
+    // The tree carries R=35; the hanger template's own table carries R=3.
+    // A chip expression reading R gets the LOCAL one — inner shadows
+    // outer, never the other way around.
     const sketch = createDefaultOccsProfileSketch();
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger',
+      parameters: sketch.parameters,
+      occsProfile: occsProfileFromSketch(sketch),
+      sketch
+    });
+    const driven = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
+      parameters: { ...sketch.parameters, W: 'R*2' }
+    });
+    const workpiece = getCassetteV2Workpieces(driven).find(item => item.id === added.workpieceId);
+    expect(workpiece.profileSnapshot.section.vertices).toEqual([['0', '0'], ['6', '0'], ['6', '28'], ['0', '28']]);
+  });
+
+  it('renames a cassette global across the tree', () => {
+    const initialTree = createCassetteV2GraphTree();
+    const grown = addCassetteV2GraphChild(initialTree, 'face_1', 2).tree;
+    grown.nodes.find(node => node.id !== 'face_1').foldAngle = 'A/2deg';
+    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch({ A: 100 }), false);
+    const placed = addCassetteV2ProfileWorkpiece(grown, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Strip',
+      parameters: open.parameters,
+      occsProfile: occsProfileFromSketch(open),
+      sketch: open
+    });
+    const relation = getCassetteV2WorkpieceRelations(placed.tree)[0];
+    const arranged = updateCassetteV2WorkpieceRelation(placed.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E2',
+      arrayMode: 'count',
+      arrayCount: 'A/100'
+    });
+    const instance = updateCassetteV2Workpiece(arranged, placed.workpieceId, {
+      parameters: { ...open.parameters, W: 'A/2' }
+    });
+
+    const renamed = renameCassetteV2TreeParameter(instance, 'A', 'LENGTH');
+    expect(Object.keys(renamed.parameters)).toEqual(['LENGTH', 'B', 'R']);
+    // The face's dimension and the child's fold angle rebind (deg suffix
+    // survives).
+    expect(renamed.nodes.find(node => node.id === 'face_1').parameters.defaultLength).toBe('LENGTH');
+    expect(renamed.nodes.find(node => node.id !== 'face_1').foldAngle).toBe('LENGTH/2deg');
+    // The instance value and the array count rebind.
+    const workpiece = getCassetteV2Workpieces(renamed).find(item => item.id === placed.workpieceId);
+    expect(workpiece.parameters.W).toBe('LENGTH/2');
+    expect(getCassetteV2WorkpieceRelations(renamed)[0].pattern.count).toBe('LENGTH/100');
+    // Colliding and invalid names refuse.
+    expect(renameCassetteV2TreeParameter(renamed, 'LENGTH', 'B').parameters.LENGTH).toBe('500');
+    expect(renameCassetteV2TreeParameter(renamed, 'LENGTH', '1X')).toBe(renamed);
+  });
+
+  it('reads a chip value that names a cassette global', () => {    const sketch = createDefaultOccsProfileSketch();
     const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
