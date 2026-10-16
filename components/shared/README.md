@@ -676,11 +676,14 @@ through the shared sanitized markdown pipeline
 ([shared/markdown.js](../../shared/markdown.js)) instead of plain spans —
 instance-token chips still split out first, and the pipeline renders plain
 text on SSR, formatting on hydration. Markdown mode also lays the root out as
-a full-width block column, not the inline-flex chip row, so lists, headings,
-and code blocks render as document content. Text parts wrap with
+a full-width block column in the prose reading voice (`text-prose` — an agent
+answer is a room document; human chat text keeps the UI voice), with document
+typography as role-and-token arbitrary variants on that host: preflight
+zeroes element margins, so the chain restores block spacing, list markers and
+indent, rules, and table borders; headings step up through the `editor` role
+and code reads in the `technical` role. Text parts wrap with
 `overflow-wrap: anywhere` and the `min-w-0`/`max-w-full` chain keeps unbroken
-strings (urls,
-serials) inside the chat bounds instead of overflowing it.
+strings (urls, serials) inside the chat bounds instead of overflowing it.
 Messages carrying `attachment.kind === 'audio'` render a leading voice-message
 chip, which is the inbox preview for attachment-only voice messages. The
 `singleLine` prop is the inbox preview mode: the chip row never wraps and
