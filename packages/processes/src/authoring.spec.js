@@ -6,7 +6,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   createDefinitionAuthoring,
-  createProcessRecordSync
+  createProcessRecordSync,
+  graphIntegrityProblems
 } from './authoring.js';
 import { validateRoundTrip } from './transpiler.js';
 import { compileTreeDeclarations } from './designer.js';
@@ -241,5 +242,32 @@ describe('headless definition authoring', () => {
     sync.syncProcessNode(record);
     expect(record.inputs.map(port => port.id)).toEqual(['in', 'items', 'sheetWidth', 'sheetHeight', 'space', 'sheetCount']);
     expect(record.outputs.map(port => port.id)).toEqual(['completed', 'result']);
+  });
+});
+
+describe('headless layout and graph integrity', () => {
+  it('places every dropped and declared node on a distinct grid slot', () => {
+    const seam = createDefinitionAuthoring(projectedDomain());
+    seam.declareClass({ id: 'cls', typeId: 't-x', name: 'X' });
+    seam.drop('construct', { id: 'n1' });
+    seam.drop('mutate', { id: 'n2' });
+    const positions = seam.definition().graph.nodes.map(node => node.position);
+    expect(positions.length).toBeGreaterThan(2);
+    for (const position of positions) {
+      expect(typeof position?.x).toBe('number');
+      expect(typeof position?.y).toBe('number');
+    }
+    expect(new Set(positions.map(position => `${position.x},${position.y}`)).size).toBe(positions.length);
+  });
+
+  it('flags the structural corruption the save floor rejects', () => {
+    const problems = graphIntegrityProblems({
+      nodes: [{ id: '', type: 'processNode', data: {} }, { id: 'a' }],
+      edges: [{ id: 'e', source: 'ghost', target: 'a' }]
+    });
+    expect(problems).toContain('node 0 has no id');
+    expect(problems.some(problem => problem.includes('no numeric position'))).toBe(true);
+    expect(problems).toContain('edge e references a missing node');
+    expect(graphIntegrityProblems({ nodes: [] })).toEqual([]);
   });
 });

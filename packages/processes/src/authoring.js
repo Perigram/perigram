@@ -360,8 +360,42 @@ const DECLARATION_NODE_KINDS = Object.freeze({
   ctsType: 'type'
 });
 
-function declarationNode(nodeType, { id, data }) {
-  return { id, type: nodeType, position: { x: 0, y: 0 }, data: { refId: id, ...data } };
+function declarationNode(nodeType, { id, data, position }) {
+  return { id, type: nodeType, position: position || { x: 0, y: 0 }, data: { refId: id, ...data } };
+}
+
+// The structural floor every persisted graph must pass: nodes are
+// addressable (unique non-empty id), typed, and placed (numeric position —
+// a canvas node without coordinates renders nowhere), and edges address
+// existing nodes. Semantic validity is the validator's job; this is
+// integrity, enforced at the save seam.
+export function graphIntegrityProblems(graph = null) {
+  if (!graph || typeof graph !== 'object') return ['graph must be an object'];
+  const problems = [];
+  if (!Array.isArray(graph.nodes)) return ['graph.nodes must be an array'];
+  const ids = new Set();
+  graph.nodes.forEach((node, index) => {
+    if (!node || typeof node !== 'object') {
+      problems.push(`node ${index} is not an object`);
+      return;
+    }
+    if (!node.id) problems.push(`node ${index} has no id`);
+    else if (ids.has(node.id)) problems.push(`duplicate node id ${node.id}`);
+    else ids.add(node.id);
+    if (!node.type) problems.push(`node ${node.id || index} has no type`);
+    const position = node.position;
+    if (!position || typeof position.x !== 'number' || typeof position.y !== 'number') {
+      problems.push(`node ${node.id || index} has no numeric position`);
+    }
+  });
+  if (Array.isArray(graph.edges)) {
+    graph.edges.forEach((edge, index) => {
+      if (!edge || !ids.has(edge.source) || !ids.has(edge.target)) {
+        problems.push(`edge ${edge?.id || index} references a missing node`);
+      }
+    });
+  }
+  return problems;
 }
 
 function syncDeclarationRecordFromNode(record, nodeType, data) {
@@ -400,6 +434,15 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
   let contract = createProcessDesignerContract(domain, capabilities);
   const defaultEntityTypeId = () => contract.entityOptions[0]?.value || '';
   let sync = createProcessRecordSync({ contract, defaultEntityTypeId });
+  // Headless drops have no mouse: every new canvas node takes the next slot
+  // of a default grid so a composed definition renders readably (a lane of
+  // declarations, then the graph below) instead of a pile at the origin.
+  let layoutCursor = 0;
+  const nextPosition = () => {
+    const position = { x: (layoutCursor % 4) * 300, y: Math.floor(layoutCursor / 4) * 190 };
+    layoutCursor += 1;
+    return position;
+  };
   // The Apply-shaped composition re-seats the contract once the tree's
   // declarations are posted: the graph composes over the overlaid domain
   // (the draft-overlay rule), exactly as the designer re-projects after
@@ -434,7 +477,7 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
   // the tree authoring gesture behind the palette's declaration items.
   function declare({ id, nodeType, data: nodeData }) {
     if (data.ctsTypes[id]) throw new Error(`Declaration ${id} already exists`);
-    const node = declarationNode(nodeType, { id, data: nodeData });
+    const node = declarationNode(nodeType, { id, data: nodeData, position: nextPosition() });
     declarationNodes.set(id, node);
     data.graph.nodes.push(node);
     data.ctsTypes[id] = syncDeclarationRecordFromNode({ id }, nodeType, node.data);
@@ -583,7 +626,7 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
 
   function registerNode(recordId) {
     if (!data.graph.nodes.some(node => node.id === recordId)) {
-      data.graph.nodes.push({ id: recordId, type: 'processNode', data: { refId: recordId } });
+      data.graph.nodes.push({ id: recordId, type: 'processNode', position: nextPosition(), data: { refId: recordId } });
     }
   }
 

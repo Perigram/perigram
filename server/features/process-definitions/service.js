@@ -26,7 +26,7 @@ import {
   validateRoundTrip,
   authoredSocketDefault
 } from '~/packages/processes/src/index.js';
-import { createDefinitionAuthoring } from '~/packages/processes/src/authoring.js';
+import { createDefinitionAuthoring, graphIntegrityProblems } from '~/packages/processes/src/authoring.js';
 import {
   getBlockFieldSchema,
   getBlockFieldSchemas,
@@ -210,6 +210,18 @@ export async function getById(id, auth) {
   return process.toJSON();
 }
 
+// The save floor: a persisted graph is structurally sound — nodes carry a
+// unique id, a type, and a numeric position; edges address existing nodes.
+// Semantic validity stays the validator's job (drafts may fail it
+// mid-edit); integrity never saves.
+function assertGraphIntegrity(data) {
+  if (!data || typeof data !== 'object' || !data.graph) return;
+  const problems = graphIntegrityProblems(data.graph);
+  if (problems.length) {
+    throw createError({ statusCode: 400, message: `Graph integrity: ${problems.slice(0, 5).join('; ')}` });
+  }
+}
+
 export async function create(payload = {}, auth) {
   const organizationId = payload.organizationId || resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'write');
@@ -218,6 +230,7 @@ export async function create(payload = {}, auth) {
   // v5): the persisted producer-identity rewrite runs on it, and protocol
   // acceptance (v5 lowering + binding checks) validates a copy.
   const domain = await getProjectedDomain(organizationId);
+  assertGraphIntegrity(payload.data || payload);
   const authored = persistedRewrites(structuredClone(payload.data || payload), domain);
   const process = new ProcessDefinition({
     identity: {
@@ -244,6 +257,7 @@ export async function update(id, payload = {}, auth) {
   // One document for its whole life: data edits save in place, draft or
   // active — re-activation records the superseded graph in data.history.
   if (renaming) process.identity.name = renaming;
+  assertGraphIntegrity(payload.data);
   const domain = await getProjectedDomain(process.lineage.organizationId);
   const authored = persistedRewrites(structuredClone(payload.data), domain);
   process.data = authored;
