@@ -78,8 +78,14 @@ export function enrichNestingResult(result = {}, request = {}) {
   };
 }
 
+// The worker returns its placements under `solution.layouts` (lbf output);
+// the value boundary exposes them as the service's `layouts` half.
+export function nestingLayouts(result = {}) {
+  return result.solution?.layouts || result.layouts || [];
+}
+
 export function summarizeNestingResult(result = {}, params = {}) {
-  const layouts = result.solution?.layouts || result.layouts || [];
+  const layouts = nestingLayouts(result);
   const placedCount = layouts.reduce((sum, layout) => sum + (layout.placed_items?.length || layout.items?.length || 0), 0);
   const sheetCount = layouts.length;
   const density = result.solution?.density ?? averageLayoutDensity(layouts);

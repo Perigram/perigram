@@ -14,6 +14,7 @@ import { evaluateOccsCassetteTemplate } from './occs/evaluate.js';
 import {
   buildValueWorkerRequest,
   enrichNestingResult,
+  nestingLayouts,
   summarizeNestingResult
 } from './nesting-projections.js';
 
@@ -106,7 +107,7 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space, shee
     throw error;
   }
   return {
-    layouts: result.layouts || result.data?.layouts || [],
+    layouts: nestingLayouts(result),
     summary: summarizeNestingResult(result, request.params)
   };
 }
