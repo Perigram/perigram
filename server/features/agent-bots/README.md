@@ -31,9 +31,12 @@ Three pieces share one tool catalog:
   (`update_definition_graph` — nodes, wires, and value inputs without
   echoing the whole document), with activation gates returned as
   structured results), the authoring vocabulary
-  (`get_authoring_vocabulary` — the designer's palette groups, node
-  catalog, and typed value-operation sockets served straight off the
-  [processes package](../../../packages/processes/README.md)), the type
+  (`get_authoring_vocabulary` — the compose guide, the designer's palette
+  groups, node catalog, and typed value-operation sockets served straight
+  off the [processes package](../../../packages/processes/README.md)) and
+  headless composition (`compose_process_definition` — ordered designer
+  gestures through the same authoring seam the designer shell drives,
+  with the same legality gates), the type
   vocabulary
   ([cts-types](../cts-types/README.md)), instance reads through the
   registry-resolved instance services (party types included, CTS SPEC §13),
